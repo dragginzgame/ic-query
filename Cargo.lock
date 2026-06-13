@@ -1167,7 +1167,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "candid",
  "clap",
