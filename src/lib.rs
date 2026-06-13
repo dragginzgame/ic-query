@@ -10,6 +10,7 @@ mod runtime;
 mod sns;
 pub mod subnet_catalog;
 mod table;
+mod token_amount;
 
 #[cfg(test)]
 mod test_support;
