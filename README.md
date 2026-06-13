@@ -38,7 +38,8 @@ icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq sns [list|info|token|neurons]
+icq sns [list|info|token]
+icq sns neurons [refresh]
 ```
 
 Use `icq nns <family> help`, `icq nns topology <report> help`, or
@@ -65,6 +66,30 @@ icq nns topology refresh
 List/info commands populate their component cache on first use and print the
 API endpoint they are calling before creating it. Refresh commands force a
 fresh fetch and replace the matching cache.
+
+SNS neuron commands keep quick `--sort api` output on a bounded live query.
+Whole-collection neuron sorts use complete snapshots:
+
+```sh
+icq sns neurons refresh 1
+icq sns neurons 1 --limit 500 --sort stake
+```
+
+Complete SNS neuron snapshots live under
+`.icq/sns/ic/<root-principal>/neurons/full.json`. Failed or capped refresh
+attempts are recorded separately and do not replace the last complete snapshot.
+Refresh shows a same-line stderr progress counter with pages and rows fetched
+when running in a terminal.
+
+Live API neuron listings are capped at 100 rows per call. Cache-backed sorts
+can use larger `--limit` values because they read from the complete local
+snapshot.
+
+Neuron IDs are shortened to eight characters in text tables by default. Use
+`icq sns neurons 1 --verbose` to show full neuron IDs.
+Text output shows current SNS token amounts, including token fee, total supply,
+stake, maturity, and staked maturity, as token decimals with two places. JSON
+keeps the raw base-unit and e8s fields.
 
 ## Development
 
@@ -95,6 +120,14 @@ make major
 
 Each target runs `make test`, bumps `Cargo.toml` and `Cargo.lock`, validates the
 package, commits the release version, and creates an annotated `vX.Y.Z` tag.
+Use the Canic-style release targets to push the release commit and tag after
+the same gate succeeds:
+
+```sh
+make release-patch
+make release-minor
+make release-major
+```
 
 ## Integration
 
@@ -110,5 +143,7 @@ The command namespace is intentionally small:
 - `nns` is implemented.
 - `sns list`, `sns info`, `sns token`, and `sns neurons` are implemented for
   deployed mainnet SNS instances.
+- `sns neurons refresh` caches complete neuron snapshots for cache-backed
+  sorting.
 - Additional IC query families can be added without coupling query code to
   deployment tooling.

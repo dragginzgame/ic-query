@@ -5,6 +5,34 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.0] - 2026-06-13
+
+### Added
+
+- Adds `icq sns neurons refresh <id|root-principal>` to materialize complete
+  SNS governance neuron snapshots under `.icq/sns/ic/<root>/neurons/full.json`.
+- Adds cache-backed `icq sns neurons <id|root-principal> --sort
+  id|stake|maturity|created` over complete neuron snapshots.
+- Adds a shared stderr progress-line helper and uses it to show SNS neuron
+  refresh page/row counters while long refreshes are running.
+- Adds Canic-style `make release-patch`, `make release-minor`,
+  `make release-major`, and `make release-push` helpers.
+
+### Changed
+
+- Keeps default `icq sns neurons` output on the bounded live API path with
+  `--sort api`, while whole-collection sorts require the complete cache.
+- Allows larger `--limit` values for cache-backed SNS neuron sorts while
+  keeping live API queries capped at 100 rows.
+- Records SNS neuron refresh attempts separately from published complete
+  snapshots so failed or capped refreshes do not replace the last complete
+  cache.
+- Shortens SNS neuron IDs to eight characters in text tables by default, with
+  `--verbose` preserving full neuron IDs.
+- Renders current SNS token amounts, including token fee, total supply, stake,
+  maturity, and staked maturity, as two-decimal token amounts in text output
+  while keeping raw base-unit and e8s fields in JSON.
+
 ## [0.0.9] - 2026-06-13
 
 ### Added

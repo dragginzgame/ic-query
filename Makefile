@@ -1,6 +1,7 @@
-.PHONY: help build check ci clean clippy fmt fmt-check install major minor msrv package patch publish test
+.PHONY: help build check ci clean clippy fmt fmt-check install major minor msrv package patch publish release-major release-minor release-patch release-push test
 
 MSRV ?= 1.91.0
+RELEASE_REMOTE ?= origin
 
 help:
 	@echo "Available commands:"
@@ -17,6 +18,10 @@ help:
 	@echo "  patch      Bump patch version, commit, and tag"
 	@echo "  minor      Bump minor version, commit, and tag"
 	@echo "  major      Bump major version, commit, and tag"
+	@echo "  release-patch  Bump patch version, commit, tag, and push"
+	@echo "  release-minor  Bump minor version, commit, tag, and push"
+	@echo "  release-major  Bump major version, commit, tag, and push"
+	@echo "  release-push   Push the current release commit and tag"
 	@echo "  clean      Remove build artifacts"
 
 fmt:
@@ -56,6 +61,25 @@ minor:
 
 major:
 	bash scripts/release/bump-version.sh major
+
+release-patch: patch release-push
+
+release-minor: minor release-push
+
+release-major: major release-push
+
+release-push:
+	@version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \
+	if [ -z "$$version" ]; then \
+		echo "error: failed to read package version from Cargo.toml" >&2; \
+		exit 1; \
+	fi; \
+	tag="v$$version"; \
+	if ! git rev-parse --verify --quiet "refs/tags/$$tag" >/dev/null; then \
+		echo "error: expected release tag $$tag to exist before push" >&2; \
+		exit 1; \
+	fi; \
+	git push "$(RELEASE_REMOTE)" HEAD "$$tag"
 
 build:
 	cargo build --all-targets --all-features --locked

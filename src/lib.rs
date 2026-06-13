@@ -4,6 +4,7 @@ mod duration;
 mod ic_registry;
 mod nns;
 mod output;
+mod progress;
 mod project;
 mod runtime;
 mod sns;

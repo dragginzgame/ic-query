@@ -17,32 +17,45 @@ Those caches use JSON files, schema versions, refresh locks, and atomic
 replacement.
 
 SNS support currently includes live deployed-SNS listing, `sns info`,
-`sns token`, and bounded `sns neurons` queries. SNS neurons do not yet have a
-complete local snapshot cache. Sorting or ranking neurons across the full SNS
-collection is therefore not implemented as authoritative behavior.
+`sns token`, bounded `sns neurons` queries, and the first complete
+full-collection SNS neuron snapshot refresh path. `icq sns neurons refresh`
+writes `.icq/sns/ic/<root-principal>/neurons/full.json` only after the SNS
+governance API is exhausted. Failed and capped attempts leave the published
+complete cache untouched.
 
-The intended 0.1 direction is to reuse the existing cache-file primitives while
-introducing a more general snapshot abstraction that can later be backed by
-SQLite without changing CLI behavior.
+Cache-backed SNS neuron sorting is implemented for `id`, `stake`, `maturity`,
+and `created`. The default `api` sort remains a bounded live query.
+Refresh emits a same-line stderr progress counter with pages and rows fetched
+when stderr is attached to a terminal. Text neuron tables shorten neuron IDs to
+eight characters by default; `--verbose` preserves full IDs. Text output
+renders current SNS token amounts, including fee, supply, stake, and maturity,
+as two-decimal token amounts while JSON keeps raw base units.
+
+The first implementation reuses the existing cache-file primitives directly in
+the SNS report layer. The reusable cross-command snapshot abstraction remains
+open follow-through.
 
 ## Implementation Checklist
 
 - [ ] Add a reusable snapshot cache module with logical `SnapshotKey` values.
 - [ ] Add a `SnapshotEnvelope<T>` carrying schema, provenance, scope, and
       completeness metadata.
-- [ ] Add JSON backend path encoding under `.icq/`.
-- [ ] Add refresh-attempt files separate from published complete snapshots.
-- [ ] Add generic refresh locking and atomic complete-snapshot commit.
+- [x] Add JSON backend path encoding under `.icq/`.
+- [x] Add refresh-attempt files separate from published complete snapshots.
+- [x] Add refresh locking and atomic complete-snapshot commit for SNS neurons.
 - [ ] Add a generic paged collection refresh helper.
-- [ ] Implement SNS neuron full-collection paging.
-- [ ] Add `icq sns neurons refresh <id|root-principal>`.
-- [ ] Preserve previous complete SNS neuron snapshots when a page fails.
-- [ ] Reject incomplete attempts for global sort/ranking commands.
-- [ ] Add client-side SNS neuron sorting over complete snapshots.
+- [x] Implement SNS neuron full-collection paging.
+- [x] Add `icq sns neurons refresh <id|root-principal>`.
+- [x] Preserve previous complete SNS neuron snapshots when a page fails.
+- [x] Reject incomplete attempts for global sort/ranking commands.
+- [x] Add client-side SNS neuron sorting over complete snapshots.
+- [x] Add terminal progress output for long SNS neuron refreshes.
+- [x] Compact SNS neuron IDs in text tables with a `--verbose` full-ID escape
+      hatch.
 - [ ] Add tests for schema rejection, failed refresh preservation, stale lock
       handling, and complete-only sorting.
-- [ ] Update README cache documentation once the command surface lands.
-- [ ] Record implementation deltas in this file before 0.1 closeout.
+- [x] Update README cache documentation once the command surface lands.
+- [x] Record implementation deltas in this file before 0.1 closeout.
 
 ## Current 0.0.x Inputs
 
@@ -53,8 +66,9 @@ The following already-landed work informs 0.1:
   refresh commands and atomic replacement.
 - `icq sns list` preserves SNS-W deployment order for numeric ids.
 - `icq sns token` performs bounded token metadata reads.
-- `icq sns neurons` performs bounded `list_neurons` reads with clap-validated
-  `--limit` and `--owner`.
+- `icq sns neurons` performs bounded `list_neurons` reads with
+  semantically-validated `--limit` and `--owner`; the 100-row cap applies to
+  live API sorting, while cache-backed sorts can show larger local snapshots.
 - The SNS governance `list_neurons` API exposes `of_principal`, `limit`, and
   `start_page_at`, but no caller-selected ordering field.
 
@@ -62,12 +76,17 @@ The following already-landed work informs 0.1:
 
 1. Whether missing complete SNS neuron snapshots should auto-refresh on first
    complete-only sort or require an explicit `refresh` command.
+   Current implementation requires an explicit `refresh` command.
 2. The default page size for complete SNS neuron refresh.
+   Current implementation defaults to 100.
 3. Whether owner-scoped neuron snapshots are in scope for the first 0.1 slice
    or deferred until full snapshots are stable.
+   Current implementation defers owner-scoped snapshots.
 4. Whether refresh attempts should retain partial rows for debugging or only
    retain progress/error metadata.
+   Current implementation retains progress/error metadata only.
 5. Whether a cross-SNS aggregate command belongs in 0.1 or a later release.
+   Current implementation defers cross-SNS aggregation.
 
 ## Known Risks
 
@@ -83,5 +102,11 @@ The following already-landed work informs 0.1:
 
 ## Validation Status
 
-No 0.1 implementation has landed yet. This documentation was added as the
-planning baseline for the snapshot cache work.
+Current focused validation:
+
+```text
+cargo check --all-targets --all-features --locked
+cargo test sns --locked
+```
+
+Both passed after the first SNS neuron cache slice.

@@ -1,4 +1,6 @@
 use super::*;
+use crate::test_support::temp_dir;
+use std::fs;
 
 const ROOT_A: &str = "be2us-64aaa-aaaaa-qaabq-cai";
 const GOVERNANCE_A: &str = "bkyz2-fmaaa-aaaaa-qaaaq-cai";
@@ -98,8 +100,8 @@ fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     assert_eq!(report.token_name, "Fixture Token");
     assert_eq!(report.token_symbol, "FIX");
     assert_eq!(report.decimals, 8);
-    assert_eq!(report.transfer_fee, "10000");
-    assert_eq!(report.total_supply, "1000000000");
+    assert_eq!(report.transfer_fee, "10_000");
+    assert_eq!(report.total_supply, "1_000_000_000");
     assert_eq!(report.minting_account_owner.as_deref(), Some(GOVERNANCE_A));
     assert_eq!(
         report.minting_account_subaccount_hex.as_deref(),
@@ -111,9 +113,14 @@ fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
         && row.value_type == "bool"
         && row.value == serde_json::json!(true)));
     assert!(text.contains("token_symbol: FIX"));
+    assert!(text.contains("transfer_fee: 0.00"));
+    assert!(text.contains("total_supply: 10.00"));
+    assert!(!text.contains("10_000"));
+    assert!(!text.contains("1_000_000_000"));
     assert!(text.contains("ledger_index_canister_id: bw4dl-smaaa-aaaaa-qaacq-cai"));
     assert!(text.contains("ICRC-1"));
     assert!(text.contains("icrc1:name"));
+    assert!(text.contains("icrc1:fee"));
     assert!(text.contains("icrc1:logo"));
     assert!(text.contains("true"));
     assert!(!text.contains("data:image"));
@@ -159,7 +166,7 @@ fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert_eq!(report.requested_limit, 10);
     assert_eq!(report.owner_principal_id.as_deref(), Some(GOVERNANCE_A));
     assert_eq!(report.neuron_count, 1);
-    assert_eq!(report.neurons[0].neuron_id, "00010203");
+    assert_eq!(report.neurons[0].neuron_id, "0001020304");
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 123);
     assert_eq!(report.neurons[0].maturity_e8s_equivalent, 456);
     assert_eq!(report.neurons[0].staked_maturity_e8s_equivalent, Some(789));
@@ -168,7 +175,140 @@ fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert!(text.contains("requested_limit: 10"));
     assert!(text.contains("owner_principal_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
     assert!(text.contains("00010203"));
+    assert!(!text.contains("0001020304"));
+    assert!(text.contains("STAKE"));
+    assert!(text.contains("MATURITY"));
+    assert!(text.contains("STAKED_MATURITY"));
+    assert!(!text.contains("STAKE_E8S"));
+    assert!(!text.contains("MATURITY_E8S"));
+    assert!(text.contains("0.00"));
     assert!(text.contains("2026-06-01T00:00:00Z"));
+}
+
+#[test]
+fn sns_neurons_text_formats_e8s_as_token_decimals() {
+    assert_eq!(base_units_decimal_text("0", 8), "0.00");
+    assert_eq!(base_units_decimal_text("000000000", 8), "0.00");
+    assert_eq!(base_units_decimal_text("10_000", 8), "0.00");
+    assert_eq!(
+        base_units_decimal_text("100_923_109_141_460", 8),
+        "1009231.09"
+    );
+    assert_eq!(base_units_decimal_text("500000", 8), "0.01");
+    assert_eq!(base_units_decimal_text("123456789", 8), "1.23");
+    assert_eq!(base_units_decimal_text("123500000", 8), "1.24");
+    assert_eq!(base_units_decimal_text("3000000000000", 8), "30000.00");
+    assert_eq!(base_units_decimal_text("123", 0), "123.00");
+    assert_eq!(base_units_decimal_text("123", 1), "12.30");
+    assert_eq!(base_units_decimal_text("123", 2), "1.23");
+    assert_eq!(base_units_decimal_text("999", 3), "1.00");
+    assert_eq!(base_units_decimal_text("not-a-number", 8), "not-a-number");
+    assert_eq!(e8s_decimal_text(0), "0.00");
+    assert_eq!(e8s_decimal_text(123), "0.00");
+    assert_eq!(e8s_decimal_text(499_999), "0.00");
+    assert_eq!(e8s_decimal_text(500_000), "0.01");
+    assert_eq!(e8s_decimal_text(100_000_000), "1.00");
+    assert_eq!(e8s_decimal_text(123_456_789), "1.23");
+    assert_eq!(e8s_decimal_text(123_500_000), "1.24");
+    assert_eq!(e8s_decimal_text(3_000_000_000_000), "30000.00");
+    assert_eq!(optional_e8s_decimal_text(None), "-");
+    assert_eq!(optional_e8s_decimal_text(Some(50_000_000)), "0.50");
+}
+
+#[test]
+fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
+    let mut request = neurons_request("1");
+    request.owner_principal_id = Some(GOVERNANCE_A.to_string());
+    request.verbose = true;
+
+    let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
+        .expect("sns neurons report");
+    let text = sns_neurons_report_text(&report);
+
+    assert!(report.verbose);
+    assert!(text.contains("verbose: yes"));
+    assert!(text.contains("0001020304"));
+}
+
+#[test]
+fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
+    let root = temp_dir("ic-query-sns-neurons-refresh");
+    let request = SnsNeuronsRefreshRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: "1".to_string(),
+        icp_root: root.clone(),
+        page_size: 2,
+        max_pages: None,
+    };
+
+    let refresh = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect("refresh neurons");
+    let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
+    let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    let lock_path = sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A);
+
+    assert!(cache_path.is_file());
+    assert!(attempt_path.is_file());
+    assert!(!lock_path.exists());
+    assert!(refresh.complete);
+    assert_eq!(refresh.page_count, 3);
+    assert_eq!(refresh.neuron_count, 3);
+
+    let mut cached_request = neurons_request("1");
+    cached_request.icp_root = Some(root.clone());
+    cached_request.sort = SnsNeuronsSort::Stake;
+    cached_request.limit = 2;
+    let report =
+        build_sns_neurons_report_with_source(&cached_request, &PagedFixtureSnsNeuronsSource)
+            .expect("cached neurons report");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.sort, "stake");
+    assert_eq!(report.total_neuron_count, 3);
+    assert_eq!(report.neuron_count, 2);
+    assert_eq!(report.neurons[0].neuron_id, "03");
+    assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 50);
+    assert_eq!(report.neurons[1].neuron_id, "02");
+    assert_eq!(report.neurons[1].cached_neuron_stake_e8s, 30);
+
+    let attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(attempt_path).expect("read attempt"))
+            .expect("parse attempt");
+    assert_eq!(attempt["status"], "complete");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
+    let root = temp_dir("ic-query-sns-neurons-incomplete-refresh");
+    let request = SnsNeuronsRefreshRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: "1".to_string(),
+        icp_root: root.clone(),
+        page_size: 2,
+        max_pages: Some(1),
+    };
+
+    let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect_err("incomplete refresh");
+
+    assert!(matches!(
+        err,
+        SnsHostError::IncompleteRefresh {
+            pages_fetched: 1,
+            rows_fetched: 2,
+            ..
+        }
+    ));
+    assert!(!sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A).exists());
+    assert!(sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A).is_file());
+
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -306,6 +446,9 @@ fn neurons_request(input: &str) -> SnsNeuronsRequest {
         input: input.to_string(),
         limit: 10,
         owner_principal_id: None,
+        sort: SnsNeuronsSort::Api,
+        icp_root: None,
+        verbose: false,
     }
 }
 
@@ -428,8 +571,8 @@ impl SnsTokenSource for FixtureSnsTokenSource {
             token_name: "Fixture Token".to_string(),
             token_symbol: "FIX".to_string(),
             decimals: 8,
-            transfer_fee: "10000".to_string(),
-            total_supply: "1000000000".to_string(),
+            transfer_fee: "10_000".to_string(),
+            total_supply: "1_000_000_000".to_string(),
             minting_account_owner: Some(GOVERNANCE_A.to_string()),
             minting_account_subaccount_hex: Some("000102".to_string()),
             ledger_index_canister_id: Some(INDEX_A.to_string()),
@@ -454,6 +597,11 @@ impl SnsTokenSource for FixtureSnsTokenSource {
                     key: "icrc1:decimals".to_string(),
                     value_type: "nat".to_string(),
                     value: serde_json::json!("8"),
+                },
+                SnsTokenMetadataRow {
+                    key: "icrc1:fee".to_string(),
+                    value_type: "nat".to_string(),
+                    value: serde_json::json!("10_000"),
                 },
                 SnsTokenMetadataRow {
                     key: "icrc1:logo".to_string(),
@@ -489,7 +637,7 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
         assert_eq!(owner_principal_id, Some(GOVERNANCE_A));
         Ok(MainnetSnsNeurons {
             neurons: vec![SnsNeuronRow {
-                neuron_id: "00010203".to_string(),
+                neuron_id: "0001020304".to_string(),
                 cached_neuron_stake_e8s: 123,
                 maturity_e8s_equivalent: 456,
                 staked_maturity_e8s_equivalent: Some(789),
@@ -497,6 +645,97 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
                 created_at: "2026-06-01T00:00:00Z".to_string(),
             }],
         })
+    }
+
+    fn fetch_sns_neuron_page(
+        &self,
+        _request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        start_page_at: Option<&SnsNeuronId>,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
+        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+        assert_eq!(limit, 10);
+        assert!(start_page_at.is_none());
+        assert_eq!(owner_principal_id, None);
+        Ok(MainnetSnsNeuronPage {
+            neurons: vec![SnsNeuronRow {
+                neuron_id: "0001020304".to_string(),
+                cached_neuron_stake_e8s: 123,
+                maturity_e8s_equivalent: 456,
+                staked_maturity_e8s_equivalent: Some(789),
+                created_timestamp_seconds: 1_780_272_000,
+                created_at: "2026-06-01T00:00:00Z".to_string(),
+            }],
+            last_cursor: Some(SnsNeuronId {
+                id: vec![0, 1, 2, 3],
+            }),
+        })
+    }
+}
+
+struct PagedFixtureSnsNeuronsSource;
+
+impl SnsListSource for PagedFixtureSnsNeuronsSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        FixtureSnsListSource.fetch_deployed_snses(request)
+    }
+}
+
+impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
+    fn fetch_sns_neurons(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeurons, SnsHostError> {
+        unreachable!("paged fixture is only used by complete cache refresh tests")
+    }
+
+    fn fetch_sns_neuron_page(
+        &self,
+        _request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        start_page_at: Option<&SnsNeuronId>,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
+        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+        assert_eq!(limit, 2);
+        assert_eq!(owner_principal_id, None);
+        let cursor = start_page_at.map(|cursor| cursor.id.as_slice());
+        let (neurons, last_cursor) = match cursor {
+            None => (
+                vec![neuron_row("01", 10), neuron_row("02", 30)],
+                Some(vec![2]),
+            ),
+            Some([2]) => (
+                vec![neuron_row("02", 30), neuron_row("03", 50)],
+                Some(vec![3]),
+            ),
+            Some([3]) => (vec![neuron_row("03", 50)], Some(vec![3])),
+            Some(other) => panic!("unexpected cursor {other:?}"),
+        };
+        Ok(MainnetSnsNeuronPage {
+            neurons,
+            last_cursor: last_cursor.map(|id| SnsNeuronId { id }),
+        })
+    }
+}
+
+fn neuron_row(neuron_id: &str, stake: u64) -> SnsNeuronRow {
+    SnsNeuronRow {
+        neuron_id: neuron_id.to_string(),
+        cached_neuron_stake_e8s: stake,
+        maturity_e8s_equivalent: stake / 2,
+        staked_maturity_e8s_equivalent: None,
+        created_timestamp_seconds: 1_780_272_000 + stake,
+        created_at: format_utc_timestamp_secs(1_780_272_000 + stake),
     }
 }
 

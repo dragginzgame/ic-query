@@ -82,6 +82,7 @@ fn command_family_help_returns_ok() {
         &["sns", "info", "help"],
         &["sns", "token", "help"],
         &["sns", "neurons", "help"],
+        &["sns", "neurons", "refresh", "help"],
     ] {
         assert_run_ok(args);
     }
