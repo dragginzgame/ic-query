@@ -14,7 +14,8 @@ use crate::{
     },
     sns::report::{
         DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsInfoRequest, SnsListRequest, SnsListSort,
-        build_sns_info_report, build_sns_list_report, sns_info_report_text, sns_list_report_text,
+        SnsTokenRequest, build_sns_info_report, build_sns_list_report, build_sns_token_report,
+        sns_info_report_text, sns_list_report_text, sns_token_report_text,
     },
     version_text,
 };
@@ -35,6 +36,12 @@ Examples:
   icq sns info 1
   icq sns info 23ten-uaaaa-aaaaq-aabia-cai
   icq --network ic sns info 1 --format json";
+
+const SNS_TOKEN_HELP_AFTER: &str = "\
+Examples:
+  icq sns token 1
+  icq sns token 23ten-uaaaa-aaaaq-aabia-cai
+  icq --network ic sns token 1 --format json";
 
 #[derive(Debug, ThisError)]
 pub enum SnsCommandError {
@@ -71,6 +78,14 @@ struct SnsInfoOptions {
     source_endpoint: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SnsTokenOptions {
+    input: String,
+    network: String,
+    format: OutputFormat,
+    source_endpoint: String,
+}
+
 pub fn run<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
@@ -85,6 +100,7 @@ where
     match command.as_str() {
         "list" => run_sns_list(args),
         "info" => run_sns_info(args),
+        "token" => run_sns_token(args),
         _ => unreachable!("sns dispatch command only defines known commands"),
     }
 }
@@ -130,6 +146,26 @@ where
     write_text_or_json(format, &report, sns_info_report_text)
 }
 
+fn run_sns_token<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, sns_token_usage, version_text()) {
+        return Ok(());
+    }
+    let options = SnsTokenOptions::parse(args)?;
+    let format = options.format;
+    let request = SnsTokenRequest {
+        network: options.network,
+        source_endpoint: options.source_endpoint,
+        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        input: options.input,
+    };
+    let report = build_sns_token_report(&request)?;
+    write_text_or_json(format, &report, sns_token_report_text)
+}
+
 impl SnsListOptions {
     fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
@@ -163,6 +199,22 @@ impl SnsInfoOptions {
     }
 }
 
+impl SnsTokenOptions {
+    fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches(sns_token_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_token_usage()))?;
+        Ok(Self {
+            input: required_string(&matches, "input"),
+            network: required_string(&matches, "network"),
+            format: required_typed(&matches, "format"),
+            source_endpoint: required_string(&matches, "source-endpoint"),
+        })
+    }
+}
+
 fn sns_command() -> ClapCommand {
     ClapCommand::new("sns")
         .bin_name("icq sns")
@@ -174,6 +226,9 @@ fn sns_command() -> ClapCommand {
         .subcommand(passthrough_subcommand(
             ClapCommand::new("info").about("Resolve a deployed SNS by list id or root principal"),
         ))
+        .subcommand(passthrough_subcommand(ClapCommand::new("token").about(
+            "Show SNS ledger token metadata by list id or root principal",
+        )))
 }
 
 fn sns_list_command() -> ClapCommand {
@@ -216,6 +271,26 @@ fn sns_info_command() -> ClapCommand {
         .after_help(SNS_INFO_HELP_AFTER)
 }
 
+fn sns_token_command() -> ClapCommand {
+    ClapCommand::new("token")
+        .bin_name("icq sns token")
+        .about("Show SNS ledger token metadata by list id or root principal")
+        .disable_help_flag(true)
+        .arg(
+            value_arg("input")
+                .value_name("id|root-principal")
+                .required(true)
+                .help("SNS list id or root canister principal"),
+        )
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W, governance, and ledger queries"),
+        )
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_TOKEN_HELP_AFTER)
+}
+
 fn usage() -> String {
     render_help(sns_command())
 }
@@ -226,6 +301,10 @@ fn sns_list_usage() -> String {
 
 fn sns_info_usage() -> String {
     render_help(sns_info_command())
+}
+
+fn sns_token_usage() -> String {
+    render_help(sns_token_command())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -249,7 +328,7 @@ fn sort_arg() -> clap::Arg {
         .value_name("id|name")
         .default_value("id")
         .value_parser(clap::value_parser!(SnsListSortArg))
-        .help("Text/JSON row order; ids stay stable by root principal")
+        .help("Text/JSON row order; ids follow the SNS-W response order")
 }
 
 #[cfg(test)]

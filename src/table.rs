@@ -51,10 +51,7 @@ pub fn render_table_row<const N: usize>(
         .enumerate()
         .map(|(index, (width, alignment))| {
             let value = row.get(index).map_or("", AsRef::as_ref);
-            match alignment {
-                ColumnAlign::Left => format!("{value:<width$}"),
-                ColumnAlign::Right => format!("{value:>width$}"),
-            }
+            pad_cell(value, *width, *alignment)
         })
         .collect::<Vec<_>>()
         .join(COLUMN_GAP)
@@ -69,4 +66,48 @@ pub fn render_separator<const N: usize>(widths: &[usize; N]) -> String {
         .map(|width| "-".repeat(*width))
         .collect::<Vec<_>>()
         .join(COLUMN_GAP)
+}
+
+fn pad_cell(value: &str, width: usize, alignment: ColumnAlign) -> String {
+    let padding = " ".repeat(width.saturating_sub(value.chars().count()));
+    match alignment {
+        ColumnAlign::Left => format!("{value}{padding}"),
+        ColumnAlign::Right => format!("{padding}{value}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_table_handles_long_left_aligned_cells() {
+        let rows = [[
+            "ICRC-1".to_string(),
+            "https://github.com/dfinity/ICRC-1?with=a-long-token-metadata-url".to_string(),
+        ]];
+
+        let table = render_table(
+            &["STANDARD", "URL"],
+            &rows,
+            &[ColumnAlign::Left, ColumnAlign::Left],
+        );
+
+        assert!(table.contains("ICRC-1"));
+        assert!(table.contains("a-long-token-metadata-url"));
+    }
+
+    #[test]
+    fn render_table_right_aligns_cells() {
+        let rows = [["1".to_string(), "Dragginz".to_string()]];
+
+        let table = render_table(
+            &["ID", "NAME"],
+            &rows,
+            &[ColumnAlign::Right, ColumnAlign::Left],
+        );
+
+        assert!(table.contains("ID   NAME"));
+        assert!(table.contains(" 1   Dragginz"));
+    }
 }

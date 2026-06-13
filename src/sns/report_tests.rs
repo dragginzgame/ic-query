@@ -81,7 +81,69 @@ fn sns_info_resolves_root_principal() {
 }
 
 #[test]
-fn sns_list_ids_follow_root_principal_order() {
+fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
+    let request = token_request("1");
+
+    let report = build_sns_token_report_with_source(&request, &FixtureSnsTokenSource)
+        .expect("sns token report");
+    let text = sns_token_report_text(&report);
+
+    assert_eq!(report.schema_version, SNS_TOKEN_REPORT_SCHEMA_VERSION);
+    assert_eq!(report.id, 1);
+    assert_eq!(report.name, "Fixture SNS");
+    assert_eq!(report.root_canister_id, ROOT_A);
+    assert_eq!(report.ledger_canister_id, LEDGER_A);
+    assert_eq!(report.sns_index_canister_id, INDEX_A);
+    assert_eq!(report.ledger_index_canister_id.as_deref(), Some(INDEX_A));
+    assert_eq!(report.token_name, "Fixture Token");
+    assert_eq!(report.token_symbol, "FIX");
+    assert_eq!(report.decimals, 8);
+    assert_eq!(report.transfer_fee, "10000");
+    assert_eq!(report.total_supply, "1000000000");
+    assert_eq!(report.minting_account_owner.as_deref(), Some(GOVERNANCE_A));
+    assert_eq!(
+        report.minting_account_subaccount_hex.as_deref(),
+        Some("000102")
+    );
+    assert_eq!(report.supported_standards[0].name, "ICRC-1");
+    assert_eq!(report.metadata[0].key, "icrc1:name");
+    assert!(report.metadata.iter().any(|row| row.key == "icrc1:logo"
+        && row.value_type == "bool"
+        && row.value == serde_json::json!(true)));
+    assert!(text.contains("token_symbol: FIX"));
+    assert!(text.contains("ledger_index_canister_id: bw4dl-smaaa-aaaaa-qaacq-cai"));
+    assert!(text.contains("ICRC-1"));
+    assert!(text.contains("icrc1:name"));
+    assert!(text.contains("icrc1:logo"));
+    assert!(text.contains("true"));
+    assert!(!text.contains("data:image"));
+}
+
+#[test]
+fn sns_token_logo_metadata_is_presence_boolean() {
+    let row = metadata_row(
+        SNS_TOKEN_LOGO_METADATA_KEY.to_string(),
+        IcrcMetadataValue::Text("data:image/png;base64,large-logo".to_string()),
+    );
+
+    assert_eq!(row.key, SNS_TOKEN_LOGO_METADATA_KEY);
+    assert_eq!(row.value_type, "bool");
+    assert_eq!(row.value, serde_json::json!(true));
+}
+
+#[test]
+fn sns_token_empty_logo_metadata_is_false() {
+    let row = metadata_row(
+        SNS_TOKEN_LOGO_METADATA_KEY.to_string(),
+        IcrcMetadataValue::Text(" ".to_string()),
+    );
+
+    assert_eq!(row.value_type, "bool");
+    assert_eq!(row.value, serde_json::json!(false));
+}
+
+#[test]
+fn sns_list_ids_follow_source_order() {
     let request = list_request(false);
 
     let report = build_sns_list_report_with_source(&request, &UnsortedFixtureSnsListSource)
@@ -90,13 +152,13 @@ fn sns_list_ids_follow_root_principal_order() {
         .expect("sns info report");
 
     assert_eq!(report.sns_instances[0].id, 1);
-    assert_eq!(report.sns_instances[0].name, "Z Name");
-    assert_eq!(report.sns_instances[0].root_canister_id, ROOT_B);
+    assert_eq!(report.sns_instances[0].name, "A Name");
+    assert_eq!(report.sns_instances[0].root_canister_id, ROOT_A);
     assert_eq!(report.sns_instances[1].id, 2);
-    assert_eq!(report.sns_instances[1].name, "A Name");
-    assert_eq!(report.sns_instances[1].root_canister_id, ROOT_A);
+    assert_eq!(report.sns_instances[1].name, "Z Name");
+    assert_eq!(report.sns_instances[1].root_canister_id, ROOT_B);
     assert_eq!(info.id, 1);
-    assert_eq!(info.root_canister_id, ROOT_B);
+    assert_eq!(info.root_canister_id, ROOT_A);
 }
 
 #[test]
@@ -111,13 +173,13 @@ fn sns_list_name_sort_keeps_stable_ids() {
         .expect("sns info report");
 
     assert_eq!(report.sort, "name");
-    assert_eq!(report.sns_instances[0].id, 2);
+    assert_eq!(report.sns_instances[0].id, 1);
     assert_eq!(report.sns_instances[0].name, "A Name");
-    assert_eq!(report.sns_instances[1].id, 1);
+    assert_eq!(report.sns_instances[1].id, 2);
     assert_eq!(report.sns_instances[1].name, "Z Name");
     assert!(text.contains("sort: name"));
     assert_eq!(info.id, 1);
-    assert_eq!(info.root_canister_id, ROOT_B);
+    assert_eq!(info.root_canister_id, ROOT_A);
 }
 
 #[test]
@@ -191,6 +253,15 @@ fn list_request(verbose: bool) -> SnsListRequest {
 
 fn info_request(input: &str) -> SnsInfoRequest {
     SnsInfoRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: input.to_string(),
+    }
+}
+
+fn token_request(input: &str) -> SnsTokenRequest {
+    SnsTokenRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
@@ -291,6 +362,65 @@ impl SnsListSource for MetadataErrorFixtureSnsListSource {
                 INDEX_A,
                 Some("get_metadata: Canister has no Wasm module"),
             )],
+        })
+    }
+}
+
+struct FixtureSnsTokenSource;
+
+impl SnsListSource for FixtureSnsTokenSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        FixtureSnsListSource.fetch_deployed_snses(request)
+    }
+}
+
+impl SnsTokenSource for FixtureSnsTokenSource {
+    fn fetch_sns_token(
+        &self,
+        _request: &SnsFetchRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsToken, SnsHostError> {
+        assert_eq!(sns.ledger_canister_id, LEDGER_A);
+        Ok(MainnetSnsToken {
+            token_name: "Fixture Token".to_string(),
+            token_symbol: "FIX".to_string(),
+            decimals: 8,
+            transfer_fee: "10000".to_string(),
+            total_supply: "1000000000".to_string(),
+            minting_account_owner: Some(GOVERNANCE_A.to_string()),
+            minting_account_subaccount_hex: Some("000102".to_string()),
+            ledger_index_canister_id: Some(INDEX_A.to_string()),
+            ledger_index_error: None,
+            supported_standards: vec![
+                SnsTokenStandardRow {
+                    name: "ICRC-1".to_string(),
+                    url: "https://github.com/dfinity/ICRC-1".to_string(),
+                },
+                SnsTokenStandardRow {
+                    name: "ICRC-2".to_string(),
+                    url: "https://github.com/dfinity/ICRC-2".to_string(),
+                },
+            ],
+            metadata: vec![
+                SnsTokenMetadataRow {
+                    key: "icrc1:name".to_string(),
+                    value_type: "text".to_string(),
+                    value: serde_json::json!("Fixture Token"),
+                },
+                SnsTokenMetadataRow {
+                    key: "icrc1:decimals".to_string(),
+                    value_type: "nat".to_string(),
+                    value: serde_json::json!("8"),
+                },
+                SnsTokenMetadataRow {
+                    key: "icrc1:logo".to_string(),
+                    value_type: "bool".to_string(),
+                    value: serde_json::json!(true),
+                },
+            ],
         })
     }
 }

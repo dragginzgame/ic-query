@@ -4,10 +4,11 @@ use crate::{
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
     table::{ColumnAlign, render_table},
 };
-use candid::{CandidType, Decode, Deserialize, Encode, Principal};
+use candid::{CandidType, Decode, Deserialize, Encode, Int, Nat, Principal};
 use futures::{StreamExt, stream};
 use ic_agent::Agent;
 use serde::Serialize;
+use serde_json::Value as JsonValue;
 use thiserror::Error as ThisError;
 
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
@@ -15,7 +16,10 @@ pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 
 const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
 const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
+const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
+const SNS_TOKEN_LOGO_METADATA_KEY: &str = "icrc1:logo";
+const SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 const SNS_METADATA_CONCURRENCY: usize = 16;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -29,6 +33,14 @@ pub struct SnsListRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsInfoRequest {
+    pub network: String,
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub input: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnsTokenRequest {
     pub network: String,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
@@ -80,6 +92,45 @@ pub struct SnsInfoReport {
     pub swap_canister_id: String,
     pub index_canister_id: String,
     pub metadata_error: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsTokenReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub sns_wasm_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub id: usize,
+    pub name: String,
+    pub root_canister_id: String,
+    pub ledger_canister_id: String,
+    pub sns_index_canister_id: String,
+    pub token_name: String,
+    pub token_symbol: String,
+    pub decimals: u8,
+    pub transfer_fee: String,
+    pub total_supply: String,
+    pub minting_account_owner: Option<String>,
+    pub minting_account_subaccount_hex: Option<String>,
+    pub ledger_index_canister_id: Option<String>,
+    pub ledger_index_error: Option<String>,
+    pub supported_standards: Vec<SnsTokenStandardRow>,
+    pub metadata: Vec<SnsTokenMetadataRow>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsTokenStandardRow {
+    pub name: String,
+    pub url: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsTokenMetadataRow {
+    pub key: String,
+    pub value_type: String,
+    pub value: JsonValue,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -151,6 +202,10 @@ pub fn build_sns_info_report(request: &SnsInfoRequest) -> Result<SnsInfoReport, 
     build_sns_info_report_with_source(request, &LiveSnsListSource)
 }
 
+pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenReport, SnsHostError> {
+    build_sns_token_report_with_source(request, &LiveSnsListSource)
+}
+
 fn build_sns_list_report_with_source(
     request: &SnsListRequest,
     source: &dyn SnsListSource,
@@ -162,7 +217,7 @@ fn build_sns_list_report_with_source(
         "ic-query".to_string(),
     );
     let mut list = source.fetch_deployed_snses(&fetch_request)?;
-    assign_stable_sns_ids(&mut list.sns_instances);
+    assign_sns_ids_in_current_order(&mut list.sns_instances);
     sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
     Ok(sns_list_report_from_list(
         list,
@@ -182,10 +237,28 @@ fn build_sns_info_report_with_source(
         "ic-query".to_string(),
     );
     let mut list = source.fetch_deployed_snses(&fetch_request)?;
-    assign_stable_sns_ids(&mut list.sns_instances);
+    assign_sns_ids_in_current_order(&mut list.sns_instances);
     sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
     let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
     Ok(sns_info_report_from_list(list, id, sns))
+}
+
+fn build_sns_token_report_with_source(
+    request: &SnsTokenRequest,
+    source: &dyn SnsTokenSource,
+) -> Result<SnsTokenReport, SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let fetch_request = fetch_request_from_parts(
+        &request.source_endpoint,
+        request.now_unix_secs,
+        "ic-query".to_string(),
+    );
+    let mut list = source.fetch_deployed_snses(&fetch_request)?;
+    assign_sns_ids_in_current_order(&mut list.sns_instances);
+    sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
+    let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
+    let token = source.fetch_sns_token(&fetch_request, &sns)?;
+    Ok(sns_token_report_from_parts(list, id, sns, token))
 }
 
 #[must_use]
@@ -279,6 +352,75 @@ pub fn sns_info_report_text(report: &SnsInfoReport) -> String {
     lines.join("\n")
 }
 
+#[must_use]
+pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", report.network),
+        format!("sns_id: {}", report.id),
+        format!("name: {}", report.name),
+        format!("root_canister_id: {}", report.root_canister_id),
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!("sns_index_canister_id: {}", report.sns_index_canister_id),
+        format!(
+            "ledger_index_canister_id: {}",
+            optional_text(report.ledger_index_canister_id.as_ref())
+        ),
+        format!("token_name: {}", report.token_name),
+        format!("token_symbol: {}", report.token_symbol),
+        format!("decimals: {}", report.decimals),
+        format!("transfer_fee: {}", report.transfer_fee),
+        format!("total_supply: {}", report.total_supply),
+        format!(
+            "minting_account_owner: {}",
+            optional_text(report.minting_account_owner.as_ref())
+        ),
+        format!(
+            "minting_account_subaccount_hex: {}",
+            optional_text(report.minting_account_subaccount_hex.as_ref())
+        ),
+        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    if let Some(error) = report.ledger_index_error.as_deref() {
+        lines.push(format!("ledger_index_error: {error}"));
+    }
+    if !report.supported_standards.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["STANDARD", "URL"],
+            &report
+                .supported_standards
+                .iter()
+                .map(|standard| [standard.name.clone(), standard.url.clone()])
+                .collect::<Vec<_>>(),
+            &[ColumnAlign::Left, ColumnAlign::Left],
+        ));
+    }
+    if !report.metadata.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["METADATA", "TYPE", "VALUE"],
+            &report
+                .metadata
+                .iter()
+                .map(|row| {
+                    [
+                        row.key.clone(),
+                        row.value_type.clone(),
+                        truncate_text_value(
+                            &metadata_value_text(&row.value),
+                            SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT,
+                        ),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left],
+        ));
+    }
+    lines.join("\n")
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SnsFetchRequest {
     endpoint: String,
@@ -319,6 +461,21 @@ struct MainnetSnsCanisters {
     index_canister_id: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct MainnetSnsToken {
+    token_name: String,
+    token_symbol: String,
+    decimals: u8,
+    transfer_fee: String,
+    total_supply: String,
+    minting_account_owner: Option<String>,
+    minting_account_subaccount_hex: Option<String>,
+    ledger_index_canister_id: Option<String>,
+    ledger_index_error: Option<String>,
+    supported_standards: Vec<SnsTokenStandardRow>,
+    metadata: Vec<SnsTokenMetadataRow>,
+}
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct ListDeployedSnsesRequest {}
 
@@ -347,11 +504,54 @@ struct GetMetadataResponse {
     description: Option<String>,
 }
 
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct IcrcAccount {
+    owner: Principal,
+    subaccount: Option<Vec<u8>>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+enum IcrcMetadataValue {
+    Nat(Nat),
+    Int(Int),
+    Text(String),
+    Blob(Vec<u8>),
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct IcrcSupportedStandard {
+    name: String,
+    url: String,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+enum GetIndexPrincipalResult {
+    Ok(Principal),
+    Err(GetIndexPrincipalError),
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+enum GetIndexPrincipalError {
+    IndexPrincipalNotSet,
+    GenericError {
+        error_code: Nat,
+        description: String,
+    },
+}
+
 trait SnsListSource {
     fn fetch_deployed_snses(
         &self,
         request: &SnsFetchRequest,
     ) -> Result<MainnetSnsList, SnsHostError>;
+}
+
+trait SnsTokenSource: SnsListSource {
+    fn fetch_sns_token(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsToken, SnsHostError>;
 }
 
 struct LiveSnsListSource;
@@ -365,8 +565,26 @@ impl SnsListSource for LiveSnsListSource {
     }
 }
 
+impl SnsTokenSource for LiveSnsListSource {
+    fn fetch_sns_token(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsToken, SnsHostError> {
+        fetch_mainnet_sns_token(request, sns)
+    }
+}
+
 fn fetch_mainnet_sns_list(request: &SnsFetchRequest) -> Result<MainnetSnsList, SnsHostError> {
     block_on_current_thread(fetch_mainnet_sns_list_async(request)).map_err(SnsHostError::Runtime)?
+}
+
+fn fetch_mainnet_sns_token(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+) -> Result<MainnetSnsToken, SnsHostError> {
+    block_on_current_thread(fetch_mainnet_sns_token_async(request, sns))
+        .map_err(SnsHostError::Runtime)?
 }
 
 async fn fetch_mainnet_sns_list_async(
@@ -396,6 +614,94 @@ async fn fetch_mainnet_sns_list_async(
     mainnet_sns_list_from_response(&agent, request, response).await
 }
 
+async fn fetch_mainnet_sns_token_async(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+) -> Result<MainnetSnsToken, SnsHostError> {
+    let agent = sns_agent(&request.endpoint)?;
+    let ledger_canister = principal_from_text(&sns.ledger_canister_id, "ledger_canister_id")?;
+    let token_name = query_ledger(&agent, &ledger_canister, "icrc1_name").await?;
+    let token_symbol = query_ledger(&agent, &ledger_canister, "icrc1_symbol").await?;
+    let decimals = query_ledger(&agent, &ledger_canister, "icrc1_decimals").await?;
+    let transfer_fee: Nat = query_ledger(&agent, &ledger_canister, "icrc1_fee").await?;
+    let total_supply: Nat = query_ledger(&agent, &ledger_canister, "icrc1_total_supply").await?;
+    let minting_account: Option<IcrcAccount> =
+        query_ledger(&agent, &ledger_canister, "icrc1_minting_account").await?;
+    let supported_standards: Vec<IcrcSupportedStandard> =
+        query_ledger(&agent, &ledger_canister, "icrc1_supported_standards").await?;
+    let metadata: Vec<(String, IcrcMetadataValue)> =
+        query_ledger(&agent, &ledger_canister, "icrc1_metadata").await?;
+    let (ledger_index_canister_id, ledger_index_error) =
+        match query_ledger::<GetIndexPrincipalResult>(
+            &agent,
+            &ledger_canister,
+            "icrc106_get_index_principal",
+        )
+        .await
+        {
+            Ok(GetIndexPrincipalResult::Ok(principal)) => (Some(principal.to_text()), None),
+            Ok(GetIndexPrincipalResult::Err(error)) => {
+                (None, Some(index_principal_error_text(error)))
+            }
+            Err(error) => (None, Some(error.to_string())),
+        };
+
+    Ok(MainnetSnsToken {
+        token_name,
+        token_symbol,
+        decimals,
+        transfer_fee: transfer_fee.to_string(),
+        total_supply: total_supply.to_string(),
+        minting_account_owner: minting_account
+            .as_ref()
+            .map(|account| account.owner.to_text()),
+        minting_account_subaccount_hex: minting_account
+            .as_ref()
+            .and_then(|account| account.subaccount.as_deref())
+            .map(hex_bytes),
+        ledger_index_canister_id,
+        ledger_index_error,
+        supported_standards: supported_standards
+            .into_iter()
+            .map(|standard| SnsTokenStandardRow {
+                name: standard.name,
+                url: standard.url,
+            })
+            .collect(),
+        metadata: metadata
+            .into_iter()
+            .map(|(key, value)| metadata_row(key, value))
+            .collect(),
+    })
+}
+
+async fn query_ledger<T>(
+    agent: &Agent,
+    ledger_canister: &Principal,
+    method: &'static str,
+) -> Result<T, SnsHostError>
+where
+    T: for<'de> Deserialize<'de> + CandidType,
+{
+    let arg = Encode!().map_err(|err| SnsHostError::CandidEncode {
+        message: method,
+        reason: err.to_string(),
+    })?;
+    let bytes = agent
+        .query(ledger_canister, method)
+        .with_arg(arg)
+        .call()
+        .await
+        .map_err(|err| SnsHostError::AgentCall {
+            method,
+            reason: err.to_string(),
+        })?;
+    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
+        message: method,
+        reason: err.to_string(),
+    })
+}
+
 fn sns_agent(endpoint: &str) -> Result<Agent, SnsHostError> {
     Agent::builder()
         .with_url(endpoint)
@@ -421,7 +727,7 @@ async fn mainnet_sns_list_from_response(
             .into_iter()
             .map(|sns| fetch_mainnet_sns_metadata(agent, sns)),
     )
-    .buffer_unordered(SNS_METADATA_CONCURRENCY)
+    .buffered(SNS_METADATA_CONCURRENCY)
     .collect::<Vec<_>>()
     .await;
     let mut sns_instances = Vec::with_capacity(fetched.len());
@@ -598,8 +904,39 @@ fn sns_info_report_from_list(list: MainnetSnsList, id: usize, sns: MainnetSns) -
     }
 }
 
-fn assign_stable_sns_ids(instances: &mut [MainnetSns]) {
-    instances.sort_by(|left, right| left.root_canister_id.cmp(&right.root_canister_id));
+fn sns_token_report_from_parts(
+    list: MainnetSnsList,
+    id: usize,
+    sns: MainnetSns,
+    token: MainnetSnsToken,
+) -> SnsTokenReport {
+    SnsTokenReport {
+        schema_version: SNS_TOKEN_REPORT_SCHEMA_VERSION,
+        network: list.network,
+        sns_wasm_canister_id: list.sns_wasm_canister_id,
+        fetched_at: list.fetched_at,
+        source_endpoint: list.source_endpoint,
+        fetched_by: list.fetched_by,
+        id,
+        name: sns.name,
+        root_canister_id: sns.root_canister_id,
+        ledger_canister_id: sns.ledger_canister_id,
+        sns_index_canister_id: sns.index_canister_id,
+        token_name: token.token_name,
+        token_symbol: token.token_symbol,
+        decimals: token.decimals,
+        transfer_fee: token.transfer_fee,
+        total_supply: token.total_supply,
+        minting_account_owner: token.minting_account_owner,
+        minting_account_subaccount_hex: token.minting_account_subaccount_hex,
+        ledger_index_canister_id: token.ledger_index_canister_id,
+        ledger_index_error: token.ledger_index_error,
+        supported_standards: token.supported_standards,
+        metadata: token.metadata,
+    }
+}
+
+fn assign_sns_ids_in_current_order(instances: &mut [MainnetSns]) {
     for (index, sns) in instances.iter_mut().enumerate() {
         sns.id = index + 1;
     }
@@ -618,7 +955,7 @@ fn sort_mainnet_sns_instances(instances: &mut [MainnetSns], sort: SnsListSort) {
 }
 
 fn sort_mainnet_sns_instances_by_id(instances: &mut [MainnetSns]) {
-    instances.sort_by(|left, right| left.root_canister_id.cmp(&right.root_canister_id));
+    instances.sort_by_key(|sns| sns.id);
 }
 
 fn resolve_sns(instances: &[MainnetSns], input: &str) -> Result<(usize, MainnetSns), SnsHostError> {
@@ -641,9 +978,8 @@ fn resolve_sns(instances: &[MainnetSns], input: &str) -> Result<(usize, MainnetS
         .to_text();
     instances
         .iter()
-        .enumerate()
-        .find(|(_, sns)| sns.root_canister_id == root_canister_id)
-        .map(|(index, sns)| (index + 1, sns.clone()))
+        .find(|sns| sns.root_canister_id == root_canister_id)
+        .map(|sns| (sns.id, sns.clone()))
         .ok_or(SnsHostError::UnknownSnsRoot { root_canister_id })
 }
 
@@ -695,6 +1031,74 @@ fn clean_optional_text(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+}
+
+fn metadata_row(key: String, value: IcrcMetadataValue) -> SnsTokenMetadataRow {
+    if key == SNS_TOKEN_LOGO_METADATA_KEY {
+        return SnsTokenMetadataRow {
+            key,
+            value_type: "bool".to_string(),
+            value: JsonValue::Bool(metadata_value_is_present(&value)),
+        };
+    }
+
+    let (value_type, value) = match value {
+        IcrcMetadataValue::Nat(value) => ("nat", value.to_string()),
+        IcrcMetadataValue::Int(value) => ("int", value.to_string()),
+        IcrcMetadataValue::Text(value) => ("text", value),
+        IcrcMetadataValue::Blob(value) => ("blob", hex_bytes(&value)),
+    };
+    SnsTokenMetadataRow {
+        key,
+        value_type: value_type.to_string(),
+        value: JsonValue::String(value),
+    }
+}
+
+fn metadata_value_is_present(value: &IcrcMetadataValue) -> bool {
+    match value {
+        IcrcMetadataValue::Text(value) => !value.trim().is_empty(),
+        IcrcMetadataValue::Blob(value) => !value.is_empty(),
+        IcrcMetadataValue::Nat(_) | IcrcMetadataValue::Int(_) => true,
+    }
+}
+
+fn index_principal_error_text(error: GetIndexPrincipalError) -> String {
+    match error {
+        GetIndexPrincipalError::IndexPrincipalNotSet => "index principal not set".to_string(),
+        GetIndexPrincipalError::GenericError {
+            error_code,
+            description,
+        } => format!("generic error {error_code}: {description}"),
+    }
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write as _;
+        write!(&mut output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
+}
+
+fn truncate_text_value(value: &str, limit: usize) -> String {
+    if value.chars().count() <= limit {
+        return value.to_string();
+    }
+    let mut truncated = value.chars().take(limit).collect::<String>();
+    truncated.push_str("...");
+    truncated
+}
+
+fn metadata_value_text(value: &JsonValue) -> String {
+    match value {
+        JsonValue::String(value) => value.clone(),
+        JsonValue::Bool(value) => value.to_string(),
+        JsonValue::Number(value) => value.to_string(),
+        JsonValue::Null => "-".to_string(),
+        JsonValue::Array(_) | JsonValue::Object(_) => value.to_string(),
+    }
 }
 
 fn metadata_error_summary(err: &SnsHostError) -> Option<String> {

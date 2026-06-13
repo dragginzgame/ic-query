@@ -1,7 +1,6 @@
 # ic-query
 
 [![CI](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml/badge.svg)](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/ic-query.svg)](https://crates.io/crates/ic-query)
 [![docs.rs](https://docs.rs/ic-query/badge.svg)](https://docs.rs/ic-query)
 [![License](https://img.shields.io/crates/l/ic-query.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue.svg)](Cargo.toml)
@@ -39,7 +38,7 @@ icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq sns [list|info]
+icq sns [list|info|token]
 ```
 
 Use `icq nns <family> help`, `icq nns topology <report> help`, or
@@ -109,7 +108,7 @@ linking registry adapters directly. For one integration example, see
 The command namespace is intentionally small:
 
 - `nns` is implemented.
-- `sns list` and `sns info` are implemented for deployed mainnet SNS
-  instances.
+- `sns list`, `sns info`, and `sns token` are implemented for deployed mainnet
+  SNS instances.
 - Additional IC query families can be added without coupling query code to
   deployment tooling.

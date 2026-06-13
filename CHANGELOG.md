@@ -5,6 +5,26 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.0.8] - 2026-06-13
+
+### Added
+
+- Adds `icq sns token <id|root-principal>` for SNS ledger token metadata,
+  supply, fee, supported standards, minting account, and index canister lookup.
+
+### Changed
+
+- Uses the SNS-W `list_deployed_snses` response order for SNS numeric ids,
+  preserving deployment order through concurrent metadata enrichment.
+- Reports SNS `icrc1:logo` token metadata as a boolean presence value instead
+  of emitting the raw logo payload.
+- Removes the drifting crates.io version badge from the README.
+
+### Fixed
+
+- Fixes table rendering for long SNS token metadata values without relying on
+  dynamic format widths.
+
 ## [0.0.7] - 2026-06-13
 
 ### Changed
