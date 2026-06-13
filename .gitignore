@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+.history
+
+# Editors
+/.idea
+/.code
+/.vscode
+
+# Rust
+/target/
+**/*.rs.bk
+
+# Internet Computer and ic-query state
+/deps/
+/.dfx/
+/.icp/
+/.ic-query/
+*.wasm
+
+# Local environment and scratch space
+.env
+/.tmp/
+/.codex/

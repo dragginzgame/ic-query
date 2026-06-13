@@ -1,0 +1,56 @@
+[package]
+name = "ic-query"
+edition = "2024"
+rust-version = "1.91.0"
+version = "0.0.1"
+license = "MIT"
+authors = ["borovan <84897664+borovan@users.noreply.github.com>"]
+description = "Internet Computer query CLI for NNS and related public network metadata"
+readme = "README.md"
+documentation = "https://docs.rs/ic-query"
+homepage = "https://github.com/dragginzgame/ic-query"
+repository = "https://github.com/dragginzgame/ic-query"
+keywords = ["internet-computer", "canister", "dfinity", "icp", "nns"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "icq"
+path = "src/main.rs"
+
+[dependencies]
+candid = { version = "0.10", default-features = false }
+clap = { version = "4.6.1", features = ["derive"] }
+futures = "0.3"
+ic-agent = { version = "0.47.3", default-features = false }
+prost = "0.14.3"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10.9"
+thiserror = "2.0"
+time = { version = "=0.3.47", default-features = false }
+tokio = { version = "1.52.3", features = ["rt"] }
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+missing_const_for_fn = "warn"
+must_use_candidate = "warn"
+redundant_clone = "warn"
+semicolon_if_nothing_returned = "warn"
+uninlined_format_args = "warn"
+use_self = "warn"
+
+doc_markdown = "allow"
+empty_line_after_doc_comments = "allow"
+enum_variant_names = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_inception = "allow"
+module_name_repetitions = "allow"
+needless_pass_by_value = "allow"
+option_if_let_else = "allow"
+significant_drop_tightening = "allow"
+struct_field_names = "allow"
+wildcard_imports = "allow"

@@ -1,0 +1,58 @@
+name: CI
+
+env:
+  IC_QUERY_MSRV: 1.91.0
+  IC_QUERY_INTERNAL_TOOLCHAIN: 1.96.0
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+
+jobs:
+  msrv:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.IC_QUERY_MSRV }}
+      - name: Pin cargo/rustc to MSRV
+        shell: bash
+        run: echo "RUSTUP_TOOLCHAIN=$IC_QUERY_MSRV" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
+      - name: Check MSRV
+        run: make msrv
+
+  checks:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          clean: true
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.IC_QUERY_INTERNAL_TOOLCHAIN }}
+          components: rustfmt, clippy
+      - name: Pin cargo/rustc to internal toolchain
+        shell: bash
+        run: echo "RUSTUP_TOOLCHAIN=$IC_QUERY_INTERNAL_TOOLCHAIN" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
+      - run: make fmt-check
+      - run: make check
+      - run: make clippy
+      - run: make test
+      - run: make package
