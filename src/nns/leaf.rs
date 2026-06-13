@@ -1,6 +1,7 @@
-use super::NnsCommandError;
+use super::{NnsCommandError, now_unix_secs, write_text_or_json};
 pub(super) use crate::cli::common::{format_arg, source_endpoint_arg};
 use crate::duration::parse_duration_seconds;
+use crate::project::icp_root;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
     cli::{
@@ -15,7 +16,12 @@ use crate::{
     version_text,
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use std::{ffi::OsString, path::PathBuf};
+use serde::Serialize;
+use std::{
+    ffi::OsString,
+    marker::PhantomData,
+    path::{Path, PathBuf},
+};
 
 const INPUT_ARG: &str = "input";
 const NETWORK_ARG: &str = "network";
@@ -150,6 +156,92 @@ pub(super) struct NnsLeafRefreshOptions {
     pub(super) output_path: Option<PathBuf>,
 }
 
+pub(super) trait NnsLeafCacheRequest: Clone {
+    fn from_root_network(icp_root: &Path, network: &str) -> Self;
+}
+
+pub(super) trait NnsLeafListRequest {
+    type Cache: NnsLeafCacheRequest;
+
+    fn from_leaf_parts(cache: Self::Cache, source_endpoint: String, now_unix_secs: u64) -> Self;
+}
+
+pub(super) trait NnsLeafInfoRequest {
+    type Cache: NnsLeafCacheRequest;
+
+    fn from_leaf_parts(
+        cache: Self::Cache,
+        source_endpoint: String,
+        input: String,
+        now_unix_secs: u64,
+    ) -> Self;
+}
+
+pub(super) trait NnsLeafRefreshRequest {
+    type Cache: NnsLeafCacheRequest;
+
+    fn from_leaf_parts(
+        cache: Self::Cache,
+        source_endpoint: String,
+        now_unix_secs: u64,
+        lock_stale_after_seconds: u64,
+        dry_run: bool,
+        output_path: Option<PathBuf>,
+    ) -> Self;
+}
+
+pub(super) struct NnsLeafReportFns<
+    ListRequest,
+    InfoRequest,
+    RefreshRequest,
+    ListReport,
+    InfoReport,
+    RefreshReport,
+    HostError,
+> {
+    pub(super) build_list_report: fn(&ListRequest) -> Result<ListReport, HostError>,
+    pub(super) build_info_report: fn(&InfoRequest) -> Result<InfoReport, HostError>,
+    pub(super) refresh_report: fn(&RefreshRequest) -> Result<RefreshReport, HostError>,
+    pub(super) list_report_text: fn(&ListReport) -> String,
+    pub(super) list_report_verbose_text: fn(&ListReport) -> String,
+    pub(super) info_report_text: fn(&InfoReport) -> String,
+    pub(super) refresh_report_text: fn(&RefreshReport) -> String,
+    marker: PhantomData<fn() -> HostError>,
+}
+
+impl<ListRequest, InfoRequest, RefreshRequest, ListReport, InfoReport, RefreshReport, HostError>
+    NnsLeafReportFns<
+        ListRequest,
+        InfoRequest,
+        RefreshRequest,
+        ListReport,
+        InfoReport,
+        RefreshReport,
+        HostError,
+    >
+{
+    pub(super) const fn new(
+        build_list_report: fn(&ListRequest) -> Result<ListReport, HostError>,
+        build_info_report: fn(&InfoRequest) -> Result<InfoReport, HostError>,
+        refresh_report: fn(&RefreshRequest) -> Result<RefreshReport, HostError>,
+        list_report_text: fn(&ListReport) -> String,
+        list_report_verbose_text: fn(&ListReport) -> String,
+        info_report_text: fn(&InfoReport) -> String,
+        refresh_report_text: fn(&RefreshReport) -> String,
+    ) -> Self {
+        Self {
+            build_list_report,
+            build_info_report,
+            refresh_report,
+            list_report_text,
+            list_report_verbose_text,
+            info_report_text,
+            refresh_report_text,
+            marker: PhantomData,
+        }
+    }
+}
+
 impl NnsLeafRefreshOptions {
     pub(super) fn parse<I>(
         args: I,
@@ -198,6 +290,235 @@ where
         "refresh" => run_refresh(args),
         _ => unreachable!("nns leaf dispatch command only defines known commands"),
     }
+}
+
+pub(super) fn run_cached_leaf<
+    I,
+    Cache,
+    ListRequest,
+    InfoRequest,
+    RefreshRequest,
+    ListReport,
+    InfoReport,
+    RefreshReport,
+    HostError,
+>(
+    args: I,
+    spec: &NnsLeafCommandSpec,
+    default_source_endpoint: &'static str,
+    reports: NnsLeafReportFns<
+        ListRequest,
+        InfoRequest,
+        RefreshRequest,
+        ListReport,
+        InfoReport,
+        RefreshReport,
+        HostError,
+    >,
+) -> Result<(), NnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+    Cache: NnsLeafCacheRequest,
+    ListRequest: NnsLeafListRequest<Cache = Cache>,
+    InfoRequest: NnsLeafInfoRequest<Cache = Cache>,
+    RefreshRequest: NnsLeafRefreshRequest<Cache = Cache>,
+    ListReport: Serialize,
+    InfoReport: Serialize,
+    RefreshReport: Serialize,
+    HostError: Into<NnsCommandError>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, || usage(spec), version_text()) {
+        return Ok(());
+    }
+    let (command_name, args) = parse_required_subcommand(command(spec), args)
+        .map_err(|_| NnsCommandError::Usage(usage(spec)))?;
+
+    match command_name.as_str() {
+        "list" => run_cached_leaf_list::<
+            Cache,
+            ListRequest,
+            InfoRequest,
+            RefreshRequest,
+            ListReport,
+            InfoReport,
+            RefreshReport,
+            HostError,
+        >(args, spec, default_source_endpoint, &reports),
+        "info" => run_cached_leaf_info::<
+            Cache,
+            ListRequest,
+            InfoRequest,
+            RefreshRequest,
+            ListReport,
+            InfoReport,
+            RefreshReport,
+            HostError,
+        >(args, spec, default_source_endpoint, &reports),
+        "refresh" => run_cached_leaf_refresh::<
+            Cache,
+            ListRequest,
+            InfoRequest,
+            RefreshRequest,
+            ListReport,
+            InfoReport,
+            RefreshReport,
+            HostError,
+        >(args, spec, default_source_endpoint, &reports),
+        _ => unreachable!("nns leaf dispatch command only defines known commands"),
+    }
+}
+
+fn run_cached_leaf_list<
+    Cache,
+    ListRequest,
+    InfoRequest,
+    RefreshRequest,
+    ListReport,
+    InfoReport,
+    RefreshReport,
+    HostError,
+>(
+    args: Vec<OsString>,
+    spec: &NnsLeafCommandSpec,
+    default_source_endpoint: &'static str,
+    reports: &NnsLeafReportFns<
+        ListRequest,
+        InfoRequest,
+        RefreshRequest,
+        ListReport,
+        InfoReport,
+        RefreshReport,
+        HostError,
+    >,
+) -> Result<(), NnsCommandError>
+where
+    Cache: NnsLeafCacheRequest,
+    ListRequest: NnsLeafListRequest<Cache = Cache>,
+    ListReport: Serialize,
+    HostError: Into<NnsCommandError>,
+{
+    if print_help_or_version(
+        &args,
+        || list_usage(spec, default_source_endpoint),
+        version_text(),
+    ) {
+        return Ok(());
+    }
+    let options = NnsLeafListOptions::parse(args, spec, default_source_endpoint)?;
+    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let request = ListRequest::from_leaf_parts(
+        Cache::from_root_network(&icp_root, &options.network),
+        options.source_endpoint,
+        now_unix_secs()?,
+    );
+    let report = (reports.build_list_report)(&request).map_err(Into::into)?;
+    write_text_or_json(options.format, &report, |report| {
+        if options.verbose {
+            (reports.list_report_verbose_text)(report)
+        } else {
+            (reports.list_report_text)(report)
+        }
+    })
+}
+
+fn run_cached_leaf_info<
+    Cache,
+    ListRequest,
+    InfoRequest,
+    RefreshRequest,
+    ListReport,
+    InfoReport,
+    RefreshReport,
+    HostError,
+>(
+    args: Vec<OsString>,
+    spec: &NnsLeafCommandSpec,
+    default_source_endpoint: &'static str,
+    reports: &NnsLeafReportFns<
+        ListRequest,
+        InfoRequest,
+        RefreshRequest,
+        ListReport,
+        InfoReport,
+        RefreshReport,
+        HostError,
+    >,
+) -> Result<(), NnsCommandError>
+where
+    Cache: NnsLeafCacheRequest,
+    InfoRequest: NnsLeafInfoRequest<Cache = Cache>,
+    InfoReport: Serialize,
+    HostError: Into<NnsCommandError>,
+{
+    if print_help_or_version(
+        &args,
+        || info_usage(spec, default_source_endpoint),
+        version_text(),
+    ) {
+        return Ok(());
+    }
+    let options = NnsLeafInfoOptions::parse(args, spec, default_source_endpoint)?;
+    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let request = InfoRequest::from_leaf_parts(
+        Cache::from_root_network(&icp_root, &options.network),
+        options.source_endpoint,
+        options.input,
+        now_unix_secs()?,
+    );
+    let report = (reports.build_info_report)(&request).map_err(Into::into)?;
+    write_text_or_json(options.format, &report, reports.info_report_text)
+}
+
+fn run_cached_leaf_refresh<
+    Cache,
+    ListRequest,
+    InfoRequest,
+    RefreshRequest,
+    ListReport,
+    InfoReport,
+    RefreshReport,
+    HostError,
+>(
+    args: Vec<OsString>,
+    spec: &NnsLeafCommandSpec,
+    default_source_endpoint: &'static str,
+    reports: &NnsLeafReportFns<
+        ListRequest,
+        InfoRequest,
+        RefreshRequest,
+        ListReport,
+        InfoReport,
+        RefreshReport,
+        HostError,
+    >,
+) -> Result<(), NnsCommandError>
+where
+    Cache: NnsLeafCacheRequest,
+    RefreshRequest: NnsLeafRefreshRequest<Cache = Cache>,
+    RefreshReport: Serialize,
+    HostError: Into<NnsCommandError>,
+{
+    if print_help_or_version(
+        &args,
+        || refresh_usage(spec, default_source_endpoint),
+        version_text(),
+    ) {
+        return Ok(());
+    }
+    let options = NnsLeafRefreshOptions::parse(args, spec, default_source_endpoint)?;
+    let format = options.format;
+    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let request = RefreshRequest::from_leaf_parts(
+        Cache::from_root_network(&icp_root, &options.network),
+        options.source_endpoint,
+        now_unix_secs()?,
+        options.lock_stale_after_seconds,
+        options.dry_run,
+        options.output_path,
+    );
+    let report = (reports.refresh_report)(&request).map_err(Into::into)?;
+    write_text_or_json(format, &report, reports.refresh_report_text)
 }
 
 fn parse_leaf_matches<I>(

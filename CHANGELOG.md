@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.0.6] - 2026-06-13
+
+### Changed
+
+- Deduplicates cached NNS leaf command dispatch for data-center, node-provider,
+  and node-operator commands.
+- Deduplicates NNS topology read command parsing and splits topology report
+  request/model code into focused submodules.
+
 ## [0.0.5] - 2026-06-13
 
 ### Changed

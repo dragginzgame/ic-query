@@ -1,5 +1,19 @@
+mod model;
+mod request;
 mod text;
 
+pub use model::{
+    NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
+    NnsTopologyGapRow, NnsTopologyGapsReport, NnsTopologyHealthCheckRow, NnsTopologyHealthReport,
+    NnsTopologyProviderRow, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
+    NnsTopologyRefreshRow, NnsTopologyRegionRow, NnsTopologyRegionsReport,
+    NnsTopologyRegistryVersionRow, NnsTopologySummaryReport, NnsTopologyVersionsReport,
+};
+pub use request::{
+    NnsTopologyCapacityRequest, NnsTopologyCoverageRequest, NnsTopologyGapsRequest,
+    NnsTopologyHealthRequest, NnsTopologyProvidersRequest, NnsTopologyRefreshRequest,
+    NnsTopologyRegionsRequest, NnsTopologySummaryRequest, NnsTopologyVersionsRequest,
+};
 pub use text::{
     nns_topology_capacity_report_text, nns_topology_coverage_report_text,
     nns_topology_gaps_report_text, nns_topology_health_report_text,
@@ -11,41 +25,41 @@ pub use text::{
 use crate::subnet_catalog::{MAINNET_NETWORK, SubnetKind};
 use crate::{
     nns::data_center::report::{
-        NnsDataCenterCacheRequest, NnsDataCenterHostError, NnsDataCenterListReport,
-        NnsDataCenterListRequest, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest,
+        NnsDataCenterHostError, NnsDataCenterListReport, NnsDataCenterRefreshReport,
         build_nns_data_center_list_report, refresh_nns_data_center_report,
     },
     nns::node::report::{
         NNS_NODE_SUBNET_KIND_APPLICATION, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
-        NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN, NnsNodeCacheRequest,
-        NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest,
-        NnsNodeRefreshReport, NnsNodeRefreshRequest, build_nns_node_list_report,
+        NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN, NnsNodeHostError,
+        NnsNodeListReport, NnsNodeRefreshReport, build_nns_node_list_report,
         refresh_nns_node_report,
     },
     nns::node_operator::report::{
-        NnsNodeOperatorCacheRequest, NnsNodeOperatorHostError, NnsNodeOperatorListReport,
-        NnsNodeOperatorListRequest, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
+        NnsNodeOperatorHostError, NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport,
         build_nns_node_operator_list_report, refresh_nns_node_operator_report,
     },
     nns::node_provider::report::{
-        NnsNodeProviderCacheRequest, NnsNodeProviderHostError, NnsNodeProviderListReport,
-        NnsNodeProviderListRequest, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
+        NnsNodeProviderHostError, NnsNodeProviderListReport, NnsNodeProviderRefreshReport,
         build_nns_node_provider_list_report, refresh_nns_node_provider_report,
     },
     subnet_catalog::{
-        DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogCacheRequest, SubnetCatalogFilters,
-        SubnetCatalogHostError, SubnetCatalogListReport, SubnetCatalogListRequest,
-        SubnetCatalogRefreshReport, SubnetCatalogRefreshRequest, build_subnet_catalog_list_report,
-        refresh_subnet_catalog,
+        SubnetCatalogHostError, SubnetCatalogListReport, SubnetCatalogRefreshReport,
+        build_subnet_catalog_list_report, refresh_subnet_catalog,
     },
 };
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    path::{Path, PathBuf},
-};
+use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error as ThisError;
 
+use request::{
+    TopologyRefreshParts, TopologyRequestParts, data_center_list_request,
+    data_center_refresh_request, node_list_request, node_operator_list_request,
+    node_operator_refresh_request, node_provider_list_request, node_provider_refresh_request,
+    node_refresh_request, subnet_catalog_list_request, subnet_catalog_refresh_request,
+    summary_request_from,
+};
+
+pub const DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT: &str =
+    crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
 pub const NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION: u32 = 3;
 pub const NNS_TOPOLOGY_COVERAGE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -56,442 +70,6 @@ pub const NNS_TOPOLOGY_REGIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 12;
-
-///
-/// NnsTopologySummaryRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologySummaryRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyCoverageRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyCoverageRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyVersionsRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyVersionsRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyHealthRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyHealthRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyGapsRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyGapsRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyCapacityRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyCapacityRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyRegionsRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyRegionsRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyProvidersRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyProvidersRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-}
-
-///
-/// NnsTopologyRefreshRequest
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyRefreshRequest {
-    pub icp_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub lock_stale_after_seconds: u64,
-    pub dry_run: bool,
-}
-
-trait TopologyRequestParts {
-    fn icp_root(&self) -> &Path;
-    fn network(&self) -> &str;
-    fn source_endpoint(&self) -> &str;
-    fn now_unix_secs(&self) -> u64;
-}
-
-trait TopologyRefreshParts: TopologyRequestParts {
-    fn lock_stale_after_seconds(&self) -> u64;
-    fn dry_run(&self) -> bool;
-}
-
-macro_rules! impl_topology_request_parts {
-    ($($request:ty),+ $(,)?) => {
-        $(
-            impl TopologyRequestParts for $request {
-                fn icp_root(&self) -> &Path {
-                    &self.icp_root
-                }
-
-                fn network(&self) -> &str {
-                    &self.network
-                }
-
-                fn source_endpoint(&self) -> &str {
-                    &self.source_endpoint
-                }
-
-                fn now_unix_secs(&self) -> u64 {
-                    self.now_unix_secs
-                }
-            }
-        )+
-    };
-}
-
-impl_topology_request_parts!(
-    NnsTopologySummaryRequest,
-    NnsTopologyCoverageRequest,
-    NnsTopologyVersionsRequest,
-    NnsTopologyHealthRequest,
-    NnsTopologyGapsRequest,
-    NnsTopologyCapacityRequest,
-    NnsTopologyRegionsRequest,
-    NnsTopologyProvidersRequest,
-    NnsTopologyRefreshRequest,
-);
-
-impl TopologyRefreshParts for NnsTopologyRefreshRequest {
-    fn lock_stale_after_seconds(&self) -> u64 {
-        self.lock_stale_after_seconds
-    }
-
-    fn dry_run(&self) -> bool {
-        self.dry_run
-    }
-}
-
-///
-/// NnsTopologySummaryReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologySummaryReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub subnet_count: usize,
-    pub application_subnet_count: usize,
-    pub cloud_engine_subnet_count: usize,
-    pub system_subnet_count: usize,
-    pub unknown_subnet_count: usize,
-    pub routing_range_count: usize,
-    pub node_count: usize,
-    pub application_node_count: usize,
-    pub cloud_engine_node_count: usize,
-    pub system_node_count: usize,
-    pub unknown_node_count: usize,
-    pub node_provider_count: usize,
-    pub node_operator_count: usize,
-    pub data_center_count: usize,
-    pub nodes_with_known_node_provider_count: usize,
-    pub nodes_with_unknown_node_provider_count: usize,
-    pub nodes_with_known_node_operator_count: usize,
-    pub nodes_with_unknown_node_operator_count: usize,
-    pub nodes_with_known_data_center_count: usize,
-    pub nodes_with_unknown_data_center_count: usize,
-    pub node_operators_with_known_node_provider_count: usize,
-    pub node_operators_with_unknown_node_provider_count: usize,
-    pub node_operators_with_known_data_center_count: usize,
-    pub node_operators_with_unknown_data_center_count: usize,
-    pub subnet_catalog_stale: bool,
-    pub subnet_catalog_stale_reason: String,
-    pub registry_versions: Vec<NnsTopologyRegistryVersionRow>,
-}
-
-///
-/// NnsTopologyCoverageReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyCoverageReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub node_count: usize,
-    pub node_provider_count: usize,
-    pub node_operator_count: usize,
-    pub data_center_count: usize,
-    pub nodes_with_known_node_provider_count: usize,
-    pub nodes_with_unknown_node_provider_count: usize,
-    pub nodes_with_known_node_operator_count: usize,
-    pub nodes_with_unknown_node_operator_count: usize,
-    pub nodes_with_known_data_center_count: usize,
-    pub nodes_with_unknown_data_center_count: usize,
-    pub node_operators_with_known_node_provider_count: usize,
-    pub node_operators_with_unknown_node_provider_count: usize,
-    pub node_operators_with_known_data_center_count: usize,
-    pub node_operators_with_unknown_data_center_count: usize,
-}
-
-///
-/// NnsTopologyRegistryVersionRow
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyRegistryVersionRow {
-    pub source: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub stale: Option<bool>,
-}
-
-///
-/// NnsTopologyVersionsReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyVersionsReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub source_count: usize,
-    pub registry_versions: Vec<NnsTopologyRegistryVersionRow>,
-}
-
-///
-/// NnsTopologyHealthReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyHealthReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub status: String,
-    pub registry_source_count: usize,
-    pub registry_version_min: Option<u64>,
-    pub registry_version_max: Option<u64>,
-    pub registry_versions_aligned: bool,
-    pub stale_source_count: usize,
-    pub subnet_catalog_stale: bool,
-    pub subnet_catalog_stale_reason: String,
-    pub known_join_count: usize,
-    pub unknown_join_count: usize,
-    pub join_coverage: String,
-    pub checks: Vec<NnsTopologyHealthCheckRow>,
-}
-
-///
-/// NnsTopologyHealthCheckRow
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyHealthCheckRow {
-    pub check: String,
-    pub status: String,
-    pub detail: String,
-}
-
-///
-/// NnsTopologyGapsReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyGapsReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub status: String,
-    pub gap_count: usize,
-    pub gaps: Vec<NnsTopologyGapRow>,
-}
-
-///
-/// NnsTopologyGapRow
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyGapRow {
-    pub subject_kind: String,
-    pub subject: String,
-    pub missing_relation: String,
-    pub referenced_id: String,
-}
-
-///
-/// NnsTopologyCapacityReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyCapacityReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub status: String,
-    pub node_operator_count: usize,
-    pub total_node_allowance: u64,
-    pub assigned_node_count: u64,
-    pub unknown_node_count_operator_count: usize,
-    pub available_node_slots: u64,
-    pub over_assigned_operator_count: usize,
-    pub over_assigned_node_count: u64,
-    pub capacity: Vec<NnsTopologyCapacityRow>,
-}
-
-///
-/// NnsTopologyCapacityRow
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyCapacityRow {
-    pub node_operator_principal: String,
-    pub node_provider_principal: String,
-    pub data_center_id: String,
-    pub node_allowance: u64,
-    pub assigned_node_count: Option<u64>,
-    pub available_node_slots: Option<u64>,
-    pub over_assigned_node_count: Option<u64>,
-    pub utilization: String,
-    pub status: String,
-}
-
-///
-/// NnsTopologyRegionsReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyRegionsReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub region_count: usize,
-    pub data_center_count: usize,
-    pub node_operator_count: u64,
-    pub node_provider_count: u64,
-    pub node_count: u64,
-    pub regions: Vec<NnsTopologyRegionRow>,
-}
-
-///
-/// NnsTopologyRegionRow
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyRegionRow {
-    pub region: String,
-    pub data_center_count: usize,
-    pub node_operator_count: u64,
-    pub node_provider_count: u64,
-    pub node_count: u64,
-}
-
-///
-/// NnsTopologyProvidersReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyProvidersReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub registered_node_provider_count: usize,
-    pub referenced_node_provider_count: usize,
-    pub provider_with_nodes_count: usize,
-    pub provider_with_node_operators_count: usize,
-    pub total_node_count: u64,
-    pub total_node_operator_count: u64,
-    pub total_node_allowance: u64,
-    pub over_assigned_provider_count: usize,
-    pub unknown_provider_count: usize,
-    pub providers: Vec<NnsTopologyProviderRow>,
-}
-
-///
-/// NnsTopologyProviderRow
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyProviderRow {
-    pub node_provider_principal: String,
-    pub registered: bool,
-    pub name: Option<String>,
-    pub governance_node_count: Option<u64>,
-    pub topology_node_count: u64,
-    pub node_operator_count: u64,
-    pub data_center_count: usize,
-    pub region_count: usize,
-    pub total_node_allowance: u64,
-    pub assigned_node_count: u64,
-    pub available_node_slots: u64,
-    pub over_assigned_node_count: u64,
-    pub status: String,
-}
-
-///
-/// NnsTopologyRefreshReport
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyRefreshReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub source_endpoint: String,
-    pub dry_run: bool,
-    pub component_count: usize,
-    pub wrote_cache_count: usize,
-    pub replaced_existing_cache_count: usize,
-    pub components: Vec<NnsTopologyRefreshRow>,
-}
-
-///
-/// NnsTopologyRefreshRow
-///
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyRefreshRow {
-    pub source: String,
-    pub cache_path: String,
-    pub refresh_lock_path: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
-    pub dry_run: bool,
-    pub wrote_cache: bool,
-    pub replaced_existing_cache: bool,
-    pub item_count: usize,
-}
 
 ///
 /// NnsTopologyHostError
@@ -517,157 +95,6 @@ pub enum NnsTopologyHostError {
 
     #[error(transparent)]
     DataCenter(#[from] NnsDataCenterHostError),
-}
-
-fn summary_request_from(request: &impl TopologyRequestParts) -> NnsTopologySummaryRequest {
-    NnsTopologySummaryRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-    }
-}
-
-fn subnet_catalog_cache_request(request: &impl TopologyRequestParts) -> SubnetCatalogCacheRequest {
-    SubnetCatalogCacheRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-    }
-}
-
-fn node_cache_request(request: &impl TopologyRequestParts) -> NnsNodeCacheRequest {
-    NnsNodeCacheRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-    }
-}
-
-fn node_provider_cache_request(request: &impl TopologyRequestParts) -> NnsNodeProviderCacheRequest {
-    NnsNodeProviderCacheRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-    }
-}
-
-fn node_operator_cache_request(request: &impl TopologyRequestParts) -> NnsNodeOperatorCacheRequest {
-    NnsNodeOperatorCacheRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-    }
-}
-
-fn data_center_cache_request(request: &impl TopologyRequestParts) -> NnsDataCenterCacheRequest {
-    NnsDataCenterCacheRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-    }
-}
-
-fn subnet_catalog_list_request(request: &impl TopologyRequestParts) -> SubnetCatalogListRequest {
-    SubnetCatalogListRequest {
-        cache: subnet_catalog_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
-        filters: SubnetCatalogFilters::default(),
-        show_ranges: false,
-        range_limit: 1,
-        range_offset: 0,
-    }
-}
-
-fn node_list_request(request: &impl TopologyRequestParts) -> NnsNodeListRequest {
-    NnsNodeListRequest {
-        cache: node_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        filters: NnsNodeListFilters::default(),
-    }
-}
-
-fn node_provider_list_request(request: &impl TopologyRequestParts) -> NnsNodeProviderListRequest {
-    NnsNodeProviderListRequest {
-        cache: node_provider_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-    }
-}
-
-fn node_operator_list_request(request: &impl TopologyRequestParts) -> NnsNodeOperatorListRequest {
-    NnsNodeOperatorListRequest {
-        cache: node_operator_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-    }
-}
-
-fn data_center_list_request(request: &impl TopologyRequestParts) -> NnsDataCenterListRequest {
-    NnsDataCenterListRequest {
-        cache: data_center_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-    }
-}
-
-fn subnet_catalog_refresh_request(
-    request: &impl TopologyRefreshParts,
-) -> SubnetCatalogRefreshRequest {
-    SubnetCatalogRefreshRequest {
-        cache: subnet_catalog_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        lock_stale_after_seconds: request.lock_stale_after_seconds(),
-        dry_run: request.dry_run(),
-        output_path: None,
-    }
-}
-
-fn node_refresh_request(request: &impl TopologyRefreshParts) -> NnsNodeRefreshRequest {
-    NnsNodeRefreshRequest {
-        cache: node_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        lock_stale_after_seconds: request.lock_stale_after_seconds(),
-        dry_run: request.dry_run(),
-        output_path: None,
-    }
-}
-
-fn node_provider_refresh_request(
-    request: &impl TopologyRefreshParts,
-) -> NnsNodeProviderRefreshRequest {
-    NnsNodeProviderRefreshRequest {
-        cache: node_provider_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        lock_stale_after_seconds: request.lock_stale_after_seconds(),
-        dry_run: request.dry_run(),
-        output_path: None,
-    }
-}
-
-fn node_operator_refresh_request(
-    request: &impl TopologyRefreshParts,
-) -> NnsNodeOperatorRefreshRequest {
-    NnsNodeOperatorRefreshRequest {
-        cache: node_operator_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        lock_stale_after_seconds: request.lock_stale_after_seconds(),
-        dry_run: request.dry_run(),
-        output_path: None,
-    }
-}
-
-fn data_center_refresh_request(request: &impl TopologyRefreshParts) -> NnsDataCenterRefreshRequest {
-    NnsDataCenterRefreshRequest {
-        cache: data_center_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        lock_stale_after_seconds: request.lock_stale_after_seconds(),
-        dry_run: request.dry_run(),
-        output_path: None,
-    }
 }
 
 pub fn build_nns_topology_summary_report(
