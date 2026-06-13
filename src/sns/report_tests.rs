@@ -143,6 +143,35 @@ fn sns_token_empty_logo_metadata_is_false() {
 }
 
 #[test]
+fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
+    let mut request = neurons_request("1");
+    request.owner_principal_id = Some(GOVERNANCE_A.to_string());
+
+    let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
+        .expect("sns neurons report");
+    let text = sns_neurons_report_text(&report);
+
+    assert_eq!(report.schema_version, SNS_NEURONS_REPORT_SCHEMA_VERSION);
+    assert_eq!(report.id, 1);
+    assert_eq!(report.name, "Fixture SNS");
+    assert_eq!(report.root_canister_id, ROOT_A);
+    assert_eq!(report.governance_canister_id, GOVERNANCE_A);
+    assert_eq!(report.requested_limit, 10);
+    assert_eq!(report.owner_principal_id.as_deref(), Some(GOVERNANCE_A));
+    assert_eq!(report.neuron_count, 1);
+    assert_eq!(report.neurons[0].neuron_id, "00010203");
+    assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 123);
+    assert_eq!(report.neurons[0].maturity_e8s_equivalent, 456);
+    assert_eq!(report.neurons[0].staked_maturity_e8s_equivalent, Some(789));
+    assert_eq!(report.neurons[0].created_at, "2026-06-01T00:00:00Z");
+    assert!(text.contains("governance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
+    assert!(text.contains("requested_limit: 10"));
+    assert!(text.contains("owner_principal_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
+    assert!(text.contains("00010203"));
+    assert!(text.contains("2026-06-01T00:00:00Z"));
+}
+
+#[test]
 fn sns_list_ids_follow_source_order() {
     let request = list_request(false);
 
@@ -266,6 +295,17 @@ fn token_request(input: &str) -> SnsTokenRequest {
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
         input: input.to_string(),
+    }
+}
+
+fn neurons_request(input: &str) -> SnsNeuronsRequest {
+    SnsNeuronsRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: input.to_string(),
+        limit: 10,
+        owner_principal_id: None,
     }
 }
 
@@ -421,6 +461,41 @@ impl SnsTokenSource for FixtureSnsTokenSource {
                     value: serde_json::json!(true),
                 },
             ],
+        })
+    }
+}
+
+struct FixtureSnsNeuronsSource;
+
+impl SnsListSource for FixtureSnsNeuronsSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        FixtureSnsListSource.fetch_deployed_snses(request)
+    }
+}
+
+impl SnsNeuronsSource for FixtureSnsNeuronsSource {
+    fn fetch_sns_neurons(
+        &self,
+        _request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeurons, SnsHostError> {
+        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+        assert_eq!(limit, 10);
+        assert_eq!(owner_principal_id, Some(GOVERNANCE_A));
+        Ok(MainnetSnsNeurons {
+            neurons: vec![SnsNeuronRow {
+                neuron_id: "00010203".to_string(),
+                cached_neuron_stake_e8s: 123,
+                maturity_e8s_equivalent: 456,
+                staked_maturity_e8s_equivalent: Some(789),
+                created_timestamp_seconds: 1_780_272_000,
+                created_at: "2026-06-01T00:00:00Z".to_string(),
+            }],
         })
     }
 }

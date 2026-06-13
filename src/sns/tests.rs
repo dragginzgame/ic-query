@@ -29,13 +29,17 @@ fn sns_list_parses_defaults_and_json_format() {
 
 #[test]
 fn sns_info_parses_input_and_json_format() {
-    let options = SnsInfoOptions::parse([
-        OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-    ])
+    let options = SnsLookupOptions::parse(
+        [
+            OsString::from("1"),
+            OsString::from("--format"),
+            OsString::from("json"),
+            OsString::from("--source-endpoint"),
+            OsString::from("https://icp-api.io"),
+        ],
+        sns_info_command,
+        sns_info_usage,
+    )
     .expect("parse info");
 
     assert_eq!(options.input, "1");
@@ -46,13 +50,17 @@ fn sns_info_parses_input_and_json_format() {
 
 #[test]
 fn sns_token_parses_input_and_json_format() {
-    let options = SnsTokenOptions::parse([
-        OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-    ])
+    let options = SnsLookupOptions::parse(
+        [
+            OsString::from("1"),
+            OsString::from("--format"),
+            OsString::from("json"),
+            OsString::from("--source-endpoint"),
+            OsString::from("https://icp-api.io"),
+        ],
+        sns_token_command,
+        sns_token_usage,
+    )
     .expect("parse token");
 
     assert_eq!(options.input, "1");
@@ -62,18 +70,79 @@ fn sns_token_parses_input_and_json_format() {
 }
 
 #[test]
+fn sns_neurons_parses_owner_limit_and_json_format() {
+    let options = SnsNeuronsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--format"),
+        OsString::from("json"),
+        OsString::from("--source-endpoint"),
+        OsString::from("https://icp-api.io"),
+        OsString::from("--limit"),
+        OsString::from("10"),
+        OsString::from("--owner"),
+        OsString::from("bkyz2-fmaaa-aaaaa-qaaaq-cai"),
+    ])
+    .expect("parse neurons");
+
+    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.network, "ic");
+    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.limit, 10);
+    assert_eq!(
+        options.owner_principal_id.as_deref(),
+        Some("bkyz2-fmaaa-aaaaa-qaaaq-cai")
+    );
+}
+
+#[test]
+fn sns_neurons_rejects_invalid_clap_values() {
+    assert!(matches!(
+        SnsLookupOptions::parse(
+            [OsString::from("not-a-principal")],
+            sns_info_command,
+            sns_info_usage
+        ),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsLookupOptions::parse([OsString::from("0")], sns_token_command, sns_token_usage),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsNeuronsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--limit"),
+            OsString::from("0"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsNeuronsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--owner"),
+            OsString::from("not-a-principal"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+}
+
+#[test]
 fn sns_help_is_advertised() {
     let sns = usage();
     let list = sns_list_usage();
     let info = sns_info_usage();
     let token = sns_token_usage();
+    let neurons = sns_neurons_usage();
 
     assert!(sns.contains("list"));
     assert!(sns.contains("info"));
     assert!(sns.contains("token"));
+    assert!(sns.contains("neurons"));
     assert!(sns.contains("List deployed mainnet SNS instances"));
     assert!(sns.contains("Resolve a deployed SNS"));
     assert!(sns.contains("Show SNS ledger token metadata"));
+    assert!(sns.contains("List SNS governance neurons"));
     assert!(list.contains("icq sns list"));
     assert!(list.contains("--format json"));
     assert!(list.contains("--source-endpoint"));
@@ -83,6 +152,9 @@ fn sns_help_is_advertised() {
     assert!(info.contains("id|root-principal"));
     assert!(token.contains("icq sns token"));
     assert!(token.contains("id|root-principal"));
+    assert!(neurons.contains("icq sns neurons"));
+    assert!(neurons.contains("--limit"));
+    assert!(neurons.contains("--owner"));
 }
 
 #[test]

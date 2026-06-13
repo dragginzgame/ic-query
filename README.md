@@ -38,7 +38,7 @@ icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq sns [list|info|token]
+icq sns [list|info|token|neurons]
 ```
 
 Use `icq nns <family> help`, `icq nns topology <report> help`, or
@@ -108,7 +108,7 @@ linking registry adapters directly. For one integration example, see
 The command namespace is intentionally small:
 
 - `nns` is implemented.
-- `sns list`, `sns info`, and `sns token` are implemented for deployed mainnet
-  SNS instances.
+- `sns list`, `sns info`, `sns token`, and `sns neurons` are implemented for
+  deployed mainnet SNS instances.
 - Additional IC query families can be added without coupling query code to
   deployment tooling.

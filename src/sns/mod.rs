@@ -4,7 +4,7 @@ use crate::{
     cli::{
         clap::{
             flag_arg, parse_matches, parse_required_subcommand, passthrough_subcommand,
-            render_help, required_string, required_typed, value_arg,
+            render_help, required_string, required_typed, typed_option, value_arg,
         },
         common::{
             OutputFormat, current_unix_secs, format_arg, source_endpoint_arg, write_text_or_json,
@@ -14,14 +14,19 @@ use crate::{
     },
     sns::report::{
         DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsInfoRequest, SnsListRequest, SnsListSort,
-        SnsTokenRequest, build_sns_info_report, build_sns_list_report, build_sns_token_report,
-        sns_info_report_text, sns_list_report_text, sns_token_report_text,
+        SnsNeuronsRequest, SnsTokenRequest, build_sns_info_report, build_sns_list_report,
+        build_sns_neurons_report, build_sns_token_report, sns_info_report_text,
+        sns_list_report_text, sns_neurons_report_text, sns_token_report_text,
     },
     version_text,
 };
-use clap::{Command as ClapCommand, ValueEnum};
+use candid::Principal;
+use clap::{Command as ClapCommand, ValueEnum, builder::RangedU64ValueParser};
 use std::{ffi::OsString, io};
 use thiserror::Error as ThisError;
+
+const SNS_NEURONS_DEFAULT_LIMIT: &str = "25";
+const SNS_NEURONS_MAX_LIMIT: u64 = 100;
 
 const SNS_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -42,6 +47,13 @@ Examples:
   icq sns token 1
   icq sns token 23ten-uaaaa-aaaaq-aabia-cai
   icq --network ic sns token 1 --format json";
+
+const SNS_NEURONS_HELP_AFTER: &str = "\
+Examples:
+  icq sns neurons 1
+  icq sns neurons 23ten-uaaaa-aaaaq-aabia-cai --limit 10
+  icq sns neurons 1 --owner zqfso-syaaa-aaaaq-aaafq-cai
+  icq --network ic sns neurons 1 --format json";
 
 #[derive(Debug, ThisError)]
 pub enum SnsCommandError {
@@ -71,7 +83,7 @@ struct SnsListOptions {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SnsInfoOptions {
+struct SnsLookupOptions {
     input: String,
     network: String,
     format: OutputFormat,
@@ -79,11 +91,10 @@ struct SnsInfoOptions {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SnsTokenOptions {
-    input: String,
-    network: String,
-    format: OutputFormat,
-    source_endpoint: String,
+struct SnsNeuronsOptions {
+    lookup: SnsLookupOptions,
+    limit: u32,
+    owner_principal_id: Option<String>,
 }
 
 pub fn run<I>(args: I) -> Result<(), SnsCommandError>
@@ -101,6 +112,7 @@ where
         "list" => run_sns_list(args),
         "info" => run_sns_info(args),
         "token" => run_sns_token(args),
+        "neurons" => run_sns_neurons(args),
         _ => unreachable!("sns dispatch command only defines known commands"),
     }
 }
@@ -134,7 +146,7 @@ where
     if print_help_or_version(&args, sns_info_usage, version_text()) {
         return Ok(());
     }
-    let options = SnsInfoOptions::parse(args)?;
+    let options = SnsLookupOptions::parse(args, sns_info_command, sns_info_usage)?;
     let format = options.format;
     let request = SnsInfoRequest {
         network: options.network,
@@ -154,7 +166,7 @@ where
     if print_help_or_version(&args, sns_token_usage, version_text()) {
         return Ok(());
     }
-    let options = SnsTokenOptions::parse(args)?;
+    let options = SnsLookupOptions::parse(args, sns_token_command, sns_token_usage)?;
     let format = options.format;
     let request = SnsTokenRequest {
         network: options.network,
@@ -164,6 +176,28 @@ where
     };
     let report = build_sns_token_report(&request)?;
     write_text_or_json(format, &report, sns_token_report_text)
+}
+
+fn run_sns_neurons<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, sns_neurons_usage, version_text()) {
+        return Ok(());
+    }
+    let options = SnsNeuronsOptions::parse(args)?;
+    let format = options.lookup.format;
+    let request = SnsNeuronsRequest {
+        network: options.lookup.network,
+        source_endpoint: options.lookup.source_endpoint,
+        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        input: options.lookup.input,
+        limit: options.limit,
+        owner_principal_id: options.owner_principal_id,
+    };
+    let report = build_sns_neurons_report(&request)?;
+    write_text_or_json(format, &report, sns_neurons_report_text)
 }
 
 impl SnsListOptions {
@@ -183,13 +217,17 @@ impl SnsListOptions {
     }
 }
 
-impl SnsInfoOptions {
-    fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+impl SnsLookupOptions {
+    fn parse<I>(
+        args: I,
+        command: fn() -> ClapCommand,
+        usage: fn() -> String,
+    ) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches(sns_info_command(), args)
-            .map_err(|_| SnsCommandError::Usage(sns_info_usage()))?;
+        let matches =
+            parse_matches(command(), args).map_err(|_| SnsCommandError::Usage(usage()))?;
         Ok(Self {
             input: required_string(&matches, "input"),
             network: required_string(&matches, "network"),
@@ -199,18 +237,24 @@ impl SnsInfoOptions {
     }
 }
 
-impl SnsTokenOptions {
+impl SnsNeuronsOptions {
     fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches(sns_token_command(), args)
-            .map_err(|_| SnsCommandError::Usage(sns_token_usage()))?;
-        Ok(Self {
+        let matches = parse_matches(sns_neurons_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_neurons_usage()))?;
+        let lookup = SnsLookupOptions {
             input: required_string(&matches, "input"),
             network: required_string(&matches, "network"),
             format: required_typed(&matches, "format"),
             source_endpoint: required_string(&matches, "source-endpoint"),
+        };
+        Ok(Self {
+            lookup,
+            limit: required_typed(&matches, "limit"),
+            owner_principal_id: typed_option::<Principal>(&matches, "owner")
+                .map(|principal| principal.to_text()),
         })
     }
 }
@@ -228,6 +272,9 @@ fn sns_command() -> ClapCommand {
         ))
         .subcommand(passthrough_subcommand(ClapCommand::new("token").about(
             "Show SNS ledger token metadata by list id or root principal",
+        )))
+        .subcommand(passthrough_subcommand(ClapCommand::new("neurons").about(
+            "List SNS governance neurons by SNS list id or root principal",
         )))
 }
 
@@ -256,12 +303,7 @@ fn sns_info_command() -> ClapCommand {
         .bin_name("icq sns info")
         .about("Resolve a deployed SNS by list id or root principal")
         .disable_help_flag(true)
-        .arg(
-            value_arg("input")
-                .value_name("id|root-principal")
-                .required(true)
-                .help("SNS list id or root canister principal"),
-        )
+        .arg(sns_lookup_input_arg())
         .arg(format_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
@@ -276,12 +318,7 @@ fn sns_token_command() -> ClapCommand {
         .bin_name("icq sns token")
         .about("Show SNS ledger token metadata by list id or root principal")
         .disable_help_flag(true)
-        .arg(
-            value_arg("input")
-                .value_name("id|root-principal")
-                .required(true)
-                .help("SNS list id or root canister principal"),
-        )
+        .arg(sns_lookup_input_arg())
         .arg(format_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
@@ -289,6 +326,36 @@ fn sns_token_command() -> ClapCommand {
         )
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_TOKEN_HELP_AFTER)
+}
+
+fn sns_neurons_command() -> ClapCommand {
+    ClapCommand::new("neurons")
+        .bin_name("icq sns neurons")
+        .about("List SNS governance neurons by SNS list id or root principal")
+        .disable_help_flag(true)
+        .arg(sns_lookup_input_arg())
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W and governance queries"),
+        )
+        .arg(
+            value_arg("limit")
+                .long("limit")
+                .value_name("count")
+                .default_value(SNS_NEURONS_DEFAULT_LIMIT)
+                .value_parser(RangedU64ValueParser::<u32>::new().range(1..=SNS_NEURONS_MAX_LIMIT))
+                .help("Maximum neurons to request from SNS governance"),
+        )
+        .arg(
+            value_arg("owner")
+                .long("owner")
+                .value_name("principal")
+                .value_parser(principal_value_parser())
+                .help("Filter neurons by controlling principal"),
+        )
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_NEURONS_HELP_AFTER)
 }
 
 fn usage() -> String {
@@ -305,6 +372,10 @@ fn sns_info_usage() -> String {
 
 fn sns_token_usage() -> String {
     render_help(sns_token_command())
+}
+
+fn sns_neurons_usage() -> String {
+    render_help(sns_neurons_command())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -329,6 +400,30 @@ fn sort_arg() -> clap::Arg {
         .default_value("id")
         .value_parser(clap::value_parser!(SnsListSortArg))
         .help("Text/JSON row order; ids follow the SNS-W response order")
+}
+
+fn sns_lookup_input_arg() -> clap::Arg {
+    value_arg("input")
+        .value_name("id|root-principal")
+        .required(true)
+        .value_parser(sns_lookup_input_value_parser())
+        .help("SNS list id or root canister principal")
+}
+
+fn sns_lookup_input_value_parser() -> clap::builder::ValueParser {
+    clap::builder::ValueParser::new(|value: &str| {
+        if value.parse::<usize>().is_ok_and(|id| id > 0) || Principal::from_text(value).is_ok() {
+            Ok(value.to_string())
+        } else {
+            Err("must be a positive SNS list id or root canister principal".to_string())
+        }
+    })
+}
+
+fn principal_value_parser() -> clap::builder::ValueParser {
+    clap::builder::ValueParser::new(|value: &str| {
+        Principal::from_text(value).map_err(|err| err.to_string())
+    })
 }
 
 #[cfg(test)]

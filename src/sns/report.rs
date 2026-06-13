@@ -17,6 +17,7 @@ pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
 const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
 const SNS_TOKEN_LOGO_METADATA_KEY: &str = "icrc1:logo";
 const SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
@@ -32,19 +33,24 @@ pub struct SnsListRequest {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnsInfoRequest {
+pub struct SnsLookupRequest {
     pub network: String,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub input: String,
 }
 
+pub type SnsInfoRequest = SnsLookupRequest;
+pub type SnsTokenRequest = SnsLookupRequest;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnsTokenRequest {
+pub struct SnsNeuronsRequest {
     pub network: String,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub input: String,
+    pub limit: u32,
+    pub owner_principal_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -133,6 +139,34 @@ pub struct SnsTokenMetadataRow {
     pub value: JsonValue,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsNeuronsReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub sns_wasm_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub id: usize,
+    pub name: String,
+    pub root_canister_id: String,
+    pub governance_canister_id: String,
+    pub requested_limit: u32,
+    pub owner_principal_id: Option<String>,
+    pub neuron_count: usize,
+    pub neurons: Vec<SnsNeuronRow>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsNeuronRow {
+    pub neuron_id: String,
+    pub cached_neuron_stake_e8s: u64,
+    pub maturity_e8s_equivalent: u64,
+    pub staked_maturity_e8s_equivalent: Option<u64>,
+    pub created_timestamp_seconds: u64,
+    pub created_at: String,
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum SnsListSort {
     #[default]
@@ -206,6 +240,12 @@ pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenRepor
     build_sns_token_report_with_source(request, &LiveSnsListSource)
 }
 
+pub fn build_sns_neurons_report(
+    request: &SnsNeuronsRequest,
+) -> Result<SnsNeuronsReport, SnsHostError> {
+    build_sns_neurons_report_with_source(request, &LiveSnsListSource)
+}
+
 fn build_sns_list_report_with_source(
     request: &SnsListRequest,
     source: &dyn SnsListSource,
@@ -230,16 +270,7 @@ fn build_sns_info_report_with_source(
     request: &SnsInfoRequest,
     source: &dyn SnsListSource,
 ) -> Result<SnsInfoReport, SnsHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let fetch_request = fetch_request_from_parts(
-        &request.source_endpoint,
-        request.now_unix_secs,
-        "ic-query".to_string(),
-    );
-    let mut list = source.fetch_deployed_snses(&fetch_request)?;
-    assign_sns_ids_in_current_order(&mut list.sns_instances);
-    sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
-    let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
+    let (_fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
     Ok(sns_info_report_from_list(list, id, sns))
 }
 
@@ -247,6 +278,42 @@ fn build_sns_token_report_with_source(
     request: &SnsTokenRequest,
     source: &dyn SnsTokenSource,
 ) -> Result<SnsTokenReport, SnsHostError> {
+    let (fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
+    let token = source.fetch_sns_token(&fetch_request, &sns)?;
+    Ok(sns_token_report_from_parts(list, id, sns, token))
+}
+
+fn build_sns_neurons_report_with_source(
+    request: &SnsNeuronsRequest,
+    source: &dyn SnsNeuronsSource,
+) -> Result<SnsNeuronsReport, SnsHostError> {
+    let lookup_request = SnsLookupRequest {
+        network: request.network.clone(),
+        source_endpoint: request.source_endpoint.clone(),
+        now_unix_secs: request.now_unix_secs,
+        input: request.input.clone(),
+    };
+    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
+    let neurons = source.fetch_sns_neurons(
+        &fetch_request,
+        &sns,
+        request.limit,
+        request.owner_principal_id.as_deref(),
+    )?;
+    Ok(sns_neurons_report_from_parts(
+        list,
+        id,
+        sns,
+        request.limit,
+        request.owner_principal_id.clone(),
+        neurons,
+    ))
+}
+
+fn resolve_sns_lookup(
+    request: &SnsLookupRequest,
+    source: &dyn SnsListSource,
+) -> Result<(SnsFetchRequest, MainnetSnsList, usize, MainnetSns), SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetch_request = fetch_request_from_parts(
         &request.source_endpoint,
@@ -257,8 +324,7 @@ fn build_sns_token_report_with_source(
     assign_sns_ids_in_current_order(&mut list.sns_instances);
     sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
     let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
-    let token = source.fetch_sns_token(&fetch_request, &sns)?;
-    Ok(sns_token_report_from_parts(list, id, sns, token))
+    Ok((fetch_request, list, id, sns))
 }
 
 #[must_use]
@@ -421,6 +487,59 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
     lines.join("\n")
 }
 
+#[must_use]
+pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", report.network),
+        format!("sns_id: {}", report.id),
+        format!("name: {}", report.name),
+        format!("root_canister_id: {}", report.root_canister_id),
+        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!("requested_limit: {}", report.requested_limit),
+        format!(
+            "owner_principal_id: {}",
+            optional_text(report.owner_principal_id.as_ref())
+        ),
+        format!("neuron_count: {}", report.neuron_count),
+        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    if !report.neurons.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &[
+                "NEURON_ID",
+                "STAKE_E8S",
+                "MATURITY_E8S",
+                "STAKED_MATURITY_E8S",
+                "CREATED_AT",
+            ],
+            &report
+                .neurons
+                .iter()
+                .map(|neuron| {
+                    [
+                        neuron.neuron_id.clone(),
+                        neuron.cached_neuron_stake_e8s.to_string(),
+                        neuron.maturity_e8s_equivalent.to_string(),
+                        optional_u64_text(neuron.staked_maturity_e8s_equivalent),
+                        neuron.created_at.clone(),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+            ],
+        ));
+    }
+    lines.join("\n")
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SnsFetchRequest {
     endpoint: String,
@@ -474,6 +593,11 @@ struct MainnetSnsToken {
     ledger_index_error: Option<String>,
     supported_standards: Vec<SnsTokenStandardRow>,
     metadata: Vec<SnsTokenMetadataRow>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct MainnetSnsNeurons {
+    neurons: Vec<SnsNeuronRow>,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -539,6 +663,32 @@ enum GetIndexPrincipalError {
     },
 }
 
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct ListNeuronsRequest {
+    of_principal: Option<Principal>,
+    limit: u32,
+    start_page_at: Option<SnsNeuronId>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct ListNeuronsResponse {
+    neurons: Vec<SnsGovernanceNeuron>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsNeuronId {
+    id: Vec<u8>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsGovernanceNeuron {
+    id: Option<SnsNeuronId>,
+    staked_maturity_e8s_equivalent: Option<u64>,
+    maturity_e8s_equivalent: u64,
+    cached_neuron_stake_e8s: u64,
+    created_timestamp_seconds: u64,
+}
+
 trait SnsListSource {
     fn fetch_deployed_snses(
         &self,
@@ -552,6 +702,16 @@ trait SnsTokenSource: SnsListSource {
         request: &SnsFetchRequest,
         sns: &MainnetSns,
     ) -> Result<MainnetSnsToken, SnsHostError>;
+}
+
+trait SnsNeuronsSource: SnsListSource {
+    fn fetch_sns_neurons(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeurons, SnsHostError>;
 }
 
 struct LiveSnsListSource;
@@ -575,6 +735,18 @@ impl SnsTokenSource for LiveSnsListSource {
     }
 }
 
+impl SnsNeuronsSource for LiveSnsListSource {
+    fn fetch_sns_neurons(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeurons, SnsHostError> {
+        fetch_mainnet_sns_neurons(request, sns, limit, owner_principal_id)
+    }
+}
+
 fn fetch_mainnet_sns_list(request: &SnsFetchRequest) -> Result<MainnetSnsList, SnsHostError> {
     block_on_current_thread(fetch_mainnet_sns_list_async(request)).map_err(SnsHostError::Runtime)?
 }
@@ -585,6 +757,21 @@ fn fetch_mainnet_sns_token(
 ) -> Result<MainnetSnsToken, SnsHostError> {
     block_on_current_thread(fetch_mainnet_sns_token_async(request, sns))
         .map_err(SnsHostError::Runtime)?
+}
+
+fn fetch_mainnet_sns_neurons(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    limit: u32,
+    owner_principal_id: Option<&str>,
+) -> Result<MainnetSnsNeurons, SnsHostError> {
+    block_on_current_thread(fetch_mainnet_sns_neurons_async(
+        request,
+        sns,
+        limit,
+        owner_principal_id,
+    ))
+    .map_err(SnsHostError::Runtime)?
 }
 
 async fn fetch_mainnet_sns_list_async(
@@ -672,6 +859,46 @@ async fn fetch_mainnet_sns_token_async(
             .into_iter()
             .map(|(key, value)| metadata_row(key, value))
             .collect(),
+    })
+}
+
+async fn fetch_mainnet_sns_neurons_async(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    limit: u32,
+    owner_principal_id: Option<&str>,
+) -> Result<MainnetSnsNeurons, SnsHostError> {
+    let agent = sns_agent(&request.endpoint)?;
+    let governance_canister =
+        principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
+    let owner_principal = owner_principal_id
+        .map(|principal| principal_from_text(principal, "owner_principal_id"))
+        .transpose()?;
+    let arg = Encode!(&ListNeuronsRequest {
+        of_principal: owner_principal,
+        limit,
+        start_page_at: None,
+    })
+    .map_err(|err| SnsHostError::CandidEncode {
+        message: "ListNeuronsRequest",
+        reason: err.to_string(),
+    })?;
+    let bytes = agent
+        .query(&governance_canister, "list_neurons")
+        .with_arg(arg)
+        .call()
+        .await
+        .map_err(|err| SnsHostError::AgentCall {
+            method: "list_neurons",
+            reason: err.to_string(),
+        })?;
+    let response =
+        Decode!(&bytes, ListNeuronsResponse).map_err(|err| SnsHostError::CandidDecode {
+            message: "ListNeuronsResponse",
+            reason: err.to_string(),
+        })?;
+    Ok(MainnetSnsNeurons {
+        neurons: response.neurons.into_iter().map(sns_neuron_row).collect(),
     })
 }
 
@@ -936,6 +1163,33 @@ fn sns_token_report_from_parts(
     }
 }
 
+fn sns_neurons_report_from_parts(
+    list: MainnetSnsList,
+    id: usize,
+    sns: MainnetSns,
+    requested_limit: u32,
+    owner_principal_id: Option<String>,
+    neurons: MainnetSnsNeurons,
+) -> SnsNeuronsReport {
+    let neuron_count = neurons.neurons.len();
+    SnsNeuronsReport {
+        schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
+        network: list.network,
+        sns_wasm_canister_id: list.sns_wasm_canister_id,
+        fetched_at: list.fetched_at,
+        source_endpoint: list.source_endpoint,
+        fetched_by: list.fetched_by,
+        id,
+        name: sns.name,
+        root_canister_id: sns.root_canister_id,
+        governance_canister_id: sns.governance_canister_id,
+        requested_limit,
+        owner_principal_id,
+        neuron_count,
+        neurons: neurons.neurons,
+    }
+}
+
 fn assign_sns_ids_in_current_order(instances: &mut [MainnetSns]) {
     for (index, sns) in instances.iter_mut().enumerate() {
         sns.id = index + 1;
@@ -1027,10 +1281,27 @@ fn optional_text(value: Option<&String>) -> &str {
     value.map_or("-", String::as_str)
 }
 
+fn optional_u64_text(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
 fn clean_optional_text(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+}
+
+fn sns_neuron_row(neuron: SnsGovernanceNeuron) -> SnsNeuronRow {
+    SnsNeuronRow {
+        neuron_id: neuron
+            .id
+            .map_or_else(|| "-".to_string(), |id| hex_bytes(&id.id)),
+        cached_neuron_stake_e8s: neuron.cached_neuron_stake_e8s,
+        maturity_e8s_equivalent: neuron.maturity_e8s_equivalent,
+        staked_maturity_e8s_equivalent: neuron.staked_maturity_e8s_equivalent,
+        created_timestamp_seconds: neuron.created_timestamp_seconds,
+        created_at: format_utc_timestamp_secs(neuron.created_timestamp_seconds),
+    }
 }
 
 fn metadata_row(key: String, value: IcrcMetadataValue) -> SnsTokenMetadataRow {

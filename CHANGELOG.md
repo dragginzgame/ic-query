@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.0.9] - 2026-06-13
+
+### Added
+
+- Adds `icq sns neurons <id|root-principal>` for SNS governance neuron listings
+  with clap-validated `--limit` and `--owner` filters.
+- Adds `docs/design/0.1/` planning docs for reusable complete snapshot caches
+  and SNS neuron refresh semantics.
+
+### Changed
+
+- Deduplicates SNS lookup command option parsing and shared SNS resolution,
+  while clap-validating lookup ids and root principals.
+- Lets global `--network ic` forward to all networked SNS lookup commands.
+
 ## [0.0.8] - 2026-06-13
 
 ### Added
