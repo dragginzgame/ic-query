@@ -40,6 +40,6 @@ fn nns_accepts_global_network(tail: &[std::ffi::OsString]) -> bool {
 fn sns_accepts_global_network(tail: &[std::ffi::OsString]) -> bool {
     matches!(
         tail.first().and_then(|arg| arg.to_str()),
-        Some("list" | "info" | "token" | "neurons")
+        Some("list" | "info" | "token" | "params" | "neurons")
     )
 }

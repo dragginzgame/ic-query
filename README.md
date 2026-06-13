@@ -11,7 +11,7 @@ metadata queries.
 
 `icq` currently supports NNS and SNS metadata queries: registry version,
 subnet catalog lookup, node/provider/operator/data-center inventory, topology
-reports, and deployed SNS listings.
+reports, and deployed SNS reports.
 
 ## Install
 
@@ -38,7 +38,7 @@ icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq sns [list|info|token]
+icq sns [list|info|token|params]
 icq sns neurons [refresh]
 ```
 
@@ -91,6 +91,14 @@ Text output shows current SNS token amounts, including token fee, total supply,
 stake, maturity, and staked maturity, as token decimals with two places. JSON
 keeps the raw base-unit and e8s fields.
 
+SNS governance nervous system parameters can be queried by list id or root
+principal:
+
+```sh
+icq sns params 1
+icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
+```
+
 ## Development
 
 This repository pins the local toolchain to Rust `1.96.0` while declaring
@@ -141,8 +149,8 @@ linking registry adapters directly. For one integration example, see
 The command namespace is intentionally small:
 
 - `nns` is implemented.
-- `sns list`, `sns info`, `sns token`, and `sns neurons` are implemented for
-  deployed mainnet SNS instances.
+- `sns list`, `sns info`, `sns token`, `sns params`, and `sns neurons` are
+  implemented for deployed mainnet SNS instances.
 - `sns neurons refresh` caches complete neuron snapshots for cache-backed
   sorting.
 - Additional IC query families can be added without coupling query code to

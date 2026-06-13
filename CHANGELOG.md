@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Adds `icq sns params <id|root-principal>` to query SNS governance nervous
+  system parameters, with readable text output and raw Candid fields in JSON.
+
+### Changed
+
+- Moves shared token/e8s text amount rendering into a reusable helper for SNS
+  token, neuron, and parameter reports.
+
 ## [0.1.0] - 2026-06-13
 
 ### Added

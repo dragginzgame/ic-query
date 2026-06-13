@@ -70,6 +70,27 @@ fn sns_token_parses_input_and_json_format() {
 }
 
 #[test]
+fn sns_params_parses_input_and_json_format() {
+    let options = SnsLookupOptions::parse(
+        [
+            OsString::from("1"),
+            OsString::from("--format"),
+            OsString::from("json"),
+            OsString::from("--source-endpoint"),
+            OsString::from("https://icp-api.io"),
+        ],
+        sns_params_command,
+        sns_params_usage,
+    )
+    .expect("parse params");
+
+    assert_eq!(options.input, "1");
+    assert_eq!(options.network, "ic");
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, "https://icp-api.io");
+}
+
+#[test]
 fn sns_neurons_parses_owner_limit_and_json_format() {
     let options = SnsNeuronsOptions::parse([
         OsString::from("1"),
@@ -193,16 +214,19 @@ fn sns_help_is_advertised() {
     let list = sns_list_usage();
     let info = sns_info_usage();
     let token = sns_token_usage();
+    let params = sns_params_usage();
     let neurons = sns_neurons_usage();
     let neurons_refresh = sns_neurons_refresh_usage();
 
     assert!(sns.contains("list"));
     assert!(sns.contains("info"));
     assert!(sns.contains("token"));
+    assert!(sns.contains("params"));
     assert!(sns.contains("neurons"));
     assert!(sns.contains("List deployed mainnet SNS instances"));
     assert!(sns.contains("Resolve a deployed SNS"));
     assert!(sns.contains("Show SNS ledger token metadata"));
+    assert!(sns.contains("Show SNS governance nervous system parameters"));
     assert!(sns.contains("List and refresh SNS governance neurons"));
     assert!(list.contains("icq sns list"));
     assert!(list.contains("--format json"));
@@ -213,6 +237,8 @@ fn sns_help_is_advertised() {
     assert!(info.contains("id|root-principal"));
     assert!(token.contains("icq sns token"));
     assert!(token.contains("id|root-principal"));
+    assert!(params.contains("icq sns params"));
+    assert!(params.contains("id|root-principal"));
     assert!(neurons.contains("icq sns neurons"));
     assert!(neurons.contains("--limit"));
     assert!(neurons.contains("--owner"));

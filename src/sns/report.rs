@@ -10,6 +10,7 @@ use crate::{
     runtime::block_on_current_thread,
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
     table::{ColumnAlign, render_table},
+    token_amount::{base_units_decimal_text, e8s_decimal_text},
 };
 use candid::{CandidType, Decode, Deserialize, Encode, Int, Nat, Principal};
 use futures::{StreamExt, stream};
@@ -30,6 +31,7 @@ pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
 const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_CACHE_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -59,6 +61,7 @@ pub struct SnsLookupRequest {
 }
 
 pub type SnsInfoRequest = SnsLookupRequest;
+pub type SnsParamsRequest = SnsLookupRequest;
 pub type SnsTokenRequest = SnsLookupRequest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -169,6 +172,64 @@ pub struct SnsTokenMetadataRow {
     pub key: String,
     pub value_type: String,
     pub value: JsonValue,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsParamsReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub sns_wasm_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub id: usize,
+    pub name: String,
+    pub root_canister_id: String,
+    pub governance_canister_id: String,
+    pub parameters: SnsGovernanceParameters,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+pub struct SnsGovernanceParameters {
+    pub max_dissolve_delay_seconds: Option<u64>,
+    pub max_dissolve_delay_bonus_percentage: Option<u64>,
+    pub max_followees_per_function: Option<u64>,
+    pub neuron_claimer_permissions: Option<SnsNeuronPermissionList>,
+    pub neuron_minimum_stake_e8s: Option<u64>,
+    pub max_neuron_age_for_age_bonus: Option<u64>,
+    pub initial_voting_period_seconds: Option<u64>,
+    pub neuron_minimum_dissolve_delay_to_vote_seconds: Option<u64>,
+    pub reject_cost_e8s: Option<u64>,
+    pub max_proposals_to_keep_per_action: Option<u32>,
+    pub wait_for_quiet_deadline_increase_seconds: Option<u64>,
+    pub max_number_of_neurons: Option<u64>,
+    pub transaction_fee_e8s: Option<u64>,
+    pub max_number_of_proposals_with_ballots: Option<u64>,
+    pub max_age_bonus_percentage: Option<u64>,
+    pub neuron_grantable_permissions: Option<SnsNeuronPermissionList>,
+    pub voting_rewards_parameters: Option<SnsVotingRewardsParameters>,
+    pub maturity_modulation_disabled: Option<bool>,
+    pub max_number_of_principals_per_neuron: Option<u64>,
+    pub automatically_advance_target_version: Option<bool>,
+    pub custom_proposal_criticality: Option<SnsCustomProposalCriticality>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+pub struct SnsNeuronPermissionList {
+    pub permissions: Vec<i32>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+pub struct SnsVotingRewardsParameters {
+    pub final_reward_rate_basis_points: Option<u64>,
+    pub initial_reward_rate_basis_points: Option<u64>,
+    pub reward_rate_transition_duration_seconds: Option<u64>,
+    pub round_duration_seconds: Option<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+pub struct SnsCustomProposalCriticality {
+    pub additional_critical_native_action_ids: Vec<u64>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -419,6 +480,12 @@ pub fn build_sns_info_report(request: &SnsInfoRequest) -> Result<SnsInfoReport, 
     build_sns_info_report_with_source(request, &LiveSnsListSource)
 }
 
+pub fn build_sns_params_report(
+    request: &SnsParamsRequest,
+) -> Result<SnsParamsReport, SnsHostError> {
+    build_sns_params_report_with_source(request, &LiveSnsListSource)
+}
+
 pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenReport, SnsHostError> {
     build_sns_token_report_with_source(request, &LiveSnsListSource)
 }
@@ -461,6 +528,15 @@ fn build_sns_info_report_with_source(
 ) -> Result<SnsInfoReport, SnsHostError> {
     let (_fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
     Ok(sns_info_report_from_list(list, id, sns))
+}
+
+fn build_sns_params_report_with_source(
+    request: &SnsParamsRequest,
+    source: &dyn SnsParamsSource,
+) -> Result<SnsParamsReport, SnsHostError> {
+    let (fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
+    let parameters = source.fetch_sns_params(&fetch_request, &sns)?;
+    Ok(sns_params_report_from_parts(list, id, sns, parameters))
 }
 
 fn build_sns_token_report_with_source(
@@ -866,6 +942,27 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
 }
 
 #[must_use]
+pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", report.network),
+        format!("sns_id: {}", report.id),
+        format!("name: {}", report.name),
+        format!("root_canister_id: {}", report.root_canister_id),
+        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    lines.push(String::new());
+    lines.push(render_table(
+        &["PARAMETER", "VALUE"],
+        &sns_params_text_rows(&report.parameters),
+        &[ColumnAlign::Left, ColumnAlign::Right],
+    ));
+    lines.join("\n")
+}
+
+#[must_use]
 pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
     let mut lines = vec![
         format!("network: {}", report.network),
@@ -1172,6 +1269,14 @@ trait SnsTokenSource: SnsListSource {
     ) -> Result<MainnetSnsToken, SnsHostError>;
 }
 
+trait SnsParamsSource: SnsListSource {
+    fn fetch_sns_params(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+    ) -> Result<SnsGovernanceParameters, SnsHostError>;
+}
+
 trait SnsNeuronsSource: SnsListSource {
     fn fetch_sns_neurons(
         &self,
@@ -1212,6 +1317,16 @@ impl SnsTokenSource for LiveSnsListSource {
     }
 }
 
+impl SnsParamsSource for LiveSnsListSource {
+    fn fetch_sns_params(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+    ) -> Result<SnsGovernanceParameters, SnsHostError> {
+        fetch_mainnet_sns_params(request, sns)
+    }
+}
+
 impl SnsNeuronsSource for LiveSnsListSource {
     fn fetch_sns_neurons(
         &self,
@@ -1244,6 +1359,14 @@ fn fetch_mainnet_sns_token(
     sns: &MainnetSns,
 ) -> Result<MainnetSnsToken, SnsHostError> {
     block_on_current_thread(fetch_mainnet_sns_token_async(request, sns))
+        .map_err(SnsHostError::Runtime)?
+}
+
+fn fetch_mainnet_sns_params(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+) -> Result<SnsGovernanceParameters, SnsHostError> {
+    block_on_current_thread(fetch_mainnet_sns_params_async(request, sns))
         .map_err(SnsHostError::Runtime)?
 }
 
@@ -1364,6 +1487,32 @@ async fn fetch_mainnet_sns_token_async(
             .into_iter()
             .map(|(key, value)| metadata_row(key, value))
             .collect(),
+    })
+}
+
+async fn fetch_mainnet_sns_params_async(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+) -> Result<SnsGovernanceParameters, SnsHostError> {
+    let agent = sns_agent(&request.endpoint)?;
+    let governance_canister =
+        principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
+    let arg = Encode!(&()).map_err(|err| SnsHostError::CandidEncode {
+        message: "get_nervous_system_parameters",
+        reason: err.to_string(),
+    })?;
+    let bytes = agent
+        .query(&governance_canister, "get_nervous_system_parameters")
+        .with_arg(arg)
+        .call()
+        .await
+        .map_err(|err| SnsHostError::AgentCall {
+            method: "get_nervous_system_parameters",
+            reason: err.to_string(),
+        })?;
+    Decode!(&bytes, SnsGovernanceParameters).map_err(|err| SnsHostError::CandidDecode {
+        message: "SnsGovernanceParameters",
+        reason: err.to_string(),
     })
 }
 
@@ -1681,6 +1830,27 @@ fn sns_token_report_from_parts(
         ledger_index_error: token.ledger_index_error,
         supported_standards: token.supported_standards,
         metadata: token.metadata,
+    }
+}
+
+fn sns_params_report_from_parts(
+    list: MainnetSnsList,
+    id: usize,
+    sns: MainnetSns,
+    parameters: SnsGovernanceParameters,
+) -> SnsParamsReport {
+    SnsParamsReport {
+        schema_version: SNS_PARAMS_REPORT_SCHEMA_VERSION,
+        network: list.network,
+        sns_wasm_canister_id: list.sns_wasm_canister_id,
+        fetched_at: list.fetched_at,
+        source_endpoint: list.source_endpoint,
+        fetched_by: list.fetched_by,
+        id,
+        name: sns.name,
+        root_canister_id: sns.root_canister_id,
+        governance_canister_id: sns.governance_canister_id,
+        parameters,
     }
 }
 
@@ -2189,114 +2359,239 @@ fn optional_text(value: Option<&String>) -> &str {
     value.map_or("-", String::as_str)
 }
 
+fn sns_params_text_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
+    [
+        sns_params_economic_rows(parameters),
+        sns_params_delay_rows(parameters),
+        sns_params_limit_rows(parameters),
+        sns_params_permission_rows(parameters),
+        sns_params_reward_rows(parameters),
+    ]
+    .concat()
+}
+
+fn sns_params_economic_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
+    vec![
+        parameter_row(
+            "neuron_minimum_stake",
+            optional_e8s_text(parameters.neuron_minimum_stake_e8s),
+        ),
+        parameter_row(
+            "transaction_fee",
+            optional_e8s_text(parameters.transaction_fee_e8s),
+        ),
+        parameter_row("reject_cost", optional_e8s_text(parameters.reject_cost_e8s)),
+    ]
+}
+
+fn sns_params_delay_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
+    vec![
+        parameter_row(
+            "max_dissolve_delay",
+            optional_duration_text(parameters.max_dissolve_delay_seconds),
+        ),
+        parameter_row(
+            "max_dissolve_delay_bonus",
+            optional_percentage_text(parameters.max_dissolve_delay_bonus_percentage),
+        ),
+        parameter_row(
+            "max_neuron_age_for_age_bonus",
+            optional_duration_text(parameters.max_neuron_age_for_age_bonus),
+        ),
+        parameter_row(
+            "max_age_bonus",
+            optional_percentage_text(parameters.max_age_bonus_percentage),
+        ),
+        parameter_row(
+            "initial_voting_period",
+            optional_duration_text(parameters.initial_voting_period_seconds),
+        ),
+        parameter_row(
+            "wait_for_quiet_deadline_increase",
+            optional_duration_text(parameters.wait_for_quiet_deadline_increase_seconds),
+        ),
+        parameter_row(
+            "minimum_dissolve_delay_to_vote",
+            optional_duration_text(parameters.neuron_minimum_dissolve_delay_to_vote_seconds),
+        ),
+    ]
+}
+
+fn sns_params_limit_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
+    vec![
+        parameter_row(
+            "max_followees_per_function",
+            optional_u64_text(parameters.max_followees_per_function),
+        ),
+        parameter_row(
+            "max_proposals_to_keep_per_action",
+            optional_u32_text(parameters.max_proposals_to_keep_per_action),
+        ),
+        parameter_row(
+            "max_number_of_neurons",
+            optional_u64_text(parameters.max_number_of_neurons),
+        ),
+        parameter_row(
+            "max_number_of_proposals_with_ballots",
+            optional_u64_text(parameters.max_number_of_proposals_with_ballots),
+        ),
+        parameter_row(
+            "max_number_of_principals_per_neuron",
+            optional_u64_text(parameters.max_number_of_principals_per_neuron),
+        ),
+        parameter_row(
+            "maturity_modulation_disabled",
+            optional_bool_text(parameters.maturity_modulation_disabled),
+        ),
+        parameter_row(
+            "automatically_advance_target_version",
+            optional_bool_text(parameters.automatically_advance_target_version),
+        ),
+    ]
+}
+
+fn sns_params_permission_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
+    vec![
+        parameter_row(
+            "neuron_claimer_permissions",
+            optional_permissions_text(parameters.neuron_claimer_permissions.as_ref()),
+        ),
+        parameter_row(
+            "neuron_grantable_permissions",
+            optional_permissions_text(parameters.neuron_grantable_permissions.as_ref()),
+        ),
+    ]
+}
+
+fn sns_params_reward_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
+    let rewards = parameters.voting_rewards_parameters.as_ref();
+    vec![
+        parameter_row(
+            "voting_reward_initial_rate",
+            optional_basis_points_text(
+                rewards.and_then(|rewards| rewards.initial_reward_rate_basis_points),
+            ),
+        ),
+        parameter_row(
+            "voting_reward_final_rate",
+            optional_basis_points_text(
+                rewards.and_then(|rewards| rewards.final_reward_rate_basis_points),
+            ),
+        ),
+        parameter_row(
+            "voting_reward_transition_duration",
+            optional_duration_text(
+                rewards.and_then(|rewards| rewards.reward_rate_transition_duration_seconds),
+            ),
+        ),
+        parameter_row(
+            "voting_reward_round_duration",
+            optional_duration_text(rewards.and_then(|rewards| rewards.round_duration_seconds)),
+        ),
+        parameter_row(
+            "additional_critical_native_actions",
+            parameters.custom_proposal_criticality.as_ref().map_or_else(
+                || "-".to_string(),
+                |criticality| comma_join_u64(&criticality.additional_critical_native_action_ids),
+            ),
+        ),
+    ]
+}
+
+fn parameter_row(name: &str, value: String) -> [String; 2] {
+    [name.to_string(), value]
+}
+
+fn optional_e8s_text(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), e8s_decimal_text)
+}
+
 fn optional_e8s_decimal_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
 }
 
-fn e8s_decimal_text(value: u64) -> String {
-    base_units_decimal_text(&value.to_string(), 8)
+fn optional_duration_text(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), duration_text)
 }
 
-fn base_units_decimal_text(value: &str, decimals: u8) -> String {
-    let Some(digits) = normalized_base_unit_digits(value) else {
-        return value.to_string();
-    };
-    let digits = digits.as_str();
-    let decimals = usize::from(decimals);
-    let hundredths = if decimals <= 2 {
-        scaled_hundredths(digits, 2 - decimals)
+fn optional_percentage_text(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| format!("{value}%"))
+}
+
+fn optional_basis_points_text(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), basis_points_text)
+}
+
+fn optional_u64_text(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+fn optional_u32_text(value: Option<u32>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+fn optional_bool_text(value: Option<bool>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| yes_no(value).to_string())
+}
+
+fn optional_permissions_text(value: Option<&SnsNeuronPermissionList>) -> String {
+    value.map_or_else(
+        || "-".to_string(),
+        |permissions| {
+            permissions
+                .permissions
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        },
+    )
+}
+
+fn comma_join_u64(values: &[u64]) -> String {
+    if values.is_empty() {
+        return "-".to_string();
+    }
+    values
+        .iter()
+        .map(u64::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn basis_points_text(value: u64) -> String {
+    let whole = value / 100;
+    let fractional = value % 100;
+    format!("{whole}.{fractional:02}%")
+}
+
+fn duration_text(seconds: u64) -> String {
+    const MINUTE: u64 = 60;
+    const HOUR: u64 = 60 * MINUTE;
+    const DAY: u64 = 24 * HOUR;
+
+    if seconds == 0 {
+        "0s".to_string()
+    } else if seconds >= DAY {
+        scaled_duration_unit_text(seconds, DAY, "d")
+    } else if seconds >= HOUR {
+        scaled_duration_unit_text(seconds, HOUR, "h")
+    } else if seconds >= MINUTE {
+        scaled_duration_unit_text(seconds, MINUTE, "m")
     } else {
-        rounded_hundredths(digits, decimals - 2)
-    };
-    format_hundredths(&hundredths)
-}
-
-fn normalized_base_unit_digits(value: &str) -> Option<String> {
-    let value = value.trim();
-    if value.is_empty() {
-        return None;
-    }
-
-    let mut digits = String::with_capacity(value.len());
-    for byte in value.bytes() {
-        if byte.is_ascii_digit() {
-            digits.push(char::from(byte));
-        } else if byte != b'_' {
-            return None;
-        }
-    }
-
-    let digits = digits.trim_start_matches('0');
-    Some(if digits.is_empty() {
-        "0".to_string()
-    } else {
-        digits.to_string()
-    })
-}
-
-fn scaled_hundredths(digits: &str, trailing_zero_count: usize) -> String {
-    let mut hundredths = digits.to_string();
-    hundredths.push_str(&"0".repeat(trailing_zero_count));
-    hundredths
-}
-
-fn rounded_hundredths(digits: &str, discarded_digit_count: usize) -> String {
-    let (hundredths, discarded) = if digits.len() > discarded_digit_count {
-        digits.split_at(digits.len() - discarded_digit_count)
-    } else {
-        ("0", digits)
-    };
-    let discarded = left_pad_digits(discarded, discarded_digit_count);
-    if discarded
-        .as_bytes()
-        .first()
-        .is_some_and(|digit| *digit >= b'5')
-    {
-        increment_decimal_string(hundredths)
-    } else {
-        hundredths.to_string()
+        format!("{seconds}s")
     }
 }
 
-fn left_pad_digits(digits: &str, width: usize) -> String {
-    if digits.len() >= width {
-        return digits.to_string();
+fn scaled_duration_unit_text(seconds: u64, unit_seconds: u64, suffix: &str) -> String {
+    if seconds.is_multiple_of(unit_seconds) {
+        return format!("{}{suffix}", seconds / unit_seconds);
     }
-    let mut padded = "0".repeat(width - digits.len());
-    padded.push_str(digits);
-    padded
-}
-
-fn increment_decimal_string(digits: &str) -> String {
-    let mut bytes = digits.as_bytes().to_vec();
-    for index in (0..bytes.len()).rev() {
-        if bytes[index] == b'9' {
-            bytes[index] = b'0';
-        } else {
-            bytes[index] += 1;
-            return String::from_utf8(bytes).expect("decimal digits are valid UTF-8");
-        }
-    }
-
-    let mut incremented = String::with_capacity(bytes.len() + 1);
-    incremented.push('1');
-    incremented.push_str(&"0".repeat(bytes.len()));
-    incremented
-}
-
-fn format_hundredths(hundredths: &str) -> String {
-    let hundredths = hundredths.trim_start_matches('0');
-    let hundredths = if hundredths.is_empty() {
-        "0"
-    } else {
-        hundredths
-    };
-    if hundredths.len() <= 2 {
-        return format!("0.{hundredths:0>2}");
-    }
-
-    let (whole, fractional) = hundredths.split_at(hundredths.len() - 2);
-    format!("{whole}.{fractional}")
+    let hundredths =
+        ((u128::from(seconds) * 100) + (u128::from(unit_seconds) / 2)) / u128::from(unit_seconds);
+    let whole = hundredths / 100;
+    let fractional = hundredths % 100;
+    format!("{whole}.{fractional:02}{suffix}")
 }
 
 fn clean_optional_text(value: Option<String>) -> Option<String> {

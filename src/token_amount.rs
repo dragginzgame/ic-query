@@ -1,4 +1,5 @@
-pub(crate) fn base_units_decimal_text(value: &str, decimals: u8) -> String {
+#[must_use]
+pub fn base_units_decimal_text(value: &str, decimals: u8) -> String {
     let Some(digits) = normalized_base_unit_digits(value) else {
         return value.to_string();
     };
@@ -12,7 +13,8 @@ pub(crate) fn base_units_decimal_text(value: &str, decimals: u8) -> String {
     format_hundredths(&hundredths)
 }
 
-pub(crate) fn e8s_decimal_text(value: u64) -> String {
+#[must_use]
+pub fn e8s_decimal_text(value: u64) -> String {
     base_units_decimal_text(&value.to_string(), 8)
 }
 

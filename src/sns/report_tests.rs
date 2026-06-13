@@ -150,6 +150,56 @@ fn sns_token_empty_logo_metadata_is_false() {
 }
 
 #[test]
+fn sns_params_resolves_list_id_and_renders_governance_parameters() {
+    let request = params_request("1");
+
+    let report = build_sns_params_report_with_source(&request, &FixtureSnsParamsSource)
+        .expect("sns params report");
+    let text = sns_params_report_text(&report);
+
+    assert_eq!(report.schema_version, SNS_PARAMS_REPORT_SCHEMA_VERSION);
+    assert_eq!(report.id, 1);
+    assert_eq!(report.name, "Fixture SNS");
+    assert_eq!(report.root_canister_id, ROOT_A);
+    assert_eq!(report.governance_canister_id, GOVERNANCE_A);
+    assert_eq!(
+        report.parameters.neuron_minimum_stake_e8s,
+        Some(100_000_000)
+    );
+    assert_eq!(report.parameters.transaction_fee_e8s, Some(10_000));
+    assert_eq!(
+        report
+            .parameters
+            .voting_rewards_parameters
+            .as_ref()
+            .and_then(|rewards| rewards.initial_reward_rate_basis_points),
+        Some(1000)
+    );
+    assert!(text.contains("governance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
+    assert!(text.contains("neuron_minimum_stake"));
+    assert!(text.contains("transaction_fee"));
+    assert!(text.contains("max_dissolve_delay"));
+    assert!(text.contains("voting_reward_initial_rate"));
+    assert!(text.contains("automatically_advance_target_version"));
+    assert!(text.contains("1.00"));
+    assert!(text.contains("0.00"));
+    assert!(text.contains("2922d"));
+    assert!(text.contains("10.00%"));
+    assert!(text.contains("yes"));
+    assert!(text.contains("1,2,3"));
+}
+
+#[test]
+fn sns_params_duration_text_uses_largest_readable_unit() {
+    assert_eq!(duration_text(0), "0s");
+    assert_eq!(duration_text(86_400), "1d");
+    assert_eq!(duration_text(2_629_800), "30.44d");
+    assert_eq!(duration_text(5_400), "1.50h");
+    assert_eq!(duration_text(90), "1.50m");
+    assert_eq!(duration_text(45), "45s");
+}
+
+#[test]
 fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     let mut request = neurons_request("1");
     request.owner_principal_id = Some(GOVERNANCE_A.to_string());
@@ -186,31 +236,7 @@ fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
 }
 
 #[test]
-fn sns_neurons_text_formats_e8s_as_token_decimals() {
-    assert_eq!(base_units_decimal_text("0", 8), "0.00");
-    assert_eq!(base_units_decimal_text("000000000", 8), "0.00");
-    assert_eq!(base_units_decimal_text("10_000", 8), "0.00");
-    assert_eq!(
-        base_units_decimal_text("100_923_109_141_460", 8),
-        "1009231.09"
-    );
-    assert_eq!(base_units_decimal_text("500000", 8), "0.01");
-    assert_eq!(base_units_decimal_text("123456789", 8), "1.23");
-    assert_eq!(base_units_decimal_text("123500000", 8), "1.24");
-    assert_eq!(base_units_decimal_text("3000000000000", 8), "30000.00");
-    assert_eq!(base_units_decimal_text("123", 0), "123.00");
-    assert_eq!(base_units_decimal_text("123", 1), "12.30");
-    assert_eq!(base_units_decimal_text("123", 2), "1.23");
-    assert_eq!(base_units_decimal_text("999", 3), "1.00");
-    assert_eq!(base_units_decimal_text("not-a-number", 8), "not-a-number");
-    assert_eq!(e8s_decimal_text(0), "0.00");
-    assert_eq!(e8s_decimal_text(123), "0.00");
-    assert_eq!(e8s_decimal_text(499_999), "0.00");
-    assert_eq!(e8s_decimal_text(500_000), "0.01");
-    assert_eq!(e8s_decimal_text(100_000_000), "1.00");
-    assert_eq!(e8s_decimal_text(123_456_789), "1.23");
-    assert_eq!(e8s_decimal_text(123_500_000), "1.24");
-    assert_eq!(e8s_decimal_text(3_000_000_000_000), "30000.00");
+fn sns_neurons_text_formats_optional_e8s_as_token_decimals() {
     assert_eq!(optional_e8s_decimal_text(None), "-");
     assert_eq!(optional_e8s_decimal_text(Some(50_000_000)), "0.50");
 }
@@ -438,6 +464,15 @@ fn token_request(input: &str) -> SnsTokenRequest {
     }
 }
 
+fn params_request(input: &str) -> SnsParamsRequest {
+    SnsParamsRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: input.to_string(),
+    }
+}
+
 fn neurons_request(input: &str) -> SnsNeuronsRequest {
     SnsNeuronsRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -449,6 +484,61 @@ fn neurons_request(input: &str) -> SnsNeuronsRequest {
         sort: SnsNeuronsSort::Api,
         icp_root: None,
         verbose: false,
+    }
+}
+
+struct FixtureSnsParamsSource;
+
+impl SnsListSource for FixtureSnsParamsSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        FixtureSnsListSource.fetch_deployed_snses(request)
+    }
+}
+
+impl SnsParamsSource for FixtureSnsParamsSource {
+    fn fetch_sns_params(
+        &self,
+        _request: &SnsFetchRequest,
+        sns: &MainnetSns,
+    ) -> Result<SnsGovernanceParameters, SnsHostError> {
+        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+        Ok(SnsGovernanceParameters {
+            max_dissolve_delay_seconds: Some(252_460_800),
+            max_dissolve_delay_bonus_percentage: Some(100),
+            max_followees_per_function: Some(15),
+            neuron_claimer_permissions: Some(SnsNeuronPermissionList {
+                permissions: vec![1, 2, 3],
+            }),
+            neuron_minimum_stake_e8s: Some(100_000_000),
+            max_neuron_age_for_age_bonus: Some(126_144_000),
+            initial_voting_period_seconds: Some(345_600),
+            neuron_minimum_dissolve_delay_to_vote_seconds: Some(2_592_000),
+            reject_cost_e8s: Some(100_000_000),
+            max_proposals_to_keep_per_action: Some(100),
+            wait_for_quiet_deadline_increase_seconds: Some(86_400),
+            max_number_of_neurons: Some(200_000),
+            transaction_fee_e8s: Some(10_000),
+            max_number_of_proposals_with_ballots: Some(700),
+            max_age_bonus_percentage: Some(25),
+            neuron_grantable_permissions: Some(SnsNeuronPermissionList {
+                permissions: vec![4, 5],
+            }),
+            voting_rewards_parameters: Some(SnsVotingRewardsParameters {
+                final_reward_rate_basis_points: Some(500),
+                initial_reward_rate_basis_points: Some(1000),
+                reward_rate_transition_duration_seconds: Some(189_216_000),
+                round_duration_seconds: Some(86_400),
+            }),
+            maturity_modulation_disabled: Some(false),
+            max_number_of_principals_per_neuron: Some(10),
+            automatically_advance_target_version: Some(true),
+            custom_proposal_criticality: Some(SnsCustomProposalCriticality {
+                additional_critical_native_action_ids: vec![1, 2],
+            }),
+        })
     }
 }
 
