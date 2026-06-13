@@ -11,10 +11,7 @@ use crate::nns::data_center::report::{
     nns_data_center_list_report_text, nns_data_center_list_report_verbose_text,
     nns_data_center_refresh_report_text, refresh_nns_data_center_report,
 };
-use std::{ffi::OsString, path::Path};
-
-#[cfg(test)]
-use super::leaf::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions};
+use std::ffi::OsString;
 
 const DATA_CENTER_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -78,121 +75,21 @@ where
     )
 }
 
-impl leaf::NnsLeafCacheRequest for NnsDataCenterCacheRequest {
-    fn from_root_network(icp_root: &Path, network: &str) -> Self {
-        Self {
-            icp_root: icp_root.to_path_buf(),
-            network: network.to_string(),
-        }
-    }
-}
+impl_cached_leaf_requests!(
+    NnsDataCenterCacheRequest,
+    NnsDataCenterListRequest,
+    NnsDataCenterInfoRequest,
+    NnsDataCenterRefreshRequest
+);
 
-impl leaf::NnsLeafListRequest for NnsDataCenterListRequest {
-    type Cache = NnsDataCenterCacheRequest;
-
-    fn from_leaf_parts(cache: Self::Cache, source_endpoint: String, now_unix_secs: u64) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            now_unix_secs,
-        }
-    }
-}
-
-impl leaf::NnsLeafInfoRequest for NnsDataCenterInfoRequest {
-    type Cache = NnsDataCenterCacheRequest;
-
-    fn from_leaf_parts(
-        cache: Self::Cache,
-        source_endpoint: String,
-        input: String,
-        now_unix_secs: u64,
-    ) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            input,
-            now_unix_secs,
-        }
-    }
-}
-
-impl leaf::NnsLeafRefreshRequest for NnsDataCenterRefreshRequest {
-    type Cache = NnsDataCenterCacheRequest;
-
-    fn from_leaf_parts(
-        cache: Self::Cache,
-        source_endpoint: String,
-        now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
-        dry_run: bool,
-        output_path: Option<std::path::PathBuf>,
-    ) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            now_unix_secs,
-            lock_stale_after_seconds,
-            dry_run,
-            output_path,
-        }
-    }
-}
-
-#[cfg(test)]
-pub(super) fn data_center_list_options<I>(args: I) -> Result<NnsLeafListOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafListOptions::parse(
-        args,
-        &DATA_CENTER_SPEC,
-        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn data_center_info_options<I>(args: I) -> Result<NnsLeafInfoOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafInfoOptions::parse(
-        args,
-        &DATA_CENTER_SPEC,
-        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn data_center_refresh_options<I>(
-    args: I,
-) -> Result<NnsLeafRefreshOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafRefreshOptions::parse(
-        args,
-        &DATA_CENTER_SPEC,
-        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn data_center_usage() -> String {
-    leaf::usage(&DATA_CENTER_SPEC)
-}
-
-#[cfg(test)]
-pub(super) fn data_center_list_usage() -> String {
-    leaf::list_usage(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT)
-}
-
-#[cfg(test)]
-pub(super) fn data_center_info_usage() -> String {
-    leaf::info_usage(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT)
-}
-
-#[cfg(test)]
-pub(super) fn data_center_refresh_usage() -> String {
-    leaf::refresh_usage(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT)
-}
+impl_leaf_test_helpers!(
+    data_center_list_options,
+    data_center_info_options,
+    data_center_refresh_options,
+    data_center_usage,
+    data_center_list_usage,
+    data_center_info_usage,
+    data_center_refresh_usage,
+    DATA_CENTER_SPEC,
+    DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT
+);

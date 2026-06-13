@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.0.7] - 2026-06-13
+
+### Changed
+
+- Further deduplicates cache-backed NNS leaf command plumbing through shared
+  request and test-helper macros.
+- Collapses repeated NNS topology read request structs into a shared read
+  request type while preserving the existing command-specific request names.
+- Deduplicates NNS topology read-runner and component request construction
+  helpers.
+
 ## [0.0.6] - 2026-06-13
 
 ### Changed

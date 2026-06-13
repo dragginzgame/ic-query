@@ -19,7 +19,6 @@ use clap::{ArgMatches, Command as ClapCommand};
 use serde::Serialize;
 use std::{
     ffi::OsString,
-    marker::PhantomData,
     path::{Path, PathBuf},
 };
 
@@ -206,7 +205,6 @@ pub(super) struct NnsLeafReportFns<
     pub(super) list_report_verbose_text: fn(&ListReport) -> String,
     pub(super) info_report_text: fn(&InfoReport) -> String,
     pub(super) refresh_report_text: fn(&RefreshReport) -> String,
-    marker: PhantomData<fn() -> HostError>,
 }
 
 impl<ListRequest, InfoRequest, RefreshRequest, ListReport, InfoReport, RefreshReport, HostError>
@@ -237,7 +235,6 @@ impl<ListRequest, InfoRequest, RefreshRequest, ListReport, InfoReport, RefreshRe
             list_report_verbose_text,
             info_report_text,
             refresh_report_text,
-            marker: PhantomData,
         }
     }
 }
@@ -335,36 +332,9 @@ where
         .map_err(|_| NnsCommandError::Usage(usage(spec)))?;
 
     match command_name.as_str() {
-        "list" => run_cached_leaf_list::<
-            Cache,
-            ListRequest,
-            InfoRequest,
-            RefreshRequest,
-            ListReport,
-            InfoReport,
-            RefreshReport,
-            HostError,
-        >(args, spec, default_source_endpoint, &reports),
-        "info" => run_cached_leaf_info::<
-            Cache,
-            ListRequest,
-            InfoRequest,
-            RefreshRequest,
-            ListReport,
-            InfoReport,
-            RefreshReport,
-            HostError,
-        >(args, spec, default_source_endpoint, &reports),
-        "refresh" => run_cached_leaf_refresh::<
-            Cache,
-            ListRequest,
-            InfoRequest,
-            RefreshRequest,
-            ListReport,
-            InfoReport,
-            RefreshReport,
-            HostError,
-        >(args, spec, default_source_endpoint, &reports),
+        "list" => run_cached_leaf_list(args, spec, default_source_endpoint, &reports),
+        "info" => run_cached_leaf_info(args, spec, default_source_endpoint, &reports),
+        "refresh" => run_cached_leaf_refresh(args, spec, default_source_endpoint, &reports),
         _ => unreachable!("nns leaf dispatch command only defines known commands"),
     }
 }

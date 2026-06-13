@@ -291,101 +291,81 @@ fn is_version_flag(arg: &OsString) -> bool {
         .is_some_and(|arg| matches!(arg, "--version" | "-V"))
 }
 
-fn run_topology_summary<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologySummaryOptions, NnsTopologySummaryRequest, _, _>(
-        args,
-        topology_summary_usage,
-        build_nns_topology_summary_report,
-        nns_topology_summary_report_text,
-    )
+macro_rules! topology_read_runner {
+    ($name:ident, $options:ty, $request:ty, $usage:ident, $build:ident, $render:ident) => {
+        fn $name<I>(args: I) -> Result<(), NnsCommandError>
+        where
+            I: IntoIterator<Item = OsString>,
+        {
+            run_topology_read::<_, $options, $request, _, _>(args, $usage, $build, $render)
+        }
+    };
 }
 
-fn run_topology_coverage<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologyCoverageOptions, NnsTopologyCoverageRequest, _, _>(
-        args,
-        topology_coverage_usage,
-        build_nns_topology_coverage_report,
-        nns_topology_coverage_report_text,
-    )
-}
-
-fn run_topology_versions<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologyVersionsOptions, NnsTopologyVersionsRequest, _, _>(
-        args,
-        topology_versions_usage,
-        build_nns_topology_versions_report,
-        nns_topology_versions_report_text,
-    )
-}
-
-fn run_topology_health<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologyHealthOptions, NnsTopologyHealthRequest, _, _>(
-        args,
-        topology_health_usage,
-        build_nns_topology_health_report,
-        nns_topology_health_report_text,
-    )
-}
-
-fn run_topology_gaps<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologyGapsOptions, NnsTopologyGapsRequest, _, _>(
-        args,
-        topology_gaps_usage,
-        build_nns_topology_gaps_report,
-        nns_topology_gaps_report_text,
-    )
-}
-
-fn run_topology_capacity<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologyCapacityOptions, NnsTopologyCapacityRequest, _, _>(
-        args,
-        topology_capacity_usage,
-        build_nns_topology_capacity_report,
-        nns_topology_capacity_report_text,
-    )
-}
-
-fn run_topology_regions<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologyRegionsOptions, NnsTopologyRegionsRequest, _, _>(
-        args,
-        topology_regions_usage,
-        build_nns_topology_regions_report,
-        nns_topology_regions_report_text,
-    )
-}
-
-fn run_topology_providers<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_topology_read::<_, TopologyProvidersOptions, NnsTopologyProvidersRequest, _, _>(
-        args,
-        topology_providers_usage,
-        build_nns_topology_providers_report,
-        nns_topology_providers_report_text,
-    )
-}
+topology_read_runner!(
+    run_topology_summary,
+    TopologySummaryOptions,
+    NnsTopologySummaryRequest,
+    topology_summary_usage,
+    build_nns_topology_summary_report,
+    nns_topology_summary_report_text
+);
+topology_read_runner!(
+    run_topology_coverage,
+    TopologyCoverageOptions,
+    NnsTopologyCoverageRequest,
+    topology_coverage_usage,
+    build_nns_topology_coverage_report,
+    nns_topology_coverage_report_text
+);
+topology_read_runner!(
+    run_topology_versions,
+    TopologyVersionsOptions,
+    NnsTopologyVersionsRequest,
+    topology_versions_usage,
+    build_nns_topology_versions_report,
+    nns_topology_versions_report_text
+);
+topology_read_runner!(
+    run_topology_health,
+    TopologyHealthOptions,
+    NnsTopologyHealthRequest,
+    topology_health_usage,
+    build_nns_topology_health_report,
+    nns_topology_health_report_text
+);
+topology_read_runner!(
+    run_topology_gaps,
+    TopologyGapsOptions,
+    NnsTopologyGapsRequest,
+    topology_gaps_usage,
+    build_nns_topology_gaps_report,
+    nns_topology_gaps_report_text
+);
+topology_read_runner!(
+    run_topology_capacity,
+    TopologyCapacityOptions,
+    NnsTopologyCapacityRequest,
+    topology_capacity_usage,
+    build_nns_topology_capacity_report,
+    nns_topology_capacity_report_text
+);
+topology_read_runner!(
+    run_topology_regions,
+    TopologyRegionsOptions,
+    NnsTopologyRegionsRequest,
+    topology_regions_usage,
+    build_nns_topology_regions_report,
+    nns_topology_regions_report_text
+);
+topology_read_runner!(
+    run_topology_providers,
+    TopologyProvidersOptions,
+    NnsTopologyProvidersRequest,
+    topology_providers_usage,
+    build_nns_topology_providers_report,
+    nns_topology_providers_report_text
+);
 
 fn run_topology_read<I, Options, Request, Report, HostError>(
     args: I,

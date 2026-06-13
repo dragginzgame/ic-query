@@ -11,10 +11,7 @@ use crate::nns::node_provider::report::{
     nns_node_provider_list_report_text, nns_node_provider_list_report_verbose_text,
     nns_node_provider_refresh_report_text, refresh_nns_node_provider_report,
 };
-use std::{ffi::OsString, path::Path};
-
-#[cfg(test)]
-use super::leaf::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions};
+use std::ffi::OsString;
 
 const NODE_PROVIDER_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -78,109 +75,21 @@ where
     )
 }
 
-impl leaf::NnsLeafCacheRequest for NnsNodeProviderCacheRequest {
-    fn from_root_network(icp_root: &Path, network: &str) -> Self {
-        Self {
-            icp_root: icp_root.to_path_buf(),
-            network: network.to_string(),
-        }
-    }
-}
+impl_cached_leaf_requests!(
+    NnsNodeProviderCacheRequest,
+    NnsNodeProviderListRequest,
+    NnsNodeProviderInfoRequest,
+    NnsNodeProviderRefreshRequest
+);
 
-impl leaf::NnsLeafListRequest for NnsNodeProviderListRequest {
-    type Cache = NnsNodeProviderCacheRequest;
-
-    fn from_leaf_parts(cache: Self::Cache, source_endpoint: String, now_unix_secs: u64) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            now_unix_secs,
-        }
-    }
-}
-
-impl leaf::NnsLeafInfoRequest for NnsNodeProviderInfoRequest {
-    type Cache = NnsNodeProviderCacheRequest;
-
-    fn from_leaf_parts(
-        cache: Self::Cache,
-        source_endpoint: String,
-        input: String,
-        now_unix_secs: u64,
-    ) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            input,
-            now_unix_secs,
-        }
-    }
-}
-
-impl leaf::NnsLeafRefreshRequest for NnsNodeProviderRefreshRequest {
-    type Cache = NnsNodeProviderCacheRequest;
-
-    fn from_leaf_parts(
-        cache: Self::Cache,
-        source_endpoint: String,
-        now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
-        dry_run: bool,
-        output_path: Option<std::path::PathBuf>,
-    ) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            now_unix_secs,
-            lock_stale_after_seconds,
-            dry_run,
-            output_path,
-        }
-    }
-}
-
-#[cfg(test)]
-pub(super) fn node_provider_list_options<I>(args: I) -> Result<NnsLeafListOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafListOptions::parse(args, &NODE_PROVIDER_SPEC, DEFAULT_NNS_SOURCE_ENDPOINT)
-}
-
-#[cfg(test)]
-pub(super) fn node_provider_info_options<I>(args: I) -> Result<NnsLeafInfoOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafInfoOptions::parse(args, &NODE_PROVIDER_SPEC, DEFAULT_NNS_SOURCE_ENDPOINT)
-}
-
-#[cfg(test)]
-pub(super) fn node_provider_refresh_options<I>(
-    args: I,
-) -> Result<NnsLeafRefreshOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafRefreshOptions::parse(args, &NODE_PROVIDER_SPEC, DEFAULT_NNS_SOURCE_ENDPOINT)
-}
-
-#[cfg(test)]
-pub(super) fn node_provider_usage() -> String {
-    leaf::usage(&NODE_PROVIDER_SPEC)
-}
-
-#[cfg(test)]
-pub(super) fn node_provider_list_usage() -> String {
-    leaf::list_usage(&NODE_PROVIDER_SPEC, DEFAULT_NNS_SOURCE_ENDPOINT)
-}
-
-#[cfg(test)]
-pub(super) fn node_provider_info_usage() -> String {
-    leaf::info_usage(&NODE_PROVIDER_SPEC, DEFAULT_NNS_SOURCE_ENDPOINT)
-}
-
-#[cfg(test)]
-pub(super) fn node_provider_refresh_usage() -> String {
-    leaf::refresh_usage(&NODE_PROVIDER_SPEC, DEFAULT_NNS_SOURCE_ENDPOINT)
-}
+impl_leaf_test_helpers!(
+    node_provider_list_options,
+    node_provider_info_options,
+    node_provider_refresh_options,
+    node_provider_usage,
+    node_provider_list_usage,
+    node_provider_info_usage,
+    node_provider_refresh_usage,
+    NODE_PROVIDER_SPEC,
+    DEFAULT_NNS_SOURCE_ENDPOINT
+);

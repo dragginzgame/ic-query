@@ -12,10 +12,7 @@ use crate::nns::node_operator::report::{
     nns_node_operator_list_report_verbose_text, nns_node_operator_refresh_report_text,
     refresh_nns_node_operator_report,
 };
-use std::{ffi::OsString, path::Path};
-
-#[cfg(test)]
-use super::leaf::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions};
+use std::ffi::OsString;
 
 const NODE_OPERATOR_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -79,130 +76,21 @@ where
     )
 }
 
-impl leaf::NnsLeafCacheRequest for NnsNodeOperatorCacheRequest {
-    fn from_root_network(icp_root: &Path, network: &str) -> Self {
-        Self {
-            icp_root: icp_root.to_path_buf(),
-            network: network.to_string(),
-        }
-    }
-}
+impl_cached_leaf_requests!(
+    NnsNodeOperatorCacheRequest,
+    NnsNodeOperatorListRequest,
+    NnsNodeOperatorInfoRequest,
+    NnsNodeOperatorRefreshRequest
+);
 
-impl leaf::NnsLeafListRequest for NnsNodeOperatorListRequest {
-    type Cache = NnsNodeOperatorCacheRequest;
-
-    fn from_leaf_parts(cache: Self::Cache, source_endpoint: String, now_unix_secs: u64) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            now_unix_secs,
-        }
-    }
-}
-
-impl leaf::NnsLeafInfoRequest for NnsNodeOperatorInfoRequest {
-    type Cache = NnsNodeOperatorCacheRequest;
-
-    fn from_leaf_parts(
-        cache: Self::Cache,
-        source_endpoint: String,
-        input: String,
-        now_unix_secs: u64,
-    ) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            input,
-            now_unix_secs,
-        }
-    }
-}
-
-impl leaf::NnsLeafRefreshRequest for NnsNodeOperatorRefreshRequest {
-    type Cache = NnsNodeOperatorCacheRequest;
-
-    fn from_leaf_parts(
-        cache: Self::Cache,
-        source_endpoint: String,
-        now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
-        dry_run: bool,
-        output_path: Option<std::path::PathBuf>,
-    ) -> Self {
-        Self {
-            cache,
-            source_endpoint,
-            now_unix_secs,
-            lock_stale_after_seconds,
-            dry_run,
-            output_path,
-        }
-    }
-}
-
-#[cfg(test)]
-pub(super) fn node_operator_list_options<I>(args: I) -> Result<NnsLeafListOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafListOptions::parse(
-        args,
-        &NODE_OPERATOR_SPEC,
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn node_operator_info_options<I>(args: I) -> Result<NnsLeafInfoOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafInfoOptions::parse(
-        args,
-        &NODE_OPERATOR_SPEC,
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn node_operator_refresh_options<I>(
-    args: I,
-) -> Result<NnsLeafRefreshOptions, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    NnsLeafRefreshOptions::parse(
-        args,
-        &NODE_OPERATOR_SPEC,
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn node_operator_usage() -> String {
-    leaf::usage(&NODE_OPERATOR_SPEC)
-}
-
-#[cfg(test)]
-pub(super) fn node_operator_list_usage() -> String {
-    leaf::list_usage(
-        &NODE_OPERATOR_SPEC,
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn node_operator_info_usage() -> String {
-    leaf::info_usage(
-        &NODE_OPERATOR_SPEC,
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-    )
-}
-
-#[cfg(test)]
-pub(super) fn node_operator_refresh_usage() -> String {
-    leaf::refresh_usage(
-        &NODE_OPERATOR_SPEC,
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-    )
-}
+impl_leaf_test_helpers!(
+    node_operator_list_options,
+    node_operator_info_options,
+    node_operator_refresh_options,
+    node_operator_usage,
+    node_operator_list_usage,
+    node_operator_info_usage,
+    node_operator_refresh_usage,
+    NODE_OPERATOR_SPEC,
+    DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT
+);
