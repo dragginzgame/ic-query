@@ -7,6 +7,23 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-13
+
+### Changed
+
+- Deduplicates SNS lookup command dispatch, clap command construction, and
+  shared lookup option parsing.
+- Moves shared duration display formatting into the duration helper module.
+- Splits SNS model types, source contracts, text rendering, and live IC API
+  querying out of the main SNS report orchestration module.
+
+### Fixed
+
+- Preserves SNS neuron refresh attempt progress metadata when a refresh stops
+  before publishing a complete snapshot.
+
+## [0.1.1] - 2026-06-13
+
 ### Added
 
 - Adds `icq sns params <id|root-principal>` to query SNS governance nervous

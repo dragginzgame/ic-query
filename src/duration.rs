@@ -31,3 +31,58 @@ pub fn parse_duration_seconds(value: &str) -> Result<u64, DurationParseError> {
             value: value.to_string(),
         })
 }
+
+#[must_use]
+pub fn display_duration_seconds(seconds: u64) -> String {
+    const MINUTE: u64 = 60;
+    const HOUR: u64 = 60 * MINUTE;
+    const DAY: u64 = 24 * HOUR;
+
+    if seconds == 0 {
+        "0s".to_string()
+    } else if seconds >= DAY {
+        scaled_duration_unit_text(seconds, DAY, "d")
+    } else if seconds >= HOUR {
+        scaled_duration_unit_text(seconds, HOUR, "h")
+    } else if seconds >= MINUTE {
+        scaled_duration_unit_text(seconds, MINUTE, "m")
+    } else {
+        format!("{seconds}s")
+    }
+}
+
+fn scaled_duration_unit_text(seconds: u64, unit_seconds: u64, suffix: &str) -> String {
+    if seconds.is_multiple_of(unit_seconds) {
+        return format!("{}{suffix}", seconds / unit_seconds);
+    }
+    let hundredths =
+        ((u128::from(seconds) * 100) + (u128::from(unit_seconds) / 2)) / u128::from(unit_seconds);
+    let whole = hundredths / 100;
+    let fractional = hundredths % 100;
+    format!("{whole}.{fractional:02}{suffix}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{display_duration_seconds, parse_duration_seconds};
+
+    #[test]
+    fn duration_display_uses_largest_readable_unit() {
+        assert_eq!(display_duration_seconds(0), "0s");
+        assert_eq!(display_duration_seconds(86_400), "1d");
+        assert_eq!(display_duration_seconds(2_629_800), "30.44d");
+        assert_eq!(display_duration_seconds(5_400), "1.50h");
+        assert_eq!(display_duration_seconds(90), "1.50m");
+        assert_eq!(display_duration_seconds(45), "45s");
+    }
+
+    #[test]
+    fn duration_parser_accepts_integer_units() {
+        assert_eq!(parse_duration_seconds("45").expect("seconds"), 45);
+        assert_eq!(parse_duration_seconds("30m").expect("minutes"), 1_800);
+        assert_eq!(parse_duration_seconds("2h").expect("hours"), 7_200);
+        assert_eq!(parse_duration_seconds("1d").expect("days"), 86_400);
+        assert!(parse_duration_seconds("0").is_err());
+        assert!(parse_duration_seconds("1.5h").is_err());
+    }
+}

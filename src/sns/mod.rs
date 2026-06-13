@@ -14,17 +14,18 @@ use crate::{
     },
     project::icp_root,
     sns::report::{
-        DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsInfoRequest, SnsListRequest, SnsListSort,
-        SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsRequest,
-        SnsTokenRequest, build_sns_info_report, build_sns_list_report, build_sns_neurons_report,
-        build_sns_params_report, build_sns_token_report, refresh_sns_neurons_cache,
-        sns_info_report_text, sns_list_report_text, sns_neurons_refresh_report_text,
-        sns_neurons_report_text, sns_params_report_text, sns_token_report_text,
+        DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsListRequest, SnsListSort, SnsLookupRequest,
+        SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort, build_sns_info_report,
+        build_sns_list_report, build_sns_neurons_report, build_sns_params_report,
+        build_sns_token_report, refresh_sns_neurons_cache, sns_info_report_text,
+        sns_list_report_text, sns_neurons_refresh_report_text, sns_neurons_report_text,
+        sns_params_report_text, sns_token_report_text,
     },
     version_text,
 };
 use candid::Principal;
 use clap::{Command as ClapCommand, ValueEnum, builder::RangedU64ValueParser};
+use serde::Serialize;
 use std::{ffi::OsString, io};
 use thiserror::Error as ThisError;
 
@@ -173,60 +174,66 @@ fn run_sns_info<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_info_usage, version_text()) {
-        return Ok(());
-    }
-    let options = SnsLookupOptions::parse(args, sns_info_command, sns_info_usage)?;
-    let format = options.format;
-    let request = SnsInfoRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
-        input: options.input,
-    };
-    let report = build_sns_info_report(&request)?;
-    write_text_or_json(format, &report, sns_info_report_text)
+    run_sns_lookup(
+        args,
+        sns_info_command,
+        sns_info_usage,
+        build_sns_info_report,
+        sns_info_report_text,
+    )
 }
 
 fn run_sns_token<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_token_usage, version_text()) {
-        return Ok(());
-    }
-    let options = SnsLookupOptions::parse(args, sns_token_command, sns_token_usage)?;
-    let format = options.format;
-    let request = SnsTokenRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
-        input: options.input,
-    };
-    let report = build_sns_token_report(&request)?;
-    write_text_or_json(format, &report, sns_token_report_text)
+    run_sns_lookup(
+        args,
+        sns_token_command,
+        sns_token_usage,
+        build_sns_token_report,
+        sns_token_report_text,
+    )
 }
 
 fn run_sns_params<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
+    run_sns_lookup(
+        args,
+        sns_params_command,
+        sns_params_usage,
+        build_sns_params_report,
+        sns_params_report_text,
+    )
+}
+
+fn run_sns_lookup<I, Report>(
+    args: I,
+    command: fn() -> ClapCommand,
+    usage: fn() -> String,
+    build_report: fn(&SnsLookupRequest) -> Result<Report, SnsHostError>,
+    render_text: fn(&Report) -> String,
+) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+    Report: Serialize,
+{
     let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_params_usage, version_text()) {
+    if print_help_or_version(&args, usage, version_text()) {
         return Ok(());
     }
-    let options = SnsLookupOptions::parse(args, sns_params_command, sns_params_usage)?;
+    let options = SnsLookupOptions::parse(args, command, usage)?;
     let format = options.format;
-    let request = SnsParamsRequest {
+    let request = SnsLookupRequest {
         network: options.network,
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
         input: options.input,
     };
-    let report = build_sns_params_report(&request)?;
-    write_text_or_json(format, &report, sns_params_report_text)
+    let report = build_report(&request)?;
+    write_text_or_json(format, &report, render_text)
 }
 
 fn run_sns_neurons<I>(args: I) -> Result<(), SnsCommandError>
@@ -318,12 +325,16 @@ impl SnsLookupOptions {
     {
         let matches =
             parse_matches(command(), args).map_err(|_| SnsCommandError::Usage(usage()))?;
-        Ok(Self {
-            input: required_string(&matches, "input"),
-            network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
-            source_endpoint: required_string(&matches, "source-endpoint"),
-        })
+        Ok(Self::from_matches(&matches))
+    }
+
+    fn from_matches(matches: &clap::ArgMatches) -> Self {
+        Self {
+            input: required_string(matches, "input"),
+            network: required_string(matches, "network"),
+            format: required_typed(matches, "format"),
+            source_endpoint: required_string(matches, "source-endpoint"),
+        }
     }
 }
 
@@ -334,14 +345,8 @@ impl SnsNeuronsOptions {
     {
         let matches = parse_matches(sns_neurons_command(), args)
             .map_err(|_| SnsCommandError::Usage(sns_neurons_usage()))?;
-        let lookup = SnsLookupOptions {
-            input: required_string(&matches, "input"),
-            network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
-            source_endpoint: required_string(&matches, "source-endpoint"),
-        };
         let options = Self {
-            lookup,
+            lookup: SnsLookupOptions::from_matches(&matches),
             limit: required_typed(&matches, "limit"),
             owner_principal_id: typed_option::<Principal>(&matches, "owner")
                 .map(|principal| principal.to_text()),
@@ -369,14 +374,8 @@ impl SnsNeuronsRefreshOptions {
     {
         let matches = parse_matches(sns_neurons_refresh_command(), args)
             .map_err(|_| SnsCommandError::Usage(sns_neurons_refresh_usage()))?;
-        let lookup = SnsLookupOptions {
-            input: required_string(&matches, "input"),
-            network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
-            source_endpoint: required_string(&matches, "source-endpoint"),
-        };
         Ok(Self {
-            lookup,
+            lookup: SnsLookupOptions::from_matches(&matches),
             page_size: required_typed(&matches, "page-size"),
             max_pages: typed_option::<u32>(&matches, "max-pages"),
         })
@@ -426,48 +425,51 @@ fn sns_list_command() -> ClapCommand {
 }
 
 fn sns_info_command() -> ClapCommand {
-    ClapCommand::new("info")
-        .bin_name("icq sns info")
-        .about("Resolve a deployed SNS by list id or root principal")
-        .disable_help_flag(true)
-        .arg(sns_lookup_input_arg())
-        .arg(format_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W and governance metadata queries"),
-        )
-        .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_INFO_HELP_AFTER)
+    sns_lookup_command(
+        "info",
+        "icq sns info",
+        "Resolve a deployed SNS by list id or root principal",
+        "IC API endpoint used for SNS-W and governance metadata queries",
+        SNS_INFO_HELP_AFTER,
+    )
 }
 
 fn sns_token_command() -> ClapCommand {
-    ClapCommand::new("token")
-        .bin_name("icq sns token")
-        .about("Show SNS ledger token metadata by list id or root principal")
-        .disable_help_flag(true)
-        .arg(sns_lookup_input_arg())
-        .arg(format_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W, governance, and ledger queries"),
-        )
-        .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_TOKEN_HELP_AFTER)
+    sns_lookup_command(
+        "token",
+        "icq sns token",
+        "Show SNS ledger token metadata by list id or root principal",
+        "IC API endpoint used for SNS-W, governance, and ledger queries",
+        SNS_TOKEN_HELP_AFTER,
+    )
 }
 
 fn sns_params_command() -> ClapCommand {
-    ClapCommand::new("params")
-        .bin_name("icq sns params")
-        .about("Show SNS governance nervous system parameters by list id or root principal")
+    sns_lookup_command(
+        "params",
+        "icq sns params",
+        "Show SNS governance nervous system parameters by list id or root principal",
+        "IC API endpoint used for SNS-W and governance queries",
+        SNS_PARAMS_HELP_AFTER,
+    )
+}
+
+fn sns_lookup_command(
+    name: &'static str,
+    bin_name: &'static str,
+    about: &'static str,
+    source_endpoint_help: &'static str,
+    after_help: &'static str,
+) -> ClapCommand {
+    ClapCommand::new(name)
+        .bin_name(bin_name)
+        .about(about)
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(format_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W and governance queries"),
-        )
+        .arg(source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT).help(source_endpoint_help))
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_PARAMS_HELP_AFTER)
+        .after_help(after_help)
 }
 
 fn sns_neurons_command() -> ClapCommand {

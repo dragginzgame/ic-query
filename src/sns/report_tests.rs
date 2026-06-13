@@ -190,16 +190,6 @@ fn sns_params_resolves_list_id_and_renders_governance_parameters() {
 }
 
 #[test]
-fn sns_params_duration_text_uses_largest_readable_unit() {
-    assert_eq!(duration_text(0), "0s");
-    assert_eq!(duration_text(86_400), "1d");
-    assert_eq!(duration_text(2_629_800), "30.44d");
-    assert_eq!(duration_text(5_400), "1.50h");
-    assert_eq!(duration_text(90), "1.50m");
-    assert_eq!(duration_text(45), "45s");
-}
-
-#[test]
 fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     let mut request = neurons_request("1");
     request.owner_principal_id = Some(GOVERNANCE_A.to_string());
@@ -237,8 +227,8 @@ fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
 
 #[test]
 fn sns_neurons_text_formats_optional_e8s_as_token_decimals() {
-    assert_eq!(optional_e8s_decimal_text(None), "-");
-    assert_eq!(optional_e8s_decimal_text(Some(50_000_000)), "0.50");
+    assert_eq!(text::optional_e8s_decimal_text(None), "-");
+    assert_eq!(text::optional_e8s_decimal_text(Some(50_000_000)), "0.50");
 }
 
 #[test]
@@ -332,7 +322,22 @@ fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
         }
     ));
     assert!(!sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A).exists());
-    assert!(sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A).is_file());
+    let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    assert!(attempt_path.is_file());
+
+    let attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(attempt_path).expect("read attempt"))
+            .expect("parse attempt");
+    assert_eq!(attempt["status"], "failed");
+    assert_eq!(attempt["pages_fetched"], 1);
+    assert_eq!(attempt["rows_fetched"], 2);
+    assert_eq!(attempt["last_cursor"], "02");
+    assert!(
+        attempt["last_error"]
+            .as_str()
+            .expect("last error")
+            .contains("max pages reached before API exhaustion")
+    );
 
     let _ = fs::remove_dir_all(root);
 }
