@@ -4,9 +4,8 @@ use crate::subnet_catalog::{GeographicScope, ResolveAs, SubnetKind, SubnetSpecia
 use crate::{
     cli::{
         clap::{
-            flag_arg, parse_matches, parse_positive_usize, parse_required_subcommand,
-            passthrough_subcommand, render_help, required_string, required_typed, typed_option,
-            value_arg,
+            flag_arg, parse_matches, parse_required_subcommand, passthrough_subcommand,
+            render_help, required_string, required_typed, typed_option, value_arg,
         },
         help::print_help_or_version,
     },
@@ -318,7 +317,7 @@ fn list_command() -> ClapCommand {
                 .long("range-limit")
                 .value_name("n")
                 .default_value(DEFAULT_RANGE_LIMIT_ARG)
-                .value_parser(clap::builder::ValueParser::new(parse_positive_usize))
+                .value_parser(clap::builder::RangedU64ValueParser::<usize>::new().range(1u64..))
                 .help("Maximum routing ranges to show per subnet in text output"),
         )
         .arg(

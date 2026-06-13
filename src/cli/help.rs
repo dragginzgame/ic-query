@@ -1,9 +1,10 @@
 use clap::Command;
 use std::ffi::OsString;
 
+use super::commands::COMMAND_FAMILIES;
 use super::globals::network_arg;
 
-const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{usage-heading} {usage}\n\n{before-help}Options:\n{options}{after-help}\n";
+const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{usage-heading} {usage}\n\nCommands:\n{subcommands}\n\nOptions:\n{options}{after-help}\n";
 
 fn is_help_arg(arg: &OsString) -> bool {
     arg.to_str()
@@ -44,6 +45,7 @@ pub fn top_level_command() -> Command {
     Command::new("icq")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Internet Computer metadata query CLI")
+        .disable_help_subcommand(true)
         .disable_version_flag(true)
         .arg(
             clap::Arg::new("version")
@@ -55,12 +57,12 @@ pub fn top_level_command() -> Command {
         .arg(network_arg().global(true))
         .subcommand_help_heading("Commands")
         .help_template(TOP_LEVEL_HELP_TEMPLATE)
-        .before_help(
-            "Commands:\n  nns          Inspect NNS metadata\n  sns          Inspect SNS metadata\n",
-        )
         .after_help("Run `icq <command> help` for command-specific help.")
-        .subcommand(Command::new("nns").about("Inspect NNS metadata"))
-        .subcommand(Command::new("sns").about("Inspect SNS metadata"))
+        .subcommands(
+            COMMAND_FAMILIES
+                .iter()
+                .map(|family| Command::new(family.name).about(family.about)),
+        )
 }
 
 pub fn usage() -> String {

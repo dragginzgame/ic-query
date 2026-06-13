@@ -1,10 +1,11 @@
 use crate::{
     ic_registry::DEFAULT_MAINNET_ENDPOINT,
+    runtime::block_on_current_thread,
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
     table::{ColumnAlign, render_table},
 };
 use candid::{CandidType, Decode, Deserialize, Encode, Principal};
-use futures::future::try_join_all;
+use futures::{StreamExt, stream};
 use ic_agent::Agent;
 use serde::Serialize;
 use thiserror::Error as ThisError;
@@ -12,9 +13,10 @@ use thiserror::Error as ThisError;
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
 pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 
-const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
-const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
+const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
+const SNS_METADATA_CONCURRENCY: usize = 16;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsListRequest {
@@ -22,6 +24,7 @@ pub struct SnsListRequest {
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub verbose: bool,
+    pub sort: SnsListSort,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -41,7 +44,9 @@ pub struct SnsListReport {
     pub source_endpoint: String,
     pub fetched_by: String,
     pub verbose: bool,
+    pub sort: String,
     pub sns_count: usize,
+    pub metadata_error_count: usize,
     pub sns_instances: Vec<SnsListRow>,
 }
 
@@ -54,6 +59,7 @@ pub struct SnsListRow {
     pub ledger_canister_id: String,
     pub swap_canister_id: String,
     pub index_canister_id: String,
+    pub metadata_error: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -73,6 +79,24 @@ pub struct SnsInfoReport {
     pub ledger_canister_id: String,
     pub swap_canister_id: String,
     pub index_canister_id: String,
+    pub metadata_error: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum SnsListSort {
+    #[default]
+    Id,
+    Name,
+}
+
+impl SnsListSort {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Id => "id",
+            Self::Name => "name",
+        }
+    }
 }
 
 #[derive(Debug, ThisError)]
@@ -137,8 +161,14 @@ fn build_sns_list_report_with_source(
         request.now_unix_secs,
         "ic-query".to_string(),
     );
-    let list = source.fetch_deployed_snses(&fetch_request)?;
-    Ok(sns_list_report_from_list(list, request.verbose))
+    let mut list = source.fetch_deployed_snses(&fetch_request)?;
+    assign_stable_sns_ids(&mut list.sns_instances);
+    sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
+    Ok(sns_list_report_from_list(
+        list,
+        request.verbose,
+        request.sort,
+    ))
 }
 
 fn build_sns_info_report_with_source(
@@ -151,7 +181,9 @@ fn build_sns_info_report_with_source(
         request.now_unix_secs,
         "ic-query".to_string(),
     );
-    let list = source.fetch_deployed_snses(&fetch_request)?;
+    let mut list = source.fetch_deployed_snses(&fetch_request)?;
+    assign_stable_sns_ids(&mut list.sns_instances);
+    sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
     let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
     Ok(sns_info_report_from_list(list, id, sns))
 }
@@ -167,12 +199,14 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
     lines.push(format!("sns_count: {}", report.sns_count));
     lines.push(format!("fetched_at: {}", report.fetched_at));
     lines.push(format!("source_endpoint: {}", report.source_endpoint));
+    lines.push(format!("sort: {}", report.sort));
+    lines.push(format!("metadata_errors: {}", report.metadata_error_count));
     if !report.sns_instances.is_empty() {
         lines.push(String::new());
         lines.push(render_table(
             &[
-                "NAME",
                 "ID",
+                "NAME",
                 "ROOT",
                 "GOVERNANCE",
                 "LEDGER",
@@ -184,8 +218,8 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                 .iter()
                 .map(|sns| {
                     [
-                        sns.name.clone(),
                         sns.id.to_string(),
+                        sns.name.clone(),
                         principal_for_list(&sns.root_canister_id, report.verbose),
                         principal_for_list(&sns.governance_canister_id, report.verbose),
                         principal_for_list(&sns.ledger_canister_id, report.verbose),
@@ -195,8 +229,8 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Left,
                 ColumnAlign::Right,
+                ColumnAlign::Left,
                 ColumnAlign::Left,
                 ColumnAlign::Left,
                 ColumnAlign::Left,
@@ -205,12 +239,23 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
             ],
         ));
     }
+    if report.verbose && report.metadata_error_count > 0 {
+        lines.push(String::new());
+        lines.push("metadata_error_details:".to_string());
+        for (governance_canister_id, error) in report.sns_instances.iter().filter_map(|sns| {
+            sns.metadata_error
+                .as_deref()
+                .map(|error| (&sns.governance_canister_id, error))
+        }) {
+            lines.push(format!("- {governance_canister_id}: {error}"));
+        }
+    }
     lines.join("\n")
 }
 
 #[must_use]
 pub fn sns_info_report_text(report: &SnsInfoReport) -> String {
-    [
+    let mut lines = vec![
         format!("network: {}", report.network),
         format!("sns_id: {}", report.id),
         format!("name: {}", report.name),
@@ -227,8 +272,11 @@ pub fn sns_info_report_text(report: &SnsInfoReport) -> String {
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
-    ]
-    .join("\n")
+    ];
+    if let Some(error) = report.metadata_error.as_deref() {
+        lines.push(format!("metadata_error: {error}"));
+    }
+    lines.join("\n")
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -250,6 +298,7 @@ struct MainnetSnsList {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct MainnetSns {
+    id: usize,
     name: String,
     description: Option<String>,
     url: Option<String>,
@@ -258,6 +307,7 @@ struct MainnetSns {
     ledger_canister_id: String,
     swap_canister_id: String,
     index_canister_id: String,
+    metadata_error: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -316,23 +366,13 @@ impl SnsListSource for LiveSnsListSource {
 }
 
 fn fetch_mainnet_sns_list(request: &SnsFetchRequest) -> Result<MainnetSnsList, SnsHostError> {
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|err| SnsHostError::Runtime(err.to_string()))?;
-    runtime.block_on(fetch_mainnet_sns_list_async(request))
+    block_on_current_thread(fetch_mainnet_sns_list_async(request)).map_err(SnsHostError::Runtime)?
 }
 
 async fn fetch_mainnet_sns_list_async(
     request: &SnsFetchRequest,
 ) -> Result<MainnetSnsList, SnsHostError> {
-    let agent = Agent::builder()
-        .with_url(&request.endpoint)
-        .build()
-        .map_err(|err| SnsHostError::AgentBuild {
-            endpoint: request.endpoint.clone(),
-            reason: err.to_string(),
-        })?;
+    let agent = sns_agent(&request.endpoint)?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
     let arg = Encode!(&ListDeployedSnsesRequest {}).map_err(|err| SnsHostError::CandidEncode {
@@ -356,6 +396,16 @@ async fn fetch_mainnet_sns_list_async(
     mainnet_sns_list_from_response(&agent, request, response).await
 }
 
+fn sns_agent(endpoint: &str) -> Result<Agent, SnsHostError> {
+    Agent::builder()
+        .with_url(endpoint)
+        .build()
+        .map_err(|err| SnsHostError::AgentBuild {
+            endpoint: endpoint.to_string(),
+            reason: err.to_string(),
+        })
+}
+
 async fn mainnet_sns_list_from_response(
     agent: &Agent,
     request: &SnsFetchRequest,
@@ -366,18 +416,18 @@ async fn mainnet_sns_list_from_response(
         .into_iter()
         .map(mainnet_sns_canisters_from_deployed_sns)
         .collect::<Result<Vec<_>, _>>()?;
-    let mut sns_instances = try_join_all(
+    let fetched = stream::iter(
         sns_canisters
             .into_iter()
             .map(|sns| fetch_mainnet_sns_metadata(agent, sns)),
     )
-    .await?;
-    sns_instances.sort_by(|left, right| {
-        left.name
-            .to_lowercase()
-            .cmp(&right.name.to_lowercase())
-            .then_with(|| left.root_canister_id.cmp(&right.root_canister_id))
-    });
+    .buffer_unordered(SNS_METADATA_CONCURRENCY)
+    .collect::<Vec<_>>()
+    .await;
+    let mut sns_instances = Vec::with_capacity(fetched.len());
+    for sns in fetched {
+        sns_instances.push(sns?);
+    }
     Ok(MainnetSnsList {
         network: MAINNET_NETWORK.to_string(),
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
@@ -394,16 +444,19 @@ async fn fetch_mainnet_sns_metadata(
 ) -> Result<MainnetSns, SnsHostError> {
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
-    let metadata = match fetch_governance_metadata(agent, &governance_canister).await {
-        Ok(metadata) => metadata,
-        Err(
-            SnsHostError::AgentCall { .. }
-            | SnsHostError::CandidDecode { .. }
-            | SnsHostError::CandidEncode { .. },
-        ) => GetMetadataResponse::default(),
-        Err(err) => return Err(err),
-    };
-    Ok(mainnet_sns_from_canisters_and_metadata(sns, metadata))
+    let (metadata, metadata_error) =
+        match fetch_governance_metadata(agent, &governance_canister).await {
+            Ok(metadata) => (metadata, None),
+            Err(err) => match metadata_error_summary(&err) {
+                Some(summary) => (GetMetadataResponse::default(), Some(summary)),
+                None => return Err(err),
+            },
+        };
+    Ok(mainnet_sns_from_canisters_and_metadata(
+        sns,
+        metadata,
+        metadata_error,
+    ))
 }
 
 async fn fetch_governance_metadata(
@@ -449,10 +502,12 @@ fn mainnet_sns_canisters_from_deployed_sns(
 fn mainnet_sns_from_canisters_and_metadata(
     sns: MainnetSnsCanisters,
     metadata: GetMetadataResponse,
+    metadata_error: Option<String>,
 ) -> MainnetSns {
     let name = clean_optional_text(metadata.name)
         .unwrap_or_else(|| format!("unnamed-{}", short_principal(&sns.root_canister_id)));
     MainnetSns {
+        id: 0,
         name,
         description: clean_optional_text(metadata.description),
         url: clean_optional_text(metadata.url),
@@ -461,6 +516,7 @@ fn mainnet_sns_from_canisters_and_metadata(
         ledger_canister_id: sns.ledger_canister_id,
         swap_canister_id: sns.swap_canister_id,
         index_canister_id: sns.index_canister_id,
+        metadata_error,
     }
 }
 
@@ -476,30 +532,47 @@ fn required_principal_text(
         })
 }
 
-fn sns_list_report_from_list(list: MainnetSnsList, verbose: bool) -> SnsListReport {
-    let sns_instances = list
-        .sns_instances
+fn sns_list_report_from_list(
+    list: MainnetSnsList,
+    verbose: bool,
+    sort: SnsListSort,
+) -> SnsListReport {
+    let MainnetSnsList {
+        network,
+        sns_wasm_canister_id,
+        fetched_at,
+        fetched_by,
+        source_endpoint,
+        sns_instances,
+    } = list;
+    let metadata_error_count = sns_instances
+        .iter()
+        .filter(|sns| sns.metadata_error.is_some())
+        .count();
+    let sns_instances = sns_instances
         .into_iter()
-        .enumerate()
-        .map(|(index, sns)| SnsListRow {
-            id: index + 1,
+        .map(|sns| SnsListRow {
+            id: sns.id,
             name: sns.name,
             root_canister_id: sns.root_canister_id,
             governance_canister_id: sns.governance_canister_id,
             ledger_canister_id: sns.ledger_canister_id,
             swap_canister_id: sns.swap_canister_id,
             index_canister_id: sns.index_canister_id,
+            metadata_error: sns.metadata_error,
         })
         .collect::<Vec<_>>();
     SnsListReport {
         schema_version: SNS_LIST_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
+        network,
+        sns_wasm_canister_id,
+        fetched_at,
+        source_endpoint,
+        fetched_by,
         verbose,
+        sort: sort.as_str().to_string(),
         sns_count: sns_instances.len(),
+        metadata_error_count,
         sns_instances,
     }
 }
@@ -521,13 +594,38 @@ fn sns_info_report_from_list(list: MainnetSnsList, id: usize, sns: MainnetSns) -
         ledger_canister_id: sns.ledger_canister_id,
         swap_canister_id: sns.swap_canister_id,
         index_canister_id: sns.index_canister_id,
+        metadata_error: sns.metadata_error,
     }
+}
+
+fn assign_stable_sns_ids(instances: &mut [MainnetSns]) {
+    instances.sort_by(|left, right| left.root_canister_id.cmp(&right.root_canister_id));
+    for (index, sns) in instances.iter_mut().enumerate() {
+        sns.id = index + 1;
+    }
+}
+
+fn sort_mainnet_sns_instances(instances: &mut [MainnetSns], sort: SnsListSort) {
+    match sort {
+        SnsListSort::Id => sort_mainnet_sns_instances_by_id(instances),
+        SnsListSort::Name => instances.sort_by(|left, right| {
+            left.name
+                .to_lowercase()
+                .cmp(&right.name.to_lowercase())
+                .then_with(|| left.id.cmp(&right.id))
+        }),
+    }
+}
+
+fn sort_mainnet_sns_instances_by_id(instances: &mut [MainnetSns]) {
+    instances.sort_by(|left, right| left.root_canister_id.cmp(&right.root_canister_id));
 }
 
 fn resolve_sns(instances: &[MainnetSns], input: &str) -> Result<(usize, MainnetSns), SnsHostError> {
     if let Ok(id) = input.parse::<usize>() {
         return instances
-            .get(id.saturating_sub(1))
+            .iter()
+            .find(|sns| sns.id == id)
             .cloned()
             .map(|sns| (id, sns))
             .ok_or(SnsHostError::UnknownSnsId {
@@ -597,6 +695,25 @@ fn clean_optional_text(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+}
+
+fn metadata_error_summary(err: &SnsHostError) -> Option<String> {
+    match err {
+        SnsHostError::AgentCall { method, reason } => Some(format!("{method}: {reason}")),
+        SnsHostError::CandidEncode { message, reason } => {
+            Some(format!("encode {message}: {reason}"))
+        }
+        SnsHostError::CandidDecode { message, reason } => {
+            Some(format!("decode {message}: {reason}"))
+        }
+        SnsHostError::UnsupportedNetwork { .. }
+        | SnsHostError::Runtime(_)
+        | SnsHostError::AgentBuild { .. }
+        | SnsHostError::InvalidPrincipal { .. }
+        | SnsHostError::UnknownSnsId { .. }
+        | SnsHostError::UnknownSnsRoot { .. }
+        | SnsHostError::InvalidLookup { .. } => None,
+    }
 }
 
 #[cfg(test)]

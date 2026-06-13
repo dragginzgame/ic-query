@@ -32,6 +32,17 @@ if ! cargo set-version --help >/dev/null 2>&1; then
     exit 1
 fi
 
+mutated=0
+committed=0
+cleanup_failed_release() {
+    status=$?
+    if [[ "${status}" -ne 0 && "${mutated}" -eq 1 && "${committed}" -eq 0 ]]; then
+        echo "error: release failed after version mutation; restoring Cargo.toml and Cargo.lock" >&2
+        git restore -- Cargo.toml Cargo.lock || true
+    fi
+}
+trap cleanup_failed_release EXIT
+
 make test
 
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -79,10 +90,13 @@ if git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null; then
 fi
 
 cargo set-version "${new_version}"
+mutated=1
 cargo generate-lockfile --offline
+cargo package --locked --allow-dirty
 
 git add Cargo.toml Cargo.lock
 git commit -m "chore: release ${tag}"
+committed=1
 git tag -a "${tag}" -m "${tag}"
 
 echo "Released ${tag}"

@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.0.5] - 2026-06-13
+
+### Changed
+
+- Lets clap render top-level command help from registered command metadata
+  instead of maintaining a separate hand-formatted command list.
+- Uses clap's ranged numeric parser for
+  `icq nns subnet list --range-limit` and removes unused CLI parsing helpers.
+
 ## [0.0.4] - 2026-06-13
 
 ### Added
@@ -12,6 +21,34 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Adds `make patch`, `make minor`, and `make major` release helpers that run
   `make test` before any version or tag mutations, bump the crate version,
   commit it, and create an annotated version tag.
+- Adds SNS metadata fallback visibility in text and JSON reports when a
+  governance metadata query fails but the deployed SNS row can still be shown.
+- Adds `icq sns list --sort id|name` while keeping numeric SNS ids stable by
+  root principal.
+- Adds exact snapshot-style tests for top-level and SNS list CLI help output.
+- Adds binary smoke tests for top-level help, SNS list help, NNS topology help,
+  and version output.
+
+### Changed
+
+- Moves the `icq sns list` row id to the first text table column.
+- Assigns SNS list row ids after deterministic root-principal ordering so ids
+  are not reshuffled by metadata name changes or metadata lookup failures.
+- Hardens release bumps by validating the bumped package before commit/tag and
+  restoring `Cargo.toml` and `Cargo.lock` if a post-mutation release step fails.
+- Uses more collision-resistant temporary filenames and cleanup for atomic cache
+  writes.
+- Centralizes CLI output-format handling, top-level command metadata, and the
+  current-thread async runtime wrapper used by live IC query adapters.
+- Deduplicates topology component request construction and mainnet agent/
+  canister setup in live registry and SNS queries.
+- Splits live registry fetch orchestration into `ic_registry::client` and moves
+  NNS topology text rendering into its own report submodule.
+- Splits subnet catalog host/cache refresh code, text rendering, and timestamp
+  helpers into focused submodules.
+- Deduplicates repeated NNS topology read-option parsing.
+- Reuses a shared refresh-lock guard helper for pre-fetch subnet catalog
+  refreshes.
 
 ## [0.0.3] - 2026-06-13
 

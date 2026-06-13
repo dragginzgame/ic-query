@@ -5,6 +5,7 @@ mod ic_registry;
 mod nns;
 mod output;
 mod project;
+mod runtime;
 mod sns;
 pub mod subnet_catalog;
 mod table;

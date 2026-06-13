@@ -1,5 +1,5 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use std::{ffi::OsString, path::PathBuf};
+use std::ffi::OsString;
 
 const PASSTHROUGH_ARGS: &str = "args";
 
@@ -80,21 +80,6 @@ where
     typed_option(matches, id).unwrap_or_else(|| panic!("clap requires {id}"))
 }
 
-pub fn parse_positive_usize(value: &str) -> Result<usize, String> {
-    let value = value
-        .parse::<usize>()
-        .map_err(|_| "must be a non-negative integer".to_string())?;
-    if value == 0 {
-        return Err("must be greater than zero".to_string());
-    }
-    Ok(value)
-}
-
 pub fn render_help(mut command: Command) -> String {
     command.render_help().to_string()
-}
-
-#[allow(dead_code)]
-pub fn path_option(matches: &ArgMatches, id: &str) -> Option<PathBuf> {
-    string_option(matches, id).map(PathBuf::from)
 }

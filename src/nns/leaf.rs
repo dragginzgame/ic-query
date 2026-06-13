@@ -1,4 +1,5 @@
-use super::{NnsCommandError, OutputFormat};
+use super::NnsCommandError;
+pub(super) use crate::cli::common::{format_arg, source_endpoint_arg};
 use crate::duration::parse_duration_seconds;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
@@ -7,6 +8,7 @@ use crate::{
             flag_arg, parse_matches, parse_required_subcommand, passthrough_subcommand,
             render_help, required_string, required_typed, typed_option, value_arg,
         },
+        common::{FORMAT_ARG, OutputFormat, SOURCE_ENDPOINT_ARG},
         globals::internal_network_arg,
         help::print_help_or_version,
     },
@@ -15,15 +17,12 @@ use crate::{
 use clap::{ArgMatches, Command as ClapCommand};
 use std::{ffi::OsString, path::PathBuf};
 
-const FORMAT_ARG: &str = "format";
 const INPUT_ARG: &str = "input";
 const NETWORK_ARG: &str = "network";
-const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
 const LOCK_STALE_AFTER_ARG: &str = "lock-stale-after";
 const DRY_RUN_ARG: &str = "dry-run";
 const OUTPUT_ARG: &str = "output";
 const VERBOSE_ARG: &str = "verbose";
-const DEFAULT_FORMAT: &str = "text";
 const DEFAULT_LOCK_STALE_AFTER: &str = "30m";
 
 ///
@@ -311,22 +310,6 @@ pub(super) fn refresh_usage(
     default_source_endpoint: &'static str,
 ) -> String {
     render_help(refresh_command(spec, default_source_endpoint))
-}
-
-pub(super) fn format_arg() -> clap::Arg {
-    value_arg(FORMAT_ARG)
-        .long(FORMAT_ARG)
-        .value_name("text|json")
-        .default_value(DEFAULT_FORMAT)
-        .value_parser(clap::value_parser!(OutputFormat))
-        .help("Output format; defaults to text")
-}
-
-pub(super) fn source_endpoint_arg(default_source_endpoint: &'static str) -> clap::Arg {
-    value_arg(SOURCE_ENDPOINT_ARG)
-        .long(SOURCE_ENDPOINT_ARG)
-        .value_name("url")
-        .default_value(default_source_endpoint)
 }
 
 pub(super) fn network_arg() -> clap::Arg {

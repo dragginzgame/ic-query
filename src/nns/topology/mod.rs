@@ -81,85 +81,73 @@ Examples:
 const DRY_RUN_ARG: &str = "dry-run";
 const LOCK_STALE_AFTER_ARG: &str = "lock-stale-after";
 
-///
-/// TopologySummaryOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologySummaryOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
+macro_rules! topology_read_options {
+    ($name:ident, $command:ident, $usage:ident) => {
+        #[derive(Clone, Debug, Eq, PartialEq)]
+        pub(super) struct $name {
+            pub(super) network: String,
+            pub(super) format: super::OutputFormat,
+            pub(super) source_endpoint: String,
+        }
+
+        impl $name {
+            pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+            where
+                I: IntoIterator<Item = OsString>,
+            {
+                let matches = parse_matches($command(), args)
+                    .map_err(|_| NnsCommandError::Usage($usage()))?;
+                let common = NnsCommonOptions::from_matches(&matches);
+                Ok(Self {
+                    network: common.network,
+                    format: common.format,
+                    source_endpoint: common.source_endpoint,
+                })
+            }
+        }
+    };
 }
 
-///
-/// TopologyCoverageOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologyCoverageOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
-}
-
-///
-/// TopologyVersionsOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologyVersionsOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
-}
-
-///
-/// TopologyHealthOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologyHealthOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
-}
-
-///
-/// TopologyGapsOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologyGapsOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
-}
-
-///
-/// TopologyCapacityOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologyCapacityOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
-}
-
-///
-/// TopologyRegionsOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologyRegionsOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
-}
-
-///
-/// TopologyProvidersOptions
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct TopologyProvidersOptions {
-    pub(super) network: String,
-    pub(super) format: super::OutputFormat,
-    pub(super) source_endpoint: String,
-}
+topology_read_options!(
+    TopologySummaryOptions,
+    topology_summary_command,
+    topology_summary_usage
+);
+topology_read_options!(
+    TopologyCoverageOptions,
+    topology_coverage_command,
+    topology_coverage_usage
+);
+topology_read_options!(
+    TopologyVersionsOptions,
+    topology_versions_command,
+    topology_versions_usage
+);
+topology_read_options!(
+    TopologyHealthOptions,
+    topology_health_command,
+    topology_health_usage
+);
+topology_read_options!(
+    TopologyGapsOptions,
+    topology_gaps_command,
+    topology_gaps_usage
+);
+topology_read_options!(
+    TopologyCapacityOptions,
+    topology_capacity_command,
+    topology_capacity_usage
+);
+topology_read_options!(
+    TopologyRegionsOptions,
+    topology_regions_command,
+    topology_regions_usage
+);
+topology_read_options!(
+    TopologyProvidersOptions,
+    topology_providers_command,
+    topology_providers_usage
+);
 
 ///
 /// TopologyRefreshOptions
@@ -404,134 +392,6 @@ where
     };
     let report = refresh_nns_topology_report(&request)?;
     write_text_or_json(format, &report, nns_topology_refresh_report_text)
-}
-
-impl TopologySummaryOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_summary_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_summary_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
-}
-
-impl TopologyCoverageOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_coverage_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_coverage_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
-}
-
-impl TopologyVersionsOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_versions_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_versions_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
-}
-
-impl TopologyHealthOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_health_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_health_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
-}
-
-impl TopologyGapsOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_gaps_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_gaps_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
-}
-
-impl TopologyCapacityOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_capacity_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_capacity_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
-}
-
-impl TopologyRegionsOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_regions_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_regions_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
-}
-
-impl TopologyProvidersOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches(topology_providers_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_providers_usage()))?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
-    }
 }
 
 impl TopologyRefreshOptions {

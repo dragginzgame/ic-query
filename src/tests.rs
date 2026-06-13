@@ -1,5 +1,6 @@
 use super::*;
 use crate::cli::globals::INTERNAL_NETWORK_OPTION;
+use crate::test_support::assert_snapshot;
 use std::ffi::OsString;
 
 #[test]
@@ -12,6 +13,32 @@ fn usage_lists_query_families() {
     assert!(text.contains("sns"));
     assert!(text.contains("Inspect SNS metadata"));
     assert!(text.contains("Run `icq <command> help`"));
+}
+
+#[test]
+fn top_level_usage_snapshot() {
+    let expected = format!(
+        "\
+icq {}
+Internet Computer metadata query CLI
+
+Usage: icq [OPTIONS] [COMMAND]
+
+Commands:
+  nns  Inspect NNS metadata
+  sns  Inspect SNS metadata
+
+Options:
+  -V, --version         Print version
+      --network <name>  ICP CLI network for networked commands
+  -h, --help            Print help
+
+Run `icq <command> help` for command-specific help.
+",
+        env!("CARGO_PKG_VERSION")
+    );
+
+    assert_snapshot("top-level usage", &usage(), &expected);
 }
 
 #[test]

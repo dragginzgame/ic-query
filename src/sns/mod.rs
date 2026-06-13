@@ -6,28 +6,26 @@ use crate::{
             flag_arg, parse_matches, parse_required_subcommand, passthrough_subcommand,
             render_help, required_string, required_typed, value_arg,
         },
+        common::{
+            OutputFormat, current_unix_secs, format_arg, source_endpoint_arg, write_text_or_json,
+        },
         globals::internal_network_arg,
         help::print_help_or_version,
     },
-    output::{write_pretty_json, write_text},
     sns::report::{
-        DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsInfoRequest, SnsListRequest,
+        DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsInfoRequest, SnsListRequest, SnsListSort,
         build_sns_info_report, build_sns_list_report, sns_info_report_text, sns_list_report_text,
     },
     version_text,
 };
 use clap::{Command as ClapCommand, ValueEnum};
-use serde::Serialize;
-use std::{
-    ffi::OsString,
-    io,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{ffi::OsString, io};
 use thiserror::Error as ThisError;
 
 const SNS_LIST_HELP_AFTER: &str = "\
 Examples:
   icq sns list
+  icq sns list --sort name
   icq sns list --verbose
   icq --network ic sns list --format json
   icq sns list --source-endpoint https://icp-api.io";
@@ -56,18 +54,13 @@ pub enum SnsCommandError {
     Json(#[from] serde_json::Error),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
-enum OutputFormat {
-    Text,
-    Json,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SnsListOptions {
     network: String,
     format: OutputFormat,
     source_endpoint: String,
     verbose: bool,
+    sort: SnsListSortArg,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,8 +102,9 @@ where
     let request = SnsListRequest {
         network: options.network,
         source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
+        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
         verbose: options.verbose,
+        sort: options.sort.into(),
     };
     let report = build_sns_list_report(&request)?;
     write_text_or_json(format, &report, sns_list_report_text)
@@ -129,7 +123,7 @@ where
     let request = SnsInfoRequest {
         network: options.network,
         source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
+        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
         input: options.input,
     };
     let report = build_sns_info_report(&request)?;
@@ -148,6 +142,7 @@ impl SnsListOptions {
             format: required_typed(&matches, "format"),
             source_endpoint: required_string(&matches, "source-endpoint"),
             verbose: matches.get_flag("verbose"),
+            sort: required_typed(&matches, "sort"),
         })
     }
 }
@@ -166,30 +161,6 @@ impl SnsInfoOptions {
             source_endpoint: required_string(&matches, "source-endpoint"),
         })
     }
-}
-
-fn write_text_or_json<T>(
-    format: OutputFormat,
-    report: &T,
-    render_text: impl FnOnce(&T) -> String,
-) -> Result<(), SnsCommandError>
-where
-    T: Serialize,
-{
-    match format {
-        OutputFormat::Text => {
-            let text = render_text(report);
-            write_text::<SnsCommandError>(None, &text)
-        }
-        OutputFormat::Json => write_pretty_json(None, report),
-    }
-}
-
-fn now_unix_secs() -> Result<u64, SnsCommandError> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .map_err(|err| SnsCommandError::Clock(err.to_string()))
 }
 
 fn sns_command() -> ClapCommand {
@@ -220,6 +191,7 @@ fn sns_list_command() -> ClapCommand {
                 .long("verbose")
                 .help("Show full canister IDs in text output"),
         )
+        .arg(sort_arg())
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_LIST_HELP_AFTER)
 }
@@ -244,22 +216,6 @@ fn sns_info_command() -> ClapCommand {
         .after_help(SNS_INFO_HELP_AFTER)
 }
 
-fn format_arg() -> clap::Arg {
-    value_arg("format")
-        .long("format")
-        .value_name("text|json")
-        .default_value("text")
-        .value_parser(clap::value_parser!(OutputFormat))
-        .help("Output format; defaults to text")
-}
-
-fn source_endpoint_arg(default_source_endpoint: &'static str) -> clap::Arg {
-    value_arg("source-endpoint")
-        .long("source-endpoint")
-        .value_name("url")
-        .default_value(default_source_endpoint)
-}
-
 fn usage() -> String {
     render_help(sns_command())
 }
@@ -270,6 +226,30 @@ fn sns_list_usage() -> String {
 
 fn sns_info_usage() -> String {
     render_help(sns_info_command())
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+enum SnsListSortArg {
+    Id,
+    Name,
+}
+
+impl From<SnsListSortArg> for SnsListSort {
+    fn from(value: SnsListSortArg) -> Self {
+        match value {
+            SnsListSortArg::Id => Self::Id,
+            SnsListSortArg::Name => Self::Name,
+        }
+    }
+}
+
+fn sort_arg() -> clap::Arg {
+    value_arg("sort")
+        .long("sort")
+        .value_name("id|name")
+        .default_value("id")
+        .value_parser(clap::value_parser!(SnsListSortArg))
+        .help("Text/JSON row order; ids stay stable by root principal")
 }
 
 #[cfg(test)]

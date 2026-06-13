@@ -1,11 +1,12 @@
-use crate::cli::clap::{passthrough_subcommand, value_arg};
+use crate::cli::{
+    clap::{passthrough_subcommand, value_arg},
+    commands::{COMMAND_FAMILIES, command_family},
+};
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
 
 pub const DISPATCH_ARGS: &str = "args";
 pub const INTERNAL_NETWORK_OPTION: &str = "--__icq-network";
-
-const COMMANDS: &[&str] = &["nns", "sns"];
 
 pub fn network_arg() -> Arg {
     value_arg("network")
@@ -21,6 +22,7 @@ pub fn internal_network_arg() -> Arg {
 pub fn top_level_dispatch_command() -> Command {
     let command = Command::new("icq")
         .disable_help_flag(true)
+        .disable_help_subcommand(true)
         .disable_version_flag(true)
         .arg(
             Arg::new("version")
@@ -30,8 +32,10 @@ pub fn top_level_dispatch_command() -> Command {
         )
         .arg(network_arg().global(true));
 
-    COMMANDS.iter().fold(command, |command, name| {
-        command.subcommand(passthrough_subcommand(Command::new(*name)))
+    COMMAND_FAMILIES.iter().fold(command, |command, family| {
+        command.subcommand(passthrough_subcommand(
+            Command::new(family.name).about(family.about),
+        ))
     })
 }
 
@@ -39,7 +43,7 @@ pub fn command_local_global_option(args: &[OsString]) -> Option<&'static str> {
     let mut index = 0;
     while index < args.len() {
         let arg = args[index].to_str()?;
-        if COMMANDS.contains(&arg) {
+        if command_family(arg).is_some() {
             return args[index + 1..]
                 .iter()
                 .filter_map(|arg| arg.to_str())
@@ -78,33 +82,7 @@ pub fn apply_global_network(
 }
 
 fn command_accepts_global_network(command: &str, tail: &[OsString]) -> bool {
-    match command {
-        "nns" => nns_leaf_accepts_global_network(tail),
-        "sns" => sns_accepts_global_network(tail),
-        _ => false,
-    }
-}
-
-fn nns_leaf_accepts_global_network(tail: &[OsString]) -> bool {
-    matches!(
-        tail.first().and_then(|arg| arg.to_str()),
-        Some(
-            "data-center"
-                | "node"
-                | "node-operator"
-                | "node-provider"
-                | "registry"
-                | "subnet"
-                | "topology"
-        )
-    )
-}
-
-fn sns_accepts_global_network(tail: &[OsString]) -> bool {
-    matches!(
-        tail.first().and_then(|arg| arg.to_str()),
-        Some("list" | "info")
-    )
+    command_family(command).is_some_and(|family| (family.accepts_global_network)(tail))
 }
 
 fn tail_has_option(tail: &[OsString], name: &str) -> bool {

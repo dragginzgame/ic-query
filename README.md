@@ -94,8 +94,8 @@ make minor
 make major
 ```
 
-Each target runs `make test`, bumps `Cargo.toml` and `Cargo.lock`, commits the
-release version, and creates an annotated `vX.Y.Z` tag.
+Each target runs `make test`, bumps `Cargo.toml` and `Cargo.lock`, validates the
+package, commits the release version, and creates an annotated `vX.Y.Z` tag.
 
 ## Integration
 
@@ -106,7 +106,7 @@ linking registry adapters directly. For one integration example, see
 
 ## Status
 
-`0.0.3` keeps the command namespace intentionally small:
+The command namespace is intentionally small:
 
 - `nns` is implemented.
 - `sns list` and `sns info` are implemented for deployed mainnet SNS

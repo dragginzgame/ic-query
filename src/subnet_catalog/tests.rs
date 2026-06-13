@@ -3,7 +3,12 @@ use super::{
     CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_REGISTRY_CANISTER_ID,
     SubnetSpecialization,
 };
+use crate::ic_registry::MainnetRegistryFetchRequest;
 use crate::test_support::temp_dir;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 const SUBNET_A: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 const SUBNET_B: &str = "aaaaa-aa";

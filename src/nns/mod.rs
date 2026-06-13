@@ -14,6 +14,7 @@ mod tests;
 use crate::{
     cli::{
         clap::{parse_required_subcommand, passthrough_subcommand, render_help},
+        common::{OutputFormat, current_unix_secs, write_text_or_json},
         help::print_help_or_version,
     },
     nns::{
@@ -22,17 +23,11 @@ use crate::{
         node_provider::report::NnsNodeProviderHostError, registry::report::NnsRegistryHostError,
         topology::report::NnsTopologyHostError,
     },
-    output::{write_pretty_json, write_text},
     subnet_catalog::SubnetCatalogHostError,
     version_text,
 };
-use clap::{Command as ClapCommand, ValueEnum};
-use serde::Serialize;
-use std::{
-    ffi::OsString,
-    io,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use clap::Command as ClapCommand;
+use std::{ffi::OsString, io};
 use thiserror::Error as ThisError;
 
 ///
@@ -74,15 +69,6 @@ pub enum NnsCommandError {
     Json(#[from] serde_json::Error),
 }
 
-///
-/// OutputFormat
-///
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
-enum OutputFormat {
-    Text,
-    Json,
-}
-
 pub fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
@@ -106,28 +92,8 @@ where
     }
 }
 
-fn write_text_or_json<T>(
-    format: OutputFormat,
-    report: &T,
-    render_text: impl FnOnce(&T) -> String,
-) -> Result<(), NnsCommandError>
-where
-    T: Serialize,
-{
-    match format {
-        OutputFormat::Text => {
-            let text = render_text(report);
-            write_text::<NnsCommandError>(None, &text)
-        }
-        OutputFormat::Json => write_pretty_json(None, report),
-    }
-}
-
 fn now_unix_secs() -> Result<u64, NnsCommandError> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .map_err(|err| NnsCommandError::Clock(err.to_string()))
+    current_unix_secs().map_err(NnsCommandError::Clock)
 }
 
 fn nns_command() -> ClapCommand {
