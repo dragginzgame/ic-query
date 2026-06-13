@@ -1,28 +1,28 @@
 use crate::subnet_catalog::{MAINNET_NETWORK, SubnetKind};
 use crate::{
-    nns_data_center::{
+    nns::data_center::report::{
         NnsDataCenterCacheRequest, NnsDataCenterHostError, NnsDataCenterListReport,
         NnsDataCenterListRequest, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest,
         build_nns_data_center_list_report, refresh_nns_data_center_report,
     },
-    nns_node::{
+    nns::node::report::{
         NNS_NODE_SUBNET_KIND_APPLICATION, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
         NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN, NnsNodeCacheRequest,
         NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest,
         NnsNodeRefreshReport, NnsNodeRefreshRequest, build_nns_node_list_report,
         refresh_nns_node_report,
     },
-    nns_node_operator::{
+    nns::node_operator::report::{
         NnsNodeOperatorCacheRequest, NnsNodeOperatorHostError, NnsNodeOperatorListReport,
         NnsNodeOperatorListRequest, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
         build_nns_node_operator_list_report, refresh_nns_node_operator_report,
     },
-    nns_node_provider::{
+    nns::node_provider::report::{
         NnsNodeProviderCacheRequest, NnsNodeProviderHostError, NnsNodeProviderListReport,
         NnsNodeProviderListRequest, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
         build_nns_node_provider_list_report, refresh_nns_node_provider_report,
     },
-    nns_render::{compact_text, yes_no},
+    nns::render::{compact_text, yes_no},
     subnet_catalog::{
         DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogCacheRequest, SubnetCatalogFilters,
         SubnetCatalogHostError, SubnetCatalogListReport, SubnetCatalogListRequest,
@@ -1330,7 +1330,7 @@ fn topology_capacity_report_from_report(
 }
 
 fn capacity_row_from_operator(
-    operator: &crate::nns_node_operator::NnsNodeOperatorRow,
+    operator: &crate::nns::node_operator::report::NnsNodeOperatorRow,
 ) -> NnsTopologyCapacityRow {
     let assigned_node_count = operator.node_count.map(u64::from);
     let available_node_slots =
@@ -1535,7 +1535,10 @@ impl NnsTopologyProviderAccumulator {
         }
     }
 
-    fn add_node_operator(&mut self, operator: &crate::nns_node_operator::NnsNodeOperatorRow) {
+    fn add_node_operator(
+        &mut self,
+        operator: &crate::nns::node_operator::report::NnsNodeOperatorRow,
+    ) {
         let provider = operator.node_provider_principal.clone();
         let assigned_node_count = operator.node_count.map_or(0, u64::from);
         self.provider_principals.insert(provider.clone());
@@ -2516,4 +2519,5 @@ fn render_refresh_table(report: &NnsTopologyRefreshReport) -> String {
 }
 
 #[cfg(test)]
+#[path = "tests.rs"]
 mod tests;

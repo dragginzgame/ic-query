@@ -1,3 +1,5 @@
+pub mod report;
+
 use super::{
     NnsCommandError, OutputFormat,
     leaf::{self, NnsCommonOptions, NnsLeafCommandSpec, NnsLeafInfoOptions, NnsLeafRefreshOptions},
@@ -9,7 +11,7 @@ use crate::{
         clap::{parse_matches, render_help, typed_option, value_arg},
         help::print_help_or_version,
     },
-    nns_node::{
+    nns::node::report::{
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION,
         NNS_NODE_SUBNET_KIND_CLOUD_ENGINE, NNS_NODE_SUBNET_KIND_SYSTEM,
         NNS_NODE_SUBNET_KIND_UNKNOWN, NnsNodeCacheRequest, NnsNodeInfoRequest, NnsNodeListFilters,

@@ -8,7 +8,7 @@ use crate::{
         CacheFileError, JsonCacheReport, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest,
         RefreshCacheWriteRequest, load_json_cache, write_json_refresh_cache,
     },
-    nns_render::{compact_text, text_or_dash, yes_no},
+    nns::render::{compact_text, text_or_dash, yes_no},
     subnet_catalog::format_utc_timestamp_secs,
     table::{ColumnAlign, render_table},
 };
@@ -833,4 +833,5 @@ fn resolve_node(
 }
 
 #[cfg(test)]
+#[path = "tests.rs"]
 mod tests;

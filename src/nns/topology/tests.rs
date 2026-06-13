@@ -4,8 +4,9 @@ use crate::subnet_catalog::{
     SubnetKind, SubnetSpecialization,
 };
 use crate::{
-    nns_data_center::NnsDataCenterRow, nns_node::NnsNodeRow, nns_node_operator::NnsNodeOperatorRow,
-    nns_node_provider::NnsNodeProviderRow, subnet_catalog::SubnetCatalogSubnetRow,
+    nns::data_center::report::NnsDataCenterRow, nns::node::report::NnsNodeRow,
+    nns::node_operator::report::NnsNodeOperatorRow, nns::node_provider::report::NnsNodeProviderRow,
+    subnet_catalog::SubnetCatalogSubnetRow,
 };
 
 #[test]

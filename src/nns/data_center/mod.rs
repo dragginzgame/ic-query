@@ -1,3 +1,5 @@
+pub mod report;
+
 use super::{
     NnsCommandError,
     leaf::{
@@ -8,7 +10,7 @@ use super::{
 use crate::project::icp_root;
 use crate::{
     cli::help::print_help_or_version,
-    nns_data_center::{
+    nns::data_center::report::{
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, NnsDataCenterCacheRequest,
         NnsDataCenterInfoRequest, NnsDataCenterListRequest, NnsDataCenterRefreshRequest,
         build_nns_data_center_info_report, build_nns_data_center_list_report,

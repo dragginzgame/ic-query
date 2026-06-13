@@ -35,17 +35,19 @@ use super::{
 };
 use crate::subnet_catalog::{GeographicScope, MAINNET_NETWORK, SubnetKind, SubnetSpecialization};
 use crate::{
-    nns_data_center::{
+    nns::data_center::report::{
         DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
     },
-    nns_node::{DEFAULT_NNS_NODE_SOURCE_ENDPOINT, DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS},
-    nns_node_operator::{
+    nns::node::report::{
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT, DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
+    },
+    nns::node_operator::report::{
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT, DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS,
     },
-    nns_node_provider::{
+    nns::node_provider::report::{
         DEFAULT_NNS_SOURCE_ENDPOINT, DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
     },
-    nns_registry::DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT,
+    nns::registry::report::DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT,
 };
 use std::{ffi::OsString, path::PathBuf};
 

@@ -1,3 +1,5 @@
+pub mod report;
+
 use super::{
     NnsCommandError, OutputFormat,
     leaf::{self, NnsCommonOptions},
@@ -8,7 +10,7 @@ use crate::{
         clap::{parse_matches, parse_required_subcommand, passthrough_subcommand, render_help},
         help::{first_arg_is_help, print_help_or_version},
     },
-    nns_registry::{
+    nns::registry::report::{
         DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsRegistryVersionRequest,
         build_nns_registry_version_report, nns_registry_version_report_text,
     },

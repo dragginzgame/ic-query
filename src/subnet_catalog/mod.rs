@@ -12,7 +12,7 @@ use crate::{
         CacheFileError, RefreshLockRequest, acquire_refresh_lock, create_directory,
         write_text_atomically, write_text_output,
     },
-    nns_render::yes_no,
+    nns::render::yes_no,
     table::{ColumnAlign, render_table},
 };
 use candid::Principal;

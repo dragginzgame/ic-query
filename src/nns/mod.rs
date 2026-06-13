@@ -4,6 +4,7 @@ mod node;
 mod node_operator;
 mod node_provider;
 mod registry;
+pub mod render;
 mod subnet;
 mod topology;
 
@@ -15,12 +16,12 @@ use crate::{
         clap::{parse_required_subcommand, passthrough_subcommand, render_help},
         help::print_help_or_version,
     },
-    nns_data_center::NnsDataCenterHostError,
-    nns_node::NnsNodeHostError,
-    nns_node_operator::NnsNodeOperatorHostError,
-    nns_node_provider::NnsNodeProviderHostError,
-    nns_registry::NnsRegistryHostError,
-    nns_topology::NnsTopologyHostError,
+    nns::{
+        data_center::report::NnsDataCenterHostError, node::report::NnsNodeHostError,
+        node_operator::report::NnsNodeOperatorHostError,
+        node_provider::report::NnsNodeProviderHostError, registry::report::NnsRegistryHostError,
+        topology::report::NnsTopologyHostError,
+    },
     output::{write_pretty_json, write_text},
     subnet_catalog::SubnetCatalogHostError,
     version_text,

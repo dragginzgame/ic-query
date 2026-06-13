@@ -1,3 +1,5 @@
+pub mod report;
+
 use super::{
     NnsCommandError,
     leaf::{self, NnsCommonOptions},
@@ -12,7 +14,7 @@ use crate::{
         },
         help::{first_arg_is_help, print_help_or_version},
     },
-    nns_topology::{
+    nns::topology::report::{
         NnsTopologyCapacityRequest, NnsTopologyCoverageRequest, NnsTopologyGapsRequest,
         NnsTopologyHealthRequest, NnsTopologyProvidersRequest, NnsTopologyRefreshRequest,
         NnsTopologyRegionsRequest, NnsTopologySummaryRequest, NnsTopologyVersionsRequest,
@@ -594,7 +596,7 @@ fn topology_summary_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if a topology component cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -608,7 +610,7 @@ fn topology_coverage_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if a topology component cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -622,7 +624,7 @@ fn topology_versions_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if a topology component cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -636,7 +638,7 @@ fn topology_health_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if a topology component cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -650,7 +652,7 @@ fn topology_gaps_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if a topology component cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -664,7 +666,7 @@ fn topology_capacity_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if the node-operator cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -678,7 +680,7 @@ fn topology_regions_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if the data-center cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -692,7 +694,7 @@ fn topology_providers_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if a topology component cache is missing"),
         )
         .arg(leaf::network_arg())
@@ -706,7 +708,7 @@ fn topology_refresh_command() -> clap::Command {
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(
-            leaf::source_endpoint_arg(crate::nns_node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
+            leaf::source_endpoint_arg(crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for NNS topology component refreshes"),
         )
         .arg(leaf::refresh_lock_stale_after_arg())
