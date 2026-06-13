@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.0.2] - 2026-06-13
+
+### Changed
+
+- Groups NNS command implementation modules under `src/nns/` by command family.
+- Renames project-local `icq` cache/state directory from `.ic-query/` to
+  `.icq/`.
+- Updates README positioning so `ic-query` is documented as a standalone IC
+  metadata lookup tool, with Canic mentioned only as an optional integration
+  example.
+- Clarifies cache behavior for subnet versus node/provider/operator/data-center
+  commands.
+
 ## [0.0.1] - 2026-06-13
 
 ### Added

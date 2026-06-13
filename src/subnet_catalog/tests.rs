@@ -17,7 +17,7 @@ fn catalog_path_lives_outside_deployment_state() {
 
     assert_eq!(
         path,
-        PathBuf::from("/tmp/ic-query-project/.ic-query/subnet-catalog/ic/catalog.json")
+        PathBuf::from("/tmp/ic-query-project/.icq/subnet-catalog/ic/catalog.json")
     );
     assert!(!path.display().to_string().contains("/deployments/"));
     assert!(!path.display().to_string().contains("/fleets/"));

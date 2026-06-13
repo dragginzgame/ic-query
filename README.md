@@ -7,9 +7,9 @@
 `ic-query` provides the `icq` executable for read-only Internet Computer
 metadata queries.
 
-The `0.0.1` release starts with the NNS query surface that previously lived
-under `canic nns`. It is intended to fill the metadata-query gaps around the
-ICP CLI while keeping Canic focused on deployment orchestration.
+The `0.0.1` release starts with NNS metadata queries: registry version,
+subnet catalog lookup, node/provider/operator/data-center inventory, and
+topology reports.
 
 ## Install
 
@@ -56,7 +56,7 @@ icq --network ic nns subnet info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 ## Cache
 
 The NNS subnet, node, provider, operator, data-center, and topology commands
-use project-local cache files under `.ic-query/`. Refresh commands fetch current
+use project-local cache files under `.icq/`. Refresh commands fetch current
 mainnet registry data and replace the matching cache atomically:
 
 ```sh
@@ -64,8 +64,10 @@ icq nns subnet refresh
 icq nns topology refresh
 ```
 
-Read-only commands fail with an explicit refresh hint when the required cache
-is missing.
+Subnet list/info commands require a cached subnet catalog and show an explicit
+refresh hint when it is missing. Node, provider, operator, and data-center
+list/info commands populate their component cache on first use. Refresh
+commands force a fresh fetch and replace the matching cache.
 
 ## Development
 
@@ -85,12 +87,12 @@ The combined local gate is:
 make ci
 ```
 
-## Boundary
+## Integration
 
-`icq` owns IC metadata lookup and classification. Canic may store operator
-intent such as a subnet principal and may execute `icq` when it needs subnet
-facts, but Canic should not link the NNS registry adapter or duplicate subnet
-catalog logic.
+`icq` is a standalone metadata lookup tool. Orchestration, deployment, and
+application repositories can call the CLI when they need IC metadata instead of
+linking registry adapters directly. For one integration example, see
+[Canic](https://github.com/dragginzgame/canic).
 
 ## Status
 
@@ -99,4 +101,5 @@ small:
 
 - `nns` is implemented.
 - `sns` is reserved for follow-up work.
-- Additional IC query families can be added without expanding Canic itself.
+- Additional IC query families can be added without coupling query code to
+  deployment tooling.

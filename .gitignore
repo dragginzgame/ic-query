@@ -15,6 +15,7 @@
 /deps/
 /.dfx/
 /.icp/
+/.icq/
 /.ic-query/
 *.wasm
 

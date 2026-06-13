@@ -401,7 +401,7 @@ pub(crate) enum SubnetCatalogHostError {
 #[must_use]
 pub(crate) fn subnet_catalog_path(icp_root: &Path, network: &str) -> PathBuf {
     icp_root
-        .join(".ic-query")
+        .join(".icq")
         .join("subnet-catalog")
         .join(network)
         .join("catalog.json")
@@ -410,7 +410,7 @@ pub(crate) fn subnet_catalog_path(icp_root: &Path, network: &str) -> PathBuf {
 #[must_use]
 pub(crate) fn subnet_catalog_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
     icp_root
-        .join(".ic-query")
+        .join(".icq")
         .join("subnet-catalog")
         .join(network)
         .join("refresh.lock")

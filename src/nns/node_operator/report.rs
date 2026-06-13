@@ -259,7 +259,7 @@ pub enum NnsNodeOperatorHostError {
 #[must_use]
 pub fn nns_node_operator_cache_path(icp_root: &Path, network: &str) -> PathBuf {
     icp_root
-        .join(".ic-query")
+        .join(".icq")
         .join("node-operator")
         .join(network)
         .join("operators.json")
@@ -268,7 +268,7 @@ pub fn nns_node_operator_cache_path(icp_root: &Path, network: &str) -> PathBuf {
 #[must_use]
 pub fn nns_node_operator_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
     icp_root
-        .join(".ic-query")
+        .join(".icq")
         .join("node-operator")
         .join(network)
         .join("refresh.lock")

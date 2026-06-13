@@ -262,7 +262,7 @@ pub enum NnsDataCenterHostError {
 #[must_use]
 pub fn nns_data_center_cache_path(icp_root: &Path, network: &str) -> PathBuf {
     icp_root
-        .join(".ic-query")
+        .join(".icq")
         .join("data-center")
         .join(network)
         .join("data-centers.json")
@@ -271,7 +271,7 @@ pub fn nns_data_center_cache_path(icp_root: &Path, network: &str) -> PathBuf {
 #[must_use]
 pub fn nns_data_center_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
     icp_root
-        .join(".ic-query")
+        .join(".icq")
         .join("data-center")
         .join(network)
         .join("refresh.lock")
