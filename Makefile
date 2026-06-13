@@ -1,4 +1,4 @@
-.PHONY: help build check ci clean clippy fmt fmt-check install msrv package publish test
+.PHONY: help build check ci clean clippy fmt fmt-check install major minor msrv package patch publish test
 
 MSRV ?= 1.91.0
 
@@ -14,6 +14,9 @@ help:
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
+	@echo "  patch      Bump patch version, commit, and tag"
+	@echo "  minor      Bump minor version, commit, and tag"
+	@echo "  major      Bump major version, commit, and tag"
 	@echo "  clean      Remove build artifacts"
 
 fmt:
@@ -44,6 +47,15 @@ install:
 
 publish:
 	cargo publish --locked
+
+patch:
+	bash scripts/release/bump-version.sh patch
+
+minor:
+	bash scripts/release/bump-version.sh minor
+
+major:
+	bash scripts/release/bump-version.sh major
 
 build:
 	cargo build --all-targets --all-features --locked

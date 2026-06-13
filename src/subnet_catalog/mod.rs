@@ -9,8 +9,8 @@ use crate::ic_registry::{
 };
 use crate::{
     cache_file::{
-        CacheFileError, RefreshLockRequest, acquire_refresh_lock, create_directory,
-        write_text_atomically, write_text_output,
+        CacheFileError, RefreshLockRequest, acquire_refresh_lock, announce_cache_refresh,
+        create_directory, write_text_atomically, write_text_output,
     },
     nns::render::yes_no,
     table::{ColumnAlign, render_table},
@@ -32,7 +32,6 @@ pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 pub const MAINNET_NETWORK: &str = "ic";
 pub const MAINNET_REGISTRY_CANISTER_ID: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 pub(crate) const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
-#[cfg(test)]
 pub(crate) const DEFAULT_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 pub(crate) const DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
 pub(crate) const SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -165,6 +164,7 @@ pub(crate) struct SubnetCatalogFilters {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct SubnetCatalogListRequest {
     pub cache: SubnetCatalogCacheRequest,
+    pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub stale_after_seconds: u64,
     pub filters: SubnetCatalogFilters,
@@ -179,6 +179,7 @@ pub(crate) struct SubnetCatalogListRequest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct SubnetCatalogInfoRequest {
     pub cache: SubnetCatalogCacheRequest,
+    pub source_endpoint: String,
     pub input: String,
     pub forced: Option<ResolveAs>,
     pub now_unix_secs: u64,
@@ -315,12 +316,12 @@ pub(crate) struct SubnetCatalogRefreshReport {
 #[derive(Debug, ThisError)]
 pub(crate) enum SubnetCatalogHostError {
     #[error(
-        "`icq nns subnet` supports only the mainnet `ic` network in 0.60\n\nThe cached NNS subnet data describes the public Internet Computer mainnet.\nLocal replica subnet discovery is not implemented yet.\n\nTry:\n  icq --network ic nns subnet list"
+        "`icq nns subnet` supports only the mainnet `ic` network\n\nThe cached NNS subnet data describes the public Internet Computer mainnet.\nLocal replica subnet discovery is not implemented yet.\n\nTry:\n  icq --network ic nns subnet list"
     )]
     UnsupportedNetwork { network: String },
 
     #[error(
-        "subnet catalog cache is missing at {}\n\nRun `icq nns subnet refresh` to fetch the public Internet Computer mainnet catalog, or populate this path with a valid Canic subnet catalog JSON.",
+        "subnet catalog cache is missing at {}\n\nRun `icq nns subnet refresh` to fetch the public Internet Computer mainnet catalog, or populate this path with a valid subnet catalog JSON.",
         path.display()
     )]
     MissingCatalog { path: PathBuf },
@@ -510,7 +511,19 @@ fn refresh_subnet_catalog_with_source(
 pub(crate) fn build_subnet_catalog_list_report(
     request: &SubnetCatalogListRequest,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    let cached = load_cached_subnet_catalog(&request.cache)?;
+    build_subnet_catalog_list_report_with_source(request, &LiveNnsRegistryRefreshSource)
+}
+
+fn build_subnet_catalog_list_report_with_source(
+    request: &SubnetCatalogListRequest,
+    source: &dyn SubnetCatalogRefreshSource,
+) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
+    let cached = load_or_refresh_subnet_catalog(
+        &request.cache,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        source,
+    )?;
     let stale = catalog_stale_status(
         &cached.catalog,
         request.now_unix_secs,
@@ -542,7 +555,19 @@ pub(crate) fn build_subnet_catalog_list_report(
 pub(crate) fn build_subnet_catalog_info_report(
     request: &SubnetCatalogInfoRequest,
 ) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
-    let cached = load_cached_subnet_catalog(&request.cache)?;
+    build_subnet_catalog_info_report_with_source(request, &LiveNnsRegistryRefreshSource)
+}
+
+fn build_subnet_catalog_info_report_with_source(
+    request: &SubnetCatalogInfoRequest,
+    source: &dyn SubnetCatalogRefreshSource,
+) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
+    let cached = load_or_refresh_subnet_catalog(
+        &request.cache,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        source,
+    )?;
     let stale = catalog_stale_status(
         &cached.catalog,
         request.now_unix_secs,
@@ -592,6 +617,31 @@ pub(crate) fn build_subnet_catalog_info_report(
         rate_source,
         formula_version,
     })
+}
+
+fn load_or_refresh_subnet_catalog(
+    request: &SubnetCatalogCacheRequest,
+    source_endpoint: &str,
+    now_unix_secs: u64,
+    source: &dyn SubnetCatalogRefreshSource,
+) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
+    match load_cached_subnet_catalog(request) {
+        Ok(cached) => Ok(cached),
+        Err(SubnetCatalogHostError::MissingCatalog { path }) => {
+            announce_cache_refresh("subnet catalog", &path, source_endpoint);
+            let refresh_request = SubnetCatalogRefreshRequest {
+                cache: request.clone(),
+                source_endpoint: source_endpoint.to_string(),
+                now_unix_secs,
+                lock_stale_after_seconds: DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+                dry_run: false,
+                output_path: None,
+            };
+            refresh_subnet_catalog_with_source(&refresh_request, source)?;
+            load_cached_subnet_catalog(request)
+        }
+        Err(err) => Err(err),
+    }
 }
 
 #[must_use]

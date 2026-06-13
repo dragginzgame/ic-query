@@ -5,6 +5,7 @@ mod ic_registry;
 mod nns;
 mod output;
 mod project;
+mod sns;
 pub mod subnet_catalog;
 mod table;
 
@@ -34,6 +35,9 @@ pub enum IcQueryError {
 
     #[error("nns: {0}")]
     Nns(String),
+
+    #[error("sns: {0}")]
+    Sns(String),
 }
 
 /// Run the CLI from process arguments.
@@ -78,6 +82,7 @@ where
 
     match command {
         "nns" => nns::run(tail).map_err(|err| IcQueryError::Nns(err.to_string())),
+        "sns" => sns::run(tail).map_err(|err| IcQueryError::Sns(err.to_string())),
         _ => unreachable!("top-level dispatch command only defines known commands"),
     }
 }

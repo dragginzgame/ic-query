@@ -5,7 +5,7 @@ use std::ffi::OsString;
 pub const DISPATCH_ARGS: &str = "args";
 pub const INTERNAL_NETWORK_OPTION: &str = "--__icq-network";
 
-const COMMANDS: &[&str] = &["nns"];
+const COMMANDS: &[&str] = &["nns", "sns"];
 
 pub fn network_arg() -> Arg {
     value_arg("network")
@@ -80,6 +80,7 @@ pub fn apply_global_network(
 fn command_accepts_global_network(command: &str, tail: &[OsString]) -> bool {
     match command {
         "nns" => nns_leaf_accepts_global_network(tail),
+        "sns" => sns_accepts_global_network(tail),
         _ => false,
     }
 }
@@ -96,6 +97,13 @@ fn nns_leaf_accepts_global_network(tail: &[OsString]) -> bool {
                 | "subnet"
                 | "topology"
         )
+    )
+}
+
+fn sns_accepts_global_network(tail: &[OsString]) -> bool {
+    matches!(
+        tail.first().and_then(|arg| arg.to_str()),
+        Some("list" | "info")
     )
 }
 

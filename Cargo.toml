@@ -2,15 +2,15 @@
 name = "ic-query"
 edition = "2024"
 rust-version = "1.91.0"
-version = "0.0.2"
+version = "0.0.3"
 license = "MIT"
 authors = ["borovan <84897664+borovan@users.noreply.github.com>"]
-description = "Internet Computer query CLI for NNS and related public network metadata"
+description = "Internet Computer query CLI for NNS, SNS, and related public network metadata"
 readme = "README.md"
 documentation = "https://docs.rs/ic-query"
 homepage = "https://github.com/dragginzgame/ic-query"
 repository = "https://github.com/dragginzgame/ic-query"
-keywords = ["internet-computer", "canister", "dfinity", "icp", "nns"]
+keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
 categories = ["command-line-utilities"]
 
 [[bin]]

@@ -55,9 +55,12 @@ pub fn top_level_command() -> Command {
         .arg(network_arg().global(true))
         .subcommand_help_heading("Commands")
         .help_template(TOP_LEVEL_HELP_TEMPLATE)
-        .before_help("Commands:\n  nns          Inspect NNS metadata\n")
+        .before_help(
+            "Commands:\n  nns          Inspect NNS metadata\n  sns          Inspect SNS metadata\n",
+        )
         .after_help("Run `icq <command> help` for command-specific help.")
         .subcommand(Command::new("nns").about("Inspect NNS metadata"))
+        .subcommand(Command::new("sns").about("Inspect SNS metadata"))
 }
 
 pub fn usage() -> String {

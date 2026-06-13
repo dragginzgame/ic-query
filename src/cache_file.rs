@@ -190,6 +190,13 @@ pub fn create_directory(path: &Path) -> Result<(), CacheFileError> {
     })
 }
 
+pub fn announce_cache_refresh(component: &str, path: &Path, source_endpoint: &str) {
+    eprintln!(
+        "{component} cache missing at {}; calling {source_endpoint} to refresh/create cache",
+        path.display()
+    );
+}
+
 pub fn load_json_cache<T, E, Missing, Read, Parse, Unsupported, Mismatch>(
     request: LoadJsonCacheRequest<'_>,
     errors: LoadJsonCacheErrorHandlers<Missing, Read, Parse, Unsupported, Mismatch>,

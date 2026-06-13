@@ -9,6 +9,8 @@ fn usage_lists_query_families() {
     assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
     assert!(text.contains("nns"));
     assert!(text.contains("Inspect NNS metadata"));
+    assert!(text.contains("sns"));
+    assert!(text.contains("Inspect SNS metadata"));
     assert!(text.contains("Run `icq <command> help`"));
 }
 
@@ -48,6 +50,9 @@ fn command_family_help_returns_ok() {
         &["nns", "topology", "regions", "help"],
         &["nns", "topology", "providers", "help"],
         &["nns", "topology", "refresh", "help"],
+        &["sns", "help"],
+        &["sns", "list", "help"],
+        &["sns", "info", "help"],
     ] {
         assert_run_ok(args);
     }
@@ -58,6 +63,7 @@ fn version_flags_return_ok() {
     assert_eq!(version_text(), concat!("icq ", env!("CARGO_PKG_VERSION")));
     assert!(run([OsString::from("--version")]).is_ok());
     assert!(run([OsString::from("nns"), OsString::from("--version")]).is_ok());
+    assert!(run([OsString::from("sns"), OsString::from("--version")]).is_ok());
     assert!(
         run([
             OsString::from("nns"),
@@ -67,18 +73,45 @@ fn version_flags_return_ok() {
         ])
         .is_ok()
     );
+
+    let mut sns_info_tail = vec![OsString::from("info"), OsString::from("1")];
+
+    cli::globals::apply_global_network("sns", &mut sns_info_tail, Some("ic".to_string()));
+
+    assert_eq!(
+        sns_info_tail,
+        vec![
+            OsString::from("info"),
+            OsString::from("1"),
+            OsString::from(INTERNAL_NETWORK_OPTION),
+            OsString::from("ic")
+        ]
+    );
 }
 
 #[test]
-fn global_network_is_forwarded_to_nns_leaf_commands() {
-    let mut tail = vec![OsString::from("data-center"), OsString::from("list")];
+fn global_network_is_forwarded_to_networked_leaf_commands() {
+    let mut nns_tail = vec![OsString::from("data-center"), OsString::from("list")];
 
-    cli::globals::apply_global_network("nns", &mut tail, Some("ic".to_string()));
+    cli::globals::apply_global_network("nns", &mut nns_tail, Some("ic".to_string()));
 
     assert_eq!(
-        tail,
+        nns_tail,
         vec![
             OsString::from("data-center"),
+            OsString::from("list"),
+            OsString::from(INTERNAL_NETWORK_OPTION),
+            OsString::from("ic")
+        ]
+    );
+
+    let mut sns_tail = vec![OsString::from("list")];
+
+    cli::globals::apply_global_network("sns", &mut sns_tail, Some("ic".to_string()));
+
+    assert_eq!(
+        sns_tail,
+        vec![
             OsString::from("list"),
             OsString::from(INTERNAL_NETWORK_OPTION),
             OsString::from("ic")

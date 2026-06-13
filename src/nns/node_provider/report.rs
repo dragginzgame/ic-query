@@ -6,7 +6,8 @@ use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 use crate::{
     cache_file::{
         CacheFileError, JsonCacheReport, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest,
-        RefreshCacheWriteRequest, load_json_cache, write_json_refresh_cache,
+        RefreshCacheWriteRequest, announce_cache_refresh, load_json_cache,
+        write_json_refresh_cache,
     },
     nns::render::{compact_text, optional_node_count_text, text_or_dash, yes_no},
     subnet_catalog::format_utc_timestamp_secs,
@@ -165,7 +166,7 @@ pub struct NnsNodeProviderRefreshReport {
 #[derive(Debug, ThisError)]
 pub enum NnsNodeProviderHostError {
     #[error(
-        "`icq nns node-provider` supports only the mainnet `ic` network in 0.60\n\nThe NNS node-provider list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not implemented yet.\n\nTry:\n  icq --network ic nns node-provider list"
+        "`icq nns node-provider` supports only the mainnet `ic` network\n\nThe NNS node-provider list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not implemented yet.\n\nTry:\n  icq --network ic nns node-provider list"
     )]
     UnsupportedNetwork { network: String },
 
@@ -329,7 +330,8 @@ fn build_nns_node_provider_list_report_with_source(
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
     match load_cached_nns_node_provider_report(&request.cache) {
         Ok(cached) => Ok(cached.report),
-        Err(NnsNodeProviderHostError::MissingCache { .. }) => {
+        Err(NnsNodeProviderHostError::MissingCache { path }) => {
+            announce_cache_refresh("node-provider", &path, &request.source_endpoint);
             let refresh_request = NnsNodeProviderRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),

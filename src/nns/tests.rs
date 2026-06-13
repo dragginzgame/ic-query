@@ -33,7 +33,10 @@ use super::{
         topology_regions_usage, topology_summary_usage, topology_usage, topology_versions_usage,
     },
 };
-use crate::subnet_catalog::{GeographicScope, MAINNET_NETWORK, SubnetKind, SubnetSpecialization};
+use crate::subnet_catalog::{
+    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, GeographicScope, MAINNET_NETWORK, SubnetKind,
+    SubnetSpecialization,
+};
 use crate::{
     nns::data_center::report::{
         DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
@@ -57,6 +60,10 @@ fn list_defaults_to_mainnet_ic_catalog() {
 
     assert_eq!(options.network, MAINNET_NETWORK);
     assert_eq!(options.format, OutputFormat::Text);
+    assert_eq!(
+        options.source_endpoint,
+        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
+    );
     assert_eq!(options.range_limit, DEFAULT_RANGE_LIMIT);
     assert!(!options.verbose);
 }
@@ -89,6 +96,10 @@ fn list_parses_filters_and_json_format() {
         Some(GeographicScope::Global)
     );
     assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(
+        options.source_endpoint,
+        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
+    );
     assert!(options.show_ranges);
     assert!(options.verbose);
     assert_eq!(options.range_limit, 12);
@@ -903,7 +914,7 @@ fn node_provider_local_is_rejected_with_pinned_message() {
     .expect_err("local rejected");
 
     let message = err.to_string();
-    assert!(message.contains("supports only the mainnet `ic` network in 0.60"));
+    assert!(message.contains("supports only the mainnet `ic` network"));
     assert!(message.contains("icq --network ic nns node-provider list"));
 }
 
@@ -1090,7 +1101,7 @@ fn catalog_local_is_rejected_with_pinned_message() {
     .expect_err("local rejected");
 
     let message = err.to_string();
-    assert!(message.contains("supports only the mainnet `ic` network in 0.60"));
+    assert!(message.contains("supports only the mainnet `ic` network"));
     assert!(message.contains("icq --network ic nns subnet list"));
 }
 

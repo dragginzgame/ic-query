@@ -6,7 +6,8 @@ use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 use crate::{
     cache_file::{
         CacheFileError, JsonCacheReport, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest,
-        RefreshCacheWriteRequest, load_json_cache, write_json_refresh_cache,
+        RefreshCacheWriteRequest, announce_cache_refresh, load_json_cache,
+        write_json_refresh_cache,
     },
     nns::render::{compact_text, optional_node_count_text, text_or_dash, yes_no},
     subnet_catalog::format_utc_timestamp_secs,
@@ -328,7 +329,8 @@ fn build_nns_node_operator_list_report_with_source(
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
     match load_cached_nns_node_operator_report(&request.cache) {
         Ok(cached) => Ok(cached.report),
-        Err(NnsNodeOperatorHostError::MissingCache { .. }) => {
+        Err(NnsNodeOperatorHostError::MissingCache { path }) => {
+            announce_cache_refresh("node-operator", &path, &request.source_endpoint);
             let refresh_request = NnsNodeOperatorRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),

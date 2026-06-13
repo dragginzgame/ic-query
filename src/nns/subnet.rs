@@ -60,6 +60,7 @@ Examples:
 pub(super) struct CatalogListOptions {
     pub(super) network: String,
     pub(super) format: OutputFormat,
+    pub(super) source_endpoint: String,
     pub(super) filters: SubnetCatalogFilters,
     pub(super) show_ranges: bool,
     pub(super) verbose: bool,
@@ -75,6 +76,7 @@ pub(super) struct CatalogInfoOptions {
     pub(super) input: String,
     pub(super) network: String,
     pub(super) format: OutputFormat,
+    pub(super) source_endpoint: String,
     pub(super) forced: Option<ResolveAs>,
 }
 
@@ -124,6 +126,7 @@ where
     let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
     let request = SubnetCatalogListRequest {
         cache: cache_request(&icp_root, &options.network),
+        source_endpoint: options.source_endpoint,
         now_unix_secs: now_unix_secs()?,
         stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
         filters: options.filters,
@@ -154,6 +157,7 @@ where
     let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
     let request = SubnetCatalogInfoRequest {
         cache: cache_request(&icp_root, &options.network),
+        source_endpoint: options.source_endpoint,
         input: options.input.clone(),
         forced: options.forced,
         now_unix_secs: now_unix_secs()?,
@@ -196,6 +200,7 @@ impl CatalogListOptions {
         Ok(Self {
             network: required_string(&matches, "network"),
             format: required_typed(&matches, "format"),
+            source_endpoint: required_string(&matches, "source-endpoint"),
             filters: SubnetCatalogFilters {
                 kind: typed_option(&matches, "kind"),
                 specialization: typed_option(&matches, "specialization"),
@@ -220,6 +225,7 @@ impl CatalogInfoOptions {
             input: required_string(&matches, "input"),
             network: required_string(&matches, "network"),
             format: required_typed(&matches, "format"),
+            source_endpoint: required_string(&matches, "source-endpoint"),
             forced: typed_option(&matches, "as"),
         })
     }
@@ -294,6 +300,10 @@ fn list_command() -> ClapCommand {
         )
         .arg(leaf::format_arg())
         .arg(
+            leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
+                .help("IC API endpoint used if the subnet catalog cache is missing"),
+        )
+        .arg(
             flag_arg("show-ranges")
                 .long("show-ranges")
                 .help("Show cached routing ranges after the subnet table"),
@@ -342,6 +352,10 @@ fn info_command() -> ClapCommand {
                 .help("Force principal interpretation"),
         )
         .arg(leaf::format_arg())
+        .arg(
+            leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
+                .help("IC API endpoint used if the subnet catalog cache is missing"),
+        )
         .arg(leaf::network_arg())
         .after_help(INFO_HELP_AFTER)
 }

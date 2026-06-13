@@ -82,6 +82,23 @@ fn list_report_loads_cached_catalog_and_caps_ranges() {
 }
 
 #[test]
+fn list_report_refreshes_missing_catalog() {
+    let root = temp_dir("ic-query-subnet-list-refresh");
+    let mut catalog = fixture_catalog();
+    catalog.registry_version = 987_654;
+    let source = FixtureRefreshSource::ok(catalog);
+    let request = list_request(&root);
+
+    let report =
+        build_subnet_catalog_list_report_with_source(&request, &source).expect("list report");
+    let cached = load_cached_subnet_catalog(&cache_request(&root)).expect("cached catalog");
+
+    let _ = fs::remove_dir_all(root);
+    assert_eq!(report.registry_version, 987_654);
+    assert_eq!(cached.catalog.registry_version, 987_654);
+}
+
+#[test]
 fn list_report_verbose_text_keeps_full_metadata() {
     let root = temp_dir("ic-query-subnet-list-verbose");
     write_catalog(&root, fixture_catalog());
@@ -323,6 +340,7 @@ fn utc_timestamp_formatter_is_deterministic() {
 fn list_request(root: &Path) -> SubnetCatalogListRequest {
     SubnetCatalogListRequest {
         cache: cache_request(root),
+        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_300,
         stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
         filters: SubnetCatalogFilters::default(),
@@ -335,6 +353,7 @@ fn list_request(root: &Path) -> SubnetCatalogListRequest {
 fn info_request(root: &Path, input: &str) -> SubnetCatalogInfoRequest {
     SubnetCatalogInfoRequest {
         cache: cache_request(root),
+        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
         input: input.to_string(),
         forced: None,
         now_unix_secs: 1_780_531_300,

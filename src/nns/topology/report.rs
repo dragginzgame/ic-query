@@ -463,6 +463,7 @@ pub fn build_nns_topology_summary_report(
             icp_root: request.icp_root.clone(),
             network: request.network.clone(),
         },
+        source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,
         stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
         filters: SubnetCatalogFilters::default(),

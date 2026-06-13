@@ -6,7 +6,8 @@ use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 use crate::{
     cache_file::{
         CacheFileError, JsonCacheReport, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest,
-        RefreshCacheWriteRequest, load_json_cache, write_json_refresh_cache,
+        RefreshCacheWriteRequest, announce_cache_refresh, load_json_cache,
+        write_json_refresh_cache,
     },
     nns::render::{compact_text, text_or_dash, yes_no},
     subnet_catalog::format_utc_timestamp_secs,
@@ -356,7 +357,8 @@ fn build_nns_node_list_report_with_source(
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
     let report = match load_cached_nns_node_report(&request.cache) {
         Ok(cached) => cached.report,
-        Err(NnsNodeHostError::MissingCache { .. }) => {
+        Err(NnsNodeHostError::MissingCache { path }) => {
+            announce_cache_refresh("node", &path, &request.source_endpoint);
             let refresh_request = NnsNodeRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),

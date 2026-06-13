@@ -6,7 +6,8 @@ use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
     cache_file::{
         CacheFileError, JsonCacheReport, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest,
-        RefreshCacheWriteRequest, load_json_cache, write_json_refresh_cache,
+        RefreshCacheWriteRequest, announce_cache_refresh, load_json_cache,
+        write_json_refresh_cache,
     },
     nns::render::{optional_f32_text, text_or_dash, yes_no},
     subnet_catalog::format_utc_timestamp_secs,
@@ -331,7 +332,8 @@ fn build_nns_data_center_list_report_with_source(
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
     match load_cached_nns_data_center_report(&request.cache) {
         Ok(cached) => Ok(cached.report),
-        Err(NnsDataCenterHostError::MissingCache { .. }) => {
+        Err(NnsDataCenterHostError::MissingCache { path }) => {
+            announce_cache_refresh("data-center", &path, &request.source_endpoint);
             let refresh_request = NnsDataCenterRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
