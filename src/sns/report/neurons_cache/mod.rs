@@ -1,3 +1,8 @@
+mod attempt;
+mod errors;
+mod model;
+mod paths;
+
 use super::{
     SNS_NEURONS_REPORT_SCHEMA_VERSION, SnsHostError, SnsNeuronRow, SnsNeuronsCacheListReport,
     SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusReport, SnsNeuronsCacheStatusRequest,
@@ -11,102 +16,38 @@ use super::{
 };
 use crate::{
     cache_file::{
-        CacheFileError, CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorHandlers,
-        LoadJsonCacheRequest, RefreshLockRequest, create_directory, load_json_cache,
-        with_refresh_lock, write_text_atomically,
+        CachedJsonReport, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest, RefreshLockRequest,
+        create_directory, load_json_cache, with_refresh_lock, write_text_atomically,
     },
     progress::ProgressLine,
-    subnet_catalog::format_utc_timestamp_secs,
 };
 use candid::Principal;
-use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::{
     cmp::Reverse,
     collections::HashSet,
     fs,
     path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
+};
+
+use attempt::{
+    SnsNeuronsAttemptParts, attempt_from_parts, failed_attempt_from_latest_progress,
+    read_sns_neurons_attempt_status, write_sns_neurons_attempt,
+};
+use errors::sns_cache_file_error;
+use model::{
+    CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheHeader, SnsNeuronsCachedReportParts,
+    SnsNeuronsCompleteness,
+};
+use paths::{SnsNeuronsCachePaths, sns_network_cache_dir, sns_neurons_attempt_path_for_cache_path};
+pub(super) use paths::{
+    sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
 };
 
 pub(super) const SNS_NEURONS_CACHE_SCHEMA_VERSION: u32 = 1;
 pub(super) const SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(super) const SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(super) const SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
-const SNS_NEURONS_REFRESH_ATTEMPT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REFRESH_LOCK_STALE_AFTER_SECONDS: u64 = 30 * 60;
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-struct SnsNeuronsCache {
-    schema_version: u32,
-    network: String,
-    sns_wasm_canister_id: String,
-    fetched_at: String,
-    source_endpoint: String,
-    fetched_by: String,
-    id: usize,
-    name: String,
-    root_canister_id: String,
-    governance_canister_id: String,
-    completeness: SnsNeuronsCompleteness,
-    neurons: Vec<SnsNeuronRow>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-struct SnsNeuronsCompleteness {
-    status: String,
-    page_size: u32,
-    page_count: u32,
-    row_count: usize,
-    point_in_time_guaranteed: bool,
-}
-
-impl JsonCacheReport for SnsNeuronsCache {
-    fn schema_version(&self) -> u32 {
-        self.schema_version
-    }
-
-    fn network(&self) -> &str {
-        &self.network
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-struct SnsNeuronsRefreshAttempt {
-    schema_version: u32,
-    network: String,
-    source_endpoint: String,
-    started_at: String,
-    updated_at: String,
-    root_canister_id: String,
-    governance_canister_id: String,
-    status: String,
-    page_size: u32,
-    pages_fetched: u32,
-    rows_fetched: usize,
-    last_cursor: Option<String>,
-    last_error: Option<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
-struct SnsNeuronsCacheHeader {
-    schema_version: u32,
-    network: String,
-    id: usize,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct CompleteSnsNeurons {
-    neurons: Vec<SnsNeuronRow>,
-    page_count: u32,
-    last_cursor: Option<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct SnsNeuronsCachePaths {
-    cache_path: PathBuf,
-    lock_path: PathBuf,
-    attempt_path: PathBuf,
-}
 
 struct SnsNeuronsRefreshContext<'a> {
     request: &'a SnsNeuronsRefreshRequest,
@@ -116,26 +57,6 @@ struct SnsNeuronsRefreshContext<'a> {
     sns: MainnetSns,
     paths: SnsNeuronsCachePaths,
     replaced_existing_cache: bool,
-}
-
-struct SnsNeuronsCachedReportParts {
-    requested_limit: u32,
-    sort: SnsNeuronsSort,
-    cache: SnsNeuronsCache,
-    total_neuron_count: usize,
-    cache_path: PathBuf,
-    verbose: bool,
-}
-
-struct SnsNeuronsAttemptParts<'a> {
-    request: &'a SnsNeuronsRefreshRequest,
-    fetch_request: &'a SnsFetchRequest,
-    sns: &'a MainnetSns,
-    status: &'static str,
-    pages_fetched: u32,
-    rows_fetched: usize,
-    last_cursor: Option<String>,
-    last_error: Option<String>,
 }
 
 pub fn build_sns_neurons_cache_list_report(
@@ -334,7 +255,13 @@ fn refresh_sns_neurons_cache_locked(
         Err(err) => {
             let _ = write_sns_neurons_attempt(
                 &context.paths.attempt_path,
-                &failed_attempt_from_latest_progress(&context, &err),
+                &failed_attempt_from_latest_progress(
+                    &context.paths.attempt_path,
+                    context.request,
+                    context.fetch_request,
+                    &context.sns,
+                    &err,
+                ),
             );
             Err(err)
         }
@@ -748,215 +675,4 @@ fn sort_sns_neurons(neurons: &mut [SnsNeuronRow], sort: SnsNeuronsSort) {
             )
         }),
     }
-}
-
-pub(super) fn sns_neurons_cache_path(
-    icp_root: &Path,
-    network: &str,
-    root_canister_id: &str,
-) -> PathBuf {
-    sns_network_cache_dir(icp_root, network)
-        .join(root_canister_id)
-        .join("neurons")
-        .join("full.json")
-}
-
-fn sns_network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
-    icp_root.join(".icq").join("sns").join(network)
-}
-
-pub(super) fn sns_neurons_refresh_lock_path(
-    icp_root: &Path,
-    network: &str,
-    root_canister_id: &str,
-) -> PathBuf {
-    sns_network_cache_dir(icp_root, network)
-        .join(root_canister_id)
-        .join("neurons")
-        .join("full.refresh.lock")
-}
-
-pub(super) fn sns_neurons_refresh_attempt_path(
-    icp_root: &Path,
-    network: &str,
-    root_canister_id: &str,
-) -> PathBuf {
-    sns_network_cache_dir(icp_root, network)
-        .join(root_canister_id)
-        .join("neurons")
-        .join("full.refresh-attempt.json")
-}
-
-fn sns_neurons_attempt_path_for_cache_path(cache_path: &Path) -> PathBuf {
-    cache_path
-        .parent()
-        .expect("SNS neurons cache path always has parent")
-        .join("full.refresh-attempt.json")
-}
-
-fn write_sns_neurons_attempt(
-    path: &Path,
-    attempt: &SnsNeuronsRefreshAttempt,
-) -> Result<(), SnsHostError> {
-    let data =
-        serde_json::to_string_pretty(attempt).map_err(|source| SnsHostError::SerializeCache {
-            path: path.to_path_buf(),
-            source,
-        })?;
-    write_text_atomically(path, &data).map_err(sns_cache_file_error)
-}
-
-fn failed_attempt_from_latest_progress(
-    context: &SnsNeuronsRefreshContext<'_>,
-    err: &SnsHostError,
-) -> SnsNeuronsRefreshAttempt {
-    let latest = read_sns_neurons_attempt(&context.paths.attempt_path);
-    let pages_fetched = latest.as_ref().map_or(0, |attempt| attempt.pages_fetched);
-    let rows_fetched = latest.as_ref().map_or(0, |attempt| attempt.rows_fetched);
-    let last_cursor = latest.and_then(|attempt| attempt.last_cursor);
-    attempt_from_parts(SnsNeuronsAttemptParts {
-        request: context.request,
-        fetch_request: context.fetch_request,
-        sns: &context.sns,
-        status: "failed",
-        pages_fetched,
-        rows_fetched,
-        last_cursor,
-        last_error: Some(err.to_string()),
-    })
-}
-
-fn read_sns_neurons_attempt(path: &Path) -> Option<SnsNeuronsRefreshAttempt> {
-    fs::read(path)
-        .ok()
-        .and_then(|data| serde_json::from_slice(&data).ok())
-}
-
-fn read_sns_neurons_attempt_status(path: &Path) -> Option<SnsNeuronsRefreshAttemptStatus> {
-    read_sns_neurons_attempt(path).map(sns_neurons_attempt_status)
-}
-
-fn sns_neurons_attempt_status(attempt: SnsNeuronsRefreshAttempt) -> SnsNeuronsRefreshAttemptStatus {
-    SnsNeuronsRefreshAttemptStatus {
-        status: attempt.status,
-        started_at: attempt.started_at,
-        updated_at: attempt.updated_at,
-        page_size: attempt.page_size,
-        pages_fetched: attempt.pages_fetched,
-        rows_fetched: attempt.rows_fetched,
-        last_cursor: attempt.last_cursor,
-        last_error: attempt.last_error,
-    }
-}
-
-fn attempt_from_parts(parts: SnsNeuronsAttemptParts<'_>) -> SnsNeuronsRefreshAttempt {
-    SnsNeuronsRefreshAttempt {
-        schema_version: SNS_NEURONS_REFRESH_ATTEMPT_SCHEMA_VERSION,
-        network: parts.request.network.clone(),
-        source_endpoint: parts.request.source_endpoint.clone(),
-        started_at: parts.fetch_request.fetched_at.clone(),
-        updated_at: current_timestamp_text(&parts.fetch_request.fetched_at),
-        root_canister_id: parts.sns.root_canister_id.clone(),
-        governance_canister_id: parts.sns.governance_canister_id.clone(),
-        status: parts.status.to_string(),
-        page_size: parts.request.page_size,
-        pages_fetched: parts.pages_fetched,
-        rows_fetched: parts.rows_fetched,
-        last_cursor: parts.last_cursor,
-        last_error: parts.last_error,
-    }
-}
-
-fn current_timestamp_text(fallback: &str) -> String {
-    SystemTime::now().duration_since(UNIX_EPOCH).map_or_else(
-        |_| fallback.to_string(),
-        |duration| format_utc_timestamp_secs(duration.as_secs()),
-    )
-}
-
-fn sns_cache_file_error(err: CacheFileError) -> SnsHostError {
-    SnsHostError::Cache(match err {
-        CacheFileError::CreateDirectory { path, source } => {
-            format!(
-                "failed to create cache directory at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::CreateRefreshLock { path, source } => {
-            format!(
-                "failed to create refresh lock at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::ReadRefreshLock { path, source } => {
-            format!(
-                "failed to read refresh lock at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::ParseRefreshLock { path, source } => {
-            format!(
-                "failed to parse refresh lock at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::WriteRefreshLock { path, source } => {
-            format!(
-                "failed to write refresh lock at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::RemoveRefreshLock { path, source } => {
-            format!(
-                "failed to remove refresh lock at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::RefreshAlreadyInProgress {
-            path,
-            started_at_unix_ms,
-        } => format!(
-            "refresh already in progress; lock exists at {} since unix_ms={started_at_unix_ms}",
-            path.display()
-        ),
-        CacheFileError::WriteTemp { path, source } => {
-            format!(
-                "failed to write cache temp file at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::SyncTemp { path, source } => {
-            format!(
-                "failed to sync cache temp file at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::Replace {
-            temp_path,
-            target_path,
-            source,
-        } => format!(
-            "failed to replace cache at {} from {}: {source}",
-            target_path.display(),
-            temp_path.display()
-        ),
-        CacheFileError::SyncDirectory { path, source } => {
-            format!(
-                "failed to sync cache directory at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::WriteOutput { path, source } => {
-            format!(
-                "failed to write cache output at {}: {source}",
-                path.display()
-            )
-        }
-        CacheFileError::SyncOutput { path, source } => {
-            format!(
-                "failed to sync cache output at {}: {source}",
-                path.display()
-            )
-        }
-    })
 }

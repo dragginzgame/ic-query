@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.8] - 2026-06-14
+
+### Changed
+
+- Splits SNS neuron cache path, attempt, error, and cache model helpers into
+  focused submodules while preserving the existing cache behavior.
+- Splits live SNS Candid request and response wire types into a focused live
+  source submodule.
+- Splits live SNS response conversion and metadata/proposal formatting helpers
+  into a focused live source submodule.
+
 ## [0.1.7] - 2026-06-14
 
 ### Changed
