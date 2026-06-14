@@ -1470,5 +1470,4 @@ fn percent_text(numerator: u64, denominator: u64) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
 mod tests;

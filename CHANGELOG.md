@@ -5,6 +5,20 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-06-14
+
+### Changed
+
+- Hardens SNS neuron snapshot cache coverage for unsupported schemas, stale
+  refresh locks, failed refresh preservation, and complete-cache sorting.
+- Splits SNS neuron cache storage, refresh, status, and cached-sort mechanics
+  into a dedicated report submodule.
+- Deduplicates SNS command request construction for timestamps and project
+  cache-root lookup.
+- Normalizes Rust module layout to avoid `foo.rs` plus `foo/` collisions,
+  removes `#[path = "..."]` module shims, and records module/test layout rules
+  in `AGENTS.md`.
+
 ## [0.1.5] - 2026-06-14
 
 ### Changed
@@ -17,6 +31,8 @@ crate follows [Semantic Versioning](https://semver.org/).
   calls.
 - Reuses shared help/version and SNS cache-path helpers in older NNS and SNS
   call sites.
+- Makes `make patch`, `make minor`, and `make major` push the release commit
+  and tag automatically after the release bump succeeds.
 
 ## [0.1.4] - 2026-06-14
 

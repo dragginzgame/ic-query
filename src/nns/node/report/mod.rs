@@ -835,5 +835,4 @@ fn resolve_node(
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
 mod tests;

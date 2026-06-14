@@ -58,7 +58,7 @@ open follow-through.
       hatch.
 - [x] Add local cache list/status visibility for complete SNS neuron snapshots
       and refresh attempts.
-- [ ] Add tests for schema rejection, failed refresh preservation, stale lock
+- [x] Add tests for schema rejection, failed refresh preservation, stale lock
       handling, and complete-only sorting.
 - [x] Update README cache documentation once the command surface lands.
 - [x] Record implementation deltas in this file before 0.1 closeout.
@@ -120,8 +120,9 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed after the 0.1.5 code-hygiene pass that split SNS command dispatch
-and SNS text rendering, deduplicated typed live SNS Candid queries, and
-normalized shared help/version and cache-path helpers. The prior live
-read-only smoke of `icq sns proposal 1 387` against `https://icp-api.io` also
-succeeded outside the sandbox.
+All passed after the 0.1.6 SNS cache-contract test pass, neuron cache module
+extraction, SNS command request-construction cleanup, and Rust module-layout
+normalization. The cache tests cover schema rejection, failed refresh
+preservation, stale lock recovery, and complete-cache sorting. The prior live
+read-only proposal smoke against `https://icp-api.io` also succeeded outside
+the sandbox.

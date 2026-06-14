@@ -474,7 +474,6 @@ const fn ceil_div(numerator: u128, denominator: u128) -> u128 {
 }
 
 #[cfg(test)]
-#[path = "tests/core.rs"]
 mod core_tests;
 #[cfg(test)]
 mod tests;

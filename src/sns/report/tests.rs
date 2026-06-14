@@ -312,15 +312,7 @@ fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
 #[test]
 fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     let root = temp_dir("ic-query-sns-neurons-refresh");
-    let request = SnsNeuronsRefreshRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: "1".to_string(),
-        icp_root: root.clone(),
-        page_size: 2,
-        max_pages: None,
-    };
+    let request = sns_neurons_refresh_request(&root, None);
 
     let refresh = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
         .expect("refresh neurons");
@@ -362,15 +354,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
 #[test]
 fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let root = temp_dir("ic-query-sns-neurons-cache-status");
-    let request = SnsNeuronsRefreshRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: "1".to_string(),
-        icp_root: root.clone(),
-        page_size: 2,
-        max_pages: None,
-    };
+    let request = sns_neurons_refresh_request(&root, None);
 
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
         .expect("refresh neurons");
@@ -437,15 +421,7 @@ fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
 #[test]
 fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-cache-failed-status");
-    let request = SnsNeuronsRefreshRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: "1".to_string(),
-        icp_root: root.clone(),
-        page_size: 2,
-        max_pages: Some(1),
-    };
+    let request = sns_neurons_refresh_request(&root, Some(1));
 
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
         .expect_err("incomplete refresh");
@@ -490,15 +466,7 @@ fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
 #[test]
 fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
     let root = temp_dir("ic-query-sns-neurons-incomplete-refresh");
-    let request = SnsNeuronsRefreshRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: "1".to_string(),
-        icp_root: root.clone(),
-        page_size: 2,
-        max_pages: Some(1),
-    };
+    let request = sns_neurons_refresh_request(&root, Some(1));
 
     let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
         .expect_err("incomplete refresh");
@@ -528,6 +496,100 @@ fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
             .expect("last error")
             .contains("max pages reached before API exhaustion")
     );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
+    let root = temp_dir("ic-query-sns-neurons-refresh-preserves-cache");
+    let complete_request = sns_neurons_refresh_request(&root, None);
+    refresh_sns_neurons_cache_with_source(&complete_request, &PagedFixtureSnsNeuronsSource)
+        .expect("complete refresh");
+
+    let failed_request = sns_neurons_refresh_request(&root, Some(1));
+    refresh_sns_neurons_cache_with_source(&failed_request, &PagedFixtureSnsNeuronsSource)
+        .expect_err("incomplete refresh");
+
+    let mut cached_request = neurons_request("1");
+    cached_request.icp_root = Some(root.clone());
+    cached_request.sort = SnsNeuronsSort::Stake;
+    let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
+        .expect("previous complete cache remains usable");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.total_neuron_count, 3);
+    assert_eq!(report.neurons[0].neuron_id, "03");
+
+    let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    let attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(attempt_path).expect("read attempt"))
+            .expect("parse attempt");
+    assert_eq!(attempt["status"], "failed");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
+    let root = temp_dir("ic-query-sns-neurons-unsupported-schema");
+    let request = sns_neurons_refresh_request(&root, None);
+    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect("refresh neurons");
+
+    let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    cache["schema_version"] = serde_json::json!(999);
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+    )
+    .expect("write cache");
+
+    let mut cached_request = neurons_request("1");
+    cached_request.icp_root = Some(root.clone());
+    cached_request.sort = SnsNeuronsSort::Stake;
+    let err = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
+        .expect_err("unsupported schema rejected");
+
+    assert!(matches!(
+        err,
+        SnsHostError::UnsupportedCacheSchemaVersion {
+            version: 999,
+            expected: SNS_NEURONS_CACHE_SCHEMA_VERSION,
+        }
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_neurons_refresh_removes_stale_lock_and_publishes_cache() {
+    let root = temp_dir("ic-query-sns-neurons-stale-lock");
+    let request = sns_neurons_refresh_request(&root, None);
+    let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
+    let lock_path = sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A);
+    fs::create_dir_all(lock_path.parent().expect("lock path parent")).expect("create cache dir");
+    fs::write(
+        &lock_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "schema_version": 1,
+            "network": MAINNET_NETWORK,
+            "pid": 999_999,
+            "started_at_unix_ms": 1,
+            "target_path": cache_path.display().to_string(),
+        }))
+        .expect("serialize stale lock"),
+    )
+    .expect("write stale lock");
+
+    let refresh = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect("refresh with stale lock");
+
+    assert!(refresh.complete);
+    assert!(cache_path.is_file());
+    assert!(!lock_path.exists());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -703,6 +765,21 @@ fn neurons_request(input: &str) -> SnsNeuronsRequest {
         sort: SnsNeuronsSort::Api,
         icp_root: None,
         verbose: false,
+    }
+}
+
+fn sns_neurons_refresh_request(
+    root: &std::path::Path,
+    max_pages: Option<u32>,
+) -> SnsNeuronsRefreshRequest {
+    SnsNeuronsRefreshRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: "1".to_string(),
+        icp_root: root.to_path_buf(),
+        page_size: 2,
+        max_pages,
     }
 }
 

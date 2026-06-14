@@ -727,5 +727,4 @@ fn resolve_node_provider(
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
 mod tests;

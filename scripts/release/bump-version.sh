@@ -99,5 +99,4 @@ git commit -m "chore: release ${tag}"
 committed=1
 git tag -a "${tag}" -m "${tag}"
 
-echo "Released ${tag}"
-echo "Push with: git push origin HEAD ${tag}"
+echo "Released ${tag} locally"

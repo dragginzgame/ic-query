@@ -127,5 +127,4 @@ impl NnsRegistrySource for LiveNnsRegistrySource {
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
 mod tests;

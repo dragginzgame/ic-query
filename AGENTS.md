@@ -60,6 +60,10 @@ If code or habit conflicts with this file, this file wins.
 - Rust edition is 2024.
 - Prefer existing local patterns over introducing new frameworks or broad
   abstractions.
+- Use directory modules with `mod.rs` when a module has child files; never keep
+  both `foo.rs` and `foo/`.
+- Do not use `#[path = "..."]` for module layout. Rename files/directories so
+  Rust's normal module discovery works.
 - Keep imports at file top.
 - Keep changes scoped to the requested task.
 - Comment intent, invariants, and non-obvious behavior only.
@@ -70,6 +74,8 @@ If code or habit conflicts with this file, this file wins.
 
 - Prefer targeted tests first; broaden when risk warrants it.
 - Unit tests should live next to the code they exercise.
+- Prefer `tests.rs` or `tests/mod.rs` for large test groups so test inventory
+  stays easy to scan; small inline `mod tests { ... }` blocks are still fine.
 - Use fixture sources for networked behavior instead of live network calls in
   unit tests.
 - Assert typed errors or observable behavior, not brittle full error strings,

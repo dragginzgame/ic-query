@@ -15,12 +15,12 @@ help:
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
-	@echo "  patch      Bump patch version, commit, and tag"
-	@echo "  minor      Bump minor version, commit, and tag"
-	@echo "  major      Bump major version, commit, and tag"
-	@echo "  release-patch  Bump patch version, commit, tag, and push"
-	@echo "  release-minor  Bump minor version, commit, tag, and push"
-	@echo "  release-major  Bump major version, commit, tag, and push"
+	@echo "  patch      Bump patch version, commit, tag, and push"
+	@echo "  minor      Bump minor version, commit, tag, and push"
+	@echo "  major      Bump major version, commit, tag, and push"
+	@echo "  release-patch  Alias for patch"
+	@echo "  release-minor  Alias for minor"
+	@echo "  release-major  Alias for major"
 	@echo "  release-push   Push the current release commit and tag"
 	@echo "  clean      Remove build artifacts"
 
@@ -55,18 +55,21 @@ publish:
 
 patch:
 	bash scripts/release/bump-version.sh patch
+	$(MAKE) release-push
 
 minor:
 	bash scripts/release/bump-version.sh minor
+	$(MAKE) release-push
 
 major:
 	bash scripts/release/bump-version.sh major
+	$(MAKE) release-push
 
-release-patch: patch release-push
+release-patch: patch
 
-release-minor: minor release-push
+release-minor: minor
 
-release-major: major release-push
+release-major: major
 
 release-push:
 	@version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \

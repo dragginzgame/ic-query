@@ -741,5 +741,4 @@ fn resolve_data_center(
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
 mod tests;

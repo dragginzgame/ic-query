@@ -29,7 +29,7 @@ use crate::{
 use candid::Principal;
 use clap::{Command as ClapCommand, ValueEnum, builder::RangedU64ValueParser};
 use serde::Serialize;
-use std::{ffi::OsString, io};
+use std::{ffi::OsString, io, path::PathBuf};
 use thiserror::Error as ThisError;
 
 const SNS_NEURONS_DEFAULT_LIMIT: &str = "25";
@@ -233,7 +233,7 @@ where
     let request = SnsListRequest {
         network: options.network,
         source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        now_unix_secs: command_unix_secs()?,
         verbose: options.verbose,
         sort: options.sort.into(),
     };
@@ -293,7 +293,7 @@ where
     let request = SnsProposalRequest {
         network: options.lookup.network,
         source_endpoint: options.lookup.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        now_unix_secs: command_unix_secs()?,
         input: options.lookup.input,
         proposal_id: options.proposal_id,
         verbose: options.verbose,
@@ -315,7 +315,7 @@ where
     let request = SnsProposalsRequest {
         network: options.lookup.network,
         source_endpoint: options.lookup.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        now_unix_secs: command_unix_secs()?,
         input: options.lookup.input,
         limit: options.limit,
         before_proposal_id: options.before_proposal_id,
@@ -343,12 +343,7 @@ where
     }
     let options = SnsLookupOptions::parse(args, command, usage)?;
     let format = options.format;
-    let request = SnsLookupRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
-        input: options.input,
-    };
+    let request = sns_lookup_request(options)?;
     let report = build_report(&request)?;
     write_text_or_json(format, &report, render_text)
 }
@@ -374,15 +369,11 @@ where
         ));
     }
     let format = options.lookup.format;
-    let icp_root = if SnsNeuronsSort::from(options.sort).uses_cache() {
-        Some(icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))?)
-    } else {
-        None
-    };
+    let icp_root = cache_root_for_sort(options.sort)?;
     let request = SnsNeuronsRequest {
         network: options.lookup.network,
         source_endpoint: options.lookup.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        now_unix_secs: command_unix_secs()?,
         input: options.lookup.input,
         limit: options.limit,
         owner_principal_id: options.owner_principal_id,
@@ -423,7 +414,7 @@ where
     let format = options.format;
     let request = SnsNeuronsCacheListRequest {
         network: options.network,
-        icp_root: icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))?,
+        icp_root: command_icp_root()?,
     };
     let report = build_sns_neurons_cache_list_report(&request)?;
     write_text_or_json(format, &report, sns_neurons_cache_list_report_text)
@@ -441,7 +432,7 @@ where
     let format = options.format;
     let request = SnsNeuronsCacheStatusRequest {
         network: options.network,
-        icp_root: icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))?,
+        icp_root: command_icp_root()?,
         input: options.input,
     };
     let report = build_sns_neurons_cache_status_report(&request)?;
@@ -461,14 +452,38 @@ where
     let request = SnsNeuronsRefreshRequest {
         network: options.lookup.network,
         source_endpoint: options.lookup.source_endpoint,
-        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        now_unix_secs: command_unix_secs()?,
         input: options.lookup.input,
-        icp_root: icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))?,
+        icp_root: command_icp_root()?,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
     let report = refresh_sns_neurons_cache(&request)?;
     write_text_or_json(format, &report, sns_neurons_refresh_report_text)
+}
+
+fn sns_lookup_request(options: SnsLookupOptions) -> Result<SnsLookupRequest, SnsCommandError> {
+    Ok(SnsLookupRequest {
+        network: options.network,
+        source_endpoint: options.source_endpoint,
+        now_unix_secs: command_unix_secs()?,
+        input: options.input,
+    })
+}
+
+fn command_unix_secs() -> Result<u64, SnsCommandError> {
+    current_unix_secs().map_err(SnsCommandError::Clock)
+}
+
+fn command_icp_root() -> Result<PathBuf, SnsCommandError> {
+    icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))
+}
+
+fn cache_root_for_sort(sort: SnsNeuronsSortArg) -> Result<Option<PathBuf>, SnsCommandError> {
+    if SnsNeuronsSort::from(sort).uses_cache() {
+        return Ok(Some(command_icp_root()?));
+    }
+    Ok(None)
 }
 
 impl SnsListOptions {
@@ -1039,5 +1054,4 @@ fn principal_value_parser() -> clap::builder::ValueParser {
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
 mod tests;
