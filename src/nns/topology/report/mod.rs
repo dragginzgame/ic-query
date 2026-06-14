@@ -33,7 +33,6 @@ pub use text::{
     nns_topology_versions_report_text,
 };
 
-use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
     nns::data_center::report::{build_nns_data_center_list_report, refresh_nns_data_center_report},
     nns::node::report::{build_nns_node_list_report, refresh_nns_node_report},
@@ -224,14 +223,7 @@ pub fn refresh_nns_topology_report(
     ))
 }
 
-fn enforce_mainnet_network(network: &str) -> Result<(), NnsTopologyHostError> {
-    if network == MAINNET_NETWORK {
-        return Ok(());
-    }
-    Err(NnsTopologyHostError::UnsupportedNetwork {
-        network: network.to_string(),
-    })
-}
+impl_nns_mainnet_network_enforcer!(NnsTopologyHostError);
 
 #[cfg(test)]
 mod tests;

@@ -2,7 +2,6 @@ use crate::ic_registry::{
     DEFAULT_MAINNET_ENDPOINT, MainnetRegistryFetchRequest, MainnetRegistryVersion,
     RegistryFetchError, fetch_mainnet_registry_version,
 };
-use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::subnet_catalog::format_utc_timestamp_secs;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
@@ -103,14 +102,7 @@ trait NnsRegistrySource {
     ) -> Result<MainnetRegistryVersion, NnsRegistryHostError>;
 }
 
-fn enforce_mainnet_network(network: &str) -> Result<(), NnsRegistryHostError> {
-    if network == MAINNET_NETWORK {
-        return Ok(());
-    }
-    Err(NnsRegistryHostError::UnsupportedNetwork {
-        network: network.to_string(),
-    })
-}
+impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);
 
 ///
 /// LiveNnsRegistrySource

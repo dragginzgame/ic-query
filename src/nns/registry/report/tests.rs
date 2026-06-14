@@ -1,5 +1,5 @@
 use super::*;
-use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
+use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 
 #[test]
 fn registry_version_report_uses_live_source_shape() {

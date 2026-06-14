@@ -1,7 +1,7 @@
 use crate::ic_registry::{
     DEFAULT_MAINNET_ENDPOINT, MainnetNodeList, MainnetRegistryFetchRequest, fetch_mainnet_node_list,
 };
-use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
+use crate::subnet_catalog::canonical_principal_text;
 use crate::{
     cache_file::{
         CachedJsonReport, LoadJsonCacheRequest, RefreshCacheWriteRequest, announce_cache_refresh,
@@ -320,14 +320,7 @@ impl NnsNodeSource for LiveNnsNodeSource {
     }
 }
 
-fn enforce_mainnet_network(network: &str) -> Result<(), NnsNodeHostError> {
-    if network == MAINNET_NETWORK {
-        return Ok(());
-    }
-    Err(NnsNodeHostError::UnsupportedNetwork {
-        network: network.to_string(),
-    })
-}
+impl_nns_mainnet_network_enforcer!(NnsNodeHostError);
 
 fn resolve_node(
     report: &NnsNodeListReport,

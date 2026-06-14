@@ -57,55 +57,24 @@ const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     output_help: "Also write the fetched data-center JSON to this path",
 };
 
-struct NnsDataCenterReports;
-
-impl leaf::NnsLeafReports for NnsDataCenterReports {
-    type Cache = NnsDataCenterCacheRequest;
-    type ListRequest = NnsDataCenterListRequest;
-    type InfoRequest = NnsDataCenterInfoRequest;
-    type RefreshRequest = NnsDataCenterRefreshRequest;
-    type ListReport = NnsDataCenterListReport;
-    type InfoReport = NnsDataCenterInfoReport;
-    type RefreshReport = NnsDataCenterRefreshReport;
-    type HostError = NnsDataCenterHostError;
-
-    fn build_list_report(
-        &self,
-        request: &Self::ListRequest,
-    ) -> Result<Self::ListReport, Self::HostError> {
-        build_nns_data_center_list_report(request)
-    }
-
-    fn build_info_report(
-        &self,
-        request: &Self::InfoRequest,
-    ) -> Result<Self::InfoReport, Self::HostError> {
-        build_nns_data_center_info_report(request)
-    }
-
-    fn refresh_report(
-        &self,
-        request: &Self::RefreshRequest,
-    ) -> Result<Self::RefreshReport, Self::HostError> {
-        refresh_nns_data_center_report(request)
-    }
-
-    fn list_report_text(&self, report: &Self::ListReport) -> String {
-        nns_data_center_list_report_text(report)
-    }
-
-    fn list_report_verbose_text(&self, report: &Self::ListReport) -> String {
-        nns_data_center_list_report_verbose_text(report)
-    }
-
-    fn info_report_text(&self, report: &Self::InfoReport) -> String {
-        nns_data_center_info_report_text(report)
-    }
-
-    fn refresh_report_text(&self, report: &Self::RefreshReport) -> String {
-        nns_data_center_refresh_report_text(report)
-    }
-}
+impl_nns_leaf_reports!(
+    NnsDataCenterReports,
+    cache = NnsDataCenterCacheRequest,
+    list_request = NnsDataCenterListRequest,
+    info_request = NnsDataCenterInfoRequest,
+    refresh_request = NnsDataCenterRefreshRequest,
+    list_report = NnsDataCenterListReport,
+    info_report = NnsDataCenterInfoReport,
+    refresh_report = NnsDataCenterRefreshReport,
+    host_error = NnsDataCenterHostError,
+    build_list = build_nns_data_center_list_report,
+    build_info = build_nns_data_center_info_report,
+    refresh = refresh_nns_data_center_report,
+    list_text = nns_data_center_list_report_text,
+    list_verbose_text = nns_data_center_list_report_verbose_text,
+    info_text = nns_data_center_info_report_text,
+    refresh_text = nns_data_center_refresh_report_text,
+);
 
 pub(super) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where

@@ -57,55 +57,24 @@ const NODE_OPERATOR_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     output_help: "Also write the fetched node-operator JSON to this path",
 };
 
-struct NnsNodeOperatorReports;
-
-impl leaf::NnsLeafReports for NnsNodeOperatorReports {
-    type Cache = NnsNodeOperatorCacheRequest;
-    type ListRequest = NnsNodeOperatorListRequest;
-    type InfoRequest = NnsNodeOperatorInfoRequest;
-    type RefreshRequest = NnsNodeOperatorRefreshRequest;
-    type ListReport = NnsNodeOperatorListReport;
-    type InfoReport = NnsNodeOperatorInfoReport;
-    type RefreshReport = NnsNodeOperatorRefreshReport;
-    type HostError = NnsNodeOperatorHostError;
-
-    fn build_list_report(
-        &self,
-        request: &Self::ListRequest,
-    ) -> Result<Self::ListReport, Self::HostError> {
-        build_nns_node_operator_list_report(request)
-    }
-
-    fn build_info_report(
-        &self,
-        request: &Self::InfoRequest,
-    ) -> Result<Self::InfoReport, Self::HostError> {
-        build_nns_node_operator_info_report(request)
-    }
-
-    fn refresh_report(
-        &self,
-        request: &Self::RefreshRequest,
-    ) -> Result<Self::RefreshReport, Self::HostError> {
-        refresh_nns_node_operator_report(request)
-    }
-
-    fn list_report_text(&self, report: &Self::ListReport) -> String {
-        nns_node_operator_list_report_text(report)
-    }
-
-    fn list_report_verbose_text(&self, report: &Self::ListReport) -> String {
-        nns_node_operator_list_report_verbose_text(report)
-    }
-
-    fn info_report_text(&self, report: &Self::InfoReport) -> String {
-        nns_node_operator_info_report_text(report)
-    }
-
-    fn refresh_report_text(&self, report: &Self::RefreshReport) -> String {
-        nns_node_operator_refresh_report_text(report)
-    }
-}
+impl_nns_leaf_reports!(
+    NnsNodeOperatorReports,
+    cache = NnsNodeOperatorCacheRequest,
+    list_request = NnsNodeOperatorListRequest,
+    info_request = NnsNodeOperatorInfoRequest,
+    refresh_request = NnsNodeOperatorRefreshRequest,
+    list_report = NnsNodeOperatorListReport,
+    info_report = NnsNodeOperatorInfoReport,
+    refresh_report = NnsNodeOperatorRefreshReport,
+    host_error = NnsNodeOperatorHostError,
+    build_list = build_nns_node_operator_list_report,
+    build_info = build_nns_node_operator_info_report,
+    refresh = refresh_nns_node_operator_report,
+    list_text = nns_node_operator_list_report_text,
+    list_verbose_text = nns_node_operator_list_report_verbose_text,
+    info_text = nns_node_operator_info_report_text,
+    refresh_text = nns_node_operator_refresh_report_text,
+);
 
 pub(super) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where

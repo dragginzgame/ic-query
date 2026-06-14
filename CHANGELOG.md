@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.17] - 2026-06-14
+
+### Changed
+
+- Deduplicates standard NNS cached leaf report-adapter implementations for
+  node-provider, node-operator, and data-center commands behind a shared local
+  macro while keeping the filtered node command custom.
+- Reuses the same NNS mainnet-only network guard implementation across
+  registry, topology, node, node-provider, node-operator, and data-center
+  reports.
+- Renames the shared NNS macro module to reflect its broader command and
+  report helper scope.
+
 ## [0.1.16] - 2026-06-14
 
 ### Changed

@@ -1,6 +1,6 @@
 use super::*;
 use crate::ic_registry::MainnetDataCenter;
-use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
+use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use std::{
     fs,
     sync::atomic::{AtomicU64, Ordering},

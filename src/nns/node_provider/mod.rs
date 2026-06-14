@@ -57,55 +57,24 @@ const NODE_PROVIDER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     output_help: "Also write the fetched node-provider JSON to this path",
 };
 
-struct NnsNodeProviderReports;
-
-impl leaf::NnsLeafReports for NnsNodeProviderReports {
-    type Cache = NnsNodeProviderCacheRequest;
-    type ListRequest = NnsNodeProviderListRequest;
-    type InfoRequest = NnsNodeProviderInfoRequest;
-    type RefreshRequest = NnsNodeProviderRefreshRequest;
-    type ListReport = NnsNodeProviderListReport;
-    type InfoReport = NnsNodeProviderInfoReport;
-    type RefreshReport = NnsNodeProviderRefreshReport;
-    type HostError = NnsNodeProviderHostError;
-
-    fn build_list_report(
-        &self,
-        request: &Self::ListRequest,
-    ) -> Result<Self::ListReport, Self::HostError> {
-        build_nns_node_provider_list_report(request)
-    }
-
-    fn build_info_report(
-        &self,
-        request: &Self::InfoRequest,
-    ) -> Result<Self::InfoReport, Self::HostError> {
-        build_nns_node_provider_info_report(request)
-    }
-
-    fn refresh_report(
-        &self,
-        request: &Self::RefreshRequest,
-    ) -> Result<Self::RefreshReport, Self::HostError> {
-        refresh_nns_node_provider_report(request)
-    }
-
-    fn list_report_text(&self, report: &Self::ListReport) -> String {
-        nns_node_provider_list_report_text(report)
-    }
-
-    fn list_report_verbose_text(&self, report: &Self::ListReport) -> String {
-        nns_node_provider_list_report_verbose_text(report)
-    }
-
-    fn info_report_text(&self, report: &Self::InfoReport) -> String {
-        nns_node_provider_info_report_text(report)
-    }
-
-    fn refresh_report_text(&self, report: &Self::RefreshReport) -> String {
-        nns_node_provider_refresh_report_text(report)
-    }
-}
+impl_nns_leaf_reports!(
+    NnsNodeProviderReports,
+    cache = NnsNodeProviderCacheRequest,
+    list_request = NnsNodeProviderListRequest,
+    info_request = NnsNodeProviderInfoRequest,
+    refresh_request = NnsNodeProviderRefreshRequest,
+    list_report = NnsNodeProviderListReport,
+    info_report = NnsNodeProviderInfoReport,
+    refresh_report = NnsNodeProviderRefreshReport,
+    host_error = NnsNodeProviderHostError,
+    build_list = build_nns_node_provider_list_report,
+    build_info = build_nns_node_provider_info_report,
+    refresh = refresh_nns_node_provider_report,
+    list_text = nns_node_provider_list_report_text,
+    list_verbose_text = nns_node_provider_list_report_verbose_text,
+    info_text = nns_node_provider_info_report_text,
+    refresh_text = nns_node_provider_refresh_report_text,
+);
 
 pub(super) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
