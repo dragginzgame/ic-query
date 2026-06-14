@@ -1,7 +1,6 @@
-.PHONY: help build check ci clean clippy fmt fmt-check install major minor msrv package patch publish release-major release-minor release-patch release-push test
+.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push test-bump build check ci clean clippy ensure-clean fmt fmt-check install msrv package publish test
 
 MSRV ?= 1.91.0
-RELEASE_REMOTE ?= origin
 
 help:
 	@echo "Available commands:"
@@ -15,14 +14,30 @@ help:
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
-	@echo "  patch      Bump patch version, commit, tag, and push"
-	@echo "  minor      Bump minor version, commit, tag, and push"
-	@echo "  major      Bump major version, commit, tag, and push"
-	@echo "  release-patch  Alias for patch"
-	@echo "  release-minor  Alias for minor"
-	@echo "  release-major  Alias for major"
-	@echo "  release-push   Push the current release commit and tag"
+	@echo "  version    Show current version"
+	@echo "  tags       List recent git tags"
+	@echo "  patch      Run release gate, then bump patch version files"
+	@echo "  minor      Run release gate, then bump minor version files"
+	@echo "  major      Run release gate, then bump major version files"
+	@echo "  release-patch  Bump, stage, commit, tag, and push a patch release"
+	@echo "  release-minor  Bump, stage, commit, tag, and push a minor release"
+	@echo "  release-major  Bump, stage, commit, tag, and push a major release"
+	@echo "  release-stage  Stage release version files after review"
+	@echo "  release-commit Commit and tag the staged release"
+	@echo "  release-push   Push the release commit and tags"
 	@echo "  clean      Remove build artifacts"
+
+ensure-clean:
+	@if ! git diff-index --quiet HEAD --; then \
+		echo "error: working directory is not clean; commit or stash changes first" >&2; \
+		exit 1; \
+	fi
+
+version:
+	@sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1
+
+tags:
+	@git tag --sort=-version:refname | head -10
 
 fmt:
 	cargo fmt --all
@@ -42,47 +57,52 @@ test:
 msrv:
 	cargo +$(MSRV) check --all-targets --all-features --locked
 
-package:
+package: ensure-clean
 	cargo package --locked
 
 ci: fmt-check check clippy test package
 
+test-bump: clippy test
+
 install:
 	cargo install --locked --path . --bin icq
 
-publish:
+publish: ensure-clean
 	cargo publish --locked
 
-patch:
+patch: ensure-clean fmt test-bump
 	bash scripts/release/bump-version.sh patch
-	$(MAKE) release-push
 
-minor:
+minor: ensure-clean fmt test-bump
 	bash scripts/release/bump-version.sh minor
-	$(MAKE) release-push
 
-major:
+major: ensure-clean fmt test-bump
 	bash scripts/release/bump-version.sh major
-	$(MAKE) release-push
 
-release-patch: patch
+release-patch: patch release-stage release-commit release-push
 
-release-minor: minor
+release-minor: minor release-stage release-commit release-push
 
-release-major: major
+release-major: major release-stage release-commit release-push
 
-release-push:
+release-stage:
+	git add Cargo.toml Cargo.lock
+
+release-commit:
 	@version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \
 	if [ -z "$$version" ]; then \
 		echo "error: failed to read package version from Cargo.toml" >&2; \
 		exit 1; \
 	fi; \
-	tag="v$$version"; \
-	if ! git rev-parse --verify --quiet "refs/tags/$$tag" >/dev/null; then \
-		echo "error: expected release tag $$tag to exist before push" >&2; \
+	if git rev-parse "v$$version" >/dev/null 2>&1; then \
+		echo "error: tag v$$version already exists; aborting" >&2; \
 		exit 1; \
 	fi; \
-	git push "$(RELEASE_REMOTE)" HEAD "$$tag"
+	git commit -m "Release $$version"; \
+	git tag -a "v$$version" -m "Release $$version"
+
+release-push:
+	git push --follow-tags
 
 build:
 	cargo build --all-targets --all-features --locked

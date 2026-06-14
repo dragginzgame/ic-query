@@ -20,7 +20,8 @@ If code or habit conflicts with this file, this file wins.
 - Automated agents must never run release targets or scripts that create
   commits, tags, pushes, or version bumps, including `make patch`,
   `make minor`, `make major`, `make release-patch`, `make release-minor`,
-  `make release-major`, and `make release-push`.
+  `make release-major`, `make release-stage`, `make release-commit`, and
+  `make release-push`.
 - Prepare changes in the working tree only. The human maintainer handles
   commits, tags, version bumps, releases, and pushes.
 

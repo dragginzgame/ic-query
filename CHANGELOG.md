@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.7] - 2026-06-14
+
+### Changed
+
+- Corrects release Make targets so `make patch`, `make minor`, and `make major`
+  only gate and bump version files, while `make release-patch`,
+  `make release-minor`, and `make release-major` stage, commit, tag, and push.
+- Requires a clean worktree for `make package` and `make publish`, and documents
+  publishing after the release commit/tag push.
+- Splits NNS topology health, gap, capacity, region, provider, and refresh
+  aggregation into focused report submodules.
+
 ## [0.1.6] - 2026-06-14
 
 ### Changed

@@ -144,15 +144,23 @@ make minor
 make major
 ```
 
-Each target runs `make test`, bumps `Cargo.toml` and `Cargo.lock`, validates the
-package, commits the release version, creates an annotated `vX.Y.Z` tag, and
-pushes the release commit and tag to `RELEASE_REMOTE` (`origin` by default).
-The Canic-style release targets remain as aliases:
+Each target runs the release gate, then bumps `Cargo.toml` and `Cargo.lock` for
+review. To finish a release in one Make target, use the Canic-style release
+targets:
 
 ```sh
 make release-patch
 make release-minor
 make release-major
+```
+
+Those targets bump, stage the release version files, create the release commit
+and annotated `vX.Y.Z` tag, then push with `git push --follow-tags`.
+
+After the release commit and tag are pushed, publish the crate:
+
+```sh
+cargo publish --locked
 ```
 
 ## Integration
