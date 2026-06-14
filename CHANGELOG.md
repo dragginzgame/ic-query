@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.10] - 2026-06-14
+
+### Changed
+
+- Splits NNS node, node-provider, node-operator, and data-center text
+  rendering into focused report text submodules.
+- Splits NNS node, node-provider, node-operator, and data-center request,
+  report, cache, and error models into focused report model submodules.
+- Splits NNS topology summary, coverage, versions, and host-error helpers out
+  of the topology report orchestration module.
+- Splits NNS topology text rendering into focused per-report renderer
+  submodules.
+
 ## [0.1.9] - 2026-06-14
 
 ### Changed

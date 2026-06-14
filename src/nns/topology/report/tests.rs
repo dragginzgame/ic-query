@@ -1,13 +1,19 @@
 use super::*;
 use crate::subnet_catalog::{
     ClassificationSource, GeographicScope, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID,
-    SubnetKind, SubnetSpecialization,
+    SubnetCatalogListReport, SubnetKind, SubnetSpecialization,
 };
 use crate::{
-    nns::data_center::report::{NnsDataCenterRefreshReport, NnsDataCenterRow},
-    nns::node::report::{NnsNodeRefreshReport, NnsNodeRow},
-    nns::node_operator::report::{NnsNodeOperatorRefreshReport, NnsNodeOperatorRow},
-    nns::node_provider::report::{NnsNodeProviderRefreshReport, NnsNodeProviderRow},
+    nns::data_center::report::{
+        NnsDataCenterListReport, NnsDataCenterRefreshReport, NnsDataCenterRow,
+    },
+    nns::node::report::{NnsNodeListReport, NnsNodeRefreshReport, NnsNodeRow},
+    nns::node_operator::report::{
+        NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport, NnsNodeOperatorRow,
+    },
+    nns::node_provider::report::{
+        NnsNodeProviderListReport, NnsNodeProviderRefreshReport, NnsNodeProviderRow,
+    },
     subnet_catalog::{SubnetCatalogRefreshReport, SubnetCatalogSubnetRow},
 };
 
