@@ -5,11 +5,13 @@ use super::{
     leaf::{self, NnsLeafCommandSpec},
 };
 use crate::nns::data_center::report::{
-    DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, NnsDataCenterCacheRequest, NnsDataCenterInfoRequest,
-    NnsDataCenterListRequest, NnsDataCenterRefreshRequest, build_nns_data_center_info_report,
-    build_nns_data_center_list_report, nns_data_center_info_report_text,
-    nns_data_center_list_report_text, nns_data_center_list_report_verbose_text,
-    nns_data_center_refresh_report_text, refresh_nns_data_center_report,
+    DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, NnsDataCenterCacheRequest, NnsDataCenterHostError,
+    NnsDataCenterInfoReport, NnsDataCenterInfoRequest, NnsDataCenterListReport,
+    NnsDataCenterListRequest, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest,
+    build_nns_data_center_info_report, build_nns_data_center_list_report,
+    nns_data_center_info_report_text, nns_data_center_list_report_text,
+    nns_data_center_list_report_verbose_text, nns_data_center_refresh_report_text,
+    refresh_nns_data_center_report,
 };
 use std::ffi::OsString;
 
@@ -55,6 +57,56 @@ const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     output_help: "Also write the fetched data-center JSON to this path",
 };
 
+struct NnsDataCenterReports;
+
+impl leaf::NnsLeafReports for NnsDataCenterReports {
+    type Cache = NnsDataCenterCacheRequest;
+    type ListRequest = NnsDataCenterListRequest;
+    type InfoRequest = NnsDataCenterInfoRequest;
+    type RefreshRequest = NnsDataCenterRefreshRequest;
+    type ListReport = NnsDataCenterListReport;
+    type InfoReport = NnsDataCenterInfoReport;
+    type RefreshReport = NnsDataCenterRefreshReport;
+    type HostError = NnsDataCenterHostError;
+
+    fn build_list_report(
+        &self,
+        request: &Self::ListRequest,
+    ) -> Result<Self::ListReport, Self::HostError> {
+        build_nns_data_center_list_report(request)
+    }
+
+    fn build_info_report(
+        &self,
+        request: &Self::InfoRequest,
+    ) -> Result<Self::InfoReport, Self::HostError> {
+        build_nns_data_center_info_report(request)
+    }
+
+    fn refresh_report(
+        &self,
+        request: &Self::RefreshRequest,
+    ) -> Result<Self::RefreshReport, Self::HostError> {
+        refresh_nns_data_center_report(request)
+    }
+
+    fn list_report_text(&self, report: &Self::ListReport) -> String {
+        nns_data_center_list_report_text(report)
+    }
+
+    fn list_report_verbose_text(&self, report: &Self::ListReport) -> String {
+        nns_data_center_list_report_verbose_text(report)
+    }
+
+    fn info_report_text(&self, report: &Self::InfoReport) -> String {
+        nns_data_center_info_report_text(report)
+    }
+
+    fn refresh_report_text(&self, report: &Self::RefreshReport) -> String {
+        nns_data_center_refresh_report_text(report)
+    }
+}
+
 pub(super) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
@@ -63,15 +115,7 @@ where
         args,
         &DATA_CENTER_SPEC,
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-        leaf::NnsLeafReportFns::new(
-            build_nns_data_center_list_report,
-            build_nns_data_center_info_report,
-            refresh_nns_data_center_report,
-            nns_data_center_list_report_text,
-            nns_data_center_list_report_verbose_text,
-            nns_data_center_info_report_text,
-            nns_data_center_refresh_report_text,
-        ),
+        NnsDataCenterReports,
     )
 }
 

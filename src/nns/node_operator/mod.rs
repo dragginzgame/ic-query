@@ -6,11 +6,12 @@ use super::{
 };
 use crate::nns::node_operator::report::{
     DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT, NnsNodeOperatorCacheRequest,
-    NnsNodeOperatorInfoRequest, NnsNodeOperatorListRequest, NnsNodeOperatorRefreshRequest,
-    build_nns_node_operator_info_report, build_nns_node_operator_list_report,
-    nns_node_operator_info_report_text, nns_node_operator_list_report_text,
-    nns_node_operator_list_report_verbose_text, nns_node_operator_refresh_report_text,
-    refresh_nns_node_operator_report,
+    NnsNodeOperatorHostError, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,
+    NnsNodeOperatorListReport, NnsNodeOperatorListRequest, NnsNodeOperatorRefreshReport,
+    NnsNodeOperatorRefreshRequest, build_nns_node_operator_info_report,
+    build_nns_node_operator_list_report, nns_node_operator_info_report_text,
+    nns_node_operator_list_report_text, nns_node_operator_list_report_verbose_text,
+    nns_node_operator_refresh_report_text, refresh_nns_node_operator_report,
 };
 use std::ffi::OsString;
 
@@ -56,6 +57,56 @@ const NODE_OPERATOR_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     output_help: "Also write the fetched node-operator JSON to this path",
 };
 
+struct NnsNodeOperatorReports;
+
+impl leaf::NnsLeafReports for NnsNodeOperatorReports {
+    type Cache = NnsNodeOperatorCacheRequest;
+    type ListRequest = NnsNodeOperatorListRequest;
+    type InfoRequest = NnsNodeOperatorInfoRequest;
+    type RefreshRequest = NnsNodeOperatorRefreshRequest;
+    type ListReport = NnsNodeOperatorListReport;
+    type InfoReport = NnsNodeOperatorInfoReport;
+    type RefreshReport = NnsNodeOperatorRefreshReport;
+    type HostError = NnsNodeOperatorHostError;
+
+    fn build_list_report(
+        &self,
+        request: &Self::ListRequest,
+    ) -> Result<Self::ListReport, Self::HostError> {
+        build_nns_node_operator_list_report(request)
+    }
+
+    fn build_info_report(
+        &self,
+        request: &Self::InfoRequest,
+    ) -> Result<Self::InfoReport, Self::HostError> {
+        build_nns_node_operator_info_report(request)
+    }
+
+    fn refresh_report(
+        &self,
+        request: &Self::RefreshRequest,
+    ) -> Result<Self::RefreshReport, Self::HostError> {
+        refresh_nns_node_operator_report(request)
+    }
+
+    fn list_report_text(&self, report: &Self::ListReport) -> String {
+        nns_node_operator_list_report_text(report)
+    }
+
+    fn list_report_verbose_text(&self, report: &Self::ListReport) -> String {
+        nns_node_operator_list_report_verbose_text(report)
+    }
+
+    fn info_report_text(&self, report: &Self::InfoReport) -> String {
+        nns_node_operator_info_report_text(report)
+    }
+
+    fn refresh_report_text(&self, report: &Self::RefreshReport) -> String {
+        nns_node_operator_refresh_report_text(report)
+    }
+}
+
 pub(super) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
@@ -64,15 +115,7 @@ where
         args,
         &NODE_OPERATOR_SPEC,
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-        leaf::NnsLeafReportFns::new(
-            build_nns_node_operator_list_report,
-            build_nns_node_operator_info_report,
-            refresh_nns_node_operator_report,
-            nns_node_operator_list_report_text,
-            nns_node_operator_list_report_verbose_text,
-            nns_node_operator_info_report_text,
-            nns_node_operator_refresh_report_text,
-        ),
+        NnsNodeOperatorReports,
     )
 }
 

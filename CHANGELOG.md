@@ -5,6 +5,20 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.13] - 2026-06-14
+
+### Changed
+
+- Splits shared NNS leaf command support into focused model, option parsing,
+  clap command construction, and runtime dispatch submodules.
+- Collapses the shared NNS cached-leaf runner signature behind a report-provider
+  trait so callers no longer carry every request, report, cache, and host-error
+  type through the public helper boundary.
+- Replaces generic callback bundles in shared JSON cache loading and NNS
+  topology read dispatch with named provider traits and concrete local mappers.
+- Replaces the positional SNS lookup tuple with a named lookup result shared by
+  info, token, params, proposal, proposals, neurons, and neuron-cache refresh.
+
 ## [0.1.12] - 2026-06-14
 
 ### Changed

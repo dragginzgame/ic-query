@@ -118,26 +118,40 @@ fn build_sns_info_report_with_source(
     request: &SnsInfoRequest,
     source: &dyn SnsListSource,
 ) -> Result<SnsInfoReport, SnsHostError> {
-    let (_fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
-    Ok(sns_info_report_from_list(list, id, sns))
+    let lookup = resolve_sns_lookup(request, source)?;
+    Ok(sns_info_report_from_list(
+        lookup.list,
+        lookup.id,
+        lookup.sns,
+    ))
 }
 
 fn build_sns_params_report_with_source(
     request: &SnsParamsRequest,
     source: &dyn SnsParamsSource,
 ) -> Result<SnsParamsReport, SnsHostError> {
-    let (fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
-    let parameters = source.fetch_sns_params(&fetch_request, &sns)?;
-    Ok(sns_params_report_from_parts(list, id, sns, parameters))
+    let lookup = resolve_sns_lookup(request, source)?;
+    let parameters = source.fetch_sns_params(&lookup.fetch_request, &lookup.sns)?;
+    Ok(sns_params_report_from_parts(
+        lookup.list,
+        lookup.id,
+        lookup.sns,
+        parameters,
+    ))
 }
 
 fn build_sns_token_report_with_source(
     request: &SnsTokenRequest,
     source: &dyn SnsTokenSource,
 ) -> Result<SnsTokenReport, SnsHostError> {
-    let (fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
-    let token = source.fetch_sns_token(&fetch_request, &sns)?;
-    Ok(sns_token_report_from_parts(list, id, sns, token))
+    let lookup = resolve_sns_lookup(request, source)?;
+    let token = source.fetch_sns_token(&lookup.fetch_request, &lookup.sns)?;
+    Ok(sns_token_report_from_parts(
+        lookup.list,
+        lookup.id,
+        lookup.sns,
+        token,
+    ))
 }
 
 fn build_sns_proposal_report_with_source(
@@ -150,12 +164,13 @@ fn build_sns_proposal_report_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
-    let proposal = source.fetch_sns_proposal(&fetch_request, &sns, request.proposal_id)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source)?;
+    let proposal =
+        source.fetch_sns_proposal(&lookup.fetch_request, &lookup.sns, request.proposal_id)?;
     Ok(sns_proposal_report_from_parts(SnsProposalReportParts {
-        list,
-        id,
-        sns,
+        list: lookup.list,
+        id: lookup.id,
+        sns: lookup.sns,
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         proposal,
@@ -172,23 +187,23 @@ fn build_sns_proposals_report_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source)?;
     let include_status = request
         .status
         .governance_status_code()
         .into_iter()
         .collect::<Vec<_>>();
     let proposals = source.fetch_sns_proposals(
-        &fetch_request,
-        &sns,
+        &lookup.fetch_request,
+        &lookup.sns,
         request.limit,
         request.before_proposal_id,
         &include_status,
     )?;
     Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
-        list,
-        id,
-        sns,
+        list: lookup.list,
+        id: lookup.id,
+        sns: lookup.sns,
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status: request.status,
@@ -211,17 +226,17 @@ fn build_sns_neurons_report_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source)?;
     let neurons = source.fetch_sns_neurons(
-        &fetch_request,
-        &sns,
+        &lookup.fetch_request,
+        &lookup.sns,
         request.limit,
         request.owner_principal_id.as_deref(),
     )?;
     Ok(sns_neurons_report_from_parts(SnsNeuronsLiveReportParts {
-        list,
-        id,
-        sns,
+        list: lookup.list,
+        id: lookup.id,
+        sns: lookup.sns,
         requested_limit: request.limit,
         owner_principal_id: request.owner_principal_id.clone(),
         sort: request.sort,

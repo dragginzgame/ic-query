@@ -5,7 +5,7 @@ use crate::ic_registry::{
 use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 use crate::{
     cache_file::{
-        CacheFileError, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest, RefreshCacheWriteRequest,
+        CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
         announce_cache_refresh, load_json_cache, write_json_refresh_cache,
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -45,6 +45,32 @@ pub fn nns_node_operator_refresh_lock_path(icp_root: &Path, network: &str) -> Pa
         .join("refresh.lock")
 }
 
+struct NnsNodeOperatorCacheErrors;
+
+impl LoadJsonCacheErrorMapper for NnsNodeOperatorCacheErrors {
+    type Error = NnsNodeOperatorHostError;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        NnsNodeOperatorHostError::MissingCache { path }
+    }
+
+    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
+        NnsNodeOperatorHostError::ReadCache { path, source }
+    }
+
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
+        NnsNodeOperatorHostError::ParseCache { path, source }
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        NnsNodeOperatorHostError::UnsupportedCacheSchemaVersion { version, expected }
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        NnsNodeOperatorHostError::NetworkMismatch { requested, actual }
+    }
+}
+
 pub fn load_cached_nns_node_operator_report(
     request: &NnsNodeOperatorCacheRequest,
 ) -> Result<CachedNnsNodeOperatorReport, NnsNodeOperatorHostError> {
@@ -56,18 +82,7 @@ pub fn load_cached_nns_node_operator_report(
             network: &request.network,
             expected_schema_version: NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
         },
-        LoadJsonCacheErrorHandlers {
-            missing_cache: |path| NnsNodeOperatorHostError::MissingCache { path },
-            read_cache: |path, source| NnsNodeOperatorHostError::ReadCache { path, source },
-            parse_cache: |path, source| NnsNodeOperatorHostError::ParseCache { path, source },
-            unsupported_schema: |version, expected| {
-                NnsNodeOperatorHostError::UnsupportedCacheSchemaVersion { version, expected }
-            },
-            network_mismatch: |requested, actual| NnsNodeOperatorHostError::NetworkMismatch {
-                requested,
-                actual,
-            },
-        },
+        NnsNodeOperatorCacheErrors,
     )?;
     Ok(CachedNnsNodeOperatorReport {
         path: cached.path,

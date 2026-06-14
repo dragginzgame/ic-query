@@ -175,15 +175,21 @@ pub(super) fn refresh_sns_neurons_cache_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
-    let cache_path =
-        sns_neurons_cache_path(&request.icp_root, &request.network, &sns.root_canister_id);
-    let lock_path =
-        sns_neurons_refresh_lock_path(&request.icp_root, &request.network, &sns.root_canister_id);
+    let lookup = resolve_sns_lookup(&lookup_request, source)?;
+    let cache_path = sns_neurons_cache_path(
+        &request.icp_root,
+        &request.network,
+        &lookup.sns.root_canister_id,
+    );
+    let lock_path = sns_neurons_refresh_lock_path(
+        &request.icp_root,
+        &request.network,
+        &lookup.sns.root_canister_id,
+    );
     let attempt_path = sns_neurons_refresh_attempt_path(
         &request.icp_root,
         &request.network,
-        &sns.root_canister_id,
+        &lookup.sns.root_canister_id,
     );
     let paths = SnsNeuronsCachePaths {
         cache_path,
@@ -197,6 +203,10 @@ pub(super) fn refresh_sns_neurons_cache_with_source(
     create_directory(cache_dir).map_err(sns_cache_file_error)?;
     let replaced_existing_cache = paths.cache_path.is_file();
     let context_paths = paths.clone();
+    let fetch_request = lookup.fetch_request;
+    let list = lookup.list;
+    let id = lookup.id;
+    let sns = lookup.sns;
     with_refresh_lock(
         RefreshLockRequest {
             lock_path: &paths.lock_path,

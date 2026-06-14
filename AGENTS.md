@@ -65,6 +65,9 @@ If code or habit conflicts with this file, this file wins.
   both `foo.rs` and `foo/`.
 - Do not use `#[path = "..."]` for module layout. Rename files/directories so
   Rust's normal module discovery works.
+- Treat functions, structs, and impls with more than three generic parameters
+  as design smells; prefer associated types, concrete provider traits, or
+  smaller helpers unless the extra type parameters are clearly justified.
 - Keep imports at file top.
 - Keep changes scoped to the requested task.
 - Comment intent, invariants, and non-obvious behavior only.

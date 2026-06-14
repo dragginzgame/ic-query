@@ -5,10 +5,17 @@ use super::{
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 use candid::Principal;
 
+pub(super) struct SnsLookup {
+    pub(super) fetch_request: SnsFetchRequest,
+    pub(super) list: MainnetSnsList,
+    pub(super) id: usize,
+    pub(super) sns: MainnetSns,
+}
+
 pub(super) fn resolve_sns_lookup(
     request: &SnsLookupRequest,
     source: &dyn SnsListSource,
-) -> Result<(SnsFetchRequest, MainnetSnsList, usize, MainnetSns), SnsHostError> {
+) -> Result<SnsLookup, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetch_request = fetch_request_from_parts(
         &request.source_endpoint,
@@ -19,7 +26,12 @@ pub(super) fn resolve_sns_lookup(
     assign_sns_ids_in_current_order(&mut list.sns_instances);
     sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
     let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
-    Ok((fetch_request, list, id, sns))
+    Ok(SnsLookup {
+        fetch_request,
+        list,
+        id,
+        sns,
+    })
 }
 
 pub(super) fn lookup_request_from_parts(

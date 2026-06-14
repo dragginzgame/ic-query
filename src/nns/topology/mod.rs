@@ -15,10 +15,13 @@ use crate::{
         help::{print_help_or_version, print_help_or_version_flag},
     },
     nns::topology::report::{
-        DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyCapacityRequest,
-        NnsTopologyCoverageRequest, NnsTopologyGapsRequest, NnsTopologyHealthRequest,
-        NnsTopologyProvidersRequest, NnsTopologyRefreshRequest, NnsTopologyRegionsRequest,
-        NnsTopologySummaryRequest, NnsTopologyVersionsRequest, build_nns_topology_capacity_report,
+        DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyCapacityReport,
+        NnsTopologyCapacityRequest, NnsTopologyCoverageReport, NnsTopologyCoverageRequest,
+        NnsTopologyGapsReport, NnsTopologyGapsRequest, NnsTopologyHealthReport,
+        NnsTopologyHealthRequest, NnsTopologyHostError, NnsTopologyProvidersReport,
+        NnsTopologyProvidersRequest, NnsTopologyRefreshRequest, NnsTopologyRegionsReport,
+        NnsTopologyRegionsRequest, NnsTopologySummaryReport, NnsTopologySummaryRequest,
+        NnsTopologyVersionsReport, NnsTopologyVersionsRequest, build_nns_topology_capacity_report,
         build_nns_topology_coverage_report, build_nns_topology_gaps_report,
         build_nns_topology_health_report, build_nns_topology_providers_report,
         build_nns_topology_regions_report, build_nns_topology_summary_report,
@@ -188,6 +191,17 @@ trait TopologyReadOptions<Request>: Sized {
     fn into_request(self, icp_root: PathBuf, now_unix_secs: u64) -> Request;
 }
 
+trait TopologyReadRunner {
+    type Options: TopologyReadOptions<Self::Request>;
+    type Request;
+    type Report: Serialize;
+    type HostError: Into<NnsCommandError>;
+
+    fn usage() -> String;
+    fn build_report(request: &Self::Request) -> Result<Self::Report, Self::HostError>;
+    fn render_text(report: &Self::Report) -> String;
+}
+
 topology_read_options!(
     TopologySummaryOptions,
     NnsTopologySummaryRequest,
@@ -275,103 +289,142 @@ where
 }
 
 macro_rules! topology_read_runner {
-    ($name:ident, $options:ty, $request:ty, $usage:ident, $build:ident, $render:ident) => {
+    (
+        $runner:ident,
+        $name:ident,
+        $options:ty,
+        $request:ty,
+        $report:ty,
+        $usage:ident,
+        $build:ident,
+        $render:ident
+    ) => {
+        struct $runner;
+
+        impl TopologyReadRunner for $runner {
+            type Options = $options;
+            type Request = $request;
+            type Report = $report;
+            type HostError = NnsTopologyHostError;
+
+            fn usage() -> String {
+                $usage()
+            }
+
+            fn build_report(request: &Self::Request) -> Result<Self::Report, Self::HostError> {
+                $build(request)
+            }
+
+            fn render_text(report: &Self::Report) -> String {
+                $render(report)
+            }
+        }
+
         fn $name<I>(args: I) -> Result<(), NnsCommandError>
         where
             I: IntoIterator<Item = OsString>,
         {
-            run_topology_read::<_, $options, $request, _, _>(args, $usage, $build, $render)
+            run_topology_read::<_, $runner>(args)
         }
     };
 }
 
 topology_read_runner!(
+    TopologySummaryRunner,
     run_topology_summary,
     TopologySummaryOptions,
     NnsTopologySummaryRequest,
+    NnsTopologySummaryReport,
     topology_summary_usage,
     build_nns_topology_summary_report,
     nns_topology_summary_report_text
 );
 topology_read_runner!(
+    TopologyCoverageRunner,
     run_topology_coverage,
     TopologyCoverageOptions,
     NnsTopologyCoverageRequest,
+    NnsTopologyCoverageReport,
     topology_coverage_usage,
     build_nns_topology_coverage_report,
     nns_topology_coverage_report_text
 );
 topology_read_runner!(
+    TopologyVersionsRunner,
     run_topology_versions,
     TopologyVersionsOptions,
     NnsTopologyVersionsRequest,
+    NnsTopologyVersionsReport,
     topology_versions_usage,
     build_nns_topology_versions_report,
     nns_topology_versions_report_text
 );
 topology_read_runner!(
+    TopologyHealthRunner,
     run_topology_health,
     TopologyHealthOptions,
     NnsTopologyHealthRequest,
+    NnsTopologyHealthReport,
     topology_health_usage,
     build_nns_topology_health_report,
     nns_topology_health_report_text
 );
 topology_read_runner!(
+    TopologyGapsRunner,
     run_topology_gaps,
     TopologyGapsOptions,
     NnsTopologyGapsRequest,
+    NnsTopologyGapsReport,
     topology_gaps_usage,
     build_nns_topology_gaps_report,
     nns_topology_gaps_report_text
 );
 topology_read_runner!(
+    TopologyCapacityRunner,
     run_topology_capacity,
     TopologyCapacityOptions,
     NnsTopologyCapacityRequest,
+    NnsTopologyCapacityReport,
     topology_capacity_usage,
     build_nns_topology_capacity_report,
     nns_topology_capacity_report_text
 );
 topology_read_runner!(
+    TopologyRegionsRunner,
     run_topology_regions,
     TopologyRegionsOptions,
     NnsTopologyRegionsRequest,
+    NnsTopologyRegionsReport,
     topology_regions_usage,
     build_nns_topology_regions_report,
     nns_topology_regions_report_text
 );
 topology_read_runner!(
+    TopologyProvidersRunner,
     run_topology_providers,
     TopologyProvidersOptions,
     NnsTopologyProvidersRequest,
+    NnsTopologyProvidersReport,
     topology_providers_usage,
     build_nns_topology_providers_report,
     nns_topology_providers_report_text
 );
 
-fn run_topology_read<I, Options, Request, Report, HostError>(
-    args: I,
-    usage: fn() -> String,
-    build_report: fn(&Request) -> Result<Report, HostError>,
-    render_text: fn(&Report) -> String,
-) -> Result<(), NnsCommandError>
+fn run_topology_read<I, Runner>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
-    Options: TopologyReadOptions<Request>,
-    Report: Serialize,
-    HostError: Into<NnsCommandError>,
+    Runner: TopologyReadRunner,
 {
     let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, usage, version_text()) {
+    if print_help_or_version(&args, Runner::usage, version_text()) {
         return Ok(());
     }
-    let options = Options::parse_args(args)?;
+    let options = Runner::Options::parse_args(args)?;
     let format = options.format();
     let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
     let request = options.into_request(icp_root, now_unix_secs()?);
-    let report = build_report(&request).map_err(Into::into)?;
-    write_text_or_json(format, &report, render_text)
+    let report = Runner::build_report(&request).map_err(Into::into)?;
+    write_text_or_json(format, &report, Runner::render_text)
 }
 
 fn run_topology_refresh<I>(args: I) -> Result<(), NnsCommandError>

@@ -97,14 +97,16 @@ pub struct LoadJsonCacheRequest<'a> {
 }
 
 ///
-/// LoadJsonCacheErrorHandlers
+/// LoadJsonCacheErrorMapper
 ///
-pub struct LoadJsonCacheErrorHandlers<Missing, Read, Parse, Unsupported, Mismatch> {
-    pub missing_cache: Missing,
-    pub read_cache: Read,
-    pub parse_cache: Parse,
-    pub unsupported_schema: Unsupported,
-    pub network_mismatch: Mismatch,
+pub trait LoadJsonCacheErrorMapper {
+    type Error;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error;
+    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error;
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error;
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error;
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error;
 }
 
 ///
@@ -201,39 +203,33 @@ pub fn announce_cache_refresh(component: &str, path: &Path, source_endpoint: &st
     );
 }
 
-pub fn load_json_cache<T, E, Missing, Read, Parse, Unsupported, Mismatch>(
+pub fn load_json_cache<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
-    errors: LoadJsonCacheErrorHandlers<Missing, Read, Parse, Unsupported, Mismatch>,
-) -> Result<CachedJsonReport<T>, E>
+    errors: Errors,
+) -> Result<CachedJsonReport<T>, Errors::Error>
 where
     T: DeserializeOwned + JsonCacheReport,
-    Missing: Fn(PathBuf) -> E,
-    Read: Fn(PathBuf, io::Error) -> E,
-    Parse: Fn(PathBuf, serde_json::Error) -> E,
-    Unsupported: Fn(u32, u32) -> E,
-    Mismatch: Fn(String, String) -> E,
+    Errors: LoadJsonCacheErrorMapper,
 {
     let path = request.path;
     if !path.is_file() {
-        return Err((errors.missing_cache)(path));
+        return Err(errors.missing_cache(path));
     }
     let data =
-        fs::read_to_string(&path).map_err(|source| (errors.read_cache)(path.clone(), source))?;
+        fs::read_to_string(&path).map_err(|source| errors.read_cache(path.clone(), source))?;
     let report = serde_json::from_str::<T>(&data)
-        .map_err(|source| (errors.parse_cache)(path.clone(), source))?;
+        .map_err(|source| errors.parse_cache(path.clone(), source))?;
     let actual_schema_version = report.schema_version();
     if actual_schema_version != request.expected_schema_version {
-        return Err((errors.unsupported_schema)(
-            actual_schema_version,
-            request.expected_schema_version,
-        ));
+        return Err(
+            errors.unsupported_schema(actual_schema_version, request.expected_schema_version)
+        );
     }
     let actual_network = report.network();
     if actual_network != request.network {
-        return Err((errors.network_mismatch)(
-            request.network.to_string(),
-            actual_network.to_string(),
-        ));
+        return Err(
+            errors.network_mismatch(request.network.to_string(), actual_network.to_string())
+        );
     }
     Ok(CachedJsonReport { path, report })
 }

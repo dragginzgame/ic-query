@@ -4,7 +4,7 @@ use crate::ic_registry::{
 use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 use crate::{
     cache_file::{
-        CacheFileError, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest, RefreshCacheWriteRequest,
+        CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
         announce_cache_refresh, load_json_cache, write_json_refresh_cache,
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -48,6 +48,32 @@ pub fn nns_node_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
         .join("refresh.lock")
 }
 
+struct NnsNodeCacheErrors;
+
+impl LoadJsonCacheErrorMapper for NnsNodeCacheErrors {
+    type Error = NnsNodeHostError;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        NnsNodeHostError::MissingCache { path }
+    }
+
+    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
+        NnsNodeHostError::ReadCache { path, source }
+    }
+
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
+        NnsNodeHostError::ParseCache { path, source }
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        NnsNodeHostError::UnsupportedCacheSchemaVersion { version, expected }
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        NnsNodeHostError::NetworkMismatch { requested, actual }
+    }
+}
+
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
@@ -77,18 +103,7 @@ fn load_cached_nns_node_report(
             network: &request.network,
             expected_schema_version: NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
         },
-        LoadJsonCacheErrorHandlers {
-            missing_cache: |path| NnsNodeHostError::MissingCache { path },
-            read_cache: |path, source| NnsNodeHostError::ReadCache { path, source },
-            parse_cache: |path, source| NnsNodeHostError::ParseCache { path, source },
-            unsupported_schema: |version, expected| {
-                NnsNodeHostError::UnsupportedCacheSchemaVersion { version, expected }
-            },
-            network_mismatch: |requested, actual| NnsNodeHostError::NetworkMismatch {
-                requested,
-                actual,
-            },
-        },
+        NnsNodeCacheErrors,
     )?;
     Ok(CachedNnsNodeReport {
         path: cached.path,

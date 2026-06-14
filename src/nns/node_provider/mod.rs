@@ -5,11 +5,13 @@ use super::{
     leaf::{self, NnsLeafCommandSpec},
 };
 use crate::nns::node_provider::report::{
-    DEFAULT_NNS_SOURCE_ENDPOINT, NnsNodeProviderCacheRequest, NnsNodeProviderInfoRequest,
-    NnsNodeProviderListRequest, NnsNodeProviderRefreshRequest, build_nns_node_provider_info_report,
-    build_nns_node_provider_list_report, nns_node_provider_info_report_text,
-    nns_node_provider_list_report_text, nns_node_provider_list_report_verbose_text,
-    nns_node_provider_refresh_report_text, refresh_nns_node_provider_report,
+    DEFAULT_NNS_SOURCE_ENDPOINT, NnsNodeProviderCacheRequest, NnsNodeProviderHostError,
+    NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest, NnsNodeProviderListReport,
+    NnsNodeProviderListRequest, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
+    build_nns_node_provider_info_report, build_nns_node_provider_list_report,
+    nns_node_provider_info_report_text, nns_node_provider_list_report_text,
+    nns_node_provider_list_report_verbose_text, nns_node_provider_refresh_report_text,
+    refresh_nns_node_provider_report,
 };
 use std::ffi::OsString;
 
@@ -55,6 +57,56 @@ const NODE_PROVIDER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     output_help: "Also write the fetched node-provider JSON to this path",
 };
 
+struct NnsNodeProviderReports;
+
+impl leaf::NnsLeafReports for NnsNodeProviderReports {
+    type Cache = NnsNodeProviderCacheRequest;
+    type ListRequest = NnsNodeProviderListRequest;
+    type InfoRequest = NnsNodeProviderInfoRequest;
+    type RefreshRequest = NnsNodeProviderRefreshRequest;
+    type ListReport = NnsNodeProviderListReport;
+    type InfoReport = NnsNodeProviderInfoReport;
+    type RefreshReport = NnsNodeProviderRefreshReport;
+    type HostError = NnsNodeProviderHostError;
+
+    fn build_list_report(
+        &self,
+        request: &Self::ListRequest,
+    ) -> Result<Self::ListReport, Self::HostError> {
+        build_nns_node_provider_list_report(request)
+    }
+
+    fn build_info_report(
+        &self,
+        request: &Self::InfoRequest,
+    ) -> Result<Self::InfoReport, Self::HostError> {
+        build_nns_node_provider_info_report(request)
+    }
+
+    fn refresh_report(
+        &self,
+        request: &Self::RefreshRequest,
+    ) -> Result<Self::RefreshReport, Self::HostError> {
+        refresh_nns_node_provider_report(request)
+    }
+
+    fn list_report_text(&self, report: &Self::ListReport) -> String {
+        nns_node_provider_list_report_text(report)
+    }
+
+    fn list_report_verbose_text(&self, report: &Self::ListReport) -> String {
+        nns_node_provider_list_report_verbose_text(report)
+    }
+
+    fn info_report_text(&self, report: &Self::InfoReport) -> String {
+        nns_node_provider_info_report_text(report)
+    }
+
+    fn refresh_report_text(&self, report: &Self::RefreshReport) -> String {
+        nns_node_provider_refresh_report_text(report)
+    }
+}
+
 pub(super) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
@@ -63,15 +115,7 @@ where
         args,
         &NODE_PROVIDER_SPEC,
         DEFAULT_NNS_SOURCE_ENDPOINT,
-        leaf::NnsLeafReportFns::new(
-            build_nns_node_provider_list_report,
-            build_nns_node_provider_info_report,
-            refresh_nns_node_provider_report,
-            nns_node_provider_list_report_text,
-            nns_node_provider_list_report_verbose_text,
-            nns_node_provider_info_report_text,
-            nns_node_provider_refresh_report_text,
-        ),
+        NnsNodeProviderReports,
     )
 }
 

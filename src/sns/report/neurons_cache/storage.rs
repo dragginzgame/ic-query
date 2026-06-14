@@ -10,7 +10,7 @@ use super::{
     },
 };
 use crate::cache_file::{
-    CachedJsonReport, LoadJsonCacheErrorHandlers, LoadJsonCacheRequest, load_json_cache,
+    CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache,
 };
 use candid::Principal;
 use std::{
@@ -18,6 +18,32 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+
+struct SnsNeuronsCacheErrors;
+
+impl LoadJsonCacheErrorMapper for SnsNeuronsCacheErrors {
+    type Error = SnsHostError;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        SnsHostError::MissingNeuronsCache { path }
+    }
+
+    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
+        SnsHostError::ReadCache { path, source }
+    }
+
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
+        SnsHostError::ParseCache { path, source }
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        SnsHostError::UnsupportedCacheSchemaVersion { version, expected }
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        SnsHostError::CacheNetworkMismatch { requested, actual }
+    }
+}
 
 pub(super) fn load_sns_neurons_cache_for_input(
     icp_root: &Path,
@@ -104,19 +130,7 @@ pub(super) fn load_sns_neurons_cache_at(
             network,
             expected_schema_version: SNS_NEURONS_CACHE_SCHEMA_VERSION,
         },
-        LoadJsonCacheErrorHandlers {
-            missing_cache: |path| SnsHostError::MissingNeuronsCache { path },
-            read_cache: |path, source| SnsHostError::ReadCache { path, source },
-            parse_cache: |path, source| SnsHostError::ParseCache { path, source },
-            unsupported_schema: |version, expected| SnsHostError::UnsupportedCacheSchemaVersion {
-                version,
-                expected,
-            },
-            network_mismatch: |requested, actual| SnsHostError::CacheNetworkMismatch {
-                requested,
-                actual,
-            },
-        },
+        SnsNeuronsCacheErrors,
     )?;
     if cached.report.completeness.status != "api_exhausted" {
         return Err(SnsHostError::IncompleteRefresh {
