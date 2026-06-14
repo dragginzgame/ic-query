@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.12] - 2026-06-14
+
+### Changed
+
+- Splits IC registry live relation inventory fetching into a focused
+  inventory module, keeping the registry root module limited to shared
+  constants, principal conversion, and registry key helpers.
+- Splits IC registry async live-source querying out of the blocking client
+  wrapper module.
+
 ## [0.1.11] - 2026-06-14
 
 ### Changed

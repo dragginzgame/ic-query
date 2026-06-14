@@ -1,8 +1,9 @@
 use super::{
     MainnetRegistryFetchRequest, RegistryFetchError, apply_mainnet_annotations, canister_id_text,
-    decode_message, get_registry_value, principal_text_from_raw,
+    principal_text_from_raw,
     proto::{RoutingTable, SubnetListRecord, SubnetRecord, SubnetType},
     subnet_id_text, subnet_record_key,
+    transport::{decode_message, get_registry_value},
 };
 use crate::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_NETWORK,
