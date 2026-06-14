@@ -1,4 +1,4 @@
-use super::{SnsNeuronRow, SnsNeuronsSort};
+use super::super::{SnsNeuronRow, SnsNeuronsSort};
 use crate::cache_file::JsonCacheReport;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::PathBuf;

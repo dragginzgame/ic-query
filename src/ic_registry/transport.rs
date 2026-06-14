@@ -7,6 +7,7 @@ use super::{
     },
     wire::{RegistryChunk, RegistryGetChunkRequest, RegistryValueContent},
 };
+pub(super) use crate::hex::hex_bytes;
 use candid::{Decode, Encode, Principal};
 use ic_agent::Agent;
 use prost::Message;
@@ -162,16 +163,6 @@ pub(super) fn append_validated_chunk(
 
 pub(super) fn sha256_digest(bytes: &[u8]) -> [u8; 32] {
     Sha256::digest(bytes).into()
-}
-
-pub(super) fn hex_bytes(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut out = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        out.push(HEX[usize::from(byte >> 4)] as char);
-        out.push(HEX[usize::from(byte & 0x0f)] as char);
-    }
-    out
 }
 
 pub(super) fn decode_message<T>(

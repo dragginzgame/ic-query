@@ -5,99 +5,78 @@ If code or habit conflicts with this file, this file wins.
 
 ## Session Handoff
 
-- At the start of a new session, read `README.md`, `CHANGELOG.md`, and any
-  relevant files under `docs/design/`.
-- Treat local docs and the current worktree as the handoff. Do not replay old
-  chat history unless it is needed to resolve ambiguity.
-- `../canic` may be read for reference when the maintainer asks, but never edit
-  files outside this repository.
+- At session start, read `README.md`, `CHANGELOG.md`, and relevant
+  `docs/design/` files. Treat local docs plus the current worktree as the
+  handoff; use old chat only to resolve ambiguity. Read `../canic` only when
+  asked, and never edit outside this repository.
 
 ## Git And Release Boundaries
 
-- Automated agents must never run `git commit`.
-- Automated agents must never run `git tag`.
-- Automated agents must never run `git push`.
-- Automated agents must never run release targets or scripts that create
-  commits, tags, pushes, or version bumps, including `make patch`,
+- Automated agents must never run `git commit`, `git tag`, `git push`, or
+  release/version-bump targets or scripts, including `make patch`,
   `make minor`, `make major`, `make release-patch`, `make release-minor`,
   `make release-major`, `make release-stage`, `make release-commit`, and
   `make release-push`.
-- Prepare changes in the working tree only. The human maintainer handles
-  commits, tags, version bumps, releases, and pushes.
+- Prepare working-tree changes only; the maintainer handles commits, tags,
+  version bumps, releases, and pushes.
 
 ## Changelog
 
-- Use root `CHANGELOG.md` as the concise release ledger.
-- Add or update changelog entries when the maintainer asks for release notes or
-  when a change is clearly part of an active release slice.
-- Keep changelog text factual and user-facing. Avoid implementation noise unless
-  it affects behavior, compatibility, release flow, or operations.
+- Use root `CHANGELOG.md` as the concise release ledger. Update it only for
+  requested release notes or active release slices. Keep entries factual and
+  user-facing; include implementation detail only when it affects behavior,
+  compatibility, release flow, or operations.
 
-## Ownership
+## Code Boundaries
 
-- CLI parsing and command dispatch live under `src/*/mod.rs` and shared
-  helpers in `src/cli/`.
-- Report construction, host calls, cache reads, and text rendering belong in the
-  relevant report module.
-- Reusable cache mechanics belong in `src/cache_file.rs`.
-- Reusable formatting belongs in small shared modules such as `src/table.rs`,
-  `src/duration.rs`, and token amount helpers.
-- NNS and SNS command families should stay separate unless a helper is genuinely
-  shared.
-
-## Layering
-
-- Keep clap parsing separate from report-building logic.
-- Keep live host calls behind source traits or local helper boundaries so tests
-  can use fixtures.
-- Text output is for humans and may be compact or formatted.
-- JSON output should preserve raw, script-friendly fields and avoid lossy
-  display conversions.
+- Ownership: CLI parsing and dispatch live under `src/*/mod.rs` and
+  `src/cli/`; report construction, host calls, cache reads, and text rendering
+  belong in the relevant report module; reusable cache mechanics belong in
+  `src/cache_file.rs`; reusable formatting belongs in small shared modules
+  such as `src/table.rs`, `src/duration.rs`, and token amount helpers.
+- Keep NNS and SNS command families separate unless a helper is genuinely
+  shared. Keep clap parsing separate from report building, and keep live host
+  calls behind source traits or local helpers so tests can use fixtures.
+- Text output is human-facing and may be compact or formatted; JSON output
+  should preserve raw, script-friendly fields and avoid lossy display
+  conversions.
 - Cache keys describe collected data, not views. Sorts, limits, and text
   verbosity are view options and must not change complete snapshot identity.
 
 ## Style
 
-- Rust edition is 2024.
-- Prefer existing local patterns over introducing new frameworks or broad
-  abstractions.
-- Use directory modules with `mod.rs` when a module has child files; never keep
-  both `foo.rs` and `foo/`.
-- Do not use `#[path = "..."]` for module layout. Rename files/directories so
-  Rust's normal module discovery works.
-- Treat functions, structs, and impls with more than three generic parameters
-  as design smells; prefer associated types, concrete provider traits, or
-  smaller helpers unless the extra type parameters are clearly justified.
-- Keep imports at file top.
-- Keep changes scoped to the requested task.
-- Comment intent, invariants, and non-obvious behavior only.
-- Avoid restructuring modules during feature work unless the restructuring is
-  the task.
+- Rust edition is 2024. Prefer existing local patterns over new frameworks or
+  broad abstractions.
+- Modules with child files use directory `mod.rs`; never keep both `foo.rs`
+  and `foo/`, and do not use `#[path = "..."]`.
+- More than three generic parameters on a function, struct, or impl is a design
+  smell; prefer associated types, concrete provider traits, or smaller helpers
+  unless the extra type parameters are clearly justified.
+- Keep imports at file top, changes scoped to the task, comments limited to
+  intent/invariants/non-obvious behavior, and avoid module restructuring unless
+  restructuring is the task.
 
 ## Testing
 
 - Prefer targeted tests first; broaden when risk warrants it.
-- Unit tests should live next to the code they exercise.
-- Prefer `tests.rs` or `tests/mod.rs` for large test groups so test inventory
-  stays easy to scan; small inline `mod tests { ... }` blocks are still fine.
-- Use fixture sources for networked behavior instead of live network calls in
-  unit tests.
-- Assert typed errors or observable behavior, not brittle full error strings,
-  unless the exact CLI text is the contract being tested.
+- Keep unit tests next to the code. Prefer `tests.rs` or `tests/mod.rs` for
+  large groups; small inline `mod tests { ... }` blocks are fine.
+- Use fixture sources instead of live network calls in unit tests. Assert typed
+  errors or observable behavior, not brittle full strings, unless exact CLI
+  text is the contract.
 - Report which checks passed and which checks were not run.
 
 ## Security And Network
 
 - This is a read-only metadata query CLI. Do not add mutation behavior unless
   the maintainer explicitly changes the project scope.
-- Keep network endpoints explicit in command options and reports.
-- Do not hide live network calls behind commands that look cache-only.
+- Keep network endpoints explicit in command options and reports. Do not hide
+  live network calls behind commands that look cache-only.
 
 ## Checklist
 
-- Preserve dirty worktree state and do not revert user changes.
-- Inspect relevant files before editing.
+- Preserve dirty worktree state; do not revert user changes. Inspect relevant
+  files before editing.
 - Keep text output readable and JSON output stable/raw.
 - Keep cache refresh behavior explicit: missing cache, refresh progress,
   partial failure, stale locks, and complete snapshots should be visible.
-- Leave commits, tags, version bumps, releases, and pushes to the maintainer.

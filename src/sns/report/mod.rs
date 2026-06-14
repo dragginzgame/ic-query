@@ -1,4 +1,4 @@
-use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
+use crate::{hex::hex_bytes, ic_registry::DEFAULT_MAINNET_ENDPOINT};
 use assemble::{
     SnsNeuronsLiveReportParts, SnsProposalReportParts, SnsProposalsReportParts,
     sns_info_report_from_list, sns_list_report_from_list, sns_neurons_report_from_parts,
@@ -247,15 +247,6 @@ fn build_sns_neurons_report_with_source(
 
 pub(super) fn short_principal(value: &str) -> String {
     value.chars().take(COMPACT_PRINCIPAL_CHARS).collect()
-}
-
-pub(super) fn hex_bytes(bytes: &[u8]) -> String {
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        use std::fmt::Write as _;
-        write!(&mut output, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    output
 }
 
 #[cfg(test)]

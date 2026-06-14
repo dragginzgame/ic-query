@@ -1,4 +1,4 @@
-use super::SnsHostError;
+use super::super::SnsHostError;
 use crate::cache_file::CacheFileError;
 
 pub(super) fn sns_cache_file_error(err: CacheFileError) -> SnsHostError {

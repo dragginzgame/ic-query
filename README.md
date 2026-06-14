@@ -4,7 +4,6 @@
 [![docs.rs](https://docs.rs/ic-query/badge.svg)](https://docs.rs/ic-query)
 [![License](https://img.shields.io/crates/l/ic-query.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue.svg)](Cargo.toml)
-[![Internal Rust](https://img.shields.io/badge/internal%20rust-1.96.0-orange.svg)](rust-toolchain.toml)
 
 `ic-query` provides the `icq` executable for read-only Internet Computer
 metadata queries.
@@ -38,7 +37,7 @@ icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq sns [list|info|token|params|proposal|proposals]
+icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns neurons [cache|refresh]
 ```
 
@@ -115,52 +114,6 @@ icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
 icq sns proposals 1 --before 100 --format json
 icq sns proposal 1 387
-```
-
-## Development
-
-This repository pins the local toolchain to Rust `1.96.0` while declaring
-Rust `1.91.0` as the crate MSRV.
-
-```sh
-make fmt-check
-make clippy
-make test
-make package
-```
-
-The combined local gate is:
-
-```sh
-make ci
-```
-
-Release version bumps are available after the release contents are committed and
-the worktree is clean:
-
-```sh
-make patch
-make minor
-make major
-```
-
-Each target runs the release gate, then bumps `Cargo.toml` and `Cargo.lock` for
-review. To finish a release in one Make target, use the Canic-style release
-targets:
-
-```sh
-make release-patch
-make release-minor
-make release-major
-```
-
-Those targets bump, stage the release version files, create the release commit
-and annotated `vX.Y.Z` tag, then push with `git push --follow-tags`.
-
-After the release commit and tag are pushed, publish the crate:
-
-```sh
-cargo publish --locked
 ```
 
 ## Integration

@@ -5,6 +5,30 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.14] - 2026-06-14
+
+### Changed
+
+- Splits live SNS source wiring from blocking and async fetch implementations
+  so the live SNS module is organized by adapter, fetch, query, conversion, and
+  Candid type responsibilities.
+- Splits NNS topology CLI support into focused command construction, option
+  parsing, and runtime dispatch modules.
+- Splits NNS subnet CLI support into focused command construction, option
+  parsing, and runtime dispatch modules.
+- Splits SNS command specifications into focused command construction, usage
+  rendering, and value-enum modules.
+- Splits shared cache-file support into focused error, JSON loading, refresh
+  lock, and write modules while preserving existing call sites.
+- Splits subnet catalog request/report types and report builders out of the
+  catalog root module.
+- Splits SNS neuron-cache report assembly from complete snapshot refresh
+  orchestration.
+- Deduplicates byte-to-hex formatting across IC registry and SNS report code
+  behind a shared crate helper.
+- Removes an unnecessary panic-path conversion from token amount decimal
+  rounding.
+
 ## [0.1.13] - 2026-06-14
 
 ### Changed

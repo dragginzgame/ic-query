@@ -75,20 +75,24 @@ fn left_pad_digits(digits: &str, width: usize) -> String {
 }
 
 fn increment_decimal_string(digits: &str) -> String {
-    let mut bytes = digits.as_bytes().to_vec();
-    for index in (0..bytes.len()).rev() {
-        if bytes[index] == b'9' {
-            bytes[index] = b'0';
+    let mut reversed = String::with_capacity(digits.len() + 1);
+    let mut carry = true;
+    for digit in digits.bytes().rev() {
+        if carry {
+            if digit == b'9' {
+                reversed.push('0');
+            } else {
+                reversed.push(char::from(digit + 1));
+                carry = false;
+            }
         } else {
-            bytes[index] += 1;
-            return String::from_utf8(bytes).expect("decimal digits are valid UTF-8");
+            reversed.push(char::from(digit));
         }
     }
-
-    let mut incremented = String::with_capacity(bytes.len() + 1);
-    incremented.push('1');
-    incremented.push_str(&"0".repeat(bytes.len()));
-    incremented
+    if carry {
+        reversed.push('1');
+    }
+    reversed.chars().rev().collect()
 }
 
 fn format_hundredths(hundredths: &str) -> String {

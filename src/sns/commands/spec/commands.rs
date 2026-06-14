@@ -1,15 +1,14 @@
+use super::values::{SnsListSortArg, SnsNeuronsSortArg, SnsProposalStatusArg};
 use crate::{
     cli::{
-        clap::{flag_arg, passthrough_subcommand, render_help, value_arg},
+        clap::{flag_arg, passthrough_subcommand, value_arg},
         common::{format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
-    sns::report::{
-        DEFAULT_SNS_SOURCE_ENDPOINT, SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter,
-    },
+    sns::report::DEFAULT_SNS_SOURCE_ENDPOINT,
 };
 use candid::Principal;
-use clap::{Command as ClapCommand, ValueEnum, builder::RangedU64ValueParser};
+use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
 const SNS_NEURONS_DEFAULT_LIMIT: &str = "25";
 const SNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
@@ -95,7 +94,7 @@ Examples:
   icq sns neurons refresh 1 --page-size 100
   icq --network ic sns neurons refresh 1 --format json";
 
-pub(super) fn sns_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
     ClapCommand::new("sns")
         .bin_name("icq sns")
         .about("Inspect SNS metadata")
@@ -123,7 +122,7 @@ pub(super) fn sns_command() -> ClapCommand {
         )))
 }
 
-pub(super) fn sns_list_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq sns list")
         .about("List deployed mainnet SNS instances")
@@ -143,7 +142,7 @@ pub(super) fn sns_list_command() -> ClapCommand {
         .after_help(SNS_LIST_HELP_AFTER)
 }
 
-pub(super) fn sns_info_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_info_command() -> ClapCommand {
     sns_lookup_command(
         "info",
         "icq sns info",
@@ -153,7 +152,7 @@ pub(super) fn sns_info_command() -> ClapCommand {
     )
 }
 
-pub(super) fn sns_token_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_token_command() -> ClapCommand {
     sns_lookup_command(
         "token",
         "icq sns token",
@@ -163,7 +162,7 @@ pub(super) fn sns_token_command() -> ClapCommand {
     )
 }
 
-pub(super) fn sns_params_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_params_command() -> ClapCommand {
     sns_lookup_command(
         "params",
         "icq sns params",
@@ -173,7 +172,7 @@ pub(super) fn sns_params_command() -> ClapCommand {
     )
 }
 
-pub(super) fn sns_proposal_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
         .bin_name("icq sns proposal")
         .about("Show one SNS governance proposal by SNS list id or root principal")
@@ -200,7 +199,7 @@ pub(super) fn sns_proposal_command() -> ClapCommand {
         .after_help(SNS_PROPOSAL_HELP_AFTER)
 }
 
-pub(super) fn sns_proposals_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
     ClapCommand::new("proposals")
         .bin_name("icq sns proposals")
         .about("List SNS governance proposals by list id or root principal")
@@ -261,7 +260,7 @@ fn sns_lookup_command(
         .after_help(after_help)
 }
 
-pub(super) fn sns_neurons_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_neurons_command() -> ClapCommand {
     ClapCommand::new("neurons")
         .bin_name("icq sns neurons")
         .about("List and refresh SNS governance neurons by SNS list id or root principal")
@@ -297,7 +296,7 @@ pub(super) fn sns_neurons_command() -> ClapCommand {
         .after_help(SNS_NEURONS_HELP_AFTER)
 }
 
-pub(super) fn sns_neurons_cache_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_neurons_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq sns neurons cache")
         .about("Inspect local complete SNS governance neuron snapshots")
@@ -312,7 +311,7 @@ pub(super) fn sns_neurons_cache_command() -> ClapCommand {
         .after_help(SNS_NEURONS_CACHE_HELP_AFTER)
 }
 
-pub(super) fn sns_neurons_cache_list_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_neurons_cache_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq sns neurons cache list")
         .about("List local complete SNS neuron snapshots")
@@ -322,7 +321,7 @@ pub(super) fn sns_neurons_cache_list_command() -> ClapCommand {
         .after_help(SNS_NEURONS_CACHE_LIST_HELP_AFTER)
 }
 
-pub(super) fn sns_neurons_cache_status_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_neurons_cache_status_command() -> ClapCommand {
     ClapCommand::new("status")
         .bin_name("icq sns neurons cache status")
         .about("Show local SNS neuron snapshot and refresh-attempt status")
@@ -333,7 +332,7 @@ pub(super) fn sns_neurons_cache_status_command() -> ClapCommand {
         .after_help(SNS_NEURONS_CACHE_STATUS_HELP_AFTER)
 }
 
-pub(super) fn sns_neurons_refresh_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_neurons_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq sns neurons refresh")
         .about("Force-refresh and cache a complete SNS governance neuron snapshot")
@@ -363,115 +362,6 @@ pub(super) fn sns_neurons_refresh_command() -> ClapCommand {
         )
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_NEURONS_REFRESH_HELP_AFTER)
-}
-
-pub(super) fn usage() -> String {
-    render_help(sns_command())
-}
-
-pub(super) fn sns_list_usage() -> String {
-    render_help(sns_list_command())
-}
-
-pub(super) fn sns_info_usage() -> String {
-    render_help(sns_info_command())
-}
-
-pub(super) fn sns_token_usage() -> String {
-    render_help(sns_token_command())
-}
-
-pub(super) fn sns_params_usage() -> String {
-    render_help(sns_params_command())
-}
-
-pub(super) fn sns_proposal_usage() -> String {
-    render_help(sns_proposal_command())
-}
-
-pub(super) fn sns_proposals_usage() -> String {
-    render_help(sns_proposals_command())
-}
-
-pub(super) fn sns_neurons_usage() -> String {
-    render_help(sns_neurons_command())
-}
-
-pub(super) fn sns_neurons_cache_usage() -> String {
-    render_help(sns_neurons_cache_command())
-}
-
-pub(super) fn sns_neurons_cache_list_usage() -> String {
-    render_help(sns_neurons_cache_list_command())
-}
-
-pub(super) fn sns_neurons_cache_status_usage() -> String {
-    render_help(sns_neurons_cache_status_command())
-}
-
-pub(super) fn sns_neurons_refresh_usage() -> String {
-    render_help(sns_neurons_refresh_command())
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
-pub(super) enum SnsListSortArg {
-    Id,
-    Name,
-}
-
-impl From<SnsListSortArg> for SnsListSort {
-    fn from(value: SnsListSortArg) -> Self {
-        match value {
-            SnsListSortArg::Id => Self::Id,
-            SnsListSortArg::Name => Self::Name,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(super) enum SnsNeuronsSortArg {
-    #[default]
-    Api,
-    Id,
-    Stake,
-    Maturity,
-    Created,
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(super) enum SnsProposalStatusArg {
-    #[default]
-    Any,
-    Open,
-    Rejected,
-    Adopted,
-    Executed,
-    Failed,
-}
-
-impl From<SnsProposalStatusArg> for SnsProposalStatusFilter {
-    fn from(value: SnsProposalStatusArg) -> Self {
-        match value {
-            SnsProposalStatusArg::Any => Self::Any,
-            SnsProposalStatusArg::Open => Self::Open,
-            SnsProposalStatusArg::Rejected => Self::Rejected,
-            SnsProposalStatusArg::Adopted => Self::Adopted,
-            SnsProposalStatusArg::Executed => Self::Executed,
-            SnsProposalStatusArg::Failed => Self::Failed,
-        }
-    }
-}
-
-impl From<SnsNeuronsSortArg> for SnsNeuronsSort {
-    fn from(value: SnsNeuronsSortArg) -> Self {
-        match value {
-            SnsNeuronsSortArg::Api => Self::Api,
-            SnsNeuronsSortArg::Id => Self::Id,
-            SnsNeuronsSortArg::Stake => Self::Stake,
-            SnsNeuronsSortArg::Maturity => Self::Maturity,
-            SnsNeuronsSortArg::Created => Self::Created,
-        }
-    }
 }
 
 fn sort_arg() -> clap::Arg {

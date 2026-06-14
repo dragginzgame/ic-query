@@ -1,6 +1,7 @@
 mod cache_file;
 mod cli;
 mod duration;
+mod hex;
 mod ic_registry;
 mod nns;
 mod output;

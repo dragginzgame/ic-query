@@ -1,6 +1,5 @@
-use super::{
-    SnsHostError, SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshRequest, sns_cache_file_error,
-};
+use super::super::{SnsHostError, SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshRequest};
+use super::errors::sns_cache_file_error;
 use crate::{
     cache_file::write_text_atomically,
     sns::report::source::{MainnetSns, SnsFetchRequest},
