@@ -1,5 +1,26 @@
-use super::*;
-use crate::runtime::block_on_current_thread;
+use super::{
+    MAINNET_GOVERNANCE_CANISTER_ID, MainnetDataCenterList, MainnetNodeList,
+    MainnetNodeOperatorList, MainnetNodeProviderList, MainnetRegistryFetchRequest,
+    MainnetRegistryVersion, ROUTING_TABLE_KEY, RegistryFetchError, SUBNET_LIST_KEY,
+    fetch_node_provider_node_counts, fetch_registry_relation_inventory,
+};
+use super::{
+    catalog::catalog_from_registry_records,
+    projection::{
+        data_center_list_from_inventory, node_list_from_inventory,
+        node_operator_list_from_inventory, node_provider_list_from_response,
+    },
+    proto::{RoutingTable, SubnetListRecord},
+    relations::RegistryRelationInventoryScope,
+    transport::{decode_message, get_latest_version, get_registry_value},
+    wire::ListNodeProvidersResponse,
+};
+use crate::{
+    runtime::block_on_current_thread,
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetCatalog},
+};
+use candid::{Decode, Encode, Principal};
+use ic_agent::Agent;
 
 pub fn fetch_mainnet_subnet_catalog(
     request: &MainnetRegistryFetchRequest,

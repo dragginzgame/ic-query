@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.11] - 2026-06-14
+
+### Changed
+
+- Splits IC registry adapter models, errors, Candid wire types, transport
+  helpers, relation inventory helpers, catalog and domain projection helpers,
+  and mainnet annotations into focused submodules.
+- Replaces the registry client wildcard parent import with explicit internal
+  imports.
+
 ## [0.1.10] - 2026-06-14
 
 ### Changed

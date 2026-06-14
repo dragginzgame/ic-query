@@ -1,5 +1,9 @@
 use super::*;
-use proto::{CanisterIdRange, PrincipalId, RoutingTableEntry};
+use crate::subnet_catalog::{CATALOG_SCHEMA_VERSION, SubnetKind, SubnetSpecialization};
+use proto::{
+    CanisterIdRange, PrincipalId, RegistryErrorCode, RegistryGetValueResponse, RoutingTableEntry,
+    registry_get_value_response,
+};
 
 const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
 const SUBNET_B: &str = "aaaaa-aa";
