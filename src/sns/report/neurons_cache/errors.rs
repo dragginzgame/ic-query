@@ -27,6 +27,12 @@ pub(super) fn sns_cache_file_error(err: CacheFileError) -> SnsHostError {
                 path.display()
             )
         }
+        CacheFileError::SerializeRefreshLock { path, source } => {
+            format!(
+                "failed to serialize refresh lock at {}: {source}",
+                path.display()
+            )
+        }
         CacheFileError::WriteRefreshLock { path, source } => {
             format!(
                 "failed to write refresh lock at {}: {source}",

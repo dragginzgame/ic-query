@@ -14,13 +14,12 @@ use super::{
     },
     errors::sns_cache_file_error,
     model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCompleteness},
-    paths::{
-        SnsNeuronsCachePaths, sns_neurons_cache_path, sns_neurons_refresh_attempt_path,
-        sns_neurons_refresh_lock_path,
-    },
+    paths::SnsNeuronsCachePaths,
 };
 use crate::{
-    cache_file::{RefreshLockRequest, create_directory, with_refresh_lock, write_text_atomically},
+    cache_file::{
+        RefreshLockRequest, create_parent_directory, with_refresh_lock, write_text_atomically,
+    },
     progress::ProgressLine,
 };
 use std::{collections::HashSet, path::Path};
@@ -55,31 +54,12 @@ pub(in crate::sns::report) fn refresh_sns_neurons_cache_with_source(
         &request.input,
     );
     let lookup = resolve_sns_lookup(&lookup_request, source)?;
-    let cache_path = sns_neurons_cache_path(
+    let paths = SnsNeuronsCachePaths::for_root(
         &request.icp_root,
         &request.network,
         &lookup.sns.root_canister_id,
     );
-    let lock_path = sns_neurons_refresh_lock_path(
-        &request.icp_root,
-        &request.network,
-        &lookup.sns.root_canister_id,
-    );
-    let attempt_path = sns_neurons_refresh_attempt_path(
-        &request.icp_root,
-        &request.network,
-        &lookup.sns.root_canister_id,
-    );
-    let paths = SnsNeuronsCachePaths {
-        cache_path,
-        lock_path,
-        attempt_path,
-    };
-    let cache_dir = paths
-        .cache_path
-        .parent()
-        .expect("SNS neurons cache path always has parent");
-    create_directory(cache_dir).map_err(sns_cache_file_error)?;
+    create_parent_directory(&paths.cache_path).map_err(sns_cache_file_error)?;
     let replaced_existing_cache = paths.cache_path.is_file();
     let context_paths = paths.clone();
     let fetch_request = lookup.fetch_request;

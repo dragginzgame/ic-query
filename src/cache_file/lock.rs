@@ -1,4 +1,4 @@
-use super::{CacheFileError, json::read_json_file};
+use super::CacheFileError;
 use serde::{Deserialize, Serialize};
 use std::{
     fs, io,
@@ -78,7 +78,7 @@ pub fn acquire_refresh_lock(
                     target_path: request.target_path.display().to_string(),
                 };
                 let data = serde_json::to_vec_pretty(&lock).map_err(|source| {
-                    CacheFileError::ParseRefreshLock {
+                    CacheFileError::SerializeRefreshLock {
                         path: request.lock_path.to_path_buf(),
                         source,
                     }
@@ -147,7 +147,14 @@ pub fn with_refresh_lock<T, E>(
 }
 
 fn read_refresh_lock(lock_path: &Path) -> Result<RefreshLockFile, CacheFileError> {
-    read_json_file(lock_path)
+    let data = fs::read(lock_path).map_err(|source| CacheFileError::ReadRefreshLock {
+        path: lock_path.to_path_buf(),
+        source,
+    })?;
+    serde_json::from_slice(&data).map_err(|source| CacheFileError::ParseRefreshLock {
+        path: lock_path.to_path_buf(),
+        source,
+    })
 }
 
 fn lock_is_stale(started_at_unix_ms: u64, now_unix_ms: u64, stale_after_seconds: u64) -> bool {

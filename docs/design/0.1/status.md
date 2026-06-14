@@ -120,9 +120,9 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed after the 0.1.6 SNS cache-contract test pass, neuron cache module
-extraction, SNS command request-construction cleanup, and Rust module-layout
-normalization. The cache tests cover schema rejection, failed refresh
-preservation, stale lock recovery, and complete-cache sorting. The prior live
-read-only proposal smoke against `https://icp-api.io` also succeeded outside
-the sandbox.
+All passed during the 0.1.15 cache/output hygiene pass, including the
+refresh-lock error typing and NNS cache-error mapper cleanup. The cache tests
+cover schema rejection, failed refresh preservation, stale lock recovery,
+complete cache sorting, and malformed subnet routing error handling. The prior
+live read-only proposal smoke against `https://icp-api.io` also succeeded
+outside the sandbox.

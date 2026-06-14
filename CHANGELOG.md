@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.15] - 2026-06-14
+
+### Changed
+
+- Tightens shared cache write and refresh helpers, including parent-directory
+  handling, parentless relative output paths, and distinct refresh-lock
+  read/parse/serialize errors.
+- Centralizes SNS neuron cache, lock, and refresh-attempt path construction,
+  removing parent-directory panic paths from snapshot refresh and status code.
+- Deduplicates NNS cache-file error mapping across node, node-provider,
+  node-operator, and data-center refresh paths.
+- Simplifies internal command-output helpers to stdout-only writing while
+  preserving refresh export-path behavior.
+- Hardens subnet catalog and UTC timestamp internals by replacing panic-prone
+  invariant paths with typed errors or direct formatting.
+
 ## [0.1.14] - 2026-06-14
 
 ### Changed

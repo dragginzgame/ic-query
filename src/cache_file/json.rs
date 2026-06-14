@@ -1,4 +1,3 @@
-use super::CacheFileError;
 use serde::de::DeserializeOwned;
 use std::{fs, io, path::PathBuf};
 
@@ -78,18 +77,4 @@ where
         );
     }
     Ok(CachedJsonReport { path, report })
-}
-
-pub(super) fn read_json_file<T>(path: &std::path::Path) -> Result<T, CacheFileError>
-where
-    T: DeserializeOwned,
-{
-    let data = fs::read(path).map_err(|source| CacheFileError::ReadRefreshLock {
-        path: path.to_path_buf(),
-        source,
-    })?;
-    serde_json::from_slice(&data).map_err(|source| CacheFileError::ParseRefreshLock {
-        path: path.to_path_buf(),
-        source,
-    })
 }

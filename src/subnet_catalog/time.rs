@@ -88,7 +88,7 @@ pub fn format_utc_timestamp_secs(value: u64) -> String {
     format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z")
 }
 
-fn civil_from_days(days: i64) -> (i64, u32, u32) {
+fn civil_from_days(days: i64) -> (i64, i64, i64) {
     let days = days + 719_468;
     let era = if days >= 0 { days } else { days - 146_096 } / 146_097;
     let day_of_era = days - era * 146_097;
@@ -100,11 +100,7 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
     let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
     let month = month_prime + if month_prime < 10 { 3 } else { -9 };
     year += i64::from(month <= 2);
-    (
-        year,
-        u32::try_from(month).expect("civil month is in u32 range"),
-        u32::try_from(day).expect("civil day is in u32 range"),
-    )
+    (year, month, day)
 }
 
 fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {

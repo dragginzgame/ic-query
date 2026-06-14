@@ -5,7 +5,7 @@ use crate::ic_registry::{
 use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 use crate::{
     cache_file::{
-        CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
+        LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
         announce_cache_refresh, load_json_cache, write_json_refresh_cache,
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -230,59 +230,7 @@ fn fetch_nns_node_provider_list_report_with_source(
     Ok(node_provider_report_from_list(list))
 }
 
-fn node_provider_cache_error(err: CacheFileError) -> NnsNodeProviderHostError {
-    match err {
-        CacheFileError::CreateDirectory { path, source } => {
-            NnsNodeProviderHostError::CreateCacheDirectory { path, source }
-        }
-        CacheFileError::CreateRefreshLock { path, source } => {
-            NnsNodeProviderHostError::CreateRefreshLock { path, source }
-        }
-        CacheFileError::ReadRefreshLock { path, source } => {
-            NnsNodeProviderHostError::ReadRefreshLock { path, source }
-        }
-        CacheFileError::ParseRefreshLock { path, source } => {
-            NnsNodeProviderHostError::ParseRefreshLock { path, source }
-        }
-        CacheFileError::WriteRefreshLock { path, source } => {
-            NnsNodeProviderHostError::WriteRefreshLock { path, source }
-        }
-        CacheFileError::RemoveRefreshLock { path, source } => {
-            NnsNodeProviderHostError::RemoveRefreshLock { path, source }
-        }
-        CacheFileError::RefreshAlreadyInProgress {
-            path,
-            started_at_unix_ms,
-        } => NnsNodeProviderHostError::RefreshAlreadyInProgress {
-            path,
-            started_at_unix_ms,
-        },
-        CacheFileError::WriteTemp { path, source } => {
-            NnsNodeProviderHostError::WriteCacheTemp { path, source }
-        }
-        CacheFileError::SyncTemp { path, source } => {
-            NnsNodeProviderHostError::SyncCacheTemp { path, source }
-        }
-        CacheFileError::Replace {
-            temp_path,
-            target_path,
-            source,
-        } => NnsNodeProviderHostError::ReplaceCache {
-            temp_path,
-            cache_path: target_path,
-            source,
-        },
-        CacheFileError::SyncDirectory { path, source } => {
-            NnsNodeProviderHostError::SyncCacheDirectory { path, source }
-        }
-        CacheFileError::WriteOutput { path, source } => {
-            NnsNodeProviderHostError::WriteRefreshOutput { path, source }
-        }
-        CacheFileError::SyncOutput { path, source } => {
-            NnsNodeProviderHostError::SyncRefreshOutput { path, source }
-        }
-    }
-}
+impl_nns_cache_error_mapper!(node_provider_cache_error, NnsNodeProviderHostError);
 
 fn node_provider_report_from_list(list: MainnetNodeProviderList) -> NnsNodeProviderListReport {
     let node_providers = list

@@ -7,7 +7,7 @@ use super::{
     SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
     attempt::read_sns_neurons_attempt_status,
     model::SnsNeuronsCachedReportParts,
-    paths::{sns_network_cache_dir, sns_neurons_cache_path, sns_neurons_refresh_attempt_path},
+    paths::{SnsNeuronsCachePaths, sns_network_cache_dir},
     storage::{
         find_sns_neurons_cache_by_id, list_sns_neurons_cache_summaries, load_sns_neurons_cache_at,
         load_sns_neurons_cache_for_input, sns_neurons_cache_summary, sort_sns_neurons,
@@ -67,19 +67,18 @@ pub fn build_sns_neurons_cache_status_report(
             input: request.input.clone(),
         })?
         .to_text();
-    let cache_path = sns_neurons_cache_path(&request.icp_root, &request.network, &root_canister_id);
-    let attempt_path =
-        sns_neurons_refresh_attempt_path(&request.icp_root, &request.network, &root_canister_id);
-    let cache = if cache_path.is_file() {
+    let paths =
+        SnsNeuronsCachePaths::for_root(&request.icp_root, &request.network, &root_canister_id);
+    let cache = if paths.cache_path.is_file() {
         Some(sns_neurons_cache_summary(
-            cache_path.clone(),
-            load_sns_neurons_cache_at(cache_path.clone(), &request.network)?,
+            paths.cache_path.clone(),
+            load_sns_neurons_cache_at(paths.cache_path.clone(), &request.network)?,
         ))
     } else {
         None
     };
     let latest_attempt = cache.as_ref().map_or_else(
-        || read_sns_neurons_attempt_status(&attempt_path),
+        || read_sns_neurons_attempt_status(&paths.attempt_path),
         |cache| cache.latest_attempt.clone(),
     );
     Ok(SnsNeuronsCacheStatusReport {
@@ -89,8 +88,8 @@ pub fn build_sns_neurons_cache_status_report(
         input: request.input.clone(),
         found: cache.is_some(),
         cache,
-        expected_cache_path: Some(cache_path.display().to_string()),
-        refresh_attempt_path: Some(attempt_path.display().to_string()),
+        expected_cache_path: Some(paths.cache_path.display().to_string()),
+        refresh_attempt_path: Some(paths.attempt_path.display().to_string()),
         latest_attempt,
     })
 }

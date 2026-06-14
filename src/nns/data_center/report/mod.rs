@@ -5,7 +5,7 @@ use crate::ic_registry::{
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
     cache_file::{
-        CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
+        LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
         announce_cache_refresh, load_json_cache, write_json_refresh_cache,
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -231,59 +231,7 @@ fn fetch_nns_data_center_list_report_with_source(
     Ok(data_center_report_from_list(list))
 }
 
-fn data_center_cache_error(err: CacheFileError) -> NnsDataCenterHostError {
-    match err {
-        CacheFileError::CreateDirectory { path, source } => {
-            NnsDataCenterHostError::CreateCacheDirectory { path, source }
-        }
-        CacheFileError::CreateRefreshLock { path, source } => {
-            NnsDataCenterHostError::CreateRefreshLock { path, source }
-        }
-        CacheFileError::ReadRefreshLock { path, source } => {
-            NnsDataCenterHostError::ReadRefreshLock { path, source }
-        }
-        CacheFileError::ParseRefreshLock { path, source } => {
-            NnsDataCenterHostError::ParseRefreshLock { path, source }
-        }
-        CacheFileError::WriteRefreshLock { path, source } => {
-            NnsDataCenterHostError::WriteRefreshLock { path, source }
-        }
-        CacheFileError::RemoveRefreshLock { path, source } => {
-            NnsDataCenterHostError::RemoveRefreshLock { path, source }
-        }
-        CacheFileError::RefreshAlreadyInProgress {
-            path,
-            started_at_unix_ms,
-        } => NnsDataCenterHostError::RefreshAlreadyInProgress {
-            path,
-            started_at_unix_ms,
-        },
-        CacheFileError::WriteTemp { path, source } => {
-            NnsDataCenterHostError::WriteCacheTemp { path, source }
-        }
-        CacheFileError::SyncTemp { path, source } => {
-            NnsDataCenterHostError::SyncCacheTemp { path, source }
-        }
-        CacheFileError::Replace {
-            temp_path,
-            target_path,
-            source,
-        } => NnsDataCenterHostError::ReplaceCache {
-            temp_path,
-            cache_path: target_path,
-            source,
-        },
-        CacheFileError::SyncDirectory { path, source } => {
-            NnsDataCenterHostError::SyncCacheDirectory { path, source }
-        }
-        CacheFileError::WriteOutput { path, source } => {
-            NnsDataCenterHostError::WriteRefreshOutput { path, source }
-        }
-        CacheFileError::SyncOutput { path, source } => {
-            NnsDataCenterHostError::SyncRefreshOutput { path, source }
-        }
-    }
-}
+impl_nns_cache_error_mapper!(data_center_cache_error, NnsDataCenterHostError);
 
 fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterListReport {
     let data_centers = list

@@ -21,6 +21,10 @@ pub enum CacheFileError {
         path: PathBuf,
         source: serde_json::Error,
     },
+    SerializeRefreshLock {
+        path: PathBuf,
+        source: serde_json::Error,
+    },
     WriteRefreshLock {
         path: PathBuf,
         source: io::Error,

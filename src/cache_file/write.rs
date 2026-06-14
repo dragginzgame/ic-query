@@ -5,7 +5,7 @@ use super::{
 use serde::Serialize;
 use std::{
     fs,
-    io::Write,
+    io::{self, Write},
     path::{Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
@@ -40,17 +40,19 @@ pub struct RefreshCacheWriteResult {
     pub wrote_cache: bool,
 }
 
-pub fn create_directory(path: &Path) -> Result<(), CacheFileError> {
+fn create_directory(path: &Path) -> Result<(), CacheFileError> {
     fs::create_dir_all(path).map_err(|source| CacheFileError::CreateDirectory {
         path: path.to_path_buf(),
         source,
     })
 }
 
+pub fn create_parent_directory(target_path: &Path) -> Result<(), CacheFileError> {
+    create_directory(target_directory(target_path)?)
+}
+
 pub fn write_text_atomically(target_path: &Path, contents: &str) -> Result<(), CacheFileError> {
-    let target_dir = target_path
-        .parent()
-        .expect("cache target path always has parent");
+    let target_dir = target_directory(target_path)?;
     let target_file = target_path
         .file_name()
         .and_then(|file| file.to_str())
@@ -92,9 +94,7 @@ pub fn write_text_atomically(target_path: &Path, contents: &str) -> Result<(), C
 }
 
 pub fn write_text_output(output_path: &Path, contents: &str) -> Result<(), CacheFileError> {
-    if let Some(parent) = output_path.parent() {
-        create_directory(parent)?;
-    }
+    create_parent_directory(output_path)?;
     let mut output =
         fs::File::create(output_path).map_err(|source| CacheFileError::WriteOutput {
             path: output_path.to_path_buf(),
@@ -122,12 +122,7 @@ pub fn write_json_refresh_cache<T, E>(
 where
     T: Serialize,
 {
-    let cache_dir = request
-        .cache_path
-        .parent()
-        .expect("cache target path always has parent")
-        .to_path_buf();
-    create_directory(&cache_dir).map_err(&cache_error)?;
+    create_parent_directory(request.cache_path).map_err(&cache_error)?;
     with_refresh_lock(
         RefreshLockRequest {
             lock_path: request.lock_path,
@@ -167,6 +162,27 @@ fn sync_directory(path: &Path) -> Result<(), CacheFileError> {
         })
 }
 
+fn target_directory(target_path: &Path) -> Result<&Path, CacheFileError> {
+    let parent = target_path
+        .parent()
+        .ok_or_else(|| invalid_target_path_error(target_path))?;
+    if parent.as_os_str().is_empty() {
+        Ok(Path::new("."))
+    } else {
+        Ok(parent)
+    }
+}
+
+fn invalid_target_path_error(target_path: &Path) -> CacheFileError {
+    CacheFileError::WriteTemp {
+        path: target_path.to_path_buf(),
+        source: io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "cache target path must have a parent directory",
+        ),
+    }
+}
+
 #[must_use]
 fn atomic_temp_path(target_dir: &Path, target_file: &str) -> PathBuf {
     let now_nanos = SystemTime::now()
@@ -183,4 +199,31 @@ fn atomic_temp_path(target_dir: &Path, target_file: &str) -> PathBuf {
 
 fn remove_temp_file(path: &Path) {
     let _ = fs::remove_file(path);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::ErrorKind;
+
+    #[test]
+    fn atomic_write_rejects_parentless_target_path() {
+        let err = write_text_atomically(Path::new("/"), "data").expect_err("invalid path");
+
+        match err {
+            CacheFileError::WriteTemp { path, source } => {
+                assert_eq!(path, PathBuf::from("/"));
+                assert_eq!(source.kind(), ErrorKind::InvalidInput);
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn relative_single_file_target_uses_current_directory() {
+        assert_eq!(
+            target_directory(Path::new("cache.json")).unwrap(),
+            Path::new(".")
+        );
+    }
 }

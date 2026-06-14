@@ -202,6 +202,23 @@ fn validation_rejects_unknown_routing_subnet_and_reversed_range() {
     ));
 }
 
+#[test]
+fn resolver_returns_typed_error_for_unknown_routing_subnet() {
+    let mut catalog = fixture_catalog();
+    catalog.routing_ranges[0].subnet_principal = "uxrrr-q7777-77774-qaaaq-cai".to_string();
+
+    let err = catalog
+        .resolve_principal("ryjl3-tyaaa-aaaaa-aaaba-cai", None)
+        .expect_err("missing routing subnet fails without panic");
+
+    assert!(matches!(
+        err,
+        CatalogError::UnknownRoutingSubnet {
+            subnet_principal
+        } if subnet_principal == "uxrrr-q7777-77774-qaaaq-cai"
+    ));
+}
+
 fn fixture_catalog() -> SubnetCatalog {
     SubnetCatalog {
         catalog_schema_version: CATALOG_SCHEMA_VERSION,

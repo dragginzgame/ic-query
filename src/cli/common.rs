@@ -32,9 +32,9 @@ where
     match format {
         OutputFormat::Text => {
             let text = render_text(report);
-            write_text::<E>(None, &text)
+            write_text::<E>(&text)
         }
-        OutputFormat::Json => write_pretty_json(None, report),
+        OutputFormat::Json => write_pretty_json(report),
     }
 }
 

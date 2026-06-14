@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     cache_file::{
-        CacheFileError, RefreshLockRequest, announce_cache_refresh, create_directory,
+        CacheFileError, RefreshLockRequest, announce_cache_refresh, create_parent_directory,
         with_refresh_lock, write_text_atomically, write_text_output,
     },
     ic_registry::{MainnetRegistryFetchRequest, RegistryFetchError, fetch_mainnet_subnet_catalog},
@@ -94,6 +94,12 @@ pub enum SubnetCatalogHostError {
 
     #[error("failed to parse refresh lock at {}: {source}", path.display())]
     ParseRefreshLock {
+        path: PathBuf,
+        source: serde_json::Error,
+    },
+
+    #[error("failed to serialize refresh lock at {}: {source}", path.display())]
+    SerializeRefreshLock {
         path: PathBuf,
         source: serde_json::Error,
     },
@@ -190,11 +196,7 @@ pub fn refresh_subnet_catalog_with_source(
     let catalog_path = subnet_catalog_path(&request.cache.icp_root, &request.cache.network);
     let lock_path =
         subnet_catalog_refresh_lock_path(&request.cache.icp_root, &request.cache.network);
-    let catalog_dir = catalog_path
-        .parent()
-        .expect("subnet catalog path always has parent")
-        .to_path_buf();
-    create_directory(&catalog_dir).map_err(subnet_cache_error)?;
+    create_parent_directory(&catalog_path).map_err(subnet_cache_error)?;
     with_refresh_lock(
         RefreshLockRequest {
             lock_path: &lock_path,
@@ -286,6 +288,9 @@ fn subnet_cache_error(err: CacheFileError) -> SubnetCatalogHostError {
         }
         CacheFileError::ParseRefreshLock { path, source } => {
             SubnetCatalogHostError::ParseRefreshLock { path, source }
+        }
+        CacheFileError::SerializeRefreshLock { path, source } => {
+            SubnetCatalogHostError::SerializeRefreshLock { path, source }
         }
         CacheFileError::WriteRefreshLock { path, source } => {
             SubnetCatalogHostError::WriteRefreshLock { path, source }

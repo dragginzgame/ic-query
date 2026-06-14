@@ -179,8 +179,10 @@ impl SubnetCatalog {
             })?;
         let subnet = self
             .subnet_by_principal(&range.subnet_principal)
-            .expect("catalog validation ensures routing subnet exists")
-            .clone();
+            .cloned()
+            .ok_or_else(|| CatalogError::UnknownRoutingSubnet {
+                subnet_principal: range.subnet_principal.clone(),
+            })?;
         Ok(ResolvedSubnet {
             input_principal: canonical_canister.clone(),
             resolved_as: ResolvedSubnetSubject::Canister,

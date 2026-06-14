@@ -196,6 +196,12 @@ pub enum NnsDataCenterHostError {
         source: serde_json::Error,
     },
 
+    #[error("failed to serialize data-center refresh lock at {}: {source}", path.display())]
+    SerializeRefreshLock {
+        path: PathBuf,
+        source: serde_json::Error,
+    },
+
     #[error("failed to write data-center refresh lock at {}: {source}", path.display())]
     WriteRefreshLock { path: PathBuf, source: io::Error },
 

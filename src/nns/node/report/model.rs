@@ -216,6 +216,12 @@ pub enum NnsNodeHostError {
         source: serde_json::Error,
     },
 
+    #[error("failed to serialize node refresh lock at {}: {source}", path.display())]
+    SerializeRefreshLock {
+        path: PathBuf,
+        source: serde_json::Error,
+    },
+
     #[error("failed to write node refresh lock at {}: {source}", path.display())]
     WriteRefreshLock { path: PathBuf, source: io::Error },
 
