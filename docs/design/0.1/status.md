@@ -120,7 +120,8 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed after adding SNS proposal list/detail querying and preserving
-proposal ballots in JSON reports. A live read-only smoke of
-`icq sns proposal 1 387` against `https://icp-api.io` also succeeded outside
-the sandbox.
+All passed after the 0.1.5 code-hygiene pass that split SNS command dispatch
+and SNS text rendering, deduplicated typed live SNS Candid queries, and
+normalized shared help/version and cache-path helpers. The prior live
+read-only smoke of `icq sns proposal 1 387` against `https://icp-api.io` also
+succeeded outside the sandbox.

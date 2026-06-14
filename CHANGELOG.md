@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-06-14
+
+### Changed
+
+- Splits SNS command dispatch into its own module while keeping the public SNS
+  module focused on exports.
+- Splits SNS text rendering into focused helper, neuron/cache, params, and
+  proposal modules.
+- Deduplicates typed live SNS Candid query handling across SNS-W and governance
+  calls.
+- Reuses shared help/version and SNS cache-path helpers in older NNS and SNS
+  call sites.
+
 ## [0.1.4] - 2026-06-14
 
 ### Added

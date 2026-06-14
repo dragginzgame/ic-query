@@ -8,7 +8,7 @@ use super::{
 use crate::{
     cli::{
         clap::{parse_matches, parse_required_subcommand, passthrough_subcommand, render_help},
-        help::{first_arg_is_help, print_help_or_version},
+        help::{print_help_or_version, print_help_or_version_flag},
     },
     nns::registry::report::{
         DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsRegistryVersionRequest,
@@ -40,7 +40,7 @@ where
     I: IntoIterator<Item = OsString>,
 {
     let args = args.into_iter().collect::<Vec<_>>();
-    if print_registry_help_or_version(&args) {
+    if print_help_or_version_flag(&args, registry_usage, version_text()) {
         return Ok(());
     }
     let (command, args) = parse_required_subcommand(registry_command(), args)
@@ -50,23 +50,6 @@ where
         "version" => run_registry_version(args),
         _ => unreachable!("nns registry dispatch command only defines known commands"),
     }
-}
-
-fn print_registry_help_or_version(args: &[OsString]) -> bool {
-    if first_arg_is_help(args) {
-        println!("{}", registry_usage());
-        return true;
-    }
-    if args.first().is_some_and(is_version_flag) {
-        println!("{}", version_text());
-        return true;
-    }
-    false
-}
-
-fn is_version_flag(arg: &OsString) -> bool {
-    arg.to_str()
-        .is_some_and(|arg| matches!(arg, "--version" | "-V"))
 }
 
 fn run_registry_version<I>(args: I) -> Result<(), NnsCommandError>

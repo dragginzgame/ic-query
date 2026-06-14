@@ -12,7 +12,7 @@ use crate::{
             flag_arg, parse_matches, parse_required_subcommand, passthrough_subcommand,
             render_help, required_typed,
         },
-        help::{first_arg_is_help, print_help_or_version},
+        help::{print_help_or_version, print_help_or_version_flag},
     },
     nns::topology::report::{
         DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyCapacityRequest,
@@ -254,7 +254,7 @@ where
     I: IntoIterator<Item = OsString>,
 {
     let args = args.into_iter().collect::<Vec<_>>();
-    if print_topology_help_or_version(&args) {
+    if print_help_or_version_flag(&args, topology_usage, version_text()) {
         return Ok(());
     }
     let (command, args) = parse_required_subcommand(topology_command(), args)
@@ -272,23 +272,6 @@ where
         "refresh" => run_topology_refresh(args),
         _ => unreachable!("nns topology dispatch command only defines known commands"),
     }
-}
-
-fn print_topology_help_or_version(args: &[OsString]) -> bool {
-    if first_arg_is_help(args) {
-        println!("{}", topology_usage());
-        return true;
-    }
-    if args.first().is_some_and(is_version_flag) {
-        println!("{}", version_text());
-        return true;
-    }
-    false
-}
-
-fn is_version_flag(arg: &OsString) -> bool {
-    arg.to_str()
-        .is_some_and(|arg| matches!(arg, "--version" | "-V"))
 }
 
 macro_rules! topology_read_runner {

@@ -292,12 +292,12 @@ fn build_sns_proposal_report_with_source(
     request: &SnsProposalRequest,
     source: &dyn SnsProposalSource,
 ) -> Result<SnsProposalReport, SnsHostError> {
-    let lookup_request = SnsLookupRequest {
-        network: request.network.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-        input: request.input.clone(),
-    };
+    let lookup_request = lookup_request_from_parts(
+        &request.network,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        &request.input,
+    );
     let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
     let proposal = source.fetch_sns_proposal(&fetch_request, &sns, request.proposal_id)?;
     Ok(sns_proposal_report_from_parts(SnsProposalReportParts {
@@ -314,12 +314,12 @@ fn build_sns_proposals_report_with_source(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    let lookup_request = SnsLookupRequest {
-        network: request.network.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-        input: request.input.clone(),
-    };
+    let lookup_request = lookup_request_from_parts(
+        &request.network,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        &request.input,
+    );
     let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
     let include_status = request
         .status
@@ -370,12 +370,12 @@ fn build_sns_neurons_report_with_source(
         }));
     }
 
-    let lookup_request = SnsLookupRequest {
-        network: request.network.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-        input: request.input.clone(),
-    };
+    let lookup_request = lookup_request_from_parts(
+        &request.network,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        &request.input,
+    );
     let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
     let neurons = source.fetch_sns_neurons(
         &fetch_request,
@@ -400,12 +400,12 @@ fn refresh_sns_neurons_cache_with_source(
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
-    let lookup_request = SnsLookupRequest {
-        network: request.network.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-        input: request.input.clone(),
-    };
+    let lookup_request = lookup_request_from_parts(
+        &request.network,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        &request.input,
+    );
     let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
     let cache_path =
         sns_neurons_cache_path(&request.icp_root, &request.network, &sns.root_canister_id);
@@ -559,6 +559,20 @@ fn resolve_sns_lookup(
     sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
     let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
     Ok((fetch_request, list, id, sns))
+}
+
+fn lookup_request_from_parts(
+    network: &str,
+    source_endpoint: &str,
+    now_unix_secs: u64,
+    input: &str,
+) -> SnsLookupRequest {
+    SnsLookupRequest {
+        network: network.to_string(),
+        source_endpoint: source_endpoint.to_string(),
+        now_unix_secs,
+        input: input.to_string(),
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1191,10 +1205,7 @@ pub fn sns_neurons_refresh_lock_path(
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    icp_root
-        .join(".icq")
-        .join("sns")
-        .join(network)
+    sns_network_cache_dir(icp_root, network)
         .join(root_canister_id)
         .join("neurons")
         .join("full.refresh.lock")
@@ -1205,10 +1216,7 @@ pub fn sns_neurons_refresh_attempt_path(
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    icp_root
-        .join(".icq")
-        .join("sns")
-        .join(network)
+    sns_network_cache_dir(icp_root, network)
         .join(root_canister_id)
         .join("neurons")
         .join("full.refresh-attempt.json")

@@ -11,7 +11,7 @@ use crate::{
     runtime::block_on_current_thread,
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
-use candid::{CandidType, Decode, Deserialize, Encode, Int, Nat, Principal};
+use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal};
 use futures::{StreamExt, stream};
 use ic_agent::Agent;
 use serde_json::Value as JsonValue;
@@ -178,24 +178,15 @@ async fn fetch_mainnet_sns_list_async(
     let agent = sns_agent(&request.endpoint)?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
-    let arg = Encode!(&ListDeployedSnsesRequest {}).map_err(|err| SnsHostError::CandidEncode {
-        message: "ListDeployedSnsesRequest",
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(&sns_wasm_canister, "list_deployed_snses")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method: "list_deployed_snses",
-            reason: err.to_string(),
-        })?;
-    let response =
-        Decode!(&bytes, ListDeployedSnsesResponse).map_err(|err| SnsHostError::CandidDecode {
-            message: "ListDeployedSnsesResponse",
-            reason: err.to_string(),
-        })?;
+    let response: ListDeployedSnsesResponse = query_canister(
+        &agent,
+        &sns_wasm_canister,
+        "list_deployed_snses",
+        "ListDeployedSnsesRequest",
+        "ListDeployedSnsesResponse",
+        &ListDeployedSnsesRequest {},
+    )
+    .await?;
     mainnet_sns_list_from_response(&agent, request, response).await
 }
 
@@ -267,23 +258,15 @@ async fn fetch_mainnet_sns_params_async(
     let agent = sns_agent(&request.endpoint)?;
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
-    let arg = Encode!(&()).map_err(|err| SnsHostError::CandidEncode {
-        message: "get_nervous_system_parameters",
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(&governance_canister, "get_nervous_system_parameters")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method: "get_nervous_system_parameters",
-            reason: err.to_string(),
-        })?;
-    Decode!(&bytes, SnsGovernanceParameters).map_err(|err| SnsHostError::CandidDecode {
-        message: "SnsGovernanceParameters",
-        reason: err.to_string(),
-    })
+    query_canister(
+        &agent,
+        &governance_canister,
+        "get_nervous_system_parameters",
+        "get_nervous_system_parameters",
+        "SnsGovernanceParameters",
+        &(),
+    )
+    .await
 }
 
 async fn fetch_mainnet_sns_proposal_async(
@@ -294,27 +277,17 @@ async fn fetch_mainnet_sns_proposal_async(
     let agent = sns_agent(&request.endpoint)?;
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
-    let arg = Encode!(&GetProposalRequest {
-        proposal_id: Some(SnsProposalId { id: proposal_id }),
-    })
-    .map_err(|err| SnsHostError::CandidEncode {
-        message: "GetProposalRequest",
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(&governance_canister, "get_proposal")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method: "get_proposal",
-            reason: err.to_string(),
-        })?;
-    let response =
-        Decode!(&bytes, GetProposalResponse).map_err(|err| SnsHostError::CandidDecode {
-            message: "GetProposalResponse",
-            reason: err.to_string(),
-        })?;
+    let response: GetProposalResponse = query_canister(
+        &agent,
+        &governance_canister,
+        "get_proposal",
+        "GetProposalRequest",
+        "GetProposalResponse",
+        &GetProposalRequest {
+            proposal_id: Some(SnsProposalId { id: proposal_id }),
+        },
+    )
+    .await?;
     match response.result {
         Some(GetProposalResult::Proposal(proposal)) => Ok(MainnetSnsProposal {
             proposal: sns_proposal_row(*proposal),
@@ -340,32 +313,22 @@ async fn fetch_mainnet_sns_proposals_async(
     let agent = sns_agent(&request.endpoint)?;
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
-    let arg = Encode!(&ListProposalsRequest {
-        include_reward_status: Vec::new(),
-        before_proposal: before_proposal_id.map(|id| SnsProposalId { id }),
-        limit,
-        exclude_type: Vec::new(),
-        include_status: include_status.to_vec(),
-        include_topics: None,
-    })
-    .map_err(|err| SnsHostError::CandidEncode {
-        message: "ListProposalsRequest",
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(&governance_canister, "list_proposals")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method: "list_proposals",
-            reason: err.to_string(),
-        })?;
-    let response =
-        Decode!(&bytes, ListProposalsResponse).map_err(|err| SnsHostError::CandidDecode {
-            message: "ListProposalsResponse",
-            reason: err.to_string(),
-        })?;
+    let response: ListProposalsResponse = query_canister(
+        &agent,
+        &governance_canister,
+        "list_proposals",
+        "ListProposalsRequest",
+        "ListProposalsResponse",
+        &ListProposalsRequest {
+            include_reward_status: Vec::new(),
+            before_proposal: before_proposal_id.map(|id| SnsProposalId { id }),
+            limit,
+            exclude_type: Vec::new(),
+            include_status: include_status.to_vec(),
+            include_topics: None,
+        },
+    )
+    .await?;
     Ok(MainnetSnsProposals {
         proposals: response
             .proposals
@@ -401,33 +364,54 @@ async fn fetch_mainnet_sns_neuron_page_async(
     let owner_principal = owner_principal_id
         .map(|principal| principal_from_text(principal, "owner_principal_id"))
         .transpose()?;
-    let arg = Encode!(&ListNeuronsRequest {
-        of_principal: owner_principal,
-        limit,
-        start_page_at: start_page_at.cloned(),
-    })
-    .map_err(|err| SnsHostError::CandidEncode {
-        message: "ListNeuronsRequest",
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(&governance_canister, "list_neurons")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method: "list_neurons",
-            reason: err.to_string(),
-        })?;
-    let response =
-        Decode!(&bytes, ListNeuronsResponse).map_err(|err| SnsHostError::CandidDecode {
-            message: "ListNeuronsResponse",
-            reason: err.to_string(),
-        })?;
+    let response: ListNeuronsResponse = query_canister(
+        &agent,
+        &governance_canister,
+        "list_neurons",
+        "ListNeuronsRequest",
+        "ListNeuronsResponse",
+        &ListNeuronsRequest {
+            of_principal: owner_principal,
+            limit,
+            start_page_at: start_page_at.cloned(),
+        },
+    )
+    .await?;
     let last_cursor = response.neurons.iter().rev().find_map(sns_neuron_cursor);
     Ok(MainnetSnsNeuronPage {
         neurons: response.neurons.into_iter().map(sns_neuron_row).collect(),
         last_cursor,
+    })
+}
+
+async fn query_canister<Arg, Response>(
+    agent: &Agent,
+    canister: &Principal,
+    method: &'static str,
+    request_message: &'static str,
+    response_message: &'static str,
+    arg: &Arg,
+) -> Result<Response, SnsHostError>
+where
+    Arg: CandidType + Sync,
+    Response: for<'de> Deserialize<'de> + CandidType,
+{
+    let arg = candid::encode_one(arg).map_err(|err| SnsHostError::CandidEncode {
+        message: request_message,
+        reason: err.to_string(),
+    })?;
+    let bytes = agent
+        .query(canister, method)
+        .with_arg(arg)
+        .call()
+        .await
+        .map_err(|err| SnsHostError::AgentCall {
+            method,
+            reason: err.to_string(),
+        })?;
+    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
+        message: response_message,
+        reason: err.to_string(),
     })
 }
 
@@ -525,25 +509,15 @@ async fn fetch_governance_metadata(
     agent: &Agent,
     governance_canister: &Principal,
 ) -> Result<GetMetadataResponse, SnsHostError> {
-    let arg = Encode!(&GetMetadataRequest {}).map_err(|err| SnsHostError::CandidEncode {
-        message: "GetMetadataRequest",
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(governance_canister, "get_metadata")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method: "get_metadata",
-            reason: err.to_string(),
-        })?;
-    let metadata =
-        Decode!(&bytes, GetMetadataResponse).map_err(|err| SnsHostError::CandidDecode {
-            message: "GetMetadataResponse",
-            reason: err.to_string(),
-        })?;
-    Ok(metadata)
+    query_canister(
+        agent,
+        governance_canister,
+        "get_metadata",
+        "GetMetadataRequest",
+        "GetMetadataResponse",
+        &GetMetadataRequest {},
+    )
+    .await
 }
 
 fn mainnet_sns_canisters_from_deployed_sns(
