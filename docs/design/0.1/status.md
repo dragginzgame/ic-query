@@ -120,15 +120,17 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.18 command-module cleanup, including the split of the
-filtered NNS node command into command construction, option parsing, and
-runtime dispatch modules, plus the split of SNS command runtime dispatch,
-command error definitions, runtime handlers, clap command construction, and
-option parsing into focused submodules. The prior validation also covered
-shared NNS cache path construction, JSON-cache error mapper reuse, shared
-cached JSON report use, refresh text rendering reuse, standard cached-leaf
-report adapter reuse, common NNS mainnet network enforcement, and shared NNS
-macro module organization. The cache tests cover schema rejection, failed
-refresh preservation, stale lock recovery, complete cache sorting, and
-malformed subnet routing error handling. The prior live read-only proposal
-smoke against `https://icp-api.io` also succeeded outside the sandbox.
+All passed during the 0.1.19 live SNS fetch cleanup, including the split of
+live SNS fetch wiring into deployed SNS listing, ledger token metadata,
+governance parameters, proposals, and neuron paging modules, plus focused live
+SNS conversion modules for deployed SNS canisters, token metadata, proposal
+rows, and neuron rows, along with focused SNS report model modules for list,
+token, governance, proposal, and neuron reports. The prior validation also
+covered shared NNS cache path construction, JSON-cache error mapper reuse,
+shared cached JSON report use, refresh text rendering reuse, standard
+cached-leaf report adapter reuse, common NNS mainnet network enforcement,
+shared NNS macro module organization, and the 0.1.18 command module cleanup.
+The cache tests cover schema rejection, failed refresh preservation, stale lock
+recovery, complete cache sorting, and malformed subnet routing error handling.
+The prior live read-only proposal smoke against `https://icp-api.io` also
+succeeded outside the sandbox.

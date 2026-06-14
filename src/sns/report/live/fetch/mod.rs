@@ -1,0 +1,28 @@
+mod list;
+mod neurons;
+mod params;
+mod proposals;
+mod token;
+
+use super::{
+    super::{MainnetSns, SnsHostError},
+    query::principal_from_text,
+};
+use candid::Principal;
+use std::future::Future;
+
+pub(super) use list::fetch_mainnet_sns_list;
+pub(super) use neurons::{fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons};
+pub(super) use params::fetch_mainnet_sns_params;
+pub(super) use proposals::{fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposals};
+pub(super) use token::fetch_mainnet_sns_token;
+
+fn block_on_sns<T>(
+    future: impl Future<Output = Result<T, SnsHostError>>,
+) -> Result<T, SnsHostError> {
+    crate::runtime::block_on_current_thread(future).map_err(SnsHostError::Runtime)?
+}
+
+fn governance_canister(sns: &MainnetSns) -> Result<Principal, SnsHostError> {
+    principal_from_text(&sns.governance_canister_id, "governance_canister_id")
+}

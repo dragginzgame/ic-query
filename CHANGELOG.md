@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.19] - 2026-06-14
+
+### Changed
+
+- Splits live SNS fetch wiring into focused modules for deployed SNS listing,
+  ledger token metadata, governance parameters, proposals, and neuron paging
+  while preserving the existing live source API.
+- Splits live SNS conversion helpers into focused modules for deployed SNS
+  canisters, token metadata, proposal rows, and neuron rows.
+- Splits SNS report model structs into focused list, token, governance,
+  proposal, and neuron report model modules.
+
 ## [0.1.18] - 2026-06-14
 
 ### Changed
