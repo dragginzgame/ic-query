@@ -16,13 +16,15 @@ use crate::{
     sns::report::{
         DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsListRequest, SnsListSort, SnsLookupRequest,
         SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,
-        SnsNeuronsRequest, SnsNeuronsSort, build_sns_info_report, build_sns_list_report,
+        SnsNeuronsRequest, SnsNeuronsSort, SnsProposalRequest, SnsProposalStatusFilter,
+        SnsProposalsRequest, build_sns_info_report, build_sns_list_report,
         build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
-        build_sns_neurons_report, build_sns_params_report, build_sns_token_report,
-        refresh_sns_neurons_cache, sns_info_report_text, sns_list_report_text,
-        sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
-        sns_neurons_refresh_report_text, sns_neurons_report_text, sns_params_report_text,
-        sns_token_report_text,
+        build_sns_neurons_report, build_sns_params_report, build_sns_proposal_report,
+        build_sns_proposals_report, build_sns_token_report, refresh_sns_neurons_cache,
+        sns_info_report_text, sns_list_report_text, sns_neurons_cache_list_report_text,
+        sns_neurons_cache_status_report_text, sns_neurons_refresh_report_text,
+        sns_neurons_report_text, sns_params_report_text, sns_proposal_report_text,
+        sns_proposals_report_text, sns_token_report_text,
     },
     version_text,
 };
@@ -34,6 +36,8 @@ use thiserror::Error as ThisError;
 
 const SNS_NEURONS_DEFAULT_LIMIT: &str = "25";
 const SNS_NEURONS_LIVE_MAX_LIMIT: u32 = 100;
+const SNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
+const SNS_PROPOSALS_MAX_LIMIT: u64 = 100;
 const SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 const SNS_NEURONS_REFRESH_MAX_PAGE_SIZE: u64 = 100;
 
@@ -62,6 +66,21 @@ Examples:
   icq sns params 1
   icq sns params 23ten-uaaaa-aaaaq-aabia-cai
   icq --network ic sns params 1 --format json";
+
+const SNS_PROPOSALS_HELP_AFTER: &str = "\
+Examples:
+  icq sns proposals 1
+  icq sns proposals 1 --status open
+  icq sns proposals 1 --before 100 --limit 50
+  icq sns proposals 23ten-uaaaa-aaaaq-aabia-cai --verbose
+  icq --network ic sns proposals 1 --format json";
+
+const SNS_PROPOSAL_HELP_AFTER: &str = "\
+Examples:
+  icq sns proposal 1 387
+  icq sns proposal 23ten-uaaaa-aaaaq-aabia-cai 387
+  icq sns proposal 1 387 --verbose
+  icq --network ic sns proposal 1 387 --format json";
 
 const SNS_NEURONS_HELP_AFTER: &str = "\
 Examples:
@@ -145,6 +164,22 @@ struct SnsNeuronsOptions {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+struct SnsProposalsOptions {
+    lookup: SnsLookupOptions,
+    limit: u32,
+    before_proposal_id: Option<u64>,
+    status: SnsProposalStatusArg,
+    verbose: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SnsProposalOptions {
+    lookup: SnsLookupOptions,
+    proposal_id: u64,
+    verbose: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct SnsNeuronsCacheListOptions {
     network: String,
     format: OutputFormat,
@@ -180,6 +215,8 @@ where
         "info" => run_sns_info(args),
         "token" => run_sns_token(args),
         "params" => run_sns_params(args),
+        "proposal" => run_sns_proposal(args),
+        "proposals" => run_sns_proposals(args),
         "neurons" => run_sns_neurons(args),
         _ => unreachable!("sns dispatch command only defines known commands"),
     }
@@ -243,6 +280,52 @@ where
         build_sns_params_report,
         sns_params_report_text,
     )
+}
+
+fn run_sns_proposal<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, sns_proposal_usage, version_text()) {
+        return Ok(());
+    }
+    let options = SnsProposalOptions::parse(args)?;
+    let format = options.lookup.format;
+    let request = SnsProposalRequest {
+        network: options.lookup.network,
+        source_endpoint: options.lookup.source_endpoint,
+        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        input: options.lookup.input,
+        proposal_id: options.proposal_id,
+        verbose: options.verbose,
+    };
+    let report = build_sns_proposal_report(&request)?;
+    write_text_or_json(format, &report, sns_proposal_report_text)
+}
+
+fn run_sns_proposals<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, sns_proposals_usage, version_text()) {
+        return Ok(());
+    }
+    let options = SnsProposalsOptions::parse(args)?;
+    let format = options.lookup.format;
+    let request = SnsProposalsRequest {
+        network: options.lookup.network,
+        source_endpoint: options.lookup.source_endpoint,
+        now_unix_secs: current_unix_secs().map_err(SnsCommandError::Clock)?,
+        input: options.lookup.input,
+        limit: options.limit,
+        before_proposal_id: options.before_proposal_id,
+        status: options.status.into(),
+        verbose: options.verbose,
+    };
+    let report = build_sns_proposals_report(&request)?;
+    write_text_or_json(format, &report, sns_proposals_report_text)
 }
 
 fn run_sns_lookup<I, Report>(
@@ -460,6 +543,38 @@ impl SnsNeuronsOptions {
     }
 }
 
+impl SnsProposalsOptions {
+    fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches(sns_proposals_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_proposals_usage()))?;
+        Ok(Self {
+            lookup: SnsLookupOptions::from_matches(&matches),
+            limit: required_typed(&matches, "limit"),
+            before_proposal_id: typed_option::<u64>(&matches, "before"),
+            status: required_typed(&matches, "status"),
+            verbose: matches.get_flag("verbose"),
+        })
+    }
+}
+
+impl SnsProposalOptions {
+    fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches(sns_proposal_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_proposal_usage()))?;
+        Ok(Self {
+            lookup: SnsLookupOptions::from_matches(&matches),
+            proposal_id: required_typed(&matches, "proposal-id"),
+            verbose: matches.get_flag("verbose"),
+        })
+    }
+}
+
 impl SnsNeuronsCacheListOptions {
     fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
@@ -521,6 +636,12 @@ fn sns_command() -> ClapCommand {
         .subcommand(passthrough_subcommand(ClapCommand::new("params").about(
             "Show SNS governance nervous system parameters by list id or root principal",
         )))
+        .subcommand(passthrough_subcommand(ClapCommand::new("proposal").about(
+            "Show one SNS governance proposal by SNS list id or root principal",
+        )))
+        .subcommand(passthrough_subcommand(ClapCommand::new("proposals").about(
+            "List SNS governance proposals by list id or root principal",
+        )))
         .subcommand(passthrough_subcommand(ClapCommand::new("neurons").about(
             "List and refresh SNS governance neurons by SNS list id or root principal",
         )))
@@ -574,6 +695,76 @@ fn sns_params_command() -> ClapCommand {
         "IC API endpoint used for SNS-W and governance queries",
         SNS_PARAMS_HELP_AFTER,
     )
+}
+
+fn sns_proposal_command() -> ClapCommand {
+    ClapCommand::new("proposal")
+        .bin_name("icq sns proposal")
+        .about("Show one SNS governance proposal by SNS list id or root principal")
+        .disable_help_flag(true)
+        .arg(sns_lookup_input_arg())
+        .arg(
+            value_arg("proposal-id")
+                .value_name("proposal-id")
+                .required(true)
+                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
+                .help("SNS governance proposal id"),
+        )
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W and governance queries"),
+        )
+        .arg(
+            flag_arg("verbose")
+                .long("verbose")
+                .help("Show full proposal summary and payload text rendering"),
+        )
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_PROPOSAL_HELP_AFTER)
+}
+
+fn sns_proposals_command() -> ClapCommand {
+    ClapCommand::new("proposals")
+        .bin_name("icq sns proposals")
+        .about("List SNS governance proposals by list id or root principal")
+        .disable_help_flag(true)
+        .arg(sns_lookup_input_arg())
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W and governance queries"),
+        )
+        .arg(
+            value_arg("limit")
+                .long("limit")
+                .value_name("count")
+                .default_value(SNS_PROPOSALS_DEFAULT_LIMIT)
+                .value_parser(RangedU64ValueParser::<u32>::new().range(1..=SNS_PROPOSALS_MAX_LIMIT))
+                .help("Maximum proposals to request from SNS governance"),
+        )
+        .arg(
+            value_arg("before")
+                .long("before")
+                .value_name("proposal-id")
+                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
+                .help("Return proposals with ids lower than this proposal id"),
+        )
+        .arg(
+            value_arg("status")
+                .long("status")
+                .value_name("any|open|rejected|adopted|executed|failed")
+                .default_value("any")
+                .value_parser(clap::value_parser!(SnsProposalStatusArg))
+                .help("Governance decision status filter"),
+        )
+        .arg(
+            flag_arg("verbose")
+                .long("verbose")
+                .help("Show full proposal titles and per-proposal detail lines in text output"),
+        )
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_PROPOSALS_HELP_AFTER)
 }
 
 fn sns_lookup_command(
@@ -718,6 +909,14 @@ fn sns_params_usage() -> String {
     render_help(sns_params_command())
 }
 
+fn sns_proposal_usage() -> String {
+    render_help(sns_proposal_command())
+}
+
+fn sns_proposals_usage() -> String {
+    render_help(sns_proposals_command())
+}
+
 fn sns_neurons_usage() -> String {
     render_help(sns_neurons_command())
 }
@@ -761,6 +960,30 @@ enum SnsNeuronsSortArg {
     Stake,
     Maturity,
     Created,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+enum SnsProposalStatusArg {
+    #[default]
+    Any,
+    Open,
+    Rejected,
+    Adopted,
+    Executed,
+    Failed,
+}
+
+impl From<SnsProposalStatusArg> for SnsProposalStatusFilter {
+    fn from(value: SnsProposalStatusArg) -> Self {
+        match value {
+            SnsProposalStatusArg::Any => Self::Any,
+            SnsProposalStatusArg::Open => Self::Open,
+            SnsProposalStatusArg::Rejected => Self::Rejected,
+            SnsProposalStatusArg::Adopted => Self::Adopted,
+            SnsProposalStatusArg::Executed => Self::Executed,
+            SnsProposalStatusArg::Failed => Self::Failed,
+        }
+    }
 }
 
 impl From<SnsNeuronsSortArg> for SnsNeuronsSort {

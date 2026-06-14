@@ -91,6 +91,55 @@ fn sns_params_parses_input_and_json_format() {
 }
 
 #[test]
+fn sns_proposals_parses_filters_and_json_format() {
+    let options = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--format"),
+        OsString::from("json"),
+        OsString::from("--source-endpoint"),
+        OsString::from("https://icp-api.io"),
+        OsString::from("--limit"),
+        OsString::from("50"),
+        OsString::from("--before"),
+        OsString::from("100"),
+        OsString::from("--status"),
+        OsString::from("open"),
+        OsString::from("--verbose"),
+    ])
+    .expect("parse proposals");
+
+    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.network, "ic");
+    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.limit, 50);
+    assert_eq!(options.before_proposal_id, Some(100));
+    assert_eq!(options.status, SnsProposalStatusArg::Open);
+    assert!(options.verbose);
+}
+
+#[test]
+fn sns_proposal_parses_id_and_json_format() {
+    let options = SnsProposalOptions::parse([
+        OsString::from("1"),
+        OsString::from("42"),
+        OsString::from("--format"),
+        OsString::from("json"),
+        OsString::from("--source-endpoint"),
+        OsString::from("https://icp-api.io"),
+        OsString::from("--verbose"),
+    ])
+    .expect("parse proposal");
+
+    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.network, "ic");
+    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.proposal_id, 42);
+    assert!(options.verbose);
+}
+
+#[test]
 fn sns_neurons_parses_owner_limit_and_json_format() {
     let options = SnsNeuronsOptions::parse([
         OsString::from("1"),
@@ -231,6 +280,26 @@ fn sns_neurons_rejects_invalid_clap_values() {
         SnsNeuronsCacheStatusOptions::parse([OsString::from("not-a-principal")]),
         Err(SnsCommandError::Usage(_))
     ));
+    assert!(matches!(
+        SnsProposalsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--limit"),
+            OsString::from("101"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsProposalsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--status"),
+            OsString::from("not-a-status"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsProposalOptions::parse([OsString::from("1"), OsString::from("0")]),
+        Err(SnsCommandError::Usage(_))
+    ));
 }
 
 #[test]
@@ -240,6 +309,8 @@ fn sns_help_is_advertised() {
     let info = sns_info_usage();
     let token = sns_token_usage();
     let params = sns_params_usage();
+    let proposal = sns_proposal_usage();
+    let proposals = sns_proposals_usage();
     let neurons = sns_neurons_usage();
     let neurons_cache = sns_neurons_cache_usage();
     let neurons_cache_list = sns_neurons_cache_list_usage();
@@ -250,11 +321,15 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("info"));
     assert!(sns.contains("token"));
     assert!(sns.contains("params"));
+    assert!(sns.contains("proposal"));
+    assert!(sns.contains("proposals"));
     assert!(sns.contains("neurons"));
     assert!(sns.contains("List deployed mainnet SNS instances"));
     assert!(sns.contains("Resolve a deployed SNS"));
     assert!(sns.contains("Show SNS ledger token metadata"));
     assert!(sns.contains("Show SNS governance nervous system parameters"));
+    assert!(sns.contains("Show one SNS governance proposal"));
+    assert!(sns.contains("List SNS governance proposals"));
     assert!(sns.contains("List and refresh SNS governance neurons"));
     assert!(list.contains("icq sns list"));
     assert!(list.contains("--format json"));
@@ -267,6 +342,15 @@ fn sns_help_is_advertised() {
     assert!(token.contains("id|root-principal"));
     assert!(params.contains("icq sns params"));
     assert!(params.contains("id|root-principal"));
+    assert!(proposal.contains("icq sns proposal"));
+    assert!(proposal.contains("id|root-principal"));
+    assert!(proposal.contains("proposal-id"));
+    assert!(proposal.contains("--verbose"));
+    assert!(proposals.contains("icq sns proposals"));
+    assert!(proposals.contains("--limit"));
+    assert!(proposals.contains("--before"));
+    assert!(proposals.contains("--status"));
+    assert!(proposals.contains("--verbose"));
     assert!(neurons.contains("icq sns neurons"));
     assert!(neurons.contains("--limit"));
     assert!(neurons.contains("--owner"));

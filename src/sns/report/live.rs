@@ -1,9 +1,11 @@
 use super::{
     MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsCanisters, MainnetSnsList,
-    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsToken, SNS_METADATA_CONCURRENCY,
-    SNS_TOKEN_LOGO_METADATA_KEY, SnsFetchRequest, SnsGovernanceParameters, SnsHostError,
-    SnsListSource, SnsNeuronId, SnsNeuronRow, SnsNeuronsSource, SnsParamsSource,
-    SnsTokenMetadataRow, SnsTokenSource, SnsTokenStandardRow, hex_bytes, short_principal,
+    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposals,
+    MainnetSnsToken, SNS_METADATA_CONCURRENCY, SNS_TOKEN_LOGO_METADATA_KEY, SnsFetchRequest,
+    SnsGovernanceParameters, SnsHostError, SnsListSource, SnsNeuronId, SnsNeuronRow,
+    SnsNeuronsSource, SnsParamsSource, SnsProposalBallotRow, SnsProposalFailureReason,
+    SnsProposalRow, SnsProposalSource, SnsProposalTally, SnsProposalsSource, SnsTokenMetadataRow,
+    SnsTokenSource, SnsTokenStandardRow, hex_bytes, short_principal,
 };
 use crate::{
     runtime::block_on_current_thread,
@@ -42,6 +44,30 @@ impl SnsParamsSource for LiveSnsListSource {
         sns: &MainnetSns,
     ) -> Result<SnsGovernanceParameters, SnsHostError> {
         fetch_mainnet_sns_params(request, sns)
+    }
+}
+
+impl SnsProposalSource for LiveSnsListSource {
+    fn fetch_sns_proposal(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        proposal_id: u64,
+    ) -> Result<MainnetSnsProposal, SnsHostError> {
+        fetch_mainnet_sns_proposal(request, sns, proposal_id)
+    }
+}
+
+impl SnsProposalsSource for LiveSnsListSource {
+    fn fetch_sns_proposals(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+        include_status: &[i32],
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        fetch_mainnet_sns_proposals(request, sns, limit, before_proposal_id, include_status)
     }
 }
 
@@ -86,6 +112,32 @@ fn fetch_mainnet_sns_params(
 ) -> Result<SnsGovernanceParameters, SnsHostError> {
     block_on_current_thread(fetch_mainnet_sns_params_async(request, sns))
         .map_err(SnsHostError::Runtime)?
+}
+
+fn fetch_mainnet_sns_proposal(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    proposal_id: u64,
+) -> Result<MainnetSnsProposal, SnsHostError> {
+    block_on_current_thread(fetch_mainnet_sns_proposal_async(request, sns, proposal_id))
+        .map_err(SnsHostError::Runtime)?
+}
+
+fn fetch_mainnet_sns_proposals(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    limit: u32,
+    before_proposal_id: Option<u64>,
+    include_status: &[i32],
+) -> Result<MainnetSnsProposals, SnsHostError> {
+    block_on_current_thread(fetch_mainnet_sns_proposals_async(
+        request,
+        sns,
+        limit,
+        before_proposal_id,
+        include_status,
+    ))
+    .map_err(SnsHostError::Runtime)?
 }
 
 fn fetch_mainnet_sns_neurons(
@@ -231,6 +283,95 @@ async fn fetch_mainnet_sns_params_async(
     Decode!(&bytes, SnsGovernanceParameters).map_err(|err| SnsHostError::CandidDecode {
         message: "SnsGovernanceParameters",
         reason: err.to_string(),
+    })
+}
+
+async fn fetch_mainnet_sns_proposal_async(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    proposal_id: u64,
+) -> Result<MainnetSnsProposal, SnsHostError> {
+    let agent = sns_agent(&request.endpoint)?;
+    let governance_canister =
+        principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
+    let arg = Encode!(&GetProposalRequest {
+        proposal_id: Some(SnsProposalId { id: proposal_id }),
+    })
+    .map_err(|err| SnsHostError::CandidEncode {
+        message: "GetProposalRequest",
+        reason: err.to_string(),
+    })?;
+    let bytes = agent
+        .query(&governance_canister, "get_proposal")
+        .with_arg(arg)
+        .call()
+        .await
+        .map_err(|err| SnsHostError::AgentCall {
+            method: "get_proposal",
+            reason: err.to_string(),
+        })?;
+    let response =
+        Decode!(&bytes, GetProposalResponse).map_err(|err| SnsHostError::CandidDecode {
+            message: "GetProposalResponse",
+            reason: err.to_string(),
+        })?;
+    match response.result {
+        Some(GetProposalResult::Proposal(proposal)) => Ok(MainnetSnsProposal {
+            proposal: sns_proposal_row(*proposal),
+        }),
+        Some(GetProposalResult::Error(err)) => Err(SnsHostError::GovernanceError {
+            method: "get_proposal",
+            error_type: err.error_type,
+            message: err.error_message,
+        }),
+        None => Err(SnsHostError::MissingGovernanceResult {
+            method: "get_proposal",
+        }),
+    }
+}
+
+async fn fetch_mainnet_sns_proposals_async(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    limit: u32,
+    before_proposal_id: Option<u64>,
+    include_status: &[i32],
+) -> Result<MainnetSnsProposals, SnsHostError> {
+    let agent = sns_agent(&request.endpoint)?;
+    let governance_canister =
+        principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
+    let arg = Encode!(&ListProposalsRequest {
+        include_reward_status: Vec::new(),
+        before_proposal: before_proposal_id.map(|id| SnsProposalId { id }),
+        limit,
+        exclude_type: Vec::new(),
+        include_status: include_status.to_vec(),
+        include_topics: None,
+    })
+    .map_err(|err| SnsHostError::CandidEncode {
+        message: "ListProposalsRequest",
+        reason: err.to_string(),
+    })?;
+    let bytes = agent
+        .query(&governance_canister, "list_proposals")
+        .with_arg(arg)
+        .call()
+        .await
+        .map_err(|err| SnsHostError::AgentCall {
+            method: "list_proposals",
+            reason: err.to_string(),
+        })?;
+    let response =
+        Decode!(&bytes, ListProposalsResponse).map_err(|err| SnsHostError::CandidDecode {
+            message: "ListProposalsResponse",
+            reason: err.to_string(),
+        })?;
+    Ok(MainnetSnsProposals {
+        proposals: response
+            .proposals
+            .into_iter()
+            .map(sns_proposal_row)
+            .collect(),
     })
 }
 
@@ -483,6 +624,127 @@ fn sns_neuron_cursor(neuron: &SnsGovernanceNeuron) -> Option<SnsNeuronId> {
     neuron.id.clone()
 }
 
+fn sns_proposal_row(proposal: SnsGovernanceProposalData) -> SnsProposalRow {
+    let decision_state = proposal_decision_state(&proposal);
+    let proposal_id = proposal.id.as_ref().map(|id| id.id);
+    let proposal_fields = proposal.proposal.unwrap_or_default();
+    let ballots = proposal
+        .ballots
+        .into_iter()
+        .map(sns_proposal_ballot_row)
+        .collect::<Vec<_>>();
+    let ballot_count = ballots.len();
+    SnsProposalRow {
+        proposal_id,
+        action_id: proposal.action,
+        action: proposal_action_text(proposal.action),
+        title: proposal_fields.title,
+        summary: proposal_fields.summary,
+        url: clean_optional_text(Some(proposal_fields.url)),
+        decision_state,
+        reject_cost_e8s: proposal.reject_cost_e8s,
+        proposal_creation_timestamp_seconds: proposal.proposal_creation_timestamp_seconds,
+        created_at: format_utc_timestamp_secs(proposal.proposal_creation_timestamp_seconds),
+        decided_timestamp_seconds: nonzero_timestamp(proposal.decided_timestamp_seconds),
+        decided_at: optional_timestamp_text(proposal.decided_timestamp_seconds),
+        executed_timestamp_seconds: nonzero_timestamp(proposal.executed_timestamp_seconds),
+        executed_at: optional_timestamp_text(proposal.executed_timestamp_seconds),
+        failed_timestamp_seconds: nonzero_timestamp(proposal.failed_timestamp_seconds),
+        failed_at: optional_timestamp_text(proposal.failed_timestamp_seconds),
+        failure_reason: proposal
+            .failure_reason
+            .map(|reason| SnsProposalFailureReason {
+                error_type: reason.error_type,
+                error_message: reason.error_message,
+            }),
+        reward_event_round: proposal.reward_event_round,
+        reward_event_end_timestamp_seconds: proposal.reward_event_end_timestamp_seconds,
+        is_eligible_for_rewards: proposal.is_eligible_for_rewards,
+        latest_tally: proposal.latest_tally.map(|tally| SnsProposalTally {
+            timestamp_seconds: tally.timestamp_seconds,
+            yes: tally.yes,
+            no: tally.no,
+            total: tally.total,
+        }),
+        ballot_count,
+        ballots,
+        payload_text_rendering: proposal
+            .payload_text_rendering
+            .and_then(|value| clean_optional_text(Some(value))),
+        proposer_neuron_id: proposal.proposer.map(|id| hex_bytes(&id.id)),
+    }
+}
+
+fn sns_proposal_ballot_row(
+    (neuron_id, ballot): (String, SnsGovernanceBallot),
+) -> SnsProposalBallotRow {
+    SnsProposalBallotRow {
+        neuron_id,
+        vote: ballot.vote,
+        vote_text: ballot_vote_text(ballot.vote),
+        cast_timestamp_seconds: ballot.cast_timestamp_seconds,
+        cast_at: optional_timestamp_text(ballot.cast_timestamp_seconds),
+        voting_power: ballot.voting_power,
+    }
+}
+
+fn ballot_vote_text(vote: i32) -> String {
+    match vote {
+        0 => "unspecified".to_string(),
+        1 => "yes".to_string(),
+        2 => "no".to_string(),
+        other => format!("unknown:{other}"),
+    }
+}
+
+fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> String {
+    if proposal.failed_timestamp_seconds > 0 {
+        "failed"
+    } else if proposal.executed_timestamp_seconds > 0 {
+        "executed"
+    } else if proposal.decided_timestamp_seconds > 0 {
+        "decided"
+    } else {
+        "open"
+    }
+    .to_string()
+}
+
+fn proposal_action_text(action: u64) -> String {
+    match action {
+        0 => "unspecified".to_string(),
+        1 => "motion".to_string(),
+        2 => "manage_nervous_system_parameters".to_string(),
+        3 => "upgrade_sns_controlled_canister".to_string(),
+        4 => "add_generic_nervous_system_function".to_string(),
+        5 => "remove_generic_nervous_system_function".to_string(),
+        6 => "execute_generic_nervous_system_function".to_string(),
+        7 => "upgrade_sns_to_next_version".to_string(),
+        8 => "manage_sns_metadata".to_string(),
+        9 => "transfer_sns_treasury_funds".to_string(),
+        10 => "register_dapp_canisters".to_string(),
+        11 => "deregister_dapp_canisters".to_string(),
+        12 => "mint_sns_tokens".to_string(),
+        13 => "manage_ledger_parameters".to_string(),
+        14 => "manage_dapp_canister_settings".to_string(),
+        15 => "advance_sns_target_version".to_string(),
+        16 => "set_topics_for_custom_proposals".to_string(),
+        17 => "register_extension".to_string(),
+        18 => "execute_extension_operation".to_string(),
+        19 => "upgrade_extension".to_string(),
+        id if id >= 1_000 => format!("generic:{id}"),
+        id => format!("unknown:{id}"),
+    }
+}
+
+fn nonzero_timestamp(timestamp_seconds: u64) -> Option<u64> {
+    (timestamp_seconds > 0).then_some(timestamp_seconds)
+}
+
+fn optional_timestamp_text(timestamp_seconds: u64) -> Option<String> {
+    nonzero_timestamp(timestamp_seconds).map(format_utc_timestamp_secs)
+}
+
 pub(super) fn metadata_row(key: String, value: IcrcMetadataValue) -> SnsTokenMetadataRow {
     if key == SNS_TOKEN_LOGO_METADATA_KEY {
         return SnsTokenMetadataRow {
@@ -531,6 +793,14 @@ fn metadata_error_summary(err: &SnsHostError) -> Option<String> {
         }
         SnsHostError::CandidDecode { message, reason } => {
             Some(format!("decode {message}: {reason}"))
+        }
+        SnsHostError::GovernanceError {
+            method,
+            error_type,
+            message,
+        } => Some(format!("{method} governance error {error_type}: {message}")),
+        SnsHostError::MissingGovernanceResult { method } => {
+            Some(format!("{method}: missing governance result"))
         }
         SnsHostError::UnsupportedNetwork { .. }
         | SnsHostError::Runtime(_)
@@ -625,6 +895,106 @@ struct ListNeuronsRequest {
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct ListNeuronsResponse {
     neurons: Vec<SnsGovernanceNeuron>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct GetProposalRequest {
+    proposal_id: Option<SnsProposalId>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct GetProposalResponse {
+    result: Option<GetProposalResult>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+enum GetProposalResult {
+    Error(SnsGovernanceError),
+    Proposal(Box<SnsGovernanceProposalData>),
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct ListProposalsRequest {
+    include_reward_status: Vec<i32>,
+    before_proposal: Option<SnsProposalId>,
+    limit: u32,
+    exclude_type: Vec<u64>,
+    include_status: Vec<i32>,
+    include_topics: Option<Vec<SnsTopicSelector>>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsTopicSelector {
+    topic: Option<SnsTopic>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+enum SnsTopic {
+    DaoCommunitySettings,
+    SnsFrameworkManagement,
+    DappCanisterManagement,
+    ApplicationBusinessLogic,
+    Governance,
+    TreasuryAssetManagement,
+    CriticalDappOperations,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct ListProposalsResponse {
+    proposals: Vec<SnsGovernanceProposalData>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsProposalId {
+    id: u64,
+}
+
+#[derive(CandidType, Clone, Debug, Default, Deserialize, Eq, PartialEq)]
+struct SnsGovernanceProposal {
+    title: String,
+    summary: String,
+    url: String,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsGovernanceError {
+    error_type: i32,
+    error_message: String,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsGovernanceBallot {
+    vote: i32,
+    cast_timestamp_seconds: u64,
+    voting_power: u64,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsGovernanceProposalTally {
+    timestamp_seconds: u64,
+    yes: u64,
+    no: u64,
+    total: u64,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+struct SnsGovernanceProposalData {
+    id: Option<SnsProposalId>,
+    payload_text_rendering: Option<String>,
+    action: u64,
+    failure_reason: Option<SnsGovernanceError>,
+    ballots: Vec<(String, SnsGovernanceBallot)>,
+    reward_event_round: u64,
+    failed_timestamp_seconds: u64,
+    reward_event_end_timestamp_seconds: Option<u64>,
+    proposal_creation_timestamp_seconds: u64,
+    reject_cost_e8s: u64,
+    latest_tally: Option<SnsGovernanceProposalTally>,
+    decided_timestamp_seconds: u64,
+    proposal: Option<SnsGovernanceProposal>,
+    proposer: Option<SnsNeuronId>,
+    is_eligible_for_rewards: bool,
+    executed_timestamp_seconds: u64,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]

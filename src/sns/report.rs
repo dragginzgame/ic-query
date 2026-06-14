@@ -14,8 +14,9 @@ pub use model::*;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use source::{
     MainnetSns, MainnetSnsCanisters, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons,
-    MainnetSnsToken, SnsFetchRequest, SnsListSource, SnsNeuronId, SnsNeuronsSource,
-    SnsParamsSource, SnsTokenSource,
+    MainnetSnsProposal, MainnetSnsProposals, MainnetSnsToken, SnsFetchRequest, SnsListSource,
+    SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    SnsTokenSource,
 };
 use std::{
     cmp::Reverse,
@@ -33,7 +34,8 @@ mod text;
 pub use text::{
     sns_info_report_text, sns_list_report_text, sns_neurons_cache_list_report_text,
     sns_neurons_cache_status_report_text, sns_neurons_refresh_report_text, sns_neurons_report_text,
-    sns_params_report_text, sns_token_report_text,
+    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
+    sns_token_report_text,
 };
 
 #[cfg(test)]
@@ -46,6 +48,8 @@ const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
 const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_CACHE_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -132,6 +136,18 @@ pub fn build_sns_params_report(
 
 pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenReport, SnsHostError> {
     build_sns_token_report_with_source(request, &LiveSnsListSource)
+}
+
+pub fn build_sns_proposal_report(
+    request: &SnsProposalRequest,
+) -> Result<SnsProposalReport, SnsHostError> {
+    build_sns_proposal_report_with_source(request, &LiveSnsListSource)
+}
+
+pub fn build_sns_proposals_report(
+    request: &SnsProposalsRequest,
+) -> Result<SnsProposalsReport, SnsHostError> {
+    build_sns_proposals_report_with_source(request, &LiveSnsListSource)
 }
 
 pub fn build_sns_neurons_cache_list_report(
@@ -270,6 +286,63 @@ fn build_sns_token_report_with_source(
     let (fetch_request, list, id, sns) = resolve_sns_lookup(request, source)?;
     let token = source.fetch_sns_token(&fetch_request, &sns)?;
     Ok(sns_token_report_from_parts(list, id, sns, token))
+}
+
+fn build_sns_proposal_report_with_source(
+    request: &SnsProposalRequest,
+    source: &dyn SnsProposalSource,
+) -> Result<SnsProposalReport, SnsHostError> {
+    let lookup_request = SnsLookupRequest {
+        network: request.network.clone(),
+        source_endpoint: request.source_endpoint.clone(),
+        now_unix_secs: request.now_unix_secs,
+        input: request.input.clone(),
+    };
+    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
+    let proposal = source.fetch_sns_proposal(&fetch_request, &sns, request.proposal_id)?;
+    Ok(sns_proposal_report_from_parts(SnsProposalReportParts {
+        list,
+        id,
+        sns,
+        proposal_id: request.proposal_id,
+        verbose: request.verbose,
+        proposal,
+    }))
+}
+
+fn build_sns_proposals_report_with_source(
+    request: &SnsProposalsRequest,
+    source: &dyn SnsProposalsSource,
+) -> Result<SnsProposalsReport, SnsHostError> {
+    let lookup_request = SnsLookupRequest {
+        network: request.network.clone(),
+        source_endpoint: request.source_endpoint.clone(),
+        now_unix_secs: request.now_unix_secs,
+        input: request.input.clone(),
+    };
+    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
+    let include_status = request
+        .status
+        .governance_status_code()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let proposals = source.fetch_sns_proposals(
+        &fetch_request,
+        &sns,
+        request.limit,
+        request.before_proposal_id,
+        &include_status,
+    )?;
+    Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
+        list,
+        id,
+        sns,
+        requested_limit: request.limit,
+        before_proposal_id: request.before_proposal_id,
+        status: request.status,
+        verbose: request.verbose,
+        proposals,
+    }))
 }
 
 fn build_sns_neurons_report_with_source(
@@ -532,6 +605,26 @@ struct SnsNeuronsLiveReportParts {
     neurons: MainnetSnsNeurons,
 }
 
+struct SnsProposalReportParts {
+    list: MainnetSnsList,
+    id: usize,
+    sns: MainnetSns,
+    proposal_id: u64,
+    verbose: bool,
+    proposal: MainnetSnsProposal,
+}
+
+struct SnsProposalsReportParts {
+    list: MainnetSnsList,
+    id: usize,
+    sns: MainnetSns,
+    requested_limit: u32,
+    before_proposal_id: Option<u64>,
+    status: SnsProposalStatusFilter,
+    verbose: bool,
+    proposals: MainnetSnsProposals,
+}
+
 struct SnsNeuronsAttemptParts<'a> {
     request: &'a SnsNeuronsRefreshRequest,
     fetch_request: &'a SnsFetchRequest,
@@ -659,6 +752,46 @@ fn sns_params_report_from_parts(
         root_canister_id: sns.root_canister_id,
         governance_canister_id: sns.governance_canister_id,
         parameters,
+    }
+}
+
+fn sns_proposal_report_from_parts(parts: SnsProposalReportParts) -> SnsProposalReport {
+    SnsProposalReport {
+        schema_version: SNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+        network: parts.list.network,
+        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
+        fetched_at: parts.list.fetched_at,
+        source_endpoint: parts.list.source_endpoint,
+        fetched_by: parts.list.fetched_by,
+        id: parts.id,
+        name: parts.sns.name,
+        root_canister_id: parts.sns.root_canister_id,
+        governance_canister_id: parts.sns.governance_canister_id,
+        proposal_id: parts.proposal_id,
+        verbose: parts.verbose,
+        proposal: parts.proposal.proposal,
+    }
+}
+
+fn sns_proposals_report_from_parts(parts: SnsProposalsReportParts) -> SnsProposalsReport {
+    let proposal_count = parts.proposals.proposals.len();
+    SnsProposalsReport {
+        schema_version: SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
+        network: parts.list.network,
+        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
+        fetched_at: parts.list.fetched_at,
+        source_endpoint: parts.list.source_endpoint,
+        fetched_by: parts.list.fetched_by,
+        id: parts.id,
+        name: parts.sns.name,
+        root_canister_id: parts.sns.root_canister_id,
+        governance_canister_id: parts.sns.governance_canister_id,
+        requested_limit: parts.requested_limit,
+        before_proposal_id: parts.before_proposal_id,
+        status_filter: parts.status.as_str().to_string(),
+        verbose: parts.verbose,
+        proposal_count,
+        proposals: parts.proposals.proposals,
     }
 }
 

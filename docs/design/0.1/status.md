@@ -17,11 +17,12 @@ Those caches use JSON files, schema versions, refresh locks, and atomic
 replacement.
 
 SNS support currently includes live deployed-SNS listing, `sns info`,
-`sns token`, bounded `sns neurons` queries, and the first complete
-full-collection SNS neuron snapshot refresh path. `icq sns neurons refresh`
-writes `.icq/sns/ic/<root-principal>/neurons/full.json` only after the SNS
-governance API is exhausted. Failed and capped attempts leave the published
-complete cache untouched.
+`sns token`, direct `sns proposal` lookup, bounded `sns proposals`, bounded
+`sns neurons` queries, and the first complete full-collection SNS neuron
+snapshot refresh path. `icq sns neurons refresh` writes
+`.icq/sns/ic/<root-principal>/neurons/full.json` only after the SNS governance
+API is exhausted. Failed and capped attempts leave the published complete cache
+untouched.
 
 Cache-backed SNS neuron sorting is implemented for `id`, `stake`, `maturity`,
 and `created`. The default `api` sort remains a bounded live query.
@@ -71,6 +72,9 @@ The following already-landed work informs 0.1:
   refresh commands and atomic replacement.
 - `icq sns list` preserves SNS-W deployment order for numeric ids.
 - `icq sns token` performs bounded token metadata reads.
+- `icq sns proposal` performs direct live `get_proposal` reads by proposal id.
+- `icq sns proposals` performs bounded live `list_proposals` reads with
+  `--limit`, `--before`, and status filtering.
 - `icq sns neurons` performs bounded `list_neurons` reads with
   semantically-validated `--limit` and `--owner`; the 100-row cap applies to
   live API sorting, while cache-backed sorts can show larger local snapshots.
@@ -116,4 +120,7 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed after adding SNS neuron cache list/status visibility.
+All passed after adding SNS proposal list/detail querying and preserving
+proposal ballots in JSON reports. A live read-only smoke of
+`icq sns proposal 1 387` against `https://icp-api.io` also succeeded outside
+the sandbox.

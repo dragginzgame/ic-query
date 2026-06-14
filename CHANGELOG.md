@@ -5,15 +5,31 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.4] - 2026-06-14
 
-## [0.1.2] - 2026-06-13
+### Added
+
+- Adds `icq sns proposals <id|root-principal>` for bounded live SNS governance
+  proposal listings, with `--limit`, `--before`, `--status`, `--verbose`, and
+  JSON output support.
+- Adds `icq sns proposal <id|root-principal> <proposal-id>` for direct SNS
+  governance proposal detail lookup.
+
+## [0.1.3] - 2026-06-14
 
 ### Added
 
 - Adds `icq sns neurons cache list` and `icq sns neurons cache status
   <id|root-principal>` to inspect local complete neuron snapshots and latest
   refresh-attempt metadata without live SNS-W or governance calls.
+
+### Fixed
+
+- Uses local complete neuron cache metadata for cache-backed `icq sns neurons
+  <id|root-principal> --sort ...` reports instead of re-fetching the live SNS
+  list before reading the cache.
+
+## [0.1.2] - 2026-06-13
 
 ### Changed
 
@@ -25,9 +41,6 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- Uses local complete neuron cache metadata for cache-backed `icq sns neurons
-  <id|root-principal> --sort ...` reports instead of re-fetching the live SNS
-  list before reading the cache.
 - Preserves SNS neuron refresh attempt progress metadata when a refresh stops
   before publishing a complete snapshot.
 

@@ -1,5 +1,6 @@
 use super::{
-    SnsGovernanceParameters, SnsHostError, SnsNeuronRow, SnsTokenMetadataRow, SnsTokenStandardRow,
+    SnsGovernanceParameters, SnsHostError, SnsNeuronRow, SnsProposalRow, SnsTokenMetadataRow,
+    SnsTokenStandardRow,
 };
 use candid::{CandidType, Deserialize};
 
@@ -64,6 +65,16 @@ pub(super) struct MainnetSnsNeurons {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct MainnetSnsProposals {
+    pub proposals: Vec<SnsProposalRow>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct MainnetSnsProposal {
+    pub proposal: SnsProposalRow,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct MainnetSnsNeuronPage {
     pub neurons: Vec<SnsNeuronRow>,
     pub last_cursor: Option<SnsNeuronId>,
@@ -95,6 +106,26 @@ pub(super) trait SnsParamsSource: SnsListSource {
         request: &SnsFetchRequest,
         sns: &MainnetSns,
     ) -> Result<SnsGovernanceParameters, SnsHostError>;
+}
+
+pub(super) trait SnsProposalSource: SnsListSource {
+    fn fetch_sns_proposal(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        proposal_id: u64,
+    ) -> Result<MainnetSnsProposal, SnsHostError>;
+}
+
+pub(super) trait SnsProposalsSource: SnsListSource {
+    fn fetch_sns_proposals(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+        include_status: &[i32],
+    ) -> Result<MainnetSnsProposals, SnsHostError>;
 }
 
 pub(super) trait SnsNeuronsSource: SnsListSource {

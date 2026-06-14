@@ -38,7 +38,7 @@ icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq sns [list|info|token|params]
+icq sns [list|info|token|params|proposal|proposals]
 icq sns neurons [cache|refresh]
 ```
 
@@ -107,6 +107,16 @@ icq sns params 1
 icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
 
+SNS governance proposals can be queried as bounded live pages or direct detail
+lookups:
+
+```sh
+icq sns proposals 1 --limit 25
+icq sns proposals 1 --status open
+icq sns proposals 1 --before 100 --format json
+icq sns proposal 1 387
+```
+
 ## Development
 
 This repository pins the local toolchain to Rust `1.96.0` while declaring
@@ -157,8 +167,9 @@ linking registry adapters directly. For one integration example, see
 The command namespace is intentionally small:
 
 - `nns` is implemented.
-- `sns list`, `sns info`, `sns token`, `sns params`, and `sns neurons` are
-  implemented for deployed mainnet SNS instances.
+- `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
+  `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
+  instances.
 - `sns neurons refresh` caches complete neuron snapshots for cache-backed
   sorting.
 - `sns neurons cache list|status` inspects local complete neuron snapshots and

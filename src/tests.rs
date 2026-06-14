@@ -82,6 +82,8 @@ fn command_family_help_returns_ok() {
         &["sns", "info", "help"],
         &["sns", "token", "help"],
         &["sns", "params", "help"],
+        &["sns", "proposal", "help"],
+        &["sns", "proposals", "help"],
         &["sns", "neurons", "help"],
         &["sns", "neurons", "cache", "help"],
         &["sns", "neurons", "cache", "list", "help"],
