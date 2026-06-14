@@ -1,0 +1,60 @@
+use super::lookup::SnsLookupOptions;
+use crate::{
+    cli::clap::{parse_matches, required_typed, typed_option},
+    sns::commands::{
+        SnsCommandError,
+        spec::{
+            SnsProposalStatusArg, sns_proposal_command, sns_proposal_usage, sns_proposals_command,
+            sns_proposals_usage,
+        },
+    },
+};
+use std::ffi::OsString;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::sns::commands) struct SnsProposalsOptions {
+    pub(in crate::sns::commands) lookup: SnsLookupOptions,
+    pub(in crate::sns::commands) limit: u32,
+    pub(in crate::sns::commands) before_proposal_id: Option<u64>,
+    pub(in crate::sns::commands) status: SnsProposalStatusArg,
+    pub(in crate::sns::commands) verbose: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::sns::commands) struct SnsProposalOptions {
+    pub(in crate::sns::commands) lookup: SnsLookupOptions,
+    pub(in crate::sns::commands) proposal_id: u64,
+    pub(in crate::sns::commands) verbose: bool,
+}
+
+impl SnsProposalsOptions {
+    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches(sns_proposals_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_proposals_usage()))?;
+        Ok(Self {
+            lookup: SnsLookupOptions::from_matches(&matches),
+            limit: required_typed(&matches, "limit"),
+            before_proposal_id: typed_option::<u64>(&matches, "before"),
+            status: required_typed(&matches, "status"),
+            verbose: matches.get_flag("verbose"),
+        })
+    }
+}
+
+impl SnsProposalOptions {
+    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches(sns_proposal_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_proposal_usage()))?;
+        Ok(Self {
+            lookup: SnsLookupOptions::from_matches(&matches),
+            proposal_id: required_typed(&matches, "proposal-id"),
+            verbose: matches.get_flag("verbose"),
+        })
+    }
+}

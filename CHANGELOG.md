@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.18] - 2026-06-14
+
+### Changed
+
+- Splits the custom filtered NNS node command into focused command
+  construction, option parsing, and runtime dispatch modules while preserving
+  existing node filters and help output.
+- Splits SNS command runtime dispatch and command error definitions out of the
+  SNS command module root, leaving the root as a thin module boundary.
+- Splits SNS runtime handlers and clap command construction into focused
+  submodules for lookup, proposals, neurons, shared args, and shared runtime
+  helpers.
+- Splits SNS option parsing into focused list, lookup, proposals, and neurons
+  parser modules.
+
 ## [0.1.17] - 2026-06-14
 
 ### Changed
