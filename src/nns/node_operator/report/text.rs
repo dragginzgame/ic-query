@@ -1,6 +1,9 @@
 use super::{NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport};
 use crate::{
-    nns::render::{compact_text, optional_node_count_text, text_or_dash, yes_no},
+    nns::render::{
+        NnsLeafRefreshText, compact_text, nns_leaf_refresh_report_text, optional_node_count_text,
+        text_or_dash,
+    },
     table::{ColumnAlign, render_table},
 };
 
@@ -124,22 +127,20 @@ pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) ->
 
 #[must_use]
 pub fn nns_node_operator_refresh_report_text(report: &NnsNodeOperatorRefreshReport) -> String {
-    [
-        format!("network: {}", report.network),
-        format!("cache_path: {}", report.cache_path),
-        format!("refresh_lock_path: {}", report.refresh_lock_path),
-        format!("registry_canister_id: {}", report.registry_canister_id),
-        format!("registry_version: {}", report.registry_version),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
-        format!("dry_run: {}", yes_no(report.dry_run)),
-        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
-        ),
-        format!("node_operator_count: {}", report.node_operator_count),
-    ]
-    .join("\n")
+    nns_leaf_refresh_report_text(NnsLeafRefreshText {
+        network: &report.network,
+        cache_path: &report.cache_path,
+        refresh_lock_path: &report.refresh_lock_path,
+        governance_canister_id: None,
+        registry_canister_id: &report.registry_canister_id,
+        registry_version: report.registry_version,
+        fetched_at: &report.fetched_at,
+        source_endpoint: &report.source_endpoint,
+        fetched_by: &report.fetched_by,
+        dry_run: report.dry_run,
+        wrote_cache: report.wrote_cache,
+        replaced_existing_cache: report.replaced_existing_cache,
+        count_label: "node_operator_count",
+        count: report.node_operator_count,
+    })
 }

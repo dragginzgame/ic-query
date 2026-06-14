@@ -5,9 +5,10 @@ use crate::ic_registry::{
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
     cache_file::{
-        LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
-        announce_cache_refresh, load_json_cache, write_json_refresh_cache,
+        CachedJsonReport, LoadJsonCacheRequest, RefreshCacheWriteRequest, announce_cache_refresh,
+        load_json_cache, write_json_refresh_cache,
     },
+    nns::leaf::{NnsLeafCachePaths, nns_leaf_cache_path},
     subnet_catalog::format_utc_timestamp_secs,
 };
 use std::path::{Path, PathBuf};
@@ -26,50 +27,20 @@ pub const DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 pub const NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
+const NNS_DATA_CENTER_CACHE_DIR: &str = "data-center";
+const NNS_DATA_CENTER_CACHE_FILE: &str = "data-centers.json";
 
 #[must_use]
 pub fn nns_data_center_cache_path(icp_root: &Path, network: &str) -> PathBuf {
-    icp_root
-        .join(".icq")
-        .join("data-center")
-        .join(network)
-        .join("data-centers.json")
+    nns_leaf_cache_path(
+        icp_root,
+        NNS_DATA_CENTER_CACHE_DIR,
+        network,
+        NNS_DATA_CENTER_CACHE_FILE,
+    )
 }
 
-#[must_use]
-pub fn nns_data_center_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
-    icp_root
-        .join(".icq")
-        .join("data-center")
-        .join(network)
-        .join("refresh.lock")
-}
-
-struct NnsDataCenterCacheErrors;
-
-impl LoadJsonCacheErrorMapper for NnsDataCenterCacheErrors {
-    type Error = NnsDataCenterHostError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        NnsDataCenterHostError::MissingCache { path }
-    }
-
-    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
-        NnsDataCenterHostError::ReadCache { path, source }
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        NnsDataCenterHostError::ParseCache { path, source }
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        NnsDataCenterHostError::UnsupportedCacheSchemaVersion { version, expected }
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        NnsDataCenterHostError::NetworkMismatch { requested, actual }
-    }
-}
+impl_nns_load_json_cache_error_mapper!(NnsDataCenterCacheErrors, NnsDataCenterHostError);
 
 pub fn build_nns_data_center_list_report(
     request: &NnsDataCenterListRequest,
@@ -91,21 +62,17 @@ pub fn refresh_nns_data_center_report(
 
 fn load_cached_nns_data_center_report(
     request: &NnsDataCenterCacheRequest,
-) -> Result<CachedNnsDataCenterReport, NnsDataCenterHostError> {
+) -> Result<CachedJsonReport<NnsDataCenterListReport>, NnsDataCenterHostError> {
     enforce_mainnet_network(&request.network)?;
     let path = nns_data_center_cache_path(&request.icp_root, &request.network);
-    let cached = load_json_cache(
+    load_json_cache(
         LoadJsonCacheRequest {
             path,
             network: &request.network,
             expected_schema_version: NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
         },
         NnsDataCenterCacheErrors,
-    )?;
-    Ok(CachedNnsDataCenterReport {
-        path: cached.path,
-        report: cached.report,
-    })
+    )
 }
 
 fn build_nns_data_center_list_report_with_source(
@@ -175,9 +142,12 @@ fn refresh_nns_data_center_cache_with_source(
     source: &dyn NnsDataCenterSource,
 ) -> Result<(NnsDataCenterListReport, NnsDataCenterRefreshReport), NnsDataCenterHostError> {
     enforce_mainnet_network(&request.cache.network)?;
-    let cache_path = nns_data_center_cache_path(&request.cache.icp_root, &request.cache.network);
-    let lock_path =
-        nns_data_center_refresh_lock_path(&request.cache.icp_root, &request.cache.network);
+    let paths = NnsLeafCachePaths::for_component(
+        &request.cache.icp_root,
+        NNS_DATA_CENTER_CACHE_DIR,
+        &request.cache.network,
+        NNS_DATA_CENTER_CACHE_FILE,
+    );
     let report = fetch_nns_data_center_list_report_with_source(
         &request.cache.network,
         &request.source_endpoint,
@@ -186,8 +156,8 @@ fn refresh_nns_data_center_cache_with_source(
     )?;
     let write_result = write_json_refresh_cache(
         RefreshCacheWriteRequest {
-            cache_path: &cache_path,
-            lock_path: &lock_path,
+            cache_path: &paths.cache_path,
+            lock_path: &paths.lock_path,
             network: &request.cache.network,
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: request.lock_stale_after_seconds,

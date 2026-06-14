@@ -47,15 +47,6 @@ pub struct NnsNodeOperatorRefreshRequest {
 }
 
 ///
-/// CachedNnsNodeOperatorReport
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CachedNnsNodeOperatorReport {
-    pub path: PathBuf,
-    pub report: NnsNodeOperatorListReport,
-}
-
-///
 /// NnsNodeOperatorListReport
 ///
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

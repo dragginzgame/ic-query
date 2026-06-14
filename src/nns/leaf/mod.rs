@@ -1,6 +1,7 @@
 mod commands;
 mod model;
 mod options;
+mod paths;
 mod run;
 
 pub(super) use crate::cli::common::{format_arg, source_endpoint_arg};
@@ -17,4 +18,5 @@ pub(super) use model::{
 #[cfg(test)]
 pub(super) use options::NnsLeafListOptions;
 pub(super) use options::{NnsCommonOptions, NnsLeafInfoOptions, NnsLeafRefreshOptions};
+pub(in crate::nns) use paths::{NnsLeafCachePaths, nns_leaf_cache_path};
 pub(super) use run::{run_cached_leaf, run_leaf};

@@ -128,6 +128,40 @@ macro_rules! impl_nns_cache_error_mapper {
     };
 }
 
+macro_rules! impl_nns_load_json_cache_error_mapper {
+    ($mapper:ident, $error:ident) => {
+        struct $mapper;
+
+        impl crate::cache_file::LoadJsonCacheErrorMapper for $mapper {
+            type Error = $error;
+
+            fn missing_cache(&self, path: std::path::PathBuf) -> Self::Error {
+                $error::MissingCache { path }
+            }
+
+            fn read_cache(&self, path: std::path::PathBuf, source: std::io::Error) -> Self::Error {
+                $error::ReadCache { path, source }
+            }
+
+            fn parse_cache(
+                &self,
+                path: std::path::PathBuf,
+                source: serde_json::Error,
+            ) -> Self::Error {
+                $error::ParseCache { path, source }
+            }
+
+            fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+                $error::UnsupportedCacheSchemaVersion { version, expected }
+            }
+
+            fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+                $error::NetworkMismatch { requested, actual }
+            }
+        }
+    };
+}
+
 macro_rules! impl_leaf_test_helpers {
     (
         $list_options:ident,

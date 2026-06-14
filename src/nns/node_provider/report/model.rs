@@ -47,15 +47,6 @@ pub struct NnsNodeProviderRefreshRequest {
 }
 
 ///
-/// CachedNnsNodeProviderReport
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CachedNnsNodeProviderReport {
-    pub path: PathBuf,
-    pub report: NnsNodeProviderListReport,
-}
-
-///
 /// NnsNodeProviderListReport
 ///
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

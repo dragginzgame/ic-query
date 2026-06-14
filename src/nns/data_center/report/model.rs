@@ -47,15 +47,6 @@ pub struct NnsDataCenterRefreshRequest {
 }
 
 ///
-/// CachedNnsDataCenterReport
-///
-#[derive(Clone, Debug, PartialEq)]
-pub struct CachedNnsDataCenterReport {
-    pub path: PathBuf,
-    pub report: NnsDataCenterListReport,
-}
-
-///
 /// NnsDataCenterListReport
 ///
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

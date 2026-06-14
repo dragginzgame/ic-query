@@ -1,6 +1,8 @@
 use super::{NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterRefreshReport};
 use crate::{
-    nns::render::{optional_f32_text, text_or_dash, yes_no},
+    nns::render::{
+        NnsLeafRefreshText, nns_leaf_refresh_report_text, optional_f32_text, text_or_dash,
+    },
     table::{ColumnAlign, render_table},
 };
 
@@ -122,22 +124,20 @@ pub fn nns_data_center_info_report_text(report: &NnsDataCenterInfoReport) -> Str
 
 #[must_use]
 pub fn nns_data_center_refresh_report_text(report: &NnsDataCenterRefreshReport) -> String {
-    [
-        format!("network: {}", report.network),
-        format!("cache_path: {}", report.cache_path),
-        format!("refresh_lock_path: {}", report.refresh_lock_path),
-        format!("registry_canister_id: {}", report.registry_canister_id),
-        format!("registry_version: {}", report.registry_version),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
-        format!("dry_run: {}", yes_no(report.dry_run)),
-        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
-        ),
-        format!("data_center_count: {}", report.data_center_count),
-    ]
-    .join("\n")
+    nns_leaf_refresh_report_text(NnsLeafRefreshText {
+        network: &report.network,
+        cache_path: &report.cache_path,
+        refresh_lock_path: &report.refresh_lock_path,
+        governance_canister_id: None,
+        registry_canister_id: &report.registry_canister_id,
+        registry_version: report.registry_version,
+        fetched_at: &report.fetched_at,
+        source_endpoint: &report.source_endpoint,
+        fetched_by: &report.fetched_by,
+        dry_run: report.dry_run,
+        wrote_cache: report.wrote_cache,
+        replaced_existing_cache: report.replaced_existing_cache,
+        count_label: "data_center_count",
+        count: report.data_center_count,
+    })
 }

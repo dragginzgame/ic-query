@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.16] - 2026-06-14
+
+### Changed
+
+- Centralizes NNS cached leaf cache and refresh-lock path construction across
+  node, node-provider, node-operator, and data-center reports.
+- Deduplicates NNS JSON cache error mapper implementations across the same
+  cached leaf report families.
+- Reuses shared NNS refresh text rendering across the same cached leaf report
+  families while preserving their current text output order.
+- Removes per-family cached-report wrapper structs in favor of the shared JSON
+  cache report type.
+- Removes now-unused internal refresh-lock path wrappers from cached NNS leaf
+  report modules.
+
 ## [0.1.15] - 2026-06-14
 
 ### Changed

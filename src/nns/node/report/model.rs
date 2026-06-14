@@ -71,15 +71,6 @@ impl NnsNodeListFilters {
 }
 
 ///
-/// CachedNnsNodeReport
-///
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CachedNnsNodeReport {
-    pub path: PathBuf,
-    pub report: NnsNodeListReport,
-}
-
-///
 /// NnsNodeListReport
 ///
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

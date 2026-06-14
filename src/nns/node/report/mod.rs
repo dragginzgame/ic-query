@@ -4,9 +4,10 @@ use crate::ic_registry::{
 use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 use crate::{
     cache_file::{
-        LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshCacheWriteRequest,
-        announce_cache_refresh, load_json_cache, write_json_refresh_cache,
+        CachedJsonReport, LoadJsonCacheRequest, RefreshCacheWriteRequest, announce_cache_refresh,
+        load_json_cache, write_json_refresh_cache,
     },
+    nns::leaf::{NnsLeafCachePaths, nns_leaf_cache_path},
     subnet_catalog::format_utc_timestamp_secs,
 };
 use std::path::{Path, PathBuf};
@@ -29,50 +30,15 @@ pub const NNS_NODE_SUBNET_KIND_APPLICATION: &str = "application";
 pub const NNS_NODE_SUBNET_KIND_CLOUD_ENGINE: &str = "cloud_engine";
 pub const NNS_NODE_SUBNET_KIND_SYSTEM: &str = "system";
 pub const NNS_NODE_SUBNET_KIND_UNKNOWN: &str = "unknown";
+const NNS_NODE_CACHE_DIR: &str = "node";
+const NNS_NODE_CACHE_FILE: &str = "nodes.json";
 
 #[must_use]
 pub fn nns_node_cache_path(icp_root: &Path, network: &str) -> PathBuf {
-    icp_root
-        .join(".icq")
-        .join("node")
-        .join(network)
-        .join("nodes.json")
+    nns_leaf_cache_path(icp_root, NNS_NODE_CACHE_DIR, network, NNS_NODE_CACHE_FILE)
 }
 
-#[must_use]
-pub fn nns_node_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
-    icp_root
-        .join(".icq")
-        .join("node")
-        .join(network)
-        .join("refresh.lock")
-}
-
-struct NnsNodeCacheErrors;
-
-impl LoadJsonCacheErrorMapper for NnsNodeCacheErrors {
-    type Error = NnsNodeHostError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        NnsNodeHostError::MissingCache { path }
-    }
-
-    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
-        NnsNodeHostError::ReadCache { path, source }
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        NnsNodeHostError::ParseCache { path, source }
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        NnsNodeHostError::UnsupportedCacheSchemaVersion { version, expected }
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        NnsNodeHostError::NetworkMismatch { requested, actual }
-    }
-}
+impl_nns_load_json_cache_error_mapper!(NnsNodeCacheErrors, NnsNodeHostError);
 
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
@@ -94,21 +60,17 @@ pub fn refresh_nns_node_report(
 
 fn load_cached_nns_node_report(
     request: &NnsNodeCacheRequest,
-) -> Result<CachedNnsNodeReport, NnsNodeHostError> {
+) -> Result<CachedJsonReport<NnsNodeListReport>, NnsNodeHostError> {
     enforce_mainnet_network(&request.network)?;
     let path = nns_node_cache_path(&request.icp_root, &request.network);
-    let cached = load_json_cache(
+    load_json_cache(
         LoadJsonCacheRequest {
             path,
             network: &request.network,
             expected_schema_version: NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
         },
         NnsNodeCacheErrors,
-    )?;
-    Ok(CachedNnsNodeReport {
-        path: cached.path,
-        report: cached.report,
-    })
+    )
 }
 
 fn build_nns_node_list_report_with_source(
@@ -178,8 +140,12 @@ fn refresh_nns_node_cache_with_source(
     source: &dyn NnsNodeSource,
 ) -> Result<(NnsNodeListReport, NnsNodeRefreshReport), NnsNodeHostError> {
     enforce_mainnet_network(&request.cache.network)?;
-    let cache_path = nns_node_cache_path(&request.cache.icp_root, &request.cache.network);
-    let lock_path = nns_node_refresh_lock_path(&request.cache.icp_root, &request.cache.network);
+    let paths = NnsLeafCachePaths::for_component(
+        &request.cache.icp_root,
+        NNS_NODE_CACHE_DIR,
+        &request.cache.network,
+        NNS_NODE_CACHE_FILE,
+    );
     let report = fetch_nns_node_list_report_with_source(
         &request.cache.network,
         &request.source_endpoint,
@@ -188,8 +154,8 @@ fn refresh_nns_node_cache_with_source(
     )?;
     let write_result = write_json_refresh_cache(
         RefreshCacheWriteRequest {
-            cache_path: &cache_path,
-            lock_path: &lock_path,
+            cache_path: &paths.cache_path,
+            lock_path: &paths.lock_path,
             network: &request.cache.network,
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: request.lock_stale_after_seconds,
