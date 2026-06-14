@@ -39,7 +39,7 @@ icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq sns [list|info|token|params]
-icq sns neurons [refresh]
+icq sns neurons [cache|refresh]
 ```
 
 Use `icq nns <family> help`, `icq nns topology <report> help`, or
@@ -80,6 +80,14 @@ Complete SNS neuron snapshots live under
 attempts are recorded separately and do not replace the last complete snapshot.
 Refresh shows a same-line stderr progress counter with pages and rows fetched
 when running in a terminal.
+
+Inspect local SNS neuron snapshots and their latest refresh-attempt metadata
+without making live calls:
+
+```sh
+icq sns neurons cache list
+icq sns neurons cache status 1
+```
 
 Live API neuron listings are capped at 100 rows per call. Cache-backed sorts
 can use larger `--limit` values because they read from the complete local
@@ -153,5 +161,7 @@ The command namespace is intentionally small:
   implemented for deployed mainnet SNS instances.
 - `sns neurons refresh` caches complete neuron snapshots for cache-backed
   sorting.
+- `sns neurons cache list|status` inspects local complete neuron snapshots and
+  refresh-attempt metadata without live calls.
 - Additional IC query families can be added without coupling query code to
   deployment tooling.

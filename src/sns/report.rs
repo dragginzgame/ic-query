@@ -31,8 +31,9 @@ mod source;
 mod text;
 
 pub use text::{
-    sns_info_report_text, sns_list_report_text, sns_neurons_refresh_report_text,
-    sns_neurons_report_text, sns_params_report_text, sns_token_report_text,
+    sns_info_report_text, sns_list_report_text, sns_neurons_cache_list_report_text,
+    sns_neurons_cache_status_report_text, sns_neurons_refresh_report_text, sns_neurons_report_text,
+    sns_params_report_text, sns_token_report_text,
 };
 
 #[cfg(test)]
@@ -47,6 +48,8 @@ const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_CACHE_SCHEMA_VERSION: u32 = 1;
+const SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REFRESH_ATTEMPT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REFRESH_LOCK_STALE_AFTER_SECONDS: u64 = 30 * 60;
@@ -106,6 +109,13 @@ struct SnsNeuronsRefreshAttempt {
     last_error: Option<String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
+struct SnsNeuronsCacheHeader {
+    schema_version: u32,
+    network: String,
+    id: usize,
+}
+
 pub fn build_sns_list_report(request: &SnsListRequest) -> Result<SnsListReport, SnsHostError> {
     build_sns_list_report_with_source(request, &LiveSnsListSource)
 }
@@ -122,6 +132,86 @@ pub fn build_sns_params_report(
 
 pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenReport, SnsHostError> {
     build_sns_token_report_with_source(request, &LiveSnsListSource)
+}
+
+pub fn build_sns_neurons_cache_list_report(
+    request: &SnsNeuronsCacheListRequest,
+) -> Result<SnsNeuronsCacheListReport, SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let cache_root = sns_network_cache_dir(&request.icp_root, &request.network);
+    let mut caches = list_sns_neurons_cache_summaries(&request.icp_root, &request.network)?;
+    caches.sort_by(|left, right| {
+        left.id
+            .cmp(&right.id)
+            .then_with(|| left.root_canister_id.cmp(&right.root_canister_id))
+    });
+    Ok(SnsNeuronsCacheListReport {
+        schema_version: SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION,
+        network: request.network.clone(),
+        cache_root: cache_root.display().to_string(),
+        cache_count: caches.len(),
+        caches,
+    })
+}
+
+pub fn build_sns_neurons_cache_status_report(
+    request: &SnsNeuronsCacheStatusRequest,
+) -> Result<SnsNeuronsCacheStatusReport, SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let cache_root = sns_network_cache_dir(&request.icp_root, &request.network);
+    if let Ok(id) = request.input.parse::<usize>() {
+        let cache = find_sns_neurons_cache_by_id(&request.icp_root, &request.network, id)?
+            .map(|(path, cache)| sns_neurons_cache_summary(path, cache));
+        let refresh_attempt_path = cache
+            .as_ref()
+            .map(|cache| cache.refresh_attempt_path.clone());
+        let latest_attempt = cache
+            .as_ref()
+            .and_then(|cache| cache.latest_attempt.clone());
+        return Ok(SnsNeuronsCacheStatusReport {
+            schema_version: SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
+            network: request.network.clone(),
+            cache_root: cache_root.display().to_string(),
+            input: request.input.clone(),
+            found: cache.is_some(),
+            cache,
+            expected_cache_path: None,
+            refresh_attempt_path,
+            latest_attempt,
+        });
+    }
+
+    let root_canister_id = Principal::from_text(&request.input)
+        .map_err(|_| SnsHostError::InvalidLookup {
+            input: request.input.clone(),
+        })?
+        .to_text();
+    let cache_path = sns_neurons_cache_path(&request.icp_root, &request.network, &root_canister_id);
+    let attempt_path =
+        sns_neurons_refresh_attempt_path(&request.icp_root, &request.network, &root_canister_id);
+    let cache = if cache_path.is_file() {
+        Some(sns_neurons_cache_summary(
+            cache_path.clone(),
+            load_sns_neurons_cache_at(cache_path.clone(), &request.network)?,
+        ))
+    } else {
+        None
+    };
+    let latest_attempt = cache.as_ref().map_or_else(
+        || read_sns_neurons_attempt_status(&attempt_path),
+        |cache| cache.latest_attempt.clone(),
+    );
+    Ok(SnsNeuronsCacheStatusReport {
+        schema_version: SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
+        network: request.network.clone(),
+        cache_root: cache_root.display().to_string(),
+        input: request.input.clone(),
+        found: cache.is_some(),
+        cache,
+        expected_cache_path: Some(cache_path.display().to_string()),
+        refresh_attempt_path: Some(attempt_path.display().to_string()),
+        latest_attempt,
+    })
 }
 
 pub fn build_sns_neurons_report(
@@ -186,28 +276,18 @@ fn build_sns_neurons_report_with_source(
     request: &SnsNeuronsRequest,
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
-    let lookup_request = SnsLookupRequest {
-        network: request.network.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-        input: request.input.clone(),
-    };
-    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
     if request.sort.uses_cache() {
         let icp_root = request
             .icp_root
             .as_ref()
             .ok_or(SnsHostError::MissingCacheRoot)?;
-        let mut cache = load_sns_neurons_cache(icp_root, &request.network, &sns.root_canister_id)?;
+        let (cache_path, mut cache) =
+            load_sns_neurons_cache_for_input(icp_root, &request.network, &request.input)?;
         sort_sns_neurons(&mut cache.neurons, request.sort);
         let total_neuron_count = cache.neurons.len();
         let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
         cache.neurons.truncate(limit);
-        let cache_path = sns_neurons_cache_path(icp_root, &request.network, &sns.root_canister_id);
         return Ok(sns_neurons_report_from_cache(SnsNeuronsCachedReportParts {
-            list,
-            id,
-            sns,
             requested_limit: request.limit,
             sort: request.sort,
             cache,
@@ -216,6 +296,14 @@ fn build_sns_neurons_report_with_source(
             verbose: request.verbose,
         }));
     }
+
+    let lookup_request = SnsLookupRequest {
+        network: request.network.clone(),
+        source_endpoint: request.source_endpoint.clone(),
+        now_unix_secs: request.now_unix_secs,
+        input: request.input.clone(),
+    };
+    let (fetch_request, list, id, sns) = resolve_sns_lookup(&lookup_request, source)?;
     let neurons = source.fetch_sns_neurons(
         &fetch_request,
         &sns,
@@ -425,9 +513,6 @@ struct SnsNeuronsRefreshContext<'a> {
 }
 
 struct SnsNeuronsCachedReportParts {
-    list: MainnetSnsList,
-    id: usize,
-    sns: MainnetSns,
     requested_limit: u32,
     sort: SnsNeuronsSort,
     cache: SnsNeuronsCache,
@@ -604,28 +689,30 @@ fn sns_neurons_report_from_parts(parts: SnsNeuronsLiveReportParts) -> SnsNeurons
 }
 
 fn sns_neurons_report_from_cache(parts: SnsNeuronsCachedReportParts) -> SnsNeuronsReport {
-    let neuron_count = parts.cache.neurons.len();
+    let cache = parts.cache;
+    let neuron_count = cache.neurons.len();
+    let cache_complete = cache.completeness.status == "api_exhausted";
     SnsNeuronsReport {
         schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        fetched_at: parts.cache.fetched_at,
-        source_endpoint: parts.cache.source_endpoint,
-        fetched_by: parts.cache.fetched_by,
-        id: parts.id,
-        name: parts.sns.name,
-        root_canister_id: parts.sns.root_canister_id,
-        governance_canister_id: parts.sns.governance_canister_id,
+        network: cache.network,
+        sns_wasm_canister_id: cache.sns_wasm_canister_id,
+        fetched_at: cache.fetched_at,
+        source_endpoint: cache.source_endpoint,
+        fetched_by: cache.fetched_by,
+        id: cache.id,
+        name: cache.name,
+        root_canister_id: cache.root_canister_id,
+        governance_canister_id: cache.governance_canister_id,
         requested_limit: parts.requested_limit,
         owner_principal_id: None,
         verbose: parts.verbose,
         data_source: "cache".to_string(),
         sort: parts.sort.as_str().to_string(),
         cache_path: Some(parts.cache_path.display().to_string()),
-        cache_complete: Some(parts.cache.completeness.status == "api_exhausted"),
+        cache_complete: Some(cache_complete),
         total_neuron_count: parts.total_neuron_count,
         neuron_count,
-        neurons: parts.cache.neurons,
+        neurons: cache.neurons,
     }
 }
 
@@ -763,6 +850,143 @@ fn load_sns_neurons_cache(
     root_canister_id: &str,
 ) -> Result<SnsNeuronsCache, SnsHostError> {
     let path = sns_neurons_cache_path(icp_root, network, root_canister_id);
+    load_sns_neurons_cache_at(path, network)
+}
+
+fn load_sns_neurons_cache_for_input(
+    icp_root: &Path,
+    network: &str,
+    input: &str,
+) -> Result<(PathBuf, SnsNeuronsCache), SnsHostError> {
+    enforce_mainnet_network(network)?;
+    if let Ok(id) = input.parse::<usize>() {
+        return find_sns_neurons_cache_by_id(icp_root, network, id)?.ok_or_else(|| {
+            SnsHostError::MissingNeuronsCacheForId {
+                id,
+                root: sns_network_cache_dir(icp_root, network),
+            }
+        });
+    }
+
+    let root_canister_id = Principal::from_text(input)
+        .map_err(|_| SnsHostError::InvalidLookup {
+            input: input.to_string(),
+        })?
+        .to_text();
+    let path = sns_neurons_cache_path(icp_root, network, &root_canister_id);
+    let cache = load_sns_neurons_cache(icp_root, network, &root_canister_id)?;
+    Ok((path, cache))
+}
+
+fn list_sns_neurons_cache_summaries(
+    icp_root: &Path,
+    network: &str,
+) -> Result<Vec<SnsNeuronsCacheSummary>, SnsHostError> {
+    collect_sns_neurons_cache_paths(icp_root, network)?
+        .into_iter()
+        .map(|path| {
+            let cache = load_sns_neurons_cache_at(path.clone(), network)?;
+            Ok(sns_neurons_cache_summary(path, cache))
+        })
+        .collect()
+}
+
+fn sns_neurons_cache_summary(
+    cache_path: PathBuf,
+    cache: SnsNeuronsCache,
+) -> SnsNeuronsCacheSummary {
+    let attempt_path = sns_neurons_attempt_path_for_cache_path(&cache_path);
+    SnsNeuronsCacheSummary {
+        id: cache.id,
+        name: cache.name,
+        root_canister_id: cache.root_canister_id,
+        governance_canister_id: cache.governance_canister_id,
+        complete: cache.completeness.status == "api_exhausted",
+        row_count: cache.completeness.row_count,
+        page_count: cache.completeness.page_count,
+        page_size: cache.completeness.page_size,
+        fetched_at: cache.fetched_at,
+        source_endpoint: cache.source_endpoint,
+        cache_path: cache_path.display().to_string(),
+        refresh_attempt_path: attempt_path.display().to_string(),
+        latest_attempt: read_sns_neurons_attempt_status(&attempt_path),
+    }
+}
+
+fn find_sns_neurons_cache_by_id(
+    icp_root: &Path,
+    network: &str,
+    id: usize,
+) -> Result<Option<(PathBuf, SnsNeuronsCache)>, SnsHostError> {
+    for path in collect_sns_neurons_cache_paths(icp_root, network)? {
+        let header = read_sns_neurons_cache_header(&path, network)?;
+        if header.id == id {
+            let cache = load_sns_neurons_cache_at(path.clone(), network)?;
+            return Ok(Some((path, cache)));
+        }
+    }
+    Ok(None)
+}
+
+fn collect_sns_neurons_cache_paths(
+    icp_root: &Path,
+    network: &str,
+) -> Result<Vec<PathBuf>, SnsHostError> {
+    let root = sns_network_cache_dir(icp_root, network);
+    let entries = match fs::read_dir(&root) {
+        Ok(entries) => entries,
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(source) => {
+            return Err(SnsHostError::ReadCache { path: root, source });
+        }
+    };
+    let mut cache_paths = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|source| SnsHostError::ReadCache {
+            path: root.clone(),
+            source,
+        })?;
+        let path = entry.path().join("neurons").join("full.json");
+        if path.is_file() {
+            cache_paths.push(path);
+        }
+    }
+    cache_paths.sort();
+    Ok(cache_paths)
+}
+
+fn read_sns_neurons_cache_header(
+    path: &Path,
+    network: &str,
+) -> Result<SnsNeuronsCacheHeader, SnsHostError> {
+    let data = fs::read(path).map_err(|source| SnsHostError::ReadCache {
+        path: path.to_path_buf(),
+        source,
+    })?;
+    let header: SnsNeuronsCacheHeader =
+        serde_json::from_slice(&data).map_err(|source| SnsHostError::ParseCache {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    if header.schema_version != SNS_NEURONS_CACHE_SCHEMA_VERSION {
+        return Err(SnsHostError::UnsupportedCacheSchemaVersion {
+            version: header.schema_version,
+            expected: SNS_NEURONS_CACHE_SCHEMA_VERSION,
+        });
+    }
+    if header.network != network {
+        return Err(SnsHostError::CacheNetworkMismatch {
+            requested: network.to_string(),
+            actual: header.network,
+        });
+    }
+    Ok(header)
+}
+
+fn load_sns_neurons_cache_at(
+    path: PathBuf,
+    network: &str,
+) -> Result<SnsNeuronsCache, SnsHostError> {
     let cached: CachedJsonReport<SnsNeuronsCache> = load_json_cache(
         LoadJsonCacheRequest {
             path,
@@ -819,13 +1043,14 @@ fn sort_sns_neurons(neurons: &mut [SnsNeuronRow], sort: SnsNeuronsSort) {
 }
 
 pub fn sns_neurons_cache_path(icp_root: &Path, network: &str, root_canister_id: &str) -> PathBuf {
-    icp_root
-        .join(".icq")
-        .join("sns")
-        .join(network)
+    sns_network_cache_dir(icp_root, network)
         .join(root_canister_id)
         .join("neurons")
         .join("full.json")
+}
+
+fn sns_network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
+    icp_root.join(".icq").join("sns").join(network)
 }
 
 pub fn sns_neurons_refresh_lock_path(
@@ -853,6 +1078,13 @@ pub fn sns_neurons_refresh_attempt_path(
         .join(network)
         .join(root_canister_id)
         .join("neurons")
+        .join("full.refresh-attempt.json")
+}
+
+fn sns_neurons_attempt_path_for_cache_path(cache_path: &Path) -> PathBuf {
+    cache_path
+        .parent()
+        .expect("SNS neurons cache path always has parent")
         .join("full.refresh-attempt.json")
 }
 
@@ -892,6 +1124,23 @@ fn read_sns_neurons_attempt(path: &Path) -> Option<SnsNeuronsRefreshAttempt> {
     fs::read(path)
         .ok()
         .and_then(|data| serde_json::from_slice(&data).ok())
+}
+
+fn read_sns_neurons_attempt_status(path: &Path) -> Option<SnsNeuronsRefreshAttemptStatus> {
+    read_sns_neurons_attempt(path).map(sns_neurons_attempt_status)
+}
+
+fn sns_neurons_attempt_status(attempt: SnsNeuronsRefreshAttempt) -> SnsNeuronsRefreshAttemptStatus {
+    SnsNeuronsRefreshAttemptStatus {
+        status: attempt.status,
+        started_at: attempt.started_at,
+        updated_at: attempt.updated_at,
+        page_size: attempt.page_size,
+        pages_fetched: attempt.pages_fetched,
+        rows_fetched: attempt.rows_fetched,
+        last_cursor: attempt.last_cursor,
+        last_error: attempt.last_error,
+    }
 }
 
 fn attempt_from_parts(parts: SnsNeuronsAttemptParts<'_>) -> SnsNeuronsRefreshAttempt {

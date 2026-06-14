@@ -540,6 +540,7 @@ fn metadata_error_summary(err: &SnsHostError) -> Option<String> {
         | SnsHostError::UnknownSnsRoot { .. }
         | SnsHostError::InvalidLookup { .. }
         | SnsHostError::MissingNeuronsCache { .. }
+        | SnsHostError::MissingNeuronsCacheForId { .. }
         | SnsHostError::ReadCache { .. }
         | SnsHostError::ParseCache { .. }
         | SnsHostError::SerializeCache { .. }

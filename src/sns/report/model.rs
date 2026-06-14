@@ -26,6 +26,19 @@ pub type SnsParamsRequest = SnsLookupRequest;
 pub type SnsTokenRequest = SnsLookupRequest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnsNeuronsCacheListRequest {
+    pub network: String,
+    pub icp_root: PathBuf,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnsNeuronsCacheStatusRequest {
+    pub network: String,
+    pub icp_root: PathBuf,
+    pub input: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsNeuronsRequest {
     pub network: String,
     pub source_endpoint: String,
@@ -240,6 +253,57 @@ pub struct SnsNeuronsRefreshReport {
     pub wrote_cache: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsNeuronsCacheListReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub cache_root: String,
+    pub cache_count: usize,
+    pub caches: Vec<SnsNeuronsCacheSummary>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsNeuronsCacheStatusReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub cache_root: String,
+    pub input: String,
+    pub found: bool,
+    pub cache: Option<SnsNeuronsCacheSummary>,
+    pub expected_cache_path: Option<String>,
+    pub refresh_attempt_path: Option<String>,
+    pub latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsNeuronsCacheSummary {
+    pub id: usize,
+    pub name: String,
+    pub root_canister_id: String,
+    pub governance_canister_id: String,
+    pub complete: bool,
+    pub row_count: usize,
+    pub page_count: u32,
+    pub page_size: u32,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub cache_path: String,
+    pub refresh_attempt_path: String,
+    pub latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsNeuronsRefreshAttemptStatus {
+    pub status: String,
+    pub started_at: String,
+    pub updated_at: String,
+    pub page_size: u32,
+    pub pages_fetched: u32,
+    pub rows_fetched: usize,
+    pub last_cursor: Option<String>,
+    pub last_error: Option<String>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnsNeuronRow {
     pub neuron_id: String,
@@ -343,6 +407,12 @@ pub enum SnsHostError {
         path.display()
     )]
     MissingNeuronsCache { path: PathBuf },
+
+    #[error(
+        "SNS neurons cache is missing for SNS list id {id} under {}\n\nRun `icq sns neurons refresh {id}` to fetch a complete snapshot before using cache-backed sorting.",
+        root.display()
+    )]
+    MissingNeuronsCacheForId { id: usize, root: PathBuf },
 
     #[error("failed to read SNS cache at {}: {source}", path.display())]
     ReadCache { path: PathBuf, source: io::Error },

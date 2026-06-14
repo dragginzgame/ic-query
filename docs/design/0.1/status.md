@@ -1,6 +1,6 @@
 # 0.1 Status: Snapshot Cache And Complete SNS Collections
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 ## Purpose
 
@@ -30,6 +30,9 @@ when stderr is attached to a terminal. Text neuron tables shorten neuron IDs to
 eight characters by default; `--verbose` preserves full IDs. Text output
 renders current SNS token amounts, including fee, supply, stake, and maturity,
 as two-decimal token amounts while JSON keeps raw base units.
+`icq sns neurons cache list` and `icq sns neurons cache status
+<id|root-principal>` inspect local complete snapshots and latest
+refresh-attempt metadata without making live SNS-W or governance calls.
 
 The first implementation reuses the existing cache-file primitives directly in
 the SNS report layer. The reusable cross-command snapshot abstraction remains
@@ -52,6 +55,8 @@ open follow-through.
 - [x] Add terminal progress output for long SNS neuron refreshes.
 - [x] Compact SNS neuron IDs in text tables with a `--verbose` full-ID escape
       hatch.
+- [x] Add local cache list/status visibility for complete SNS neuron snapshots
+      and refresh attempts.
 - [ ] Add tests for schema rejection, failed refresh preservation, stale lock
       handling, and complete-only sorting.
 - [x] Update README cache documentation once the command surface lands.
@@ -105,8 +110,10 @@ The following already-landed work informs 0.1:
 Current focused validation:
 
 ```text
-cargo check --all-targets --all-features --locked
-cargo test sns --locked
+make clippy
+make test
+cargo fmt --all -- --check
+git diff --check
 ```
 
-Both passed after the first SNS neuron cache slice.
+All passed after adding SNS neuron cache list/status visibility.

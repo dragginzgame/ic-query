@@ -15,11 +15,14 @@ use crate::{
     project::icp_root,
     sns::report::{
         DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsListRequest, SnsListSort, SnsLookupRequest,
-        SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort, build_sns_info_report,
-        build_sns_list_report, build_sns_neurons_report, build_sns_params_report,
-        build_sns_token_report, refresh_sns_neurons_cache, sns_info_report_text,
-        sns_list_report_text, sns_neurons_refresh_report_text, sns_neurons_report_text,
-        sns_params_report_text, sns_token_report_text,
+        SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,
+        SnsNeuronsRequest, SnsNeuronsSort, build_sns_info_report, build_sns_list_report,
+        build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
+        build_sns_neurons_report, build_sns_params_report, build_sns_token_report,
+        refresh_sns_neurons_cache, sns_info_report_text, sns_list_report_text,
+        sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
+        sns_neurons_refresh_report_text, sns_neurons_report_text, sns_params_report_text,
+        sns_token_report_text,
     },
     version_text,
 };
@@ -67,8 +70,28 @@ Examples:
   icq sns neurons 1 --owner zqfso-syaaa-aaaaq-aaafq-cai
   icq sns neurons 1 --verbose
   icq sns neurons refresh 1
+  icq sns neurons cache list
+  icq sns neurons cache status 1
   icq sns neurons 1 --limit 500 --sort stake
   icq --network ic sns neurons 1 --format json";
+
+const SNS_NEURONS_CACHE_HELP_AFTER: &str = "\
+Examples:
+  icq sns neurons cache list
+  icq sns neurons cache status 1
+  icq sns neurons cache status 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns neurons cache status 1 --format json";
+
+const SNS_NEURONS_CACHE_LIST_HELP_AFTER: &str = "\
+Examples:
+  icq sns neurons cache list
+  icq sns neurons cache list --format json";
+
+const SNS_NEURONS_CACHE_STATUS_HELP_AFTER: &str = "\
+Examples:
+  icq sns neurons cache status 1
+  icq sns neurons cache status 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns neurons cache status 1 --format json";
 
 const SNS_NEURONS_REFRESH_HELP_AFTER: &str = "\
 Examples:
@@ -119,6 +142,19 @@ struct SnsNeuronsOptions {
     owner_principal_id: Option<String>,
     sort: SnsNeuronsSortArg,
     verbose: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SnsNeuronsCacheListOptions {
+    network: String,
+    format: OutputFormat,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SnsNeuronsCacheStatusOptions {
+    input: String,
+    network: String,
+    format: OutputFormat,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -247,6 +283,9 @@ where
     if args.first().and_then(|arg| arg.to_str()) == Some("refresh") {
         return run_sns_neurons_refresh(args.into_iter().skip(1));
     }
+    if args.first().and_then(|arg| arg.to_str()) == Some("cache") {
+        return run_sns_neurons_cache(args.into_iter().skip(1));
+    }
     let options = SnsNeuronsOptions::parse(args)?;
     if options.sort != SnsNeuronsSortArg::Api && options.owner_principal_id.is_some() {
         return Err(SnsCommandError::Usage(
@@ -272,6 +311,60 @@ where
     };
     let report = build_sns_neurons_report(&request)?;
     write_text_or_json(format, &report, sns_neurons_report_text)
+}
+
+fn run_sns_neurons_cache<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, sns_neurons_cache_usage, version_text()) {
+        return Ok(());
+    }
+    let (command, args) = parse_required_subcommand(sns_neurons_cache_command(), args)
+        .map_err(|_| SnsCommandError::Usage(sns_neurons_cache_usage()))?;
+    match command.as_str() {
+        "list" => run_sns_neurons_cache_list(args),
+        "status" => run_sns_neurons_cache_status(args),
+        _ => unreachable!("sns neurons cache dispatch command only defines known commands"),
+    }
+}
+
+fn run_sns_neurons_cache_list<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, sns_neurons_cache_list_usage, version_text()) {
+        return Ok(());
+    }
+    let options = SnsNeuronsCacheListOptions::parse(args)?;
+    let format = options.format;
+    let request = SnsNeuronsCacheListRequest {
+        network: options.network,
+        icp_root: icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))?,
+    };
+    let report = build_sns_neurons_cache_list_report(&request)?;
+    write_text_or_json(format, &report, sns_neurons_cache_list_report_text)
+}
+
+fn run_sns_neurons_cache_status<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if print_help_or_version(&args, sns_neurons_cache_status_usage, version_text()) {
+        return Ok(());
+    }
+    let options = SnsNeuronsCacheStatusOptions::parse(args)?;
+    let format = options.format;
+    let request = SnsNeuronsCacheStatusRequest {
+        network: options.network,
+        icp_root: icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))?,
+        input: options.input,
+    };
+    let report = build_sns_neurons_cache_status_report(&request)?;
+    write_text_or_json(format, &report, sns_neurons_cache_status_report_text)
 }
 
 fn run_sns_neurons_refresh<I>(args: I) -> Result<(), SnsCommandError>
@@ -364,6 +457,35 @@ impl SnsNeuronsOptions {
             )));
         }
         Ok(())
+    }
+}
+
+impl SnsNeuronsCacheListOptions {
+    fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches(sns_neurons_cache_list_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_neurons_cache_list_usage()))?;
+        Ok(Self {
+            network: required_string(&matches, "network"),
+            format: required_typed(&matches, "format"),
+        })
+    }
+}
+
+impl SnsNeuronsCacheStatusOptions {
+    fn parse<I>(args: I) -> Result<Self, SnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches(sns_neurons_cache_status_command(), args)
+            .map_err(|_| SnsCommandError::Usage(sns_neurons_cache_status_usage()))?;
+        Ok(Self {
+            input: required_string(&matches, "input"),
+            network: required_string(&matches, "network"),
+            format: required_typed(&matches, "format"),
+        })
     }
 }
 
@@ -508,6 +630,42 @@ fn sns_neurons_command() -> ClapCommand {
         .after_help(SNS_NEURONS_HELP_AFTER)
 }
 
+fn sns_neurons_cache_command() -> ClapCommand {
+    ClapCommand::new("cache")
+        .bin_name("icq sns neurons cache")
+        .about("Inspect local complete SNS governance neuron snapshots")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("list").about("List local complete SNS neuron snapshots"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("status")
+                .about("Show local SNS neuron snapshot and refresh-attempt status"),
+        ))
+        .after_help(SNS_NEURONS_CACHE_HELP_AFTER)
+}
+
+fn sns_neurons_cache_list_command() -> ClapCommand {
+    ClapCommand::new("list")
+        .bin_name("icq sns neurons cache list")
+        .about("List local complete SNS neuron snapshots")
+        .disable_help_flag(true)
+        .arg(format_arg())
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_NEURONS_CACHE_LIST_HELP_AFTER)
+}
+
+fn sns_neurons_cache_status_command() -> ClapCommand {
+    ClapCommand::new("status")
+        .bin_name("icq sns neurons cache status")
+        .about("Show local SNS neuron snapshot and refresh-attempt status")
+        .disable_help_flag(true)
+        .arg(sns_lookup_input_arg())
+        .arg(format_arg())
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_NEURONS_CACHE_STATUS_HELP_AFTER)
+}
+
 fn sns_neurons_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq sns neurons refresh")
@@ -562,6 +720,18 @@ fn sns_params_usage() -> String {
 
 fn sns_neurons_usage() -> String {
     render_help(sns_neurons_command())
+}
+
+fn sns_neurons_cache_usage() -> String {
+    render_help(sns_neurons_cache_command())
+}
+
+fn sns_neurons_cache_list_usage() -> String {
+    render_help(sns_neurons_cache_list_command())
+}
+
+fn sns_neurons_cache_status_usage() -> String {
+    render_help(sns_neurons_cache_status_command())
 }
 
 fn sns_neurons_refresh_usage() -> String {

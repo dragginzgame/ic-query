@@ -161,6 +161,27 @@ fn sns_neurons_refresh_parses_page_controls() {
 }
 
 #[test]
+fn sns_neurons_cache_parses_list_and_status_options() {
+    let list =
+        SnsNeuronsCacheListOptions::parse([OsString::from("--format"), OsString::from("json")])
+            .expect("parse cache list");
+
+    assert_eq!(list.network, "ic");
+    assert_eq!(list.format, OutputFormat::Json);
+
+    let status = SnsNeuronsCacheStatusOptions::parse([
+        OsString::from("1"),
+        OsString::from("--format"),
+        OsString::from("json"),
+    ])
+    .expect("parse cache status");
+
+    assert_eq!(status.input, "1");
+    assert_eq!(status.network, "ic");
+    assert_eq!(status.format, OutputFormat::Json);
+}
+
+#[test]
 fn sns_neurons_rejects_invalid_clap_values() {
     assert!(matches!(
         SnsLookupOptions::parse(
@@ -206,6 +227,10 @@ fn sns_neurons_rejects_invalid_clap_values() {
         ]),
         Err(SnsCommandError::Usage(_))
     ));
+    assert!(matches!(
+        SnsNeuronsCacheStatusOptions::parse([OsString::from("not-a-principal")]),
+        Err(SnsCommandError::Usage(_))
+    ));
 }
 
 #[test]
@@ -216,6 +241,9 @@ fn sns_help_is_advertised() {
     let token = sns_token_usage();
     let params = sns_params_usage();
     let neurons = sns_neurons_usage();
+    let neurons_cache = sns_neurons_cache_usage();
+    let neurons_cache_list = sns_neurons_cache_list_usage();
+    let neurons_cache_status = sns_neurons_cache_status_usage();
     let neurons_refresh = sns_neurons_refresh_usage();
 
     assert!(sns.contains("list"));
@@ -245,6 +273,14 @@ fn sns_help_is_advertised() {
     assert!(neurons.contains("--verbose"));
     assert!(neurons.contains("--sort"));
     assert!(neurons.contains("refresh"));
+    assert!(neurons.contains("cache"));
+    assert!(neurons_cache.contains("icq sns neurons cache"));
+    assert!(neurons_cache.contains("list"));
+    assert!(neurons_cache.contains("status"));
+    assert!(neurons_cache_list.contains("icq sns neurons cache list"));
+    assert!(neurons_cache_list.contains("--format json"));
+    assert!(neurons_cache_status.contains("icq sns neurons cache status"));
+    assert!(neurons_cache_status.contains("id|root-principal"));
     assert!(neurons_refresh.contains("icq sns neurons refresh"));
     assert!(neurons_refresh.contains("--page-size"));
     assert!(neurons_refresh.contains("--max-pages"));

@@ -276,9 +276,8 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     cached_request.icp_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     cached_request.limit = 2;
-    let report =
-        build_sns_neurons_report_with_source(&cached_request, &PagedFixtureSnsNeuronsSource)
-            .expect("cached neurons report");
+    let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
+        .expect("cached neurons report");
 
     assert_eq!(report.data_source, "cache");
     assert_eq!(report.sort, "stake");
@@ -293,6 +292,134 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
         serde_json::from_slice(&fs::read(attempt_path).expect("read attempt"))
             .expect("parse attempt");
     assert_eq!(attempt["status"], "complete");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
+    let root = temp_dir("ic-query-sns-neurons-cache-status");
+    let request = SnsNeuronsRefreshRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: "1".to_string(),
+        icp_root: root.clone(),
+        page_size: 2,
+        max_pages: None,
+    };
+
+    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect("refresh neurons");
+
+    let list = build_sns_neurons_cache_list_report(&SnsNeuronsCacheListRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+    })
+    .expect("cache list");
+    let list_text = sns_neurons_cache_list_report_text(&list);
+
+    assert_eq!(
+        list.schema_version,
+        SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION
+    );
+    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches[0].id, 1);
+    assert_eq!(list.caches[0].name, "Fixture SNS");
+    assert_eq!(list.caches[0].row_count, 3);
+    assert_eq!(list.caches[0].page_count, 3);
+    assert!(list.caches[0].complete);
+    assert_eq!(
+        list.caches[0]
+            .latest_attempt
+            .as_ref()
+            .map(|attempt| attempt.status.as_str()),
+        Some("complete")
+    );
+    assert!(list_text.contains("cache_count: 1"));
+    assert!(list_text.contains("Fixture SNS"));
+
+    let status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+        input: "1".to_string(),
+    })
+    .expect("cache status");
+    let status_text = sns_neurons_cache_status_report_text(&status);
+
+    assert_eq!(
+        status.schema_version,
+        SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION
+    );
+    assert!(status.found);
+    assert!(status.expected_cache_path.is_none());
+    assert_eq!(
+        status.cache.as_ref().expect("cache").root_canister_id,
+        ROOT_A
+    );
+    assert_eq!(
+        status
+            .latest_attempt
+            .as_ref()
+            .map(|attempt| attempt.status.as_str()),
+        Some("complete")
+    );
+    assert!(status_text.contains("found: yes"));
+    assert!(status_text.contains("cache_path:"));
+    assert!(status_text.contains("latest_attempt_status: complete"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
+    let root = temp_dir("ic-query-sns-neurons-cache-failed-status");
+    let request = SnsNeuronsRefreshRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: "1".to_string(),
+        icp_root: root.clone(),
+        page_size: 2,
+        max_pages: Some(1),
+    };
+
+    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect_err("incomplete refresh");
+
+    let status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+        input: ROOT_A.to_string(),
+    })
+    .expect("cache status");
+    let status_text = sns_neurons_cache_status_report_text(&status);
+
+    assert!(!status.found);
+    assert!(status.cache.is_none());
+    assert!(
+        status
+            .expected_cache_path
+            .as_ref()
+            .is_some_and(|path| path.contains(ROOT_A))
+    );
+    assert_eq!(
+        status
+            .latest_attempt
+            .as_ref()
+            .map(|attempt| attempt.status.as_str()),
+        Some("failed")
+    );
+    assert_eq!(
+        status
+            .latest_attempt
+            .as_ref()
+            .map(|attempt| attempt.rows_fetched),
+        Some(2)
+    );
+    assert!(status_text.contains("found: no"));
+    assert!(status_text.contains("refresh_hint: icq sns neurons refresh"));
+    assert!(status_text.contains("latest_attempt_status: failed"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -820,6 +947,40 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
             neurons,
             last_cursor: last_cursor.map(|id| SnsNeuronId { id }),
         })
+    }
+}
+
+struct NoLiveSnsNeuronsSource;
+
+impl SnsListSource for NoLiveSnsNeuronsSource {
+    fn fetch_deployed_snses(
+        &self,
+        _request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        unreachable!("cache-backed neuron report should not fetch deployed SNS list")
+    }
+}
+
+impl SnsNeuronsSource for NoLiveSnsNeuronsSource {
+    fn fetch_sns_neurons(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeurons, SnsHostError> {
+        unreachable!("cache-backed neuron report should not fetch live neurons")
+    }
+
+    fn fetch_sns_neuron_page(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _start_page_at: Option<&SnsNeuronId>,
+        _owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
+        unreachable!("cache-backed neuron report should not fetch neuron pages")
     }
 }
 

@@ -9,6 +9,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.1.2] - 2026-06-13
 
+### Added
+
+- Adds `icq sns neurons cache list` and `icq sns neurons cache status
+  <id|root-principal>` to inspect local complete neuron snapshots and latest
+  refresh-attempt metadata without live SNS-W or governance calls.
+
 ### Changed
 
 - Deduplicates SNS lookup command dispatch, clap command construction, and
@@ -19,6 +25,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Uses local complete neuron cache metadata for cache-backed `icq sns neurons
+  <id|root-principal> --sort ...` reports instead of re-fetching the live SNS
+  list before reading the cache.
 - Preserves SNS neuron refresh attempt progress metadata when a refresh stops
   before publishing a complete snapshot.
 
