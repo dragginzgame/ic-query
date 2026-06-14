@@ -5,6 +5,24 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.9] - 2026-06-14
+
+### Changed
+
+- Splits SNS command clap specification, usage rendering, value parsers,
+  command value enums, and parsed option types into focused commands
+  submodules.
+- Splits SNS report lookup/list ordering helpers and report-object assembly
+  into focused report submodules.
+- Splits SNS report model types into focused request, report, sort/filter, and
+  error submodules.
+- Splits SNS neuron cache loading, discovery, summaries, and cached sort
+  ordering into a focused cache storage submodule.
+- Splits generic live SNS agent/query helpers out of the live SNS fetch
+  orchestration module.
+- Renames the internal live SNS source to match its broader list, token,
+  governance, proposal, and neuron query role.
+
 ## [0.1.8] - 2026-06-14
 
 ### Changed

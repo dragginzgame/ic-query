@@ -1,4 +1,5 @@
 mod convert;
+mod query;
 mod types;
 
 use super::{
@@ -9,7 +10,7 @@ use super::{
     SnsProposalsSource, SnsTokenSource, SnsTokenStandardRow, hex_bytes,
 };
 use crate::{runtime::block_on_current_thread, subnet_catalog::MAINNET_NETWORK};
-use candid::{CandidType, Deserialize, Encode, Nat, Principal};
+use candid::{Nat, Principal};
 use futures::{StreamExt, stream};
 use ic_agent::Agent;
 
@@ -19,12 +20,13 @@ use convert::{
     mainnet_sns_from_canisters_and_metadata, metadata_error_summary, sns_neuron_cursor,
     sns_neuron_row, sns_proposal_row,
 };
+use query::{principal_from_text, query_canister, query_ledger, sns_agent};
 pub(super) use types::IcrcMetadataValue;
 use types::*;
 
-pub(super) struct LiveSnsListSource;
+pub(super) struct LiveSnsSource;
 
-impl SnsListSource for LiveSnsListSource {
+impl SnsListSource for LiveSnsSource {
     fn fetch_deployed_snses(
         &self,
         request: &SnsFetchRequest,
@@ -33,7 +35,7 @@ impl SnsListSource for LiveSnsListSource {
     }
 }
 
-impl SnsTokenSource for LiveSnsListSource {
+impl SnsTokenSource for LiveSnsSource {
     fn fetch_sns_token(
         &self,
         request: &SnsFetchRequest,
@@ -43,7 +45,7 @@ impl SnsTokenSource for LiveSnsListSource {
     }
 }
 
-impl SnsParamsSource for LiveSnsListSource {
+impl SnsParamsSource for LiveSnsSource {
     fn fetch_sns_params(
         &self,
         request: &SnsFetchRequest,
@@ -53,7 +55,7 @@ impl SnsParamsSource for LiveSnsListSource {
     }
 }
 
-impl SnsProposalSource for LiveSnsListSource {
+impl SnsProposalSource for LiveSnsSource {
     fn fetch_sns_proposal(
         &self,
         request: &SnsFetchRequest,
@@ -64,7 +66,7 @@ impl SnsProposalSource for LiveSnsListSource {
     }
 }
 
-impl SnsProposalsSource for LiveSnsListSource {
+impl SnsProposalsSource for LiveSnsSource {
     fn fetch_sns_proposals(
         &self,
         request: &SnsFetchRequest,
@@ -77,7 +79,7 @@ impl SnsProposalsSource for LiveSnsListSource {
     }
 }
 
-impl SnsNeuronsSource for LiveSnsListSource {
+impl SnsNeuronsSource for LiveSnsSource {
     fn fetch_sns_neurons(
         &self,
         request: &SnsFetchRequest,
@@ -390,74 +392,6 @@ async fn fetch_mainnet_sns_neuron_page_async(
     })
 }
 
-async fn query_canister<Arg, Response>(
-    agent: &Agent,
-    canister: &Principal,
-    method: &'static str,
-    request_message: &'static str,
-    response_message: &'static str,
-    arg: &Arg,
-) -> Result<Response, SnsHostError>
-where
-    Arg: CandidType + Sync,
-    Response: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = candid::encode_one(arg).map_err(|err| SnsHostError::CandidEncode {
-        message: request_message,
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method,
-            reason: err.to_string(),
-        })?;
-    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
-        message: response_message,
-        reason: err.to_string(),
-    })
-}
-
-async fn query_ledger<T>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-    method: &'static str,
-) -> Result<T, SnsHostError>
-where
-    T: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = Encode!().map_err(|err| SnsHostError::CandidEncode {
-        message: method,
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(ledger_canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method,
-            reason: err.to_string(),
-        })?;
-    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
-        message: method,
-        reason: err.to_string(),
-    })
-}
-
-fn sns_agent(endpoint: &str) -> Result<Agent, SnsHostError> {
-    Agent::builder()
-        .with_url(endpoint)
-        .build()
-        .map_err(|err| SnsHostError::AgentBuild {
-            endpoint: endpoint.to_string(),
-            reason: err.to_string(),
-        })
-}
-
 async fn mainnet_sns_list_from_response(
     agent: &Agent,
     request: &SnsFetchRequest,
@@ -524,11 +458,4 @@ async fn fetch_governance_metadata(
         &GetMetadataRequest {},
     )
     .await
-}
-
-fn principal_from_text(value: &str, field: &'static str) -> Result<Principal, SnsHostError> {
-    Principal::from_text(value).map_err(|err| SnsHostError::InvalidPrincipal {
-        field,
-        reason: err.to_string(),
-    })
 }

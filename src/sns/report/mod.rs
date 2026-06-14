@@ -1,9 +1,15 @@
-use crate::{
-    ic_registry::DEFAULT_MAINNET_ENDPOINT,
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
+use assemble::{
+    SnsNeuronsLiveReportParts, SnsProposalReportParts, SnsProposalsReportParts,
+    sns_info_report_from_list, sns_list_report_from_list, sns_neurons_report_from_parts,
+    sns_params_report_from_parts, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
+    sns_token_report_from_parts,
 };
-use candid::Principal;
-use live::LiveSnsListSource;
+use live::LiveSnsSource;
+use lookup::{
+    assign_sns_ids_in_current_order, enforce_mainnet_network, lookup_request_from_parts,
+    resolve_sns_lookup, sns_list_fetch_request, sort_mainnet_sns_instances,
+};
 pub use model::*;
 use source::{
     MainnetSns, MainnetSnsCanisters, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons,
@@ -12,7 +18,9 @@ use source::{
     SnsTokenSource,
 };
 
+mod assemble;
 mod live;
+mod lookup;
 mod model;
 mod neurons_cache;
 mod source;
@@ -38,6 +46,9 @@ pub use text::{
 #[cfg(test)]
 use live::{IcrcMetadataValue, metadata_row};
 
+#[cfg(test)]
+use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
+
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
 pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 
@@ -53,51 +64,46 @@ const SNS_TOKEN_LOGO_METADATA_KEY: &str = "icrc1:logo";
 const SNS_METADATA_CONCURRENCY: usize = 16;
 
 pub fn build_sns_list_report(request: &SnsListRequest) -> Result<SnsListReport, SnsHostError> {
-    build_sns_list_report_with_source(request, &LiveSnsListSource)
+    build_sns_list_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_info_report(request: &SnsInfoRequest) -> Result<SnsInfoReport, SnsHostError> {
-    build_sns_info_report_with_source(request, &LiveSnsListSource)
+    build_sns_info_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_params_report(
     request: &SnsParamsRequest,
 ) -> Result<SnsParamsReport, SnsHostError> {
-    build_sns_params_report_with_source(request, &LiveSnsListSource)
+    build_sns_params_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenReport, SnsHostError> {
-    build_sns_token_report_with_source(request, &LiveSnsListSource)
+    build_sns_token_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_proposal_report(
     request: &SnsProposalRequest,
 ) -> Result<SnsProposalReport, SnsHostError> {
-    build_sns_proposal_report_with_source(request, &LiveSnsListSource)
+    build_sns_proposal_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_proposals_report(
     request: &SnsProposalsRequest,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    build_sns_proposals_report_with_source(request, &LiveSnsListSource)
+    build_sns_proposals_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_neurons_report(
     request: &SnsNeuronsRequest,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
-    build_sns_neurons_report_with_source(request, &LiveSnsListSource)
+    build_sns_neurons_report_with_source(request, &LiveSnsSource)
 }
 
 fn build_sns_list_report_with_source(
     request: &SnsListRequest,
     source: &dyn SnsListSource,
 ) -> Result<SnsListReport, SnsHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let fetch_request = fetch_request_from_parts(
-        &request.source_endpoint,
-        request.now_unix_secs,
-        "ic-query".to_string(),
-    );
+    let fetch_request = sns_list_fetch_request(request)?;
     let mut list = source.fetch_deployed_snses(&fetch_request)?;
     assign_sns_ids_in_current_order(&mut list.sns_instances);
     sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
@@ -222,321 +228,6 @@ fn build_sns_neurons_report_with_source(
         verbose: request.verbose,
         neurons,
     }))
-}
-
-fn resolve_sns_lookup(
-    request: &SnsLookupRequest,
-    source: &dyn SnsListSource,
-) -> Result<(SnsFetchRequest, MainnetSnsList, usize, MainnetSns), SnsHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let fetch_request = fetch_request_from_parts(
-        &request.source_endpoint,
-        request.now_unix_secs,
-        "ic-query".to_string(),
-    );
-    let mut list = source.fetch_deployed_snses(&fetch_request)?;
-    assign_sns_ids_in_current_order(&mut list.sns_instances);
-    sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
-    let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
-    Ok((fetch_request, list, id, sns))
-}
-
-fn lookup_request_from_parts(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    input: &str,
-) -> SnsLookupRequest {
-    SnsLookupRequest {
-        network: network.to_string(),
-        source_endpoint: source_endpoint.to_string(),
-        now_unix_secs,
-        input: input.to_string(),
-    }
-}
-
-struct SnsNeuronsLiveReportParts {
-    list: MainnetSnsList,
-    id: usize,
-    sns: MainnetSns,
-    requested_limit: u32,
-    owner_principal_id: Option<String>,
-    sort: SnsNeuronsSort,
-    verbose: bool,
-    neurons: MainnetSnsNeurons,
-}
-
-struct SnsProposalReportParts {
-    list: MainnetSnsList,
-    id: usize,
-    sns: MainnetSns,
-    proposal_id: u64,
-    verbose: bool,
-    proposal: MainnetSnsProposal,
-}
-
-struct SnsProposalsReportParts {
-    list: MainnetSnsList,
-    id: usize,
-    sns: MainnetSns,
-    requested_limit: u32,
-    before_proposal_id: Option<u64>,
-    status: SnsProposalStatusFilter,
-    verbose: bool,
-    proposals: MainnetSnsProposals,
-}
-
-fn sns_list_report_from_list(
-    list: MainnetSnsList,
-    verbose: bool,
-    sort: SnsListSort,
-) -> SnsListReport {
-    let MainnetSnsList {
-        network,
-        sns_wasm_canister_id,
-        fetched_at,
-        fetched_by,
-        source_endpoint,
-        sns_instances,
-    } = list;
-    let metadata_error_count = sns_instances
-        .iter()
-        .filter(|sns| sns.metadata_error.is_some())
-        .count();
-    let sns_instances = sns_instances
-        .into_iter()
-        .map(|sns| SnsListRow {
-            id: sns.id,
-            name: sns.name,
-            root_canister_id: sns.root_canister_id,
-            governance_canister_id: sns.governance_canister_id,
-            ledger_canister_id: sns.ledger_canister_id,
-            swap_canister_id: sns.swap_canister_id,
-            index_canister_id: sns.index_canister_id,
-            metadata_error: sns.metadata_error,
-        })
-        .collect::<Vec<_>>();
-    SnsListReport {
-        schema_version: SNS_LIST_REPORT_SCHEMA_VERSION,
-        network,
-        sns_wasm_canister_id,
-        fetched_at,
-        source_endpoint,
-        fetched_by,
-        verbose,
-        sort: sort.as_str().to_string(),
-        sns_count: sns_instances.len(),
-        metadata_error_count,
-        sns_instances,
-    }
-}
-
-fn sns_info_report_from_list(list: MainnetSnsList, id: usize, sns: MainnetSns) -> SnsInfoReport {
-    SnsInfoReport {
-        schema_version: SNS_INFO_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        id,
-        name: sns.name,
-        description: sns.description,
-        url: sns.url,
-        root_canister_id: sns.root_canister_id,
-        governance_canister_id: sns.governance_canister_id,
-        ledger_canister_id: sns.ledger_canister_id,
-        swap_canister_id: sns.swap_canister_id,
-        index_canister_id: sns.index_canister_id,
-        metadata_error: sns.metadata_error,
-    }
-}
-
-fn sns_token_report_from_parts(
-    list: MainnetSnsList,
-    id: usize,
-    sns: MainnetSns,
-    token: MainnetSnsToken,
-) -> SnsTokenReport {
-    SnsTokenReport {
-        schema_version: SNS_TOKEN_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        id,
-        name: sns.name,
-        root_canister_id: sns.root_canister_id,
-        ledger_canister_id: sns.ledger_canister_id,
-        sns_index_canister_id: sns.index_canister_id,
-        token_name: token.token_name,
-        token_symbol: token.token_symbol,
-        decimals: token.decimals,
-        transfer_fee: token.transfer_fee,
-        total_supply: token.total_supply,
-        minting_account_owner: token.minting_account_owner,
-        minting_account_subaccount_hex: token.minting_account_subaccount_hex,
-        ledger_index_canister_id: token.ledger_index_canister_id,
-        ledger_index_error: token.ledger_index_error,
-        supported_standards: token.supported_standards,
-        metadata: token.metadata,
-    }
-}
-
-fn sns_params_report_from_parts(
-    list: MainnetSnsList,
-    id: usize,
-    sns: MainnetSns,
-    parameters: SnsGovernanceParameters,
-) -> SnsParamsReport {
-    SnsParamsReport {
-        schema_version: SNS_PARAMS_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        id,
-        name: sns.name,
-        root_canister_id: sns.root_canister_id,
-        governance_canister_id: sns.governance_canister_id,
-        parameters,
-    }
-}
-
-fn sns_proposal_report_from_parts(parts: SnsProposalReportParts) -> SnsProposalReport {
-    SnsProposalReport {
-        schema_version: SNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        fetched_at: parts.list.fetched_at,
-        source_endpoint: parts.list.source_endpoint,
-        fetched_by: parts.list.fetched_by,
-        id: parts.id,
-        name: parts.sns.name,
-        root_canister_id: parts.sns.root_canister_id,
-        governance_canister_id: parts.sns.governance_canister_id,
-        proposal_id: parts.proposal_id,
-        verbose: parts.verbose,
-        proposal: parts.proposal.proposal,
-    }
-}
-
-fn sns_proposals_report_from_parts(parts: SnsProposalsReportParts) -> SnsProposalsReport {
-    let proposal_count = parts.proposals.proposals.len();
-    SnsProposalsReport {
-        schema_version: SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        fetched_at: parts.list.fetched_at,
-        source_endpoint: parts.list.source_endpoint,
-        fetched_by: parts.list.fetched_by,
-        id: parts.id,
-        name: parts.sns.name,
-        root_canister_id: parts.sns.root_canister_id,
-        governance_canister_id: parts.sns.governance_canister_id,
-        requested_limit: parts.requested_limit,
-        before_proposal_id: parts.before_proposal_id,
-        status_filter: parts.status.as_str().to_string(),
-        verbose: parts.verbose,
-        proposal_count,
-        proposals: parts.proposals.proposals,
-    }
-}
-
-fn sns_neurons_report_from_parts(parts: SnsNeuronsLiveReportParts) -> SnsNeuronsReport {
-    let neuron_count = parts.neurons.neurons.len();
-    SnsNeuronsReport {
-        schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        fetched_at: parts.list.fetched_at,
-        source_endpoint: parts.list.source_endpoint,
-        fetched_by: parts.list.fetched_by,
-        id: parts.id,
-        name: parts.sns.name,
-        root_canister_id: parts.sns.root_canister_id,
-        governance_canister_id: parts.sns.governance_canister_id,
-        requested_limit: parts.requested_limit,
-        owner_principal_id: parts.owner_principal_id,
-        verbose: parts.verbose,
-        data_source: "live".to_string(),
-        sort: parts.sort.as_str().to_string(),
-        cache_path: None,
-        cache_complete: None,
-        total_neuron_count: neuron_count,
-        neuron_count,
-        neurons: parts.neurons.neurons,
-    }
-}
-
-fn assign_sns_ids_in_current_order(instances: &mut [MainnetSns]) {
-    for (index, sns) in instances.iter_mut().enumerate() {
-        sns.id = index + 1;
-    }
-}
-
-fn sort_mainnet_sns_instances(instances: &mut [MainnetSns], sort: SnsListSort) {
-    match sort {
-        SnsListSort::Id => sort_mainnet_sns_instances_by_id(instances),
-        SnsListSort::Name => instances.sort_by(|left, right| {
-            left.name
-                .to_lowercase()
-                .cmp(&right.name.to_lowercase())
-                .then_with(|| left.id.cmp(&right.id))
-        }),
-    }
-}
-
-fn sort_mainnet_sns_instances_by_id(instances: &mut [MainnetSns]) {
-    instances.sort_by_key(|sns| sns.id);
-}
-
-fn resolve_sns(instances: &[MainnetSns], input: &str) -> Result<(usize, MainnetSns), SnsHostError> {
-    if let Ok(id) = input.parse::<usize>() {
-        return instances
-            .iter()
-            .find(|sns| sns.id == id)
-            .cloned()
-            .map(|sns| (id, sns))
-            .ok_or(SnsHostError::UnknownSnsId {
-                id,
-                sns_count: instances.len(),
-            });
-    }
-
-    let root_canister_id = Principal::from_text(input)
-        .map_err(|_| SnsHostError::InvalidLookup {
-            input: input.to_string(),
-        })?
-        .to_text();
-    instances
-        .iter()
-        .find(|sns| sns.root_canister_id == root_canister_id)
-        .map(|sns| (sns.id, sns.clone()))
-        .ok_or(SnsHostError::UnknownSnsRoot { root_canister_id })
-}
-
-fn fetch_request_from_parts(
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    fetched_by: String,
-) -> SnsFetchRequest {
-    SnsFetchRequest {
-        endpoint: source_endpoint.to_string(),
-        fetched_at: format_utc_timestamp_secs(now_unix_secs),
-        fetched_by,
-    }
-}
-
-fn enforce_mainnet_network(network: &str) -> Result<(), SnsHostError> {
-    if network == MAINNET_NETWORK {
-        return Ok(());
-    }
-    Err(SnsHostError::UnsupportedNetwork {
-        network: network.to_string(),
-    })
 }
 
 pub(super) fn short_principal(value: &str) -> String {
