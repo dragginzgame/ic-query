@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.25` continues NNS cleanup by splitting cached leaf report model roots
+  plus topology runtime and request wiring into focused modules.
+
 - `0.1.24` continues module cleanup by splitting subnet catalog tests, models,
   and text rendering plus NNS topology clap command construction into focused
   modules.
