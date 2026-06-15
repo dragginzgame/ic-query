@@ -6,8 +6,7 @@ use super::super::{
 };
 use super::context::SnsNeuronsRefreshContext;
 use crate::{
-    cache_file::write_text_atomically,
-    snapshot_cache::SnapshotCompleteness,
+    snapshot_cache::{SnapshotCompleteness, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
         source::{MainnetSns, MainnetSnsList},
@@ -27,12 +26,12 @@ pub(super) fn publish_complete_sns_neurons_cache(
         complete.neurons,
     );
     let neuron_count = cache.data.neurons.len();
-    let cache_json =
-        serde_json::to_string_pretty(&cache).map_err(|source| SnsHostError::SerializeCache {
-            path: context.paths.cache_path.clone(),
-            source,
-        })?;
-    write_text_atomically(&context.paths.cache_path, &cache_json).map_err(sns_cache_file_error)?;
+    write_snapshot_json(
+        &context.paths.cache_path,
+        &cache,
+        |path, source| SnsHostError::SerializeCache { path, source },
+        sns_cache_file_error,
+    )?;
     write_sns_neurons_attempt(
         &context.paths.attempt_path,
         &attempt_from_parts(SnsNeuronsAttemptParts {

@@ -1,13 +1,13 @@
 use super::model::SnsNeuronsRefreshAttempt;
-use crate::sns::report::SnsNeuronsRefreshAttemptStatus;
-use std::{fs, path::Path};
+use crate::{
+    snapshot_cache::read_snapshot_refresh_attempt, sns::report::SnsNeuronsRefreshAttemptStatus,
+};
+use std::path::Path;
 
 pub(in crate::sns::report::neurons_cache::attempt) fn read_sns_neurons_attempt(
     path: &Path,
 ) -> Option<SnsNeuronsRefreshAttempt> {
-    fs::read(path)
-        .ok()
-        .and_then(|data| serde_json::from_slice(&data).ok())
+    read_snapshot_refresh_attempt(path)
 }
 
 pub(in crate::sns::report::neurons_cache) fn read_sns_neurons_attempt_status(

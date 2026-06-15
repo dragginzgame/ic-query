@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.41` extracts shared snapshot JSON loading/writing, header validation,
+  refresh-attempt, and full-collection path scanning helpers and migrates SNS
+  neuron cache reads, writes, and attempts onto them.
+
 - `0.1.40` extracts shared snapshot-cache key, path, envelope, completeness,
   and paged-collection state helpers and migrates SNS neuron complete snapshots
   onto them without changing cache JSON shape.

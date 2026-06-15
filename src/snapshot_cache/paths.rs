@@ -1,5 +1,8 @@
 use super::SnapshotKey;
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnapshotJsonPaths {
@@ -22,6 +25,26 @@ impl SnapshotJsonPaths {
 
 pub fn snapshot_network_dir(icp_root: &Path, domain: &str, network: &str) -> PathBuf {
     icp_root.join(".icq").join(domain).join(network)
+}
+
+pub fn collect_full_collection_snapshot_paths(
+    network_dir: &Path,
+    collection: &str,
+) -> std::io::Result<Vec<PathBuf>> {
+    let entries = match fs::read_dir(network_dir) {
+        Ok(entries) => entries,
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(source) => return Err(source),
+    };
+    let mut snapshot_paths = Vec::new();
+    for entry in entries {
+        let path = entry?.path().join(collection).join("full.json");
+        if path.is_file() {
+            snapshot_paths.push(path);
+        }
+    }
+    snapshot_paths.sort();
+    Ok(snapshot_paths)
 }
 
 fn snapshot_collection_dir(icp_root: &Path, key: &SnapshotKey) -> PathBuf {

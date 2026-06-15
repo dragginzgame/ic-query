@@ -57,10 +57,30 @@ impl<Metadata, Data> JsonCacheReport for SnapshotEnvelope<Metadata, Data> {
     }
 }
 
+pub trait SnapshotReport: JsonCacheReport {
+    fn completeness(&self) -> &SnapshotCompleteness;
+}
+
+impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
+    fn completeness(&self) -> &SnapshotCompleteness {
+        &self.completeness
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
 pub struct SnapshotHeader<Metadata> {
     pub schema_version: u32,
     pub network: String,
     #[serde(flatten)]
     pub metadata: Metadata,
+}
+
+impl<Metadata> JsonCacheReport for SnapshotHeader<Metadata> {
+    fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
+    fn network(&self) -> &str {
+        &self.network
+    }
 }

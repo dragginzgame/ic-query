@@ -35,12 +35,15 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup adds a shared `snapshot_cache` module for logical snapshot
-keys, JSON path encoding, flattened snapshot envelopes, headers, completeness
-metadata, and paged-collection state. Complete SNS neuron snapshots now use
-that shared snapshot model and page-state helper while preserving the existing
-`full.json` schema. Generic refresh orchestration still lives in the SNS
-neuron layer and remains open follow-through.
+The latest cleanup extends the shared `snapshot_cache` module with JSON
+complete-snapshot loading, snapshot writing, header loading, refresh-attempt
+envelopes, attempt read/write helpers, and full-collection path scanning.
+Complete SNS neuron cache reads, writes, and refresh-attempt files now use
+those shared helpers for schema/network validation, cache discovery,
+progress-file shape, and atomic JSON publishing while preserving the existing
+`full.json` and `full.refresh-attempt.json` schemas. Generic refresh
+orchestration still lives in the SNS neuron layer and remains open
+follow-through.
 
 ## Implementation Checklist
 
@@ -50,6 +53,8 @@ neuron layer and remains open follow-through.
 - [ ] Add a published `SnapshotEnvelope<T>` shape carrying logical domain,
       entity, collection, and scope metadata.
 - [x] Add JSON backend path encoding under `.icq/`.
+- [x] Add shared JSON snapshot loading/writing, header loading,
+      refresh-attempt, and cache discovery helpers.
 - [x] Add refresh-attempt files separate from published complete snapshots.
 - [x] Add refresh locking and atomic complete-snapshot commit for SNS neurons.
 - [x] Add a reusable paged collection state helper for row de-duplication,
@@ -127,13 +132,17 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.40 cleanup, including shared snapshot-cache key/path
-helpers, flattened snapshot envelope/completeness primitives, shared
-paged-collection state, and SNS neuron cache migration with cache JSON shape
-coverage. Prior validation covered the 0.1.39 cleanup, including the split of
-SNS report source definitions, lookup handling, live fetch handling, shared
-text helpers, neuron report models, complete neuron collection paging, and live
-proposal conversion into focused modules. Prior
+All passed during the 0.1.41 cleanup, including shared snapshot JSON
+loading/writing, snapshot-header loading, refresh-attempt envelopes/read-write
+helpers, full-collection path scanning, and SNS neuron cache read/write/attempt
+migration onto those helpers. Prior validation covered the 0.1.40 cleanup,
+including shared snapshot-cache key/path helpers, flattened snapshot
+envelope/completeness primitives, shared paged-collection state, and SNS neuron
+cache migration with cache JSON shape coverage. Prior validation covered the
+0.1.39 cleanup, including the split of SNS report source definitions, lookup
+handling, live fetch handling, shared text helpers, neuron report models,
+complete neuron collection paging, and live proposal conversion into focused
+modules. Prior
 validation covered the 0.1.38 cleanup, including the split of NNS node,
 node-provider, node-operator, and data-center text rendering into focused
 list, info, and refresh modules plus the split of topology summary and capacity
