@@ -8,6 +8,7 @@ mod output;
 mod progress;
 mod project;
 mod runtime;
+pub(crate) mod snapshot_cache;
 mod sns;
 pub mod subnet_catalog;
 mod table;

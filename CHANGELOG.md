@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.40` extracts shared snapshot-cache key, path, envelope, completeness,
+  and paged-collection state helpers and migrates SNS neuron complete snapshots
+  onto them without changing cache JSON shape.
+
 - `0.1.39` splits SNS report source, lookup, live fetch, text helpers, neuron
   models, neuron cache collection, and live proposal conversion helpers into
   focused modules.

@@ -1,4 +1,5 @@
-use super::state::{SnsNeuronsCollectionPage, SnsNeuronsCollectionState};
+use super::state::SnsNeuronsCollectionState;
+use crate::snapshot_cache::PagedCollectionPage;
 use crate::sns::report::{
     SnsHostError, SnsNeuronsRefreshRequest,
     neurons_cache::attempt::{
@@ -14,7 +15,7 @@ pub(super) fn write_running_attempt(
     fetch_request: &SnsFetchRequest,
     sns: &MainnetSns,
     state: &SnsNeuronsCollectionState,
-    page: &SnsNeuronsCollectionPage,
+    page: &PagedCollectionPage,
 ) -> Result<(), SnsHostError> {
     write_sns_neurons_attempt(
         attempt_path,

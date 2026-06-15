@@ -20,6 +20,15 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(refresh.page_count, 3);
     assert_eq!(refresh.neuron_count, 3);
 
+    let cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    assert_eq!(cache["schema_version"], 1);
+    assert_eq!(cache["id"], 1);
+    assert_eq!(cache["completeness"]["status"], "api_exhausted");
+    assert_eq!(cache["neurons"].as_array().expect("cache neurons").len(), 3);
+    assert!(cache.get("metadata").is_none());
+    assert!(cache.get("data").is_none());
+
     let mut cached_request = neurons_request("1");
     cached_request.icp_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;

@@ -35,22 +35,25 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup splits SNS report source definitions, lookup handling, live
-fetch handling, shared text helpers, neuron report models, complete neuron
-collection paging, and live proposal conversion into focused modules,
-following the NNS topology and component text/report cleanup.
-The first SNS snapshot implementation still reuses cache-file primitives
-directly in the SNS report layer. The reusable cross-command snapshot
-abstraction remains open follow-through.
+The latest cleanup adds a shared `snapshot_cache` module for logical snapshot
+keys, JSON path encoding, flattened snapshot envelopes, headers, completeness
+metadata, and paged-collection state. Complete SNS neuron snapshots now use
+that shared snapshot model and page-state helper while preserving the existing
+`full.json` schema. Generic refresh orchestration still lives in the SNS
+neuron layer and remains open follow-through.
 
 ## Implementation Checklist
 
-- [ ] Add a reusable snapshot cache module with logical `SnapshotKey` values.
-- [ ] Add a `SnapshotEnvelope<T>` carrying schema, provenance, scope, and
-      completeness metadata.
+- [x] Add a reusable snapshot cache module with logical `SnapshotKey` values.
+- [x] Add shared snapshot envelope and completeness primitives for the current
+      flattened JSON backend.
+- [ ] Add a published `SnapshotEnvelope<T>` shape carrying logical domain,
+      entity, collection, and scope metadata.
 - [x] Add JSON backend path encoding under `.icq/`.
 - [x] Add refresh-attempt files separate from published complete snapshots.
 - [x] Add refresh locking and atomic complete-snapshot commit for SNS neurons.
+- [x] Add a reusable paged collection state helper for row de-duplication,
+      cursor tracking, and exhaustion checks.
 - [ ] Add a generic paged collection refresh helper.
 - [x] Implement SNS neuron full-collection paging.
 - [x] Add `icq sns neurons refresh <id|root-principal>`.
@@ -124,10 +127,13 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.39 cleanup, including the split of SNS report source
-definitions, lookup handling, live fetch handling, shared text helpers, neuron
-report models, complete neuron collection paging, and live proposal conversion
-into focused modules. Prior
+All passed during the 0.1.40 cleanup, including shared snapshot-cache key/path
+helpers, flattened snapshot envelope/completeness primitives, shared
+paged-collection state, and SNS neuron cache migration with cache JSON shape
+coverage. Prior validation covered the 0.1.39 cleanup, including the split of
+SNS report source definitions, lookup handling, live fetch handling, shared
+text helpers, neuron report models, complete neuron collection paging, and live
+proposal conversion into focused modules. Prior
 validation covered the 0.1.38 cleanup, including the split of NNS node,
 node-provider, node-operator, and data-center text rendering into focused
 list, info, and refresh modules plus the split of topology summary and capacity

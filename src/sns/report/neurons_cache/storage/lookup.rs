@@ -38,7 +38,7 @@ pub(in crate::sns::report::neurons_cache) fn find_sns_neurons_cache_by_id(
 ) -> Result<Option<(PathBuf, SnsNeuronsCache)>, SnsHostError> {
     for path in collect_sns_neurons_cache_paths(icp_root, network)? {
         let header = read_sns_neurons_cache_header(&path, network)?;
-        if header.id == id {
+        if header.metadata.id == id {
             let cache = load_sns_neurons_cache_at(path.clone(), network)?;
             return Ok(Some((path, cache)));
         }

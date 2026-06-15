@@ -25,12 +25,13 @@ pub(in crate::sns::report::neurons_cache) fn sns_neurons_cache_summary(
     cache: SnsNeuronsCache,
 ) -> SnsNeuronsCacheSummary {
     let attempt_path = sns_neurons_attempt_path_for_cache_path(&cache_path);
+    let metadata = cache.metadata;
     SnsNeuronsCacheSummary {
-        id: cache.id,
-        name: cache.name,
-        root_canister_id: cache.root_canister_id,
-        governance_canister_id: cache.governance_canister_id,
-        complete: cache.completeness.status == "api_exhausted",
+        id: metadata.id,
+        name: metadata.name,
+        root_canister_id: metadata.root_canister_id,
+        governance_canister_id: metadata.governance_canister_id,
+        complete: cache.completeness.is_api_exhausted(),
         row_count: cache.completeness.row_count,
         page_count: cache.completeness.page_count,
         page_size: cache.completeness.page_size,

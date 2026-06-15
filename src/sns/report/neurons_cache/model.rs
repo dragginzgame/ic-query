@@ -1,47 +1,28 @@
 use super::super::{SnsNeuronRow, SnsNeuronsSort};
-use crate::cache_file::JsonCacheReport;
+use crate::snapshot_cache::{SnapshotEnvelope, SnapshotHeader};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::PathBuf;
 
+pub(super) type SnsNeuronsCache = SnapshotEnvelope<SnsNeuronsCacheMetadata, SnsNeuronsCacheRows>;
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct SnsNeuronsCache {
-    pub(super) schema_version: u32,
-    pub(super) network: String,
+pub(super) struct SnsNeuronsCacheMetadata {
     pub(super) sns_wasm_canister_id: String,
-    pub(super) fetched_at: String,
-    pub(super) source_endpoint: String,
-    pub(super) fetched_by: String,
     pub(super) id: usize,
     pub(super) name: String,
     pub(super) root_canister_id: String,
     pub(super) governance_canister_id: String,
-    pub(super) completeness: SnsNeuronsCompleteness,
-    pub(super) neurons: Vec<SnsNeuronRow>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct SnsNeuronsCompleteness {
-    pub(super) status: String,
-    pub(super) page_size: u32,
-    pub(super) page_count: u32,
-    pub(super) row_count: usize,
-    pub(super) point_in_time_guaranteed: bool,
+pub(super) struct SnsNeuronsCacheRows {
+    pub(super) neurons: Vec<SnsNeuronRow>,
 }
 
-impl JsonCacheReport for SnsNeuronsCache {
-    fn schema_version(&self) -> u32 {
-        self.schema_version
-    }
-
-    fn network(&self) -> &str {
-        &self.network
-    }
-}
+pub(super) type SnsNeuronsCacheHeader = SnapshotHeader<SnsNeuronsCacheHeaderMetadata>;
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
-pub(super) struct SnsNeuronsCacheHeader {
-    pub(super) schema_version: u32,
-    pub(super) network: String,
+pub(super) struct SnsNeuronsCacheHeaderMetadata {
     pub(super) id: usize,
 }
 

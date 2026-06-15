@@ -2,11 +2,12 @@ use super::super::{
     SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
     attempt::{SnsNeuronsAttemptParts, attempt_from_parts, write_sns_neurons_attempt},
     errors::sns_cache_file_error,
-    model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCompleteness},
+    model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheMetadata, SnsNeuronsCacheRows},
 };
 use super::context::SnsNeuronsRefreshContext;
 use crate::{
     cache_file::write_text_atomically,
+    snapshot_cache::SnapshotCompleteness,
     sns::report::{
         SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
         source::{MainnetSns, MainnetSnsList},
@@ -25,7 +26,7 @@ pub(super) fn publish_complete_sns_neurons_cache(
         complete.page_count,
         complete.neurons,
     );
-    let neuron_count = cache.neurons.len();
+    let neuron_count = cache.data.neurons.len();
     let cache_json =
         serde_json::to_string_pretty(&cache).map_err(|source| SnsHostError::SerializeCache {
             path: context.paths.cache_path.clone(),
@@ -79,21 +80,22 @@ fn sns_neurons_cache_from_parts(
     SnsNeuronsCache {
         schema_version: SNS_NEURONS_CACHE_SCHEMA_VERSION,
         network: list.network.clone(),
-        sns_wasm_canister_id: list.sns_wasm_canister_id.clone(),
         fetched_at: list.fetched_at.clone(),
         source_endpoint: list.source_endpoint.clone(),
         fetched_by: list.fetched_by.clone(),
-        id,
-        name: sns.name.clone(),
-        root_canister_id: sns.root_canister_id.clone(),
-        governance_canister_id: sns.governance_canister_id.clone(),
-        completeness: SnsNeuronsCompleteness {
-            status: "api_exhausted".to_string(),
+        metadata: SnsNeuronsCacheMetadata {
+            sns_wasm_canister_id: list.sns_wasm_canister_id.clone(),
+            id,
+            name: sns.name.clone(),
+            root_canister_id: sns.root_canister_id.clone(),
+            governance_canister_id: sns.governance_canister_id.clone(),
+        },
+        completeness: SnapshotCompleteness::api_exhausted(
             page_size,
             page_count,
-            row_count: neurons.len(),
-            point_in_time_guaranteed: false,
-        },
-        neurons,
+            neurons.len(),
+            false,
+        ),
+        data: SnsNeuronsCacheRows { neurons },
     }
 }

@@ -19,7 +19,7 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
         },
         SnsNeuronsCacheErrors,
     )?;
-    if cached.report.completeness.status != "api_exhausted" {
+    if !cached.report.completeness.is_api_exhausted() {
         return Err(incomplete_cache_error(
             cached.report.completeness.page_count,
             cached.report.completeness.row_count,
