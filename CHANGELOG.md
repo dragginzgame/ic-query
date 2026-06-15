@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.39` splits SNS report source, lookup, live fetch, text helpers, neuron
+  models, neuron cache collection, and live proposal conversion helpers into
+  focused modules.
+
 - `0.1.38` splits NNS component text rendering plus topology text, relation,
   refresh, gap, and derived report helpers into focused modules.
 

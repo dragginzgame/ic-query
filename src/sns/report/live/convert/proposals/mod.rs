@@ -1,11 +1,15 @@
+mod ballot;
+mod labels;
+mod timestamp;
+
 use super::super::{
-    super::{
-        SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalRow, SnsProposalTally, hex_bytes,
-    },
-    types::{SnsGovernanceBallot, SnsGovernanceProposalData},
+    super::{SnsProposalFailureReason, SnsProposalRow, SnsProposalTally, hex_bytes},
+    types::SnsGovernanceProposalData,
 };
 use super::common::clean_optional_text;
-use crate::subnet_catalog::format_utc_timestamp_secs;
+use ballot::sns_proposal_ballot_row;
+use labels::proposal_action_text;
+use timestamp::{nonzero_timestamp, optional_timestamp_text};
 
 pub(in crate::sns::report::live) fn sns_proposal_row(
     proposal: SnsGovernanceProposalData,
@@ -29,7 +33,9 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
         decision_state,
         reject_cost_e8s: proposal.reject_cost_e8s,
         proposal_creation_timestamp_seconds: proposal.proposal_creation_timestamp_seconds,
-        created_at: format_utc_timestamp_secs(proposal.proposal_creation_timestamp_seconds),
+        created_at: crate::subnet_catalog::format_utc_timestamp_secs(
+            proposal.proposal_creation_timestamp_seconds,
+        ),
         decided_timestamp_seconds: nonzero_timestamp(proposal.decided_timestamp_seconds),
         decided_at: optional_timestamp_text(proposal.decided_timestamp_seconds),
         executed_timestamp_seconds: nonzero_timestamp(proposal.executed_timestamp_seconds),
@@ -60,28 +66,6 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
     }
 }
 
-fn sns_proposal_ballot_row(
-    (neuron_id, ballot): (String, SnsGovernanceBallot),
-) -> SnsProposalBallotRow {
-    SnsProposalBallotRow {
-        neuron_id,
-        vote: ballot.vote,
-        vote_text: ballot_vote_text(ballot.vote),
-        cast_timestamp_seconds: ballot.cast_timestamp_seconds,
-        cast_at: optional_timestamp_text(ballot.cast_timestamp_seconds),
-        voting_power: ballot.voting_power,
-    }
-}
-
-fn ballot_vote_text(vote: i32) -> String {
-    match vote {
-        0 => "unspecified".to_string(),
-        1 => "yes".to_string(),
-        2 => "no".to_string(),
-        other => format!("unknown:{other}"),
-    }
-}
-
 fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> String {
     if proposal.failed_timestamp_seconds > 0 {
         "failed"
@@ -93,39 +77,4 @@ fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> String {
         "open"
     }
     .to_string()
-}
-
-fn proposal_action_text(action: u64) -> String {
-    match action {
-        0 => "unspecified".to_string(),
-        1 => "motion".to_string(),
-        2 => "manage_nervous_system_parameters".to_string(),
-        3 => "upgrade_sns_controlled_canister".to_string(),
-        4 => "add_generic_nervous_system_function".to_string(),
-        5 => "remove_generic_nervous_system_function".to_string(),
-        6 => "execute_generic_nervous_system_function".to_string(),
-        7 => "upgrade_sns_to_next_version".to_string(),
-        8 => "manage_sns_metadata".to_string(),
-        9 => "transfer_sns_treasury_funds".to_string(),
-        10 => "register_dapp_canisters".to_string(),
-        11 => "deregister_dapp_canisters".to_string(),
-        12 => "mint_sns_tokens".to_string(),
-        13 => "manage_ledger_parameters".to_string(),
-        14 => "manage_dapp_canister_settings".to_string(),
-        15 => "advance_sns_target_version".to_string(),
-        16 => "set_topics_for_custom_proposals".to_string(),
-        17 => "register_extension".to_string(),
-        18 => "execute_extension_operation".to_string(),
-        19 => "upgrade_extension".to_string(),
-        id if id >= 1_000 => format!("generic:{id}"),
-        id => format!("unknown:{id}"),
-    }
-}
-
-fn nonzero_timestamp(timestamp_seconds: u64) -> Option<u64> {
-    (timestamp_seconds > 0).then_some(timestamp_seconds)
-}
-
-fn optional_timestamp_text(timestamp_seconds: u64) -> Option<String> {
-    nonzero_timestamp(timestamp_seconds).map(format_utc_timestamp_secs)
 }
