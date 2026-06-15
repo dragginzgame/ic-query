@@ -1,6 +1,5 @@
-use super::{NnsNodeInfoReport, NnsNodeListReport, NnsNodeRefreshReport};
 use crate::{
-    nns::render::{NnsLeafRefreshText, compact_text, nns_leaf_refresh_report_text, text_or_dash},
+    nns::{node::report::NnsNodeListReport, render::compact_text, render::text_or_dash},
     table::{ColumnAlign, render_table},
 };
 
@@ -91,54 +90,4 @@ pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
     ];
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
-}
-
-#[must_use]
-pub fn nns_node_info_report_text(report: &NnsNodeInfoReport) -> String {
-    [
-        format!("input: {}", report.input),
-        format!("resolved_from: {}", report.resolved_from),
-        format!("node_principal: {}", report.node_principal),
-        format!(
-            "node_operator_principal: {}",
-            report.node_operator_principal
-        ),
-        format!(
-            "node_provider_principal: {}",
-            report.node_provider_principal
-        ),
-        format!("subnet_principal: {}", report.subnet_principal),
-        format!("subnet_kind: {}", report.subnet_kind),
-        format!(
-            "data_center_id: {}",
-            text_or_dash(Some(&report.data_center_id))
-        ),
-        format!("registry_canister_id: {}", report.registry_canister_id),
-        format!("registry_version: {}", report.registry_version),
-        format!("network: {}", report.network),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
-    ]
-    .join("\n")
-}
-
-#[must_use]
-pub fn nns_node_refresh_report_text(report: &NnsNodeRefreshReport) -> String {
-    nns_leaf_refresh_report_text(NnsLeafRefreshText {
-        network: &report.network,
-        cache_path: &report.cache_path,
-        refresh_lock_path: &report.refresh_lock_path,
-        governance_canister_id: None,
-        registry_canister_id: &report.registry_canister_id,
-        registry_version: report.registry_version,
-        fetched_at: &report.fetched_at,
-        source_endpoint: &report.source_endpoint,
-        fetched_by: &report.fetched_by,
-        dry_run: report.dry_run,
-        wrote_cache: report.wrote_cache,
-        replaced_existing_cache: report.replaced_existing_cache,
-        count_label: "node_count",
-        count: report.node_count,
-    })
 }

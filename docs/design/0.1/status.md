@@ -35,9 +35,9 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup splits NNS registry, node, and cached component report
-roots into focused build, source, model, text, and refresh modules, following
-the shared NNS leaf and component command/runtime/spec/report-adapter cleanup.
+The latest cleanup splits NNS component text rendering plus topology text,
+relation, refresh, gap, and derived report helpers into focused modules,
+following the NNS report-root and shared leaf command/runtime/spec cleanup.
 The first SNS snapshot implementation still reuses cache-file primitives
 directly in the SNS report layer. The reusable cross-command snapshot
 abstraction remains open follow-through.
@@ -123,10 +123,17 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.37 cleanup, including the split of NNS registry,
-node, and cached component report roots into focused build, source, model,
-text, and refresh modules. Prior validation covered the 0.1.36 cleanup,
-including the
+All passed during the 0.1.38 cleanup, including the split of NNS node,
+node-provider, node-operator, and data-center text rendering into focused
+list, info, and refresh modules plus the split of topology summary and capacity
+text rendering into focused table-helper modules and the split of topology
+health, capacity, refresh, and gap report construction into focused
+derived-helper modules, including a shared topology relation index for summary
+join coverage and gap detection.
+Prior validation covered the 0.1.37 cleanup, including the split of NNS
+registry, node, and cached component report roots into focused build, source,
+model, text, and refresh modules.
+Prior validation covered the 0.1.36 cleanup, including the
 split of shared NNS leaf command construction, option parsing, and runtime
 helpers plus the split of NNS component command/runtime/spec/report-adapter
 wiring into focused modules. Prior validation covered the 0.1.35 cleanup,

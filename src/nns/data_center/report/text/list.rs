@@ -1,7 +1,7 @@
-use super::{NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterRefreshReport};
 use crate::{
-    nns::render::{
-        NnsLeafRefreshText, nns_leaf_refresh_report_text, optional_f32_text, text_or_dash,
+    nns::{
+        data_center::report::NnsDataCenterListReport,
+        render::{optional_f32_text, text_or_dash},
     },
     table::{ColumnAlign, render_table},
 };
@@ -97,47 +97,4 @@ pub fn nns_data_center_list_report_verbose_text(report: &NnsDataCenterListReport
     ];
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
-}
-
-#[must_use]
-pub fn nns_data_center_info_report_text(report: &NnsDataCenterInfoReport) -> String {
-    [
-        format!("input: {}", report.input),
-        format!("resolved_from: {}", report.resolved_from),
-        format!("data_center_id: {}", report.data_center_id),
-        format!("region: {}", text_or_dash(Some(&report.region))),
-        format!("owner: {}", text_or_dash(Some(&report.owner))),
-        format!("latitude: {}", optional_f32_text(report.latitude)),
-        format!("longitude: {}", optional_f32_text(report.longitude)),
-        format!("node_operator_count: {}", report.node_operator_count),
-        format!("node_provider_count: {}", report.node_provider_count),
-        format!("node_count: {}", report.node_count),
-        format!("registry_canister_id: {}", report.registry_canister_id),
-        format!("registry_version: {}", report.registry_version),
-        format!("network: {}", report.network),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
-    ]
-    .join("\n")
-}
-
-#[must_use]
-pub fn nns_data_center_refresh_report_text(report: &NnsDataCenterRefreshReport) -> String {
-    nns_leaf_refresh_report_text(NnsLeafRefreshText {
-        network: &report.network,
-        cache_path: &report.cache_path,
-        refresh_lock_path: &report.refresh_lock_path,
-        governance_canister_id: None,
-        registry_canister_id: &report.registry_canister_id,
-        registry_version: report.registry_version,
-        fetched_at: &report.fetched_at,
-        source_endpoint: &report.source_endpoint,
-        fetched_by: &report.fetched_by,
-        dry_run: report.dry_run,
-        wrote_cache: report.wrote_cache,
-        replaced_existing_cache: report.replaced_existing_cache,
-        count_label: "data_center_count",
-        count: report.data_center_count,
-    })
 }
