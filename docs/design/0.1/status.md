@@ -35,14 +35,23 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup extends the shared `snapshot_cache` module with locked
+The latest cleanup adds shared NNS leaf request accessors and a shared NNS
+leaf JSON refresh-cache writer. Node, node-provider, node-operator, and
+data-center refresh now use the shared writer for cache-path construction and
+`RefreshCacheWriteRequest` setup while preserving their report fields and
+cache behavior. Topology NNS component cache-request adapters also use the
+shared leaf cache constructor, while subnet catalog cache requests remain
+separate. The shared NNS leaf writer has fixture coverage for dry-run output
+and real cache replacement behavior.
+
+The previous cleanup extends the shared `snapshot_cache` module with locked
 snapshot refresh setup, paged refresh orchestration, and refresh-attempt
-lifecycle handling. Complete SNS neuron refresh now uses the shared runners
-for parent directory creation, refresh locking, replacement detection, progress
+lifecycle handling. Complete SNS neuron refresh uses the shared runners for
+parent directory creation, refresh locking, replacement detection, progress
 lifecycle, max-page cutoff, fetch-failure reporting, running/failed attempt
 handling, attempt-progress callbacks, and collection-exhaustion handling while
 preserving SNS-specific page fetching, attempt metadata, and error reporting.
-SNS neuron attempt-file construction is now centralized behind status-specific
+SNS neuron attempt-file construction is centralized behind status-specific
 starting, running, complete, and failed writers instead of being rebuilt at
 each refresh call site.
 
@@ -133,12 +142,16 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.42 cleanup, including shared locked snapshot refresh
-setup, shared paged snapshot refresh orchestration, shared refresh-attempt
-lifecycle handling, and migration of complete SNS neuron refresh setup, paging,
-and start/failure attempt handling onto the generic runners, plus centralized
-SNS neuron attempt-file writers. Prior validation
-covered the 0.1.41 cleanup, including shared snapshot JSON loading/writing,
+All passed during the 0.1.43 cleanup, including shared NNS leaf refresh-cache
+writer extraction and migration of node, node-provider, node-operator, and
+data-center refresh paths plus topology NNS component cache-request adapters
+onto shared leaf cache helpers, with focused coverage for dry-run output and
+real cache replacement behavior. Prior validation covered the 0.1.42 cleanup,
+including shared locked snapshot refresh setup, shared paged snapshot refresh
+orchestration, shared refresh-attempt lifecycle handling, and migration of
+complete SNS neuron refresh setup, paging, and start/failure attempt handling
+onto the generic runners, plus centralized SNS neuron attempt-file writers.
+Prior validation covered the 0.1.41 cleanup, including shared snapshot JSON loading/writing,
 snapshot-header loading, refresh-attempt envelopes/read-write helpers,
 full-collection path scanning, and SNS neuron cache read/write/attempt
 migration onto those helpers. Prior validation covered the 0.1.40 cleanup,

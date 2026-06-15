@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.43` adds a shared NNS leaf refresh-cache writer and migrates node,
+  node-provider, node-operator, data-center, and topology cache-request
+  adapters onto shared NNS leaf cache helpers.
+
 - `0.1.42` extracts shared locked, paged snapshot refresh and
   attempt-lifecycle orchestration, centralizes SNS neuron attempt writers, and
   migrates SNS neuron complete-refresh paging onto the generic runners.

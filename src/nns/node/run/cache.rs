@@ -1,9 +1,6 @@
-use crate::nns::node::report::NnsNodeCacheRequest;
-use std::path::{Path, PathBuf};
+use crate::nns::{leaf::NnsLeafCacheRequest, node::report::NnsNodeCacheRequest};
+use std::path::Path;
 
 pub(super) fn cache_request(icp_root: &Path, network: &str) -> NnsNodeCacheRequest {
-    NnsNodeCacheRequest {
-        icp_root: PathBuf::from(icp_root),
-        network: network.to_string(),
-    }
+    NnsNodeCacheRequest::from_root_network(icp_root, network)
 }

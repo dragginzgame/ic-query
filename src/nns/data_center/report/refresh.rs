@@ -7,10 +7,7 @@ use super::{
         LiveNnsDataCenterSource, NnsDataCenterSource, fetch_nns_data_center_list_report_with_source,
     },
 };
-use crate::{
-    cache_file::{RefreshCacheWriteRequest, write_json_refresh_cache},
-    nns::leaf::NnsLeafCachePaths,
-};
+use crate::nns::leaf::write_nns_leaf_json_refresh_cache;
 
 pub fn refresh_nns_data_center_report(
     request: &NnsDataCenterRefreshRequest,
@@ -30,29 +27,17 @@ pub(super) fn refresh_nns_data_center_cache_with_source(
     source: &dyn NnsDataCenterSource,
 ) -> Result<(NnsDataCenterListReport, NnsDataCenterRefreshReport), NnsDataCenterHostError> {
     enforce_mainnet_network(&request.cache.network)?;
-    let paths = NnsLeafCachePaths::for_component(
-        &request.cache.icp_root,
-        NNS_DATA_CENTER_CACHE_DIR,
-        &request.cache.network,
-        NNS_DATA_CENTER_CACHE_FILE,
-    );
     let report = fetch_nns_data_center_list_report_with_source(
         &request.cache.network,
         &request.source_endpoint,
         request.now_unix_secs,
         source,
     )?;
-    let write_result = write_json_refresh_cache(
-        RefreshCacheWriteRequest {
-            cache_path: &paths.cache_path,
-            lock_path: &paths.lock_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
-            dry_run: request.dry_run,
-            output_path: request.output_path.as_deref(),
-            report: &report,
-        },
+    let write_result = write_nns_leaf_json_refresh_cache(
+        request,
+        NNS_DATA_CENTER_CACHE_DIR,
+        NNS_DATA_CENTER_CACHE_FILE,
+        &report,
         data_center_cache_error,
         |path, source| NnsDataCenterHostError::SerializeCache { path, source },
     )?;

@@ -44,6 +44,8 @@ pub struct NnsNodeRefreshRequest {
     pub output_path: Option<PathBuf>,
 }
 
+impl_nns_leaf_cache_and_refresh_requests!(NnsNodeCacheRequest, NnsNodeRefreshRequest);
+
 ///
 /// NnsNodeListFilters
 ///

@@ -1,26 +1,36 @@
 use super::model::TopologyRequestParts;
 use crate::{
-    nns::data_center::report::NnsDataCenterCacheRequest, nns::node::report::NnsNodeCacheRequest,
-    nns::node_operator::report::NnsNodeOperatorCacheRequest,
-    nns::node_provider::report::NnsNodeProviderCacheRequest,
+    nns::{
+        data_center::report::NnsDataCenterCacheRequest, leaf::NnsLeafCacheRequest,
+        node::report::NnsNodeCacheRequest, node_operator::report::NnsNodeOperatorCacheRequest,
+        node_provider::report::NnsNodeProviderCacheRequest,
+    },
     subnet_catalog::SubnetCatalogCacheRequest,
 };
 
-macro_rules! cache_request {
+macro_rules! nns_leaf_cache_request {
     ($name:ident, $request:path) => {
         pub(in crate::nns::topology::report) fn $name(
             request: &impl TopologyRequestParts,
         ) -> $request {
-            $request {
-                icp_root: request.icp_root().to_path_buf(),
-                network: request.network().to_string(),
-            }
+            <$request as NnsLeafCacheRequest>::from_root_network(
+                request.icp_root(),
+                request.network(),
+            )
         }
     };
 }
 
-cache_request!(subnet_catalog_cache_request, SubnetCatalogCacheRequest);
-cache_request!(node_cache_request, NnsNodeCacheRequest);
-cache_request!(node_provider_cache_request, NnsNodeProviderCacheRequest);
-cache_request!(node_operator_cache_request, NnsNodeOperatorCacheRequest);
-cache_request!(data_center_cache_request, NnsDataCenterCacheRequest);
+pub(in crate::nns::topology::report) fn subnet_catalog_cache_request(
+    request: &impl TopologyRequestParts,
+) -> SubnetCatalogCacheRequest {
+    SubnetCatalogCacheRequest {
+        icp_root: request.icp_root().to_path_buf(),
+        network: request.network().to_string(),
+    }
+}
+
+nns_leaf_cache_request!(node_cache_request, NnsNodeCacheRequest);
+nns_leaf_cache_request!(node_provider_cache_request, NnsNodeProviderCacheRequest);
+nns_leaf_cache_request!(node_operator_cache_request, NnsNodeOperatorCacheRequest);
+nns_leaf_cache_request!(data_center_cache_request, NnsDataCenterCacheRequest);

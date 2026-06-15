@@ -10,6 +10,6 @@ pub use json::{
 };
 pub use lock::{RefreshLockRequest, with_refresh_lock};
 pub use write::{
-    RefreshCacheWriteRequest, create_parent_directory, write_json_refresh_cache,
-    write_text_atomically, write_text_output,
+    RefreshCacheWriteRequest, RefreshCacheWriteResult, create_parent_directory,
+    write_json_refresh_cache, write_text_atomically, write_text_output,
 };

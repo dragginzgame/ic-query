@@ -26,6 +26,8 @@ pub(in crate::nns) struct NnsLeafCommandSpec {
 
 pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
     fn from_root_network(icp_root: &Path, network: &str) -> Self;
+    fn icp_root(&self) -> &Path;
+    fn network(&self) -> &str;
 }
 
 pub(in crate::nns) trait NnsLeafListRequest {
@@ -56,6 +58,12 @@ pub(in crate::nns) trait NnsLeafRefreshRequest {
         dry_run: bool,
         output_path: Option<PathBuf>,
     ) -> Self;
+
+    fn cache(&self) -> &Self::Cache;
+    fn now_unix_secs(&self) -> u64;
+    fn lock_stale_after_seconds(&self) -> u64;
+    fn dry_run(&self) -> bool;
+    fn output_path(&self) -> Option<&Path>;
 }
 
 pub(in crate::nns) trait NnsLeafReports {
