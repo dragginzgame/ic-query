@@ -35,11 +35,11 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup splits SNS text/build orchestration and NNS topology
-build/read orchestration into focused modules, following the SNS neuron-cache
-and shared cache-file module cleanups. The first SNS snapshot implementation
-still reuses cache-file primitives directly in the SNS report layer. The
-reusable cross-command snapshot abstraction remains open follow-through.
+The latest cleanup splits live SNS Candid wire types and SNS proposal text
+rendering into focused modules, following the SNS text/build and NNS topology
+build/read orchestration cleanups. The first SNS snapshot implementation still
+reuses cache-file primitives directly in the SNS report layer. The reusable
+cross-command snapshot abstraction remains open follow-through.
 
 ## Implementation Checklist
 
@@ -122,7 +122,12 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.30 cleanup, including the split of subnet catalog
+All passed during the 0.1.34 cleanup, including the split of live SNS Candid
+wire types into focused deployed-SNS, token metadata, proposal, and neuron API
+modules, plus the split of SNS proposal text rendering into focused
+single-proposal, proposal-list, and shared detail-line modules. Prior
+validation covered the 0.1.33 and 0.1.30 cleanups, including the split of SNS
+text/build orchestration, NNS topology build/read orchestration, subnet catalog
 list text rendering into focused compact, verbose, and range-line modules, plus
 the split of subnet catalog classification model enums into focused
 subnet-kind, specialization, geographic-scope, and source modules, and the

@@ -1,0 +1,23 @@
+use super::{SNS_PROPOSAL_DETAIL_TEXT_LIMIT, detail::proposal_detail_lines};
+use crate::{nns::render::yes_no, sns::report::SnsProposalReport};
+
+#[must_use]
+pub fn sns_proposal_report_text(report: &SnsProposalReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", report.network),
+        format!("sns_id: {}", report.id),
+        format!("name: {}", report.name),
+        format!("root_canister_id: {}", report.root_canister_id),
+        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!("proposal_id: {}", report.proposal_id),
+        format!("verbose: {}", yes_no(report.verbose)),
+        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+        String::new(),
+        "proposal:".to_string(),
+    ];
+    let detail_limit = (!report.verbose).then_some(SNS_PROPOSAL_DETAIL_TEXT_LIMIT);
+    lines.extend(proposal_detail_lines(&report.proposal, detail_limit));
+    lines.join("\n")
+}
