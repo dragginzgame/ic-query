@@ -1,0 +1,13 @@
+use serde::{Deserialize, Serialize};
+
+///
+/// CatalogStaleStatus
+///
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CatalogStaleStatus {
+    pub catalog_stale: bool,
+    pub stale_reason: String,
+    pub stale_after_seconds: u64,
+    pub fetched_at_unix_secs: Option<u64>,
+    pub age_seconds: Option<u64>,
+}
