@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.30` splits subnet catalog list text rendering, classification model
+  enums, and root catalog helpers into focused modules.
+
 - `0.1.29` splits subnet catalog resolver and report model definitions into
   focused modules.
 

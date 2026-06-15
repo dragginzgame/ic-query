@@ -120,11 +120,17 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.29 cleanup, including the split of subnet catalog
-resolver behavior into focused model, subnet, prefix, and canister-routing
-modules, plus the split of subnet catalog report model definitions into focused
-stale-status, list, info, and refresh modules. Prior validation covered the
-0.1.28 cleanup, including the split of IC registry live-source queries into
+All passed during the 0.1.30 cleanup, including the split of subnet catalog
+list text rendering into focused compact, verbose, and range-line modules, plus
+the split of subnet catalog classification model enums into focused
+subnet-kind, specialization, geographic-scope, and source modules, and the
+split of subnet catalog root error, JSON parse/render, and principal parsing
+helpers into focused modules. Prior validation covered the 0.1.29 cleanup,
+including the split of subnet catalog resolver behavior into focused model,
+subnet, prefix, and canister-routing modules, plus the split of subnet catalog
+report model definitions into focused stale-status, list, info, and refresh
+modules. Prior validation covered the 0.1.28 cleanup, including the split of
+IC registry live-source queries into
 focused agent/canister setup, registry-version, subnet-catalog, governance
 node-provider, and node-relation list modules, plus the split of IC registry
 relation-inventory fetch orchestration into focused fetch, data-center record,
