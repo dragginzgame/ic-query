@@ -1,14 +1,22 @@
 use super::{
     NNS_DATA_CENTER_CACHE_DIR, NNS_DATA_CENTER_CACHE_FILE,
     NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterListReport,
-    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, NnsDataCenterSource,
-    data_center_cache_error, enforce_mainnet_network,
-    source::fetch_nns_data_center_list_report_with_source,
+    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, data_center_cache_error,
+    enforce_mainnet_network,
+    source::{
+        LiveNnsDataCenterSource, NnsDataCenterSource, fetch_nns_data_center_list_report_with_source,
+    },
 };
 use crate::{
     cache_file::{RefreshCacheWriteRequest, write_json_refresh_cache},
     nns::leaf::NnsLeafCachePaths,
 };
+
+pub fn refresh_nns_data_center_report(
+    request: &NnsDataCenterRefreshRequest,
+) -> Result<NnsDataCenterRefreshReport, NnsDataCenterHostError> {
+    refresh_nns_data_center_report_with_source(request, &LiveNnsDataCenterSource)
+}
 
 pub(super) fn refresh_nns_data_center_report_with_source(
     request: &NnsDataCenterRefreshRequest,

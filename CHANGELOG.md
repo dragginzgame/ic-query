@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.37` splits NNS registry, node, and cached component report roots into
+  focused build, source, model, text, and refresh modules.
+
 - `0.1.36` splits shared NNS leaf command/option/runtime helpers plus NNS
   component command, runtime, spec, and report-adapter wiring into focused
   modules.

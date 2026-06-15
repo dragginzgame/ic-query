@@ -2,13 +2,22 @@ use super::{
     NNS_NODE_OPERATOR_CACHE_DIR, NNS_NODE_OPERATOR_CACHE_FILE,
     NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION, NnsNodeOperatorHostError,
     NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
-    NnsNodeOperatorSource, enforce_mainnet_network, node_operator_cache_error,
-    source::fetch_nns_node_operator_list_report_with_source,
+    enforce_mainnet_network, node_operator_cache_error,
+    source::{
+        LiveNnsNodeOperatorSource, NnsNodeOperatorSource,
+        fetch_nns_node_operator_list_report_with_source,
+    },
 };
 use crate::{
     cache_file::{RefreshCacheWriteRequest, write_json_refresh_cache},
     nns::leaf::NnsLeafCachePaths,
 };
+
+pub fn refresh_nns_node_operator_report(
+    request: &NnsNodeOperatorRefreshRequest,
+) -> Result<NnsNodeOperatorRefreshReport, NnsNodeOperatorHostError> {
+    refresh_nns_node_operator_report_with_source(request, &LiveNnsNodeOperatorSource)
+}
 
 pub(super) fn refresh_nns_node_operator_report_with_source(
     request: &NnsNodeOperatorRefreshRequest,
