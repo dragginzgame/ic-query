@@ -1,50 +1,36 @@
-use super::super::{
-    commands::{
-        topology_capacity_usage, topology_coverage_usage, topology_gaps_usage,
-        topology_health_usage, topology_providers_usage, topology_regions_usage,
-        topology_summary_usage, topology_versions_usage,
-    },
-    options::{
-        TopologyCapacityOptions, TopologyCoverageOptions, TopologyGapsOptions,
-        TopologyHealthOptions, TopologyProvidersOptions, TopologyReadOptions,
-        TopologyRegionsOptions, TopologySummaryOptions, TopologyVersionsOptions,
-    },
-    report::{
-        NnsTopologyCapacityReport, NnsTopologyCapacityRequest, NnsTopologyCoverageReport,
-        NnsTopologyCoverageRequest, NnsTopologyGapsReport, NnsTopologyGapsRequest,
-        NnsTopologyHealthReport, NnsTopologyHealthRequest, NnsTopologyHostError,
-        NnsTopologyProvidersReport, NnsTopologyProvidersRequest, NnsTopologyRegionsReport,
-        NnsTopologyRegionsRequest, NnsTopologySummaryReport, NnsTopologySummaryRequest,
-        NnsTopologyVersionsReport, NnsTopologyVersionsRequest, build_nns_topology_capacity_report,
-        build_nns_topology_coverage_report, build_nns_topology_gaps_report,
-        build_nns_topology_health_report, build_nns_topology_providers_report,
-        build_nns_topology_regions_report, build_nns_topology_summary_report,
-        build_nns_topology_versions_report, nns_topology_capacity_report_text,
-        nns_topology_coverage_report_text, nns_topology_gaps_report_text,
-        nns_topology_health_report_text, nns_topology_providers_report_text,
-        nns_topology_regions_report_text, nns_topology_summary_report_text,
-        nns_topology_versions_report_text,
-    },
-};
+use super::core::{TopologyReadRunner, run_topology_read};
 use crate::{
-    cli::help::print_help_or_version,
-    nns::{NnsCommandError, now_unix_secs, write_text_or_json},
-    project::icp_root,
-    version_text,
+    nns::NnsCommandError,
+    nns::topology::{
+        commands::{
+            topology_capacity_usage, topology_coverage_usage, topology_gaps_usage,
+            topology_health_usage, topology_providers_usage, topology_regions_usage,
+            topology_summary_usage, topology_versions_usage,
+        },
+        options::{
+            TopologyCapacityOptions, TopologyCoverageOptions, TopologyGapsOptions,
+            TopologyHealthOptions, TopologyProvidersOptions, TopologyRegionsOptions,
+            TopologySummaryOptions, TopologyVersionsOptions,
+        },
+        report::{
+            NnsTopologyCapacityReport, NnsTopologyCapacityRequest, NnsTopologyCoverageReport,
+            NnsTopologyCoverageRequest, NnsTopologyGapsReport, NnsTopologyGapsRequest,
+            NnsTopologyHealthReport, NnsTopologyHealthRequest, NnsTopologyHostError,
+            NnsTopologyProvidersReport, NnsTopologyProvidersRequest, NnsTopologyRegionsReport,
+            NnsTopologyRegionsRequest, NnsTopologySummaryReport, NnsTopologySummaryRequest,
+            NnsTopologyVersionsReport, NnsTopologyVersionsRequest,
+            build_nns_topology_capacity_report, build_nns_topology_coverage_report,
+            build_nns_topology_gaps_report, build_nns_topology_health_report,
+            build_nns_topology_providers_report, build_nns_topology_regions_report,
+            build_nns_topology_summary_report, build_nns_topology_versions_report,
+            nns_topology_capacity_report_text, nns_topology_coverage_report_text,
+            nns_topology_gaps_report_text, nns_topology_health_report_text,
+            nns_topology_providers_report_text, nns_topology_regions_report_text,
+            nns_topology_summary_report_text, nns_topology_versions_report_text,
+        },
+    },
 };
-use serde::Serialize;
 use std::ffi::OsString;
-
-trait TopologyReadRunner {
-    type Options: TopologyReadOptions<Self::Request>;
-    type Request;
-    type Report: Serialize;
-    type HostError: Into<NnsCommandError>;
-
-    fn usage() -> String;
-    fn build_report(request: &Self::Request) -> Result<Self::Report, Self::HostError>;
-    fn render_text(report: &Self::Report) -> String;
-}
 
 macro_rules! topology_read_runner {
     (
@@ -78,7 +64,7 @@ macro_rules! topology_read_runner {
             }
         }
 
-        pub(super) fn $name<I>(args: I) -> Result<(), NnsCommandError>
+        pub(in crate::nns::topology::run) fn $name<I>(args: I) -> Result<(), NnsCommandError>
         where
             I: IntoIterator<Item = OsString>,
         {
@@ -167,20 +153,3 @@ topology_read_runner!(
     build_nns_topology_providers_report,
     nns_topology_providers_report_text
 );
-
-fn run_topology_read<I, Runner>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-    Runner: TopologyReadRunner,
-{
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, Runner::usage, version_text()) {
-        return Ok(());
-    }
-    let options = Runner::Options::parse_args(args)?;
-    let format = options.format();
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
-    let request = options.into_request(icp_root, now_unix_secs()?);
-    let report = Runner::build_report(&request).map_err(Into::into)?;
-    write_text_or_json(format, &report, Runner::render_text)
-}

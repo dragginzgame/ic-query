@@ -35,11 +35,11 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup splits SNS neuron-cache storage, refresh, report, attempt,
-and complete-collection fetching into focused modules, following the shared
-cache-file module cleanup. The first SNS snapshot implementation still reuses
-cache-file primitives directly in the SNS report layer. The reusable
-cross-command snapshot abstraction remains open follow-through.
+The latest cleanup splits SNS text/build orchestration and NNS topology
+build/read orchestration into focused modules, following the SNS neuron-cache
+and shared cache-file module cleanups. The first SNS snapshot implementation
+still reuses cache-file primitives directly in the SNS report layer. The
+reusable cross-command snapshot abstraction remains open follow-through.
 
 ## Implementation Checklist
 
