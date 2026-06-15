@@ -120,17 +120,24 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.19 live SNS fetch cleanup, including the split of
-live SNS fetch wiring into deployed SNS listing, ledger token metadata,
-governance parameters, proposals, and neuron paging modules, plus focused live
-SNS conversion modules for deployed SNS canisters, token metadata, proposal
-rows, and neuron rows, along with focused SNS report model modules for list,
-token, governance, proposal, and neuron reports. The prior validation also
-covered shared NNS cache path construction, JSON-cache error mapper reuse,
-shared cached JSON report use, refresh text rendering reuse, standard
-cached-leaf report adapter reuse, common NNS mainnet network enforcement,
-shared NNS macro module organization, and the 0.1.18 command module cleanup.
-The cache tests cover schema rejection, failed refresh preservation, stale lock
-recovery, complete cache sorting, and malformed subnet routing error handling.
-The prior live read-only proposal smoke against `https://icp-api.io` also
-succeeded outside the sandbox.
+All passed during the 0.1.20 SNS report cleanup, including the split of SNS
+report assembly into focused list/info, token, parameters, proposal, proposals,
+and neurons modules, the split of SNS report builder orchestration out of the
+report module root, and the split of the SNS report test suite into focused
+list/info, token, parameters, proposal, and neuron test modules with decomposed
+shared request and source fixtures. SNS neuron tests are further grouped by
+live rendering, cache refresh, cache status, and cache error behavior, and
+cached NNS report tests reuse the shared unique temp-directory helper. The
+prior validation also covered the split of live SNS fetch wiring into deployed
+SNS listing, ledger token metadata,
+governance parameters, proposals, and neuron paging modules, focused live SNS
+conversion modules for deployed SNS canisters, token metadata, proposal rows,
+and neuron rows, focused SNS report model modules for list, token, governance,
+proposal, and neuron reports, shared NNS cache path construction, JSON-cache
+error mapper reuse, shared cached JSON report use, refresh text rendering
+reuse, standard cached-leaf report adapter reuse, common NNS mainnet network
+enforcement, shared NNS macro module organization, and the 0.1.18 command
+module cleanup. The cache tests cover schema rejection, failed refresh
+preservation, stale lock recovery, complete cache sorting, and malformed subnet
+routing error handling. The prior live read-only proposal smoke against
+`https://icp-api.io` also succeeded outside the sandbox.

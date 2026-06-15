@@ -1,12 +1,7 @@
 use super::*;
 use crate::ic_registry::{MAINNET_GOVERNANCE_CANISTER_ID, MainnetNodeProvider};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
-use std::{
-    fs,
-    sync::atomic::{AtomicU64, Ordering},
-};
-
-static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+use crate::test_support::temp_dir;
 
 #[test]
 fn node_provider_report_uses_live_governance_source() {
@@ -340,14 +335,8 @@ impl NnsNodeProviderSource for FailingNodeProviderSource {
 }
 
 fn test_cache_request(network: &str, name: &str) -> NnsNodeProviderCacheRequest {
-    let count = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let icp_root = std::env::temp_dir().join(format!(
-        "ic-query-node-provider-{name}-{}-{count}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&icp_root);
     NnsNodeProviderCacheRequest {
-        icp_root,
+        icp_root: temp_dir(&format!("ic-query-nns-node-provider-{name}")),
         network: network.to_string(),
     }
 }

@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.20] - 2026-06-15
+
+### Changed
+
+- Splits SNS report assembly into focused list/info, token, parameters,
+  proposal, proposals, and neurons modules while preserving the existing
+  report builder behavior.
+- Splits SNS report builder orchestration out of the report module root,
+  keeping the root focused on module wiring, public exports, and constants.
+- Splits the SNS report test suite into focused list/info, token, parameters,
+  proposal, and neuron test modules with decomposed shared request and source
+  fixtures.
+- Further splits SNS neuron tests by live rendering, cache refresh, cache
+  status, and cache error behavior, and reuses the shared unique temp-directory
+  helper in cached NNS report tests.
+
 ## [0.1.19] - 2026-06-14
 
 ### Changed

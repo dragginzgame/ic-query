@@ -1,9 +1,9 @@
 use super::super::{
-    SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
-    enforce_mainnet_network, hex_bytes, lookup_request_from_parts, resolve_sns_lookup,
+    SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, hex_bytes,
 };
 use super::super::{
     live::LiveSnsSource,
+    lookup::{enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup},
     source::{MainnetSns, MainnetSnsList, SnsFetchRequest, SnsNeuronId, SnsNeuronsSource},
 };
 use super::{

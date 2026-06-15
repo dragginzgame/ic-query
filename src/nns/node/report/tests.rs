@@ -1,12 +1,7 @@
 use super::*;
 use crate::ic_registry::MainnetNode;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
-use std::{
-    fs,
-    sync::atomic::{AtomicU64, Ordering},
-};
-
-static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+use crate::test_support::temp_dir;
 
 #[test]
 fn node_report_uses_live_registry_source() {
@@ -125,15 +120,8 @@ fn node_fixture() -> MainnetNode {
 }
 
 fn test_cache_request(network: &str, name: &str) -> NnsNodeCacheRequest {
-    let counter = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let root = std::env::temp_dir()
-        .join("ic-query-nns-node-tests")
-        .join(format!("{name}-{counter}"));
-    if root.exists() {
-        fs::remove_dir_all(&root).expect("remove old test root");
-    }
     NnsNodeCacheRequest {
-        icp_root: root,
+        icp_root: temp_dir(&format!("ic-query-nns-node-{name}")),
         network: network.to_string(),
     }
 }
