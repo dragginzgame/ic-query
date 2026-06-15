@@ -120,13 +120,18 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.25 cleanup, including the split of NNS node,
+All passed during the 0.1.26 cleanup, including the split of IC registry
+protobuf wire types into focused id, registry, routing, subnet, and
+node/data-center modules, plus the split of IC registry domain projection
+mappers into focused node-provider, node-operator, node, and data-center
+modules while preserving existing internal root imports. Prior validation
+covered the 0.1.25 cleanup, including the split of NNS node,
 node-provider, node-operator, and data-center report model roots into focused
-request, report, and host-error modules while preserving existing public
-report exports, plus the split of NNS topology runtime handling into focused
-dispatch, read-runner, and refresh modules, and the split of topology report
-request wiring into focused model, cache, list, and refresh request-builder
-modules. Prior validation covered the 0.1.24 cleanup, including the
+request, report, and host-error modules while preserving existing public report
+exports, plus the split of NNS topology runtime handling into focused dispatch,
+read-runner, and refresh modules, and the split of topology report request
+wiring into focused model, cache, list, and refresh request-builder modules.
+Prior validation covered the 0.1.24 cleanup, including the
 split of subnet catalog core tests into focused schema, resolver, validation,
 and fixture modules, the split of subnet catalog domain models into focused
 classification, type, and validation modules, the split of subnet catalog text
