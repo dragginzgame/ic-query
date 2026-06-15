@@ -5,497 +5,116 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.1.23] - 2026-06-15
-
-### Changed
-
-- Splits NNS topology report models into focused summary, coverage, versions,
-  health, gaps, capacity, regions, providers, and refresh model modules.
-- Splits NNS topology provider report assembly into focused report,
-  accumulator, and provider-status modules.
-- Splits NNS topology summary report assembly into focused count,
-  join-coverage, and registry-version helper modules.
-- Splits shared NNS topology report test fixtures into focused subnet, node,
-  node-provider, node-operator, and data-center fixture modules.
-
-## [0.1.22] - 2026-06-15
-
-### Changed
-
-- Splits NNS node, node-provider, node-operator, and data-center report roots
-  into focused cache, refresh, resolve, source, and node-filter modules while
-  preserving the existing report API and cache behavior.
-- Splits subnet catalog host support into focused cache, error, path, refresh,
-  and live-source modules while preserving refresh locking and cache behavior.
-- Splits subnet catalog report support into focused model, list, info, and
-  rate/applicability modules while preserving list/info report behavior.
-
-## [0.1.21] - 2026-06-15
-
-### Changed
-
-- Splits NNS topology report tests into focused summary, coverage, versions,
-  health, gaps, capacity, regions, providers, and refresh modules with shared
-  fixtures.
-- Splits broad NNS CLI parsing, help, and local-network rejection tests into
-  focused subnet, node, node-provider, node-operator, data-center, registry,
-  and topology modules.
-- Splits NNS node-provider report tests into focused list, info, text,
-  refresh, and fixture modules.
-- Splits IC registry tests into focused catalog, wire, governance, inventory,
-  and fixture modules.
-- Splits subnet catalog tests into focused cache, list, info, stale/time,
-  refresh, and fixture modules.
-- Splits SNS command parsing and usage tests into focused list, lookup,
-  proposals, neurons, invalid-input, and usage modules.
-- Splits SNS neuron-cache complete-collection paging and progress reporting
-  out of refresh orchestration while preserving refresh, attempt, and cache
-  behavior.
-
-## [0.1.20] - 2026-06-15
-
-### Changed
-
-- Splits SNS report assembly into focused list/info, token, parameters,
-  proposal, proposals, and neurons modules while preserving the existing
-  report builder behavior.
-- Splits SNS report builder orchestration out of the report module root,
-  keeping the root focused on module wiring, public exports, and constants.
-- Splits the SNS report test suite into focused list/info, token, parameters,
-  proposal, and neuron test modules with decomposed shared request and source
-  fixtures.
-- Further splits SNS neuron tests by live rendering, cache refresh, cache
-  status, and cache error behavior, and reuses the shared unique temp-directory
-  helper in cached NNS report tests.
-
-## [0.1.19] - 2026-06-14
-
-### Changed
-
-- Splits live SNS fetch wiring into focused modules for deployed SNS listing,
-  ledger token metadata, governance parameters, proposals, and neuron paging
-  while preserving the existing live source API.
-- Splits live SNS conversion helpers into focused modules for deployed SNS
-  canisters, token metadata, proposal rows, and neuron rows.
-- Splits SNS report model structs into focused list, token, governance,
-  proposal, and neuron report model modules.
-
-## [0.1.18] - 2026-06-14
-
-### Changed
-
-- Splits the custom filtered NNS node command into focused command
-  construction, option parsing, and runtime dispatch modules while preserving
-  existing node filters and help output.
-- Splits SNS command runtime dispatch and command error definitions out of the
-  SNS command module root, leaving the root as a thin module boundary.
-- Splits SNS runtime handlers and clap command construction into focused
-  submodules for lookup, proposals, neurons, shared args, and shared runtime
-  helpers.
-- Splits SNS option parsing into focused list, lookup, proposals, and neurons
-  parser modules.
-
-## [0.1.17] - 2026-06-14
-
-### Changed
-
-- Deduplicates standard NNS cached leaf report-adapter implementations for
-  node-provider, node-operator, and data-center commands behind a shared local
-  macro while keeping the filtered node command custom.
-- Reuses the same NNS mainnet-only network guard implementation across
-  registry, topology, node, node-provider, node-operator, and data-center
-  reports.
-- Renames the shared NNS macro module to reflect its broader command and
-  report helper scope.
-
-## [0.1.16] - 2026-06-14
-
-### Changed
-
-- Centralizes NNS cached leaf cache and refresh-lock path construction across
-  node, node-provider, node-operator, and data-center reports.
-- Deduplicates NNS JSON cache error mapper implementations across the same
-  cached leaf report families.
-- Reuses shared NNS refresh text rendering across the same cached leaf report
-  families while preserving their current text output order.
-- Removes per-family cached-report wrapper structs in favor of the shared JSON
-  cache report type.
-- Removes now-unused internal refresh-lock path wrappers from cached NNS leaf
-  report modules.
-
-## [0.1.15] - 2026-06-14
-
-### Changed
-
-- Tightens shared cache write and refresh helpers, including parent-directory
-  handling, parentless relative output paths, and distinct refresh-lock
-  read/parse/serialize errors.
-- Centralizes SNS neuron cache, lock, and refresh-attempt path construction,
-  removing parent-directory panic paths from snapshot refresh and status code.
-- Deduplicates NNS cache-file error mapping across node, node-provider,
-  node-operator, and data-center refresh paths.
-- Simplifies internal command-output helpers to stdout-only writing while
-  preserving refresh export-path behavior.
-- Hardens subnet catalog and UTC timestamp internals by replacing panic-prone
-  invariant paths with typed errors or direct formatting.
-
-## [0.1.14] - 2026-06-14
-
-### Changed
-
-- Splits live SNS source wiring from blocking and async fetch implementations
-  so the live SNS module is organized by adapter, fetch, query, conversion, and
-  Candid type responsibilities.
-- Splits NNS topology CLI support into focused command construction, option
-  parsing, and runtime dispatch modules.
-- Splits NNS subnet CLI support into focused command construction, option
-  parsing, and runtime dispatch modules.
-- Splits SNS command specifications into focused command construction, usage
-  rendering, and value-enum modules.
-- Splits shared cache-file support into focused error, JSON loading, refresh
-  lock, and write modules while preserving existing call sites.
-- Splits subnet catalog request/report types and report builders out of the
-  catalog root module.
-- Splits SNS neuron-cache report assembly from complete snapshot refresh
-  orchestration.
-- Deduplicates byte-to-hex formatting across IC registry and SNS report code
-  behind a shared crate helper.
-- Removes an unnecessary panic-path conversion from token amount decimal
-  rounding.
-
-## [0.1.13] - 2026-06-14
-
-### Changed
-
-- Splits shared NNS leaf command support into focused model, option parsing,
-  clap command construction, and runtime dispatch submodules.
-- Collapses the shared NNS cached-leaf runner signature behind a report-provider
-  trait so callers no longer carry every request, report, cache, and host-error
-  type through the public helper boundary.
-- Replaces generic callback bundles in shared JSON cache loading and NNS
-  topology read dispatch with named provider traits and concrete local mappers.
-- Replaces the positional SNS lookup tuple with a named lookup result shared by
-  info, token, params, proposal, proposals, neurons, and neuron-cache refresh.
-
-## [0.1.12] - 2026-06-14
-
-### Changed
-
-- Splits IC registry live relation inventory fetching into a focused
-  inventory module, keeping the registry root module limited to shared
-  constants, principal conversion, and registry key helpers.
-- Splits IC registry async live-source querying out of the blocking client
-  wrapper module.
-
-## [0.1.11] - 2026-06-14
-
-### Changed
-
-- Splits IC registry adapter models, errors, Candid wire types, transport
-  helpers, relation inventory helpers, catalog and domain projection helpers,
-  and mainnet annotations into focused submodules.
-- Replaces the registry client wildcard parent import with explicit internal
-  imports.
-
-## [0.1.10] - 2026-06-14
-
-### Changed
-
-- Splits NNS node, node-provider, node-operator, and data-center text
-  rendering into focused report text submodules.
-- Splits NNS node, node-provider, node-operator, and data-center request,
-  report, cache, and error models into focused report model submodules.
-- Splits NNS topology summary, coverage, versions, and host-error helpers out
-  of the topology report orchestration module.
-- Splits NNS topology text rendering into focused per-report renderer
-  submodules.
-
-## [0.1.9] - 2026-06-14
-
-### Changed
-
-- Splits SNS command clap specification, usage rendering, value parsers,
-  command value enums, and parsed option types into focused commands
-  submodules.
-- Splits SNS report lookup/list ordering helpers and report-object assembly
-  into focused report submodules.
-- Splits SNS report model types into focused request, report, sort/filter, and
-  error submodules.
-- Splits SNS neuron cache loading, discovery, summaries, and cached sort
-  ordering into a focused cache storage submodule.
-- Splits generic live SNS agent/query helpers out of the live SNS fetch
-  orchestration module.
-- Renames the internal live SNS source to match its broader list, token,
-  governance, proposal, and neuron query role.
-
-## [0.1.8] - 2026-06-14
-
-### Changed
-
-- Splits SNS neuron cache path, attempt, error, and cache model helpers into
-  focused submodules while preserving the existing cache behavior.
-- Splits live SNS Candid request and response wire types into a focused live
-  source submodule.
-- Splits live SNS response conversion and metadata/proposal formatting helpers
-  into a focused live source submodule.
-
-## [0.1.7] - 2026-06-14
-
-### Changed
-
-- Corrects release Make targets so `make patch`, `make minor`, and `make major`
-  only gate and bump version files, while `make release-patch`,
-  `make release-minor`, and `make release-major` stage, commit, tag, and push.
-- Requires a clean worktree for `make package` and `make publish`, and documents
-  publishing after the release commit/tag push.
-- Splits NNS topology health, gap, capacity, region, provider, and refresh
-  aggregation into focused report submodules.
-
-## [0.1.6] - 2026-06-14
-
-### Changed
-
-- Hardens SNS neuron snapshot cache coverage for unsupported schemas, stale
-  refresh locks, failed refresh preservation, and complete-cache sorting.
-- Splits SNS neuron cache storage, refresh, status, and cached-sort mechanics
-  into a dedicated report submodule.
-- Deduplicates SNS command request construction for timestamps and project
-  cache-root lookup.
-- Normalizes Rust module layout to avoid `foo.rs` plus `foo/` collisions,
-  removes `#[path = "..."]` module shims, and records module/test layout rules
-  in `AGENTS.md`.
-
-## [0.1.5] - 2026-06-14
-
-### Changed
-
-- Splits SNS command dispatch into its own module while keeping the public SNS
-  module focused on exports.
-- Splits SNS text rendering into focused helper, neuron/cache, params, and
-  proposal modules.
-- Deduplicates typed live SNS Candid query handling across SNS-W and governance
-  calls.
-- Reuses shared help/version and SNS cache-path helpers in older NNS and SNS
-  call sites.
-- Makes `make patch`, `make minor`, and `make major` push the release commit
-  and tag automatically after the release bump succeeds.
-
-## [0.1.4] - 2026-06-14
-
-### Added
-
-- Adds `icq sns proposals <id|root-principal>` for bounded live SNS governance
-  proposal listings, with `--limit`, `--before`, `--status`, `--verbose`, and
-  JSON output support.
-- Adds `icq sns proposal <id|root-principal> <proposal-id>` for direct SNS
-  governance proposal detail lookup.
-
-## [0.1.3] - 2026-06-14
-
-### Added
-
-- Adds `icq sns neurons cache list` and `icq sns neurons cache status
-  <id|root-principal>` to inspect local complete neuron snapshots and latest
-  refresh-attempt metadata without live SNS-W or governance calls.
+Root entries are concise release summaries. Detailed patch breakdowns live in
+`docs/changelog/<major>.<minor>.md` and are linked from each minor line when
+present.
 
-### Fixed
+## Unreleased
 
-- Uses local complete neuron cache metadata for cache-backed `icq sns neurons
-  <id|root-principal> --sort ...` reports instead of re-fetching the live SNS
-  list before reading the cache.
-
-## [0.1.2] - 2026-06-13
+## [0.1.x] - 2026-06-13 - Snapshot cache and SNS query growth
 
-### Changed
+Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
-- Deduplicates SNS lookup command dispatch, clap command construction, and
-  shared lookup option parsing.
-- Moves shared duration display formatting into the duration helper module.
-- Splits SNS model types, source contracts, text rendering, and live IC API
-  querying out of the main SNS report orchestration module.
+- `0.1.24` continues module cleanup by splitting subnet catalog tests, models,
+  and text rendering plus NNS topology clap command construction into focused
+  modules.
 
-### Fixed
+- `0.1.23` decomposes NNS topology report models, provider/summary assembly,
+  and shared topology fixtures into focused modules.
 
-- Preserves SNS neuron refresh attempt progress metadata when a refresh stops
-  before publishing a complete snapshot.
+- `0.1.22` splits cached NNS leaf report roots and subnet catalog host/report
+  support while preserving existing cache and report behavior.
 
-## [0.1.1] - 2026-06-13
+- `0.1.21` splits major NNS, SNS, registry, subnet catalog, and neuron-cache
+  test and orchestration modules into focused files.
 
-### Added
+- `0.1.20` splits SNS report assembly, report-root orchestration, and SNS
+  report tests by command family and cache behavior.
 
-- Adds `icq sns params <id|root-principal>` to query SNS governance nervous
-  system parameters, with readable text output and raw Candid fields in JSON.
+- `0.1.19` splits live SNS fetch, conversion, and report model wiring for
+  deployed SNSes, tokens, governance parameters, proposals, and neurons.
 
-### Changed
+- `0.1.18` splits the custom NNS node command and SNS command runtime, clap,
+  and parser modules without changing command behavior.
 
-- Moves shared token/e8s text amount rendering into a reusable helper for SNS
-  token, neuron, and parameter reports.
+- `0.1.17` deduplicates standard cached NNS leaf report adapters and reuses a
+  shared mainnet-only network guard.
 
-## [0.1.0] - 2026-06-13
+- `0.1.16` centralizes cached NNS leaf cache paths, refresh-lock paths, JSON
+  cache error mapping, refresh text rendering, and shared JSON cache reports.
 
-### Added
+- `0.1.15` hardens cache writes, refresh locks, SNS neuron cache paths,
+  command-output helpers, and panic-prone timestamp/subnet internals.
 
-- Adds `icq sns neurons refresh <id|root-principal>` to materialize complete
-  SNS governance neuron snapshots under `.icq/sns/ic/<root>/neurons/full.json`.
-- Adds cache-backed `icq sns neurons <id|root-principal> --sort
-  id|stake|maturity|created` over complete neuron snapshots.
-- Adds a shared stderr progress-line helper and uses it to show SNS neuron
-  refresh page/row counters while long refreshes are running.
-- Adds Canic-style `make release-patch`, `make release-minor`,
-  `make release-major`, and `make release-push` helpers.
+- `0.1.14` splits live SNS, NNS topology/subnet CLI, SNS command specs,
+  cache-file support, subnet catalog request/report, and neuron-cache modules.
 
-### Changed
+- `0.1.13` tightens shared NNS leaf helpers, JSON cache providers, topology
+  dispatch, and SNS lookup result types.
 
-- Keeps default `icq sns neurons` output on the bounded live API path with
-  `--sort api`, while whole-collection sorts require the complete cache.
-- Allows larger `--limit` values for cache-backed SNS neuron sorts while
-  keeping live API queries capped at 100 rows.
-- Records SNS neuron refresh attempts separately from published complete
-  snapshots so failed or capped refreshes do not replace the last complete
-  cache.
-- Shortens SNS neuron IDs to eight characters in text tables by default, with
-  `--verbose` preserving full neuron IDs.
-- Renders current SNS token amounts, including token fee, total supply, stake,
-  maturity, and staked maturity, as two-decimal token amounts in text output
-  while keeping raw base-unit and e8s fields in JSON.
-
-## [0.0.9] - 2026-06-13
-
-### Added
-
-- Adds `icq sns neurons <id|root-principal>` for SNS governance neuron listings
-  with clap-validated `--limit` and `--owner` filters.
-- Adds `docs/design/0.1/` planning docs for reusable complete snapshot caches
-  and SNS neuron refresh semantics.
-
-### Changed
-
-- Deduplicates SNS lookup command option parsing and shared SNS resolution,
-  while clap-validating lookup ids and root principals.
-- Lets global `--network ic` forward to all networked SNS lookup commands.
-
-## [0.0.8] - 2026-06-13
-
-### Added
-
-- Adds `icq sns token <id|root-principal>` for SNS ledger token metadata,
-  supply, fee, supported standards, minting account, and index canister lookup.
-
-### Changed
-
-- Uses the SNS-W `list_deployed_snses` response order for SNS numeric ids,
-  preserving deployment order through concurrent metadata enrichment.
-- Reports SNS `icrc1:logo` token metadata as a boolean presence value instead
-  of emitting the raw logo payload.
-- Removes the drifting crates.io version badge from the README.
-
-### Fixed
-
-- Fixes table rendering for long SNS token metadata values without relying on
-  dynamic format widths.
-
-## [0.0.7] - 2026-06-13
-
-### Changed
-
-- Further deduplicates cache-backed NNS leaf command plumbing through shared
-  request and test-helper macros.
-- Collapses repeated NNS topology read request structs into a shared read
-  request type while preserving the existing command-specific request names.
-- Deduplicates NNS topology read-runner and component request construction
-  helpers.
-
-## [0.0.6] - 2026-06-13
-
-### Changed
-
-- Deduplicates cached NNS leaf command dispatch for data-center, node-provider,
-  and node-operator commands.
-- Deduplicates NNS topology read command parsing and splits topology report
-  request/model code into focused submodules.
-
-## [0.0.5] - 2026-06-13
-
-### Changed
-
-- Lets clap render top-level command help from registered command metadata
-  instead of maintaining a separate hand-formatted command list.
-- Uses clap's ranged numeric parser for
-  `icq nns subnet list --range-limit` and removes unused CLI parsing helpers.
-
-## [0.0.4] - 2026-06-13
-
-### Added
-
-- Adds `make patch`, `make minor`, and `make major` release helpers that run
-  `make test` before any version or tag mutations, bump the crate version,
-  commit it, and create an annotated version tag.
-- Adds SNS metadata fallback visibility in text and JSON reports when a
-  governance metadata query fails but the deployed SNS row can still be shown.
-- Adds `icq sns list --sort id|name` while keeping numeric SNS ids stable by
-  root principal.
-- Adds exact snapshot-style tests for top-level and SNS list CLI help output.
-- Adds binary smoke tests for top-level help, SNS list help, NNS topology help,
-  and version output.
-
-### Changed
-
-- Moves the `icq sns list` row id to the first text table column.
-- Assigns SNS list row ids after deterministic root-principal ordering so ids
-  are not reshuffled by metadata name changes or metadata lookup failures.
-- Hardens release bumps by validating the bumped package before commit/tag and
-  restoring `Cargo.toml` and `Cargo.lock` if a post-mutation release step fails.
-- Uses more collision-resistant temporary filenames and cleanup for atomic cache
-  writes.
-- Centralizes CLI output-format handling, top-level command metadata, and the
-  current-thread async runtime wrapper used by live IC query adapters.
-- Deduplicates topology component request construction and mainnet agent/
-  canister setup in live registry and SNS queries.
-- Splits live registry fetch orchestration into `ic_registry::client` and moves
-  NNS topology text rendering into its own report submodule.
-- Splits subnet catalog host/cache refresh code, text rendering, and timestamp
-  helpers into focused submodules.
-- Deduplicates repeated NNS topology read-option parsing.
-- Reuses a shared refresh-lock guard helper for pre-fetch subnet catalog
-  refreshes.
-
-## [0.0.3] - 2026-06-13
-
-### Added
-
-- Adds `icq sns list` and `icq sns info` for deployed mainnet SNS instances
-  queried from the SNS-W canister and SNS governance metadata.
-- Resolves SNS names from governance metadata, shows compact five-character
-  canister ID prefixes by default, and supports full canister IDs with
-  `icq sns list --verbose`.
-- Supports `icq sns info <id|root-principal>` lookups by list row id or SNS
-  root canister principal.
-
-### Changed
-
-- Groups NNS command implementation modules under `src/nns/` by command family.
-- Renames project-local `icq` cache/state directory from `.ic-query/` to
-  `.icq/`.
-- Updates README positioning so `ic-query` is documented as a standalone IC
-  metadata lookup tool, with Canic mentioned only as an optional integration
-  example.
-- Clarifies cache behavior for subnet versus node/provider/operator/data-center
-  commands, including first-use cache population and source endpoint notices.
-
-## [0.0.1] - 2026-06-13
-
-### Added
-
-- Adds the `icq` executable.
-- Adds the `icq nns` command family for read-only Internet Computer mainnet
-  metadata queries.
-- Adds cache-backed subnet list, subnet info, and subnet refresh commands.
-- Adds cache-backed NNS registry version, data-center, node, node-provider,
-  node-operator, and joined-topology commands.
-- Adds text and JSON output for automation-friendly metadata reports.
-
-### Changed
-
-- Moves the former `canic nns ...` command surface into `icq nns ...`.
-- Folds the former subnet catalog model and resolver into `ic-query`, so the
-  metadata query tool owns subnet classification and lookup.
+- `0.1.12` splits IC registry relation inventory fetching and async
+  live-source querying out of broader registry modules.
+
+- `0.1.11` decomposes IC registry adapters, wire types, transport helpers,
+  relation inventory helpers, domain projections, and annotations.
+
+- `0.1.10` splits NNS component report text/model modules and NNS topology
+  helper/rendering modules.
+
+- `0.1.9` splits SNS command, report, cache, and live source modules and
+  renames the live SNS source to match its broader role.
+
+- `0.1.8` splits SNS neuron cache model/path helpers and live SNS Candid plus
+  conversion helpers.
+
+- `0.1.7` corrects release target boundaries, tightens package/publish
+  requirements, and splits NNS topology aggregation modules.
+
+- `0.1.6` hardens SNS neuron snapshot cache coverage, splits cache mechanics,
+  deduplicates request construction, and normalizes Rust module layout.
+
+- `0.1.5` splits SNS command dispatch and text rendering, deduplicates live SNS
+  Candid queries, and reuses shared command helpers.
+
+- `0.1.4` adds bounded SNS governance proposal listings and direct proposal
+  detail lookup commands.
+
+- `0.1.3` adds local SNS neuron snapshot cache inspection commands and fixes
+  cache-backed neuron sorts to avoid unnecessary live fetches.
+
+- `0.1.2` deduplicates SNS lookup plumbing, moves duration formatting into a
+  helper, splits SNS report internals, and preserves failed refresh metadata.
+
+- `0.1.1` adds SNS nervous system parameter lookup and shared token/e8s amount
+  rendering.
+
+- `0.1.0` introduces complete SNS neuron snapshots, cache-backed neuron sorts,
+  refresh progress output, and Canic-style release helper commands.
+
+## [0.0.x] - 2026-06-13 - Initial IC query extraction
+
+Detailed patch breakdown: [docs/changelog/0.0.md](docs/changelog/0.0.md)
+
+- `0.0.9` adds bounded SNS neuron listings, 0.1 snapshot-cache design docs,
+  and stricter SNS lookup validation.
+
+- `0.0.8` adds SNS token metadata lookup, stable SNS-W numeric ids, logo
+  payload hiding, and long-value table fixes.
+
+- `0.0.7` deduplicates cached NNS leaf command plumbing and topology read
+  request construction.
+
+- `0.0.6` deduplicates cached NNS leaf dispatch and splits topology read
+  parsing plus report request/model code.
+
+- `0.0.5` lets clap render top-level help and uses clap range validation for
+  subnet list limits.
+
+- `0.0.4` adds release helpers, SNS metadata fallback visibility, SNS list
+  sorting, CLI smoke tests, cache-write hardening, and NNS/SNS query cleanup.
+
+- `0.0.3` adds SNS list/info lookups, groups NNS commands under `src/nns/`,
+  renames the local cache directory to `.icq/`, and updates README positioning.
+
+- `0.0.1` creates the `icq` executable, extracts the former Canic NNS query
+  surface, and adds read-only text/JSON metadata reports.
