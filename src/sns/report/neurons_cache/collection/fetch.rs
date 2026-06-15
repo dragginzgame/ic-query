@@ -1,15 +1,18 @@
 use super::super::{
-    SnsHostError, SnsNeuronsRefreshRequest, hex_bytes,
-    source::{MainnetSns, SnsFetchRequest, SnsNeuronId, SnsNeuronsSource},
-};
-use super::{
     attempt::{SnsNeuronsAttemptParts, attempt_from_parts, write_sns_neurons_attempt},
     model::CompleteSnsNeurons,
 };
-use crate::progress::ProgressLine;
+use super::progress::sns_neurons_progress_text;
+use crate::{
+    progress::ProgressLine,
+    sns::report::{
+        SnsHostError, SnsNeuronsRefreshRequest, hex_bytes,
+        source::{MainnetSns, SnsFetchRequest, SnsNeuronId, SnsNeuronsSource},
+    },
+};
 use std::{collections::HashSet, path::Path};
 
-pub(super) fn fetch_complete_sns_neurons(
+pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
     request: &SnsNeuronsRefreshRequest,
     fetch_request: &SnsFetchRequest,
     sns: &MainnetSns,
@@ -98,11 +101,4 @@ pub(super) fn fetch_complete_sns_neurons(
         page_count,
         last_cursor: start_page_at.as_ref().map(|cursor| hex_bytes(&cursor.id)),
     })
-}
-
-fn sns_neurons_progress_text(sns: &MainnetSns, pages: u32, rows: usize) -> String {
-    format!(
-        "refreshing SNS neurons for {}: pages={} rows={}",
-        sns.name, pages, rows
-    )
 }

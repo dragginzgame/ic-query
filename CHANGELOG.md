@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.32` splits SNS neuron-cache storage, refresh, report, attempt, and
+  collection handling into focused modules.
+
 - `0.1.31` splits shared cache-file JSON, refresh-lock, and write helpers into
   focused modules.
 
