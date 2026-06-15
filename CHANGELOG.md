@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.28` splits IC registry live-source, relation-inventory fetch
+  orchestration, and public registry models into focused modules.
+
 - `0.1.27` splits IC registry transport helpers, relation helpers, and
   relation inventory tests into focused modules.
 

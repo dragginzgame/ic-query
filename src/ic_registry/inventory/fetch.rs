@@ -1,7 +1,11 @@
 use super::{
-    RegistryFetchError, SUBNET_LIST_KEY, normalized_data_center_id, principal_text_from_raw,
-    principal_text_from_required_raw,
-    proto::{DataCenterRecord, NodeOperatorRecord, NodeRecord, SubnetListRecord, SubnetRecord},
+    INVENTORY_FETCH_CONCURRENCY,
+    data_center::fetch_data_center_records_for_inventory,
+    keys::{node_operator_record_key, node_record_key},
+};
+use crate::ic_registry::{
+    RegistryFetchError, SUBNET_LIST_KEY, principal_text_from_raw, principal_text_from_required_raw,
+    proto::{NodeOperatorRecord, NodeRecord, SubnetListRecord, SubnetRecord},
     relations::{
         RegistryRelationInventory, RegistryRelationInventoryScope,
         assigned_node_principals_from_subnets, node_provider_counts_from_records,
@@ -14,12 +18,7 @@ use futures::{StreamExt, TryStreamExt, stream};
 use ic_agent::Agent;
 use std::collections::{BTreeMap, BTreeSet};
 
-const NODE_RECORD_KEY_PREFIX: &str = "node_record_";
-const NODE_OPERATOR_RECORD_KEY_PREFIX: &str = "node_operator_record_";
-const DATA_CENTER_RECORD_KEY_PREFIX: &str = "data_center_record_";
-const INVENTORY_FETCH_CONCURRENCY: usize = 32;
-
-pub(super) async fn fetch_node_provider_node_counts(
+pub(in crate::ic_registry) async fn fetch_node_provider_node_counts(
     agent: &Agent,
     registry_canister: &Principal,
     registry_version: u64,
@@ -38,7 +37,7 @@ pub(super) async fn fetch_node_provider_node_counts(
     )
 }
 
-pub(super) async fn fetch_registry_relation_inventory(
+pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
     agent: &Agent,
     registry_canister: &Principal,
     registry_version: u64,
@@ -121,39 +120,4 @@ pub(super) async fn fetch_registry_relation_inventory(
         subnet_records,
         data_center_records,
     })
-}
-
-async fn fetch_data_center_records_for_inventory(
-    agent: &Agent,
-    registry_canister: &Principal,
-    registry_version: u64,
-    node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
-) -> Result<BTreeMap<String, DataCenterRecord>, RegistryFetchError> {
-    let data_center_ids = node_operator_records
-        .values()
-        .filter_map(|record| normalized_data_center_id(&record.dc_id))
-        .collect::<BTreeSet<_>>();
-    stream::iter(data_center_ids)
-        .map(|data_center_id| async move {
-            let key = data_center_record_key(&data_center_id);
-            let record_bytes =
-                get_registry_value(agent, registry_canister, &key, registry_version).await?;
-            let record = decode_message::<DataCenterRecord>("DataCenterRecord", &record_bytes)?;
-            Ok::<_, RegistryFetchError>((data_center_id, record))
-        })
-        .buffer_unordered(INVENTORY_FETCH_CONCURRENCY)
-        .try_collect::<BTreeMap<_, _>>()
-        .await
-}
-
-fn node_record_key(node_principal: &str) -> String {
-    format!("{NODE_RECORD_KEY_PREFIX}{node_principal}")
-}
-
-fn node_operator_record_key(node_operator_principal: &str) -> String {
-    format!("{NODE_OPERATOR_RECORD_KEY_PREFIX}{node_operator_principal}")
-}
-
-fn data_center_record_key(data_center_id: &str) -> String {
-    format!("{DATA_CENTER_RECORD_KEY_PREFIX}{data_center_id}")
 }

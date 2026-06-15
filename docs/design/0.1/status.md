@@ -120,17 +120,24 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.27 cleanup, including the split of IC registry
-transport helpers into focused version, value, chunk, and protobuf codec
-modules, the split of IC registry relation helpers into focused model, subnet
-assignment, and count aggregation modules, and the split of IC registry
-relation inventory tests into focused node-provider, node-operator, node, and
-data-center modules. Prior validation covered the 0.1.26 cleanup, including
-the split of IC registry protobuf wire types into focused id, registry,
-routing, subnet, and node/data-center modules, plus the split of IC registry
-domain projection mappers into focused node-provider, node-operator, node, and
-data-center modules while preserving existing internal root imports. Prior
-validation covered the 0.1.25 cleanup, including the split of NNS node,
+All passed during the 0.1.28 cleanup, including the split of IC registry
+live-source queries into focused agent/canister setup, registry-version,
+subnet-catalog, governance node-provider, and node-relation list modules, plus
+the split of IC registry relation-inventory fetch orchestration into focused
+fetch, data-center record, and registry-key helper modules, and the split of
+IC registry public model definitions into focused request, registry-version,
+node-provider, node-operator, node, and data-center modules. Prior validation
+covered the 0.1.27 cleanup, including the split of IC registry transport
+helpers into focused version, value, chunk, and protobuf codec modules, the
+split of IC registry relation helpers into focused model, subnet assignment,
+and count aggregation modules, and the split of IC registry relation inventory
+tests into focused node-provider, node-operator, node, and data-center modules.
+Prior validation covered the 0.1.26 cleanup, including the split of IC registry
+protobuf wire types into focused id, registry, routing, subnet, and
+node/data-center modules, plus the split of IC registry domain projection
+mappers into focused node-provider, node-operator, node, and data-center
+modules while preserving existing internal root imports. Prior validation
+covered the 0.1.25 cleanup, including the split of NNS node,
 node-provider, node-operator, and data-center report model roots into focused
 request, report, and host-error modules while preserving existing public report
 exports, plus the split of NNS topology runtime handling into focused dispatch,
