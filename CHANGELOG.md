@@ -5,6 +5,28 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.21] - 2026-06-15
+
+### Changed
+
+- Splits NNS topology report tests into focused summary, coverage, versions,
+  health, gaps, capacity, regions, providers, and refresh modules with shared
+  fixtures.
+- Splits broad NNS CLI parsing, help, and local-network rejection tests into
+  focused subnet, node, node-provider, node-operator, data-center, registry,
+  and topology modules.
+- Splits NNS node-provider report tests into focused list, info, text,
+  refresh, and fixture modules.
+- Splits IC registry tests into focused catalog, wire, governance, inventory,
+  and fixture modules.
+- Splits subnet catalog tests into focused cache, list, info, stale/time,
+  refresh, and fixture modules.
+- Splits SNS command parsing and usage tests into focused list, lookup,
+  proposals, neurons, invalid-input, and usage modules.
+- Splits SNS neuron-cache complete-collection paging and progress reporting
+  out of refresh orchestration while preserving refresh, attempt, and cache
+  behavior.
+
 ## [0.1.20] - 2026-06-15
 
 ### Changed

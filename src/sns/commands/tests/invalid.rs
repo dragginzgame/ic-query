@@ -1,0 +1,73 @@
+use super::*;
+
+#[test]
+fn sns_neurons_rejects_invalid_clap_values() {
+    assert!(matches!(
+        SnsLookupOptions::parse(
+            [OsString::from("not-a-principal")],
+            sns_info_command,
+            sns_info_usage
+        ),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsLookupOptions::parse([OsString::from("0")], sns_token_command, sns_token_usage),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsNeuronsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--limit"),
+            OsString::from("0"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsNeuronsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--limit"),
+            OsString::from("101"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsNeuronsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--owner"),
+            OsString::from("not-a-principal"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsNeuronsRefreshOptions::parse([
+            OsString::from("1"),
+            OsString::from("--page-size"),
+            OsString::from("0"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsNeuronsCacheStatusOptions::parse([OsString::from("not-a-principal")]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsProposalsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--limit"),
+            OsString::from("101"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsProposalsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--status"),
+            OsString::from("not-a-status"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
+        SnsProposalOptions::parse([OsString::from("1"), OsString::from("0")]),
+        Err(SnsCommandError::Usage(_))
+    ));
+}
