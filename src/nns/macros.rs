@@ -194,7 +194,7 @@ macro_rules! impl_nns_leaf_reports {
         info_text = $info_text:ident,
         refresh_text = $refresh_text:ident $(,)?
     ) => {
-        struct $reports;
+        pub(super) struct $reports;
 
         impl leaf::NnsLeafReports for $reports {
             type Cache = $cache;
@@ -246,6 +246,7 @@ macro_rules! impl_nns_leaf_reports {
     };
 }
 
+#[cfg(test)]
 macro_rules! impl_leaf_test_helpers {
     (
         $list_options:ident,
@@ -259,7 +260,9 @@ macro_rules! impl_leaf_test_helpers {
         $default_source_endpoint:expr
     ) => {
         #[cfg(test)]
-        pub(super) fn $list_options<I>(args: I) -> Result<leaf::NnsLeafListOptions, NnsCommandError>
+        pub(in crate::nns) fn $list_options<I>(
+            args: I,
+        ) -> Result<leaf::NnsLeafListOptions, NnsCommandError>
         where
             I: IntoIterator<Item = std::ffi::OsString>,
         {
@@ -267,7 +270,9 @@ macro_rules! impl_leaf_test_helpers {
         }
 
         #[cfg(test)]
-        pub(super) fn $info_options<I>(args: I) -> Result<leaf::NnsLeafInfoOptions, NnsCommandError>
+        pub(in crate::nns) fn $info_options<I>(
+            args: I,
+        ) -> Result<leaf::NnsLeafInfoOptions, NnsCommandError>
         where
             I: IntoIterator<Item = std::ffi::OsString>,
         {
@@ -275,7 +280,7 @@ macro_rules! impl_leaf_test_helpers {
         }
 
         #[cfg(test)]
-        pub(super) fn $refresh_options<I>(
+        pub(in crate::nns) fn $refresh_options<I>(
             args: I,
         ) -> Result<leaf::NnsLeafRefreshOptions, NnsCommandError>
         where
@@ -285,22 +290,22 @@ macro_rules! impl_leaf_test_helpers {
         }
 
         #[cfg(test)]
-        pub(super) fn $usage() -> String {
+        pub(in crate::nns) fn $usage() -> String {
             leaf::usage(&$spec)
         }
 
         #[cfg(test)]
-        pub(super) fn $list_usage() -> String {
+        pub(in crate::nns) fn $list_usage() -> String {
             leaf::list_usage(&$spec, $default_source_endpoint)
         }
 
         #[cfg(test)]
-        pub(super) fn $info_usage() -> String {
+        pub(in crate::nns) fn $info_usage() -> String {
             leaf::info_usage(&$spec, $default_source_endpoint)
         }
 
         #[cfg(test)]
-        pub(super) fn $refresh_usage() -> String {
+        pub(in crate::nns) fn $refresh_usage() -> String {
             leaf::refresh_usage(&$spec, $default_source_endpoint)
         }
     };

@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.36` splits shared NNS leaf command/option/runtime helpers plus NNS
+  component command, runtime, spec, and report-adapter wiring into focused
+  modules.
+
 - `0.1.35` splits SNS params text, SNS neuron command plumbing, and NNS
   topology provider/command/option plumbing into focused modules.
 

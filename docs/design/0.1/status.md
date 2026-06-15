@@ -35,13 +35,12 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup splits SNS governance-parameter text rendering, SNS neuron
-command specification/runtime dispatch, NNS topology provider accumulation,
-and NNS topology command/options plumbing into focused modules, following the
-live SNS Candid wire type and proposal text rendering cleanup. The first SNS
-snapshot implementation still reuses cache-file primitives directly in the SNS
-report layer. The reusable cross-command snapshot abstraction remains open
-follow-through.
+The latest cleanup splits shared NNS leaf command construction, option
+parsing, runtime helpers, and NNS component command/runtime/spec/report-adapter
+wiring into focused modules, following the SNS neuron and NNS topology command
+plumbing cleanup. The first SNS snapshot implementation still reuses
+cache-file primitives directly in the SNS report layer. The reusable
+cross-command snapshot abstraction remains open follow-through.
 
 ## Implementation Checklist
 
@@ -124,10 +123,13 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.35 cleanup, including the split of SNS
-governance-parameter text rendering into focused category modules, the split
-of SNS neuron command specification/runtime dispatch into focused root, cache,
-refresh, and helper modules, and the split of NNS topology provider
+All passed during the 0.1.36 cleanup, including the split of shared NNS leaf
+command construction, option parsing, and runtime helpers plus the split of
+NNS component command/runtime/spec/report-adapter wiring into focused modules.
+Prior validation covered the 0.1.35 cleanup, including the split of
+SNS governance-parameter text rendering into focused category modules, the
+split of SNS neuron command specification/runtime dispatch into focused root,
+cache, refresh, and helper modules, and the split of NNS topology provider
 accumulation into focused ingestion, data-center association, and
 row-projection modules, plus the split of NNS topology read-command
 construction and option parsing into focused read/help/refresh modules. Prior

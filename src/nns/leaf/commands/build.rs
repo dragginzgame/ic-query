@@ -1,36 +1,14 @@
-use super::model::NnsLeafCommandSpec;
+use super::args::{
+    DRY_RUN_ARG, INPUT_ARG, VERBOSE_ARG, network_arg, output_path_arg, refresh_lock_stale_after_arg,
+};
 use crate::{
     cli::{
-        clap::{flag_arg, parse_matches, passthrough_subcommand, render_help, value_arg},
+        clap::{flag_arg, passthrough_subcommand, value_arg},
         common::{format_arg, source_endpoint_arg},
-        globals::internal_network_arg,
     },
-    duration::parse_duration_seconds,
-    nns::NnsCommandError,
-    subnet_catalog::MAINNET_NETWORK,
+    nns::leaf::model::NnsLeafCommandSpec,
 };
-use clap::{ArgMatches, Command as ClapCommand};
-use std::{ffi::OsString, path::PathBuf};
-
-pub(in crate::nns) const INPUT_ARG: &str = "input";
-pub(in crate::nns) const NETWORK_ARG: &str = "network";
-pub(in crate::nns) const LOCK_STALE_AFTER_ARG: &str = "lock-stale-after";
-pub(in crate::nns) const DRY_RUN_ARG: &str = "dry-run";
-pub(in crate::nns) const OUTPUT_ARG: &str = "output";
-pub(in crate::nns) const VERBOSE_ARG: &str = "verbose";
-
-const DEFAULT_LOCK_STALE_AFTER: &str = "30m";
-
-pub(in crate::nns) fn parse_leaf_matches<I>(
-    command: ClapCommand,
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Result<ArgMatches, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    parse_matches(command, args).map_err(|_| NnsCommandError::Usage(usage()))
-}
+use clap::Command as ClapCommand;
 
 pub(in crate::nns) fn command(spec: &NnsLeafCommandSpec) -> ClapCommand {
     ClapCommand::new(spec.command_name)
@@ -106,55 +84,4 @@ pub(in crate::nns) fn refresh_command(
         .arg(output_path_arg().help(spec.output_help))
         .arg(network_arg())
         .after_help(spec.refresh_help_after)
-}
-
-pub(in crate::nns) fn usage(spec: &NnsLeafCommandSpec) -> String {
-    render_help(command(spec))
-}
-
-pub(in crate::nns) fn list_usage(
-    spec: &NnsLeafCommandSpec,
-    default_source_endpoint: &'static str,
-) -> String {
-    render_help(list_command(spec, default_source_endpoint))
-}
-
-pub(in crate::nns) fn info_usage(
-    spec: &NnsLeafCommandSpec,
-    default_source_endpoint: &'static str,
-) -> String {
-    render_help(info_command(spec, default_source_endpoint))
-}
-
-pub(in crate::nns) fn refresh_usage(
-    spec: &NnsLeafCommandSpec,
-    default_source_endpoint: &'static str,
-) -> String {
-    render_help(refresh_command(spec, default_source_endpoint))
-}
-
-pub(in crate::nns) fn network_arg() -> clap::Arg {
-    internal_network_arg().default_value(MAINNET_NETWORK)
-}
-
-pub(in crate::nns) fn refresh_lock_stale_after_arg() -> clap::Arg {
-    value_arg(LOCK_STALE_AFTER_ARG)
-        .long(LOCK_STALE_AFTER_ARG)
-        .value_name("duration")
-        .default_value(DEFAULT_LOCK_STALE_AFTER)
-        .value_parser(clap::builder::ValueParser::new(
-            parse_refresh_lock_stale_after,
-        ))
-        .help("Treat an existing refresh lock as stale after this duration; defaults to 30m")
-}
-
-pub(in crate::nns) fn output_path_arg() -> clap::Arg {
-    value_arg(OUTPUT_ARG)
-        .long(OUTPUT_ARG)
-        .value_name("path")
-        .value_parser(clap::value_parser!(PathBuf))
-}
-
-fn parse_refresh_lock_stale_after(value: &str) -> Result<u64, String> {
-    parse_duration_seconds(value).map_err(|err| err.to_string())
 }
