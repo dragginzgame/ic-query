@@ -120,14 +120,21 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.22 cleanup, including the split of NNS node,
-node-provider, node-operator, and data-center report roots into focused cache,
-refresh, resolve, source, and node-filter modules while preserving the
-existing report API and cache behavior, plus the split of subnet catalog host
-support into focused cache, error, path, refresh, and live-source modules while
-preserving refresh locking and cache behavior, and the split of subnet catalog
-report support into focused model, list, info, and rate/applicability modules.
-Prior validation covered the 0.1.21
+All passed during the 0.1.23 cleanup, including the split of NNS topology
+report models into focused per-report modules, the split of topology provider
+report assembly into focused report, accumulator, and provider-status modules,
+and the split of topology summary report assembly into focused count,
+join-coverage, and registry-version helper modules, plus the split of shared
+topology report test fixtures into focused subnet, node, node-provider,
+node-operator, and data-center fixture modules. Prior validation covered the
+0.1.22 cleanup, including the split of NNS node, node-provider, node-operator,
+and data-center report roots into focused cache, refresh,
+resolve, source, and node-filter modules while preserving the existing report
+API and cache behavior, plus the split of subnet catalog host support into
+focused cache, error, path, refresh, and live-source modules while preserving
+refresh locking and cache behavior, and the split of subnet catalog report
+support into focused model, list, info, and rate/applicability modules.
+Earlier validation covered the 0.1.21
 cleanup, including the split of NNS topology report tests into focused
 summary, coverage, versions, health, gaps, capacity, regions, providers, and
 refresh modules with shared fixtures, the split of broad NNS CLI parsing,

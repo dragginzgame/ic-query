@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.23] - 2026-06-15
+
+### Changed
+
+- Splits NNS topology report models into focused summary, coverage, versions,
+  health, gaps, capacity, regions, providers, and refresh model modules.
+- Splits NNS topology provider report assembly into focused report,
+  accumulator, and provider-status modules.
+- Splits NNS topology summary report assembly into focused count,
+  join-coverage, and registry-version helper modules.
+- Splits shared NNS topology report test fixtures into focused subnet, node,
+  node-provider, node-operator, and data-center fixture modules.
+
 ## [0.1.22] - 2026-06-15
 
 ### Changed

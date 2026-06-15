@@ -1,38 +1,14 @@
-use super::{
-    NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION, NnsTopologyProviderRow,
-    NnsTopologyProvidersReport,
+use super::status::provider_status;
+use crate::nns::{
+    data_center::report::NnsDataCenterListReport,
+    node::report::NnsNodeListReport,
+    node_operator::report::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
+    node_provider::report::NnsNodeProviderListReport,
+    topology::report::NnsTopologyProviderRow,
 };
-use crate::nns::data_center::report::NnsDataCenterListReport;
-use crate::nns::node::report::NnsNodeListReport;
-use crate::nns::node_operator::report::{NnsNodeOperatorListReport, NnsNodeOperatorRow};
-use crate::nns::node_provider::report::NnsNodeProviderListReport;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(super) fn topology_providers_report_from_reports(
-    network: String,
-    source_endpoint: String,
-    node_report: NnsNodeListReport,
-    node_provider_report: NnsNodeProviderListReport,
-    node_operator_report: NnsNodeOperatorListReport,
-    data_center_report: NnsDataCenterListReport,
-) -> NnsTopologyProvidersReport {
-    let mut accumulator = NnsTopologyProviderAccumulator::from_data_centers(&data_center_report);
-    accumulator.add_registered_providers(&node_provider_report);
-    accumulator.add_nodes(&node_report);
-    accumulator.add_node_operators(&node_operator_report);
-
-    let mut providers = accumulator.into_provider_rows();
-    sort_provider_rows(&mut providers);
-
-    nns_topology_providers_report(
-        network,
-        source_endpoint,
-        node_provider_report.node_provider_count,
-        providers,
-    )
-}
-
-struct NnsTopologyProviderAccumulator {
+pub(super) struct NnsTopologyProviderAccumulator {
     data_center_regions: BTreeMap<String, String>,
     provider_principals: BTreeSet<String>,
     provider_metadata: BTreeMap<String, (Option<String>, Option<u64>)>,
@@ -47,7 +23,7 @@ struct NnsTopologyProviderAccumulator {
 }
 
 impl NnsTopologyProviderAccumulator {
-    fn from_data_centers(report: &NnsDataCenterListReport) -> Self {
+    pub(super) fn from_data_centers(report: &NnsDataCenterListReport) -> Self {
         Self {
             data_center_regions: report
                 .data_centers
@@ -72,7 +48,7 @@ impl NnsTopologyProviderAccumulator {
         }
     }
 
-    fn add_registered_providers(&mut self, report: &NnsNodeProviderListReport) {
+    pub(super) fn add_registered_providers(&mut self, report: &NnsNodeProviderListReport) {
         for provider in &report.node_providers {
             self.provider_principals
                 .insert(provider.node_provider_principal.clone());
@@ -83,7 +59,7 @@ impl NnsTopologyProviderAccumulator {
         }
     }
 
-    fn add_nodes(&mut self, report: &NnsNodeListReport) {
+    pub(super) fn add_nodes(&mut self, report: &NnsNodeListReport) {
         for node in &report.nodes {
             let provider = node.node_provider_principal.clone();
             self.provider_principals.insert(provider.clone());
@@ -101,7 +77,7 @@ impl NnsTopologyProviderAccumulator {
         }
     }
 
-    fn add_node_operators(&mut self, report: &NnsNodeOperatorListReport) {
+    pub(super) fn add_node_operators(&mut self, report: &NnsNodeOperatorListReport) {
         for operator in &report.node_operators {
             self.add_node_operator(operator);
         }
@@ -137,7 +113,7 @@ impl NnsTopologyProviderAccumulator {
         );
     }
 
-    fn into_provider_rows(self) -> Vec<NnsTopologyProviderRow> {
+    pub(super) fn into_provider_rows(self) -> Vec<NnsTopologyProviderRow> {
         self.provider_principals
             .into_iter()
             .map(|provider| {
@@ -197,65 +173,6 @@ impl NnsTopologyProviderAccumulator {
     }
 }
 
-fn nns_topology_providers_report(
-    network: String,
-    source_endpoint: String,
-    registered_node_provider_count: usize,
-    providers: Vec<NnsTopologyProviderRow>,
-) -> NnsTopologyProvidersReport {
-    NnsTopologyProvidersReport {
-        schema_version: NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION,
-        network,
-        source_endpoint,
-        registered_node_provider_count,
-        referenced_node_provider_count: providers.len(),
-        provider_with_nodes_count: providers
-            .iter()
-            .filter(|provider| provider.topology_node_count > 0)
-            .count(),
-        provider_with_node_operators_count: providers
-            .iter()
-            .filter(|provider| provider.node_operator_count > 0)
-            .count(),
-        total_node_count: providers
-            .iter()
-            .map(|provider| provider.topology_node_count)
-            .sum(),
-        total_node_operator_count: providers
-            .iter()
-            .map(|provider| provider.node_operator_count)
-            .sum(),
-        total_node_allowance: providers
-            .iter()
-            .map(|provider| provider.total_node_allowance)
-            .sum(),
-        over_assigned_provider_count: providers
-            .iter()
-            .filter(|provider| provider.over_assigned_node_count > 0)
-            .count(),
-        unknown_provider_count: providers
-            .iter()
-            .filter(|provider| !provider.registered)
-            .count(),
-        providers,
-    }
-}
-
-fn sort_provider_rows(providers: &mut [NnsTopologyProviderRow]) {
-    providers.sort_by(|left, right| {
-        (
-            provider_status_rank(&left.status),
-            std::cmp::Reverse(left.topology_node_count),
-            left.node_provider_principal.as_str(),
-        )
-            .cmp(&(
-                provider_status_rank(&right.status),
-                std::cmp::Reverse(right.topology_node_count),
-                right.node_provider_principal.as_str(),
-            ))
-    });
-}
-
 fn insert_provider_data_center(
     provider: &str,
     data_center_id: &str,
@@ -272,33 +189,5 @@ fn insert_provider_data_center(
             .entry(provider.to_string())
             .or_default()
             .insert(region.clone());
-    }
-}
-
-const fn provider_status(
-    registered: bool,
-    topology_node_count: u64,
-    node_operator_count: u64,
-    over_assigned_node_count: u64,
-) -> &'static str {
-    if !registered {
-        return "unknown_provider";
-    }
-    if over_assigned_node_count > 0 {
-        return "over";
-    }
-    if topology_node_count == 0 && node_operator_count == 0 {
-        return "unused";
-    }
-    "ok"
-}
-
-fn provider_status_rank(status: &str) -> u8 {
-    match status {
-        "unknown_provider" => 0,
-        "over" => 1,
-        "unused" => 2,
-        "ok" => 3,
-        _ => 4,
     }
 }
