@@ -1,36 +1,10 @@
-use super::{
-    RegistryFetchError, normalized_data_center_id, principal_text_from_raw,
-    principal_text_from_required_raw,
-    proto::{DataCenterRecord, NodeOperatorRecord, NodeRecord, SubnetRecord},
+use crate::ic_registry::{
+    RegistryFetchError, normalized_data_center_id, principal_text_from_required_raw,
+    proto::{NodeOperatorRecord, NodeRecord},
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(super) fn assigned_node_principals_from_subnets(
-    subnet_records: &BTreeMap<String, SubnetRecord>,
-) -> Result<BTreeSet<String>, RegistryFetchError> {
-    let mut node_principals = BTreeSet::new();
-    for record in subnet_records.values() {
-        for raw in &record.membership {
-            node_principals.insert(principal_text_from_raw(raw, "subnet_record.membership")?);
-        }
-    }
-    Ok(node_principals)
-}
-
-pub(super) fn node_subnet_assignments_from_records(
-    subnet_records: &BTreeMap<String, SubnetRecord>,
-) -> Result<BTreeMap<String, String>, RegistryFetchError> {
-    let mut assignments = BTreeMap::new();
-    for (subnet_principal, record) in subnet_records {
-        for raw in &record.membership {
-            let node_principal = principal_text_from_raw(raw, "subnet_record.membership")?;
-            assignments.insert(node_principal, subnet_principal.clone());
-        }
-    }
-    Ok(assignments)
-}
-
-pub(super) fn node_provider_counts_from_records(
+pub(in crate::ic_registry) fn node_provider_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
@@ -43,7 +17,7 @@ pub(super) fn node_provider_counts_from_records(
     Ok(counts)
 }
 
-pub(super) fn node_operator_counts_from_records(
+pub(in crate::ic_registry) fn node_operator_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
@@ -56,7 +30,7 @@ pub(super) fn node_operator_counts_from_records(
     Ok(counts)
 }
 
-pub(super) fn data_center_node_counts_from_records(
+pub(in crate::ic_registry) fn data_center_node_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
@@ -106,7 +80,7 @@ fn assigned_node_relations(
     Ok(relations)
 }
 
-pub(super) fn data_center_operator_counts_from_records(
+pub(in crate::ic_registry) fn data_center_operator_counts_from_records(
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
 ) -> BTreeMap<String, u32> {
     let mut counts = BTreeMap::<String, u32>::new();
@@ -119,7 +93,7 @@ pub(super) fn data_center_operator_counts_from_records(
     counts
 }
 
-pub(super) fn data_center_provider_counts_from_records(
+pub(in crate::ic_registry) fn data_center_provider_counts_from_records(
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
 ) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
     let mut providers_by_data_center = BTreeMap::<String, BTreeSet<String>>::new();
@@ -147,29 +121,6 @@ pub(super) fn data_center_provider_counts_from_records(
         .collect())
 }
 
-///
-/// RegistryRelationInventory
-///
-pub(super) struct RegistryRelationInventory {
-    pub(super) node_principals: BTreeSet<String>,
-    pub(super) node_records: BTreeMap<String, NodeRecord>,
-    pub(super) node_operator_records: BTreeMap<String, NodeOperatorRecord>,
-    pub(super) subnet_records: BTreeMap<String, SubnetRecord>,
-    pub(super) data_center_records: BTreeMap<String, DataCenterRecord>,
-}
-
-///
-/// RegistryRelationInventoryScope
-///
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum RegistryRelationInventoryScope {
-    BaseRelations,
-    WithDataCenters,
-}
-
-///
-/// AssignedNodeRelation
-///
 struct AssignedNodeRelation {
     node_operator_principal: String,
     node_provider_principal: String,

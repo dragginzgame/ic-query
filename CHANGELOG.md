@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.27` splits IC registry transport helpers, relation helpers, and
+  relation inventory tests into focused modules.
+
 - `0.1.26` splits IC registry protobuf wire types and registry domain
   projection mappers into focused modules.
 
