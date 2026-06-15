@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.35` splits SNS params text, SNS neuron command plumbing, and NNS
+  topology provider/command/option plumbing into focused modules.
+
 - `0.1.34` splits live SNS Candid wire types and proposal text rendering into
   focused modules.
 

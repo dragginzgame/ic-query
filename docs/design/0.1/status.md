@@ -35,11 +35,13 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup splits live SNS Candid wire types and SNS proposal text
-rendering into focused modules, following the SNS text/build and NNS topology
-build/read orchestration cleanups. The first SNS snapshot implementation still
-reuses cache-file primitives directly in the SNS report layer. The reusable
-cross-command snapshot abstraction remains open follow-through.
+The latest cleanup splits SNS governance-parameter text rendering, SNS neuron
+command specification/runtime dispatch, NNS topology provider accumulation,
+and NNS topology command/options plumbing into focused modules, following the
+live SNS Candid wire type and proposal text rendering cleanup. The first SNS
+snapshot implementation still reuses cache-file primitives directly in the SNS
+report layer. The reusable cross-command snapshot abstraction remains open
+follow-through.
 
 ## Implementation Checklist
 
@@ -122,11 +124,19 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.34 cleanup, including the split of live SNS Candid
-wire types into focused deployed-SNS, token metadata, proposal, and neuron API
-modules, plus the split of SNS proposal text rendering into focused
-single-proposal, proposal-list, and shared detail-line modules. Prior
-validation covered the 0.1.33 and 0.1.30 cleanups, including the split of SNS
+All passed during the 0.1.35 cleanup, including the split of SNS
+governance-parameter text rendering into focused category modules, the split
+of SNS neuron command specification/runtime dispatch into focused root, cache,
+refresh, and helper modules, and the split of NNS topology provider
+accumulation into focused ingestion, data-center association, and
+row-projection modules, plus the split of NNS topology read-command
+construction and option parsing into focused read/help/refresh modules. Prior
+validation covered the 0.1.34 cleanup, including the split of live SNS Candid
+wire types into
+focused deployed-SNS, token metadata, proposal, and neuron API modules, plus
+the split of SNS proposal text rendering into focused single-proposal,
+proposal-list, and shared detail-line modules. Prior validation covered the
+0.1.33 and 0.1.30 cleanups, including the split of SNS
 text/build orchestration, NNS topology build/read orchestration, subnet catalog
 list text rendering into focused compact, verbose, and range-line modules, plus
 the split of subnet catalog classification model enums into focused
