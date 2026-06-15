@@ -4,7 +4,7 @@ mod state;
 use super::super::model::CompleteSnsNeurons;
 use super::progress::sns_neurons_progress_text;
 use crate::{
-    progress::ProgressLine,
+    snapshot_cache::{PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh},
     sns::report::{
         SnsHostError, SnsNeuronsRefreshRequest,
         source::{MainnetSns, SnsFetchRequest, SnsNeuronsSource},
@@ -20,62 +20,74 @@ pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
     source: &dyn SnsNeuronsSource,
     attempt_path: &Path,
 ) -> Result<CompleteSnsNeurons, SnsHostError> {
-    let mut state = SnsNeuronsCollectionState::new();
-    let mut progress = ProgressLine::stderr();
-    progress.update(&progress_text(sns, &state));
+    run_paged_snapshot_refresh(SnsNeuronsRefreshPages {
+        request,
+        fetch_request,
+        sns,
+        source,
+        attempt_path,
+        state: SnsNeuronsCollectionState::new(),
+    })
+}
 
-    loop {
-        if max_pages_reached(request, &state) {
-            progress.finish(&format!(
-                "{} stopped before completion",
-                progress_text(sns, &state)
-            ));
-            return Err(incomplete_refresh_error(&state));
-        }
+struct SnsNeuronsRefreshPages<'a> {
+    request: &'a SnsNeuronsRefreshRequest,
+    fetch_request: &'a SnsFetchRequest,
+    sns: &'a MainnetSns,
+    source: &'a dyn SnsNeuronsSource,
+    attempt_path: &'a Path,
+    state: SnsNeuronsCollectionState,
+}
 
-        let page = match source.fetch_sns_neuron_page(
-            fetch_request,
-            sns,
-            request.page_size,
-            state.start_page_at(),
-            None,
-        ) {
-            Ok(page) => page,
-            Err(err) => {
-                progress.finish(&format!("{} failed", progress_text(sns, &state)));
-                return Err(err);
-            }
-        };
-        let page = state.ingest_page(page);
-        attempt::write_running_attempt(attempt_path, request, fetch_request, sns, &state, &page)?;
-        progress.update(&progress_text(sns, &state));
+impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
+    type Complete = CompleteSnsNeurons;
+    type Error = SnsHostError;
 
-        if page.exhausts_collection(request.page_size, state.has_next_cursor()) {
-            break;
+    fn progress_text(&self) -> String {
+        sns_neurons_progress_text(self.sns, self.state.page_count(), self.state.row_count())
+    }
+
+    fn max_pages_reached(&self) -> bool {
+        self.request
+            .max_pages
+            .is_some_and(|max_pages| self.state.page_count() >= max_pages)
+    }
+
+    fn incomplete_refresh_error(&self) -> Self::Error {
+        SnsHostError::IncompleteRefresh {
+            pages_fetched: self.state.page_count(),
+            rows_fetched: self.state.row_count(),
+            reason: "max pages reached before API exhaustion".to_string(),
         }
     }
 
-    progress.finish(&format!("{} complete", progress_text(sns, &state)));
-    Ok(state.into_complete())
-}
+    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
+        let page = self.source.fetch_sns_neuron_page(
+            self.fetch_request,
+            self.sns,
+            self.request.page_size,
+            self.state.start_page_at(),
+            None,
+        )?;
+        Ok(self.state.ingest_page(page))
+    }
 
-fn progress_text(sns: &MainnetSns, state: &SnsNeuronsCollectionState) -> String {
-    sns_neurons_progress_text(sns, state.page_count(), state.row_count())
-}
+    fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
+        attempt::write_running_attempt(
+            self.attempt_path,
+            self.request,
+            self.fetch_request,
+            self.sns,
+            &self.state,
+            page,
+        )
+    }
 
-fn max_pages_reached(
-    request: &SnsNeuronsRefreshRequest,
-    state: &SnsNeuronsCollectionState,
-) -> bool {
-    request
-        .max_pages
-        .is_some_and(|max_pages| state.page_count() >= max_pages)
-}
+    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
+        page.exhausts_collection(self.request.page_size, self.state.has_next_cursor())
+    }
 
-fn incomplete_refresh_error(state: &SnsNeuronsCollectionState) -> SnsHostError {
-    SnsHostError::IncompleteRefresh {
-        pages_fetched: state.page_count(),
-        rows_fetched: state.row_count(),
-        reason: "max pages reached before API exhaustion".to_string(),
+    fn into_complete(self) -> Self::Complete {
+        self.state.into_complete()
     }
 }

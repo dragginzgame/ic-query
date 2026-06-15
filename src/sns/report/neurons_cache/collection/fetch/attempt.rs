@@ -3,7 +3,7 @@ use crate::snapshot_cache::PagedCollectionPage;
 use crate::sns::report::{
     SnsHostError, SnsNeuronsRefreshRequest,
     neurons_cache::attempt::{
-        SnsNeuronsAttemptParts, attempt_from_parts, write_sns_neurons_attempt,
+        SnsNeuronsAttemptContext, SnsNeuronsAttemptProgress, write_running_sns_neurons_attempt,
     },
     source::{MainnetSns, SnsFetchRequest},
 };
@@ -17,17 +17,17 @@ pub(super) fn write_running_attempt(
     state: &SnsNeuronsCollectionState,
     page: &PagedCollectionPage,
 ) -> Result<(), SnsHostError> {
-    write_sns_neurons_attempt(
-        attempt_path,
-        &attempt_from_parts(SnsNeuronsAttemptParts {
+    write_running_sns_neurons_attempt(
+        SnsNeuronsAttemptContext {
+            path: attempt_path,
             request,
             fetch_request,
             sns,
-            status: "running",
-            pages_fetched: state.page_count(),
-            rows_fetched: state.row_count(),
-            last_cursor: page.last_cursor_text.clone(),
-            last_error: None,
-        }),
+        },
+        SnsNeuronsAttemptProgress::new(
+            state.page_count(),
+            state.row_count(),
+            page.last_cursor_text.clone(),
+        ),
     )
 }

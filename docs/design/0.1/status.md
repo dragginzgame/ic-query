@@ -35,15 +35,16 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup extends the shared `snapshot_cache` module with JSON
-complete-snapshot loading, snapshot writing, header loading, refresh-attempt
-envelopes, attempt read/write helpers, and full-collection path scanning.
-Complete SNS neuron cache reads, writes, and refresh-attempt files now use
-those shared helpers for schema/network validation, cache discovery,
-progress-file shape, and atomic JSON publishing while preserving the existing
-`full.json` and `full.refresh-attempt.json` schemas. Generic refresh
-orchestration still lives in the SNS neuron layer and remains open
-follow-through.
+The latest cleanup extends the shared `snapshot_cache` module with locked
+snapshot refresh setup, paged refresh orchestration, and refresh-attempt
+lifecycle handling. Complete SNS neuron refresh now uses the shared runners
+for parent directory creation, refresh locking, replacement detection, progress
+lifecycle, max-page cutoff, fetch-failure reporting, running/failed attempt
+handling, attempt-progress callbacks, and collection-exhaustion handling while
+preserving SNS-specific page fetching, attempt metadata, and error reporting.
+SNS neuron attempt-file construction is now centralized behind status-specific
+starting, running, complete, and failed writers instead of being rebuilt at
+each refresh call site.
 
 ## Implementation Checklist
 
@@ -59,7 +60,7 @@ follow-through.
 - [x] Add refresh locking and atomic complete-snapshot commit for SNS neurons.
 - [x] Add a reusable paged collection state helper for row de-duplication,
       cursor tracking, and exhaustion checks.
-- [ ] Add a generic paged collection refresh helper.
+- [x] Add a generic paged collection refresh helper.
 - [x] Implement SNS neuron full-collection paging.
 - [x] Add `icq sns neurons refresh <id|root-principal>`.
 - [x] Preserve previous complete SNS neuron snapshots when a page fails.
@@ -132,9 +133,14 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.41 cleanup, including shared snapshot JSON
-loading/writing, snapshot-header loading, refresh-attempt envelopes/read-write
-helpers, full-collection path scanning, and SNS neuron cache read/write/attempt
+All passed during the 0.1.42 cleanup, including shared locked snapshot refresh
+setup, shared paged snapshot refresh orchestration, shared refresh-attempt
+lifecycle handling, and migration of complete SNS neuron refresh setup, paging,
+and start/failure attempt handling onto the generic runners, plus centralized
+SNS neuron attempt-file writers. Prior validation
+covered the 0.1.41 cleanup, including shared snapshot JSON loading/writing,
+snapshot-header loading, refresh-attempt envelopes/read-write helpers,
+full-collection path scanning, and SNS neuron cache read/write/attempt
 migration onto those helpers. Prior validation covered the 0.1.40 cleanup,
 including shared snapshot-cache key/path helpers, flattened snapshot
 envelope/completeness primitives, shared paged-collection state, and SNS neuron

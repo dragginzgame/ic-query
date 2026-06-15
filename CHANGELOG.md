@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.42` extracts shared locked, paged snapshot refresh and
+  attempt-lifecycle orchestration, centralizes SNS neuron attempt writers, and
+  migrates SNS neuron complete-refresh paging onto the generic runners.
+
 - `0.1.41` extracts shared snapshot JSON loading/writing, header validation,
   refresh-attempt, and full-collection path scanning helpers and migrates SNS
   neuron cache reads, writes, and attempts onto them.

@@ -1,15 +1,15 @@
 use super::super::{
-    attempt::{
-        SnsNeuronsAttemptParts, attempt_from_parts, failed_attempt_from_latest_progress,
-        write_sns_neurons_attempt,
-    },
+    attempt::{write_failed_sns_neurons_attempt, write_starting_sns_neurons_attempt},
     collection::fetch_complete_sns_neurons,
     errors::sns_cache_file_error,
     paths::SnsNeuronsCachePaths,
 };
 use super::{context::SnsNeuronsRefreshContext, publish::publish_complete_sns_neurons_cache};
 use crate::{
-    cache_file::{RefreshLockRequest, create_parent_directory, with_refresh_lock},
+    snapshot_cache::{
+        LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts,
+        with_locked_snapshot_refresh,
+    },
     sns::report::{
         SnsHostError, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
         live::LiveSnsSource,
@@ -43,23 +43,21 @@ pub(in crate::sns::report) fn refresh_sns_neurons_cache_with_source(
         &request.network,
         &lookup.sns.root_canister_id,
     );
-    create_parent_directory(&paths.cache_path).map_err(sns_cache_file_error)?;
-    let replaced_existing_cache = paths.cache_path.is_file();
     let context_paths = paths.clone();
     let fetch_request = lookup.fetch_request;
     let list = lookup.list;
     let id = lookup.id;
     let sns = lookup.sns;
-    with_refresh_lock(
-        RefreshLockRequest {
-            lock_path: &paths.lock_path,
-            target_path: &paths.cache_path,
+    with_locked_snapshot_refresh(
+        LockedSnapshotRefreshRequest {
+            snapshot_path: &paths.cache_path,
+            refresh_lock_path: &paths.lock_path,
             network: &request.network,
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: SNS_NEURONS_REFRESH_LOCK_STALE_AFTER_SECONDS,
         },
         sns_cache_file_error,
-        || {
+        |refresh_state| {
             refresh_sns_neurons_cache_locked(
                 SnsNeuronsRefreshContext {
                     request,
@@ -68,7 +66,7 @@ pub(in crate::sns::report) fn refresh_sns_neurons_cache_with_source(
                     id,
                     sns,
                     paths: context_paths,
-                    replaced_existing_cache,
+                    replaced_existing_cache: refresh_state.replaced_existing_snapshot,
                 },
                 source,
             )
@@ -80,39 +78,26 @@ fn refresh_sns_neurons_cache_locked(
     context: SnsNeuronsRefreshContext<'_>,
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
-    write_sns_neurons_attempt(
-        &context.paths.attempt_path,
-        &attempt_from_parts(SnsNeuronsAttemptParts {
-            request: context.request,
-            fetch_request: context.fetch_request,
-            sns: &context.sns,
-            status: "running",
-            pages_fetched: 0,
-            rows_fetched: 0,
-            last_cursor: None,
-            last_error: None,
-        }),
-    )?;
-    match fetch_complete_sns_neurons(
-        context.request,
-        context.fetch_request,
-        &context.sns,
-        source,
-        &context.paths.attempt_path,
-    ) {
-        Ok(complete) => publish_complete_sns_neurons_cache(context, complete),
-        Err(err) => {
-            let _ = write_sns_neurons_attempt(
+    run_snapshot_refresh_with_attempts(
+        || write_starting_attempt(&context),
+        || {
+            let complete = fetch_complete_sns_neurons(
+                context.request,
+                context.fetch_request,
+                &context.sns,
+                source,
                 &context.paths.attempt_path,
-                &failed_attempt_from_latest_progress(
-                    &context.paths.attempt_path,
-                    context.request,
-                    context.fetch_request,
-                    &context.sns,
-                    &err,
-                ),
-            );
-            Err(err)
-        }
-    }
+            )?;
+            publish_complete_sns_neurons_cache(&context, complete)
+        },
+        |err| write_failed_attempt(&context, err),
+    )
+}
+
+fn write_starting_attempt(context: &SnsNeuronsRefreshContext<'_>) -> Result<(), SnsHostError> {
+    write_starting_sns_neurons_attempt(context.attempt_context())
+}
+
+fn write_failed_attempt(context: &SnsNeuronsRefreshContext<'_>, err: &SnsHostError) {
+    let _ = write_failed_sns_neurons_attempt(context.attempt_context(), err);
 }

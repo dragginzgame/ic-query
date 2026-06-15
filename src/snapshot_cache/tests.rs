@@ -1,10 +1,12 @@
 use super::{
-    PagedCollectionState, SnapshotCompleteness, SnapshotEnvelope, SnapshotJsonPaths, SnapshotKey,
-    SnapshotRefreshAttempt, collect_full_collection_snapshot_paths,
+    LockedSnapshotRefreshRequest, PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
+    SnapshotCompleteness, SnapshotEnvelope, SnapshotJsonPaths, SnapshotKey, SnapshotRefreshAttempt,
+    collect_full_collection_snapshot_paths, run_paged_snapshot_refresh,
+    run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
 };
-use crate::test_support::temp_dir;
+use crate::{cache_file::CacheFileError, test_support::temp_dir};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-use std::{fs, path::Path};
+use std::{cell::RefCell, fs, path::Path};
 
 #[test]
 fn snapshot_json_paths_encode_full_collection_scope() {
@@ -147,4 +149,188 @@ fn paged_collection_state_tracks_progress_and_deduplicates_rows() {
     assert_eq!(complete.page_count, 2);
     assert_eq!(complete.rows, vec![Row { id: "a" }]);
     assert_eq!(complete.last_cursor, None);
+}
+
+#[test]
+fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
+    let refresh = FixturePagedRefresh {
+        pages: vec![(vec!["a", "a"], Some("next")), (vec!["b"], None)],
+        max_pages: None,
+        attempts: RefCell::new(Vec::new()),
+        state: PagedCollectionState::new(),
+    };
+
+    let complete = run_paged_snapshot_refresh(refresh).expect("paged refresh completes");
+
+    assert_eq!(complete.rows, vec!["a", "b"]);
+    assert_eq!(complete.attempts, vec![(1, 1), (2, 2)]);
+}
+
+#[test]
+fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
+    let refresh = FixturePagedRefresh {
+        pages: vec![(vec!["a", "b"], Some("next")), (vec!["c"], None)],
+        max_pages: Some(1),
+        attempts: RefCell::new(Vec::new()),
+        state: PagedCollectionState::new(),
+    };
+
+    let err = run_paged_snapshot_refresh(refresh).expect_err("max pages rejects incomplete scan");
+
+    assert_eq!(err, "max pages reached after 1 pages and 2 rows");
+}
+
+#[test]
+fn snapshot_refresh_lifecycle_preserves_original_error_after_failed_attempt_write() {
+    let events = RefCell::new(Vec::new());
+
+    let result: Result<(), &str> = run_snapshot_refresh_with_attempts(
+        || {
+            events.borrow_mut().push("running");
+            Ok(())
+        },
+        || {
+            events.borrow_mut().push("refresh");
+            Err("source failed")
+        },
+        |err| {
+            events.borrow_mut().push(*err);
+            events.borrow_mut().push("failed-attempt");
+        },
+    );
+
+    assert_eq!(result, Err("source failed"));
+    assert_eq!(
+        events.into_inner(),
+        vec!["running", "refresh", "source failed", "failed-attempt"]
+    );
+}
+
+#[test]
+fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock() {
+    let root = temp_dir("ic-query-snapshot-cache-locked-refresh");
+    let snapshot_path = root
+        .join(".icq")
+        .join("sns")
+        .join("ic")
+        .join("root")
+        .join("neurons")
+        .join("full.json");
+    let lock_path = snapshot_path.with_file_name("full.refresh.lock");
+    let observed = RefCell::new(Vec::new());
+
+    with_locked_snapshot_refresh(
+        LockedSnapshotRefreshRequest {
+            snapshot_path: &snapshot_path,
+            refresh_lock_path: &lock_path,
+            network: "ic",
+            now_unix_secs: 1,
+            lock_stale_after_seconds: 60,
+        },
+        identity_cache_error,
+        |state| {
+            observed.borrow_mut().push(state.replaced_existing_snapshot);
+            fs::write(&snapshot_path, "{}").expect("write snapshot during refresh");
+            Ok(())
+        },
+    )
+    .expect("first locked refresh");
+
+    with_locked_snapshot_refresh(
+        LockedSnapshotRefreshRequest {
+            snapshot_path: &snapshot_path,
+            refresh_lock_path: &lock_path,
+            network: "ic",
+            now_unix_secs: 2,
+            lock_stale_after_seconds: 60,
+        },
+        identity_cache_error,
+        |state| {
+            observed.borrow_mut().push(state.replaced_existing_snapshot);
+            Ok(())
+        },
+    )
+    .expect("second locked refresh");
+
+    assert_eq!(observed.into_inner(), vec![false, true]);
+    assert!(snapshot_path.is_file());
+    assert!(!lock_path.exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+fn identity_cache_error(err: CacheFileError) -> CacheFileError {
+    err
+}
+
+struct FixturePagedRefresh {
+    pages: Vec<(Vec<&'static str>, Option<&'static str>)>,
+    max_pages: Option<u32>,
+    attempts: RefCell<Vec<(u32, usize)>>,
+    state: PagedCollectionState<&'static str, &'static str>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct FixturePagedComplete {
+    rows: Vec<&'static str>,
+    attempts: Vec<(u32, usize)>,
+}
+
+impl PagedSnapshotRefresh for FixturePagedRefresh {
+    type Complete = FixturePagedComplete;
+    type Error = String;
+
+    fn progress_text(&self) -> String {
+        format!(
+            "fixture pages={} rows={}",
+            self.state.page_count(),
+            self.state.row_count()
+        )
+    }
+
+    fn max_pages_reached(&self) -> bool {
+        self.max_pages
+            .is_some_and(|max_pages| self.state.page_count() >= max_pages)
+    }
+
+    fn incomplete_refresh_error(&self) -> Self::Error {
+        format!(
+            "max pages reached after {} pages and {} rows",
+            self.state.page_count(),
+            self.state.row_count()
+        )
+    }
+
+    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
+        if self.pages.is_empty() {
+            return Err("no fixture page".to_string());
+        }
+        let (rows, cursor) = self.pages.remove(0);
+        Ok(self.state.ingest_page(
+            rows,
+            cursor,
+            |cursor| (*cursor).to_string(),
+            |row| (*row).to_string(),
+        ))
+    }
+
+    fn write_running_attempt(&self, _page: &PagedCollectionPage) -> Result<(), Self::Error> {
+        self.attempts
+            .borrow_mut()
+            .push((self.state.page_count(), self.state.row_count()));
+        Ok(())
+    }
+
+    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
+        page.exhausts_collection(2, self.state.has_next_cursor())
+    }
+
+    fn into_complete(self) -> Self::Complete {
+        FixturePagedComplete {
+            rows: self
+                .state
+                .into_complete(|cursor| (*cursor).to_string())
+                .rows,
+            attempts: self.attempts.into_inner(),
+        }
+    }
 }

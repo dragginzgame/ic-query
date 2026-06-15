@@ -1,6 +1,6 @@
 use super::super::{
     SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
-    attempt::{SnsNeuronsAttemptParts, attempt_from_parts, write_sns_neurons_attempt},
+    attempt::{SnsNeuronsAttemptProgress, write_complete_sns_neurons_attempt},
     errors::sns_cache_file_error,
     model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheMetadata, SnsNeuronsCacheRows},
 };
@@ -14,16 +14,21 @@ use crate::{
 };
 
 pub(super) fn publish_complete_sns_neurons_cache(
-    context: SnsNeuronsRefreshContext<'_>,
+    context: &SnsNeuronsRefreshContext<'_>,
     complete: CompleteSnsNeurons,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
+    let CompleteSnsNeurons {
+        neurons,
+        page_count,
+        last_cursor,
+    } = complete;
     let cache = sns_neurons_cache_from_parts(
         &context.list,
         context.id,
         &context.sns,
         context.request.page_size,
-        complete.page_count,
-        complete.neurons,
+        page_count,
+        neurons,
     );
     let neuron_count = cache.data.neurons.len();
     write_snapshot_json(
@@ -32,35 +37,26 @@ pub(super) fn publish_complete_sns_neurons_cache(
         |path, source| SnsHostError::SerializeCache { path, source },
         sns_cache_file_error,
     )?;
-    write_sns_neurons_attempt(
-        &context.paths.attempt_path,
-        &attempt_from_parts(SnsNeuronsAttemptParts {
-            request: context.request,
-            fetch_request: context.fetch_request,
-            sns: &context.sns,
-            status: "complete",
-            pages_fetched: complete.page_count,
-            rows_fetched: neuron_count,
-            last_cursor: complete.last_cursor,
-            last_error: None,
-        }),
+    write_complete_sns_neurons_attempt(
+        context.attempt_context(),
+        SnsNeuronsAttemptProgress::new(page_count, neuron_count, last_cursor),
     )?;
     Ok(SnsNeuronsRefreshReport {
         schema_version: SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
-        network: context.list.network,
-        sns_wasm_canister_id: context.list.sns_wasm_canister_id,
-        fetched_at: context.list.fetched_at,
-        source_endpoint: context.list.source_endpoint,
-        fetched_by: context.list.fetched_by,
+        network: context.list.network.clone(),
+        sns_wasm_canister_id: context.list.sns_wasm_canister_id.clone(),
+        fetched_at: context.list.fetched_at.clone(),
+        source_endpoint: context.list.source_endpoint.clone(),
+        fetched_by: context.list.fetched_by.clone(),
         id: context.id,
-        name: context.sns.name,
-        root_canister_id: context.sns.root_canister_id,
-        governance_canister_id: context.sns.governance_canister_id,
+        name: context.sns.name.clone(),
+        root_canister_id: context.sns.root_canister_id.clone(),
+        governance_canister_id: context.sns.governance_canister_id.clone(),
         cache_path: context.paths.cache_path.display().to_string(),
         refresh_lock_path: context.paths.lock_path.display().to_string(),
         refresh_attempt_path: context.paths.attempt_path.display().to_string(),
         page_size: context.request.page_size,
-        page_count: complete.page_count,
+        page_count,
         neuron_count,
         complete: true,
         replaced_existing_cache: context.replaced_existing_cache,
