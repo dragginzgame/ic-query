@@ -120,18 +120,25 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.21 cleanup, including the split of NNS topology
-report tests into focused summary, coverage, versions, health, gaps, capacity,
-regions, providers, and refresh modules with shared fixtures, the split of
-broad NNS CLI parsing, help, and local-network rejection tests into focused
-command-family modules, the split of NNS node-provider report tests into
-focused list, info, text, refresh, and fixture modules, the split of IC
-registry and subnet catalog tests into focused behavior modules with shared
-fixtures, the split of SNS command parsing and usage tests into focused
-command-family modules, and the split of SNS neuron-cache complete-collection
-paging and progress reporting out of
-refresh orchestration. Prior validation covered the 0.1.20 SNS report cleanup,
-including the split of SNS report assembly into focused list/info, token,
+All passed during the 0.1.22 cleanup, including the split of NNS node,
+node-provider, node-operator, and data-center report roots into focused cache,
+refresh, resolve, source, and node-filter modules while preserving the
+existing report API and cache behavior, plus the split of subnet catalog host
+support into focused cache, error, path, refresh, and live-source modules while
+preserving refresh locking and cache behavior, and the split of subnet catalog
+report support into focused model, list, info, and rate/applicability modules.
+Prior validation covered the 0.1.21
+cleanup, including the split of NNS topology report tests into focused
+summary, coverage, versions, health, gaps, capacity, regions, providers, and
+refresh modules with shared fixtures, the split of broad NNS CLI parsing,
+help, and local-network rejection tests into focused command-family modules,
+the split of NNS node-provider report tests into focused list, info, text,
+refresh, and fixture modules, the split of IC registry and subnet catalog
+tests into focused behavior modules with shared fixtures, the split of SNS
+command parsing and usage tests into focused command-family modules, and the
+split of SNS neuron-cache complete-collection paging and progress reporting
+out of refresh orchestration. Earlier validation covered the 0.1.20 SNS report
+cleanup, including the split of SNS report assembly into focused list/info, token,
 parameters, proposal, proposals, and neurons modules, the split of SNS report
 builder orchestration out of the report module root, and the split of the SNS
 report test suite into focused list/info, token, parameters, proposal, and

@@ -1,19 +1,23 @@
-use crate::ic_registry::{
-    DEFAULT_MAINNET_ENDPOINT, MainnetNodeList, MainnetRegistryFetchRequest, fetch_mainnet_node_list,
-};
-use crate::subnet_catalog::canonical_principal_text;
-use crate::{
-    cache_file::{
-        CachedJsonReport, LoadJsonCacheRequest, RefreshCacheWriteRequest, announce_cache_refresh,
-        load_json_cache, write_json_refresh_cache,
-    },
-    nns::leaf::{NnsLeafCachePaths, nns_leaf_cache_path},
-    subnet_catalog::format_utc_timestamp_secs,
-};
+use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
+use crate::{cache_file::announce_cache_refresh, nns::leaf::nns_leaf_cache_path};
 use std::path::{Path, PathBuf};
 
+mod cache;
+mod filters;
 mod model;
+mod refresh;
+mod resolve;
+mod source;
 mod text;
+
+use cache::load_cached_nns_node_report;
+use filters::filter_node_list_report;
+use refresh::{refresh_nns_node_cache_with_source, refresh_nns_node_report_with_source};
+use resolve::resolve_node;
+use source::{LiveNnsNodeSource, NnsNodeSource};
+
+#[cfg(test)]
+use crate::ic_registry::{MainnetNodeList, MainnetRegistryFetchRequest};
 
 pub use model::*;
 pub use text::{
@@ -39,6 +43,8 @@ pub fn nns_node_cache_path(icp_root: &Path, network: &str) -> PathBuf {
 }
 
 impl_nns_load_json_cache_error_mapper!(NnsNodeCacheErrors, NnsNodeHostError);
+impl_nns_cache_error_mapper!(node_cache_error, NnsNodeHostError);
+impl_nns_mainnet_network_enforcer!(NnsNodeHostError);
 
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
@@ -56,21 +62,6 @@ pub fn refresh_nns_node_report(
     request: &NnsNodeRefreshRequest,
 ) -> Result<NnsNodeRefreshReport, NnsNodeHostError> {
     refresh_nns_node_report_with_source(request, &LiveNnsNodeSource)
-}
-
-fn load_cached_nns_node_report(
-    request: &NnsNodeCacheRequest,
-) -> Result<CachedJsonReport<NnsNodeListReport>, NnsNodeHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let path = nns_node_cache_path(&request.icp_root, &request.network);
-    load_json_cache(
-        LoadJsonCacheRequest {
-            path,
-            network: &request.network,
-            expected_schema_version: NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
-        },
-        NnsNodeCacheErrors,
-    )
 }
 
 fn build_nns_node_list_report_with_source(
@@ -126,240 +117,6 @@ fn build_nns_node_info_report_with_source(
         subnet_kind: node.subnet_kind,
         data_center_id: node.data_center_id,
     })
-}
-
-fn refresh_nns_node_report_with_source(
-    request: &NnsNodeRefreshRequest,
-    source: &dyn NnsNodeSource,
-) -> Result<NnsNodeRefreshReport, NnsNodeHostError> {
-    refresh_nns_node_cache_with_source(request, source).map(|(_, report)| report)
-}
-
-fn refresh_nns_node_cache_with_source(
-    request: &NnsNodeRefreshRequest,
-    source: &dyn NnsNodeSource,
-) -> Result<(NnsNodeListReport, NnsNodeRefreshReport), NnsNodeHostError> {
-    enforce_mainnet_network(&request.cache.network)?;
-    let paths = NnsLeafCachePaths::for_component(
-        &request.cache.icp_root,
-        NNS_NODE_CACHE_DIR,
-        &request.cache.network,
-        NNS_NODE_CACHE_FILE,
-    );
-    let report = fetch_nns_node_list_report_with_source(
-        &request.cache.network,
-        &request.source_endpoint,
-        request.now_unix_secs,
-        source,
-    )?;
-    let write_result = write_json_refresh_cache(
-        RefreshCacheWriteRequest {
-            cache_path: &paths.cache_path,
-            lock_path: &paths.lock_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
-            dry_run: request.dry_run,
-            output_path: request.output_path.as_deref(),
-            report: &report,
-        },
-        node_cache_error,
-        |path, source| NnsNodeHostError::SerializeCache { path, source },
-    )?;
-    let refresh_report = NnsNodeRefreshReport {
-        schema_version: NNS_NODE_REFRESH_REPORT_SCHEMA_VERSION,
-        network: report.network.clone(),
-        cache_path: write_result.cache_path,
-        refresh_lock_path: write_result.refresh_lock_path,
-        output_path: write_result.output_path,
-        registry_canister_id: report.registry_canister_id.clone(),
-        registry_version: report.registry_version,
-        fetched_at: report.fetched_at.clone(),
-        source_endpoint: report.source_endpoint.clone(),
-        fetched_by: report.fetched_by.clone(),
-        dry_run: request.dry_run,
-        wrote_cache: write_result.wrote_cache,
-        replaced_existing_cache: write_result.replaced_existing_cache,
-        node_count: report.node_count,
-    };
-    Ok((report, refresh_report))
-}
-
-fn fetch_nns_node_list_report_with_source(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    source: &dyn NnsNodeSource,
-) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    enforce_mainnet_network(network)?;
-    let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let mut fetch_request = MainnetRegistryFetchRequest::new(fetched_at);
-    fetch_request.endpoint = source_endpoint.to_string();
-    let list = source.fetch_nodes(&fetch_request)?;
-    Ok(node_report_from_list(list))
-}
-
-impl_nns_cache_error_mapper!(node_cache_error, NnsNodeHostError);
-
-fn node_report_from_list(list: MainnetNodeList) -> NnsNodeListReport {
-    let nodes = list
-        .nodes
-        .into_iter()
-        .map(|node| NnsNodeRow {
-            node_principal: node.principal,
-            node_operator_principal: node.node_operator_principal,
-            node_provider_principal: node.node_provider_principal,
-            subnet_principal: node.subnet_principal,
-            subnet_kind: node.subnet_kind,
-            data_center_id: node.data_center_id,
-        })
-        .collect::<Vec<_>>();
-    NnsNodeListReport {
-        schema_version: NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        registry_canister_id: list.registry_canister_id,
-        registry_version: list.registry_version,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        node_count: nodes.len(),
-        nodes,
-    }
-}
-
-fn filter_node_list_report(
-    mut report: NnsNodeListReport,
-    filters: &NnsNodeListFilters,
-) -> NnsNodeListReport {
-    if filters.is_empty() {
-        return report;
-    }
-    report
-        .nodes
-        .retain(|node| node_matches_filters(node, filters));
-    report.node_count = report.nodes.len();
-    report
-}
-
-fn node_matches_filters(node: &NnsNodeRow, filters: &NnsNodeListFilters) -> bool {
-    filters
-        .subnet
-        .as_deref()
-        .is_none_or(|filter| principal_filter_matches(&node.subnet_principal, filter))
-        && filters
-            .subnet_kind
-            .as_deref()
-            .is_none_or(|filter| text_filter_equals(&node.subnet_kind, filter))
-        && filters
-            .data_center
-            .as_deref()
-            .is_none_or(|filter| text_filter_starts_with(&node.data_center_id, filter))
-        && filters
-            .node_provider
-            .as_deref()
-            .is_none_or(|filter| principal_filter_matches(&node.node_provider_principal, filter))
-        && filters
-            .node_operator
-            .as_deref()
-            .is_none_or(|filter| principal_filter_matches(&node.node_operator_principal, filter))
-}
-
-fn principal_filter_matches(value: &str, filter: &str) -> bool {
-    let Some(filter) = non_empty_filter(filter) else {
-        return false;
-    };
-    if let Ok(principal) = canonical_principal_text(filter) {
-        value == principal
-    } else {
-        value.starts_with(&filter.to_ascii_lowercase())
-    }
-}
-
-fn text_filter_starts_with(value: &str, filter: &str) -> bool {
-    let Some(filter) = non_empty_filter(filter) else {
-        return false;
-    };
-    value
-        .to_ascii_lowercase()
-        .starts_with(&filter.to_ascii_lowercase())
-}
-
-fn text_filter_equals(value: &str, filter: &str) -> bool {
-    let Some(filter) = non_empty_filter(filter) else {
-        return false;
-    };
-    value.eq_ignore_ascii_case(filter)
-}
-
-fn non_empty_filter(filter: &str) -> Option<&str> {
-    let filter = filter.trim();
-    (!filter.is_empty()).then_some(filter)
-}
-
-///
-/// NnsNodeSource
-///
-trait NnsNodeSource {
-    fn fetch_nodes(
-        &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeList, NnsNodeHostError>;
-}
-
-///
-/// LiveNnsNodeSource
-///
-struct LiveNnsNodeSource;
-
-impl NnsNodeSource for LiveNnsNodeSource {
-    fn fetch_nodes(
-        &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeList, NnsNodeHostError> {
-        Ok(fetch_mainnet_node_list(request)?)
-    }
-}
-
-impl_nns_mainnet_network_enforcer!(NnsNodeHostError);
-
-fn resolve_node(
-    report: &NnsNodeListReport,
-    input: &str,
-) -> Result<(NnsNodeRow, String), NnsNodeHostError> {
-    if let Ok(principal) = canonical_principal_text(input)
-        && let Some(node) = report
-            .nodes
-            .iter()
-            .find(|node| node.node_principal == principal)
-    {
-        return Ok((node.clone(), "node_principal".to_string()));
-    }
-
-    let prefix = input.trim().to_ascii_lowercase();
-    if prefix.is_empty() {
-        return Err(NnsNodeHostError::NodeNotFound {
-            input: input.to_string(),
-        });
-    }
-    let matches = report
-        .nodes
-        .iter()
-        .filter(|node| node.node_principal.starts_with(&prefix))
-        .cloned()
-        .collect::<Vec<_>>();
-    match matches.as_slice() {
-        [node] => Ok((node.clone(), "node_principal_prefix".to_string())),
-        [] => Err(NnsNodeHostError::NodeNotFound {
-            input: input.to_string(),
-        }),
-        _ => Err(NnsNodeHostError::AmbiguousNodePrefix {
-            prefix,
-            matches: matches
-                .into_iter()
-                .map(|node| node.node_principal)
-                .collect(),
-        }),
-    }
 }
 
 #[cfg(test)]

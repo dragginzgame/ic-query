@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.22] - 2026-06-15
+
+### Changed
+
+- Splits NNS node, node-provider, node-operator, and data-center report roots
+  into focused cache, refresh, resolve, source, and node-filter modules while
+  preserving the existing report API and cache behavior.
+- Splits subnet catalog host support into focused cache, error, path, refresh,
+  and live-source modules while preserving refresh locking and cache behavior.
+- Splits subnet catalog report support into focused model, list, info, and
+  rate/applicability modules while preserving list/info report behavior.
+
 ## [0.1.21] - 2026-06-15
 
 ### Changed

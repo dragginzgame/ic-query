@@ -1,20 +1,23 @@
-use crate::ic_registry::{
-    DEFAULT_MAINNET_ENDPOINT, MainnetNodeOperatorList, MainnetRegistryFetchRequest,
-    fetch_mainnet_node_operator_list,
-};
-use crate::subnet_catalog::canonical_principal_text;
-use crate::{
-    cache_file::{
-        CachedJsonReport, LoadJsonCacheRequest, RefreshCacheWriteRequest, announce_cache_refresh,
-        load_json_cache, write_json_refresh_cache,
-    },
-    nns::leaf::{NnsLeafCachePaths, nns_leaf_cache_path},
-    subnet_catalog::format_utc_timestamp_secs,
-};
+use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
+use crate::{cache_file::announce_cache_refresh, nns::leaf::nns_leaf_cache_path};
 use std::path::{Path, PathBuf};
 
+mod cache;
 mod model;
+mod refresh;
+mod resolve;
+mod source;
 mod text;
+
+use cache::load_cached_nns_node_operator_report;
+use refresh::{
+    refresh_nns_node_operator_cache_with_source, refresh_nns_node_operator_report_with_source,
+};
+use resolve::resolve_node_operator;
+use source::{LiveNnsNodeOperatorSource, NnsNodeOperatorSource};
+
+#[cfg(test)]
+use crate::ic_registry::{MainnetNodeOperatorList, MainnetRegistryFetchRequest};
 
 pub use model::*;
 pub use text::{
@@ -41,21 +44,8 @@ pub fn nns_node_operator_cache_path(icp_root: &Path, network: &str) -> PathBuf {
 }
 
 impl_nns_load_json_cache_error_mapper!(NnsNodeOperatorCacheErrors, NnsNodeOperatorHostError);
-
-pub fn load_cached_nns_node_operator_report(
-    request: &NnsNodeOperatorCacheRequest,
-) -> Result<CachedJsonReport<NnsNodeOperatorListReport>, NnsNodeOperatorHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let path = nns_node_operator_cache_path(&request.icp_root, &request.network);
-    load_json_cache(
-        LoadJsonCacheRequest {
-            path,
-            network: &request.network,
-            expected_schema_version: NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
-        },
-        NnsNodeOperatorCacheErrors,
-    )
-}
+impl_nns_cache_error_mapper!(node_operator_cache_error, NnsNodeOperatorHostError);
+impl_nns_mainnet_network_enforcer!(NnsNodeOperatorHostError);
 
 pub fn build_nns_node_operator_list_report(
     request: &NnsNodeOperatorListRequest,
@@ -126,173 +116,6 @@ fn build_nns_node_operator_info_report_with_source(
         data_center_id: operator.data_center_id,
         node_count: operator.node_count,
     })
-}
-
-fn refresh_nns_node_operator_report_with_source(
-    request: &NnsNodeOperatorRefreshRequest,
-    source: &dyn NnsNodeOperatorSource,
-) -> Result<NnsNodeOperatorRefreshReport, NnsNodeOperatorHostError> {
-    refresh_nns_node_operator_cache_with_source(request, source).map(|(_, report)| report)
-}
-
-fn refresh_nns_node_operator_cache_with_source(
-    request: &NnsNodeOperatorRefreshRequest,
-    source: &dyn NnsNodeOperatorSource,
-) -> Result<(NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport), NnsNodeOperatorHostError> {
-    enforce_mainnet_network(&request.cache.network)?;
-    let paths = NnsLeafCachePaths::for_component(
-        &request.cache.icp_root,
-        NNS_NODE_OPERATOR_CACHE_DIR,
-        &request.cache.network,
-        NNS_NODE_OPERATOR_CACHE_FILE,
-    );
-    let report = fetch_nns_node_operator_list_report_with_source(
-        &request.cache.network,
-        &request.source_endpoint,
-        request.now_unix_secs,
-        source,
-    )?;
-    let write_result = write_json_refresh_cache(
-        RefreshCacheWriteRequest {
-            cache_path: &paths.cache_path,
-            lock_path: &paths.lock_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
-            dry_run: request.dry_run,
-            output_path: request.output_path.as_deref(),
-            report: &report,
-        },
-        node_operator_cache_error,
-        |path, source| NnsNodeOperatorHostError::SerializeCache { path, source },
-    )?;
-    let refresh_report = NnsNodeOperatorRefreshReport {
-        schema_version: NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION,
-        network: report.network.clone(),
-        cache_path: write_result.cache_path,
-        refresh_lock_path: write_result.refresh_lock_path,
-        output_path: write_result.output_path,
-        registry_canister_id: report.registry_canister_id.clone(),
-        registry_version: report.registry_version,
-        fetched_at: report.fetched_at.clone(),
-        source_endpoint: report.source_endpoint.clone(),
-        fetched_by: report.fetched_by.clone(),
-        dry_run: request.dry_run,
-        wrote_cache: write_result.wrote_cache,
-        replaced_existing_cache: write_result.replaced_existing_cache,
-        node_operator_count: report.node_operator_count,
-    };
-    Ok((report, refresh_report))
-}
-
-fn fetch_nns_node_operator_list_report_with_source(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    source: &dyn NnsNodeOperatorSource,
-) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    enforce_mainnet_network(network)?;
-    let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let mut fetch_request = MainnetRegistryFetchRequest::new(fetched_at);
-    fetch_request.endpoint = source_endpoint.to_string();
-    let list = source.fetch_node_operators(&fetch_request)?;
-    Ok(node_operator_report_from_list(list))
-}
-
-impl_nns_cache_error_mapper!(node_operator_cache_error, NnsNodeOperatorHostError);
-
-fn node_operator_report_from_list(list: MainnetNodeOperatorList) -> NnsNodeOperatorListReport {
-    let node_operators = list
-        .node_operators
-        .into_iter()
-        .map(|operator| NnsNodeOperatorRow {
-            node_operator_principal: operator.principal,
-            node_provider_principal: operator.node_provider_principal,
-            node_allowance: operator.node_allowance,
-            data_center_id: operator.data_center_id,
-            node_count: operator.node_count,
-        })
-        .collect::<Vec<_>>();
-    NnsNodeOperatorListReport {
-        schema_version: NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        registry_canister_id: list.registry_canister_id,
-        registry_version: list.registry_version,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        node_operator_count: node_operators.len(),
-        node_operators,
-    }
-}
-
-///
-/// NnsNodeOperatorSource
-///
-trait NnsNodeOperatorSource {
-    fn fetch_node_operators(
-        &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeOperatorList, NnsNodeOperatorHostError>;
-}
-
-impl_nns_mainnet_network_enforcer!(NnsNodeOperatorHostError);
-
-///
-/// LiveNnsNodeOperatorSource
-///
-struct LiveNnsNodeOperatorSource;
-
-impl NnsNodeOperatorSource for LiveNnsNodeOperatorSource {
-    fn fetch_node_operators(
-        &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeOperatorList, NnsNodeOperatorHostError> {
-        Ok(fetch_mainnet_node_operator_list(request)?)
-    }
-}
-
-fn resolve_node_operator(
-    report: &NnsNodeOperatorListReport,
-    input: &str,
-) -> Result<(NnsNodeOperatorRow, String), NnsNodeOperatorHostError> {
-    if let Ok(principal) = canonical_principal_text(input)
-        && let Some(operator) = report
-            .node_operators
-            .iter()
-            .find(|operator| operator.node_operator_principal == principal)
-    {
-        return Ok((operator.clone(), "node_operator_principal".to_string()));
-    }
-
-    let prefix = input.trim().to_ascii_lowercase();
-    if prefix.is_empty() {
-        return Err(NnsNodeOperatorHostError::NodeOperatorNotFound {
-            input: input.to_string(),
-        });
-    }
-    let matches = report
-        .node_operators
-        .iter()
-        .filter(|operator| operator.node_operator_principal.starts_with(&prefix))
-        .cloned()
-        .collect::<Vec<_>>();
-    match matches.as_slice() {
-        [operator] => Ok((
-            operator.clone(),
-            "node_operator_principal_prefix".to_string(),
-        )),
-        [] => Err(NnsNodeOperatorHostError::NodeOperatorNotFound {
-            input: input.to_string(),
-        }),
-        _ => Err(NnsNodeOperatorHostError::AmbiguousNodeOperatorPrefix {
-            prefix,
-            matches: matches
-                .into_iter()
-                .map(|operator| operator.node_operator_principal)
-                .collect(),
-        }),
-    }
 }
 
 #[cfg(test)]
