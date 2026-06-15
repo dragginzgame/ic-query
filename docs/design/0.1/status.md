@@ -35,9 +35,10 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The first implementation reuses the existing cache-file primitives directly in
-the SNS report layer. The reusable cross-command snapshot abstraction remains
-open follow-through.
+The latest cleanup splits shared cache-file JSON helpers, refresh-lock helpers,
+and write helpers into focused modules. The first SNS snapshot implementation
+still reuses cache-file primitives directly in the SNS report layer. The
+reusable cross-command snapshot abstraction remains open follow-through.
 
 ## Implementation Checklist
 
