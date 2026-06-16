@@ -23,7 +23,7 @@ use crate::cli::{
         DISPATCH_ARGS, apply_global_network, command_local_global_option,
         top_level_dispatch_command,
     },
-    help::{first_arg_is_help, usage},
+    help::{collect_args_or_print_help, usage},
 };
 use std::ffi::OsString;
 use thiserror::Error as ThisError;
@@ -55,11 +55,9 @@ pub fn run<I>(args: I) -> Result<(), IcQueryError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if first_arg_is_help(&args) {
-        println!("{}", usage());
+    let Some(args) = collect_args_or_print_help(args, usage) else {
         return Ok(());
-    }
+    };
     if let Some(option) = command_local_global_option(&args) {
         return Err(IcQueryError::Usage(format!(
             "{option} is a top-level option; put it before the command\n\n{}",

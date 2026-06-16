@@ -5,10 +5,8 @@ use super::super::{
         NnsTopologyRefreshRequest, nns_topology_refresh_report_text, refresh_nns_topology_report,
     },
 };
-use crate::{
-    cli::help::print_help_or_version,
-    nns::{NnsCommandError, command_icp_root, now_unix_secs, write_text_or_json},
-    version_text,
+use crate::nns::{
+    NnsCommandError, command_args, command_icp_root, now_unix_secs, write_text_or_json,
 };
 use std::ffi::OsString;
 
@@ -16,10 +14,9 @@ pub(super) fn run_topology_refresh<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, topology_refresh_usage, version_text()) {
+    let Some(args) = command_args(args, topology_refresh_usage) else {
         return Ok(());
-    }
+    };
     let options = TopologyRefreshOptions::parse(args)?;
     let format = options.format;
     let icp_root = command_icp_root()?;

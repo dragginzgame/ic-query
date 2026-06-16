@@ -17,7 +17,7 @@ use crate::{
     cli::{
         clap::{parse_required_subcommand_or_usage, passthrough_subcommand, render_help},
         common::{OutputFormat, current_unix_secs, write_text_or_json},
-        help::print_help_or_version,
+        help::{collect_args_or_print_help_or_version, collect_args_or_print_help_or_version_flag},
     },
     nns::{
         data_center::report::NnsDataCenterHostError, node::report::NnsNodeHostError,
@@ -76,10 +76,9 @@ pub fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, usage, version_text()) {
+    let Some(args) = command_args(args, usage) else {
         return Ok(());
-    }
+    };
     let (command, args) = parse_required_subcommand_or_usage(nns_command(), args, usage)
         .map_err(NnsCommandError::Usage)?;
 
@@ -93,6 +92,26 @@ where
         "topology" => topology::run(args),
         _ => unreachable!("nns dispatch command only defines known commands"),
     }
+}
+
+pub(in crate::nns) fn command_args<I>(
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Option<Vec<OsString>>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    collect_args_or_print_help_or_version(args, usage, version_text())
+}
+
+pub(in crate::nns) fn command_flag_args<I>(
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Option<Vec<OsString>>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    collect_args_or_print_help_or_version_flag(args, usage, version_text())
 }
 
 fn now_unix_secs() -> Result<u64, NnsCommandError> {

@@ -5,9 +5,8 @@ mod refresh;
 
 use super::commands::{subnet_command, subnet_usage};
 use crate::{
-    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version},
-    nns::NnsCommandError,
-    version_text,
+    cli::clap::parse_required_subcommand_or_usage,
+    nns::{NnsCommandError, command_args},
 };
 use std::ffi::OsString;
 
@@ -15,10 +14,9 @@ pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, subnet_usage, version_text()) {
+    let Some(args) = command_args(args, subnet_usage) else {
         return Ok(());
-    }
+    };
     let (command, args) = parse_required_subcommand_or_usage(subnet_command(), args, subnet_usage)
         .map_err(NnsCommandError::Usage)?;
 

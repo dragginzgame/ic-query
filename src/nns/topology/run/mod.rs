@@ -3,9 +3,8 @@ mod refresh;
 
 use super::commands::{topology_command, topology_usage};
 use crate::{
-    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version_flag},
-    nns::NnsCommandError,
-    version_text,
+    cli::clap::parse_required_subcommand_or_usage,
+    nns::{NnsCommandError, command_flag_args},
 };
 use std::ffi::OsString;
 
@@ -13,10 +12,9 @@ pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version_flag(&args, topology_usage, version_text()) {
+    let Some(args) = command_flag_args(args, topology_usage) else {
         return Ok(());
-    }
+    };
     let (command, args) =
         parse_required_subcommand_or_usage(topology_command(), args, topology_usage)
             .map_err(NnsCommandError::Usage)?;

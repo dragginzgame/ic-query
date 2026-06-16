@@ -15,9 +15,13 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.46` centralizes SNS lookup-command runtime fields for info, token,
+  params, proposal, proposals, neurons, and neuron refresh commands, plus
+  shared CLI, SNS, and NNS command args/help/version handling.
+
 - `0.1.45` removes remaining production wildcard imports and centralizes
-  clap parse-to-usage plus NNS project-root usage-error handling for command
-  dispatch and option parsers.
+  clap parse-to-usage, help/version handling, and NNS project-root usage-error
+  handling for command dispatch and option parsers.
 
 - `0.1.44` replaces wildcard module re-exports across SNS, cached NNS report
   roots, subnet catalog reports, and topology fixtures with explicit export

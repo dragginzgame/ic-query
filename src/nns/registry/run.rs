@@ -3,19 +3,15 @@ use super::{
     options::RegistryVersionOptions,
 };
 use crate::{
-    cli::{
-        clap::parse_required_subcommand_or_usage,
-        help::{print_help_or_version, print_help_or_version_flag},
-    },
+    cli::clap::parse_required_subcommand_or_usage,
     nns::{
-        NnsCommandError, now_unix_secs,
+        NnsCommandError, command_args, command_flag_args, now_unix_secs,
         registry::report::{
             NnsRegistryVersionRequest, build_nns_registry_version_report,
             nns_registry_version_report_text,
         },
         write_text_or_json,
     },
-    version_text,
 };
 use std::ffi::OsString;
 
@@ -23,10 +19,9 @@ pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version_flag(&args, registry_usage_for_error, version_text()) {
+    let Some(args) = command_flag_args(args, registry_usage_for_error) else {
         return Ok(());
-    }
+    };
     let (command, args) =
         parse_required_subcommand_or_usage(registry_command(), args, registry_usage_for_error)
             .map_err(NnsCommandError::Usage)?;
@@ -41,10 +36,9 @@ fn run_registry_version<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, registry_version_usage_for_error, version_text()) {
+    let Some(args) = command_args(args, registry_version_usage_for_error) else {
         return Ok(());
-    }
+    };
     let options = RegistryVersionOptions::parse(args)?;
     let request = NnsRegistryVersionRequest {
         network: options.network,

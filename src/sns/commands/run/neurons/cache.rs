@@ -1,9 +1,6 @@
-use super::super::common::command_icp_root;
+use super::super::common::{command_args, command_icp_root};
 use crate::{
-    cli::{
-        clap::parse_required_subcommand_or_usage, common::write_text_or_json,
-        help::print_help_or_version,
-    },
+    cli::{clap::parse_required_subcommand_or_usage, common::write_text_or_json},
     sns::{
         commands::{
             SnsCommandError,
@@ -19,7 +16,6 @@ use crate::{
             sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
         },
     },
-    version_text,
 };
 use std::ffi::OsString;
 
@@ -27,10 +23,9 @@ pub(super) fn run_sns_neurons_cache<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_neurons_cache_usage, version_text()) {
+    let Some(args) = command_args(args, sns_neurons_cache_usage) else {
         return Ok(());
-    }
+    };
     let (command, args) = parse_required_subcommand_or_usage(
         sns_neurons_cache_command(),
         args,
@@ -48,10 +43,9 @@ fn run_sns_neurons_cache_list<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_neurons_cache_list_usage, version_text()) {
+    let Some(args) = command_args(args, sns_neurons_cache_list_usage) else {
         return Ok(());
-    }
+    };
     let options = SnsNeuronsCacheListOptions::parse(args)?;
     let format = options.format;
     let request = SnsNeuronsCacheListRequest {
@@ -66,10 +60,9 @@ fn run_sns_neurons_cache_status<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_neurons_cache_status_usage, version_text()) {
+    let Some(args) = command_args(args, sns_neurons_cache_status_usage) else {
         return Ok(());
-    }
+    };
     let options = SnsNeuronsCacheStatusOptions::parse(args)?;
     let format = options.format;
     let request = SnsNeuronsCacheStatusRequest {

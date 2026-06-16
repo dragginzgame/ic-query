@@ -1,25 +1,19 @@
 use super::cache::cache_request;
-use crate::{
-    cli::help::print_help_or_version,
-    nns::{
-        NnsCommandError, command_icp_root,
-        node::{
-            commands::node_refresh_usage,
-            options::node_refresh_options,
-            report::{
-                NnsNodeRefreshRequest, nns_node_refresh_report_text, refresh_nns_node_report,
-            },
-        },
-        now_unix_secs, write_text_or_json,
+use crate::nns::{
+    NnsCommandError, command_args, command_icp_root,
+    node::{
+        commands::node_refresh_usage,
+        options::node_refresh_options,
+        report::{NnsNodeRefreshRequest, nns_node_refresh_report_text, refresh_nns_node_report},
     },
-    version_text,
+    now_unix_secs, write_text_or_json,
 };
 use std::ffi::OsString;
 
 pub(super) fn run_node_refresh(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    if print_help_or_version(&args, node_refresh_usage, version_text()) {
+    let Some(args) = command_args(args, node_refresh_usage) else {
         return Ok(());
-    }
+    };
     let options = node_refresh_options(args)?;
     let format = options.format;
     let icp_root = command_icp_root()?;

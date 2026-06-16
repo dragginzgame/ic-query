@@ -1,6 +1,6 @@
-use super::common::command_unix_secs;
+use super::common::{command_args, lookup_command_parts};
 use crate::{
-    cli::{common::write_text_or_json, help::print_help_or_version},
+    cli::common::write_text_or_json,
     sns::{
         commands::{
             SnsCommandError,
@@ -16,7 +16,6 @@ use crate::{
             sns_token_report_text,
         },
     },
-    version_text,
 };
 use clap::Command as ClapCommand;
 use serde::Serialize;
@@ -72,22 +71,18 @@ where
     I: IntoIterator<Item = OsString>,
     Report: Serialize,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, usage, version_text()) {
+    let Some(args) = command_args(args, usage) else {
         return Ok(());
-    }
+    };
     let options = SnsLookupOptions::parse(args, command, usage)?;
-    let format = options.format;
-    let request = sns_lookup_request(options)?;
+    let parts = lookup_command_parts(options)?;
+    let format = parts.format;
+    let request = SnsLookupRequest {
+        network: parts.network,
+        source_endpoint: parts.source_endpoint,
+        now_unix_secs: parts.now_unix_secs,
+        input: parts.input,
+    };
     let report = build_report(&request)?;
     write_text_or_json(format, &report, render_text)
-}
-
-fn sns_lookup_request(options: SnsLookupOptions) -> Result<SnsLookupRequest, SnsCommandError> {
-    Ok(SnsLookupRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: command_unix_secs()?,
-        input: options.input,
-    })
 }

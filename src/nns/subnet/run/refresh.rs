@@ -1,21 +1,20 @@
 use super::cache::cache_request;
 use crate::{
-    cli::{common::write_text_or_json, help::print_help_or_version},
+    cli::common::write_text_or_json,
     nns::{
-        NnsCommandError, command_icp_root, now_unix_secs,
+        NnsCommandError, command_args, command_icp_root, now_unix_secs,
         subnet::{commands::refresh_usage, options::CatalogRefreshOptions},
     },
     subnet_catalog::{
         SubnetCatalogRefreshRequest, refresh_subnet_catalog, subnet_catalog_refresh_report_text,
     },
-    version_text,
 };
 use std::ffi::OsString;
 
 pub(super) fn run_catalog_refresh(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    if print_help_or_version(&args, refresh_usage, version_text()) {
+    let Some(args) = command_args(args, refresh_usage) else {
         return Ok(());
-    }
+    };
     let options = CatalogRefreshOptions::parse(args)?;
     let format = options.format;
     let icp_root = command_icp_root()?;

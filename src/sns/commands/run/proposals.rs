@@ -1,6 +1,6 @@
-use super::common::command_unix_secs;
+use super::common::{command_args, lookup_command_parts};
 use crate::{
-    cli::{common::write_text_or_json, help::print_help_or_version},
+    cli::common::write_text_or_json,
     sns::{
         commands::{
             SnsCommandError,
@@ -12,7 +12,6 @@ use crate::{
             build_sns_proposals_report, sns_proposal_report_text, sns_proposals_report_text,
         },
     },
-    version_text,
 };
 use std::ffi::OsString;
 
@@ -20,17 +19,17 @@ pub(super) fn run_sns_proposal<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_proposal_usage, version_text()) {
+    let Some(args) = command_args(args, sns_proposal_usage) else {
         return Ok(());
-    }
+    };
     let options = SnsProposalOptions::parse(args)?;
-    let format = options.lookup.format;
+    let parts = lookup_command_parts(options.lookup)?;
+    let format = parts.format;
     let request = SnsProposalRequest {
-        network: options.lookup.network,
-        source_endpoint: options.lookup.source_endpoint,
-        now_unix_secs: command_unix_secs()?,
-        input: options.lookup.input,
+        network: parts.network,
+        source_endpoint: parts.source_endpoint,
+        now_unix_secs: parts.now_unix_secs,
+        input: parts.input,
         proposal_id: options.proposal_id,
         verbose: options.verbose,
     };
@@ -42,17 +41,17 @@ pub(super) fn run_sns_proposals<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_proposals_usage, version_text()) {
+    let Some(args) = command_args(args, sns_proposals_usage) else {
         return Ok(());
-    }
+    };
     let options = SnsProposalsOptions::parse(args)?;
-    let format = options.lookup.format;
+    let parts = lookup_command_parts(options.lookup)?;
+    let format = parts.format;
     let request = SnsProposalsRequest {
-        network: options.lookup.network,
-        source_endpoint: options.lookup.source_endpoint,
-        now_unix_secs: command_unix_secs()?,
-        input: options.lookup.input,
+        network: parts.network,
+        source_endpoint: parts.source_endpoint,
+        now_unix_secs: parts.now_unix_secs,
+        input: parts.input,
         limit: options.limit,
         before_proposal_id: options.before_proposal_id,
         status: options.status.into(),

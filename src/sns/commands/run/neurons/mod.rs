@@ -1,9 +1,9 @@
 mod cache;
 mod refresh;
 
-use super::common::{command_icp_root, command_unix_secs};
+use super::common::{command_args, command_icp_root, lookup_command_parts};
 use crate::{
-    cli::{common::write_text_or_json, help::print_help_or_version},
+    cli::common::write_text_or_json,
     sns::{
         commands::{
             SnsCommandError,
@@ -14,7 +14,6 @@ use crate::{
             SnsNeuronsRequest, SnsNeuronsSort, build_sns_neurons_report, sns_neurons_report_text,
         },
     },
-    version_text,
 };
 use std::{ffi::OsString, path::PathBuf};
 
@@ -22,10 +21,9 @@ pub(super) fn run_sns_neurons<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_neurons_usage, version_text()) {
+    let Some(args) = command_args(args, sns_neurons_usage) else {
         return Ok(());
-    }
+    };
     if args.first().and_then(|arg| arg.to_str()) == Some("refresh") {
         return refresh::run_sns_neurons_refresh(args.into_iter().skip(1));
     }
@@ -38,13 +36,14 @@ where
             "`icq sns neurons --sort <id|stake|maturity|created>` reads the complete full-neuron cache and does not support --owner yet; use --sort api for owner-filtered live queries".to_string(),
         ));
     }
-    let format = options.lookup.format;
+    let parts = lookup_command_parts(options.lookup)?;
+    let format = parts.format;
     let icp_root = cache_root_for_sort(options.sort)?;
     let request = SnsNeuronsRequest {
-        network: options.lookup.network,
-        source_endpoint: options.lookup.source_endpoint,
-        now_unix_secs: command_unix_secs()?,
-        input: options.lookup.input,
+        network: parts.network,
+        source_endpoint: parts.source_endpoint,
+        now_unix_secs: parts.now_unix_secs,
+        input: parts.input,
         limit: options.limit,
         owner_principal_id: options.owner_principal_id,
         sort: options.sort.into(),

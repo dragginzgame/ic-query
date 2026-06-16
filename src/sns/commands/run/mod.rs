@@ -9,24 +9,19 @@ use super::{
     spec::{sns_command, sns_list_usage, usage},
 };
 use crate::{
-    cli::{
-        clap::parse_required_subcommand_or_usage, common::write_text_or_json,
-        help::print_help_or_version,
-    },
+    cli::{clap::parse_required_subcommand_or_usage, common::write_text_or_json},
     sns::report::{SnsListRequest, build_sns_list_report, sns_list_report_text},
-    version_text,
 };
-use common::command_unix_secs;
+use common::{command_args, command_unix_secs};
 use std::ffi::OsString;
 
 pub fn run<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, usage, version_text()) {
+    let Some(args) = command_args(args, usage) else {
         return Ok(());
-    }
+    };
     let (command, args) = parse_required_subcommand_or_usage(sns_command(), args, usage)
         .map_err(SnsCommandError::Usage)?;
 
@@ -46,10 +41,9 @@ fn run_sns_list<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, sns_list_usage, version_text()) {
+    let Some(args) = command_args(args, sns_list_usage) else {
         return Ok(());
-    }
+    };
     let options = SnsListOptions::parse(args)?;
     let format = options.format;
     let request = SnsListRequest {

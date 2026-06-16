@@ -5,9 +5,8 @@ use super::{
     model::NnsLeafCommandSpec,
 };
 use crate::{
-    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version},
-    nns::NnsCommandError,
-    version_text,
+    cli::clap::parse_required_subcommand_or_usage,
+    nns::{NnsCommandError, command_args},
 };
 use std::ffi::OsString;
 
@@ -23,10 +22,9 @@ pub(in crate::nns) fn run_leaf<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, || usage(spec), version_text()) {
+    let Some(args) = command_args(args, || usage(spec)) else {
         return Ok(());
-    }
+    };
     let (command_name, args) =
         parse_required_subcommand_or_usage(command(spec), args, || usage(spec))
             .map_err(NnsCommandError::Usage)?;

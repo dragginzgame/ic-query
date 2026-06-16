@@ -35,11 +35,25 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup removes the remaining production wildcard imports from SNS
-governance-parameter text rendering and centralizes clap parse-to-usage
+The latest cleanup centralizes SNS lookup command runtime fields behind shared
+lookup command parts for format, network, source endpoint, timestamp, and
+input. `sns info`, `sns token`, `sns params`, `sns proposal`,
+`sns proposals`, `sns neurons`, and `sns neurons refresh` now build their
+report requests from the shared lookup parts instead of manually unpacking
+`SnsLookupOptions`. SNS runtime commands also share a small command-argument
+prelude for collecting args and handling first-argument help/version output.
+NNS dispatch, subnet, node, registry, topology, and cached leaf run paths now
+share matching command-argument helpers for regular and flag-only help/version
+handling. Top-level, NNS, and SNS command adapters use shared CLI helpers for
+command-argument collection and first-argument help/version checks.
+
+The previous cleanup removes the remaining production wildcard imports from
+SNS governance-parameter text rendering and centralizes clap parse-to-usage
 handling behind shared helpers used by top-level, NNS, SNS, subnet, registry,
 topology, and leaf option parsers. NNS run paths also share one project-root
 helper for converting local root lookup failures into command usage errors.
+Shared CLI first-argument help/version handling now uses one private helper
+while preserving the existing command-specific version alias behavior.
 
 The previous cleanup tightens module APIs by replacing wildcard re-exports in
 SNS report/model/source roots, cached NNS leaf report roots, subnet catalog
@@ -154,11 +168,18 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.45 cleanup, including production wildcard-import
-removal, shared clap parse-to-usage helper migration for top-level, NNS, SNS,
-subnet, registry, topology, and leaf option parsers, and shared NNS
-project-root usage-error handling across subnet, node, topology, and cached
-leaf run paths. Prior validation covered the 0.1.44 cleanup, including
+All passed during the 0.1.46 cleanup, including shared SNS lookup command
+parts and migration of info, token, params, proposal, proposals, neurons, and
+neuron refresh runtime request construction, plus shared SNS command
+args/help/version handling and shared NNS command args/help/version helpers.
+Top-level, NNS, and SNS adapters now share CLI-level argument collection and
+first-argument help/version handling.
+Prior validation covered the 0.1.45 cleanup, including production
+wildcard-import removal, shared clap parse-to-usage helper migration for
+top-level, NNS, SNS, subnet, registry, topology, and leaf option parsers,
+shared NNS project-root usage-error handling across subnet, node, topology,
+and cached leaf run paths, and deduplicated first-argument help/version
+handling. Prior validation covered the 0.1.44 cleanup, including
 explicit export-list coverage for SNS report/model/source roots, cached NNS
 leaf report roots, subnet catalog report roots, and topology report fixtures.
 Prior validation covered the 0.1.43 cleanup, including shared NNS leaf

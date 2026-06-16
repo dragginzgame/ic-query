@@ -7,9 +7,8 @@ use super::super::{
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
 use crate::{
-    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version},
-    nns::{NnsCommandError, command_icp_root, now_unix_secs, write_text_or_json},
-    version_text,
+    cli::clap::parse_required_subcommand_or_usage,
+    nns::{NnsCommandError, command_args, command_icp_root, now_unix_secs, write_text_or_json},
 };
 use std::ffi::OsString;
 
@@ -23,10 +22,9 @@ where
     I: IntoIterator<Item = OsString>,
     Reports: NnsLeafReports,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, || usage(spec), version_text()) {
+    let Some(args) = command_args(args, || usage(spec)) else {
         return Ok(());
-    }
+    };
     let (command_name, args) =
         parse_required_subcommand_or_usage(command(spec), args, || usage(spec))
             .map_err(NnsCommandError::Usage)?;
@@ -48,13 +46,9 @@ fn run_cached_leaf_list<Reports>(
 where
     Reports: NnsLeafReports,
 {
-    if print_help_or_version(
-        &args,
-        || list_usage(spec, default_source_endpoint),
-        version_text(),
-    ) {
+    let Some(args) = command_args(args, || list_usage(spec, default_source_endpoint)) else {
         return Ok(());
-    }
+    };
     let options = NnsLeafListOptions::parse(args, spec, default_source_endpoint)?;
     let icp_root = command_icp_root()?;
     let request = <Reports::ListRequest as NnsLeafListRequest>::from_leaf_parts(
@@ -81,13 +75,9 @@ fn run_cached_leaf_info<Reports>(
 where
     Reports: NnsLeafReports,
 {
-    if print_help_or_version(
-        &args,
-        || info_usage(spec, default_source_endpoint),
-        version_text(),
-    ) {
+    let Some(args) = command_args(args, || info_usage(spec, default_source_endpoint)) else {
         return Ok(());
-    }
+    };
     let options = NnsLeafInfoOptions::parse(args, spec, default_source_endpoint)?;
     let icp_root = command_icp_root()?;
     let request = <Reports::InfoRequest as NnsLeafInfoRequest>::from_leaf_parts(
@@ -111,13 +101,9 @@ fn run_cached_leaf_refresh<Reports>(
 where
     Reports: NnsLeafReports,
 {
-    if print_help_or_version(
-        &args,
-        || refresh_usage(spec, default_source_endpoint),
-        version_text(),
-    ) {
+    let Some(args) = command_args(args, || refresh_usage(spec, default_source_endpoint)) else {
         return Ok(());
-    }
+    };
     let options = NnsLeafRefreshOptions::parse(args, spec, default_source_endpoint)?;
     let format = options.format;
     let icp_root = command_icp_root()?;

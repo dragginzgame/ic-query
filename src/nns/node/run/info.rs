@@ -1,23 +1,19 @@
 use super::cache::cache_request;
-use crate::{
-    cli::help::print_help_or_version,
-    nns::{
-        NnsCommandError, command_icp_root,
-        node::{
-            commands::node_info_usage,
-            options::node_info_options,
-            report::{NnsNodeInfoRequest, build_nns_node_info_report, nns_node_info_report_text},
-        },
-        now_unix_secs, write_text_or_json,
+use crate::nns::{
+    NnsCommandError, command_args, command_icp_root,
+    node::{
+        commands::node_info_usage,
+        options::node_info_options,
+        report::{NnsNodeInfoRequest, build_nns_node_info_report, nns_node_info_report_text},
     },
-    version_text,
+    now_unix_secs, write_text_or_json,
 };
 use std::ffi::OsString;
 
 pub(super) fn run_node_info(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    if print_help_or_version(&args, node_info_usage, version_text()) {
+    let Some(args) = command_args(args, node_info_usage) else {
         return Ok(());
-    }
+    };
     let options = node_info_options(args)?;
     let icp_root = command_icp_root()?;
     let request = NnsNodeInfoRequest {
