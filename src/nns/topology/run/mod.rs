@@ -2,10 +2,7 @@ mod read;
 mod refresh;
 
 use super::commands::{topology_command, topology_usage};
-use crate::{
-    cli::clap::parse_required_subcommand_or_usage,
-    nns::{NnsCommandError, command_flag_args},
-};
+use crate::nns::{NnsCommandError, command_flag_args, parse_nns_required_subcommand};
 use std::ffi::OsString;
 
 pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
@@ -15,9 +12,7 @@ where
     let Some(args) = command_flag_args(args, topology_usage) else {
         return Ok(());
     };
-    let (command, args) =
-        parse_required_subcommand_or_usage(topology_command(), args, topology_usage)
-            .map_err(NnsCommandError::Usage)?;
+    let (command, args) = parse_nns_required_subcommand(topology_command(), args, topology_usage)?;
 
     match command.as_str() {
         "summary" => read::run_topology_summary(args),

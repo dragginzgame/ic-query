@@ -1,8 +1,9 @@
 use crate::{
-    cli::{clap::parse_matches_or_usage, common::OutputFormat},
+    cli::common::OutputFormat,
     nns::{
         NnsCommandError,
         leaf::NnsCommonOptions,
+        parse_nns_matches,
         topology::{
             commands::{
                 topology_capacity_command, topology_capacity_usage, topology_coverage_command,
@@ -36,8 +37,7 @@ macro_rules! topology_read_options {
             where
                 I: IntoIterator<Item = OsString>,
             {
-                let matches = parse_matches_or_usage($command(), args, $usage)
-                    .map_err(NnsCommandError::Usage)?;
+                let matches = parse_nns_matches($command(), args, $usage)?;
                 let common = NnsCommonOptions::from_matches(&matches);
                 Ok(Self {
                     network: common.network,

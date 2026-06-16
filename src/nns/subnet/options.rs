@@ -2,8 +2,8 @@ use super::commands::{
     info_command, info_usage, list_command, list_usage, refresh_command, refresh_usage,
 };
 use crate::{
-    cli::clap::{parse_matches_or_usage, required_string, required_typed, typed_option},
-    nns::{NnsCommandError, OutputFormat},
+    cli::clap::{required_string, required_typed, typed_option},
+    nns::{NnsCommandError, OutputFormat, parse_nns_matches},
     subnet_catalog::{ResolveAs, SubnetCatalogFilters},
 };
 use std::{ffi::OsString, path::PathBuf};
@@ -53,8 +53,7 @@ impl CatalogListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(list_command(), args, list_usage)
-            .map_err(NnsCommandError::Usage)?;
+        let matches = parse_nns_matches(list_command(), args, list_usage)?;
         Ok(Self {
             network: required_string(&matches, "network"),
             format: required_typed(&matches, "format"),
@@ -77,8 +76,7 @@ impl CatalogInfoOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(info_command(), args, info_usage)
-            .map_err(NnsCommandError::Usage)?;
+        let matches = parse_nns_matches(info_command(), args, info_usage)?;
         Ok(Self {
             input: required_string(&matches, "input"),
             network: required_string(&matches, "network"),
@@ -94,8 +92,7 @@ impl CatalogRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(refresh_command(), args, refresh_usage)
-            .map_err(NnsCommandError::Usage)?;
+        let matches = parse_nns_matches(refresh_command(), args, refresh_usage)?;
         Ok(Self {
             network: required_string(&matches, "network"),
             format: required_typed(&matches, "format"),

@@ -4,9 +4,10 @@ use crate::{
     nns::{
         NnsCommandError,
         leaf::{
-            commands::{INPUT_ARG, info_command, info_usage, parse_leaf_matches},
+            commands::{INPUT_ARG, info_command, info_usage},
             model::NnsLeafCommandSpec,
         },
+        parse_nns_matches,
     },
 };
 use std::ffi::OsString;
@@ -28,10 +29,9 @@ impl NnsLeafInfoOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches =
-            parse_leaf_matches(info_command(spec, default_source_endpoint), args, || {
-                info_usage(spec, default_source_endpoint)
-            })?;
+        let matches = parse_nns_matches(info_command(spec, default_source_endpoint), args, || {
+            info_usage(spec, default_source_endpoint)
+        })?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             input: required_string(&matches, INPUT_ARG),

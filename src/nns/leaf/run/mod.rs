@@ -4,10 +4,7 @@ use super::{
     commands::{command, usage},
     model::NnsLeafCommandSpec,
 };
-use crate::{
-    cli::clap::parse_required_subcommand_or_usage,
-    nns::{NnsCommandError, command_args},
-};
+use crate::nns::{NnsCommandError, command_args, parse_nns_required_subcommand};
 use std::ffi::OsString;
 
 pub(in crate::nns) use cached::run_cached_leaf;
@@ -25,9 +22,7 @@ where
     let Some(args) = command_args(args, || usage(spec)) else {
         return Ok(());
     };
-    let (command_name, args) =
-        parse_required_subcommand_or_usage(command(spec), args, || usage(spec))
-            .map_err(NnsCommandError::Usage)?;
+    let (command_name, args) = parse_nns_required_subcommand(command(spec), args, || usage(spec))?;
 
     match command_name.as_str() {
         "list" => run_list(args),

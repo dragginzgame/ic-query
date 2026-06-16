@@ -1,6 +1,7 @@
+use super::common::parse_sns_matches;
 use crate::{
     cli::{
-        clap::{parse_matches_or_usage, required_string, required_typed},
+        clap::{required_string, required_typed},
         common::OutputFormat,
     },
     sns::commands::{
@@ -24,8 +25,7 @@ impl SnsListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(sns_list_command(), args, sns_list_usage)
-            .map_err(SnsCommandError::Usage)?;
+        let matches = parse_sns_matches(sns_list_command(), args, sns_list_usage)?;
         Ok(Self {
             network: required_string(&matches, "network"),
             format: required_typed(&matches, "format"),

@@ -8,11 +8,11 @@ use crate::{
         NnsCommandError,
         leaf::{
             commands::{
-                DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, OUTPUT_ARG, parse_leaf_matches, refresh_command,
-                refresh_usage,
+                DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, OUTPUT_ARG, refresh_command, refresh_usage,
             },
             model::NnsLeafCommandSpec,
         },
+        parse_nns_matches,
     },
 };
 use std::{ffi::OsString, path::PathBuf};
@@ -37,7 +37,7 @@ impl NnsLeafRefreshOptions {
         I: IntoIterator<Item = OsString>,
     {
         let matches =
-            parse_leaf_matches(refresh_command(spec, default_source_endpoint), args, || {
+            parse_nns_matches(refresh_command(spec, default_source_endpoint), args, || {
                 refresh_usage(spec, default_source_endpoint)
             })?;
         let common = NnsCommonOptions::from_matches(&matches);

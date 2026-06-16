@@ -35,7 +35,16 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup centralizes compact-vs-verbose text/JSON output behind a
+The latest cleanup centralizes CLI argument collection behind one private
+helper used by first-argument help/version handlers. Cached NNS leaf list,
+info, and refresh runtime paths also share one project-root lookup,
+cache-request constructor, and command timestamp setup. SNS neuron cache
+list/status runtime paths now share format, network, and project-root setup.
+SNS command option parsers share one helper for mapping clap parse failures to
+SNS usage errors. NNS option parsers and NNS/SNS required-subcommand dispatch
+paths also use namespace-local wrappers for clap usage-error mapping.
+
+The previous cleanup centralizes compact-vs-verbose text/JSON output behind a
 shared writer helper. NNS subnet list, custom node list, and cached leaf list
 commands now use the same compact/verbose renderer selection instead of
 open-coding that branch in each run path. Clap passthrough subcommand-argument
@@ -177,12 +186,18 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.47 cleanup, including the shared compact-vs-verbose
-text/JSON writer and migration of NNS subnet list, custom node list, and
-cached leaf list output onto it, plus shared clap passthrough-argument
-extraction for required-subcommand parsing and top-level dispatch, plus shared
-custom NNS node and NNS subnet runtime cache-request setup. Prior validation
-covered the 0.1.46 cleanup,
+All passed during the 0.1.48 cleanup, including shared CLI argument collection
+for first-argument help/version handlers and shared cached NNS leaf
+project-root lookup, cache-request construction, and command timestamp setup,
+plus shared SNS neuron cache command setup, shared SNS option parser
+usage-error mapping, and shared NNS/SNS clap usage-error wrappers for option
+parsing and required-subcommand dispatch. Prior validation covered the 0.1.47
+cleanup, including the shared
+compact-vs-verbose text/JSON writer and migration of NNS subnet list, custom
+node list, and cached leaf list output onto it, plus shared clap
+passthrough-argument extraction for required-subcommand parsing and top-level
+dispatch, plus shared custom NNS node and NNS subnet runtime cache-request
+setup. Prior validation covered the 0.1.46 cleanup,
 including shared SNS lookup command parts and migration of info, token,
 params, proposal, proposals, neurons, and neuron refresh runtime request
 construction, plus shared SNS command args/help/version handling and shared

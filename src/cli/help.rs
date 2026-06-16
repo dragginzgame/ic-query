@@ -58,6 +58,20 @@ pub fn print_help_or_version_flag(
     print_help_or_version_matching(args, usage, version_text, is_version_flag_arg)
 }
 
+fn collect_args_or_print_if<I>(
+    args: I,
+    should_print: impl FnOnce(&[OsString]) -> bool,
+) -> Option<Vec<OsString>>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    if should_print(&args) {
+        return None;
+    }
+    Some(args)
+}
+
 pub fn collect_args_or_print_help<I>(
     args: I,
     usage: impl FnOnce() -> String,
@@ -65,12 +79,13 @@ pub fn collect_args_or_print_help<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if first_arg_is_help(&args) {
-        println!("{}", usage());
-        return None;
-    }
-    Some(args)
+    collect_args_or_print_if(args, |args| {
+        if first_arg_is_help(args) {
+            println!("{}", usage());
+            return true;
+        }
+        false
+    })
 }
 
 pub fn collect_args_or_print_help_or_version<I>(
@@ -81,11 +96,9 @@ pub fn collect_args_or_print_help_or_version<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version(&args, usage, version_text) {
-        return None;
-    }
-    Some(args)
+    collect_args_or_print_if(args, |args| {
+        print_help_or_version(args, usage, version_text)
+    })
 }
 
 pub fn collect_args_or_print_help_or_version_flag<I>(
@@ -96,11 +109,9 @@ pub fn collect_args_or_print_help_or_version_flag<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if print_help_or_version_flag(&args, usage, version_text) {
-        return None;
-    }
-    Some(args)
+    collect_args_or_print_if(args, |args| {
+        print_help_or_version_flag(args, usage, version_text)
+    })
 }
 
 #[must_use]

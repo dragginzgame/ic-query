@@ -1,10 +1,14 @@
 use crate::{
-    cli::common::{OutputFormat, current_unix_secs},
-    cli::help::collect_args_or_print_help_or_version,
+    cli::{
+        clap::parse_required_subcommand_or_usage,
+        common::{OutputFormat, current_unix_secs},
+        help::collect_args_or_print_help_or_version,
+    },
     project::icp_root,
     sns::commands::{SnsCommandError, options::SnsLookupOptions},
     version_text,
 };
+use clap::Command as ClapCommand;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -29,6 +33,17 @@ where
 
 pub(super) fn command_icp_root() -> Result<PathBuf, SnsCommandError> {
     icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))
+}
+
+pub(super) fn parse_required_command<I>(
+    command: ClapCommand,
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Result<(String, Vec<OsString>), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    parse_required_subcommand_or_usage(command, args, usage).map_err(SnsCommandError::Usage)
 }
 
 pub(super) fn lookup_command_parts(

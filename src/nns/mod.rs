@@ -15,7 +15,10 @@ mod tests;
 
 use crate::{
     cli::{
-        clap::{parse_required_subcommand_or_usage, passthrough_subcommand, render_help},
+        clap::{
+            parse_matches_or_usage, parse_required_subcommand_or_usage, passthrough_subcommand,
+            render_help,
+        },
         common::{OutputFormat, current_unix_secs, write_text_or_json},
         help::{collect_args_or_print_help_or_version, collect_args_or_print_help_or_version_flag},
     },
@@ -29,7 +32,7 @@ use crate::{
     subnet_catalog::SubnetCatalogHostError,
     version_text,
 };
-use clap::Command as ClapCommand;
+use clap::{ArgMatches, Command as ClapCommand};
 use std::{ffi::OsString, io, path::PathBuf};
 use thiserror::Error as ThisError;
 
@@ -79,8 +82,7 @@ where
     let Some(args) = command_args(args, usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_subcommand_or_usage(nns_command(), args, usage)
-        .map_err(NnsCommandError::Usage)?;
+    let (command, args) = parse_nns_required_subcommand(nns_command(), args, usage)?;
 
     match command.as_str() {
         "subnet" => subnet::run(args),
@@ -112,6 +114,28 @@ where
     I: IntoIterator<Item = OsString>,
 {
     collect_args_or_print_help_or_version_flag(args, usage, version_text())
+}
+
+pub(in crate::nns) fn parse_nns_matches<I>(
+    command: ClapCommand,
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Result<ArgMatches, NnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    parse_matches_or_usage(command, args, usage).map_err(NnsCommandError::Usage)
+}
+
+pub(in crate::nns) fn parse_nns_required_subcommand<I>(
+    command: ClapCommand,
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Result<(String, Vec<OsString>), NnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    parse_required_subcommand_or_usage(command, args, usage).map_err(NnsCommandError::Usage)
 }
 
 fn now_unix_secs() -> Result<u64, NnsCommandError> {

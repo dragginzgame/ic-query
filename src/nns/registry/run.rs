@@ -2,16 +2,13 @@ use super::{
     commands::{registry_command, registry_usage_for_error, registry_version_usage_for_error},
     options::RegistryVersionOptions,
 };
-use crate::{
-    cli::clap::parse_required_subcommand_or_usage,
-    nns::{
-        NnsCommandError, command_args, command_flag_args, now_unix_secs,
-        registry::report::{
-            NnsRegistryVersionRequest, build_nns_registry_version_report,
-            nns_registry_version_report_text,
-        },
-        write_text_or_json,
+use crate::nns::{
+    NnsCommandError, command_args, command_flag_args, now_unix_secs, parse_nns_required_subcommand,
+    registry::report::{
+        NnsRegistryVersionRequest, build_nns_registry_version_report,
+        nns_registry_version_report_text,
     },
+    write_text_or_json,
 };
 use std::ffi::OsString;
 
@@ -23,8 +20,7 @@ where
         return Ok(());
     };
     let (command, args) =
-        parse_required_subcommand_or_usage(registry_command(), args, registry_usage_for_error)
-            .map_err(NnsCommandError::Usage)?;
+        parse_nns_required_subcommand(registry_command(), args, registry_usage_for_error)?;
 
     match command.as_str() {
         "version" => run_registry_version(args),

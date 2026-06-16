@@ -7,8 +7,11 @@ use super::super::{
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
 use crate::{
-    cli::{clap::parse_required_subcommand_or_usage, common::write_text_or_json_verbose},
-    nns::{NnsCommandError, command_args, command_icp_root, now_unix_secs, write_text_or_json},
+    cli::common::write_text_or_json_verbose,
+    nns::{
+        NnsCommandError, command_args, command_icp_root, now_unix_secs,
+        parse_nns_required_subcommand, write_text_or_json,
+    },
 };
 use std::ffi::OsString;
 
@@ -25,9 +28,7 @@ where
     let Some(args) = command_args(args, || usage(spec)) else {
         return Ok(());
     };
-    let (command_name, args) =
-        parse_required_subcommand_or_usage(command(spec), args, || usage(spec))
-            .map_err(NnsCommandError::Usage)?;
+    let (command_name, args) = parse_nns_required_subcommand(command(spec), args, || usage(spec))?;
 
     match command_name.as_str() {
         "list" => run_cached_leaf_list(args, spec, default_source_endpoint, &reports),
@@ -35,6 +36,22 @@ where
         "refresh" => run_cached_leaf_refresh(args, spec, default_source_endpoint, &reports),
         _ => unreachable!("nns leaf dispatch command only defines known commands"),
     }
+}
+
+struct LeafRuntimeParts<Cache> {
+    cache: Cache,
+    now_unix_secs: u64,
+}
+
+fn leaf_runtime_parts<Cache>(network: &str) -> Result<LeafRuntimeParts<Cache>, NnsCommandError>
+where
+    Cache: NnsLeafCacheRequest,
+{
+    let icp_root = command_icp_root()?;
+    Ok(LeafRuntimeParts {
+        cache: Cache::from_root_network(&icp_root, network),
+        now_unix_secs: now_unix_secs()?,
+    })
 }
 
 fn run_cached_leaf_list<Reports>(
@@ -50,11 +67,11 @@ where
         return Ok(());
     };
     let options = NnsLeafListOptions::parse(args, spec, default_source_endpoint)?;
-    let icp_root = command_icp_root()?;
+    let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
     let request = <Reports::ListRequest as NnsLeafListRequest>::from_leaf_parts(
-        <Reports::Cache as NnsLeafCacheRequest>::from_root_network(&icp_root, &options.network),
+        parts.cache,
         options.source_endpoint,
-        now_unix_secs()?,
+        parts.now_unix_secs,
     );
     let report = reports.build_list_report(&request).map_err(Into::into)?;
     write_text_or_json_verbose(
@@ -79,12 +96,12 @@ where
         return Ok(());
     };
     let options = NnsLeafInfoOptions::parse(args, spec, default_source_endpoint)?;
-    let icp_root = command_icp_root()?;
+    let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
     let request = <Reports::InfoRequest as NnsLeafInfoRequest>::from_leaf_parts(
-        <Reports::Cache as NnsLeafCacheRequest>::from_root_network(&icp_root, &options.network),
+        parts.cache,
         options.source_endpoint,
         options.input,
-        now_unix_secs()?,
+        parts.now_unix_secs,
     );
     let report = reports.build_info_report(&request).map_err(Into::into)?;
     write_text_or_json(options.format, &report, |report| {
@@ -106,11 +123,11 @@ where
     };
     let options = NnsLeafRefreshOptions::parse(args, spec, default_source_endpoint)?;
     let format = options.format;
-    let icp_root = command_icp_root()?;
+    let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
     let request = <Reports::RefreshRequest as NnsLeafRefreshRequest>::from_leaf_parts(
-        <Reports::Cache as NnsLeafCacheRequest>::from_root_network(&icp_root, &options.network),
+        parts.cache,
         options.source_endpoint,
-        now_unix_secs()?,
+        parts.now_unix_secs,
         options.lock_stale_after_seconds,
         options.dry_run,
         options.output_path,

@@ -1,6 +1,6 @@
-use super::super::common::{command_args, command_icp_root};
+use super::super::common::{command_args, command_icp_root, parse_required_command};
 use crate::{
-    cli::{clap::parse_required_subcommand_or_usage, common::write_text_or_json},
+    cli::common::{OutputFormat, write_text_or_json},
     sns::{
         commands::{
             SnsCommandError,
@@ -17,7 +17,13 @@ use crate::{
         },
     },
 };
-use std::ffi::OsString;
+use std::{ffi::OsString, path::PathBuf};
+
+struct SnsNeuronsCacheCommandParts {
+    format: OutputFormat,
+    network: String,
+    icp_root: PathBuf,
+}
 
 pub(super) fn run_sns_neurons_cache<I>(args: I) -> Result<(), SnsCommandError>
 where
@@ -26,17 +32,24 @@ where
     let Some(args) = command_args(args, sns_neurons_cache_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_subcommand_or_usage(
-        sns_neurons_cache_command(),
-        args,
-        sns_neurons_cache_usage,
-    )
-    .map_err(SnsCommandError::Usage)?;
+    let (command, args) =
+        parse_required_command(sns_neurons_cache_command(), args, sns_neurons_cache_usage)?;
     match command.as_str() {
         "list" => run_sns_neurons_cache_list(args),
         "status" => run_sns_neurons_cache_status(args),
         _ => unreachable!("sns neurons cache dispatch command only defines known commands"),
     }
+}
+
+fn cache_command_parts(
+    format: OutputFormat,
+    network: String,
+) -> Result<SnsNeuronsCacheCommandParts, SnsCommandError> {
+    Ok(SnsNeuronsCacheCommandParts {
+        format,
+        network,
+        icp_root: command_icp_root()?,
+    })
 }
 
 fn run_sns_neurons_cache_list<I>(args: I) -> Result<(), SnsCommandError>
@@ -47,13 +60,13 @@ where
         return Ok(());
     };
     let options = SnsNeuronsCacheListOptions::parse(args)?;
-    let format = options.format;
+    let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsNeuronsCacheListRequest {
-        network: options.network,
-        icp_root: command_icp_root()?,
+        network: parts.network,
+        icp_root: parts.icp_root,
     };
     let report = build_sns_neurons_cache_list_report(&request)?;
-    write_text_or_json(format, &report, sns_neurons_cache_list_report_text)
+    write_text_or_json(parts.format, &report, sns_neurons_cache_list_report_text)
 }
 
 fn run_sns_neurons_cache_status<I>(args: I) -> Result<(), SnsCommandError>
@@ -64,12 +77,12 @@ where
         return Ok(());
     };
     let options = SnsNeuronsCacheStatusOptions::parse(args)?;
-    let format = options.format;
+    let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsNeuronsCacheStatusRequest {
-        network: options.network,
-        icp_root: command_icp_root()?,
+        network: parts.network,
+        icp_root: parts.icp_root,
         input: options.input,
     };
     let report = build_sns_neurons_cache_status_report(&request)?;
-    write_text_or_json(format, &report, sns_neurons_cache_status_report_text)
+    write_text_or_json(parts.format, &report, sns_neurons_cache_status_report_text)
 }

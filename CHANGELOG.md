@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.48` centralizes CLI help/version argument collection, NNS/SNS clap
+  usage-error mapping, cached NNS leaf runtime setup, and SNS neuron cache
+  command setup.
+
 - `0.1.47` centralizes compact-vs-verbose text/JSON writing for NNS list
   commands, passthrough subcommand-argument extraction for clap dispatch, and
   NNS node/subnet runtime cache-request setup.

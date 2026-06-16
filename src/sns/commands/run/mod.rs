@@ -9,10 +9,10 @@ use super::{
     spec::{sns_command, sns_list_usage, usage},
 };
 use crate::{
-    cli::{clap::parse_required_subcommand_or_usage, common::write_text_or_json},
+    cli::common::write_text_or_json,
     sns::report::{SnsListRequest, build_sns_list_report, sns_list_report_text},
 };
-use common::{command_args, command_unix_secs};
+use common::{command_args, command_unix_secs, parse_required_command};
 use std::ffi::OsString;
 
 pub fn run<I>(args: I) -> Result<(), SnsCommandError>
@@ -22,8 +22,7 @@ where
     let Some(args) = command_args(args, usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_subcommand_or_usage(sns_command(), args, usage)
-        .map_err(SnsCommandError::Usage)?;
+    let (command, args) = parse_required_command(sns_command(), args, usage)?;
 
     match command.as_str() {
         "list" => run_sns_list(args),
