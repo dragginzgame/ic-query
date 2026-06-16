@@ -5,7 +5,6 @@ use crate::cli::{
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
 
-pub const DISPATCH_ARGS: &str = "args";
 pub const INTERNAL_NETWORK_OPTION: &str = "--__icq-network";
 
 pub fn network_arg() -> Arg {

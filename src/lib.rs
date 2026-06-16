@@ -18,11 +18,8 @@ mod token_amount;
 mod test_support;
 
 use crate::cli::{
-    clap::{parse_matches_or_usage, string_option},
-    globals::{
-        DISPATCH_ARGS, apply_global_network, command_local_global_option,
-        top_level_dispatch_command,
-    },
+    clap::{parse_matches_or_usage, passthrough_args, string_option},
+    globals::{apply_global_network, command_local_global_option, top_level_dispatch_command},
     help::{collect_args_or_print_help, usage},
 };
 use std::ffi::OsString;
@@ -76,10 +73,7 @@ where
     let Some((command, subcommand_matches)) = matches.subcommand() else {
         return Err(IcQueryError::Usage(usage()));
     };
-    let mut tail = subcommand_matches
-        .get_many::<OsString>(DISPATCH_ARGS)
-        .map(|values| values.cloned().collect::<Vec<_>>())
-        .unwrap_or_default();
+    let mut tail = passthrough_args(subcommand_matches);
     apply_global_network(command, &mut tail, global_network);
     let tail = tail.into_iter();
 

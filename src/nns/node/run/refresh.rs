@@ -1,6 +1,6 @@
 use super::cache::cache_request;
 use crate::nns::{
-    NnsCommandError, command_args, command_icp_root,
+    NnsCommandError, command_args,
     node::{
         commands::node_refresh_usage,
         options::node_refresh_options,
@@ -16,9 +16,8 @@ pub(super) fn run_node_refresh(args: Vec<OsString>) -> Result<(), NnsCommandErro
     };
     let options = node_refresh_options(args)?;
     let format = options.format;
-    let icp_root = command_icp_root()?;
     let request = NnsNodeRefreshRequest {
-        cache: cache_request(&icp_root, &options.network),
+        cache: cache_request(&options.network)?,
         source_endpoint: options.source_endpoint,
         now_unix_secs: now_unix_secs()?,
         lock_stale_after_seconds: options.lock_stale_after_seconds,

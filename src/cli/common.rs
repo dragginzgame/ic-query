@@ -38,6 +38,26 @@ where
     }
 }
 
+pub fn write_text_or_json_verbose<T, E>(
+    format: OutputFormat,
+    report: &T,
+    verbose: bool,
+    render_text: impl FnOnce(&T) -> String,
+    render_verbose_text: impl FnOnce(&T) -> String,
+) -> Result<(), E>
+where
+    T: Serialize,
+    E: From<io::Error> + From<serde_json::Error>,
+{
+    write_text_or_json(format, report, |report| {
+        if verbose {
+            render_verbose_text(report)
+        } else {
+            render_text(report)
+        }
+    })
+}
+
 pub fn current_unix_secs() -> Result<u64, String> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

@@ -32,6 +32,13 @@ pub fn passthrough_subcommand(command: Command) -> Command {
     )
 }
 
+pub fn passthrough_args(matches: &ArgMatches) -> Vec<OsString> {
+    matches
+        .get_many::<OsString>(PASSTHROUGH_ARGS)
+        .map(|values| values.cloned().collect::<Vec<_>>())
+        .unwrap_or_default()
+}
+
 pub fn parse_subcommand<I>(
     command: Command,
     args: I,
@@ -40,14 +47,9 @@ where
     I: IntoIterator<Item = OsString>,
 {
     let matches = parse_matches(command, args)?;
-    Ok(matches.subcommand().map(|(name, matches)| {
-        let args = matches
-            .get_many::<OsString>(PASSTHROUGH_ARGS)
-            .map(|values| values.cloned().collect::<Vec<_>>())
-            .unwrap_or_default();
-
-        (name.to_string(), args)
-    }))
+    Ok(matches
+        .subcommand()
+        .map(|(name, matches)| (name.to_string(), passthrough_args(matches))))
 }
 
 pub fn parse_required_subcommand<I>(

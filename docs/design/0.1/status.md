@@ -35,9 +35,18 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup centralizes SNS lookup command runtime fields behind shared
-lookup command parts for format, network, source endpoint, timestamp, and
-input. `sns info`, `sns token`, `sns params`, `sns proposal`,
+The latest cleanup centralizes compact-vs-verbose text/JSON output behind a
+shared writer helper. NNS subnet list, custom node list, and cached leaf list
+commands now use the same compact/verbose renderer selection instead of
+open-coding that branch in each run path. Clap passthrough subcommand-argument
+extraction is also shared between required-subcommand parsing and top-level
+command dispatch, removing a duplicate hidden argument constant. Custom NNS
+node commands and NNS subnet catalog commands now centralize project-root
+lookup plus cache-request construction in their runtime cache helpers.
+
+The previous cleanup centralizes SNS lookup command runtime fields behind
+shared lookup command parts for format, network, source endpoint, timestamp,
+and input. `sns info`, `sns token`, `sns params`, `sns proposal`,
 `sns proposals`, `sns neurons`, and `sns neurons refresh` now build their
 report requests from the shared lookup parts instead of manually unpacking
 `SnsLookupOptions`. SNS runtime commands also share a small command-argument
@@ -168,12 +177,17 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.46 cleanup, including shared SNS lookup command
-parts and migration of info, token, params, proposal, proposals, neurons, and
-neuron refresh runtime request construction, plus shared SNS command
-args/help/version handling and shared NNS command args/help/version helpers.
-Top-level, NNS, and SNS adapters now share CLI-level argument collection and
-first-argument help/version handling.
+All passed during the 0.1.47 cleanup, including the shared compact-vs-verbose
+text/JSON writer and migration of NNS subnet list, custom node list, and
+cached leaf list output onto it, plus shared clap passthrough-argument
+extraction for required-subcommand parsing and top-level dispatch, plus shared
+custom NNS node and NNS subnet runtime cache-request setup. Prior validation
+covered the 0.1.46 cleanup,
+including shared SNS lookup command parts and migration of info, token,
+params, proposal, proposals, neurons, and neuron refresh runtime request
+construction, plus shared SNS command args/help/version handling and shared
+NNS command args/help/version helpers. Top-level, NNS, and SNS adapters now
+share CLI-level argument collection and first-argument help/version handling.
 Prior validation covered the 0.1.45 cleanup, including production
 wildcard-import removal, shared clap parse-to-usage helper migration for
 top-level, NNS, SNS, subnet, registry, topology, and leaf option parsers,

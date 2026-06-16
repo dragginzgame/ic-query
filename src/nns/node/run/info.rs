@@ -1,6 +1,6 @@
 use super::cache::cache_request;
 use crate::nns::{
-    NnsCommandError, command_args, command_icp_root,
+    NnsCommandError, command_args,
     node::{
         commands::node_info_usage,
         options::node_info_options,
@@ -15,9 +15,8 @@ pub(super) fn run_node_info(args: Vec<OsString>) -> Result<(), NnsCommandError> 
         return Ok(());
     };
     let options = node_info_options(args)?;
-    let icp_root = command_icp_root()?;
     let request = NnsNodeInfoRequest {
-        cache: cache_request(&icp_root, &options.network),
+        cache: cache_request(&options.network)?,
         source_endpoint: options.source_endpoint,
         input: options.input,
         now_unix_secs: now_unix_secs()?,

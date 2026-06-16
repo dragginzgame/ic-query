@@ -7,7 +7,7 @@ use super::super::{
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
 use crate::{
-    cli::clap::parse_required_subcommand_or_usage,
+    cli::{clap::parse_required_subcommand_or_usage, common::write_text_or_json_verbose},
     nns::{NnsCommandError, command_args, command_icp_root, now_unix_secs, write_text_or_json},
 };
 use std::ffi::OsString;
@@ -57,13 +57,13 @@ where
         now_unix_secs()?,
     );
     let report = reports.build_list_report(&request).map_err(Into::into)?;
-    write_text_or_json(options.format, &report, |report| {
-        if options.verbose {
-            reports.list_report_verbose_text(report)
-        } else {
-            reports.list_report_text(report)
-        }
-    })
+    write_text_or_json_verbose(
+        options.format,
+        &report,
+        options.verbose,
+        |report| reports.list_report_text(report),
+        |report| reports.list_report_verbose_text(report),
+    )
 }
 
 fn run_cached_leaf_info<Reports>(

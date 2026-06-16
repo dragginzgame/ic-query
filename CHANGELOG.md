@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.47` centralizes compact-vs-verbose text/JSON writing for NNS list
+  commands, passthrough subcommand-argument extraction for clap dispatch, and
+  NNS node/subnet runtime cache-request setup.
+
 - `0.1.46` centralizes SNS lookup-command runtime fields for info, token,
   params, proposal, proposals, neurons, and neuron refresh commands, plus
   shared CLI, SNS, and NNS command args/help/version handling.
