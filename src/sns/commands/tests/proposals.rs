@@ -37,6 +37,7 @@ fn sns_proposal_parses_id_and_json_format() {
         OsString::from("json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
+        OsString::from("--ballots"),
         OsString::from("--verbose"),
     ])
     .expect("parse proposal");
@@ -46,5 +47,6 @@ fn sns_proposal_parses_id_and_json_format() {
     assert_eq!(options.lookup.format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
     assert_eq!(options.proposal_id, 42);
+    assert!(options.show_ballots);
     assert!(options.verbose);
 }

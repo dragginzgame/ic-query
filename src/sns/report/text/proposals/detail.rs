@@ -2,9 +2,10 @@ use super::SNS_PROPOSAL_TITLE_TEXT_LIMIT;
 use crate::{
     nns::render::yes_no,
     sns::report::{
-        SnsProposalRow,
-        text::common::{optional_text, optional_u64_text, truncate_text_value},
+        SnsProposalBallotRow, SnsProposalRow,
+        text::common::{neuron_id_text, optional_text, optional_u64_text, truncate_text_value},
     },
+    table::{ColumnAlign, render_table},
     token_amount::e8s_decimal_text,
 };
 
@@ -81,6 +82,35 @@ pub(super) fn proposal_detail_lines(
         ));
     }
     lines
+}
+
+pub(super) fn proposal_ballot_table(
+    ballots: &[SnsProposalBallotRow],
+    verbose: bool,
+) -> Option<String> {
+    if ballots.is_empty() {
+        return None;
+    }
+    Some(render_table(
+        &["NEURON_ID", "VOTE", "VOTING_POWER", "CAST_AT"],
+        &ballots
+            .iter()
+            .map(|ballot| {
+                [
+                    neuron_id_text(&ballot.neuron_id, verbose),
+                    ballot.vote_text.clone(),
+                    e8s_decimal_text(ballot.voting_power),
+                    optional_text(ballot.cast_at.as_ref()).to_string(),
+                ]
+            })
+            .collect::<Vec<_>>(),
+        &[
+            ColumnAlign::Left,
+            ColumnAlign::Left,
+            ColumnAlign::Right,
+            ColumnAlign::Left,
+        ],
+    ))
 }
 
 fn proposal_detail_text(value: &str, detail_limit: Option<usize>) -> String {

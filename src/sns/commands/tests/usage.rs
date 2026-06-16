@@ -43,6 +43,7 @@ fn sns_help_is_advertised() {
     assert!(proposal.contains("icq sns proposal"));
     assert!(proposal.contains("id|root-principal"));
     assert!(proposal.contains("proposal-id"));
+    assert!(proposal.contains("--ballots"));
     assert!(proposal.contains("--verbose"));
     assert!(proposals.contains("icq sns proposals"));
     assert!(proposals.contains("--limit"));

@@ -32,6 +32,7 @@ where
         input: parts.input,
         proposal_id: options.proposal_id,
         verbose: options.verbose,
+        show_ballots: options.show_ballots,
     };
     let report = build_sns_proposal_report(&request)?;
     write_text_or_json(format, &report, sns_proposal_report_text)

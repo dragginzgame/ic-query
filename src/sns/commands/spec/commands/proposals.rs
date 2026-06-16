@@ -25,6 +25,7 @@ const SNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal 1 387
   icq sns proposal 23ten-uaaaa-aaaaq-aabia-cai 387
+  icq sns proposal 1 387 --ballots
   icq sns proposal 1 387 --verbose
   icq --network ic sns proposal 1 387 --format json";
 
@@ -50,6 +51,11 @@ pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
             flag_arg("verbose")
                 .long("verbose")
                 .help("Show full proposal summary and payload text rendering"),
+        )
+        .arg(
+            flag_arg("ballots")
+                .long("ballots")
+                .help("Show proposal ballot rows in text output"),
         )
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_PROPOSAL_HELP_AFTER)

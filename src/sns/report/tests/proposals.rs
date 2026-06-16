@@ -14,6 +14,7 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert_eq!(report.root_canister_id, ROOT_A);
     assert_eq!(report.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.proposal_id, 42);
+    assert!(report.show_ballots);
     assert_eq!(report.proposal.proposal_id, Some(42));
     assert_eq!(report.proposal.action, "motion");
     assert_eq!(report.proposal.decision_state, "open");
@@ -22,6 +23,10 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert!(text.contains("proposal_id: 42"));
     assert!(text.contains("action: motion"));
     assert!(text.contains("ballot_count: 1"));
+    assert!(text.contains("show_ballots: yes"));
+    assert!(text.contains("NEURON_ID   VOTE"));
+    assert!(text.contains("00010203"));
+    assert!(text.contains("1.00"));
     assert!(text.contains("Fixture proposal"));
     assert!(text.contains("reject_cost: 1.00"));
 }

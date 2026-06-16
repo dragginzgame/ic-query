@@ -9,4 +9,4 @@ pub(in crate::sns::report::text) use optional::{
     optional_percentage_text, optional_permissions_text, optional_text, optional_u32_text,
     optional_u64_text,
 };
-pub(in crate::sns::report::text) use text::{comma_join_u64, truncate_text_value};
+pub(in crate::sns::report::text) use text::{comma_join_u64, neuron_id_text, truncate_text_value};

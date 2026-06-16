@@ -114,6 +114,7 @@ icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
 icq sns proposals 1 --before 100 --format json
 icq sns proposal 1 387
+icq sns proposal 1 387 --ballots
 ```
 
 ## Integration

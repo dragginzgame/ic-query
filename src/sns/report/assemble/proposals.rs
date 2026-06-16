@@ -10,6 +10,7 @@ pub(in crate::sns::report) struct SnsProposalReportParts {
     pub(in crate::sns::report) sns: MainnetSns,
     pub(in crate::sns::report) proposal_id: u64,
     pub(in crate::sns::report) verbose: bool,
+    pub(in crate::sns::report) show_ballots: bool,
     pub(in crate::sns::report) proposal: MainnetSnsProposal,
 }
 
@@ -40,6 +41,7 @@ pub(in crate::sns::report) fn sns_proposal_report_from_parts(
         governance_canister_id: parts.sns.governance_canister_id,
         proposal_id: parts.proposal_id,
         verbose: parts.verbose,
+        show_ballots: parts.show_ballots,
         proposal: parts.proposal.proposal,
     }
 }

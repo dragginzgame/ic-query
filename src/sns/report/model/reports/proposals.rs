@@ -14,6 +14,7 @@ pub struct SnsProposalReport {
     pub governance_canister_id: String,
     pub proposal_id: u64,
     pub verbose: bool,
+    pub show_ballots: bool,
     pub proposal: SnsProposalRow,
 }
 

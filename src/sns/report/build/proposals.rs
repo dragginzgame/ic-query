@@ -40,6 +40,7 @@ pub(in crate::sns::report) fn build_sns_proposal_report_with_source(
         sns: lookup.sns,
         proposal_id: request.proposal_id,
         verbose: request.verbose,
+        show_ballots: request.show_ballots,
         proposal,
     }))
 }

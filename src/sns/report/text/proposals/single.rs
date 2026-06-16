@@ -1,4 +1,7 @@
-use super::{SNS_PROPOSAL_DETAIL_TEXT_LIMIT, detail::proposal_detail_lines};
+use super::{
+    SNS_PROPOSAL_DETAIL_TEXT_LIMIT,
+    detail::{proposal_ballot_table, proposal_detail_lines},
+};
 use crate::{nns::render::yes_no, sns::report::SnsProposalReport};
 
 #[must_use]
@@ -11,6 +14,7 @@ pub fn sns_proposal_report_text(report: &SnsProposalReport) -> String {
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("proposal_id: {}", report.proposal_id),
         format!("verbose: {}", yes_no(report.verbose)),
+        format!("show_ballots: {}", yes_no(report.show_ballots)),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
@@ -19,5 +23,14 @@ pub fn sns_proposal_report_text(report: &SnsProposalReport) -> String {
     ];
     let detail_limit = (!report.verbose).then_some(SNS_PROPOSAL_DETAIL_TEXT_LIMIT);
     lines.extend(proposal_detail_lines(&report.proposal, detail_limit));
+    if report.show_ballots {
+        lines.push(String::new());
+        lines.push("ballots:".to_string());
+        if let Some(table) = proposal_ballot_table(&report.proposal.ballots, report.verbose) {
+            lines.push(table);
+        } else {
+            lines.push("-".to_string());
+        }
+    }
     lines.join("\n")
 }

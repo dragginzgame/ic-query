@@ -30,6 +30,7 @@ pub struct SnsProposalRequest {
     pub input: String,
     pub proposal_id: u64,
     pub verbose: bool,
+    pub show_ballots: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

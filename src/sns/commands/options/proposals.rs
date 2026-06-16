@@ -25,6 +25,7 @@ pub(in crate::sns::commands) struct SnsProposalOptions {
     pub(in crate::sns::commands) lookup: SnsLookupOptions,
     pub(in crate::sns::commands) proposal_id: u64,
     pub(in crate::sns::commands) verbose: bool,
+    pub(in crate::sns::commands) show_ballots: bool,
 }
 
 impl SnsProposalsOptions {
@@ -53,6 +54,7 @@ impl SnsProposalOptions {
             lookup: SnsLookupOptions::from_matches(&matches),
             proposal_id: required_typed(&matches, "proposal-id"),
             verbose: matches.get_flag("verbose"),
+            show_ballots: matches.get_flag("ballots"),
         })
     }
 }

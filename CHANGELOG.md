@@ -11,6 +11,13 @@ present.
 
 ## Unreleased
 
+## [0.2.x] - 2026-06-16 - SNS proposal detail expansion
+
+Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
+
+- `0.2.0` adds direct SNS proposal ballot table output with compact neuron IDs
+  by default and full IDs under `--verbose`.
+
 ## [0.1.x] - 2026-06-13 - Snapshot cache and SNS query growth
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
