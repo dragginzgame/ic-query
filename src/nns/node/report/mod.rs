@@ -25,7 +25,11 @@ use source::NnsNodeSource;
 #[cfg(test)]
 use crate::ic_registry::{MainnetNodeList, MainnetRegistryFetchRequest};
 
-pub use model::*;
+pub use model::{
+    NnsNodeCacheRequest, NnsNodeHostError, NnsNodeInfoReport, NnsNodeInfoRequest,
+    NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRefreshReport,
+    NnsNodeRefreshRequest, NnsNodeRow,
+};
 pub use text::{
     nns_node_info_report_text, nns_node_list_report_text, nns_node_list_report_verbose_text,
     nns_node_refresh_report_text,

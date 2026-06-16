@@ -22,7 +22,11 @@ use source::NnsDataCenterSource;
 #[cfg(test)]
 use crate::ic_registry::{MainnetDataCenterList, MainnetRegistryFetchRequest};
 
-pub use model::*;
+pub use model::{
+    NnsDataCenterCacheRequest, NnsDataCenterHostError, NnsDataCenterInfoReport,
+    NnsDataCenterInfoRequest, NnsDataCenterListReport, NnsDataCenterListRequest,
+    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, NnsDataCenterRow,
+};
 pub use text::{
     nns_data_center_info_report_text, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text, nns_data_center_refresh_report_text,

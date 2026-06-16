@@ -1,6 +1,18 @@
 use crate::{hex::hex_bytes, ic_registry::DEFAULT_MAINNET_ENDPOINT};
 use lookup::enforce_mainnet_network;
-pub use model::*;
+#[cfg(test)]
+pub use model::{SnsCustomProposalCriticality, SnsVotingRewardsParameters};
+pub use model::{
+    SnsGovernanceParameters, SnsHostError, SnsInfoReport, SnsInfoRequest, SnsListReport,
+    SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList,
+    SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest,
+    SnsNeuronsCacheStatusReport, SnsNeuronsCacheStatusRequest, SnsNeuronsCacheSummary,
+    SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
+    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsReport, SnsParamsRequest,
+    SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalsReport,
+    SnsProposalsRequest, SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest, SnsTokenStandardRow,
+};
 use source::{
     MainnetSns, MainnetSnsCanisters, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons,
     MainnetSnsProposal, MainnetSnsProposals, MainnetSnsToken, SnsFetchRequest, SnsListSource,

@@ -22,7 +22,11 @@ use source::NnsNodeOperatorSource;
 #[cfg(test)]
 use crate::ic_registry::{MainnetNodeOperatorList, MainnetRegistryFetchRequest};
 
-pub use model::*;
+pub use model::{
+    NnsNodeOperatorCacheRequest, NnsNodeOperatorHostError, NnsNodeOperatorInfoReport,
+    NnsNodeOperatorInfoRequest, NnsNodeOperatorListReport, NnsNodeOperatorListRequest,
+    NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest, NnsNodeOperatorRow,
+};
 pub use text::{
     nns_node_operator_info_report_text, nns_node_operator_list_report_text,
     nns_node_operator_list_report_verbose_text, nns_node_operator_refresh_report_text,

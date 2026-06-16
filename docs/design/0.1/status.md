@@ -1,6 +1,6 @@
 # 0.1 Status: Snapshot Cache And Complete SNS Collections
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## Purpose
 
@@ -35,7 +35,13 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup adds shared NNS leaf request accessors and a shared NNS
+The latest cleanup tightens module APIs by replacing wildcard re-exports in
+SNS report/model/source roots, cached NNS leaf report roots, subnet catalog
+report roots, and topology report fixtures with explicit export lists.
+SNS nested governance helper structs remain test-only root exports because
+production report code only needs the containing governance-parameters model.
+
+The previous cleanup adds shared NNS leaf request accessors and a shared NNS
 leaf JSON refresh-cache writer. Node, node-provider, node-operator, and
 data-center refresh now use the shared writer for cache-path construction and
 `RefreshCacheWriteRequest` setup while preserving their report fields and
@@ -142,12 +148,15 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.43 cleanup, including shared NNS leaf refresh-cache
-writer extraction and migration of node, node-provider, node-operator, and
-data-center refresh paths plus topology NNS component cache-request adapters
-onto shared leaf cache helpers, with focused coverage for dry-run output and
-real cache replacement behavior. Prior validation covered the 0.1.42 cleanup,
-including shared locked snapshot refresh setup, shared paged snapshot refresh
+All passed during the 0.1.44 cleanup, including explicit export-list coverage
+for SNS report/model/source roots, cached NNS leaf report roots, subnet
+catalog report roots, and topology report fixtures. Prior validation covered
+the 0.1.43 cleanup, including shared NNS leaf refresh-cache writer extraction
+and migration of node, node-provider, node-operator, and data-center refresh
+paths plus topology NNS component cache-request adapters onto shared leaf
+cache helpers, with focused coverage for dry-run output and real cache
+replacement behavior. Prior validation covered the 0.1.42 cleanup, including
+shared locked snapshot refresh setup, shared paged snapshot refresh
 orchestration, shared refresh-attempt lifecycle handling, and migration of
 complete SNS neuron refresh setup, paging, and start/failure attempt handling
 onto the generic runners, plus centralized SNS neuron attempt-file writers.

@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.44` replaces wildcard module re-exports across SNS, cached NNS report
+  roots, subnet catalog reports, and topology fixtures with explicit export
+  lists.
+
 - `0.1.43` adds a shared NNS leaf refresh-cache writer and migrates node,
   node-provider, node-operator, data-center, and topology cache-request
   adapters onto shared NNS leaf cache helpers.

@@ -5,7 +5,9 @@ mod params;
 mod proposals;
 mod token;
 
-pub use governance::*;
+#[cfg(test)]
+pub use governance::{SnsCustomProposalCriticality, SnsVotingRewardsParameters};
+pub use governance::{SnsGovernanceParameters, SnsNeuronPermissionList};
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
 pub use neurons::{
     SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
