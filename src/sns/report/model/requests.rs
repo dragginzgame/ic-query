@@ -1,4 +1,4 @@
-use super::{SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter};
+use super::{SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter, SnsProposalTopicFilter};
 use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,6 +42,7 @@ pub struct SnsProposalsRequest {
     pub limit: u32,
     pub before_proposal_id: Option<u64>,
     pub status: SnsProposalStatusFilter,
+    pub topic: SnsProposalTopicFilter,
     pub verbose: bool,
 }
 

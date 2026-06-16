@@ -47,6 +47,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.requested_limit, 10);
     assert_eq!(report.before_proposal_id, Some(99));
     assert_eq!(report.status_filter, "open");
+    assert_eq!(report.topic_filter, "governance");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(42));
     assert_eq!(report.proposals[0].action, "motion");
@@ -61,6 +62,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
         Some(10)
     );
     assert!(text.contains("status_filter: open"));
+    assert!(text.contains("topic_filter: governance"));
     assert!(text.contains("before_proposal_id: 99"));
     assert!(text.contains("proposal_count: 1"));
     assert!(text.contains("ID   ACTION"));

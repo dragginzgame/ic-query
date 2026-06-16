@@ -2,7 +2,7 @@ use super::super::{
     MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
     MainnetSnsProposals, MainnetSnsToken, SnsFetchRequest, SnsGovernanceParameters, SnsHostError,
     SnsListSource, SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsSource, SnsTokenSource,
+    SnsProposalTopicFilter, SnsProposalsSource, SnsTokenSource,
 };
 use super::fetch::{
     fetch_mainnet_sns_list, fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons,
@@ -60,8 +60,16 @@ impl SnsProposalsSource for LiveSnsSource {
         limit: u32,
         before_proposal_id: Option<u64>,
         include_status: &[i32],
+        topic: SnsProposalTopicFilter,
     ) -> Result<MainnetSnsProposals, SnsHostError> {
-        fetch_mainnet_sns_proposals(request, sns, limit, before_proposal_id, include_status)
+        fetch_mainnet_sns_proposals(
+            request,
+            sns,
+            limit,
+            before_proposal_id,
+            include_status,
+            topic,
+        )
     }
 }
 

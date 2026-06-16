@@ -3,7 +3,7 @@ mod single;
 
 use super::block_on_sns;
 use crate::sns::report::{
-    SnsHostError,
+    SnsHostError, SnsProposalTopicFilter,
     source::{MainnetSns, MainnetSnsProposal, MainnetSnsProposals, SnsFetchRequest},
 };
 use list::fetch_mainnet_sns_proposals_async;
@@ -23,6 +23,7 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposals(
     limit: u32,
     before_proposal_id: Option<u64>,
     include_status: &[i32],
+    topic: SnsProposalTopicFilter,
 ) -> Result<MainnetSnsProposals, SnsHostError> {
     block_on_sns(fetch_mainnet_sns_proposals_async(
         request,
@@ -30,5 +31,6 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposals(
         limit,
         before_proposal_id,
         include_status,
+        topic,
     ))
 }

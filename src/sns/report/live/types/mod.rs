@@ -12,7 +12,8 @@ pub(in crate::sns::report::live) use neurons::{
 };
 pub(in crate::sns::report::live) use proposals::{
     GetProposalRequest, GetProposalResponse, GetProposalResult, ListProposalsRequest,
-    ListProposalsResponse, SnsGovernanceBallot, SnsGovernanceProposalData, SnsProposalId,
+    ListProposalsResponse, SnsGovernanceBallot, SnsGovernanceProposalData, SnsProposalId, SnsTopic,
+    SnsTopicSelector,
 };
 pub(in crate::sns::report) use token::IcrcMetadataValue;
 pub(in crate::sns::report::live) use token::{

@@ -59,6 +59,7 @@ pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsPropos
         limit: 10,
         before_proposal_id: Some(99),
         status: SnsProposalStatusFilter::Open,
+        topic: SnsProposalTopicFilter::Governance,
         verbose: false,
     }
 }

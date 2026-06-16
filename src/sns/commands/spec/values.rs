@@ -1,4 +1,6 @@
-use crate::sns::report::{SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter};
+use crate::sns::report::{
+    SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter, SnsProposalTopicFilter,
+};
 use clap::ValueEnum;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -58,6 +60,34 @@ impl From<SnsProposalStatusArg> for SnsProposalStatusFilter {
             SnsProposalStatusArg::Adopted => Self::Adopted,
             SnsProposalStatusArg::Executed => Self::Executed,
             SnsProposalStatusArg::Failed => Self::Failed,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub(in crate::sns::commands) enum SnsProposalTopicArg {
+    #[default]
+    Any,
+    DaoCommunitySettings,
+    SnsFrameworkManagement,
+    DappCanisterManagement,
+    ApplicationBusinessLogic,
+    Governance,
+    TreasuryAssetManagement,
+    CriticalDappOperations,
+}
+
+impl From<SnsProposalTopicArg> for SnsProposalTopicFilter {
+    fn from(value: SnsProposalTopicArg) -> Self {
+        match value {
+            SnsProposalTopicArg::Any => Self::Any,
+            SnsProposalTopicArg::DaoCommunitySettings => Self::DaoCommunitySettings,
+            SnsProposalTopicArg::SnsFrameworkManagement => Self::SnsFrameworkManagement,
+            SnsProposalTopicArg::DappCanisterManagement => Self::DappCanisterManagement,
+            SnsProposalTopicArg::ApplicationBusinessLogic => Self::ApplicationBusinessLogic,
+            SnsProposalTopicArg::Governance => Self::Governance,
+            SnsProposalTopicArg::TreasuryAssetManagement => Self::TreasuryAssetManagement,
+            SnsProposalTopicArg::CriticalDappOperations => Self::CriticalDappOperations,
         }
     }
 }

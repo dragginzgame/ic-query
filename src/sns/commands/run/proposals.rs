@@ -56,6 +56,7 @@ where
         limit: options.limit,
         before_proposal_id: options.before_proposal_id,
         status: options.status.into(),
+        topic: options.topic.into(),
         verbose: options.verbose,
     };
     let report = build_sns_proposals_report(&request)?;

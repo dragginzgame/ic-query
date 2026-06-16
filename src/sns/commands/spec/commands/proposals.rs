@@ -1,4 +1,4 @@
-use super::super::values::SnsProposalStatusArg;
+use super::super::values::{SnsProposalStatusArg, SnsProposalTopicArg};
 use super::args::sns_lookup_input_arg;
 use crate::{
     cli::{
@@ -17,6 +17,7 @@ const SNS_PROPOSALS_HELP_AFTER: &str = "\
 Examples:
   icq sns proposals 1
   icq sns proposals 1 --status open
+  icq sns proposals 1 --topic governance
   icq sns proposals 1 --before 100 --limit 50
   icq sns proposals 23ten-uaaaa-aaaaq-aabia-cai --verbose
   icq --network ic sns proposals 1 --format json";
@@ -94,6 +95,14 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
                 .default_value("any")
                 .value_parser(clap::value_parser!(SnsProposalStatusArg))
                 .help("Governance decision status filter"),
+        )
+        .arg(
+            value_arg("topic")
+                .long("topic")
+                .value_name("topic")
+                .default_value("any")
+                .value_parser(clap::value_parser!(SnsProposalTopicArg))
+                .help("SNS governance topic filter"),
         )
         .arg(
             flag_arg("verbose")

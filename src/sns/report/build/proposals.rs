@@ -67,6 +67,7 @@ pub(in crate::sns::report) fn build_sns_proposals_report_with_source(
         request.limit,
         request.before_proposal_id,
         &include_status,
+        request.topic,
     )?;
     Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
         list: lookup.list,
@@ -75,6 +76,7 @@ pub(in crate::sns::report) fn build_sns_proposals_report_with_source(
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status: request.status,
+        topic: request.topic,
         verbose: request.verbose,
         proposals,
     }))

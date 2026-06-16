@@ -18,4 +18,4 @@ pub use requests::{
     SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsParamsRequest,
     SnsProposalRequest, SnsProposalsRequest, SnsTokenRequest,
 };
-pub use sorts::{SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter};
+pub use sorts::{SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter, SnsProposalTopicFilter};

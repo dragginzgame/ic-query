@@ -46,11 +46,13 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
         limit: u32,
         before_proposal_id: Option<u64>,
         include_status: &[i32],
+        topic: SnsProposalTopicFilter,
     ) -> Result<MainnetSnsProposals, SnsHostError> {
         assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
         assert_eq!(limit, 10);
         assert_eq!(before_proposal_id, Some(99));
         assert_eq!(include_status, &[1]);
+        assert_eq!(topic, SnsProposalTopicFilter::Governance);
         Ok(MainnetSnsProposals {
             proposals: vec![fixture_proposal_row()],
         })

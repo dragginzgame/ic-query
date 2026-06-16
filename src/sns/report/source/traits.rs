@@ -1,4 +1,4 @@
-use super::super::{SnsGovernanceParameters, SnsHostError};
+use super::super::{SnsGovernanceParameters, SnsHostError, SnsProposalTopicFilter};
 use super::model::{
     MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
     MainnetSnsProposals, MainnetSnsToken, SnsFetchRequest, SnsNeuronId,
@@ -44,6 +44,7 @@ pub(in crate::sns::report) trait SnsProposalsSource: SnsListSource {
         limit: u32,
         before_proposal_id: Option<u64>,
         include_status: &[i32],
+        topic: SnsProposalTopicFilter,
     ) -> Result<MainnetSnsProposals, SnsHostError>;
 }
 

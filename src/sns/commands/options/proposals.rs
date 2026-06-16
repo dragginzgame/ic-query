@@ -4,8 +4,8 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         spec::{
-            SnsProposalStatusArg, sns_proposal_command, sns_proposal_usage, sns_proposals_command,
-            sns_proposals_usage,
+            SnsProposalStatusArg, SnsProposalTopicArg, sns_proposal_command, sns_proposal_usage,
+            sns_proposals_command, sns_proposals_usage,
         },
     },
 };
@@ -17,6 +17,7 @@ pub(in crate::sns::commands) struct SnsProposalsOptions {
     pub(in crate::sns::commands) limit: u32,
     pub(in crate::sns::commands) before_proposal_id: Option<u64>,
     pub(in crate::sns::commands) status: SnsProposalStatusArg,
+    pub(in crate::sns::commands) topic: SnsProposalTopicArg,
     pub(in crate::sns::commands) verbose: bool,
 }
 
@@ -39,6 +40,7 @@ impl SnsProposalsOptions {
             limit: required_typed(&matches, "limit"),
             before_proposal_id: typed_option::<u64>(&matches, "before"),
             status: required_typed(&matches, "status"),
+            topic: required_typed(&matches, "topic"),
             verbose: matches.get_flag("verbose"),
         })
     }

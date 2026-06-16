@@ -33,6 +33,7 @@ pub struct SnsProposalsReport {
     pub requested_limit: u32,
     pub before_proposal_id: Option<u64>,
     pub status_filter: String,
+    pub topic_filter: String,
     pub verbose: bool,
     pub proposal_count: usize,
     pub proposals: Vec<SnsProposalRow>,

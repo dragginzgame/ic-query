@@ -107,11 +107,12 @@ icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
 
 SNS governance proposals can be queried as bounded live pages or direct detail
-lookups:
+lookups. Proposal listings support status and SNS topic filters:
 
 ```sh
 icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
+icq sns proposals 1 --topic governance
 icq sns proposals 1 --before 100 --format json
 icq sns proposal 1 387
 icq sns proposal 1 387 --ballots

@@ -15,12 +15,34 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.2` adds `icq sns proposals --topic <topic>` to filter bounded live SNS
+  governance proposal listings by SNS topic, reports the selected filter, and
+  tightens request-mapping coverage for unfiltered versus concrete topic
+  selectors.
+
+  ```sh
+  icq sns proposals 1 --topic any
+  icq sns proposals 1 --topic governance
+  icq sns proposals 1 --topic treasury-asset-management --format json
+  ```
+
 - `0.2.1` centralizes cached NNS leaf cache errors and JSON cache helpers,
   removes duplicated cache-error macro plumbing, and tightens command/test
   module hygiene.
 
+  ```sh
+  icq nns node list
+  icq nns node-provider refresh
+  icq sns neurons 1 --owner 2vxsx-fae --sort api
+  ```
+
 - `0.2.0` adds direct SNS proposal ballot table output with compact neuron IDs
   by default and full IDs under `--verbose`.
+
+  ```sh
+  icq sns proposal 1 387 --ballots
+  icq sns proposal 1 387 --ballots --verbose
+  ```
 
 ## [0.1.x] - 2026-06-13 - Snapshot cache and SNS query growth
 

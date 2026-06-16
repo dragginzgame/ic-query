@@ -10,8 +10,9 @@ pub use model::{
     SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
     SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsReport, SnsParamsRequest,
     SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
-    SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalsReport,
-    SnsProposalsRequest, SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest, SnsTokenStandardRow,
+    SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
+    SnsProposalsReport, SnsProposalsRequest, SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest,
+    SnsTokenStandardRow,
 };
 use source::{
     MainnetSns, MainnetSnsCanisters, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons,
@@ -65,7 +66,7 @@ const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 2;
-const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 2;
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
 const SNS_TOKEN_LOGO_METADATA_KEY: &str = "icrc1:logo";

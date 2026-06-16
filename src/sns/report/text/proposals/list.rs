@@ -22,6 +22,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
             optional_u64_text(report.before_proposal_id)
         ),
         format!("status_filter: {}", report.status_filter),
+        format!("topic_filter: {}", report.topic_filter),
         format!("verbose: {}", yes_no(report.verbose)),
         format!("proposal_count: {}", report.proposal_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),

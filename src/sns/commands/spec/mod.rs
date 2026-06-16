@@ -13,4 +13,6 @@ pub(super) use usage::{
     sns_neurons_cache_usage, sns_neurons_refresh_usage, sns_neurons_usage, sns_params_usage,
     sns_proposal_usage, sns_proposals_usage, sns_token_usage, usage,
 };
-pub(super) use values::{SnsListSortArg, SnsNeuronsSortArg, SnsProposalStatusArg};
+pub(super) use values::{
+    SnsListSortArg, SnsNeuronsSortArg, SnsProposalStatusArg, SnsProposalTopicArg,
+};

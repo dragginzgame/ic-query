@@ -49,6 +49,7 @@ fn sns_help_is_advertised() {
     assert!(proposals.contains("--limit"));
     assert!(proposals.contains("--before"));
     assert!(proposals.contains("--status"));
+    assert!(proposals.contains("--topic"));
     assert!(proposals.contains("--verbose"));
     assert!(neurons.contains("icq sns neurons"));
     assert!(neurons.contains("--limit"));
