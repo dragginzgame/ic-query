@@ -1,8 +1,7 @@
 use super::{
     NNS_DATA_CENTER_CACHE_DIR, NNS_DATA_CENTER_CACHE_FILE,
     NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterListReport,
-    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, data_center_cache_error,
-    enforce_mainnet_network,
+    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, enforce_mainnet_network,
     source::{
         LiveNnsDataCenterSource, NnsDataCenterSource, fetch_nns_data_center_list_report_with_source,
     },
@@ -38,8 +37,6 @@ pub(super) fn refresh_nns_data_center_cache_with_source(
         NNS_DATA_CENTER_CACHE_DIR,
         NNS_DATA_CENTER_CACHE_FILE,
         &report,
-        data_center_cache_error,
-        |path, source| NnsDataCenterHostError::SerializeCache { path, source },
     )?;
     let refresh_report = NnsDataCenterRefreshReport {
         schema_version: NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION,

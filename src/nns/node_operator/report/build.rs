@@ -7,7 +7,7 @@ use super::{
     resolve::resolve_node_operator,
     source::{LiveNnsNodeOperatorSource, NnsNodeOperatorSource},
 };
-use crate::cache_file::announce_cache_refresh;
+use crate::{cache_file::announce_cache_refresh, nns::leaf::NnsLeafHostCacheError};
 
 pub fn build_nns_node_operator_list_report(
     request: &NnsNodeOperatorListRequest,
@@ -27,7 +27,9 @@ pub(super) fn build_nns_node_operator_list_report_with_source(
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
     match load_cached_nns_node_operator_report(&request.cache) {
         Ok(cached) => Ok(cached.report),
-        Err(NnsNodeOperatorHostError::MissingCache { path }) => {
+        Err(NnsNodeOperatorHostError::Cache(NnsLeafHostCacheError::MissingCache {
+            path, ..
+        })) => {
             announce_cache_refresh("node-operator", &path, &request.source_endpoint);
             let refresh_request = NnsNodeOperatorRefreshRequest {
                 cache: request.cache.clone(),

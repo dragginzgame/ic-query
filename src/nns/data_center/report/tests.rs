@@ -1,4 +1,9 @@
-use super::*;
+use super::{
+    MainnetDataCenterList, MainnetRegistryFetchRequest, NnsDataCenterCacheRequest,
+    NnsDataCenterHostError, NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRow,
+    NnsDataCenterSource, build_nns_data_center_list_report_with_source,
+    nns_data_center_list_report_text, resolve_data_center,
+};
 use crate::ic_registry::MainnetDataCenter;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
@@ -93,9 +98,6 @@ fn test_cache_request(network: &str, name: &str) -> NnsDataCenterCacheRequest {
     }
 }
 
-///
-/// FixtureDataCenterSource
-///
 struct FixtureDataCenterSource {
     data_centers: Vec<MainnetDataCenter>,
 }

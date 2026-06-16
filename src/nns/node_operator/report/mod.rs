@@ -1,6 +1,4 @@
 use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
-use crate::nns::leaf::nns_leaf_cache_path;
-use std::path::{Path, PathBuf};
 
 mod build;
 mod cache;
@@ -40,18 +38,6 @@ pub const NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 const NNS_NODE_OPERATOR_CACHE_DIR: &str = "node-operator";
 const NNS_NODE_OPERATOR_CACHE_FILE: &str = "operators.json";
 
-#[must_use]
-pub fn nns_node_operator_cache_path(icp_root: &Path, network: &str) -> PathBuf {
-    nns_leaf_cache_path(
-        icp_root,
-        NNS_NODE_OPERATOR_CACHE_DIR,
-        network,
-        NNS_NODE_OPERATOR_CACHE_FILE,
-    )
-}
-
-impl_nns_load_json_cache_error_mapper!(NnsNodeOperatorCacheErrors, NnsNodeOperatorHostError);
-impl_nns_cache_error_mapper!(node_operator_cache_error, NnsNodeOperatorHostError);
 impl_nns_mainnet_network_enforcer!(NnsNodeOperatorHostError);
 
 #[cfg(test)]

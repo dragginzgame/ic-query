@@ -39,6 +39,16 @@ fn sns_neurons_rejects_invalid_clap_values() {
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
+        SnsNeuronsOptions::parse([
+            OsString::from("1"),
+            OsString::from("--owner"),
+            OsString::from("zqfso-syaaa-aaaaq-aaafq-cai"),
+            OsString::from("--sort"),
+            OsString::from("stake"),
+        ]),
+        Err(SnsCommandError::Usage(_))
+    ));
+    assert!(matches!(
         SnsNeuronsRefreshOptions::parse([
             OsString::from("1"),
             OsString::from("--page-size"),

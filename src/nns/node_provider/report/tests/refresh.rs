@@ -23,7 +23,7 @@ fn node_provider_refresh_writes_cache_and_list_reads_it() {
     )
     .expect("refresh report");
 
-    assert!(nns_node_provider_cache_path(&cache.icp_root, &cache.network).is_file());
+    assert!(std::path::Path::new(&refresh_report.cache_path).is_file());
     assert!(refresh_report.wrote_cache);
     assert_eq!(refresh_report.node_provider_count, 1);
 

@@ -1,6 +1,4 @@
 use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
-use crate::nns::leaf::nns_leaf_cache_path;
-use std::path::{Path, PathBuf};
 
 mod build;
 mod cache;
@@ -47,13 +45,6 @@ pub const NNS_NODE_SUBNET_KIND_UNKNOWN: &str = "unknown";
 const NNS_NODE_CACHE_DIR: &str = "node";
 const NNS_NODE_CACHE_FILE: &str = "nodes.json";
 
-#[must_use]
-pub fn nns_node_cache_path(icp_root: &Path, network: &str) -> PathBuf {
-    nns_leaf_cache_path(icp_root, NNS_NODE_CACHE_DIR, network, NNS_NODE_CACHE_FILE)
-}
-
-impl_nns_load_json_cache_error_mapper!(NnsNodeCacheErrors, NnsNodeHostError);
-impl_nns_cache_error_mapper!(node_cache_error, NnsNodeHostError);
 impl_nns_mainnet_network_enforcer!(NnsNodeHostError);
 
 #[cfg(test)]

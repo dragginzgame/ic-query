@@ -2,7 +2,7 @@ use super::{
     NNS_NODE_OPERATOR_CACHE_DIR, NNS_NODE_OPERATOR_CACHE_FILE,
     NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION, NnsNodeOperatorHostError,
     NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
-    enforce_mainnet_network, node_operator_cache_error,
+    enforce_mainnet_network,
     source::{
         LiveNnsNodeOperatorSource, NnsNodeOperatorSource,
         fetch_nns_node_operator_list_report_with_source,
@@ -39,8 +39,6 @@ pub(super) fn refresh_nns_node_operator_cache_with_source(
         NNS_NODE_OPERATOR_CACHE_DIR,
         NNS_NODE_OPERATOR_CACHE_FILE,
         &report,
-        node_operator_cache_error,
-        |path, source| NnsNodeOperatorHostError::SerializeCache { path, source },
     )?;
     let refresh_report = NnsNodeOperatorRefreshReport {
         schema_version: NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION,

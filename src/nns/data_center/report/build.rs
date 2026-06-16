@@ -7,7 +7,7 @@ use super::{
     resolve::resolve_data_center,
     source::{LiveNnsDataCenterSource, NnsDataCenterSource},
 };
-use crate::cache_file::announce_cache_refresh;
+use crate::{cache_file::announce_cache_refresh, nns::leaf::NnsLeafHostCacheError};
 
 pub fn build_nns_data_center_list_report(
     request: &NnsDataCenterListRequest,
@@ -27,7 +27,9 @@ pub(super) fn build_nns_data_center_list_report_with_source(
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
     match load_cached_nns_data_center_report(&request.cache) {
         Ok(cached) => Ok(cached.report),
-        Err(NnsDataCenterHostError::MissingCache { path }) => {
+        Err(NnsDataCenterHostError::Cache(NnsLeafHostCacheError::MissingCache {
+            path, ..
+        })) => {
             announce_cache_refresh("data-center", &path, &request.source_endpoint);
             let refresh_request = NnsDataCenterRefreshRequest {
                 cache: request.cache.clone(),

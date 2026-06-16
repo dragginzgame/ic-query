@@ -1,21 +1,49 @@
 use super::{
+    error::NnsLeafHostCacheError,
     model::{NnsLeafCacheRequest, NnsLeafRefreshRequest},
     paths::NnsLeafCachePaths,
 };
 use crate::cache_file::{
-    CacheFileError, RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache,
+    CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
+    RefreshCacheWriteRequest, RefreshCacheWriteResult, load_json_cache, write_json_refresh_cache,
 };
-use serde::Serialize;
-use std::path::PathBuf;
+use serde::{Serialize, de::DeserializeOwned};
+use std::{io, path::PathBuf};
 
-pub(in crate::nns) fn write_nns_leaf_json_refresh_cache<Request, Report, Error>(
+pub(in crate::nns) fn load_nns_leaf_json_cache<Cache, Report>(
+    cache: &Cache,
+    component_dir: &'static str,
+    cache_file: &str,
+    expected_schema_version: u32,
+) -> Result<CachedJsonReport<Report>, NnsLeafHostCacheError>
+where
+    Cache: NnsLeafCacheRequest,
+    Report: DeserializeOwned + JsonCacheReport,
+{
+    let paths = NnsLeafCachePaths::for_component(
+        cache.icp_root(),
+        component_dir,
+        cache.network(),
+        cache_file,
+    );
+    load_json_cache(
+        LoadJsonCacheRequest {
+            path: paths.cache_path,
+            network: cache.network(),
+            expected_schema_version,
+        },
+        NnsLeafLoadJsonCacheErrors {
+            component: component_dir,
+        },
+    )
+}
+
+pub(in crate::nns) fn write_nns_leaf_json_refresh_cache<Request, Report>(
     request: &Request,
-    component_dir: &str,
+    component_dir: &'static str,
     cache_file: &str,
     report: &Report,
-    cache_error: impl Fn(CacheFileError) -> Error,
-    serialize_cache: impl Fn(PathBuf, serde_json::Error) -> Error,
-) -> Result<RefreshCacheWriteResult, Error>
+) -> Result<RefreshCacheWriteResult, NnsLeafHostCacheError>
 where
     Request: NnsLeafRefreshRequest,
     Report: Serialize,
@@ -38,7 +66,35 @@ where
             output_path: request.output_path(),
             report,
         },
-        cache_error,
-        serialize_cache,
+        |err| NnsLeafHostCacheError::from_cache_file_error(component_dir, err),
+        |path, source| NnsLeafHostCacheError::serialize_cache(component_dir, path, source),
     )
+}
+
+struct NnsLeafLoadJsonCacheErrors {
+    component: &'static str,
+}
+
+impl LoadJsonCacheErrorMapper for NnsLeafLoadJsonCacheErrors {
+    type Error = NnsLeafHostCacheError;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        NnsLeafHostCacheError::missing_cache(self.component, path)
+    }
+
+    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
+        NnsLeafHostCacheError::read_cache(self.component, path, source)
+    }
+
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
+        NnsLeafHostCacheError::parse_cache(self.component, path, source)
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        NnsLeafHostCacheError::unsupported_cache_schema_version(self.component, version, expected)
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        NnsLeafHostCacheError::network_mismatch(self.component, requested, actual)
+    }
 }

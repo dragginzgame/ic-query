@@ -1,6 +1,4 @@
 use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
-use crate::nns::leaf::nns_leaf_cache_path;
-use std::path::{Path, PathBuf};
 
 mod build;
 mod cache;
@@ -40,18 +38,6 @@ pub const NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 const NNS_DATA_CENTER_CACHE_DIR: &str = "data-center";
 const NNS_DATA_CENTER_CACHE_FILE: &str = "data-centers.json";
 
-#[must_use]
-pub fn nns_data_center_cache_path(icp_root: &Path, network: &str) -> PathBuf {
-    nns_leaf_cache_path(
-        icp_root,
-        NNS_DATA_CENTER_CACHE_DIR,
-        network,
-        NNS_DATA_CENTER_CACHE_FILE,
-    )
-}
-
-impl_nns_load_json_cache_error_mapper!(NnsDataCenterCacheErrors, NnsDataCenterHostError);
-impl_nns_cache_error_mapper!(data_center_cache_error, NnsDataCenterHostError);
 impl_nns_mainnet_network_enforcer!(NnsDataCenterHostError);
 
 #[cfg(test)]

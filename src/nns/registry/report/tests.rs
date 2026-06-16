@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    MainnetRegistryFetchRequest, MainnetRegistryVersion, NnsRegistryHostError, NnsRegistrySource,
+    NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    build_nns_registry_version_report_with_source, nns_registry_version_report_text,
+};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 
 #[test]
@@ -41,9 +45,6 @@ fn registry_version_text_is_key_value_output() {
     assert!(text.contains("fetched_at: 2026-06-04T00:00:00Z"));
 }
 
-///
-/// FixtureNnsRegistrySource
-///
 struct FixtureNnsRegistrySource;
 
 impl NnsRegistrySource for FixtureNnsRegistrySource {

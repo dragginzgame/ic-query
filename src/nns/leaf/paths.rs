@@ -22,16 +22,6 @@ impl NnsLeafCachePaths {
     }
 }
 
-#[must_use]
-pub(in crate::nns) fn nns_leaf_cache_path(
-    icp_root: &Path,
-    component_dir: &str,
-    network: &str,
-    cache_file: &str,
-) -> PathBuf {
-    NnsLeafCachePaths::for_component(icp_root, component_dir, network, cache_file).cache_path
-}
-
 fn nns_leaf_cache_dir(icp_root: &Path, component_dir: &str, network: &str) -> PathBuf {
     icp_root.join(".icq").join(component_dir).join(network)
 }

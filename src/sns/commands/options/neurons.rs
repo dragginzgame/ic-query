@@ -71,6 +71,11 @@ impl SnsNeuronsOptions {
                 "`icq sns neurons --sort api` can request at most {SNS_NEURONS_LIVE_MAX_LIMIT} live neurons at a time; refresh the cache and use `--sort <id|stake|maturity|created>` for larger limits"
             )));
         }
+        if self.sort != SnsNeuronsSortArg::Api && self.owner_principal_id.is_some() {
+            return Err(SnsCommandError::Usage(
+                "`icq sns neurons --sort <id|stake|maturity|created>` reads the complete full-neuron cache and does not support --owner yet; use --sort api for owner-filtered live queries".to_string(),
+            ));
+        }
         Ok(())
     }
 }

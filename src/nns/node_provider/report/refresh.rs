@@ -2,7 +2,7 @@ use super::{
     NNS_NODE_PROVIDER_CACHE_DIR, NNS_NODE_PROVIDER_CACHE_FILE,
     NNS_NODE_PROVIDER_REFRESH_REPORT_SCHEMA_VERSION, NnsNodeProviderHostError,
     NnsNodeProviderListReport, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
-    enforce_mainnet_network, node_provider_cache_error,
+    enforce_mainnet_network,
     source::{
         LiveNnsNodeProviderSource, NnsNodeProviderSource,
         fetch_nns_node_provider_list_report_with_source,
@@ -39,8 +39,6 @@ pub(super) fn refresh_nns_node_provider_cache_with_source(
         NNS_NODE_PROVIDER_CACHE_DIR,
         NNS_NODE_PROVIDER_CACHE_FILE,
         &report,
-        node_provider_cache_error,
-        |path, source| NnsNodeProviderHostError::SerializeCache { path, source },
     )?;
     let refresh_report = NnsNodeProviderRefreshReport {
         schema_version: NNS_NODE_PROVIDER_REFRESH_REPORT_SCHEMA_VERSION,

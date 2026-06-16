@@ -1,4 +1,9 @@
-use super::*;
+use super::{
+    MainnetNodeOperatorList, MainnetRegistryFetchRequest, NnsNodeOperatorCacheRequest,
+    NnsNodeOperatorHostError, NnsNodeOperatorListReport, NnsNodeOperatorListRequest,
+    NnsNodeOperatorRow, NnsNodeOperatorSource, build_nns_node_operator_list_report_with_source,
+    nns_node_operator_list_report_text, resolve_node_operator,
+};
 use crate::ic_registry::MainnetNodeOperator;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
@@ -95,9 +100,6 @@ fn test_cache_request(network: &str, name: &str) -> NnsNodeOperatorCacheRequest 
     }
 }
 
-///
-/// FixtureNodeOperatorSource
-///
 struct FixtureNodeOperatorSource {
     node_operators: Vec<MainnetNodeOperator>,
 }

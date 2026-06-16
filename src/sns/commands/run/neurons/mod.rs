@@ -31,11 +31,6 @@ where
         return cache::run_sns_neurons_cache(args.into_iter().skip(1));
     }
     let options = SnsNeuronsOptions::parse(args)?;
-    if options.sort != SnsNeuronsSortArg::Api && options.owner_principal_id.is_some() {
-        return Err(SnsCommandError::Usage(
-            "`icq sns neurons --sort <id|stake|maturity|created>` reads the complete full-neuron cache and does not support --owner yet; use --sort api for owner-filtered live queries".to_string(),
-        ));
-    }
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let icp_root = cache_root_for_sort(options.sort)?;

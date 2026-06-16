@@ -12,15 +12,8 @@ fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
         rows: vec!["dry-run"],
     };
 
-    let result = write_nns_leaf_json_refresh_cache(
-        &request,
-        "fixture",
-        "fixture.json",
-        &report,
-        cache_error_text,
-        serialize_error_text,
-    )
-    .expect("dry-run refresh writes output");
+    let result = write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &report)
+        .expect("dry-run refresh writes output");
 
     let cache_path = root
         .join(".icq")
@@ -68,24 +61,12 @@ fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
         .join("ic")
         .join("refresh.lock");
 
-    let first = write_nns_leaf_json_refresh_cache(
-        &request,
-        "fixture",
-        "fixture.json",
-        &first_report,
-        cache_error_text,
-        serialize_error_text,
-    )
-    .expect("first refresh writes cache");
-    let second = write_nns_leaf_json_refresh_cache(
-        &request,
-        "fixture",
-        "fixture.json",
-        &second_report,
-        cache_error_text,
-        serialize_error_text,
-    )
-    .expect("second refresh replaces cache");
+    let first =
+        write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &first_report)
+            .expect("first refresh writes cache");
+    let second =
+        write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &second_report)
+            .expect("second refresh replaces cache");
 
     assert!(!first.replaced_existing_cache);
     assert!(first.wrote_cache);
@@ -139,12 +120,4 @@ fn fixture_refresh_request(
         dry_run,
         output_path,
     )
-}
-
-fn cache_error_text(err: crate::cache_file::CacheFileError) -> String {
-    format!("{err:?}")
-}
-
-fn serialize_error_text(path: PathBuf, err: serde_json::Error) -> String {
-    format!("serialize {}: {err}", path.display())
 }

@@ -1,7 +1,7 @@
 use super::{
     NNS_NODE_CACHE_DIR, NNS_NODE_CACHE_FILE, NNS_NODE_REFRESH_REPORT_SCHEMA_VERSION,
     NnsNodeHostError, NnsNodeListReport, NnsNodeRefreshReport, NnsNodeRefreshRequest,
-    enforce_mainnet_network, node_cache_error,
+    enforce_mainnet_network,
     source::{LiveNnsNodeSource, NnsNodeSource, fetch_nns_node_list_report_with_source},
 };
 use crate::nns::leaf::write_nns_leaf_json_refresh_cache;
@@ -35,8 +35,6 @@ pub(super) fn refresh_nns_node_cache_with_source(
         NNS_NODE_CACHE_DIR,
         NNS_NODE_CACHE_FILE,
         &report,
-        node_cache_error,
-        |path, source| NnsNodeHostError::SerializeCache { path, source },
     )?;
     let refresh_report = NnsNodeRefreshReport {
         schema_version: NNS_NODE_REFRESH_REPORT_SCHEMA_VERSION,
