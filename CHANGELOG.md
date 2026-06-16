@@ -15,6 +15,9 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.49` simplifies topology read command runners and option tests, and
+  splits NNS macro plumbing into focused modules.
+
 - `0.1.48` centralizes CLI help/version argument collection, NNS/SNS clap
   usage-error mapping, cached NNS leaf runtime setup, and SNS neuron cache
   command setup.

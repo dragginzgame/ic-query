@@ -35,7 +35,14 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup centralizes CLI argument collection behind one private
+The latest cleanup removes the topology read runner trait and generated
+zero-sized runner structs in favor of one direct shared read-command helper.
+Topology read command and option tables now use explicit module aliases
+instead of long repeated item import lists, topology read option parser tests
+share common assertions and a local test macro, and NNS macro plumbing is
+split into focused modules under `src/nns/macros/`.
+
+The previous cleanup centralizes CLI argument collection behind one private
 helper used by first-argument help/version handlers. Cached NNS leaf list,
 info, and refresh runtime paths also share one project-root lookup,
 cache-request constructor, and command timestamp setup. SNS neuron cache
@@ -186,8 +193,11 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.48 cleanup, including shared CLI argument collection
-for first-argument help/version handlers and shared cached NNS leaf
+All passed during the 0.1.49 cleanup, including the direct topology read
+command helper, topology read command/option import cleanup, deduplicated
+topology read option parser tests, and split NNS macro modules. Prior
+validation covered the 0.1.48 cleanup, including shared CLI argument
+collection for first-argument help/version handlers and shared cached NNS leaf
 project-root lookup, cache-request construction, and command timestamp setup,
 plus shared SNS neuron cache command setup, shared SNS option parser
 usage-error mapping, and shared NNS/SNS clap usage-error wrappers for option

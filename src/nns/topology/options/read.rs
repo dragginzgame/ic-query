@@ -4,27 +4,13 @@ use crate::{
         NnsCommandError,
         leaf::NnsCommonOptions,
         parse_nns_matches,
-        topology::{
-            commands::{
-                topology_capacity_command, topology_capacity_usage, topology_coverage_command,
-                topology_coverage_usage, topology_gaps_command, topology_gaps_usage,
-                topology_health_command, topology_health_usage, topology_providers_command,
-                topology_providers_usage, topology_regions_command, topology_regions_usage,
-                topology_summary_command, topology_summary_usage, topology_versions_command,
-                topology_versions_usage,
-            },
-            report::{
-                NnsTopologyCapacityRequest, NnsTopologyCoverageRequest, NnsTopologyGapsRequest,
-                NnsTopologyHealthRequest, NnsTopologyProvidersRequest, NnsTopologyRegionsRequest,
-                NnsTopologySummaryRequest, NnsTopologyVersionsRequest,
-            },
-        },
+        topology::{commands as topology_commands, report},
     },
 };
 use std::{ffi::OsString, path::PathBuf};
 
 macro_rules! topology_read_options {
-    ($name:ident, $request:ident, $command:ident, $usage:ident) => {
+    ($name:ident, $request:path, $command:path, $usage:path) => {
         #[derive(Clone, Debug, Eq, PartialEq)]
         pub(in crate::nns) struct $name {
             pub(in crate::nns) network: String,
@@ -78,49 +64,49 @@ pub(in crate::nns::topology) trait TopologyReadOptions<Request>:
 
 topology_read_options!(
     TopologySummaryOptions,
-    NnsTopologySummaryRequest,
-    topology_summary_command,
-    topology_summary_usage
+    report::NnsTopologySummaryRequest,
+    topology_commands::topology_summary_command,
+    topology_commands::topology_summary_usage
 );
 topology_read_options!(
     TopologyCoverageOptions,
-    NnsTopologyCoverageRequest,
-    topology_coverage_command,
-    topology_coverage_usage
+    report::NnsTopologyCoverageRequest,
+    topology_commands::topology_coverage_command,
+    topology_commands::topology_coverage_usage
 );
 topology_read_options!(
     TopologyVersionsOptions,
-    NnsTopologyVersionsRequest,
-    topology_versions_command,
-    topology_versions_usage
+    report::NnsTopologyVersionsRequest,
+    topology_commands::topology_versions_command,
+    topology_commands::topology_versions_usage
 );
 topology_read_options!(
     TopologyHealthOptions,
-    NnsTopologyHealthRequest,
-    topology_health_command,
-    topology_health_usage
+    report::NnsTopologyHealthRequest,
+    topology_commands::topology_health_command,
+    topology_commands::topology_health_usage
 );
 topology_read_options!(
     TopologyGapsOptions,
-    NnsTopologyGapsRequest,
-    topology_gaps_command,
-    topology_gaps_usage
+    report::NnsTopologyGapsRequest,
+    topology_commands::topology_gaps_command,
+    topology_commands::topology_gaps_usage
 );
 topology_read_options!(
     TopologyCapacityOptions,
-    NnsTopologyCapacityRequest,
-    topology_capacity_command,
-    topology_capacity_usage
+    report::NnsTopologyCapacityRequest,
+    topology_commands::topology_capacity_command,
+    topology_commands::topology_capacity_usage
 );
 topology_read_options!(
     TopologyRegionsOptions,
-    NnsTopologyRegionsRequest,
-    topology_regions_command,
-    topology_regions_usage
+    report::NnsTopologyRegionsRequest,
+    topology_commands::topology_regions_command,
+    topology_commands::topology_regions_usage
 );
 topology_read_options!(
     TopologyProvidersOptions,
-    NnsTopologyProvidersRequest,
-    topology_providers_command,
-    topology_providers_usage
+    report::NnsTopologyProvidersRequest,
+    topology_commands::topology_providers_command,
+    topology_commands::topology_providers_usage
 );
