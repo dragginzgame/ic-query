@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.1` centralizes cached NNS leaf cache errors and JSON cache helpers,
+  removes duplicated cache-error macro plumbing, and tightens command/test
+  module hygiene.
+
 - `0.2.0` adds direct SNS proposal ballot table output with compact neuron IDs
   by default and full IDs under `--verbose`.
 
