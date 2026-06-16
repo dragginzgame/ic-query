@@ -5,7 +5,7 @@ use super::{
     model::NnsLeafCommandSpec,
 };
 use crate::{
-    cli::{clap::parse_required_subcommand, help::print_help_or_version},
+    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version},
     nns::NnsCommandError,
     version_text,
 };
@@ -27,8 +27,9 @@ where
     if print_help_or_version(&args, || usage(spec), version_text()) {
         return Ok(());
     }
-    let (command_name, args) = parse_required_subcommand(command(spec), args)
-        .map_err(|_| NnsCommandError::Usage(usage(spec)))?;
+    let (command_name, args) =
+        parse_required_subcommand_or_usage(command(spec), args, || usage(spec))
+            .map_err(NnsCommandError::Usage)?;
 
     match command_name.as_str() {
         "list" => run_list(args),

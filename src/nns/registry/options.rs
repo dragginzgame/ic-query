@@ -1,6 +1,6 @@
 use super::commands::{registry_version_command, registry_version_usage_for_error};
 use crate::{
-    cli::clap::parse_matches,
+    cli::clap::parse_matches_or_usage,
     nns::{NnsCommandError, OutputFormat, leaf::NnsCommonOptions},
 };
 use std::ffi::OsString;
@@ -20,8 +20,12 @@ impl RegistryVersionOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches(registry_version_command(), args)
-            .map_err(|_| NnsCommandError::Usage(registry_version_usage_for_error()))?;
+        let matches = parse_matches_or_usage(
+            registry_version_command(),
+            args,
+            registry_version_usage_for_error,
+        )
+        .map_err(NnsCommandError::Usage)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,

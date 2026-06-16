@@ -2,7 +2,7 @@ use super::cache::cache_request;
 use crate::{
     cli::help::print_help_or_version,
     nns::{
-        NnsCommandError,
+        NnsCommandError, command_icp_root,
         node::{
             commands::node_info_usage,
             options::node_info_options,
@@ -10,7 +10,6 @@ use crate::{
         },
         now_unix_secs, write_text_or_json,
     },
-    project::icp_root,
     version_text,
 };
 use std::ffi::OsString;
@@ -20,7 +19,7 @@ pub(super) fn run_node_info(args: Vec<OsString>) -> Result<(), NnsCommandError> 
         return Ok(());
     }
     let options = node_info_options(args)?;
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let icp_root = command_icp_root()?;
     let request = NnsNodeInfoRequest {
         cache: cache_request(&icp_root, &options.network),
         source_endpoint: options.source_endpoint,

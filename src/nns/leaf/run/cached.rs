@@ -7,9 +7,8 @@ use super::super::{
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
 use crate::{
-    cli::{clap::parse_required_subcommand, help::print_help_or_version},
-    nns::{NnsCommandError, now_unix_secs, write_text_or_json},
-    project::icp_root,
+    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version},
+    nns::{NnsCommandError, command_icp_root, now_unix_secs, write_text_or_json},
     version_text,
 };
 use std::ffi::OsString;
@@ -28,8 +27,9 @@ where
     if print_help_or_version(&args, || usage(spec), version_text()) {
         return Ok(());
     }
-    let (command_name, args) = parse_required_subcommand(command(spec), args)
-        .map_err(|_| NnsCommandError::Usage(usage(spec)))?;
+    let (command_name, args) =
+        parse_required_subcommand_or_usage(command(spec), args, || usage(spec))
+            .map_err(NnsCommandError::Usage)?;
 
     match command_name.as_str() {
         "list" => run_cached_leaf_list(args, spec, default_source_endpoint, &reports),
@@ -56,7 +56,7 @@ where
         return Ok(());
     }
     let options = NnsLeafListOptions::parse(args, spec, default_source_endpoint)?;
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let icp_root = command_icp_root()?;
     let request = <Reports::ListRequest as NnsLeafListRequest>::from_leaf_parts(
         <Reports::Cache as NnsLeafCacheRequest>::from_root_network(&icp_root, &options.network),
         options.source_endpoint,
@@ -89,7 +89,7 @@ where
         return Ok(());
     }
     let options = NnsLeafInfoOptions::parse(args, spec, default_source_endpoint)?;
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let icp_root = command_icp_root()?;
     let request = <Reports::InfoRequest as NnsLeafInfoRequest>::from_leaf_parts(
         <Reports::Cache as NnsLeafCacheRequest>::from_root_network(&icp_root, &options.network),
         options.source_endpoint,
@@ -120,7 +120,7 @@ where
     }
     let options = NnsLeafRefreshOptions::parse(args, spec, default_source_endpoint)?;
     let format = options.format;
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let icp_root = command_icp_root()?;
     let request = <Reports::RefreshRequest as NnsLeafRefreshRequest>::from_leaf_parts(
         <Reports::Cache as NnsLeafCacheRequest>::from_root_network(&icp_root, &options.network),
         options.source_endpoint,

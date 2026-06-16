@@ -2,10 +2,9 @@ use super::cache::cache_request;
 use crate::{
     cli::{common::write_text_or_json, help::print_help_or_version},
     nns::{
-        NnsCommandError, now_unix_secs,
+        NnsCommandError, command_icp_root, now_unix_secs,
         subnet::{commands::refresh_usage, options::CatalogRefreshOptions},
     },
-    project::icp_root,
     subnet_catalog::{
         SubnetCatalogRefreshRequest, refresh_subnet_catalog, subnet_catalog_refresh_report_text,
     },
@@ -19,7 +18,7 @@ pub(super) fn run_catalog_refresh(args: Vec<OsString>) -> Result<(), NnsCommandE
     }
     let options = CatalogRefreshOptions::parse(args)?;
     let format = options.format;
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let icp_root = command_icp_root()?;
     let request = SubnetCatalogRefreshRequest {
         cache: cache_request(&icp_root, &options.network),
         source_endpoint: options.source_endpoint,

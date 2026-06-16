@@ -3,7 +3,7 @@ mod refresh;
 
 use super::commands::{topology_command, topology_usage};
 use crate::{
-    cli::{clap::parse_required_subcommand, help::print_help_or_version_flag},
+    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version_flag},
     nns::NnsCommandError,
     version_text,
 };
@@ -17,8 +17,9 @@ where
     if print_help_or_version_flag(&args, topology_usage, version_text()) {
         return Ok(());
     }
-    let (command, args) = parse_required_subcommand(topology_command(), args)
-        .map_err(|_| NnsCommandError::Usage(topology_usage()))?;
+    let (command, args) =
+        parse_required_subcommand_or_usage(topology_command(), args, topology_usage)
+            .map_err(NnsCommandError::Usage)?;
 
     match command.as_str() {
         "summary" => read::run_topology_summary(args),

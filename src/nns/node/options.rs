@@ -3,7 +3,7 @@ use super::commands::{
     SUBNET_FILTER_ARG, SUBNET_KIND_FILTER_ARG, node_list_command, node_list_usage,
 };
 use crate::{
-    cli::clap::{parse_matches, typed_option},
+    cli::clap::{parse_matches_or_usage, typed_option},
     nns::{
         NnsCommandError, OutputFormat,
         leaf::{NnsCommonOptions, NnsLeafInfoOptions, NnsLeafRefreshOptions},
@@ -28,8 +28,8 @@ pub(in crate::nns) fn node_list_options<I>(args: I) -> Result<NnsNodeListOptions
 where
     I: IntoIterator<Item = OsString>,
 {
-    let matches = parse_matches(node_list_command(), args)
-        .map_err(|_| NnsCommandError::Usage(node_list_usage()))?;
+    let matches = parse_matches_or_usage(node_list_command(), args, node_list_usage)
+        .map_err(NnsCommandError::Usage)?;
     let common = NnsCommonOptions::from_matches(&matches);
     Ok(NnsNodeListOptions {
         network: common.network,

@@ -7,8 +7,7 @@ use super::super::{
 };
 use crate::{
     cli::help::print_help_or_version,
-    nns::{NnsCommandError, now_unix_secs, write_text_or_json},
-    project::icp_root,
+    nns::{NnsCommandError, command_icp_root, now_unix_secs, write_text_or_json},
     version_text,
 };
 use std::ffi::OsString;
@@ -23,7 +22,7 @@ where
     }
     let options = TopologyRefreshOptions::parse(args)?;
     let format = options.format;
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let icp_root = command_icp_root()?;
     let request = NnsTopologyRefreshRequest {
         icp_root,
         network: options.network,

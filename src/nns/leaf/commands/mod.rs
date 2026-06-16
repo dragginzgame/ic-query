@@ -2,7 +2,7 @@ mod args;
 mod build;
 mod usage;
 
-use crate::{cli::clap::parse_matches, nns::NnsCommandError};
+use crate::{cli::clap::parse_matches_or_usage, nns::NnsCommandError};
 use clap::{ArgMatches, Command as ClapCommand};
 use std::ffi::OsString;
 
@@ -21,5 +21,5 @@ pub(in crate::nns) fn parse_leaf_matches<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_matches(command, args).map_err(|_| NnsCommandError::Usage(usage()))
+    parse_matches_or_usage(command, args, usage).map_err(NnsCommandError::Usage)
 }

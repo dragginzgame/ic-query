@@ -1,5 +1,8 @@
 use super::rows::parameter_row;
-use crate::sns::report::{SnsGovernanceParameters, text::common::*};
+use crate::sns::report::{
+    SnsGovernanceParameters,
+    text::common::{comma_join_u64, optional_basis_points_text, optional_duration_text},
+};
 
 pub(super) fn rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
     let rewards = parameters.voting_rewards_parameters.as_ref();

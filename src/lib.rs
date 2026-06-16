@@ -18,7 +18,7 @@ mod token_amount;
 mod test_support;
 
 use crate::cli::{
-    clap::{parse_matches, string_option},
+    clap::{parse_matches_or_usage, string_option},
     globals::{
         DISPATCH_ARGS, apply_global_network, command_local_global_option,
         top_level_dispatch_command,
@@ -67,8 +67,8 @@ where
         )));
     }
 
-    let matches = parse_matches(top_level_dispatch_command(), args)
-        .map_err(|_| IcQueryError::Usage(usage()))?;
+    let matches = parse_matches_or_usage(top_level_dispatch_command(), args, usage)
+        .map_err(IcQueryError::Usage)?;
     if matches.get_flag("version") {
         println!("{}", version_text());
         return Ok(());

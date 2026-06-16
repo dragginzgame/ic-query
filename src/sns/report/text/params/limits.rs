@@ -1,5 +1,8 @@
 use super::rows::parameter_row;
-use crate::sns::report::{SnsGovernanceParameters, text::common::*};
+use crate::sns::report::{
+    SnsGovernanceParameters,
+    text::common::{optional_bool_text, optional_u32_text, optional_u64_text},
+};
 
 pub(super) fn rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
     vec![

@@ -11,6 +11,17 @@ where
     command.try_get_matches_from(std::iter::once(OsString::from(name)).chain(args))
 }
 
+pub fn parse_matches_or_usage<I>(
+    command: Command,
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Result<ArgMatches, String>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    parse_matches(command, args).map_err(|_| usage())
+}
+
 pub fn passthrough_subcommand(command: Command) -> Command {
     command.arg(
         Arg::new(PASSTHROUGH_ARGS)
@@ -48,6 +59,17 @@ where
 {
     parse_subcommand(command.subcommand_required(true), args)
         .map(|subcommand| subcommand.expect("clap requires a subcommand"))
+}
+
+pub fn parse_required_subcommand_or_usage<I>(
+    command: Command,
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Result<(String, Vec<OsString>), String>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    parse_required_subcommand(command, args).map_err(|_| usage())
 }
 
 pub fn value_arg(id: &'static str) -> Arg {

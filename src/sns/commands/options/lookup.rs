@@ -1,6 +1,6 @@
 use crate::{
     cli::{
-        clap::{parse_matches, required_string, required_typed},
+        clap::{parse_matches_or_usage, required_string, required_typed},
         common::OutputFormat,
     },
     sns::commands::SnsCommandError,
@@ -26,7 +26,7 @@ impl SnsLookupOptions {
         I: IntoIterator<Item = OsString>,
     {
         let matches =
-            parse_matches(command(), args).map_err(|_| SnsCommandError::Usage(usage()))?;
+            parse_matches_or_usage(command(), args, usage).map_err(SnsCommandError::Usage)?;
         Ok(Self::from_matches(&matches))
     }
 

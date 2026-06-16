@@ -1,6 +1,6 @@
 use super::lookup::SnsLookupOptions;
 use crate::{
-    cli::clap::{parse_matches, required_typed, typed_option},
+    cli::clap::{parse_matches_or_usage, required_typed, typed_option},
     sns::commands::{
         SnsCommandError,
         spec::{
@@ -32,8 +32,8 @@ impl SnsProposalsOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches(sns_proposals_command(), args)
-            .map_err(|_| SnsCommandError::Usage(sns_proposals_usage()))?;
+        let matches = parse_matches_or_usage(sns_proposals_command(), args, sns_proposals_usage)
+            .map_err(SnsCommandError::Usage)?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(&matches),
             limit: required_typed(&matches, "limit"),
@@ -49,8 +49,8 @@ impl SnsProposalOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches(sns_proposal_command(), args)
-            .map_err(|_| SnsCommandError::Usage(sns_proposal_usage()))?;
+        let matches = parse_matches_or_usage(sns_proposal_command(), args, sns_proposal_usage)
+            .map_err(SnsCommandError::Usage)?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(&matches),
             proposal_id: required_typed(&matches, "proposal-id"),

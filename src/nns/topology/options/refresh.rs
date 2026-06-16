@@ -1,6 +1,6 @@
 use crate::{
     cli::{
-        clap::{parse_matches, required_typed},
+        clap::{parse_matches_or_usage, required_typed},
         common::OutputFormat,
     },
     nns::{
@@ -27,8 +27,9 @@ impl TopologyRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches(topology_refresh_command(), args)
-            .map_err(|_| NnsCommandError::Usage(topology_refresh_usage()))?;
+        let matches =
+            parse_matches_or_usage(topology_refresh_command(), args, topology_refresh_usage)
+                .map_err(NnsCommandError::Usage)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,

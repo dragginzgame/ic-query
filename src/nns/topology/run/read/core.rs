@@ -1,9 +1,9 @@
 use crate::{
     cli::help::print_help_or_version,
     nns::{
-        NnsCommandError, now_unix_secs, topology::options::TopologyReadOptions, write_text_or_json,
+        NnsCommandError, command_icp_root, now_unix_secs, topology::options::TopologyReadOptions,
+        write_text_or_json,
     },
-    project::icp_root,
     version_text,
 };
 use serde::Serialize;
@@ -31,7 +31,7 @@ where
     }
     let options = Runner::Options::parse_args(args)?;
     let format = options.format();
-    let icp_root = icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))?;
+    let icp_root = command_icp_root()?;
     let request = options.into_request(icp_root, now_unix_secs()?);
     let report = Runner::build_report(&request).map_err(Into::into)?;
     write_text_or_json(format, &report, Runner::render_text)

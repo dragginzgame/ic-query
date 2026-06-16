@@ -1,7 +1,8 @@
 use super::super::common::command_icp_root;
 use crate::{
     cli::{
-        clap::parse_required_subcommand, common::write_text_or_json, help::print_help_or_version,
+        clap::parse_required_subcommand_or_usage, common::write_text_or_json,
+        help::print_help_or_version,
     },
     sns::{
         commands::{
@@ -30,8 +31,12 @@ where
     if print_help_or_version(&args, sns_neurons_cache_usage, version_text()) {
         return Ok(());
     }
-    let (command, args) = parse_required_subcommand(sns_neurons_cache_command(), args)
-        .map_err(|_| SnsCommandError::Usage(sns_neurons_cache_usage()))?;
+    let (command, args) = parse_required_subcommand_or_usage(
+        sns_neurons_cache_command(),
+        args,
+        sns_neurons_cache_usage,
+    )
+    .map_err(SnsCommandError::Usage)?;
     match command.as_str() {
         "list" => run_sns_neurons_cache_list(args),
         "status" => run_sns_neurons_cache_status(args),

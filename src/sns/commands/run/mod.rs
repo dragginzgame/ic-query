@@ -10,7 +10,8 @@ use super::{
 };
 use crate::{
     cli::{
-        clap::parse_required_subcommand, common::write_text_or_json, help::print_help_or_version,
+        clap::parse_required_subcommand_or_usage, common::write_text_or_json,
+        help::print_help_or_version,
     },
     sns::report::{SnsListRequest, build_sns_list_report, sns_list_report_text},
     version_text,
@@ -26,8 +27,8 @@ where
     if print_help_or_version(&args, usage, version_text()) {
         return Ok(());
     }
-    let (command, args) = parse_required_subcommand(sns_command(), args)
-        .map_err(|_| SnsCommandError::Usage(usage()))?;
+    let (command, args) = parse_required_subcommand_or_usage(sns_command(), args, usage)
+        .map_err(SnsCommandError::Usage)?;
 
     match command.as_str() {
         "list" => run_sns_list(args),

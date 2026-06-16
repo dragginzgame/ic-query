@@ -15,6 +15,10 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.1.md](docs/changelog/0.1.md)
 
+- `0.1.45` removes remaining production wildcard imports and centralizes
+  clap parse-to-usage plus NNS project-root usage-error handling for command
+  dispatch and option parsers.
+
 - `0.1.44` replaces wildcard module re-exports across SNS, cached NNS report
   roots, subnet catalog reports, and topology fixtures with explicit export
   lists.

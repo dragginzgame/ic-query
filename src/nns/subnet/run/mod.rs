@@ -5,7 +5,7 @@ mod refresh;
 
 use super::commands::{subnet_command, subnet_usage};
 use crate::{
-    cli::{clap::parse_required_subcommand, help::print_help_or_version},
+    cli::{clap::parse_required_subcommand_or_usage, help::print_help_or_version},
     nns::NnsCommandError,
     version_text,
 };
@@ -19,8 +19,8 @@ where
     if print_help_or_version(&args, subnet_usage, version_text()) {
         return Ok(());
     }
-    let (command, args) = parse_required_subcommand(subnet_command(), args)
-        .map_err(|_| NnsCommandError::Usage(subnet_usage()))?;
+    let (command, args) = parse_required_subcommand_or_usage(subnet_command(), args, subnet_usage)
+        .map_err(NnsCommandError::Usage)?;
 
     match command.as_str() {
         "list" => list::run_catalog_list(args),

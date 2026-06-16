@@ -35,10 +35,16 @@ as two-decimal token amounts while JSON keeps raw base units.
 <id|root-principal>` inspect local complete snapshots and latest
 refresh-attempt metadata without making live SNS-W or governance calls.
 
-The latest cleanup tightens module APIs by replacing wildcard re-exports in
+The latest cleanup removes the remaining production wildcard imports from SNS
+governance-parameter text rendering and centralizes clap parse-to-usage
+handling behind shared helpers used by top-level, NNS, SNS, subnet, registry,
+topology, and leaf option parsers. NNS run paths also share one project-root
+helper for converting local root lookup failures into command usage errors.
+
+The previous cleanup tightens module APIs by replacing wildcard re-exports in
 SNS report/model/source roots, cached NNS leaf report roots, subnet catalog
-report roots, and topology report fixtures with explicit export lists.
-SNS nested governance helper structs remain test-only root exports because
+report roots, and topology report fixtures with explicit export lists. SNS
+nested governance helper structs remain test-only root exports because
 production report code only needs the containing governance-parameters model.
 
 The previous cleanup adds shared NNS leaf request accessors and a shared NNS
@@ -148,14 +154,19 @@ cargo fmt --all -- --check
 git diff --check
 ```
 
-All passed during the 0.1.44 cleanup, including explicit export-list coverage
-for SNS report/model/source roots, cached NNS leaf report roots, subnet
-catalog report roots, and topology report fixtures. Prior validation covered
-the 0.1.43 cleanup, including shared NNS leaf refresh-cache writer extraction
-and migration of node, node-provider, node-operator, and data-center refresh
-paths plus topology NNS component cache-request adapters onto shared leaf
-cache helpers, with focused coverage for dry-run output and real cache
-replacement behavior. Prior validation covered the 0.1.42 cleanup, including
+All passed during the 0.1.45 cleanup, including production wildcard-import
+removal, shared clap parse-to-usage helper migration for top-level, NNS, SNS,
+subnet, registry, topology, and leaf option parsers, and shared NNS
+project-root usage-error handling across subnet, node, topology, and cached
+leaf run paths. Prior validation covered the 0.1.44 cleanup, including
+explicit export-list coverage for SNS report/model/source roots, cached NNS
+leaf report roots, subnet catalog report roots, and topology report fixtures.
+Prior validation covered the 0.1.43 cleanup, including shared NNS leaf
+refresh-cache writer extraction and migration of node, node-provider,
+node-operator, and data-center refresh paths plus topology NNS component
+cache-request adapters onto shared leaf cache helpers, with focused coverage
+for dry-run output and real cache replacement behavior. Prior validation
+covered the 0.1.42 cleanup, including
 shared locked snapshot refresh setup, shared paged snapshot refresh
 orchestration, shared refresh-attempt lifecycle handling, and migration of
 complete SNS neuron refresh setup, paging, and start/failure attempt handling

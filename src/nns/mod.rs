@@ -15,7 +15,7 @@ mod tests;
 
 use crate::{
     cli::{
-        clap::{parse_required_subcommand, passthrough_subcommand, render_help},
+        clap::{parse_required_subcommand_or_usage, passthrough_subcommand, render_help},
         common::{OutputFormat, current_unix_secs, write_text_or_json},
         help::print_help_or_version,
     },
@@ -25,11 +25,12 @@ use crate::{
         node_provider::report::NnsNodeProviderHostError, registry::report::NnsRegistryHostError,
         topology::report::NnsTopologyHostError,
     },
+    project::icp_root as project_icp_root,
     subnet_catalog::SubnetCatalogHostError,
     version_text,
 };
 use clap::Command as ClapCommand;
-use std::{ffi::OsString, io};
+use std::{ffi::OsString, io, path::PathBuf};
 use thiserror::Error as ThisError;
 
 ///
@@ -79,8 +80,8 @@ where
     if print_help_or_version(&args, usage, version_text()) {
         return Ok(());
     }
-    let (command, args) = parse_required_subcommand(nns_command(), args)
-        .map_err(|_| NnsCommandError::Usage(usage()))?;
+    let (command, args) = parse_required_subcommand_or_usage(nns_command(), args, usage)
+        .map_err(NnsCommandError::Usage)?;
 
     match command.as_str() {
         "subnet" => subnet::run(args),
@@ -96,6 +97,10 @@ where
 
 fn now_unix_secs() -> Result<u64, NnsCommandError> {
     current_unix_secs().map_err(NnsCommandError::Clock)
+}
+
+fn command_icp_root() -> Result<PathBuf, NnsCommandError> {
+    project_icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))
 }
 
 fn nns_command() -> ClapCommand {
