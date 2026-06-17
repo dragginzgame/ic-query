@@ -1,11 +1,6 @@
 //! Module: subnet_catalog::resolver
 //!
-//! Responsibility: resolve subnet catalog inputs to concrete subnet subjects.
-//!
-//! Does not own: cache loading, command parsing, or report rendering.
-//!
-//! Boundary: exposes resolver result types and keeps matching helpers private to
-//! subnet catalog report builders.
+//! Resolves subnet catalog inputs to concrete subnet subjects.
 
 mod canister;
 mod model;

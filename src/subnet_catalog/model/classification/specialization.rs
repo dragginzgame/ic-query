@@ -1,21 +1,26 @@
 //! Module: subnet_catalog::model::classification::specialization
 //!
-//! Responsibility: define stable subnet specialization values for catalog data.
-//!
-//! Does not own: specialization derivation, registry fetching, or report filtering.
-//!
-//! Boundary: keeps serialized specialization values aligned with CLI filter syntax.
+//! Defines stable subnet specialization labels used by catalog data.
 
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+///
+/// SubnetSpecialization
+///
 /// Subnet specialization classification used by catalog records and reports.
+///
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubnetSpecialization {
+    /// No special subnet role is known.
     None,
+    /// Fiduciary subnet.
     Fiduciary,
+    /// European subnet.
     European,
+    /// Unknown or unclassified specialization.
     Unknown,
 }
 

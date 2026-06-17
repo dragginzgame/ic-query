@@ -1,20 +1,24 @@
 //! Module: subnet_catalog::model::classification::geographic
 //!
-//! Responsibility: define stable geographic-scope values for catalog data.
-//!
-//! Does not own: scope derivation, registry fetching, or output rendering.
-//!
-//! Boundary: keeps serialized scope values aligned with CLI filter syntax.
+//! Defines stable geographic-scope labels used by catalog data.
 
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+///
+/// GeographicScope
+///
 /// Geographic scope classification for a subnet.
+///
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GeographicScope {
+    /// Global subnet scope.
     Global,
+    /// European subnet scope.
     Europe,
+    /// Unknown or unclassified geographic scope.
     Unknown,
 }
 
