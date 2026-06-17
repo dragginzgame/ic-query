@@ -9,6 +9,11 @@ Root entries are concise release summaries. Detailed patch breakdowns live in
 `docs/changelog/<major>.<minor>.md` and are linked from each minor line when
 present.
 
+When a patch introduces a new command or subcommand, include a fenced `bash`
+command example in both this root changelog and the matching detailed
+changelog file. Do not add command examples for cleanup-only patches that do
+not change CLI behavior.
+
 ## Unreleased
 
 ## [0.2.x] - 2026-06-16 - SNS proposal detail expansion
@@ -16,13 +21,8 @@ present.
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
 - `0.2.4` splits SNS source traits and live-source implementations into
-  focused list, token, params, proposal, and neuron modules.
-
-  ```sh
-  icq sns list
-  icq sns token 1
-  icq sns neurons 1 --limit 10
-  ```
+  focused list, token, params, proposal, and neuron modules without changing
+  CLI behavior.
 
 - `0.2.3` splits SNS clap value-enum, report request, and report sort/filter
   model plumbing into focused modules while preserving existing list, neuron,
