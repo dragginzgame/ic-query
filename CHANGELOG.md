@@ -20,6 +20,12 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.9` splits SNS proposal cache-backed report building into focused load,
+  filter, report projection, collection fetch, progress, attempt, and state
+  modules, splits proposal cache status report building, and moves proposal
+  cache input lookup into storage without changing cache behavior or CLI
+  behavior.
+
 - `0.2.8` splits SNS proposal report DTOs and proposal cache refresh
   orchestration/storage/attempt handling into focused modules, aligning
   proposal and neuron cache structure and moving proposal cache discovery onto

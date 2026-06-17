@@ -10,5 +10,5 @@ mod scan;
 mod summary;
 
 pub(super) use load::load_sns_proposals_cache_at;
-pub(super) use lookup::{expected_cache_path_for_root, find_sns_proposals_cache_by_id};
+pub(super) use lookup::{find_sns_proposals_cache_by_id, load_sns_proposals_cache_for_input};
 pub(super) use summary::{list_sns_proposals_cache_summaries, sns_proposals_cache_summary};
