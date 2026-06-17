@@ -1,5 +1,17 @@
+//! Module: sns::report::model::reports::governance
+//!
+//! Responsibility: SNS governance parameter DTOs shared by reports.
+//! Does not own: live governance fetches, parameter rendering, or defaults.
+//! Boundary: mirrors Candid-compatible governance parameter fields.
+
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
+
+///
+/// SnsGovernanceParameters
+///
+/// Serializable and Candid-compatible SNS governance parameter set.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
 pub struct SnsGovernanceParameters {
@@ -26,10 +38,22 @@ pub struct SnsGovernanceParameters {
     pub custom_proposal_criticality: Option<SnsCustomProposalCriticality>,
 }
 
+///
+/// SnsNeuronPermissionList
+///
+/// Serializable and Candid-compatible list of SNS neuron permission codes.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
 pub struct SnsNeuronPermissionList {
     pub permissions: Vec<i32>,
 }
+
+///
+/// SnsVotingRewardsParameters
+///
+/// Serializable and Candid-compatible SNS voting reward parameter set.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
 pub struct SnsVotingRewardsParameters {
@@ -38,6 +62,12 @@ pub struct SnsVotingRewardsParameters {
     pub reward_rate_transition_duration_seconds: Option<u64>,
     pub round_duration_seconds: Option<u64>,
 }
+
+///
+/// SnsCustomProposalCriticality
+///
+/// Serializable and Candid-compatible SNS custom proposal criticality config.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
 pub struct SnsCustomProposalCriticality {

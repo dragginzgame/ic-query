@@ -1,3 +1,9 @@
+//! Module: sns::report::model::reports::neurons
+//!
+//! Responsibility: group SNS neuron report DTOs.
+//! Does not own: live neuron fetches, cache storage, sorting, or rendering.
+//! Boundary: re-exports serializable neuron report models.
+
 mod attempt;
 mod cache;
 mod refresh;

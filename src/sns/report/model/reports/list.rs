@@ -1,4 +1,16 @@
+//! Module: sns::report::model::reports::list
+//!
+//! Responsibility: deployed SNS list and info report DTOs.
+//! Does not own: SNS-W fetching, metadata lookup, sorting, or rendering.
+//! Boundary: preserves raw report fields for text and JSON output writers.
+
 use serde::Serialize;
+
+///
+/// SnsListReport
+///
+/// Serializable report for deployed SNS listings.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsListReport {
@@ -15,6 +27,12 @@ pub struct SnsListReport {
     pub sns_instances: Vec<SnsListRow>,
 }
 
+///
+/// SnsListRow
+///
+/// Serializable row for one deployed SNS in a list report.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsListRow {
     pub id: usize,
@@ -26,6 +44,12 @@ pub struct SnsListRow {
     pub index_canister_id: String,
     pub metadata_error: Option<String>,
 }
+
+///
+/// SnsInfoReport
+///
+/// Serializable report for one deployed SNS resolved by id or root principal.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsInfoReport {

@@ -1,3 +1,9 @@
+//! Module: sns::report::model::reports
+//!
+//! Responsibility: group SNS report DTOs by report family.
+//! Does not own: report construction, source fetching, cache IO, or rendering.
+//! Boundary: re-exports serializable report models used by SNS output writers.
+
 mod governance;
 mod list;
 mod neurons;

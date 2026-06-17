@@ -1,5 +1,17 @@
+//! Module: sns::report::model::reports::neurons::cache
+//!
+//! Responsibility: local SNS neuron cache inspection report DTOs.
+//! Does not own: cache discovery, refresh-attempt reads, or rendering.
+//! Boundary: preserves cache summary fields for cache list/status output.
+
 use super::attempt::SnsNeuronsRefreshAttemptStatus;
 use serde::Serialize;
+
+///
+/// SnsNeuronsCacheListReport
+///
+/// Serializable report listing complete local SNS neuron caches.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsNeuronsCacheListReport {
@@ -9,6 +21,12 @@ pub struct SnsNeuronsCacheListReport {
     pub cache_count: usize,
     pub caches: Vec<SnsNeuronsCacheSummary>,
 }
+
+///
+/// SnsNeuronsCacheStatusReport
+///
+/// Serializable report describing one expected or discovered SNS neuron cache.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsNeuronsCacheStatusReport {
@@ -22,6 +40,12 @@ pub struct SnsNeuronsCacheStatusReport {
     pub refresh_attempt_path: Option<String>,
     pub latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
 }
+
+///
+/// SnsNeuronsCacheSummary
+///
+/// Serializable summary of one complete SNS neuron snapshot cache.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsNeuronsCacheSummary {

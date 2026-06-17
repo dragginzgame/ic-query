@@ -15,6 +15,16 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.3` splits SNS clap value-enum, report request, and report sort/filter
+  model plumbing into focused modules while preserving existing list, neuron,
+  and proposal option behavior.
+
+  ```sh
+  icq sns list --sort name
+  icq sns neurons 1 --sort stake
+  icq sns proposals 1 --topic governance
+  ```
+
 - `0.2.2` adds `icq sns proposals --topic <topic>` to filter bounded live SNS
   governance proposal listings by SNS topic, reports the selected filter, and
   tightens request-mapping coverage for unfiltered versus concrete topic

@@ -1,44 +1,17 @@
-use crate::sns::report::{
-    SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter, SnsProposalTopicFilter,
-};
+//! Module: sns::commands::spec::values::proposals
+//!
+//! Responsibility: clap value enums for SNS proposal filters.
+//! Does not own: live proposal request mapping or report filtering behavior.
+//! Boundary: converts CLI filter values into report-model filter values.
+
+use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter};
 use clap::ValueEnum;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
-pub(in crate::sns::commands) enum SnsListSortArg {
-    Id,
-    Name,
-}
-
-impl From<SnsListSortArg> for SnsListSort {
-    fn from(value: SnsListSortArg) -> Self {
-        match value {
-            SnsListSortArg::Id => Self::Id,
-            SnsListSortArg::Name => Self::Name,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(in crate::sns::commands) enum SnsNeuronsSortArg {
-    #[default]
-    Api,
-    Id,
-    Stake,
-    Maturity,
-    Created,
-}
-
-impl From<SnsNeuronsSortArg> for SnsNeuronsSort {
-    fn from(value: SnsNeuronsSortArg) -> Self {
-        match value {
-            SnsNeuronsSortArg::Api => Self::Api,
-            SnsNeuronsSortArg::Id => Self::Id,
-            SnsNeuronsSortArg::Stake => Self::Stake,
-            SnsNeuronsSortArg::Maturity => Self::Maturity,
-            SnsNeuronsSortArg::Created => Self::Created,
-        }
-    }
-}
+///
+/// SnsProposalStatusArg
+///
+/// Command-local clap value accepted by `icq sns proposals --status`.
+///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
 pub(in crate::sns::commands) enum SnsProposalStatusArg {
@@ -63,6 +36,12 @@ impl From<SnsProposalStatusArg> for SnsProposalStatusFilter {
         }
     }
 }
+
+///
+/// SnsProposalTopicArg
+///
+/// Command-local clap value accepted by `icq sns proposals --topic`.
+///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
 pub(in crate::sns::commands) enum SnsProposalTopicArg {

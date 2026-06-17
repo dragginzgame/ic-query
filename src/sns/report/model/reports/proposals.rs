@@ -1,4 +1,16 @@
+//! Module: sns::report::model::reports::proposals
+//!
+//! Responsibility: SNS proposal report DTOs.
+//! Does not own: live governance calls, proposal conversion, or rendering.
+//! Boundary: preserves proposal detail and listing fields for text and JSON.
+
 use serde::Serialize;
+
+///
+/// SnsProposalReport
+///
+/// Serializable report for one SNS governance proposal detail lookup.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsProposalReport {
@@ -17,6 +29,12 @@ pub struct SnsProposalReport {
     pub show_ballots: bool,
     pub proposal: SnsProposalRow,
 }
+
+///
+/// SnsProposalsReport
+///
+/// Serializable report for a bounded SNS governance proposal listing.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsProposalsReport {
@@ -38,6 +56,12 @@ pub struct SnsProposalsReport {
     pub proposal_count: usize,
     pub proposals: Vec<SnsProposalRow>,
 }
+
+///
+/// SnsProposalRow
+///
+/// Serializable row for one SNS governance proposal.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsProposalRow {
@@ -68,6 +92,12 @@ pub struct SnsProposalRow {
     pub proposer_neuron_id: Option<String>,
 }
 
+///
+/// SnsProposalBallotRow
+///
+/// Serializable row for one proposal ballot.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsProposalBallotRow {
     pub neuron_id: String,
@@ -78,11 +108,23 @@ pub struct SnsProposalBallotRow {
     pub voting_power: u64,
 }
 
+///
+/// SnsProposalFailureReason
+///
+/// Serializable SNS governance failure reason attached to a proposal.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsProposalFailureReason {
     pub error_type: i32,
     pub error_message: String,
 }
+
+///
+/// SnsProposalTally
+///
+/// Serializable SNS proposal vote tally.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsProposalTally {

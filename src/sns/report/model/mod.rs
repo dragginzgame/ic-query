@@ -1,3 +1,9 @@
+//! Module: sns::report::model
+//!
+//! Responsibility: root SNS report model exports.
+//! Does not own: command parsing, live source calls, cache IO, or text output.
+//! Boundary: exposes report DTOs, request DTOs, errors, and selectors.
+
 mod errors;
 mod reports;
 mod requests;

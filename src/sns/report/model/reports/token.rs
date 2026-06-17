@@ -1,5 +1,17 @@
+//! Module: sns::report::model::reports::token
+//!
+//! Responsibility: SNS token metadata report DTOs.
+//! Does not own: ledger calls, token amount formatting, or rendering.
+//! Boundary: preserves raw token metadata fields for text and JSON output.
+
 use serde::Serialize;
 use serde_json::Value as JsonValue;
+
+///
+/// SnsTokenReport
+///
+/// Serializable report for SNS ledger token metadata.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsTokenReport {
@@ -27,11 +39,23 @@ pub struct SnsTokenReport {
     pub metadata: Vec<SnsTokenMetadataRow>,
 }
 
+///
+/// SnsTokenStandardRow
+///
+/// Serializable row for one token standard supported by an SNS ledger.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsTokenStandardRow {
     pub name: String,
     pub url: String,
 }
+
+///
+/// SnsTokenMetadataRow
+///
+/// Serializable row for one raw SNS ledger metadata entry.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsTokenMetadataRow {

@@ -1,5 +1,17 @@
+//! Module: sns::report::model::reports::neurons::report
+//!
+//! Responsibility: SNS neuron listing report DTO.
+//! Does not own: live fetching, cache-backed sorting, or rendering.
+//! Boundary: preserves neuron listing metadata and rows for text and JSON.
+
 use super::row::SnsNeuronRow;
 use serde::Serialize;
+
+///
+/// SnsNeuronsReport
+///
+/// Serializable report for bounded or cache-backed SNS neuron listings.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsNeuronsReport {

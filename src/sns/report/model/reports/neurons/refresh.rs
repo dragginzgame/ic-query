@@ -1,4 +1,16 @@
+//! Module: sns::report::model::reports::neurons::refresh
+//!
+//! Responsibility: complete SNS neuron refresh report DTO.
+//! Does not own: refresh orchestration, cache writes, or rendering.
+//! Boundary: records the published snapshot and refresh paths for output.
+
 use serde::Serialize;
+
+///
+/// SnsNeuronsRefreshReport
+///
+/// Serializable report returned after a complete SNS neuron snapshot refresh.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsNeuronsRefreshReport {

@@ -1,5 +1,17 @@
+//! Module: sns::report::model::errors
+//!
+//! Responsibility: typed SNS report and source errors.
+//! Does not own: command usage errors, clap parsing, or text rendering.
+//! Boundary: carries recoverable report-builder failures to command runners.
+
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
+
+///
+/// SnsHostError
+///
+/// Typed error returned by SNS report builders, live sources, and cache reads.
+///
 
 #[derive(Debug, ThisError)]
 pub enum SnsHostError {

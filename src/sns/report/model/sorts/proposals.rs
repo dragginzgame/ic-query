@@ -1,30 +1,14 @@
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum SnsNeuronsSort {
-    #[default]
-    Api,
-    Id,
-    Stake,
-    Maturity,
-    Created,
-}
+//! Module: sns::report::model::sorts::proposals
+//!
+//! Responsibility: SNS proposal report filter models.
+//! Does not own: CLI parsing, live proposal request transport, or rendering.
+//! Boundary: names report-level status and topic filters for proposal lists.
 
-impl SnsNeuronsSort {
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Api => "api",
-            Self::Id => "id",
-            Self::Stake => "stake",
-            Self::Maturity => "maturity",
-            Self::Created => "created",
-        }
-    }
-
-    #[must_use]
-    pub const fn uses_cache(self) -> bool {
-        !matches!(self, Self::Api)
-    }
-}
+///
+/// SnsProposalStatusFilter
+///
+/// Report-model status filter for bounded SNS proposal listings.
+///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum SnsProposalStatusFilter {
@@ -38,6 +22,7 @@ pub enum SnsProposalStatusFilter {
 }
 
 impl SnsProposalStatusFilter {
+    /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -50,6 +35,7 @@ impl SnsProposalStatusFilter {
         }
     }
 
+    /// Return the SNS governance API status code for concrete filters.
     #[must_use]
     pub const fn governance_status_code(self) -> Option<i32> {
         match self {
@@ -62,6 +48,12 @@ impl SnsProposalStatusFilter {
         }
     }
 }
+
+///
+/// SnsProposalTopicFilter
+///
+/// Report-model topic filter for bounded SNS proposal listings.
+///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum SnsProposalTopicFilter {
@@ -77,6 +69,7 @@ pub enum SnsProposalTopicFilter {
 }
 
 impl SnsProposalTopicFilter {
+    /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -88,23 +81,6 @@ impl SnsProposalTopicFilter {
             Self::Governance => "governance",
             Self::TreasuryAssetManagement => "treasury-asset-management",
             Self::CriticalDappOperations => "critical-dapp-operations",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum SnsListSort {
-    #[default]
-    Id,
-    Name,
-}
-
-impl SnsListSort {
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Id => "id",
-            Self::Name => "name",
         }
     }
 }
