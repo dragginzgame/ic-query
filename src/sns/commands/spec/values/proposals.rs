@@ -1,11 +1,35 @@
 //! Module: sns::commands::spec::values::proposals
 //!
-//! Responsibility: clap value enums for SNS proposal filters.
-//! Does not own: live proposal request mapping or report filtering behavior.
-//! Boundary: converts CLI filter values into report-model filter values.
+//! Responsibility: clap value enums for SNS proposal list options.
+//! Does not own: live proposal request mapping or report view behavior.
+//! Boundary: converts CLI option values into report-model values.
 
-use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter};
+use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort};
 use clap::ValueEnum;
+
+///
+/// SnsProposalsSortArg
+///
+/// Command-local clap value accepted by `icq sns proposals --sort`.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub(in crate::sns::commands) enum SnsProposalsSortArg {
+    #[default]
+    Api,
+    Id,
+    Created,
+}
+
+impl From<SnsProposalsSortArg> for SnsProposalsSort {
+    fn from(value: SnsProposalsSortArg) -> Self {
+        match value {
+            SnsProposalsSortArg::Api => Self::Api,
+            SnsProposalsSortArg::Id => Self::Id,
+            SnsProposalsSortArg::Created => Self::Created,
+        }
+    }
+}
 
 ///
 /// SnsProposalStatusArg

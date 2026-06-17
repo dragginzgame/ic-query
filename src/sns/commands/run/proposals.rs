@@ -81,6 +81,7 @@ where
         before_proposal_id: options.before_proposal_id,
         status: options.status.into(),
         topic: options.topic.into(),
+        sort: options.sort.into(),
         icp_root: Some(command_icp_root()?),
         verbose: options.verbose,
     };

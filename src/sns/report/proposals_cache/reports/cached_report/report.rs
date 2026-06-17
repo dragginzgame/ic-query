@@ -12,6 +12,7 @@ use crate::sns::report::{
         model::SnsProposalsCache, reports::cache_projection::project_sns_proposals_cache,
     },
     source::MainnetSnsProposals,
+    view::sort_sns_proposal_rows,
 };
 use std::path::PathBuf;
 
@@ -22,13 +23,14 @@ pub(super) fn sns_proposals_report_from_cache(
 ) -> SnsProposalsReport {
     let cache_complete = cache.completeness.is_api_exhausted();
     let projection = project_sns_proposals_cache(cache);
-    let proposals = projection
+    let mut proposals = projection
         .proposals
         .into_iter()
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
         .filter(|proposal| proposal_matches_status(proposal, request.status))
-        .take(usize::try_from(request.limit).unwrap_or(usize::MAX))
         .collect::<Vec<_>>();
+    sort_sns_proposal_rows(&mut proposals, request.sort);
+    proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
     sns_proposals_report_from_parts(SnsProposalsReportParts {
         list: projection.list,
         id: projection.id,
@@ -37,6 +39,7 @@ pub(super) fn sns_proposals_report_from_cache(
         before_proposal_id: request.before_proposal_id,
         status: request.status,
         topic: request.topic,
+        sort: request.sort,
         verbose: request.verbose,
         provenance: SnsReportProvenance::cache(&cache_path, cache_complete),
         proposals: MainnetSnsProposals { proposals },

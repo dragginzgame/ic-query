@@ -16,6 +16,8 @@ fn sns_proposals_parses_filters_and_json_format() {
         OsString::from("open"),
         OsString::from("--topic"),
         OsString::from("governance"),
+        OsString::from("--sort"),
+        OsString::from("created"),
         OsString::from("--verbose"),
     ])
     .expect("parse proposals");
@@ -28,6 +30,7 @@ fn sns_proposals_parses_filters_and_json_format() {
     assert_eq!(options.before_proposal_id, Some(100));
     assert_eq!(options.status, SnsProposalStatusArg::Open);
     assert_eq!(options.topic, SnsProposalTopicArg::Governance);
+    assert_eq!(options.sort, SnsProposalsSortArg::Created);
     assert!(options.verbose);
 }
 

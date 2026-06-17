@@ -27,4 +27,6 @@ pub use requests::{
     SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
     SnsProposalsRefreshRequest, SnsProposalsRequest, SnsTokenRequest,
 };
-pub use sorts::{SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter, SnsProposalTopicFilter};
+pub use sorts::{
+    SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+};

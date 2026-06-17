@@ -30,6 +30,9 @@ cached proposal rows:
 
 - `--limit`
 - `--before`
+- `--sort api`
+- `--sort id`
+- `--sort created`
 - `--status any`
 - `--status open`
 - `--status executed`
@@ -58,8 +61,8 @@ collection: proposals
 scope: full
 ```
 
-View options such as `--limit`, `--before`, `--status`, `--topic`,
-`--verbose`, and `--format` do not change snapshot identity.
+View options such as `--limit`, `--before`, `--sort`, `--status`,
+`--topic`, `--verbose`, and `--format` do not change snapshot identity.
 
 Published cache files remain complete-only:
 
@@ -74,4 +77,3 @@ Refresh attempts remain separate:
 ```
 
 If a refresh fails, the previous complete snapshot remains authoritative.
-

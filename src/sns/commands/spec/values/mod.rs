@@ -10,4 +10,6 @@ mod proposals;
 
 pub(in crate::sns::commands) use list::SnsListSortArg;
 pub(in crate::sns::commands) use neurons::SnsNeuronsSortArg;
-pub(in crate::sns::commands) use proposals::{SnsProposalStatusArg, SnsProposalTopicArg};
+pub(in crate::sns::commands) use proposals::{
+    SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg,
+};

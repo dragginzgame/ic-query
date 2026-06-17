@@ -7,8 +7,8 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         spec::{
-            SnsProposalStatusArg, SnsProposalTopicArg, sns_proposal_command, sns_proposal_usage,
-            sns_proposals_cache_list_command, sns_proposals_cache_list_usage,
+            SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg, sns_proposal_command,
+            sns_proposal_usage, sns_proposals_cache_list_command, sns_proposals_cache_list_usage,
             sns_proposals_cache_status_command, sns_proposals_cache_status_usage,
             sns_proposals_command, sns_proposals_refresh_command, sns_proposals_refresh_usage,
             sns_proposals_usage,
@@ -24,6 +24,7 @@ pub(in crate::sns::commands) struct SnsProposalsOptions {
     pub(in crate::sns::commands) before_proposal_id: Option<u64>,
     pub(in crate::sns::commands) status: SnsProposalStatusArg,
     pub(in crate::sns::commands) topic: SnsProposalTopicArg,
+    pub(in crate::sns::commands) sort: SnsProposalsSortArg,
     pub(in crate::sns::commands) verbose: bool,
 }
 
@@ -67,6 +68,7 @@ impl SnsProposalsOptions {
             before_proposal_id: typed_option::<u64>(&matches, "before"),
             status: required_typed(&matches, "status"),
             topic: required_typed(&matches, "topic"),
+            sort: required_typed(&matches, "sort"),
             verbose: matches.get_flag("verbose"),
         })
     }

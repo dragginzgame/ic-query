@@ -26,6 +26,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         ),
         format!("status_filter: {}", report.status_filter),
         format!("topic_filter: {}", report.topic_filter),
+        format!("sort: {}", report.sort),
         format!("verbose: {}", yes_no(report.verbose)),
     ];
     push_report_provenance_lines(

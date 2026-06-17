@@ -54,6 +54,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.before_proposal_id, Some(99));
     assert_eq!(report.status_filter, "open");
     assert_eq!(report.topic_filter, "governance");
+    assert_eq!(report.sort, "api");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(42));
     assert_eq!(report.proposals[0].action, "motion");
@@ -73,6 +74,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert!(text.contains("status_filter: open"));
     assert!(text.contains("data_source: live"));
     assert!(text.contains("topic_filter: governance"));
+    assert!(text.contains("sort: api"));
     assert!(text.contains("before_proposal_id: 99"));
     assert!(text.contains("proposal_count: 1"));
     assert!(text.contains("ID   ACTION"));
@@ -176,6 +178,50 @@ fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
 }
 
 #[test]
+fn sns_proposals_cached_sort_created_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-created");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Created;
+    request.limit = 2;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh sorted proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.sort, "created");
+    assert_eq!(
+        first
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![20, 30]
+    );
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse sorted proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.sort, "created");
+    assert_eq!(
+        second
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![20, 30]
+    );
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains("sort: created"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
     let mut request = proposals_request("1");
@@ -221,4 +267,61 @@ fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     assert!(text.contains("cache_complete: yes"));
 
     let _ = fs::remove_dir_all(root);
+}
+
+struct UnsortedSnsProposalsSource;
+
+impl SnsListSource for UnsortedSnsProposalsSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        FixtureSnsListSource.fetch_deployed_snses(request)
+    }
+}
+
+impl SnsProposalsSource for UnsortedSnsProposalsSource {
+    fn fetch_sns_proposals(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+        _include_status: &[i32],
+        _topic: SnsProposalTopicFilter,
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        Err(SnsHostError::AgentCall {
+            method: "fetch_sns_proposals",
+            reason: "unexpected bounded live proposal call".to_string(),
+        })
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+        assert_eq!(limit, 100);
+        assert_eq!(before_proposal_id, None);
+        Ok(MainnetSnsProposalPage {
+            proposals: vec![
+                proposal_row_with_id_and_created_at(10, 1_700_000_100),
+                proposal_row_with_id_and_created_at(20, 1_700_000_300),
+                proposal_row_with_id_and_created_at(30, 1_700_000_200),
+            ],
+            last_cursor: None,
+        })
+    }
+}
+
+fn proposal_row_with_id_and_created_at(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
+    SnsProposalRow {
+        proposal_id: Some(proposal_id),
+        proposal_creation_timestamp_seconds: created_at_secs,
+        created_at: format_utc_timestamp_secs(created_at_secs),
+        ..fixture_proposal_row()
+    }
 }

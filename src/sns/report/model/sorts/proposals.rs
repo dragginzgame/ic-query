@@ -1,8 +1,34 @@
 //! Module: sns::report::model::sorts::proposals
 //!
-//! Responsibility: SNS proposal report filter models.
+//! Responsibility: SNS proposal report sort and filter models.
 //! Does not own: CLI parsing, live proposal request transport, or rendering.
-//! Boundary: names report-level status and topic filters for proposal lists.
+//! Boundary: names report-level view options for proposal lists.
+
+///
+/// SnsProposalsSort
+///
+/// Report-model sort selector for SNS proposal listings.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum SnsProposalsSort {
+    #[default]
+    Api,
+    Id,
+    Created,
+}
+
+impl SnsProposalsSort {
+    /// Return the stable label used in text and JSON reports.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Api => "api",
+            Self::Id => "id",
+            Self::Created => "created",
+        }
+    }
+}
 
 ///
 /// SnsProposalStatusFilter

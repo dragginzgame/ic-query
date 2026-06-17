@@ -61,6 +61,7 @@ pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsPropos
         before_proposal_id: Some(99),
         status: SnsProposalStatusFilter::Open,
         topic: SnsProposalTopicFilter::Governance,
+        sort: SnsProposalsSort::Api,
         icp_root: None,
         verbose: false,
     }

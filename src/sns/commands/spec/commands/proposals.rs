@@ -1,4 +1,4 @@
-use super::super::values::{SnsProposalStatusArg, SnsProposalTopicArg};
+use super::super::values::{SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg};
 use super::args::sns_lookup_input_arg;
 use crate::{
     cli::{
@@ -20,6 +20,7 @@ Examples:
   icq sns proposals 1
   icq sns proposals 1 --status open
   icq sns proposals 1 --topic governance
+  icq sns proposals 1 --sort created
   icq sns proposals refresh 1
   icq sns proposals cache status 1
   icq sns proposals 1 --before 100 --limit 50
@@ -132,6 +133,14 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
                 .default_value("any")
                 .value_parser(clap::value_parser!(SnsProposalTopicArg))
                 .help("SNS governance topic filter"),
+        )
+        .arg(
+            value_arg("sort")
+                .long("sort")
+                .value_name("api|id|created")
+                .default_value("api")
+                .value_parser(clap::value_parser!(SnsProposalsSortArg))
+                .help("Sort proposals locally; id and created sort newest first"),
         )
         .arg(
             flag_arg("verbose")

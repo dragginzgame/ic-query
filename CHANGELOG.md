@@ -20,6 +20,15 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.12` adds `icq sns proposals --sort api|id|created`, reports the
+  selected proposal sort in text and JSON, and applies cache-backed proposal
+  sorting before limit truncation without changing proposal cache identity.
+
+  ```bash
+  icq sns proposals 1 --sort created
+  icq sns proposals 1 --sort id --limit 50
+  ```
+
 - `0.2.11` reports live-versus-cache provenance for SNS proposal list and
   detail reports, including cache path and completeness metadata when a
   complete local proposal snapshot is used.

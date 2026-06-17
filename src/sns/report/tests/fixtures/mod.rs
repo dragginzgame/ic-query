@@ -11,6 +11,7 @@ pub(in crate::sns::report::tests) use neurons::{
 pub(in crate::sns::report::tests) use params::FixtureSnsParamsSource;
 pub(in crate::sns::report::tests) use proposals::{
     FixtureSnsProposalSource, FixtureSnsProposalsSource, NoLiveSnsProposalsSource,
+    fixture_proposal_row,
 };
 pub(in crate::sns::report::tests) use requests::{
     info_request, list_request, neurons_request, params_request, proposal_request,

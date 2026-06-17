@@ -4,7 +4,7 @@
 //! Does not own: command option parsing, live proposal fetches, or rendering.
 //! Boundary: carries validated proposal inputs into SNS report builders.
 
-use super::super::{SnsProposalStatusFilter, SnsProposalTopicFilter};
+use super::super::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort};
 use std::path::PathBuf;
 
 ///
@@ -66,6 +66,7 @@ pub struct SnsProposalsRequest {
     pub before_proposal_id: Option<u64>,
     pub status: SnsProposalStatusFilter,
     pub topic: SnsProposalTopicFilter,
+    pub sort: SnsProposalsSort,
     pub icp_root: Option<PathBuf>,
     pub verbose: bool,
 }

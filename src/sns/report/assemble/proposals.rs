@@ -1,7 +1,7 @@
 use super::super::{
     MainnetSns, MainnetSnsList, MainnetSnsProposal, MainnetSnsProposals,
     SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalReport,
-    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport,
+    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsSort,
 };
 use super::SnsReportProvenance;
 
@@ -24,6 +24,7 @@ pub(in crate::sns::report) struct SnsProposalsReportParts {
     pub(in crate::sns::report) before_proposal_id: Option<u64>,
     pub(in crate::sns::report) status: SnsProposalStatusFilter,
     pub(in crate::sns::report) topic: SnsProposalTopicFilter,
+    pub(in crate::sns::report) sort: SnsProposalsSort,
     pub(in crate::sns::report) verbose: bool,
     pub(in crate::sns::report) provenance: SnsReportProvenance,
     pub(in crate::sns::report) proposals: MainnetSnsProposals,
@@ -72,6 +73,7 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
         before_proposal_id: parts.before_proposal_id,
         status_filter: parts.status.as_str().to_string(),
         topic_filter: parts.topic.as_str().to_string(),
+        sort: parts.sort.as_str().to_string(),
         verbose: parts.verbose,
         data_source: parts.provenance.data_source,
         cache_path: parts.provenance.cache_path,

@@ -19,4 +19,5 @@ pub(super) use usage::{
 };
 pub(super) use values::{
     SnsListSortArg, SnsNeuronsSortArg, SnsProposalStatusArg, SnsProposalTopicArg,
+    SnsProposalsSortArg,
 };

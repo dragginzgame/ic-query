@@ -11,6 +11,7 @@ use crate::sns::report::{
         build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
     },
     source::{SnsProposalSource, SnsProposalsSource},
+    view::sort_sns_proposal_rows,
 };
 
 pub fn build_sns_proposal_report(
@@ -83,7 +84,7 @@ fn build_sns_proposals_report_live(
         .governance_status_code()
         .into_iter()
         .collect::<Vec<_>>();
-    let proposals = source.fetch_sns_proposals(
+    let mut proposals = source.fetch_sns_proposals(
         &lookup.fetch_request,
         &lookup.sns,
         request.limit,
@@ -91,6 +92,7 @@ fn build_sns_proposals_report_live(
         &include_status,
         request.topic,
     )?;
+    sort_sns_proposal_rows(&mut proposals.proposals, request.sort);
     Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
         list: lookup.list,
         id: lookup.id,
@@ -99,6 +101,7 @@ fn build_sns_proposals_report_live(
         before_proposal_id: request.before_proposal_id,
         status: request.status,
         topic: request.topic,
+        sort: request.sort,
         verbose: request.verbose,
         provenance: SnsReportProvenance::live(),
         proposals,

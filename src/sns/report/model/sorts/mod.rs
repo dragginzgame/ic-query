@@ -10,4 +10,4 @@ mod proposals;
 
 pub use list::SnsListSort;
 pub use neurons::SnsNeuronsSort;
-pub use proposals::{SnsProposalStatusFilter, SnsProposalTopicFilter};
+pub use proposals::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort};
