@@ -20,6 +20,10 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.14` moves deployed SNS list sorting into the report view layer and
+  leaves lookup focused on stable id assignment and input resolution, without
+  changing CLI behavior or report output.
+
 - `0.2.13` centralizes SNS proposal and neuron row view transforms under the
   report view layer, removing cache-local filter/sort helpers without changing
   CLI behavior, cache behavior, or report schemas.

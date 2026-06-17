@@ -5,13 +5,13 @@
 //! Boundary: fetches the SNS list through a source and resolves id/root input.
 
 use crate::sns::report::lookup::{
+    ids::{assign_sns_ids_in_current_order, sort_sns_by_assigned_id},
     model::SnsLookup,
     network::enforce_mainnet_network,
     request::fetch_request_from_parts,
-    sort::{assign_sns_ids_in_current_order, sort_mainnet_sns_instances},
 };
 use crate::sns::report::{
-    SnsHostError, SnsListSort, SnsLookupRequest,
+    SnsHostError, SnsLookupRequest,
     source::{MainnetSns, SnsListSource},
 };
 use candid::Principal;
@@ -29,7 +29,7 @@ pub(in crate::sns::report) fn resolve_sns_lookup(
     );
     let mut list = source.fetch_deployed_snses(&fetch_request)?;
     assign_sns_ids_in_current_order(&mut list.sns_instances);
-    sort_mainnet_sns_instances(&mut list.sns_instances, SnsListSort::Id);
+    sort_sns_by_assigned_id(&mut list.sns_instances);
     let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;
     Ok(SnsLookup {
         fetch_request,

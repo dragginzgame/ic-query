@@ -2,8 +2,9 @@ use super::super::{
     SnsHostError, SnsListReport, SnsListRequest,
     assemble::sns_list_report_from_list,
     live::LiveSnsSource,
-    lookup::{assign_sns_ids_in_current_order, sns_list_fetch_request, sort_mainnet_sns_instances},
+    lookup::{assign_sns_ids_in_current_order, sns_list_fetch_request},
     source::SnsListSource,
+    view::sort_mainnet_sns_instances,
 };
 
 pub fn build_sns_list_report(request: &SnsListRequest) -> Result<SnsListReport, SnsHostError> {
