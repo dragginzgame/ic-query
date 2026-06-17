@@ -25,6 +25,7 @@ use source::{
 
 mod assemble;
 mod build;
+mod cache_error;
 mod live;
 mod lookup;
 mod model;

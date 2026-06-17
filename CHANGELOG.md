@@ -20,6 +20,11 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.7` splits SNS proposal cache internals into focused model, path,
+  storage, attempt, collection, and report modules, and shares SNS cache-file
+  error formatting between neuron and proposal caches without changing CLI
+  behavior.
+
 - `0.2.6` centralizes missing-cache load/refresh policy across subnet catalog,
   cached NNS component reports, and SNS proposal auto-cache creation without
   changing CLI behavior, and documents the explicit-refresh rule for SNS
