@@ -15,7 +15,9 @@ mod storage;
 
 pub use refresh::refresh_sns_proposals_cache;
 pub(in crate::sns::report) use refresh::refresh_sns_proposals_cache_with_source;
-pub(in crate::sns::report) use reports::build_sns_proposals_report_from_cache_or_refresh;
+pub(in crate::sns::report) use reports::{
+    build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
+};
 pub use reports::{build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report};
 
 pub(super) const SNS_PROPOSALS_CACHE_SCHEMA_VERSION: u32 = 1;

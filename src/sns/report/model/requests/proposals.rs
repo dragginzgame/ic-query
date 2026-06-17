@@ -45,6 +45,7 @@ pub struct SnsProposalRequest {
     pub now_unix_secs: u64,
     pub input: String,
     pub proposal_id: u64,
+    pub icp_root: Option<PathBuf>,
     pub verbose: bool,
     pub show_ballots: bool,
 }

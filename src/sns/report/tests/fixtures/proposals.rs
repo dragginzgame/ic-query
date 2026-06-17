@@ -27,6 +27,17 @@ impl SnsProposalSource for FixtureSnsProposalSource {
     }
 }
 
+impl SnsProposalSource for NoLiveSnsProposalsSource {
+    fn fetch_sns_proposal(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _proposal_id: u64,
+    ) -> Result<MainnetSnsProposal, SnsHostError> {
+        Err(no_live_error("fetch_sns_proposal"))
+    }
+}
+
 pub(in crate::sns::report::tests) struct FixtureSnsProposalsSource;
 
 impl SnsListSource for FixtureSnsProposalsSource {

@@ -137,6 +137,26 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
 }
 
 #[test]
+fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
+    let root = temp_dir("ic-query-sns-proposal-detail-cache");
+    let refresh_request = sns_proposals_refresh_request(&root, None);
+    refresh_sns_proposals_cache_with_source(&refresh_request, &FixtureSnsProposalsSource)
+        .expect("refresh proposals cache");
+    let mut request = proposal_request("1");
+    request.icp_root = Some(root.clone());
+
+    let report = build_sns_proposal_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("cached proposal detail");
+
+    assert_eq!(report.id, 1);
+    assert_eq!(report.proposal_id, 42);
+    assert_eq!(report.proposal.proposal_id, Some(42));
+    assert_eq!(report.proposal.title, "Fixture proposal");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
     let mut request = proposals_request("1");

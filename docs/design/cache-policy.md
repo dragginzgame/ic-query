@@ -57,6 +57,11 @@ The shared missing-cache flow is used by:
 - cached NNS node, node-provider, node-operator, and data-center list reports
 - SNS proposal list auto-cache creation
 
+SNS proposal detail lookups opportunistically read an existing complete
+proposal snapshot when the requested proposal row is present, then fall back to
+the live detail API when the snapshot or row is missing. Cache parse, schema,
+network, and IO errors remain visible instead of being hidden by fallback.
+
 SNS neuron complete snapshots intentionally stay on explicit refresh before
 cache-backed sorts. A full neuron refresh can require many governance pages and
 the refresh command exposes `--page-size` and `--max-pages`; silently starting

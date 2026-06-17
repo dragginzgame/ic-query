@@ -20,6 +20,14 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.10` lets `icq sns proposal` reuse an existing complete proposal
+  snapshot for detail lookups before falling back to live governance reads.
+
+  ```bash
+  icq sns proposals refresh 1
+  icq sns proposal 1 42
+  ```
+
 - `0.2.9` splits SNS proposal cache-backed report building into focused load,
   filter, report projection, collection fetch, progress, attempt, and state
   modules, splits proposal cache status report building, and moves proposal

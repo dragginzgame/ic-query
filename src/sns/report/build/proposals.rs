@@ -6,7 +6,9 @@ use super::super::{
     },
     live::LiveSnsSource,
     lookup::{lookup_request_from_parts, resolve_sns_lookup},
-    proposals_cache::build_sns_proposals_report_from_cache_or_refresh,
+    proposals_cache::{
+        build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
+    },
     source::{SnsProposalSource, SnsProposalsSource},
 };
 
@@ -26,6 +28,11 @@ pub(in crate::sns::report) fn build_sns_proposal_report_with_source(
     request: &SnsProposalRequest,
     source: &dyn SnsProposalSource,
 ) -> Result<SnsProposalReport, SnsHostError> {
+    if let Some(icp_root) = request.icp_root.as_ref()
+        && let Some(report) = build_sns_proposal_report_from_cache(request, icp_root)?
+    {
+        return Ok(report);
+    }
     let lookup_request = lookup_request_from_parts(
         &request.network,
         &request.source_endpoint,

@@ -48,6 +48,7 @@ where
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
         proposal_id: options.proposal_id,
+        icp_root: Some(command_icp_root()?),
         verbose: options.verbose,
         show_ballots: options.show_ballots,
     };

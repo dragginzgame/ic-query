@@ -45,6 +45,7 @@ pub(in crate::sns::report::tests) fn proposal_request(input: &str) -> SnsProposa
         now_unix_secs: 1_780_531_200,
         input: input.to_string(),
         proposal_id: 42,
+        icp_root: None,
         verbose: false,
         show_ballots: true,
     }
