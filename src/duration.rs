@@ -1,14 +1,24 @@
+//! Module: duration
+//!
+//! Responsibility: parse CLI duration arguments and render compact duration values.
+//!
+//! Does not own: command definitions, cache policy decisions, or report layouts.
+//!
+//! Boundary: keeps human duration syntax centralized so commands and reports do not
+//! each invent their own parsing or display conventions.
+
 use thiserror::Error as ThisError;
 
-///
-/// DurationParseError
-///
+/// Error returned when a CLI duration value cannot be parsed into seconds.
 #[derive(Debug, ThisError)]
 pub enum DurationParseError {
     #[error("invalid duration {value:?}; use positive seconds or a value ending in s, m, h, or d")]
     Invalid { value: String },
 }
 
+/// Parses a positive duration string into seconds.
+///
+/// Accepts bare seconds or integer values ending in `s`, `m`, `h`, or `d`.
 pub fn parse_duration_seconds(value: &str) -> Result<u64, DurationParseError> {
     let (number, multiplier) = match value.as_bytes().last().copied() {
         Some(b's') => (&value[..value.len() - 1], 1),
@@ -32,6 +42,7 @@ pub fn parse_duration_seconds(value: &str) -> Result<u64, DurationParseError> {
         })
 }
 
+/// Renders seconds using the largest readable duration unit.
 #[must_use]
 pub fn display_duration_seconds(seconds: u64) -> String {
     const MINUTE: u64 = 60;

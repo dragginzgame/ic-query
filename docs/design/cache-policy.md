@@ -42,6 +42,13 @@ Manual refresh commands always refresh explicitly and should report refresh
 progress or status through their owning report modules. They do not need the
 missing-cache helper because the user has already requested refresh behavior.
 
+## Cache Discovery
+
+Cache status and cache list commands should inspect local state only. They
+should discover complete full-collection snapshots through the shared
+snapshot-cache path scanner so cache listing and id lookup behavior stays
+deterministic across command families.
+
 ## Current Coverage
 
 The shared missing-cache flow is used by:

@@ -1,3 +1,12 @@
+//! Module: subnet_catalog::time
+//!
+//! Responsibility: format catalog timestamps and derive cache staleness metadata.
+//!
+//! Does not own: cache refresh policy, host filesystem paths, or report rendering.
+//!
+//! Boundary: keeps timestamp parsing and display deterministic without introducing
+//! live clock reads into report builders or cache loaders.
+
 #[cfg(test)]
 use crate::duration::parse_duration_seconds;
 
@@ -5,6 +14,7 @@ use crate::duration::parse_duration_seconds;
 use super::SubnetCatalogHostError;
 use super::{CatalogStaleStatus, SubnetCatalog};
 
+/// Computes stale/fresh metadata for a catalog relative to a caller-provided time.
 #[must_use]
 pub fn catalog_stale_status(
     catalog: &SubnetCatalog,
@@ -40,6 +50,7 @@ pub fn catalog_stale_status(
 }
 
 #[cfg(test)]
+/// Parses the test-facing stale duration option into seconds.
 pub fn parse_stale_after_duration(value: &str) -> Result<u64, SubnetCatalogHostError> {
     parse_duration_seconds(value).map_err(|_| SubnetCatalogHostError::InvalidStaleDuration {
         value: value.to_string(),
@@ -78,6 +89,7 @@ fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
     u64::try_from(seconds).ok()
 }
 
+/// Formats a Unix timestamp as a UTC RFC3339-like timestamp with second precision.
 pub fn format_utc_timestamp_secs(value: u64) -> String {
     let days = i64::try_from(value / 86_400).unwrap_or(i64::MAX);
     let seconds_of_day = value % 86_400;

@@ -1,14 +1,22 @@
+//! Module: table
+//!
+//! Responsibility: render fixed-width plain-text tables for human CLI reports.
+//!
+//! Does not own: report-specific row construction, JSON output, or terminal styling.
+//!
+//! Boundary: provides deterministic alignment and width calculation for report text
+//! modules that need compact tabular output.
+
 const COLUMN_GAP: &str = "   ";
 
-///
-/// ColumnAlign
-///
+/// Text alignment to apply when rendering a table column.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ColumnAlign {
     Left,
     Right,
 }
 
+/// Renders a table with headers, separator row, and aligned body rows.
 #[must_use]
 pub fn render_table<const N: usize>(
     headers: &[&str; N],
@@ -26,6 +34,7 @@ pub fn render_table<const N: usize>(
     lines.join("\n")
 }
 
+/// Computes display widths from header and row cell character counts.
 #[must_use]
 pub fn table_widths<const N: usize>(headers: &[&str; N], rows: &[[String; N]]) -> [usize; N] {
     let mut widths = headers.map(str::chars).map(Iterator::count);
@@ -39,6 +48,7 @@ pub fn table_widths<const N: usize>(headers: &[&str; N], rows: &[[String; N]]) -
     widths
 }
 
+/// Renders one fixed-width table row using the provided widths and alignments.
 #[must_use]
 pub fn render_table_row<const N: usize>(
     row: &[impl AsRef<str>],
@@ -59,6 +69,7 @@ pub fn render_table_row<const N: usize>(
         .to_string()
 }
 
+/// Renders the dashed separator row for the provided column widths.
 #[must_use]
 pub fn render_separator<const N: usize>(widths: &[usize; N]) -> String {
     widths

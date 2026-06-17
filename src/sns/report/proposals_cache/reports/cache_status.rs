@@ -6,10 +6,10 @@
 
 use super::super::{
     SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
+    attempt::read_sns_proposals_attempt_status,
     paths::{SnsProposalsCachePaths, sns_network_cache_dir},
     storage::{
-        find_sns_proposals_cache_by_id, load_sns_proposals_cache_at,
-        read_sns_proposals_attempt_status, sns_proposals_cache_summary,
+        find_sns_proposals_cache_by_id, load_sns_proposals_cache_at, sns_proposals_cache_summary,
     },
 };
 use crate::sns::report::{

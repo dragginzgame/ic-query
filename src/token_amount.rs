@@ -1,3 +1,16 @@
+//! Module: token_amount
+//!
+//! Responsibility: render token base-unit amounts as two-decimal human text.
+//!
+//! Does not own: token metadata lookup, report row selection, or JSON amount fields.
+//!
+//! Boundary: keeps display rounding for token amounts centralized while preserving
+//! raw amount values in typed reports and JSON output.
+
+/// Renders a base-unit token amount with two decimal places.
+///
+/// Non-digit input, other than `_` separators, is returned unchanged so callers can
+/// preserve upstream sentinel values.
 #[must_use]
 pub fn base_units_decimal_text(value: &str, decimals: u8) -> String {
     let Some(digits) = normalized_base_unit_digits(value) else {
@@ -13,6 +26,7 @@ pub fn base_units_decimal_text(value: &str, decimals: u8) -> String {
     format_hundredths(&hundredths)
 }
 
+/// Renders an ICP-style e8s amount with two decimal places.
 #[must_use]
 pub fn e8s_decimal_text(value: u64) -> String {
     base_units_decimal_text(&value.to_string(), 8)

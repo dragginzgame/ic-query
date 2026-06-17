@@ -1,9 +1,16 @@
+//! Module: subnet_catalog::model::types
+//!
+//! Responsibility: define the persisted subnet catalog domain records.
+//!
+//! Does not own: catalog validation, host cache paths, report shaping, or CLI filters.
+//!
+//! Boundary: keeps raw catalog identity and subnet/routing data separate from
+//! human-facing report rows and resolver outputs.
+
 use super::{ClassificationSource, GeographicScope, SubnetKind, SubnetSpecialization};
 use serde::{Deserialize, Serialize};
 
-///
-/// SubnetCatalog
-///
+/// Persisted subnet catalog snapshot loaded from or written to the local cache.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalog {
     pub catalog_schema_version: u32,
@@ -18,9 +25,7 @@ pub struct SubnetCatalog {
     pub routing_ranges: Vec<RoutingRange>,
 }
 
-///
-/// SubnetInfo
-///
+/// One subnet entry and its classification metadata.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetInfo {
     pub subnet_principal: String,
@@ -36,9 +41,7 @@ pub struct SubnetInfo {
     pub charges_apply_by_default: bool,
 }
 
-///
-/// RoutingRange
-///
+/// Inclusive canister routing range assigned to one subnet.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RoutingRange {
     pub start_canister_id: String,

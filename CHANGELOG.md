@@ -20,6 +20,12 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.8` splits SNS proposal report DTOs and proposal cache refresh
+  orchestration/storage/attempt handling into focused modules, aligning
+  proposal and neuron cache structure and moving proposal cache discovery onto
+  the shared deterministic snapshot scanner without changing report schemas,
+  cache behavior, or CLI behavior.
+
 - `0.2.7` splits SNS proposal cache internals into focused model, path,
   storage, attempt, collection, and report modules, and shares SNS cache-file
   error formatting between neuron and proposal caches without changing CLI

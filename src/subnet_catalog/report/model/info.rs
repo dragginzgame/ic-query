@@ -1,12 +1,19 @@
+//! Module: subnet_catalog::report::model::info
+//!
+//! Responsibility: define typed inputs and outputs for subnet catalog info reports.
+//!
+//! Does not own: subject resolution, cache refresh behavior, text rendering, or CLI parsing.
+//!
+//! Boundary: keeps the resolved-subject report contract explicit for both text and
+//! JSON output.
+
 use crate::subnet_catalog::{
     ClassificationSource, GeographicScope, ResolveAs, RoutingRange, SubnetCatalogCacheRequest,
     SubnetKind, SubnetSpecialization,
 };
 use serde::{Deserialize, Serialize};
 
-///
-/// SubnetCatalogInfoRequest
-///
+/// Inputs needed to resolve one subnet catalog subject and build an info report.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogInfoRequest {
     pub cache: SubnetCatalogCacheRequest,
@@ -17,9 +24,7 @@ pub struct SubnetCatalogInfoRequest {
     pub stale_after_seconds: u64,
 }
 
-///
-/// SubnetCatalogInfoReport
-///
+/// Serializable detail report for a subnet or canister subject.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalogInfoReport {
     pub schema_version: u32,

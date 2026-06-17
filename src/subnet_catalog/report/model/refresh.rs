@@ -1,8 +1,14 @@
+//! Module: subnet_catalog::report::model::refresh
+//!
+//! Responsibility: define the subnet catalog refresh report contract.
+//!
+//! Does not own: registry fetches, atomic writes, lock handling, or text rendering.
+//!
+//! Boundary: records observable refresh results without embedding refresh mechanics.
+
 use serde::{Deserialize, Serialize};
 
-///
-/// SubnetCatalogRefreshReport
-///
+/// Serializable report describing one subnet catalog refresh attempt.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalogRefreshReport {
     pub schema_version: u32,
