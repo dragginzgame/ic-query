@@ -15,6 +15,15 @@ present.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.4` splits SNS source traits and live-source implementations into
+  focused list, token, params, proposal, and neuron modules.
+
+  ```sh
+  icq sns list
+  icq sns token 1
+  icq sns neurons 1 --limit 10
+  ```
+
 - `0.2.3` splits SNS clap value-enum, report request, and report sort/filter
   model plumbing into focused modules while preserving existing list, neuron,
   and proposal option behavior.
