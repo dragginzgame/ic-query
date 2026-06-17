@@ -1,10 +1,7 @@
-use super::super::{
-    model::SnsNeuronsCachedReportParts,
-    storage::{load_sns_neurons_cache_for_input, sort_sns_neurons},
-};
+use super::super::{model::SnsNeuronsCachedReportParts, storage::load_sns_neurons_cache_for_input};
 use crate::sns::report::{
     SNS_NEURONS_REPORT_SCHEMA_VERSION, SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::SnsReportProvenance,
+    assemble::SnsReportProvenance, view::sort_sns_neurons,
 };
 
 pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(

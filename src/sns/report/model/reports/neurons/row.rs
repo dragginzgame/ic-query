@@ -1,7 +1,7 @@
 //! Module: sns::report::model::reports::neurons::row
 //!
 //! Responsibility: SNS neuron row DTO.
-//! Does not own: governance wire conversion, cache sorting, or rendering.
+//! Does not own: governance wire conversion, row ordering, or rendering.
 //! Boundary: preserves raw neuron fields used by live reports and snapshots.
 
 use serde::{Deserialize as SerdeDeserialize, Serialize};

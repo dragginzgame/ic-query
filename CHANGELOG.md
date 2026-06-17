@@ -20,6 +20,10 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.13` centralizes SNS proposal and neuron row view transforms under the
+  report view layer, removing cache-local filter/sort helpers without changing
+  CLI behavior, cache behavior, or report schemas.
+
 - `0.2.12` adds `icq sns proposals --sort api|id|created`, reports the
   selected proposal sort in text and JSON, and applies cache-backed proposal
   sorting before limit truncation without changing proposal cache identity.

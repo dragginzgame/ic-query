@@ -4,7 +4,6 @@
 //! Does not own: refresh locking, live fetch paging, command parsing, or rendering.
 //! Boundary: coordinates cache load/refresh policy and cache-backed report projection.
 
-mod filter;
 mod load;
 mod report;
 

@@ -4,7 +4,31 @@
 //! Does not own: proposal fetching, cache filtering, report assembly, or text rendering.
 //! Boundary: sorts proposal rows without changing cache identity.
 
-use crate::sns::report::{SnsProposalRow, SnsProposalsSort};
+use crate::sns::report::{SnsProposalRow, SnsProposalStatusFilter, SnsProposalsSort};
+
+pub(in crate::sns::report) fn proposal_matches_before(
+    proposal: &SnsProposalRow,
+    before_proposal_id: Option<u64>,
+) -> bool {
+    before_proposal_id.is_none_or(|before| {
+        proposal
+            .proposal_id
+            .is_some_and(|proposal_id| proposal_id < before)
+    })
+}
+
+pub(in crate::sns::report) fn proposal_matches_status(
+    proposal: &SnsProposalRow,
+    status: SnsProposalStatusFilter,
+) -> bool {
+    match status {
+        SnsProposalStatusFilter::Any => true,
+        SnsProposalStatusFilter::Open => proposal.decision_state == "open",
+        SnsProposalStatusFilter::Executed => proposal.decision_state == "executed",
+        SnsProposalStatusFilter::Failed => proposal.decision_state == "failed",
+        SnsProposalStatusFilter::Rejected | SnsProposalStatusFilter::Adopted => false,
+    }
+}
 
 pub(in crate::sns::report) fn sort_sns_proposal_rows(
     proposals: &mut [SnsProposalRow],
@@ -44,11 +68,49 @@ mod tests {
         assert_eq!(proposal_ids(&proposals), vec![10, 2, 1]);
     }
 
+    #[test]
+    fn proposal_before_filter_requires_lower_present_id() {
+        assert!(proposal_matches_before(&proposal_row(9, 100), Some(10)));
+        assert!(!proposal_matches_before(&proposal_row(10, 100), Some(10)));
+        assert!(proposal_matches_before(&proposal_without_id(), None));
+        assert!(!proposal_matches_before(&proposal_without_id(), Some(10)));
+    }
+
+    #[test]
+    fn proposal_status_filter_matches_cache_backed_statuses() {
+        assert!(proposal_matches_status(
+            &proposal_with_decision_state("executed"),
+            SnsProposalStatusFilter::Executed
+        ));
+        assert!(!proposal_matches_status(
+            &proposal_with_decision_state("open"),
+            SnsProposalStatusFilter::Failed
+        ));
+        assert!(!proposal_matches_status(
+            &proposal_with_decision_state("adopted"),
+            SnsProposalStatusFilter::Adopted
+        ));
+    }
+
     fn proposal_ids(proposals: &[SnsProposalRow]) -> Vec<u64> {
         proposals
             .iter()
             .filter_map(|proposal| proposal.proposal_id)
             .collect()
+    }
+
+    fn proposal_without_id() -> SnsProposalRow {
+        SnsProposalRow {
+            proposal_id: None,
+            ..proposal_row(1, 100)
+        }
+    }
+
+    fn proposal_with_decision_state(decision_state: &str) -> SnsProposalRow {
+        SnsProposalRow {
+            decision_state: decision_state.to_string(),
+            ..proposal_row(1, 100)
+        }
     }
 
     fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {

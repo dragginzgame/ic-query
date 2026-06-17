@@ -4,7 +4,6 @@
 //! Does not own: cache loading, refresh policy, or live source calls.
 //! Boundary: constructs report DTOs after applying cache-backed view filters.
 
-use super::filter::{proposal_matches_before, proposal_matches_status};
 use crate::sns::report::{
     SnsProposalsReport, SnsProposalsRequest,
     assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
@@ -12,7 +11,7 @@ use crate::sns::report::{
         model::SnsProposalsCache, reports::cache_projection::project_sns_proposals_cache,
     },
     source::MainnetSnsProposals,
-    view::sort_sns_proposal_rows,
+    view::{proposal_matches_before, proposal_matches_status, sort_sns_proposal_rows},
 };
 use std::path::PathBuf;
 
