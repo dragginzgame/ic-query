@@ -2,6 +2,7 @@ mod list;
 mod neurons;
 mod params;
 mod proposals;
+mod provenance;
 mod token;
 
 pub(super) use list::{sns_info_report_from_list, sns_list_report_from_list};
@@ -11,4 +12,5 @@ pub(super) use proposals::{
     SnsProposalReportParts, SnsProposalsReportParts, sns_proposal_report_from_parts,
     sns_proposals_report_from_parts,
 };
+pub(super) use provenance::SnsReportProvenance;
 pub(super) use token::sns_token_report_from_parts;

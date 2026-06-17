@@ -22,7 +22,11 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert_eq!(report.proposal.decision_state, "open");
     assert_eq!(report.proposal.ballot_count, 1);
     assert_eq!(report.proposal.ballots[0].vote_text, "yes");
+    assert_eq!(report.data_source, "live");
+    assert_eq!(report.cache_path, None);
+    assert_eq!(report.cache_complete, None);
     assert!(text.contains("proposal_id: 42"));
+    assert!(text.contains("data_source: live"));
     assert!(text.contains("action: motion"));
     assert!(text.contains("ballot_count: 1"));
     assert!(text.contains("show_ballots: yes"));
@@ -63,7 +67,11 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
             .map(|tally| tally.yes),
         Some(10)
     );
+    assert_eq!(report.data_source, "live");
+    assert_eq!(report.cache_path, None);
+    assert_eq!(report.cache_complete, None);
     assert!(text.contains("status_filter: open"));
+    assert!(text.contains("data_source: live"));
     assert!(text.contains("topic_filter: governance"));
     assert!(text.contains("before_proposal_id: 99"));
     assert!(text.contains("proposal_count: 1"));
@@ -152,6 +160,17 @@ fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.proposal_id, 42);
     assert_eq!(report.proposal.proposal_id, Some(42));
     assert_eq!(report.proposal.title, "Fixture proposal");
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.cache_complete, Some(true));
+    assert!(
+        report
+            .cache_path
+            .as_deref()
+            .is_some_and(|path| path.ends_with("/proposals/full.json"))
+    );
+    let text = sns_proposal_report_text(&report);
+    assert!(text.contains("data_source: cache"));
+    assert!(text.contains("cache_complete: yes"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -171,6 +190,14 @@ fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
 
     assert_eq!(first.proposal_count, 1);
     assert_eq!(first.proposals[0].proposal_id, Some(42));
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.cache_complete, Some(true));
+    assert!(
+        first
+            .cache_path
+            .as_deref()
+            .is_some_and(|path| path.ends_with("/proposals/full.json"))
+    );
 
     let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -186,6 +213,12 @@ fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     assert_eq!(second.proposal_count, 1);
     assert_eq!(second.proposals[0].proposal_id, Some(42));
     assert_eq!(second.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.cache_complete, Some(true));
+    assert_eq!(second.cache_path, first.cache_path);
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains("data_source: cache"));
+    assert!(text.contains("cache_complete: yes"));
 
     let _ = fs::remove_dir_all(root);
 }

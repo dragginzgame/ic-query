@@ -4,19 +4,23 @@
 //! Does not own: cache loading, refresh policy, or live source calls.
 //! Boundary: constructs report DTOs after applying cache-backed view filters.
 
-use super::super::super::model::SnsProposalsCache;
-use super::super::cache_projection::project_sns_proposals_cache;
 use super::filter::{proposal_matches_before, proposal_matches_status};
 use crate::sns::report::{
     SnsProposalsReport, SnsProposalsRequest,
-    assemble::{SnsProposalsReportParts, sns_proposals_report_from_parts},
+    assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
+    proposals_cache::{
+        model::SnsProposalsCache, reports::cache_projection::project_sns_proposals_cache,
+    },
     source::MainnetSnsProposals,
 };
+use std::path::PathBuf;
 
 pub(super) fn sns_proposals_report_from_cache(
     request: &SnsProposalsRequest,
+    cache_path: PathBuf,
     cache: SnsProposalsCache,
 ) -> SnsProposalsReport {
+    let cache_complete = cache.completeness.is_api_exhausted();
     let projection = project_sns_proposals_cache(cache);
     let proposals = projection
         .proposals
@@ -34,6 +38,7 @@ pub(super) fn sns_proposals_report_from_cache(
         status: request.status,
         topic: request.topic,
         verbose: request.verbose,
+        provenance: SnsReportProvenance::cache(&cache_path, cache_complete),
         proposals: MainnetSnsProposals { proposals },
     })
 }

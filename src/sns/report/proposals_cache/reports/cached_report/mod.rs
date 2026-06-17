@@ -22,6 +22,6 @@ pub(in crate::sns::report) fn build_sns_proposals_report_from_cache_or_refresh(
     icp_root: &Path,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    let cache = load_or_refresh_sns_proposals_cache(request, icp_root, source)?;
-    Ok(sns_proposals_report_from_cache(request, cache))
+    let (cache_path, cache) = load_or_refresh_sns_proposals_cache(request, icp_root, source)?;
+    Ok(sns_proposals_report_from_cache(request, cache_path, cache))
 }

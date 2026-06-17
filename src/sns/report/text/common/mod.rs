@@ -1,5 +1,6 @@
 mod metadata;
 mod optional;
+mod provenance;
 mod text;
 
 pub(in crate::sns::report::text) use metadata::token_metadata_value_text;
@@ -9,4 +10,5 @@ pub(in crate::sns::report::text) use optional::{
     optional_percentage_text, optional_permissions_text, optional_text, optional_u32_text,
     optional_u64_text,
 };
+pub(in crate::sns::report::text) use provenance::push_report_provenance_lines;
 pub(in crate::sns::report::text) use text::{comma_join_u64, neuron_id_text, truncate_text_value};

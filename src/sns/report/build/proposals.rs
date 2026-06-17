@@ -1,8 +1,9 @@
-use super::super::{
-    SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalsReport, SnsProposalsRequest,
+use crate::sns::report::{
+    SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest,
     assemble::{
-        SnsProposalReportParts, SnsProposalsReportParts, sns_proposal_report_from_parts,
-        sns_proposals_report_from_parts,
+        SnsProposalReportParts, SnsProposalsReportParts, SnsReportProvenance,
+        sns_proposal_report_from_parts, sns_proposals_report_from_parts,
     },
     live::LiveSnsSource,
     lookup::{lookup_request_from_parts, resolve_sns_lookup},
@@ -49,6 +50,7 @@ pub(in crate::sns::report) fn build_sns_proposal_report_with_source(
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,
+        provenance: SnsReportProvenance::live(),
         proposal,
     }))
 }
@@ -98,19 +100,20 @@ fn build_sns_proposals_report_live(
         status: request.status,
         topic: request.topic,
         verbose: request.verbose,
+        provenance: SnsReportProvenance::live(),
         proposals,
     }))
 }
 
 const fn request_can_use_proposals_cache(request: &SnsProposalsRequest) -> bool {
-    if !matches!(request.topic, super::super::SnsProposalTopicFilter::Any) {
+    if !matches!(request.topic, SnsProposalTopicFilter::Any) {
         return false;
     }
     matches!(
         request.status,
-        super::super::SnsProposalStatusFilter::Any
-            | super::super::SnsProposalStatusFilter::Open
-            | super::super::SnsProposalStatusFilter::Executed
-            | super::super::SnsProposalStatusFilter::Failed
+        SnsProposalStatusFilter::Any
+            | SnsProposalStatusFilter::Open
+            | SnsProposalStatusFilter::Executed
+            | SnsProposalStatusFilter::Failed
     )
 }

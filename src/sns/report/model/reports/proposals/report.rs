@@ -29,6 +29,9 @@ pub struct SnsProposalReport {
     pub proposal_id: u64,
     pub verbose: bool,
     pub show_ballots: bool,
+    pub data_source: String,
+    pub cache_path: Option<String>,
+    pub cache_complete: Option<bool>,
     pub proposal: SnsProposalRow,
 }
 
@@ -55,6 +58,9 @@ pub struct SnsProposalsReport {
     pub status_filter: String,
     pub topic_filter: String,
     pub verbose: bool,
+    pub data_source: String,
+    pub cache_path: Option<String>,
+    pub cache_complete: Option<bool>,
     pub proposal_count: usize,
     pub proposals: Vec<SnsProposalRow>,
 }

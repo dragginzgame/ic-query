@@ -4,6 +4,7 @@ use super::super::{
 };
 use crate::sns::report::{
     SNS_NEURONS_REPORT_SCHEMA_VERSION, SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
+    assemble::SnsReportProvenance,
 };
 
 pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
@@ -33,6 +34,7 @@ fn sns_neurons_report_from_cache(parts: SnsNeuronsCachedReportParts) -> SnsNeuro
     let cache = parts.cache;
     let neuron_count = cache.data.neurons.len();
     let cache_complete = cache.completeness.is_api_exhausted();
+    let provenance = SnsReportProvenance::cache(&parts.cache_path, cache_complete);
     let metadata = cache.metadata;
     SnsNeuronsReport {
         schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
@@ -48,10 +50,10 @@ fn sns_neurons_report_from_cache(parts: SnsNeuronsCachedReportParts) -> SnsNeuro
         requested_limit: parts.requested_limit,
         owner_principal_id: None,
         verbose: parts.verbose,
-        data_source: "cache".to_string(),
+        data_source: provenance.data_source,
         sort: parts.sort.as_str().to_string(),
-        cache_path: Some(parts.cache_path.display().to_string()),
-        cache_complete: Some(cache_complete),
+        cache_path: provenance.cache_path,
+        cache_complete: provenance.cache_complete,
         total_neuron_count: parts.total_neuron_count,
         neuron_count,
         neurons: cache.data.neurons,

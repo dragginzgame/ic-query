@@ -1,5 +1,7 @@
 use super::super::super::SnsNeuronsReport;
-use super::super::common::{optional_e8s_decimal_text, optional_text};
+use super::super::common::{
+    optional_e8s_decimal_text, optional_text, push_report_provenance_lines,
+};
 use super::common::neuron_id_for_list;
 use crate::{
     nns::render::yes_no,
@@ -21,20 +23,21 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
             optional_text(report.owner_principal_id.as_ref())
         ),
         format!("verbose: {}", yes_no(report.verbose)),
-        format!("data_source: {}", report.data_source),
+    ];
+    push_report_provenance_lines(
+        &mut lines,
+        &report.data_source,
+        report.cache_path.as_deref(),
+        report.cache_complete,
+    );
+    lines.extend([
         format!("sort: {}", report.sort),
         format!("total_neuron_count: {}", report.total_neuron_count),
         format!("neuron_count: {}", report.neuron_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
-    ];
-    if let Some(cache_path) = report.cache_path.as_deref() {
-        lines.push(format!("cache_path: {cache_path}"));
-    }
-    if let Some(cache_complete) = report.cache_complete {
-        lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
-    }
+    ]);
     if !report.neurons.is_empty() {
         lines.push(String::new());
         lines.push(render_table(

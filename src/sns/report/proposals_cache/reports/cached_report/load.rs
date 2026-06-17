@@ -4,27 +4,29 @@
 //! Does not own: report projection, local view filtering, or refresh internals.
 //! Boundary: applies shared missing-cache policy for cache-compatible proposal views.
 
-use super::super::super::{
-    SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
-    refresh_sns_proposals_cache_with_source, storage::load_sns_proposals_cache_for_input,
-};
 use crate::{
     cache_file::load_or_refresh_missing_cache,
     sns::report::{
-        SnsHostError, SnsProposalsRefreshRequest, SnsProposalsRequest, source::SnsProposalsSource,
+        SnsHostError, SnsProposalsRefreshRequest, SnsProposalsRequest,
+        proposals_cache::{
+            SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
+            refresh_sns_proposals_cache_with_source,
+            storage::load_sns_proposals_cache_for_input_with_path,
+        },
+        source::SnsProposalsSource,
     },
 };
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub(super) fn load_or_refresh_sns_proposals_cache(
     request: &SnsProposalsRequest,
     icp_root: &Path,
     source: &dyn SnsProposalsSource,
-) -> Result<SnsProposalsCache, SnsHostError> {
+) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
     load_or_refresh_missing_cache(
         "SNS proposals",
         &request.source_endpoint,
-        || load_sns_proposals_cache_for_input(icp_root, &request.network, &request.input),
+        || load_sns_proposals_cache_for_input_with_path(icp_root, &request.network, &request.input),
         || {
             refresh_sns_proposals_cache_with_source(
                 &SnsProposalsRefreshRequest {

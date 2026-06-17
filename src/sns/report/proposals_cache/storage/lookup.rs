@@ -7,29 +7,26 @@
 use super::{load::load_sns_proposals_cache_at, scan::read_sns_proposals_cache_header};
 use crate::sns::report::{
     SnsHostError,
+    proposals_cache::model::SnsProposalsCache,
     proposals_cache::paths::{SnsProposalsCachePaths, sns_network_cache_dir},
 };
 use candid::Principal;
 use std::path::{Path, PathBuf};
 
-use super::super::model::SnsProposalsCache;
 use super::scan::collect_sns_proposals_cache_paths;
 
-/// Load a complete SNS proposal cache by stable SNS list id or root principal.
-pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_input(
+/// Load a complete SNS proposal cache and return its concrete cache path.
+pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_input_with_path(
     icp_root: &Path,
     network: &str,
     input: &str,
-) -> Result<SnsProposalsCache, SnsHostError> {
+) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
     if let Ok(id) = input.parse::<usize>() {
-        return find_sns_proposals_cache_by_id(icp_root, network, id)?.map_or_else(
-            || {
-                Err(SnsHostError::MissingProposalsCache {
-                    path: sns_network_cache_dir(icp_root, network),
-                })
-            },
-            |(_path, cache)| Ok(cache),
-        );
+        return find_sns_proposals_cache_by_id(icp_root, network, id)?.ok_or_else(|| {
+            SnsHostError::MissingProposalsCache {
+                path: sns_network_cache_dir(icp_root, network),
+            }
+        });
     }
 
     let root_canister_id = Principal::from_text(input)
@@ -37,8 +34,10 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_inpu
             input: input.to_string(),
         })?
         .to_text();
-    let cache_path = expected_cache_path_for_root(icp_root, network, &root_canister_id);
-    load_sns_proposals_cache_at(cache_path, network)
+    let cache_path =
+        SnsProposalsCachePaths::for_root(icp_root, network, &root_canister_id).cache_path;
+    let cache = load_sns_proposals_cache_at(cache_path.clone(), network)?;
+    Ok((cache_path, cache))
 }
 
 /// Find a complete SNS proposal cache by stable SNS list id.
@@ -55,13 +54,4 @@ pub(in crate::sns::report::proposals_cache) fn find_sns_proposals_cache_by_id(
         }
     }
     Ok(None)
-}
-
-/// Build the expected complete proposal cache path for one SNS root.
-pub(in crate::sns::report::proposals_cache) fn expected_cache_path_for_root(
-    icp_root: &Path,
-    network: &str,
-    root_canister_id: &str,
-) -> PathBuf {
-    SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id).cache_path
 }

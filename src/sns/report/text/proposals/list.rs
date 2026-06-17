@@ -4,7 +4,10 @@ use super::{
 };
 use crate::{
     nns::render::yes_no,
-    sns::report::{SnsProposalsReport, text::common::optional_u64_text},
+    sns::report::{
+        SnsProposalsReport,
+        text::common::{optional_u64_text, push_report_provenance_lines},
+    },
     table::{ColumnAlign, render_table},
 };
 
@@ -24,11 +27,19 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         format!("status_filter: {}", report.status_filter),
         format!("topic_filter: {}", report.topic_filter),
         format!("verbose: {}", yes_no(report.verbose)),
+    ];
+    push_report_provenance_lines(
+        &mut lines,
+        &report.data_source,
+        report.cache_path.as_deref(),
+        report.cache_complete,
+    );
+    lines.extend([
         format!("proposal_count: {}", report.proposal_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
-    ];
+    ]);
     if !report.proposals.is_empty() {
         lines.push(String::new());
         lines.push(render_table(

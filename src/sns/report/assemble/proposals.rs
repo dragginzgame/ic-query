@@ -3,6 +3,7 @@ use super::super::{
     SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalReport,
     SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport,
 };
+use super::SnsReportProvenance;
 
 pub(in crate::sns::report) struct SnsProposalReportParts {
     pub(in crate::sns::report) list: MainnetSnsList,
@@ -11,6 +12,7 @@ pub(in crate::sns::report) struct SnsProposalReportParts {
     pub(in crate::sns::report) proposal_id: u64,
     pub(in crate::sns::report) verbose: bool,
     pub(in crate::sns::report) show_ballots: bool,
+    pub(in crate::sns::report) provenance: SnsReportProvenance,
     pub(in crate::sns::report) proposal: MainnetSnsProposal,
 }
 
@@ -23,6 +25,7 @@ pub(in crate::sns::report) struct SnsProposalsReportParts {
     pub(in crate::sns::report) status: SnsProposalStatusFilter,
     pub(in crate::sns::report) topic: SnsProposalTopicFilter,
     pub(in crate::sns::report) verbose: bool,
+    pub(in crate::sns::report) provenance: SnsReportProvenance,
     pub(in crate::sns::report) proposals: MainnetSnsProposals,
 }
 
@@ -43,6 +46,9 @@ pub(in crate::sns::report) fn sns_proposal_report_from_parts(
         proposal_id: parts.proposal_id,
         verbose: parts.verbose,
         show_ballots: parts.show_ballots,
+        data_source: parts.provenance.data_source,
+        cache_path: parts.provenance.cache_path,
+        cache_complete: parts.provenance.cache_complete,
         proposal: parts.proposal.proposal,
     }
 }
@@ -67,6 +73,9 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
         status_filter: parts.status.as_str().to_string(),
         topic_filter: parts.topic.as_str().to_string(),
         verbose: parts.verbose,
+        data_source: parts.provenance.data_source,
+        cache_path: parts.provenance.cache_path,
+        cache_complete: parts.provenance.cache_complete,
         proposal_count,
         proposals: parts.proposals.proposals,
     }

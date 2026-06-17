@@ -20,6 +20,10 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.11` reports live-versus-cache provenance for SNS proposal list and
+  detail reports, including cache path and completeness metadata when a
+  complete local proposal snapshot is used.
+
 - `0.2.10` lets `icq sns proposal` reuse an existing complete proposal
   snapshot for detail lookups before falling back to live governance reads.
 

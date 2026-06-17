@@ -2,6 +2,7 @@ use super::super::{
     MainnetSns, MainnetSnsList, MainnetSnsNeurons, SNS_NEURONS_REPORT_SCHEMA_VERSION,
     SnsNeuronsReport, SnsNeuronsSort,
 };
+use super::SnsReportProvenance;
 
 pub(in crate::sns::report) struct SnsNeuronsLiveReportParts {
     pub(in crate::sns::report) list: MainnetSnsList,
@@ -18,6 +19,7 @@ pub(in crate::sns::report) fn sns_neurons_report_from_parts(
     parts: SnsNeuronsLiveReportParts,
 ) -> SnsNeuronsReport {
     let neuron_count = parts.neurons.neurons.len();
+    let provenance = SnsReportProvenance::live();
     SnsNeuronsReport {
         schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
         network: parts.list.network,
@@ -32,10 +34,10 @@ pub(in crate::sns::report) fn sns_neurons_report_from_parts(
         requested_limit: parts.requested_limit,
         owner_principal_id: parts.owner_principal_id,
         verbose: parts.verbose,
-        data_source: "live".to_string(),
+        data_source: provenance.data_source,
         sort: parts.sort.as_str().to_string(),
-        cache_path: None,
-        cache_complete: None,
+        cache_path: provenance.cache_path,
+        cache_complete: provenance.cache_complete,
         total_neuron_count: neuron_count,
         neuron_count,
         neurons: parts.neurons.neurons,
