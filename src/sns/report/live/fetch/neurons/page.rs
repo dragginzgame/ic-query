@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch::neurons::page
+//!
+//! Responsibility: fetch one SNS governance neuron page.
+//! Does not own: cache refresh orchestration, sorting, or rendering.
+//! Boundary: maps list_neurons Candid responses into source-layer page data.
+
 use super::super::governance_canister;
 use crate::sns::report::{
     SnsHostError,
@@ -9,6 +15,7 @@ use crate::sns::report::{
     source::{MainnetSns, MainnetSnsNeuronPage, SnsFetchRequest, SnsNeuronId},
 };
 
+/// Fetch one SNS neuron page from a resolved governance canister.
 pub(super) async fn fetch_mainnet_sns_neuron_page_async(
     request: &SnsFetchRequest,
     sns: &MainnetSns,

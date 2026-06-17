@@ -7,7 +7,7 @@ use super::{
     resolve::resolve_node_provider,
     source::{LiveNnsNodeProviderSource, NnsNodeProviderSource},
 };
-use crate::{cache_file::announce_cache_refresh, nns::leaf::NnsLeafHostCacheError};
+use crate::{cache_file::load_or_refresh_missing_cache, nns::leaf::NnsLeafHostCacheError};
 
 pub fn build_nns_node_provider_list_report(
     request: &NnsNodeProviderListRequest,
@@ -25,12 +25,11 @@ pub(super) fn build_nns_node_provider_list_report_with_source(
     request: &NnsNodeProviderListRequest,
     source: &dyn NnsNodeProviderSource,
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
-    match load_cached_nns_node_provider_report(&request.cache) {
-        Ok(cached) => Ok(cached.report),
-        Err(NnsNodeProviderHostError::Cache(NnsLeafHostCacheError::MissingCache {
-            path, ..
-        })) => {
-            announce_cache_refresh("node-provider", &path, &request.source_endpoint);
+    load_or_refresh_missing_cache(
+        "node-provider",
+        &request.source_endpoint,
+        || load_cached_nns_node_provider_report(&request.cache).map(|cached| cached.report),
+        || {
             let refresh_request = NnsNodeProviderRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
@@ -39,12 +38,15 @@ pub(super) fn build_nns_node_provider_list_report_with_source(
                 dry_run: false,
                 output_path: None,
             };
-            let (report, _) =
-                refresh_nns_node_provider_cache_with_source(&refresh_request, source)?;
-            Ok(report)
-        }
-        Err(err) => Err(err),
-    }
+            refresh_nns_node_provider_cache_with_source(&refresh_request, source).map(|_| ())
+        },
+        |err| match err {
+            NnsNodeProviderHostError::Cache(NnsLeafHostCacheError::MissingCache {
+                path, ..
+            }) => Ok(path),
+            err => Err(err),
+        },
+    )
 }
 
 pub(super) fn build_nns_node_provider_info_report_with_source(

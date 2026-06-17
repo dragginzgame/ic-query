@@ -3,6 +3,24 @@ use crate::test_support::temp_dir;
 use std::fs;
 
 #[test]
+fn sns_neurons_cached_sort_requires_existing_complete_cache() {
+    let root = temp_dir("ic-query-sns-neurons-missing-cache");
+    let mut request = neurons_request("1");
+    request.icp_root = Some(root.clone());
+    request.sort = SnsNeuronsSort::Stake;
+
+    let err = build_sns_neurons_report_with_source(&request, &NoLiveSnsNeuronsSource)
+        .expect_err("missing cache is not auto-refreshed");
+
+    assert!(matches!(
+        err,
+        SnsHostError::MissingNeuronsCacheForId { id: 1, .. }
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
     let root = temp_dir("ic-query-sns-neurons-incomplete-refresh");
     let request = sns_neurons_refresh_request(&root, Some(1));

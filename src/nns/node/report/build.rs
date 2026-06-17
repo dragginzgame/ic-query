@@ -8,7 +8,7 @@ use super::{
     resolve::resolve_node,
     source::{LiveNnsNodeSource, NnsNodeSource},
 };
-use crate::{cache_file::announce_cache_refresh, nns::leaf::NnsLeafHostCacheError};
+use crate::{cache_file::load_or_refresh_missing_cache, nns::leaf::NnsLeafHostCacheError};
 
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
@@ -26,10 +26,11 @@ pub(super) fn build_nns_node_list_report_with_source(
     request: &NnsNodeListRequest,
     source: &dyn NnsNodeSource,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    let report = match load_cached_nns_node_report(&request.cache) {
-        Ok(cached) => cached.report,
-        Err(NnsNodeHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. })) => {
-            announce_cache_refresh("node", &path, &request.source_endpoint);
+    let report = load_or_refresh_missing_cache(
+        "node",
+        &request.source_endpoint,
+        || load_cached_nns_node_report(&request.cache).map(|cached| cached.report),
+        || {
             let refresh_request = NnsNodeRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
@@ -38,11 +39,13 @@ pub(super) fn build_nns_node_list_report_with_source(
                 dry_run: false,
                 output_path: None,
             };
-            let (report, _) = refresh_nns_node_cache_with_source(&refresh_request, source)?;
-            report
-        }
-        Err(err) => return Err(err),
-    };
+            refresh_nns_node_cache_with_source(&refresh_request, source).map(|_| ())
+        },
+        |err| match err {
+            NnsNodeHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => Ok(path),
+            err => Err(err),
+        },
+    )?;
     Ok(filter_node_list_report(report, &request.filters))
 }
 

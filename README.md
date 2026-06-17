@@ -68,7 +68,8 @@ API endpoint they are calling before creating it. Refresh commands force a
 fresh fetch and replace the matching cache.
 
 SNS neuron commands keep quick `--sort api` output on a bounded live query.
-Whole-collection neuron sorts use complete snapshots:
+Whole-collection neuron sorts use complete snapshots and require an explicit
+refresh first:
 
 ```sh
 icq sns neurons refresh 1

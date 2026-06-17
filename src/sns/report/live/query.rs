@@ -1,7 +1,14 @@
+//! Module: sns::report::live::query
+//!
+//! Responsibility: low-level live SNS query helpers.
+//! Does not own: report assembly, Candid wire type definitions, or rendering.
+//! Boundary: builds agents, parses principals, and maps query failures to typed errors.
+
 use super::SnsHostError;
 use candid::{CandidType, Deserialize, Encode, Principal};
 use ic_agent::Agent;
 
+/// Query one Candid canister method with an explicit request payload.
 pub(super) async fn query_canister<Arg, Response>(
     agent: &Agent,
     canister: &Principal,
@@ -33,6 +40,7 @@ where
     })
 }
 
+/// Query one ICRC ledger method that takes an empty Candid argument tuple.
 pub(super) async fn query_ledger<T>(
     agent: &Agent,
     ledger_canister: &Principal,
@@ -60,6 +68,7 @@ where
     })
 }
 
+/// Build an IC agent for one explicit SNS source endpoint.
 pub(super) fn sns_agent(endpoint: &str) -> Result<Agent, SnsHostError> {
     Agent::builder()
         .with_url(endpoint)
@@ -70,6 +79,7 @@ pub(super) fn sns_agent(endpoint: &str) -> Result<Agent, SnsHostError> {
         })
 }
 
+/// Parse a principal text field into a typed principal or host error.
 pub(super) fn principal_from_text(
     value: &str,
     field: &'static str,

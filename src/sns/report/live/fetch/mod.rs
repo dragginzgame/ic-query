@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch
+//!
+//! Responsibility: group live SNS fetch helpers.
+//! Does not own: Candid wire definitions, report assembly, cache IO, or rendering.
+//! Boundary: wraps async IC queries behind synchronous report-source helpers.
+
 mod list;
 mod neurons;
 mod params;
@@ -19,12 +25,14 @@ pub(super) use proposals::{
 };
 pub(super) use token::fetch_mainnet_sns_token;
 
+/// Run one async SNS query flow on the current-thread runtime.
 fn block_on_sns<T>(
     future: impl Future<Output = Result<T, SnsHostError>>,
 ) -> Result<T, SnsHostError> {
     crate::runtime::block_on_current_thread(future).map_err(SnsHostError::Runtime)?
 }
 
+/// Parse the governance canister id for one resolved SNS.
 fn governance_canister(sns: &MainnetSns) -> Result<Principal, SnsHostError> {
     principal_from_text(&sns.governance_canister_id, "governance_canister_id")
 }

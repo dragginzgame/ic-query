@@ -7,7 +7,7 @@ use super::{
     resolve::resolve_node_operator,
     source::{LiveNnsNodeOperatorSource, NnsNodeOperatorSource},
 };
-use crate::{cache_file::announce_cache_refresh, nns::leaf::NnsLeafHostCacheError};
+use crate::{cache_file::load_or_refresh_missing_cache, nns::leaf::NnsLeafHostCacheError};
 
 pub fn build_nns_node_operator_list_report(
     request: &NnsNodeOperatorListRequest,
@@ -25,12 +25,11 @@ pub(super) fn build_nns_node_operator_list_report_with_source(
     request: &NnsNodeOperatorListRequest,
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    match load_cached_nns_node_operator_report(&request.cache) {
-        Ok(cached) => Ok(cached.report),
-        Err(NnsNodeOperatorHostError::Cache(NnsLeafHostCacheError::MissingCache {
-            path, ..
-        })) => {
-            announce_cache_refresh("node-operator", &path, &request.source_endpoint);
+    load_or_refresh_missing_cache(
+        "node-operator",
+        &request.source_endpoint,
+        || load_cached_nns_node_operator_report(&request.cache).map(|cached| cached.report),
+        || {
             let refresh_request = NnsNodeOperatorRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
@@ -39,12 +38,15 @@ pub(super) fn build_nns_node_operator_list_report_with_source(
                 dry_run: false,
                 output_path: None,
             };
-            let (report, _) =
-                refresh_nns_node_operator_cache_with_source(&refresh_request, source)?;
-            Ok(report)
-        }
-        Err(err) => Err(err),
-    }
+            refresh_nns_node_operator_cache_with_source(&refresh_request, source).map(|_| ())
+        },
+        |err| match err {
+            NnsNodeOperatorHostError::Cache(NnsLeafHostCacheError::MissingCache {
+                path, ..
+            }) => Ok(path),
+            err => Err(err),
+        },
+    )
 }
 
 fn build_nns_node_operator_info_report_with_source(

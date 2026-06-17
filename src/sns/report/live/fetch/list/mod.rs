@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch::list
+//!
+//! Responsibility: fetch deployed SNS inventory from SNS-W.
+//! Does not own: report assembly, command parsing, cache IO, or rendering.
+//! Boundary: queries SNS-W and root metadata into source-layer SNS list data.
+
 mod metadata;
 
 use super::block_on_sns;
@@ -14,6 +20,7 @@ use crate::subnet_catalog::MAINNET_NETWORK;
 use ic_agent::Agent;
 use metadata::fetch_mainnet_sns_metadata_rows;
 
+/// Fetch the current deployed SNS list from mainnet SNS-W.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_list(
     request: &SnsFetchRequest,
 ) -> Result<MainnetSnsList, SnsHostError> {

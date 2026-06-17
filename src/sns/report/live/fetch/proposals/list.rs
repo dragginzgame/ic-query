@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch::proposals::list
+//!
+//! Responsibility: fetch bounded and paged SNS proposal listings.
+//! Does not own: proposal conversion, cache refresh orchestration, or rendering.
+//! Boundary: builds list_proposals requests and maps responses into source models.
+
 use super::super::governance_canister;
 use crate::sns::report::{
     SnsHostError, SnsProposalTopicFilter,
@@ -11,6 +17,7 @@ use crate::sns::report::{
     source::{MainnetSns, MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest},
 };
 
+/// Fetch a bounded SNS governance proposal listing from one resolved SNS.
 pub(super) async fn fetch_mainnet_sns_proposals_async(
     request: &SnsFetchRequest,
     sns: &MainnetSns,
@@ -46,6 +53,7 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
     })
 }
 
+/// Fetch one unfiltered proposal page for complete snapshot refresh.
 pub(super) async fn fetch_mainnet_sns_proposal_page_async(
     request: &SnsFetchRequest,
     sns: &MainnetSns,
@@ -72,10 +80,12 @@ pub(super) async fn fetch_mainnet_sns_proposal_page_async(
     })
 }
 
+/// Build Candid topic selectors for a concrete SNS proposal topic filter.
 fn sns_topic_selectors(topic: SnsProposalTopicFilter) -> Option<Vec<SnsTopicSelector>> {
     sns_topic(topic).map(|topic| vec![SnsTopicSelector { topic: Some(topic) }])
 }
 
+/// Convert a report topic filter into a Candid SNS topic.
 const fn sns_topic(topic: SnsProposalTopicFilter) -> Option<SnsTopic> {
     match topic {
         SnsProposalTopicFilter::Any => None,

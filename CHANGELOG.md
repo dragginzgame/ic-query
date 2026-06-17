@@ -20,6 +20,11 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.6` centralizes missing-cache load/refresh policy across subnet catalog,
+  cached NNS component reports, and SNS proposal auto-cache creation without
+  changing CLI behavior, and documents the explicit-refresh rule for SNS
+  neuron complete snapshots.
+
 - `0.2.5` makes normal `icq sns proposals` list views auto-create and reuse
   complete local proposal snapshots, adds manual proposal cache inspection and
   refresh commands, and splits related SNS source/live proposal modules.

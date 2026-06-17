@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch::token
+//!
+//! Responsibility: fetch SNS ledger token metadata.
+//! Does not own: lookup resolution, report assembly, amount formatting, or rendering.
+//! Boundary: queries one resolved SNS ledger for ICRC metadata and index details.
+
 use super::block_on_sns;
 use crate::hex::hex_bytes;
 use crate::sns::report::live::{
@@ -11,6 +17,7 @@ use crate::sns::report::{
 };
 use candid::Nat;
 
+/// Fetch token metadata for one resolved mainnet SNS ledger.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_token(
     request: &SnsFetchRequest,
     sns: &MainnetSns,

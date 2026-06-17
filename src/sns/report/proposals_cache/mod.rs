@@ -4,7 +4,9 @@
 //! Does not own: command parsing, live proposal conversion, or text rendering.
 //! Boundary: stores complete proposal snapshots and refresh-attempt metadata.
 
-use crate::cache_file::{CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest};
+use crate::cache_file::{
+    CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, load_or_refresh_missing_cache,
+};
 use crate::snapshot_cache::{
     LockedSnapshotRefreshRequest, PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
     SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotCompleteness, SnapshotEnvelope,
@@ -274,13 +276,45 @@ fn load_or_refresh_sns_proposals_cache(
     icp_root: &Path,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsCache, SnsHostError> {
+    load_or_refresh_missing_cache(
+        "SNS proposals",
+        &request.source_endpoint,
+        || load_sns_proposals_cache_for_input(request, icp_root),
+        || {
+            refresh_sns_proposals_cache_with_source(
+                &SnsProposalsRefreshRequest {
+                    network: request.network.clone(),
+                    source_endpoint: request.source_endpoint.clone(),
+                    now_unix_secs: request.now_unix_secs,
+                    input: request.input.clone(),
+                    icp_root: icp_root.to_path_buf(),
+                    page_size: SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE,
+                    max_pages: None,
+                },
+                source,
+            )
+            .map(|_| ())
+        },
+        |err| match err {
+            SnsHostError::MissingProposalsCache { path } => Ok(path),
+            err => Err(err),
+        },
+    )
+}
+
+fn load_sns_proposals_cache_for_input(
+    request: &SnsProposalsRequest,
+    icp_root: &Path,
+) -> Result<SnsProposalsCache, SnsHostError> {
     if let Ok(id) = request.input.parse::<usize>() {
-        if let Some((_path, cache)) =
-            find_sns_proposals_cache_by_id(icp_root, &request.network, id)?
-        {
-            return Ok(cache);
-        }
-        return refresh_and_load_sns_proposals_cache(request, icp_root, source);
+        return find_sns_proposals_cache_by_id(icp_root, &request.network, id)?.map_or_else(
+            || {
+                Err(SnsHostError::MissingProposalsCache {
+                    path: sns_network_cache_dir(icp_root, &request.network),
+                })
+            },
+            |(_path, cache)| Ok(cache),
+        );
     }
 
     let root_canister_id = Principal::from_text(&request.input)
@@ -289,30 +323,12 @@ fn load_or_refresh_sns_proposals_cache(
         })?
         .to_text();
     let paths = SnsProposalsCachePaths::for_root(icp_root, &request.network, &root_canister_id);
-    if paths.cache_path.is_file() {
-        return load_sns_proposals_cache_at(paths.cache_path, &request.network);
+    if !paths.cache_path.is_file() {
+        return Err(SnsHostError::MissingProposalsCache {
+            path: paths.cache_path,
+        });
     }
-    refresh_and_load_sns_proposals_cache(request, icp_root, source)
-}
-
-fn refresh_and_load_sns_proposals_cache(
-    request: &SnsProposalsRequest,
-    icp_root: &Path,
-    source: &dyn SnsProposalsSource,
-) -> Result<SnsProposalsCache, SnsHostError> {
-    let refresh = refresh_sns_proposals_cache_with_source(
-        &SnsProposalsRefreshRequest {
-            network: request.network.clone(),
-            source_endpoint: request.source_endpoint.clone(),
-            now_unix_secs: request.now_unix_secs,
-            input: request.input.clone(),
-            icp_root: icp_root.to_path_buf(),
-            page_size: SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE,
-            max_pages: None,
-        },
-        source,
-    )?;
-    load_sns_proposals_cache_at(PathBuf::from(refresh.cache_path), &request.network)
+    load_sns_proposals_cache_at(paths.cache_path, &request.network)
 }
 
 fn sns_proposals_report_from_cache(
@@ -321,7 +337,7 @@ fn sns_proposals_report_from_cache(
 ) -> SnsProposalsReport {
     let metadata = cache.metadata;
     let list = MainnetSnsList {
-        network: cache.network,
+        network: request.network.clone(),
         sns_wasm_canister_id: metadata.sns_wasm_canister_id.clone(),
         fetched_at: cache.fetched_at,
         fetched_by: cache.fetched_by,

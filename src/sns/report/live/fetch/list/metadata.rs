@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch::list::metadata
+//!
+//! Responsibility: fetch root metadata for deployed SNS inventory rows.
+//! Does not own: SNS-W list fetching, report assembly, cache IO, or rendering.
+//! Boundary: enriches source-layer SNS canister rows with metadata or summaries.
+
 use crate::sns::report::live::{
     convert::{mainnet_sns_from_canisters_and_metadata, metadata_error_summary},
     query::principal_from_text,
@@ -12,6 +18,7 @@ use candid::Principal;
 use futures::{StreamExt, stream};
 use ic_agent::Agent;
 
+/// Fetch metadata rows for deployed SNS canister sets with bounded concurrency.
 pub(super) async fn fetch_mainnet_sns_metadata_rows(
     agent: &Agent,
     sns_canisters: Vec<MainnetSnsCanisters>,

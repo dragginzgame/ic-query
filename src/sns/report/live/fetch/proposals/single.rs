@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch::proposals::single
+//!
+//! Responsibility: fetch one SNS governance proposal.
+//! Does not own: proposal conversion policy outside direct lookup results.
+//! Boundary: maps get_proposal Candid responses into source-layer proposal data.
+
 use super::super::governance_canister;
 use crate::sns::report::{
     SnsHostError,
@@ -9,6 +15,7 @@ use crate::sns::report::{
     source::{MainnetSns, MainnetSnsProposal, SnsFetchRequest},
 };
 
+/// Fetch one SNS governance proposal by id from a resolved governance canister.
 pub(super) async fn fetch_mainnet_sns_proposal_async(
     request: &SnsFetchRequest,
     sns: &MainnetSns,

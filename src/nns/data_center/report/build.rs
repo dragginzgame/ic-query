@@ -7,7 +7,7 @@ use super::{
     resolve::resolve_data_center,
     source::{LiveNnsDataCenterSource, NnsDataCenterSource},
 };
-use crate::{cache_file::announce_cache_refresh, nns::leaf::NnsLeafHostCacheError};
+use crate::{cache_file::load_or_refresh_missing_cache, nns::leaf::NnsLeafHostCacheError};
 
 pub fn build_nns_data_center_list_report(
     request: &NnsDataCenterListRequest,
@@ -25,12 +25,11 @@ pub(super) fn build_nns_data_center_list_report_with_source(
     request: &NnsDataCenterListRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-    match load_cached_nns_data_center_report(&request.cache) {
-        Ok(cached) => Ok(cached.report),
-        Err(NnsDataCenterHostError::Cache(NnsLeafHostCacheError::MissingCache {
-            path, ..
-        })) => {
-            announce_cache_refresh("data-center", &path, &request.source_endpoint);
+    load_or_refresh_missing_cache(
+        "data-center",
+        &request.source_endpoint,
+        || load_cached_nns_data_center_report(&request.cache).map(|cached| cached.report),
+        || {
             let refresh_request = NnsDataCenterRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
@@ -39,11 +38,15 @@ pub(super) fn build_nns_data_center_list_report_with_source(
                 dry_run: false,
                 output_path: None,
             };
-            let (report, _) = refresh_nns_data_center_cache_with_source(&refresh_request, source)?;
-            Ok(report)
-        }
-        Err(err) => Err(err),
-    }
+            refresh_nns_data_center_cache_with_source(&refresh_request, source).map(|_| ())
+        },
+        |err| match err {
+            NnsDataCenterHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => {
+                Ok(path)
+            }
+            err => Err(err),
+        },
+    )
 }
 
 fn build_nns_data_center_info_report_with_source(

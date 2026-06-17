@@ -3,7 +3,7 @@ use super::{
     error::enforce_mainnet_network, refresh_subnet_catalog_with_source, subnet_catalog_path,
 };
 use crate::{
-    cache_file::announce_cache_refresh,
+    cache_file::load_or_refresh_missing_cache,
     subnet_catalog::{DEFAULT_REFRESH_LOCK_STALE_SECONDS, SubnetCatalog, parse_catalog_json},
 };
 use std::{fs, path::PathBuf};
@@ -54,10 +54,11 @@ pub fn load_or_refresh_subnet_catalog(
     now_unix_secs: u64,
     source: &dyn SubnetCatalogRefreshSource,
 ) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
-    match load_cached_subnet_catalog(request) {
-        Ok(cached) => Ok(cached),
-        Err(SubnetCatalogHostError::MissingCatalog { path }) => {
-            announce_cache_refresh("subnet catalog", &path, source_endpoint);
+    load_or_refresh_missing_cache(
+        "subnet catalog",
+        source_endpoint,
+        || load_cached_subnet_catalog(request),
+        || {
             let refresh_request = SubnetCatalogRefreshRequest {
                 cache: request.clone(),
                 source_endpoint: source_endpoint.to_string(),
@@ -66,9 +67,11 @@ pub fn load_or_refresh_subnet_catalog(
                 dry_run: false,
                 output_path: None,
             };
-            refresh_subnet_catalog_with_source(&refresh_request, source)?;
-            load_cached_subnet_catalog(request)
-        }
-        Err(err) => Err(err),
-    }
+            refresh_subnet_catalog_with_source(&refresh_request, source).map(|_| ())
+        },
+        |err| match err {
+            SubnetCatalogHostError::MissingCatalog { path } => Ok(path),
+            err => Err(err),
+        },
+    )
 }

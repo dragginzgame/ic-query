@@ -1,3 +1,9 @@
+//! Module: sns::report::live::fetch::neurons
+//!
+//! Responsibility: fetch SNS governance neurons.
+//! Does not own: lookup resolution, cache storage, sorting, or rendering.
+//! Boundary: queries bounded and paged neuron data for live reports and refreshes.
+
 mod page;
 
 use super::block_on_sns;
@@ -7,6 +13,7 @@ use crate::sns::report::{
 };
 use page::fetch_mainnet_sns_neuron_page_async;
 
+/// Fetch a bounded SNS neuron listing for one resolved mainnet SNS.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_neurons(
     request: &SnsFetchRequest,
     sns: &MainnetSns,
@@ -21,6 +28,7 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_neurons(
     ))
 }
 
+/// Fetch one SNS neuron page for complete snapshot refresh.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_neuron_page(
     request: &SnsFetchRequest,
     sns: &MainnetSns,
