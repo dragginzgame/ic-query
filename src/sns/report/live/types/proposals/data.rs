@@ -1,15 +1,17 @@
-use super::super::SnsNeuronId;
+//! Module: sns::report::live::types::proposals::data
+//!
+//! Responsibility: SNS governance proposal result and data wire types.
+//! Does not own: request construction, live transport, or report rendering.
+//! Boundary: mirrors Candid fields converted into SNS proposal report rows.
+
+use crate::sns::report::source::SnsNeuronId;
 use candid::{CandidType, Deserialize};
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub(in crate::sns::report::live) struct GetProposalRequest {
-    pub(in crate::sns::report::live) proposal_id: Option<SnsProposalId>,
-}
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub(in crate::sns::report::live) struct GetProposalResponse {
-    pub(in crate::sns::report::live) result: Option<GetProposalResult>,
-}
+///
+/// GetProposalResult
+///
+/// Candid result variant returned by direct SNS proposal lookup.
+///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) enum GetProposalResult {
@@ -17,41 +19,22 @@ pub(in crate::sns::report::live) enum GetProposalResult {
     Proposal(Box<SnsGovernanceProposalData>),
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub(in crate::sns::report::live) struct ListProposalsRequest {
-    pub(in crate::sns::report::live) include_reward_status: Vec<i32>,
-    pub(in crate::sns::report::live) before_proposal: Option<SnsProposalId>,
-    pub(in crate::sns::report::live) limit: u32,
-    pub(in crate::sns::report::live) exclude_type: Vec<u64>,
-    pub(in crate::sns::report::live) include_status: Vec<i32>,
-    pub(in crate::sns::report::live) include_topics: Option<Vec<SnsTopicSelector>>,
-}
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub(in crate::sns::report::live) struct SnsTopicSelector {
-    pub(in crate::sns::report::live) topic: Option<SnsTopic>,
-}
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub(in crate::sns::report::live) enum SnsTopic {
-    DaoCommunitySettings,
-    SnsFrameworkManagement,
-    DappCanisterManagement,
-    ApplicationBusinessLogic,
-    Governance,
-    TreasuryAssetManagement,
-    CriticalDappOperations,
-}
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub(in crate::sns::report::live) struct ListProposalsResponse {
-    pub(in crate::sns::report::live) proposals: Vec<SnsGovernanceProposalData>,
-}
+///
+/// SnsProposalId
+///
+/// Candid SNS governance proposal identifier.
+///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct SnsProposalId {
     pub(in crate::sns::report::live) id: u64,
 }
+
+///
+/// SnsGovernanceProposal
+///
+/// Candid SNS governance proposal metadata embedded in proposal data.
+///
 
 #[derive(CandidType, Clone, Debug, Default, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct SnsGovernanceProposal {
@@ -60,11 +43,23 @@ pub(in crate::sns::report::live) struct SnsGovernanceProposal {
     pub(in crate::sns::report::live) url: String,
 }
 
+///
+/// SnsGovernanceError
+///
+/// Candid SNS governance error embedded in proposal responses.
+///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct SnsGovernanceError {
     pub(in crate::sns::report::live) error_type: i32,
     pub(in crate::sns::report::live) error_message: String,
 }
+
+///
+/// SnsGovernanceBallot
+///
+/// Candid SNS governance ballot row embedded in proposal data.
+///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct SnsGovernanceBallot {
@@ -73,6 +68,12 @@ pub(in crate::sns::report::live) struct SnsGovernanceBallot {
     pub(in crate::sns::report::live) voting_power: u64,
 }
 
+///
+/// SnsGovernanceProposalTally
+///
+/// Candid SNS governance proposal tally embedded in proposal data.
+///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct SnsGovernanceProposalTally {
     pub(in crate::sns::report::live) timestamp_seconds: u64,
@@ -80,6 +81,12 @@ pub(in crate::sns::report::live) struct SnsGovernanceProposalTally {
     pub(in crate::sns::report::live) no: u64,
     pub(in crate::sns::report::live) total: u64,
 }
+
+///
+/// SnsGovernanceProposalData
+///
+/// Candid SNS governance proposal row converted into report data.
+///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct SnsGovernanceProposalData {

@@ -15,5 +15,9 @@ pub use neurons::{
     sns_neurons_refresh_report_text, sns_neurons_report_text,
 };
 pub use params::sns_params_report_text;
-pub use proposals::{sns_proposal_report_text, sns_proposals_report_text};
+pub use proposals::{
+    sns_proposal_report_text, sns_proposals_cache_list_report_text,
+    sns_proposals_cache_status_report_text, sns_proposals_refresh_report_text,
+    sns_proposals_report_text,
+};
 pub use token::sns_token_report_text;

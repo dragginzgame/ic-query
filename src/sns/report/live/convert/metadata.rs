@@ -1,3 +1,9 @@
+//! Module: sns::report::live::convert::metadata
+//!
+//! Responsibility: convert SNS ledger metadata and metadata errors.
+//! Does not own: ledger transport, token report assembly, or rendering.
+//! Boundary: maps ICRC metadata wire values into report rows and compact errors.
+
 use super::super::{
     super::{SNS_TOKEN_LOGO_METADATA_KEY, SnsTokenMetadataRow, hex_bytes},
     SnsHostError,
@@ -5,6 +11,7 @@ use super::super::{
 };
 use serde_json::Value as JsonValue;
 
+/// Convert one ICRC metadata key/value pair into a report row.
 pub(in crate::sns::report) fn metadata_row(
     key: String,
     value: IcrcMetadataValue,
@@ -30,6 +37,7 @@ pub(in crate::sns::report) fn metadata_row(
     }
 }
 
+/// Convert an index-principal discovery error into human-facing text.
 pub(in crate::sns::report::live) fn index_principal_error_text(
     error: GetIndexPrincipalError,
 ) -> String {
@@ -42,6 +50,7 @@ pub(in crate::sns::report::live) fn index_principal_error_text(
     }
 }
 
+/// Return a compact metadata-fetch error summary when the error is displayable.
 pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -> Option<String> {
     match err {
         SnsHostError::AgentCall { method, reason } => Some(format!("{method}: {reason}")),
@@ -68,6 +77,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::InvalidLookup { .. }
         | SnsHostError::MissingNeuronsCache { .. }
         | SnsHostError::MissingNeuronsCacheForId { .. }
+        | SnsHostError::MissingProposalsCache { .. }
         | SnsHostError::ReadCache { .. }
         | SnsHostError::ParseCache { .. }
         | SnsHostError::SerializeCache { .. }

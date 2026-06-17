@@ -38,6 +38,7 @@ icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq sns [list|info|token|params|proposal|proposals|neurons]
+icq sns proposals [cache|refresh]
 icq sns neurons [cache|refresh]
 ```
 
@@ -106,8 +107,10 @@ icq sns params 1
 icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
 
-SNS governance proposals can be queried as bounded live pages or direct detail
-lookups. Proposal listings support status and SNS topic filters:
+SNS governance proposals can be queried as cached list views or direct live
+detail lookups. Normal proposal list views auto-create a complete local
+snapshot on first use, then apply supported view options locally. Topic filters
+and adopted/rejected status filters currently use bounded live queries:
 
 ```sh
 icq sns proposals 1 --limit 25
@@ -116,6 +119,14 @@ icq sns proposals 1 --topic governance
 icq sns proposals 1 --before 100 --format json
 icq sns proposal 1 387
 icq sns proposal 1 387 --ballots
+```
+
+Complete SNS proposal snapshots can also be refreshed and inspected manually:
+
+```sh
+icq sns proposals refresh 1
+icq sns proposals cache list
+icq sns proposals cache status 1
 ```
 
 ## Integration
@@ -133,6 +144,11 @@ The command namespace is intentionally small:
 - `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
   `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
   instances.
+- `sns proposals` auto-creates and reuses complete proposal snapshots for
+  cache-compatible list views.
+- `sns proposals refresh` force-refreshes complete proposal snapshots.
+- `sns proposals cache list|status` inspects local complete proposal snapshots
+  and refresh-attempt metadata without live calls.
 - `sns neurons refresh` caches complete neuron snapshots for cache-backed
   sorting.
 - `sns neurons cache list|status` inspects local complete neuron snapshots and

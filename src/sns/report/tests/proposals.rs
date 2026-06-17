@@ -1,4 +1,6 @@
 use super::{fixtures::*, *};
+use crate::test_support::temp_dir;
+use std::fs;
 
 #[test]
 fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
@@ -68,4 +70,102 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert!(text.contains("ID   ACTION"));
     assert!(text.contains("motion"));
     assert!(text.contains("Fixture proposal"));
+}
+
+#[test]
+fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
+    let root = temp_dir("ic-query-sns-proposals-refresh");
+    let request = sns_proposals_refresh_request(&root, None);
+
+    let refresh = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
+        .expect("refresh proposals");
+    let cache_path = std::path::PathBuf::from(&refresh.cache_path);
+    let attempt_path = std::path::PathBuf::from(&refresh.refresh_attempt_path);
+    let lock_path = std::path::PathBuf::from(&refresh.refresh_lock_path);
+
+    assert!(cache_path.is_file());
+    assert!(attempt_path.is_file());
+    assert!(!lock_path.exists());
+    assert!(refresh.complete);
+    assert_eq!(refresh.page_count, 1);
+    assert_eq!(refresh.proposal_count, 1);
+
+    let cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    assert_eq!(cache["schema_version"], 1);
+    assert_eq!(cache["id"], 1);
+    assert_eq!(cache["completeness"]["status"], "api_exhausted");
+    assert_eq!(
+        cache["proposals"]
+            .as_array()
+            .expect("cache proposals")
+            .len(),
+        1
+    );
+    assert!(cache.get("metadata").is_none());
+    assert!(cache.get("data").is_none());
+
+    let list = build_sns_proposals_cache_list_report(&SnsProposalsCacheListRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+    })
+    .expect("proposal cache list");
+    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches[0].id, 1);
+    assert_eq!(list.caches[0].row_count, 1);
+
+    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+        input: "1".to_string(),
+    })
+    .expect("proposal cache status");
+    let text = sns_proposals_cache_status_report_text(&status);
+    assert!(status.found);
+    assert_eq!(
+        status
+            .cache
+            .as_ref()
+            .and_then(|cache| cache.latest_attempt.as_ref())
+            .map(|attempt| attempt.status.as_str()),
+        Some("complete")
+    );
+    assert!(text.contains("found: yes"));
+    assert!(text.contains("row_count: 1"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
+    let root = temp_dir("ic-query-sns-proposals-auto-cache");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = Some(99);
+    request.limit = 5;
+
+    let first = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .expect("auto refresh proposals cache");
+
+    assert_eq!(first.proposal_count, 1);
+    assert_eq!(first.proposals[0].proposal_id, Some(42));
+
+    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+        input: "1".to_string(),
+    })
+    .expect("proposal cache status");
+    assert!(status.found);
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("cached proposals report");
+
+    assert_eq!(second.proposal_count, 1);
+    assert_eq!(second.proposals[0].proposal_id, Some(42));
+    assert_eq!(second.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+
+    let _ = fs::remove_dir_all(root);
 }

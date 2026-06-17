@@ -14,7 +14,9 @@ use std::future::Future;
 pub(super) use list::fetch_mainnet_sns_list;
 pub(super) use neurons::{fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons};
 pub(super) use params::fetch_mainnet_sns_params;
-pub(super) use proposals::{fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposals};
+pub(super) use proposals::{
+    fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
+};
 pub(super) use token::fetch_mainnet_sns_token;
 
 fn block_on_sns<T>(

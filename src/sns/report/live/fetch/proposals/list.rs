@@ -8,7 +8,7 @@ use crate::sns::report::{
             ListProposalsRequest, ListProposalsResponse, SnsProposalId, SnsTopic, SnsTopicSelector,
         },
     },
-    source::{MainnetSns, MainnetSnsProposals, SnsFetchRequest},
+    source::{MainnetSns, MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest},
 };
 
 pub(super) async fn fetch_mainnet_sns_proposals_async(
@@ -43,6 +43,32 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
             .into_iter()
             .map(sns_proposal_row)
             .collect(),
+    })
+}
+
+pub(super) async fn fetch_mainnet_sns_proposal_page_async(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    limit: u32,
+    before_proposal_id: Option<u64>,
+) -> Result<MainnetSnsProposalPage, SnsHostError> {
+    let proposals = fetch_mainnet_sns_proposals_async(
+        request,
+        sns,
+        limit,
+        before_proposal_id,
+        &[],
+        SnsProposalTopicFilter::Any,
+    )
+    .await?
+    .proposals;
+    let last_cursor = proposals
+        .iter()
+        .rev()
+        .find_map(|proposal| proposal.proposal_id);
+    Ok(MainnetSnsProposalPage {
+        proposals,
+        last_cursor,
     })
 }
 

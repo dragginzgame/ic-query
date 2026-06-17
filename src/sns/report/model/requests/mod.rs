@@ -15,4 +15,7 @@ pub use neurons::{
     SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,
     SnsNeuronsRequest,
 };
-pub use proposals::{SnsProposalRequest, SnsProposalsRequest};
+pub use proposals::{
+    SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
+    SnsProposalsRefreshRequest, SnsProposalsRequest,
+};

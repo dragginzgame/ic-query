@@ -57,9 +57,67 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
             proposals: vec![fixture_proposal_row()],
         })
     }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+        assert_eq!(limit, 100);
+        assert_eq!(before_proposal_id, None);
+        Ok(MainnetSnsProposalPage {
+            proposals: vec![fixture_proposal_row()],
+            last_cursor: Some(42),
+        })
+    }
 }
 
-fn fixture_proposal_row() -> SnsProposalRow {
+pub(in crate::sns::report::tests) struct NoLiveSnsProposalsSource;
+
+impl SnsListSource for NoLiveSnsProposalsSource {
+    fn fetch_deployed_snses(
+        &self,
+        _request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        Err(no_live_error("fetch_deployed_snses"))
+    }
+}
+
+impl SnsProposalsSource for NoLiveSnsProposalsSource {
+    fn fetch_sns_proposals(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+        _include_status: &[i32],
+        _topic: SnsProposalTopicFilter,
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        Err(no_live_error("fetch_sns_proposals"))
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        Err(no_live_error("fetch_sns_proposal_page"))
+    }
+}
+
+fn no_live_error(method: &'static str) -> SnsHostError {
+    SnsHostError::AgentCall {
+        method,
+        reason: "unexpected live proposal call".to_string(),
+    }
+}
+
+pub(in crate::sns::report::tests) fn fixture_proposal_row() -> SnsProposalRow {
     SnsProposalRow {
         proposal_id: Some(42),
         action_id: 1,

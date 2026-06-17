@@ -4,9 +4,12 @@ mod single;
 use super::block_on_sns;
 use crate::sns::report::{
     SnsHostError, SnsProposalTopicFilter,
-    source::{MainnetSns, MainnetSnsProposal, MainnetSnsProposals, SnsFetchRequest},
+    source::{
+        MainnetSns, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+        SnsFetchRequest,
+    },
 };
-use list::fetch_mainnet_sns_proposals_async;
+use list::{fetch_mainnet_sns_proposal_page_async, fetch_mainnet_sns_proposals_async};
 use single::fetch_mainnet_sns_proposal_async;
 
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposal(
@@ -32,5 +35,19 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposals(
         before_proposal_id,
         include_status,
         topic,
+    ))
+}
+
+pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposal_page(
+    request: &SnsFetchRequest,
+    sns: &MainnetSns,
+    limit: u32,
+    before_proposal_id: Option<u64>,
+) -> Result<MainnetSnsProposalPage, SnsHostError> {
+    block_on_sns(fetch_mainnet_sns_proposal_page_async(
+        request,
+        sns,
+        limit,
+        before_proposal_id,
     ))
 }

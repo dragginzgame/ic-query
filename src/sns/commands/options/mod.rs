@@ -10,4 +10,7 @@ pub(super) use neurons::{
     SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions,
     SnsNeuronsRefreshOptions,
 };
-pub(super) use proposals::{SnsProposalOptions, SnsProposalsOptions};
+pub(super) use proposals::{
+    SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
+    SnsProposalsOptions, SnsProposalsRefreshOptions,
+};

@@ -10,11 +10,11 @@ pub(in crate::sns::report::tests) use neurons::{
 };
 pub(in crate::sns::report::tests) use params::FixtureSnsParamsSource;
 pub(in crate::sns::report::tests) use proposals::{
-    FixtureSnsProposalSource, FixtureSnsProposalsSource,
+    FixtureSnsProposalSource, FixtureSnsProposalsSource, NoLiveSnsProposalsSource,
 };
 pub(in crate::sns::report::tests) use requests::{
     info_request, list_request, neurons_request, params_request, proposal_request,
-    proposals_request, sns_neurons_refresh_request, token_request,
+    proposals_request, sns_neurons_refresh_request, sns_proposals_refresh_request, token_request,
 };
 pub(in crate::sns::report::tests) use sns::{
     FixtureSnsListSource, GOVERNANCE_A, INDEX_A, LEDGER_A, MetadataErrorFixtureSnsListSource,

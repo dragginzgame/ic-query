@@ -11,14 +11,16 @@ pub use model::{
     SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsReport, SnsParamsRequest,
     SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
     SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalsReport, SnsProposalsRequest, SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest,
-    SnsTokenStandardRow,
+    SnsProposalsCacheListReport, SnsProposalsCacheListRequest, SnsProposalsCacheStatusReport,
+    SnsProposalsCacheStatusRequest, SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus,
+    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
+    SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest, SnsTokenStandardRow,
 };
 use source::{
     MainnetSns, MainnetSnsCanisters, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons,
-    MainnetSnsProposal, MainnetSnsProposals, MainnetSnsToken, SnsFetchRequest, SnsListSource,
-    SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
-    SnsTokenSource,
+    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken,
+    SnsFetchRequest, SnsListSource, SnsNeuronId, SnsNeuronsSource, SnsParamsSource,
+    SnsProposalSource, SnsProposalsSource, SnsTokenSource,
 };
 
 mod assemble;
@@ -27,6 +29,7 @@ mod live;
 mod lookup;
 mod model;
 mod neurons_cache;
+mod proposals_cache;
 mod source;
 mod text;
 
@@ -45,11 +48,18 @@ pub use neurons_cache::{
     build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
     refresh_sns_neurons_cache,
 };
+#[cfg(test)]
+use proposals_cache::refresh_sns_proposals_cache_with_source;
+pub use proposals_cache::{
+    build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
+    refresh_sns_proposals_cache,
+};
 pub use text::{
     sns_info_report_text, sns_list_report_text, sns_neurons_cache_list_report_text,
     sns_neurons_cache_status_report_text, sns_neurons_refresh_report_text, sns_neurons_report_text,
-    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
-    sns_token_report_text,
+    sns_params_report_text, sns_proposal_report_text, sns_proposals_cache_list_report_text,
+    sns_proposals_cache_status_report_text, sns_proposals_refresh_report_text,
+    sns_proposals_report_text, sns_token_report_text,
 };
 
 #[cfg(test)]

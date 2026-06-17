@@ -20,6 +20,17 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.5` makes normal `icq sns proposals` list views auto-create and reuse
+  complete local proposal snapshots, adds manual proposal cache inspection and
+  refresh commands, and splits related SNS source/live proposal modules.
+
+  ```bash
+  icq sns proposals 1
+  icq sns proposals refresh 1
+  icq sns proposals cache list
+  icq sns proposals cache status 1
+  ```
+
 - `0.2.4` splits SNS source traits and live-source implementations into
   focused list, token, params, proposal, and neuron modules without changing
   CLI behavior.

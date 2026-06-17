@@ -4,7 +4,9 @@
 //! Does not own: live governance transport, proposal conversion, or rendering.
 //! Boundary: extends deployed SNS lookup sources with proposal fetching.
 
-use super::super::{MainnetSns, MainnetSnsProposal, MainnetSnsProposals, SnsFetchRequest};
+use super::super::{
+    MainnetSns, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest,
+};
 use super::list::SnsListSource;
 use crate::sns::report::{SnsHostError, SnsProposalTopicFilter};
 
@@ -41,4 +43,13 @@ pub(in crate::sns::report) trait SnsProposalsSource: SnsListSource {
         include_status: &[i32],
         topic: SnsProposalTopicFilter,
     ) -> Result<MainnetSnsProposals, SnsHostError>;
+
+    /// Fetch one unfiltered SNS governance proposal page for snapshot refresh.
+    fn fetch_sns_proposal_page(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError>;
 }

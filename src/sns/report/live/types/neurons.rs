@@ -1,5 +1,17 @@
+//! Module: sns::report::live::types::neurons
+//!
+//! Responsibility: SNS governance neuron Candid wire types.
+//! Does not own: live transport, neuron conversion, cache IO, or rendering.
+//! Boundary: mirrors list_neurons request and response payloads.
+
 use super::super::SnsNeuronId;
 use candid::{CandidType, Deserialize, Principal};
+
+///
+/// ListNeuronsRequest
+///
+/// Candid request for bounded SNS governance neuron listings.
+///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct ListNeuronsRequest {
@@ -8,10 +20,22 @@ pub(in crate::sns::report::live) struct ListNeuronsRequest {
     pub(in crate::sns::report::live) start_page_at: Option<SnsNeuronId>,
 }
 
+///
+/// ListNeuronsResponse
+///
+/// Candid response containing SNS governance neuron rows.
+///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct ListNeuronsResponse {
     pub(in crate::sns::report::live) neurons: Vec<SnsGovernanceNeuron>,
 }
+
+///
+/// SnsGovernanceNeuron
+///
+/// Candid SNS governance neuron row converted into report data.
+///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct SnsGovernanceNeuron {

@@ -4,7 +4,111 @@
 //! Does not own: live governance calls, proposal conversion, or rendering.
 //! Boundary: preserves proposal detail and listing fields for text and JSON.
 
-use serde::Serialize;
+use serde::{Deserialize as SerdeDeserialize, Serialize};
+
+///
+/// SnsProposalsCacheListReport
+///
+/// Serializable report listing complete local SNS proposal caches.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsProposalsCacheListReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub cache_root: String,
+    pub cache_count: usize,
+    pub caches: Vec<SnsProposalsCacheSummary>,
+}
+
+///
+/// SnsProposalsCacheStatusReport
+///
+/// Serializable report describing one expected or discovered SNS proposal cache.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsProposalsCacheStatusReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub cache_root: String,
+    pub input: String,
+    pub found: bool,
+    pub cache: Option<SnsProposalsCacheSummary>,
+    pub expected_cache_path: Option<String>,
+    pub refresh_attempt_path: Option<String>,
+    pub latest_attempt: Option<SnsProposalsRefreshAttemptStatus>,
+}
+
+///
+/// SnsProposalsCacheSummary
+///
+/// Serializable summary of one complete SNS proposal snapshot cache.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsProposalsCacheSummary {
+    pub id: usize,
+    pub name: String,
+    pub root_canister_id: String,
+    pub governance_canister_id: String,
+    pub complete: bool,
+    pub row_count: usize,
+    pub page_count: u32,
+    pub page_size: u32,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub cache_path: String,
+    pub refresh_attempt_path: String,
+    pub latest_attempt: Option<SnsProposalsRefreshAttemptStatus>,
+}
+
+///
+/// SnsProposalsRefreshAttemptStatus
+///
+/// Serializable status for the latest SNS proposal snapshot refresh attempt.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsProposalsRefreshAttemptStatus {
+    pub status: String,
+    pub started_at: String,
+    pub updated_at: String,
+    pub page_size: u32,
+    pub pages_fetched: u32,
+    pub rows_fetched: usize,
+    pub last_cursor: Option<String>,
+    pub last_error: Option<String>,
+}
+
+///
+/// SnsProposalsRefreshReport
+///
+/// Serializable report returned after a complete SNS proposal snapshot refresh.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsProposalsRefreshReport {
+    pub schema_version: u32,
+    pub network: String,
+    pub sns_wasm_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub id: usize,
+    pub name: String,
+    pub root_canister_id: String,
+    pub governance_canister_id: String,
+    pub cache_path: String,
+    pub refresh_lock_path: String,
+    pub refresh_attempt_path: String,
+    pub page_size: u32,
+    pub page_count: u32,
+    pub proposal_count: usize,
+    pub complete: bool,
+    pub replaced_existing_cache: bool,
+    pub wrote_cache: bool,
+}
 
 ///
 /// SnsProposalReport
@@ -63,7 +167,7 @@ pub struct SnsProposalsReport {
 /// Serializable row for one SNS governance proposal.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnsProposalRow {
     pub proposal_id: Option<u64>,
     pub action_id: u64,
@@ -98,7 +202,7 @@ pub struct SnsProposalRow {
 /// Serializable row for one proposal ballot.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnsProposalBallotRow {
     pub neuron_id: String,
     pub vote: i32,
@@ -114,7 +218,7 @@ pub struct SnsProposalBallotRow {
 /// Serializable SNS governance failure reason attached to a proposal.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnsProposalFailureReason {
     pub error_type: i32,
     pub error_message: String,
@@ -126,7 +230,7 @@ pub struct SnsProposalFailureReason {
 /// Serializable SNS proposal vote tally.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnsProposalTally {
     pub timestamp_seconds: u64,
     pub yes: u64,

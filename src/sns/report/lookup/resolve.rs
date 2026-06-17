@@ -1,15 +1,22 @@
-use super::super::{
-    SnsHostError, SnsListSort, SnsLookupRequest,
-    source::{MainnetSns, SnsListSource},
-};
-use super::{
+//! Module: sns::report::lookup::resolve
+//!
+//! Responsibility: resolve SNS lookup input into one deployed SNS.
+//! Does not own: command parsing, live transport internals, or report assembly.
+//! Boundary: fetches the SNS list through a source and resolves id/root input.
+
+use crate::sns::report::lookup::{
     model::SnsLookup,
     network::enforce_mainnet_network,
     request::fetch_request_from_parts,
     sort::{assign_sns_ids_in_current_order, sort_mainnet_sns_instances},
 };
+use crate::sns::report::{
+    SnsHostError, SnsListSort, SnsLookupRequest,
+    source::{MainnetSns, SnsListSource},
+};
 use candid::Principal;
 
+/// Resolve a user SNS lookup input to one deployed SNS and fetch context.
 pub(in crate::sns::report) fn resolve_sns_lookup(
     request: &SnsLookupRequest,
     source: &dyn SnsListSource,

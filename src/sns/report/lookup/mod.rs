@@ -1,3 +1,9 @@
+//! Module: sns::report::lookup
+//!
+//! Responsibility: group SNS lookup and list-sorting helpers.
+//! Does not own: live transport, report assembly, cache IO, or rendering.
+//! Boundary: resolves lookup inputs into mainnet SNS identities for builders.
+
 mod model;
 mod network;
 mod request;

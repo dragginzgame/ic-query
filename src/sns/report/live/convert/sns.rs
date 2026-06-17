@@ -1,3 +1,9 @@
+//! Module: sns::report::live::convert::sns
+//!
+//! Responsibility: convert deployed SNS and root metadata wire values.
+//! Does not own: SNS-W transport, metadata fetch scheduling, or report rendering.
+//! Boundary: maps live SNS-W/root responses into source-layer SNS identity models.
+
 use super::super::{
     super::{MainnetSns, MainnetSnsCanisters, short_principal},
     SnsHostError,
@@ -6,6 +12,7 @@ use super::super::{
 use super::common::clean_optional_text;
 use candid::Principal;
 
+/// Convert one SNS-W deployed SNS entry into required canister id strings.
 pub(in crate::sns::report::live) fn mainnet_sns_canisters_from_deployed_sns(
     sns: DeployedSns,
 ) -> Result<MainnetSnsCanisters, SnsHostError> {
@@ -21,6 +28,7 @@ pub(in crate::sns::report::live) fn mainnet_sns_canisters_from_deployed_sns(
     })
 }
 
+/// Combine deployed SNS canisters and root metadata into one source-layer SNS.
 pub(in crate::sns::report::live) fn mainnet_sns_from_canisters_and_metadata(
     sns: MainnetSnsCanisters,
     metadata: GetMetadataResponse,

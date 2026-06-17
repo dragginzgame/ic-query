@@ -1,3 +1,10 @@
+//! Module: sns::report::live::convert::proposals::labels
+//!
+//! Responsibility: label SNS governance proposal enum/code values.
+//! Does not own: governance transport, filtering, or rendering.
+//! Boundary: converts raw vote/action codes into stable report labels.
+
+/// Convert an SNS governance ballot vote code into a stable label.
 pub(super) fn ballot_vote_text(vote: i32) -> String {
     match vote {
         0 => "unspecified".to_string(),
@@ -7,6 +14,7 @@ pub(super) fn ballot_vote_text(vote: i32) -> String {
     }
 }
 
+/// Convert an SNS governance proposal action id into a stable label.
 pub(super) fn proposal_action_text(action: u64) -> String {
     match action {
         0 => "unspecified".to_string(),

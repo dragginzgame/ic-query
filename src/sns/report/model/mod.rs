@@ -17,11 +17,14 @@ pub use reports::{
     SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
     SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsReport, SnsParamsReport,
     SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
-    SnsProposalTally, SnsProposalsReport, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
+    SnsProposalTally, SnsProposalsCacheListReport, SnsProposalsCacheStatusReport,
+    SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
+    SnsProposalsReport, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
 };
 pub use requests::{
     SnsInfoRequest, SnsListRequest, SnsLookupRequest, SnsNeuronsCacheListRequest,
     SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsParamsRequest,
-    SnsProposalRequest, SnsProposalsRequest, SnsTokenRequest,
+    SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
+    SnsProposalsRefreshRequest, SnsProposalsRequest, SnsTokenRequest,
 };
 pub use sorts::{SnsListSort, SnsNeuronsSort, SnsProposalStatusFilter, SnsProposalTopicFilter};

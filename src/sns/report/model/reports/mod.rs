@@ -22,6 +22,8 @@ pub use neurons::{
 pub use params::SnsParamsReport;
 pub use proposals::{
     SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
-    SnsProposalTally, SnsProposalsReport,
+    SnsProposalTally, SnsProposalsCacheListReport, SnsProposalsCacheStatusReport,
+    SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
+    SnsProposalsReport,
 };
 pub use token::{SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow};

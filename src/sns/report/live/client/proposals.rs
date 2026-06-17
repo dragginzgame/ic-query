@@ -6,9 +6,11 @@
 
 use super::LiveSnsSource;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsProposal, MainnetSnsProposals, SnsFetchRequest, SnsHostError,
-    SnsProposalSource, SnsProposalTopicFilter, SnsProposalsSource,
-    live::fetch::{fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposals},
+    MainnetSns, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest,
+    SnsHostError, SnsProposalSource, SnsProposalTopicFilter, SnsProposalsSource,
+    live::fetch::{
+        fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
+    },
 };
 
 impl SnsProposalSource for LiveSnsSource {
@@ -40,5 +42,15 @@ impl SnsProposalsSource for LiveSnsSource {
             include_status,
             topic,
         )
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        request: &SnsFetchRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        fetch_mainnet_sns_proposal_page(request, sns, limit, before_proposal_id)
     }
 }

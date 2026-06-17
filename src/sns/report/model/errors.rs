@@ -78,6 +78,12 @@ pub enum SnsHostError {
     )]
     MissingNeuronsCacheForId { id: usize, root: PathBuf },
 
+    #[error(
+        "SNS proposals cache is missing at {}\n\nRun `icq sns proposals refresh <id|root-principal>` to fetch a complete snapshot.",
+        path.display()
+    )]
+    MissingProposalsCache { path: PathBuf },
+
     #[error("failed to read SNS cache at {}: {source}", path.display())]
     ReadCache { path: PathBuf, source: io::Error },
 

@@ -1,3 +1,9 @@
+//! Module: sns::report::live::convert::proposals
+//!
+//! Responsibility: convert SNS governance proposal wire rows.
+//! Does not own: governance transport, proposal request construction, or rendering.
+//! Boundary: maps live proposal data into report rows used by text and JSON output.
+
 mod ballot;
 mod labels;
 mod timestamp;
@@ -11,6 +17,7 @@ use ballot::sns_proposal_ballot_row;
 use labels::proposal_action_text;
 use timestamp::{nonzero_timestamp, optional_timestamp_text};
 
+/// Convert one SNS governance proposal wire row into a report row.
 pub(in crate::sns::report::live) fn sns_proposal_row(
     proposal: SnsGovernanceProposalData,
 ) -> SnsProposalRow {

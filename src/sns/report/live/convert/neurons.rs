@@ -1,3 +1,9 @@
+//! Module: sns::report::live::convert::neurons
+//!
+//! Responsibility: convert SNS governance neuron wire rows.
+//! Does not own: governance transport, cache storage, or text rendering.
+//! Boundary: maps live neuron rows and cursors into source/report models.
+
 use super::super::{
     super::{SnsNeuronRow, hex_bytes},
     SnsNeuronId,
@@ -5,6 +11,7 @@ use super::super::{
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
 
+/// Convert one SNS governance neuron wire row into a report/cache row.
 pub(in crate::sns::report::live) fn sns_neuron_row(neuron: SnsGovernanceNeuron) -> SnsNeuronRow {
     SnsNeuronRow {
         neuron_id: neuron
@@ -18,6 +25,7 @@ pub(in crate::sns::report::live) fn sns_neuron_row(neuron: SnsGovernanceNeuron) 
     }
 }
 
+/// Extract the pagination cursor from one SNS governance neuron wire row.
 pub(in crate::sns::report::live) fn sns_neuron_cursor(
     neuron: &SnsGovernanceNeuron,
 ) -> Option<SnsNeuronId> {

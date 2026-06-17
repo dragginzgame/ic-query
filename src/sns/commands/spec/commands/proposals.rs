@@ -2,7 +2,7 @@ use super::super::values::{SnsProposalStatusArg, SnsProposalTopicArg};
 use super::args::sns_lookup_input_arg;
 use crate::{
     cli::{
-        clap::{flag_arg, value_arg},
+        clap::{flag_arg, passthrough_subcommand, value_arg},
         common::{format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
@@ -12,12 +12,16 @@ use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
 const SNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
 const SNS_PROPOSALS_MAX_LIMIT: u64 = 100;
+const SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
+const SNS_PROPOSALS_REFRESH_MAX_PAGE_SIZE: u64 = 100;
 
 const SNS_PROPOSALS_HELP_AFTER: &str = "\
 Examples:
   icq sns proposals 1
   icq sns proposals 1 --status open
   icq sns proposals 1 --topic governance
+  icq sns proposals refresh 1
+  icq sns proposals cache status 1
   icq sns proposals 1 --before 100 --limit 50
   icq sns proposals 23ten-uaaaa-aaaaq-aabia-cai --verbose
   icq --network ic sns proposals 1 --format json";
@@ -29,6 +33,31 @@ Examples:
   icq sns proposal 1 387 --ballots
   icq sns proposal 1 387 --verbose
   icq --network ic sns proposal 1 387 --format json";
+
+const SNS_PROPOSALS_REFRESH_HELP_AFTER: &str = "\
+Examples:
+  icq sns proposals refresh 1
+  icq sns proposals refresh 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns proposals refresh 1 --page-size 100
+  icq --network ic sns proposals refresh 1 --format json";
+
+const SNS_PROPOSALS_CACHE_HELP_AFTER: &str = "\
+Examples:
+  icq sns proposals cache list
+  icq sns proposals cache status 1
+  icq sns proposals cache status 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns proposals cache status 1 --format json";
+
+const SNS_PROPOSALS_CACHE_LIST_HELP_AFTER: &str = "\
+Examples:
+  icq sns proposals cache list
+  icq sns proposals cache list --format json";
+
+const SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER: &str = "\
+Examples:
+  icq sns proposals cache status 1
+  icq sns proposals cache status 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns proposals cache status 1 --format json";
 
 pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
@@ -111,4 +140,72 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
         )
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_PROPOSALS_HELP_AFTER)
+}
+
+pub(in crate::sns::commands) fn sns_proposals_refresh_command() -> ClapCommand {
+    ClapCommand::new("refresh")
+        .bin_name("icq sns proposals refresh")
+        .about("Force-refresh and cache a complete SNS governance proposal snapshot")
+        .disable_help_flag(true)
+        .arg(sns_lookup_input_arg())
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W and governance queries"),
+        )
+        .arg(
+            value_arg("page-size")
+                .long("page-size")
+                .value_name("count")
+                .default_value(SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE)
+                .value_parser(
+                    RangedU64ValueParser::<u32>::new()
+                        .range(1..=SNS_PROPOSALS_REFRESH_MAX_PAGE_SIZE),
+                )
+                .help("Maximum proposals to request per SNS governance page"),
+        )
+        .arg(
+            value_arg("max-pages")
+                .long("max-pages")
+                .value_name("count")
+                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+                .help("Stop before publishing if this page count is reached before API exhaustion"),
+        )
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_PROPOSALS_REFRESH_HELP_AFTER)
+}
+
+pub(in crate::sns::commands) fn sns_proposals_cache_command() -> ClapCommand {
+    ClapCommand::new("cache")
+        .bin_name("icq sns proposals cache")
+        .about("Inspect local complete SNS governance proposal snapshots")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("list").about("List local complete SNS proposal snapshots"),
+        ))
+        .subcommand(passthrough_subcommand(ClapCommand::new("status").about(
+            "Show local SNS proposal snapshot and refresh-attempt status",
+        )))
+        .after_help(SNS_PROPOSALS_CACHE_HELP_AFTER)
+}
+
+pub(in crate::sns::commands) fn sns_proposals_cache_list_command() -> ClapCommand {
+    ClapCommand::new("list")
+        .bin_name("icq sns proposals cache list")
+        .about("List local complete SNS proposal snapshots")
+        .disable_help_flag(true)
+        .arg(format_arg())
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_PROPOSALS_CACHE_LIST_HELP_AFTER)
+}
+
+pub(in crate::sns::commands) fn sns_proposals_cache_status_command() -> ClapCommand {
+    ClapCommand::new("status")
+        .bin_name("icq sns proposals cache status")
+        .about("Show local SNS proposal snapshot and refresh-attempt status")
+        .disable_help_flag(true)
+        .arg(sns_lookup_input_arg())
+        .arg(format_arg())
+        .arg(internal_network_arg().default_value("ic"))
+        .after_help(SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER)
 }

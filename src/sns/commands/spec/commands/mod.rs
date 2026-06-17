@@ -21,7 +21,10 @@ pub(in crate::sns::commands) use neurons::{
     sns_neurons_cache_command, sns_neurons_cache_list_command, sns_neurons_cache_status_command,
     sns_neurons_command, sns_neurons_refresh_command,
 };
-pub(in crate::sns::commands) use proposals::{sns_proposal_command, sns_proposals_command};
+pub(in crate::sns::commands) use proposals::{
+    sns_proposal_command, sns_proposals_cache_command, sns_proposals_cache_list_command,
+    sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_refresh_command,
+};
 
 const SNS_LIST_HELP_AFTER: &str = "\
 Examples:

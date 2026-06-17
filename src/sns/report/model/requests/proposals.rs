@@ -5,6 +5,32 @@
 //! Boundary: carries validated proposal inputs into SNS report builders.
 
 use super::super::{SnsProposalStatusFilter, SnsProposalTopicFilter};
+use std::path::PathBuf;
+
+///
+/// SnsProposalsCacheListRequest
+///
+/// Request accepted by the local SNS proposal cache list report builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnsProposalsCacheListRequest {
+    pub network: String,
+    pub icp_root: PathBuf,
+}
+
+///
+/// SnsProposalsCacheStatusRequest
+///
+/// Request accepted by the local SNS proposal cache status report builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnsProposalsCacheStatusRequest {
+    pub network: String,
+    pub icp_root: PathBuf,
+    pub input: String,
+}
 
 ///
 /// SnsProposalRequest
@@ -39,5 +65,23 @@ pub struct SnsProposalsRequest {
     pub before_proposal_id: Option<u64>,
     pub status: SnsProposalStatusFilter,
     pub topic: SnsProposalTopicFilter,
+    pub icp_root: Option<PathBuf>,
     pub verbose: bool,
+}
+
+///
+/// SnsProposalsRefreshRequest
+///
+/// Request accepted by the complete SNS proposal snapshot refresh builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnsProposalsRefreshRequest {
+    pub network: String,
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub input: String,
+    pub icp_root: PathBuf,
+    pub page_size: u32,
+    pub max_pages: Option<u32>,
 }

@@ -60,7 +60,23 @@ pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsPropos
         before_proposal_id: Some(99),
         status: SnsProposalStatusFilter::Open,
         topic: SnsProposalTopicFilter::Governance,
+        icp_root: None,
         verbose: false,
+    }
+}
+
+pub(in crate::sns::report::tests) fn sns_proposals_refresh_request(
+    root: &Path,
+    max_pages: Option<u32>,
+) -> SnsProposalsRefreshRequest {
+    SnsProposalsRefreshRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: "1".to_string(),
+        icp_root: root.to_path_buf(),
+        page_size: 100,
+        max_pages,
     }
 }
 

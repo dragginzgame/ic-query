@@ -1,3 +1,9 @@
+//! Module: sns::report::live::convert
+//!
+//! Responsibility: group live SNS wire-to-domain conversion helpers.
+//! Does not own: live transport, Candid wire type definitions, cache IO, or rendering.
+//! Boundary: re-exports converters used by live fetch and report builders.
+
 mod common;
 mod metadata;
 mod neurons;
