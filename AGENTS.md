@@ -26,6 +26,13 @@ If code or habit conflicts with this file, this file wins.
   requested release notes or active release slices. Keep entries factual and
   user-facing; include implementation detail only when it affects behavior,
   compatibility, release flow, or operations.
+- Detailed patch breakdowns live in `docs/changelog/<major>.<minor>.md`; link
+  the detailed file from the matching minor line in root `CHANGELOG.md` when
+  present.
+- When a patch introduces a new command or subcommand, include a fenced `bash`
+  command example in both root `CHANGELOG.md` and the matching detailed
+  changelog file. Do not add command examples for cleanup-only patches that do
+  not change CLI behavior.
 
 ## Code Boundaries
 

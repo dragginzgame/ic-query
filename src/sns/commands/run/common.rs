@@ -6,7 +6,10 @@
 
 use crate::{
     cli::{
-        clap::parse_required_subcommand_or_usage,
+        clap::{
+            OptionalSubcommand, parse_optional_subcommand_or_usage,
+            parse_required_subcommand_or_usage,
+        },
         common::{OutputFormat, current_unix_secs},
         help::collect_args_or_print_help_or_version,
     },
@@ -24,6 +27,21 @@ pub(super) struct SnsLookupCommandParts {
     pub(super) source_endpoint: String,
     pub(super) now_unix_secs: u64,
     pub(super) input: String,
+}
+
+pub(in crate::sns::commands::run) struct SnsCachedLookupCommandParts {
+    pub(in crate::sns::commands::run) format: OutputFormat,
+    pub(in crate::sns::commands::run) network: String,
+    pub(in crate::sns::commands::run) source_endpoint: String,
+    pub(in crate::sns::commands::run) now_unix_secs: u64,
+    pub(in crate::sns::commands::run) input: String,
+    pub(in crate::sns::commands::run) icp_root: PathBuf,
+}
+
+pub(in crate::sns::commands::run) struct SnsCacheCommandParts {
+    pub(in crate::sns::commands::run) format: OutputFormat,
+    pub(in crate::sns::commands::run) network: String,
+    pub(in crate::sns::commands::run) icp_root: PathBuf,
 }
 
 pub(super) fn command_unix_secs() -> Result<u64, SnsCommandError> {
@@ -52,6 +70,17 @@ where
     parse_required_subcommand_or_usage(command, args, usage).map_err(SnsCommandError::Usage)
 }
 
+pub(super) fn parse_optional_command<I>(
+    command: ClapCommand,
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Result<OptionalSubcommand, SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    parse_optional_subcommand_or_usage(command, args, usage).map_err(SnsCommandError::Usage)
+}
+
 pub(super) fn lookup_command_parts(
     options: SnsLookupOptions,
 ) -> Result<SnsLookupCommandParts, SnsCommandError> {
@@ -61,5 +90,30 @@ pub(super) fn lookup_command_parts(
         source_endpoint: options.source_endpoint,
         now_unix_secs: command_unix_secs()?,
         input: options.input,
+    })
+}
+
+pub(in crate::sns::commands::run) fn cached_lookup_command_parts(
+    options: SnsLookupOptions,
+) -> Result<SnsCachedLookupCommandParts, SnsCommandError> {
+    let parts = lookup_command_parts(options)?;
+    Ok(SnsCachedLookupCommandParts {
+        format: parts.format,
+        network: parts.network,
+        source_endpoint: parts.source_endpoint,
+        now_unix_secs: parts.now_unix_secs,
+        input: parts.input,
+        icp_root: command_icp_root()?,
+    })
+}
+
+pub(in crate::sns::commands::run) fn cache_command_parts(
+    format: OutputFormat,
+    network: String,
+) -> Result<SnsCacheCommandParts, SnsCommandError> {
+    Ok(SnsCacheCommandParts {
+        format,
+        network,
+        icp_root: command_icp_root()?,
     })
 }

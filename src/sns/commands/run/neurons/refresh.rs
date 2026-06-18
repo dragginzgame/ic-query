@@ -10,7 +10,7 @@ use crate::{
         commands::{
             SnsCommandError,
             options::SnsNeuronsRefreshOptions,
-            run::common::{command_args, command_icp_root, lookup_command_parts},
+            run::common::{cached_lookup_command_parts, command_args},
             spec::sns_neurons_refresh_usage,
         },
         report::{
@@ -28,14 +28,14 @@ where
         return Ok(());
     };
     let options = SnsNeuronsRefreshOptions::parse(args)?;
-    let parts = lookup_command_parts(options.lookup)?;
+    let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsNeuronsRefreshRequest {
         network: parts.network,
         source_endpoint: parts.source_endpoint,
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
-        icp_root: command_icp_root()?,
+        icp_root: parts.icp_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };

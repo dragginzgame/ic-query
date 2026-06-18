@@ -9,10 +9,10 @@ use crate::{
     snapshot_cache::{SnapshotCompleteness, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
+        cache_error::sns_cache_file_error,
         neurons_cache::{
             SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
             attempt::{SnsNeuronsAttemptProgress, write_complete_sns_neurons_attempt},
-            errors::sns_cache_file_error,
             model::{
                 CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheMetadata, SnsNeuronsCacheRows,
             },

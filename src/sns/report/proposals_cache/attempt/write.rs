@@ -11,8 +11,8 @@ use super::model::{
 use crate::{
     snapshot_cache::write_snapshot_refresh_attempt,
     sns::report::{
-        SnsHostError,
-        proposals_cache::{errors::sns_cache_file_error, model::SnsProposalsRefreshAttempt},
+        SnsHostError, cache_error::sns_cache_file_error,
+        proposals_cache::model::SnsProposalsRefreshAttempt,
     },
 };
 use std::path::Path;

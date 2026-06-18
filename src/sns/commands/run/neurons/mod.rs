@@ -8,13 +8,15 @@ mod cache;
 mod refresh;
 
 use crate::{
-    cli::common::write_text_or_json,
+    cli::{clap::OptionalSubcommand, common::write_text_or_json},
     sns::{
         commands::{
             SnsCommandError,
             options::SnsNeuronsOptions,
-            run::common::{command_args, command_icp_root, lookup_command_parts},
-            spec::{SnsNeuronsSortArg, sns_neurons_usage},
+            run::common::{
+                command_args, command_icp_root, lookup_command_parts, parse_optional_command,
+            },
+            spec::{SnsNeuronsSortArg, sns_neurons_dispatch_command, sns_neurons_usage},
         },
         report::{
             SnsNeuronsRequest, SnsNeuronsSort, build_sns_neurons_report, sns_neurons_report_text,
@@ -30,12 +32,17 @@ where
     let Some(args) = command_args(args, sns_neurons_usage) else {
         return Ok(());
     };
-    if args.first().and_then(|arg| arg.to_str()) == Some("refresh") {
-        return refresh::run_sns_neurons_refresh(args.into_iter().skip(1));
-    }
-    if args.first().and_then(|arg| arg.to_str()) == Some("cache") {
-        return cache::run_sns_neurons_cache(args.into_iter().skip(1));
-    }
+    let args =
+        match parse_optional_command(sns_neurons_dispatch_command(), args, sns_neurons_usage)? {
+            OptionalSubcommand::Matched { name, args } => {
+                return match name.as_str() {
+                    "refresh" => refresh::run_sns_neurons_refresh(args),
+                    "cache" => cache::run_sns_neurons_cache(args),
+                    _ => unreachable!("sns neurons dispatch command only defines known commands"),
+                };
+            }
+            OptionalSubcommand::Passthrough(args) => args,
+        };
     let options = SnsNeuronsOptions::parse(args)?;
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;

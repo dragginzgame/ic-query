@@ -5,20 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-Root entries are concise release summaries. Detailed patch breakdowns live in
-`docs/changelog/<major>.<minor>.md` and are linked from each minor line when
-present.
-
-When a patch introduces a new command or subcommand, include a fenced `bash`
-command example in both this root changelog and the matching detailed
-changelog file. Do not add command examples for cleanup-only patches that do
-not change CLI behavior.
-
 ## Unreleased
 
 ## [0.2.x] - 2026-06-16 - SNS proposal detail expansion
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
+
+- `0.2.16` moves changelog contribution rules out of the public changelog and
+  into `AGENTS.md`, routes SNS nested `neurons`/`proposals` refresh/cache
+  dispatch through shared clap helpers, shares cached lookup/cache command
+  setup across SNS runners, and removes remaining SNS neuron/proposal cache
+  re-export/timestamp helper shims without changing CLI behavior, cache
+  behavior, report schemas, or output.
 
 - `0.2.15` removes over-fragmented one-function and single-child modules
   across NNS topology, NNS leaf runtime/cache errors, SNS text/source/live

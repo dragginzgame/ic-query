@@ -7,8 +7,6 @@
 use crate::{cache_file::LoadJsonCacheErrorMapper, sns::report::SnsHostError};
 use std::path::PathBuf;
 
-pub(super) use crate::sns::report::cache_error::sns_cache_file_error;
-
 ///
 /// SnsProposalsCacheErrors
 ///

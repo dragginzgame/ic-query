@@ -13,6 +13,7 @@ use crate::{
     sns::{
         commands::spec::commands::{
             args::{principal_value_parser, sns_lookup_input_arg},
+            nested_dispatch_command,
             neurons::sort::neurons_sort_arg,
         },
         report::DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -68,4 +69,13 @@ pub(in crate::sns::commands) fn sns_neurons_command() -> ClapCommand {
         .arg(neurons_sort_arg())
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_NEURONS_HELP_AFTER)
+}
+
+pub(in crate::sns::commands) fn sns_neurons_dispatch_command() -> ClapCommand {
+    nested_dispatch_command(
+        "neurons",
+        "icq sns neurons",
+        "Force-refresh and cache a complete SNS governance neuron snapshot",
+        "Inspect local complete SNS governance neuron snapshots",
+    )
 }

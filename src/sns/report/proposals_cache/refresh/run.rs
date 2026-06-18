@@ -12,12 +12,12 @@ use crate::{
     },
     sns::report::{
         SnsHostError, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
+        cache_error::sns_cache_file_error,
         live::LiveSnsSource,
         lookup::{enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup},
         proposals_cache::{
             attempt::{write_failed_attempt, write_starting_attempt},
             collection::fetch_complete_sns_proposals,
-            errors::sns_cache_file_error,
             paths::SnsProposalsCachePaths,
         },
         source::SnsProposalsSource,

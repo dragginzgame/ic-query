@@ -12,7 +12,7 @@ use crate::{
     },
     sns::{
         commands::spec::{
-            commands::args::sns_lookup_input_arg,
+            commands::{args::sns_lookup_input_arg, nested_dispatch_command},
             values::{SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg},
         },
         report::DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -159,6 +159,15 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
         )
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_PROPOSALS_HELP_AFTER)
+}
+
+pub(in crate::sns::commands) fn sns_proposals_dispatch_command() -> ClapCommand {
+    nested_dispatch_command(
+        "proposals",
+        "icq sns proposals",
+        "Force-refresh and cache a complete SNS governance proposal snapshot",
+        "Inspect local complete SNS governance proposal snapshots",
+    )
 }
 
 pub(in crate::sns::commands) fn sns_proposals_refresh_command() -> ClapCommand {

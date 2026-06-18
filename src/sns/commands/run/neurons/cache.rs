@@ -5,12 +5,12 @@
 //! Boundary: maps cache CLI options into cache-list and cache-status requests.
 
 use crate::{
-    cli::common::{OutputFormat, write_text_or_json},
+    cli::common::write_text_or_json,
     sns::{
         commands::{
             SnsCommandError,
             options::{SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions},
-            run::common::{command_args, command_icp_root, parse_required_command},
+            run::common::{cache_command_parts, command_args, parse_required_command},
             spec::{
                 sns_neurons_cache_command, sns_neurons_cache_list_usage,
                 sns_neurons_cache_status_usage, sns_neurons_cache_usage,
@@ -23,13 +23,7 @@ use crate::{
         },
     },
 };
-use std::{ffi::OsString, path::PathBuf};
-
-struct SnsNeuronsCacheCommandParts {
-    format: OutputFormat,
-    network: String,
-    icp_root: PathBuf,
-}
+use std::ffi::OsString;
 
 pub(super) fn run_sns_neurons_cache<I>(args: I) -> Result<(), SnsCommandError>
 where
@@ -45,17 +39,6 @@ where
         "status" => run_sns_neurons_cache_status(args),
         _ => unreachable!("sns neurons cache dispatch command only defines known commands"),
     }
-}
-
-fn cache_command_parts(
-    format: OutputFormat,
-    network: String,
-) -> Result<SnsNeuronsCacheCommandParts, SnsCommandError> {
-    Ok(SnsNeuronsCacheCommandParts {
-        format,
-        network,
-        icp_root: command_icp_root()?,
-    })
 }
 
 fn run_sns_neurons_cache_list<I>(args: I) -> Result<(), SnsCommandError>

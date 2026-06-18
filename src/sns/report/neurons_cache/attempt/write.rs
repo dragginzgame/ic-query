@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{
     snapshot_cache::write_snapshot_refresh_attempt,
-    sns::report::{SnsHostError, neurons_cache::errors::sns_cache_file_error},
+    sns::report::{SnsHostError, cache_error::sns_cache_file_error},
 };
 use std::path::Path;
 

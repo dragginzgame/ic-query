@@ -5,7 +5,7 @@
 //! Boundary: maps proposal CLI options into report/cache request DTOs.
 
 use crate::{
-    cli::common::{OutputFormat, write_text_or_json},
+    cli::{clap::OptionalSubcommand, common::write_text_or_json},
     sns::{
         commands::{
             SnsCommandError,
@@ -14,12 +14,13 @@ use crate::{
                 SnsProposalsOptions, SnsProposalsRefreshOptions,
             },
             run::common::{
-                command_args, command_icp_root, lookup_command_parts, parse_required_command,
+                cache_command_parts, cached_lookup_command_parts, command_args,
+                parse_optional_command, parse_required_command,
             },
             spec::{
                 sns_proposal_usage, sns_proposals_cache_command, sns_proposals_cache_list_usage,
                 sns_proposals_cache_status_usage, sns_proposals_cache_usage,
-                sns_proposals_refresh_usage, sns_proposals_usage,
+                sns_proposals_dispatch_command, sns_proposals_refresh_usage, sns_proposals_usage,
             },
         },
         report::{
@@ -32,13 +33,7 @@ use crate::{
         },
     },
 };
-use std::{ffi::OsString, path::PathBuf};
-
-struct SnsProposalsCacheCommandParts {
-    format: OutputFormat,
-    network: String,
-    icp_root: PathBuf,
-}
+use std::ffi::OsString;
 
 pub(super) fn run_sns_proposal<I>(args: I) -> Result<(), SnsCommandError>
 where
@@ -48,7 +43,7 @@ where
         return Ok(());
     };
     let options = SnsProposalOptions::parse(args)?;
-    let parts = lookup_command_parts(options.lookup)?;
+    let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsProposalRequest {
         network: parts.network,
@@ -56,7 +51,7 @@ where
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
         proposal_id: options.proposal_id,
-        icp_root: Some(command_icp_root()?),
+        icp_root: Some(parts.icp_root),
         verbose: options.verbose,
         show_ballots: options.show_ballots,
     };
@@ -71,14 +66,22 @@ where
     let Some(args) = command_args(args, sns_proposals_usage) else {
         return Ok(());
     };
-    if args.first().and_then(|arg| arg.to_str()) == Some("refresh") {
-        return run_sns_proposals_refresh(args.into_iter().skip(1));
-    }
-    if args.first().and_then(|arg| arg.to_str()) == Some("cache") {
-        return run_sns_proposals_cache(args.into_iter().skip(1));
-    }
+    let args = match parse_optional_command(
+        sns_proposals_dispatch_command(),
+        args,
+        sns_proposals_usage,
+    )? {
+        OptionalSubcommand::Matched { name, args } => {
+            return match name.as_str() {
+                "refresh" => run_sns_proposals_refresh(args),
+                "cache" => run_sns_proposals_cache(args),
+                _ => unreachable!("sns proposals dispatch command only defines known commands"),
+            };
+        }
+        OptionalSubcommand::Passthrough(args) => args,
+    };
     let options = SnsProposalsOptions::parse(args)?;
-    let parts = lookup_command_parts(options.lookup)?;
+    let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsProposalsRequest {
         network: parts.network,
@@ -90,7 +93,7 @@ where
         status: options.status.into(),
         topic: options.topic.into(),
         sort: options.sort.into(),
-        icp_root: Some(command_icp_root()?),
+        icp_root: Some(parts.icp_root),
         verbose: options.verbose,
     };
     let report = build_sns_proposals_report(&request)?;
@@ -105,14 +108,14 @@ where
         return Ok(());
     };
     let options = SnsProposalsRefreshOptions::parse(args)?;
-    let parts = lookup_command_parts(options.lookup)?;
+    let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsProposalsRefreshRequest {
         network: parts.network,
         source_endpoint: parts.source_endpoint,
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
-        icp_root: command_icp_root()?,
+        icp_root: parts.icp_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
@@ -137,17 +140,6 @@ where
         "status" => run_sns_proposals_cache_status(args),
         _ => unreachable!("sns proposals cache dispatch command only defines known commands"),
     }
-}
-
-fn cache_command_parts(
-    format: OutputFormat,
-    network: String,
-) -> Result<SnsProposalsCacheCommandParts, SnsCommandError> {
-    Ok(SnsProposalsCacheCommandParts {
-        format,
-        network,
-        icp_root: command_icp_root()?,
-    })
 }
 
 fn run_sns_proposals_cache_list<I>(args: I) -> Result<(), SnsCommandError>

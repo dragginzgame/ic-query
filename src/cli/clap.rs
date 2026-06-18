@@ -1,7 +1,13 @@
-use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command, error::ErrorKind};
 use std::ffi::OsString;
 
 const PASSTHROUGH_ARGS: &str = "args";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OptionalSubcommand {
+    Matched { name: String, args: Vec<OsString> },
+    Passthrough(Vec<OsString>),
+}
 
 pub fn parse_matches<I>(command: Command, args: I) -> Result<ArgMatches, clap::Error>
 where
@@ -39,19 +45,6 @@ pub fn passthrough_args(matches: &ArgMatches) -> Vec<OsString> {
         .unwrap_or_default()
 }
 
-pub fn parse_subcommand<I>(
-    command: Command,
-    args: I,
-) -> Result<Option<(String, Vec<OsString>)>, clap::Error>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let matches = parse_matches(command, args)?;
-    Ok(matches
-        .subcommand()
-        .map(|(name, matches)| (name.to_string(), passthrough_args(matches))))
-}
-
 pub fn parse_required_subcommand<I>(
     command: Command,
     args: I,
@@ -59,8 +52,13 @@ pub fn parse_required_subcommand<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_subcommand(command.subcommand_required(true), args)
-        .map(|subcommand| subcommand.expect("clap requires a subcommand"))
+    let mut command = command.subcommand_required(true);
+    let matches = parse_matches(command.clone(), args)?;
+    let Some((name, matches)) = matches.subcommand() else {
+        return Err(command.error(ErrorKind::MissingSubcommand, "a subcommand is required"));
+    };
+
+    Ok((name.to_string(), passthrough_args(matches)))
 }
 
 pub fn parse_required_subcommand_or_usage<I>(
@@ -72,6 +70,25 @@ where
     I: IntoIterator<Item = OsString>,
 {
     parse_required_subcommand(command, args).map_err(|_| usage())
+}
+
+pub fn parse_optional_subcommand_or_usage<I>(
+    command: Command,
+    args: I,
+    usage: impl FnOnce() -> String,
+) -> Result<OptionalSubcommand, String>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let matches = parse_matches_or_usage(command, args, usage)?;
+    if let Some((name, matches)) = matches.subcommand() {
+        return Ok(OptionalSubcommand::Matched {
+            name: name.to_string(),
+            args: passthrough_args(matches),
+        });
+    }
+
+    Ok(OptionalSubcommand::Passthrough(passthrough_args(&matches)))
 }
 
 pub fn value_arg(id: &'static str) -> Arg {
@@ -106,4 +123,43 @@ where
 
 pub fn render_help(mut command: Command) -> String {
     command.render_help().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_required_subcommand_reports_missing_subcommand() {
+        let error =
+            parse_required_subcommand(Command::new("icq"), []).expect_err("missing command");
+
+        assert_eq!(error.kind(), ErrorKind::MissingSubcommand);
+    }
+
+    #[test]
+    fn parse_required_subcommand_returns_passthrough_args() {
+        let command = Command::new("icq").subcommand(passthrough_subcommand(Command::new("sns")));
+
+        let (name, args) = parse_required_subcommand(
+            command,
+            [
+                OsString::from("sns"),
+                OsString::from("neurons"),
+                OsString::from("--limit"),
+                OsString::from("50"),
+            ],
+        )
+        .expect("parse command");
+
+        assert_eq!(name, "sns");
+        assert_eq!(
+            args,
+            vec![
+                OsString::from("neurons"),
+                OsString::from("--limit"),
+                OsString::from("50"),
+            ],
+        );
+    }
 }

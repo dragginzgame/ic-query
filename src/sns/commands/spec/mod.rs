@@ -11,10 +11,10 @@ mod values;
 pub(super) use commands::{
     sns_command, sns_info_command, sns_list_command, sns_neurons_cache_command,
     sns_neurons_cache_list_command, sns_neurons_cache_status_command, sns_neurons_command,
-    sns_neurons_refresh_command, sns_params_command, sns_proposal_command,
-    sns_proposals_cache_command, sns_proposals_cache_list_command,
-    sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_refresh_command,
-    sns_token_command,
+    sns_neurons_dispatch_command, sns_neurons_refresh_command, sns_params_command,
+    sns_proposal_command, sns_proposals_cache_command, sns_proposals_cache_list_command,
+    sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_dispatch_command,
+    sns_proposals_refresh_command, sns_token_command,
 };
 pub(super) use usage::{
     sns_info_usage, sns_list_usage, sns_neurons_cache_list_usage, sns_neurons_cache_status_usage,

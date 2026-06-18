@@ -6,7 +6,6 @@
 
 mod attempt;
 mod collection;
-mod errors;
 mod model;
 mod paths;
 mod refresh;

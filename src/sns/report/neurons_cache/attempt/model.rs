@@ -4,16 +4,19 @@
 //! Does not own: sidecar IO, cache snapshots, refresh fetching, or rendering.
 //! Boundary: maps refresh context and progress into the generic snapshot attempt envelope.
 
-use super::timestamp::current_timestamp_text;
 use crate::{
     snapshot_cache::{SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt},
     sns::report::{
         SnsNeuronsRefreshRequest,
         source::{MainnetSns, SnsFetchRequest},
     },
+    subnet_catalog::format_utc_timestamp_secs,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-use std::path::Path;
+use std::{
+    path::Path,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub(in crate::sns::report::neurons_cache) type SnsNeuronsRefreshAttempt =
     SnapshotRefreshAttempt<SnsNeuronsRefreshAttemptMetadata>;
@@ -88,4 +91,11 @@ pub(in crate::sns::report::neurons_cache::attempt) fn attempt_from_parts(
         last_cursor: parts.progress.last_cursor,
         last_error: parts.last_error,
     }
+}
+
+fn current_timestamp_text(fallback: &str) -> String {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or_else(
+        |_| fallback.to_string(),
+        |duration| format_utc_timestamp_secs(duration.as_secs()),
+    )
 }

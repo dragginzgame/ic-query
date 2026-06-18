@@ -155,6 +155,29 @@ fn global_network_is_forwarded_to_networked_leaf_commands() {
     );
 }
 
+#[test]
+fn sns_nested_commands_dispatch_through_clap_subcommands() {
+    assert!(
+        run([
+            OsString::from("sns"),
+            OsString::from("neurons"),
+            OsString::from("refresh"),
+            OsString::from("--help")
+        ])
+        .is_ok()
+    );
+    assert!(
+        run([
+            OsString::from("sns"),
+            OsString::from("proposals"),
+            OsString::from("cache"),
+            OsString::from("status"),
+            OsString::from("--help")
+        ])
+        .is_ok()
+    );
+}
+
 fn assert_run_ok(args: &[&str]) {
     let args = args.iter().copied().map(OsString::from).collect::<Vec<_>>();
     if let Err(err) = run(args.clone()) {

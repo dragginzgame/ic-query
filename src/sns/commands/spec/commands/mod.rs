@@ -24,11 +24,12 @@ pub(in crate::sns::commands) use lookup::{
 };
 pub(in crate::sns::commands) use neurons::{
     sns_neurons_cache_command, sns_neurons_cache_list_command, sns_neurons_cache_status_command,
-    sns_neurons_command, sns_neurons_refresh_command,
+    sns_neurons_command, sns_neurons_dispatch_command, sns_neurons_refresh_command,
 };
 pub(in crate::sns::commands) use proposals::{
     sns_proposal_command, sns_proposals_cache_command, sns_proposals_cache_list_command,
-    sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_refresh_command,
+    sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_dispatch_command,
+    sns_proposals_refresh_command,
 };
 
 const SNS_LIST_HELP_AFTER: &str = "\
@@ -94,4 +95,24 @@ fn sort_arg() -> clap::Arg {
         .default_value("id")
         .value_parser(clap::value_parser!(SnsListSortArg))
         .help("Text/JSON row order; ids follow the SNS-W response order")
+}
+
+pub(in crate::sns::commands::spec::commands) fn nested_dispatch_command(
+    name: &'static str,
+    bin_name: &'static str,
+    refresh_about: &'static str,
+    cache_about: &'static str,
+) -> ClapCommand {
+    passthrough_subcommand(
+        ClapCommand::new(name)
+            .bin_name(bin_name)
+            .disable_help_flag(true)
+            .subcommand_precedence_over_arg(true)
+            .subcommand(passthrough_subcommand(
+                ClapCommand::new("refresh").about(refresh_about),
+            ))
+            .subcommand(passthrough_subcommand(
+                ClapCommand::new("cache").about(cache_about),
+            )),
+    )
 }

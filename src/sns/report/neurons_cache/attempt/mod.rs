@@ -6,7 +6,6 @@
 
 mod model;
 mod read;
-mod timestamp;
 mod write;
 
 pub(super) use model::{SnsNeuronsAttemptContext, SnsNeuronsAttemptProgress};
