@@ -108,7 +108,7 @@ impl SnsListSource for MetadataErrorFixtureSnsListSource {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn fixture_sns(
     name: &str,
     description: Option<&str>,

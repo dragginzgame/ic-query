@@ -27,6 +27,7 @@ pub(in crate::sns::report) fn proposal_matches_status(
     match status {
         SnsProposalStatusFilter::Any => true,
         SnsProposalStatusFilter::Open => proposal.decision_state == "open",
+        SnsProposalStatusFilter::Decided => proposal.decision_state == "decided",
         SnsProposalStatusFilter::Executed => proposal.decision_state == "executed",
         SnsProposalStatusFilter::Failed => proposal.decision_state == "failed",
         SnsProposalStatusFilter::Rejected | SnsProposalStatusFilter::Adopted => false,
@@ -191,6 +192,10 @@ mod tests {
         assert!(proposal_matches_status(
             &proposal_with_decision_state("executed"),
             SnsProposalStatusFilter::Executed
+        ));
+        assert!(proposal_matches_status(
+            &proposal_with_decision_state("decided"),
+            SnsProposalStatusFilter::Decided
         ));
         assert!(!proposal_matches_status(
             &proposal_with_decision_state("open"),

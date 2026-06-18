@@ -404,6 +404,66 @@ fn sns_proposals_cached_sort_failed_orders_before_limit() {
 }
 
 #[test]
+fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
+    let root = temp_dir("ic-query-sns-proposals-status-decided");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Decided;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh decided proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.status_filter, "decided");
+    assert_eq!(proposal_ids(&first), vec![30]);
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse decided proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.status_filter, "decided");
+    assert_eq!(proposal_ids(&second), vec![30]);
+    assert!(
+        second
+            .proposals
+            .iter()
+            .all(|proposal| proposal.decision_state == "decided")
+    );
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains("status_filter: decided"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_status_decided_requires_cache_compatible_view() {
+    let mut request = proposals_request("1");
+    request.status = SnsProposalStatusFilter::Decided;
+    request.topic = SnsProposalTopicFilter::Governance;
+
+    let error = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .expect_err("decided topic filter rejected");
+
+    assert!(matches!(
+        error,
+        SnsHostError::UnsupportedProposalView { .. }
+    ));
+
+    request.topic = SnsProposalTopicFilter::Any;
+    let error = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .expect_err("decided without cache rejected");
+
+    assert!(matches!(
+        error,
+        SnsHostError::UnsupportedProposalView { .. }
+    ));
+}
+
+#[test]
 fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
     let mut request = proposals_request("1");
@@ -496,6 +556,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     Some(1_700_001_100),
                     Some(1_700_002_300),
                     Some(1_700_003_100),
+                    "executed",
                 ),
                 proposal_row_with_id_created_decided_and_executed_at(
                     20,
@@ -503,6 +564,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     None,
                     None,
                     None,
+                    "open",
                 ),
                 proposal_row_with_id_created_decided_and_executed_at(
                     30,
@@ -510,11 +572,20 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     Some(1_700_001_300),
                     Some(1_700_002_100),
                     Some(1_700_003_300),
+                    "decided",
                 ),
             ],
             last_cursor: None,
         })
     }
+}
+
+fn proposal_ids(report: &SnsProposalsReport) -> Vec<u64> {
+    report
+        .proposals
+        .iter()
+        .filter_map(|proposal| proposal.proposal_id)
+        .collect()
 }
 
 fn proposal_row_with_id_created_decided_and_executed_at(
@@ -523,9 +594,11 @@ fn proposal_row_with_id_created_decided_and_executed_at(
     decided_at_secs: Option<u64>,
     executed_at_secs: Option<u64>,
     failed_at_secs: Option<u64>,
+    decision_state: &str,
 ) -> SnsProposalRow {
     SnsProposalRow {
         proposal_id: Some(proposal_id),
+        decision_state: decision_state.to_string(),
         proposal_creation_timestamp_seconds: created_at_secs,
         created_at: format_utc_timestamp_secs(created_at_secs),
         decided_timestamp_seconds: decided_at_secs,

@@ -71,19 +71,34 @@ impl SnsProposalsOptions {
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(sns_proposals_command(), args, sns_proposals_usage)?;
+        let status = required_typed(&matches, "status");
+        let topic = required_typed(&matches, "topic");
+        validate_proposal_status_topic(status, topic)?;
         let sort = required_typed(&matches, "sort");
         let sort_direction = proposal_sort_direction(&matches, sort)?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(&matches),
             limit: required_typed(&matches, "limit"),
             before_proposal_id: typed_option::<u64>(&matches, "before"),
-            status: required_typed(&matches, "status"),
-            topic: required_typed(&matches, "topic"),
+            status,
+            topic,
             sort,
             sort_direction,
             verbose: matches.get_flag("verbose"),
         })
     }
+}
+
+fn validate_proposal_status_topic(
+    status: SnsProposalStatusArg,
+    topic: SnsProposalTopicArg,
+) -> Result<(), SnsCommandError> {
+    if status == SnsProposalStatusArg::Decided && topic != SnsProposalTopicArg::Any {
+        return Err(SnsCommandError::Usage(
+            "--status decided requires --topic any".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn proposal_sort_direction(

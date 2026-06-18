@@ -48,6 +48,7 @@ pub(in crate::sns::commands) enum SnsProposalStatusArg {
     #[default]
     Any,
     Open,
+    Decided,
     Rejected,
     Adopted,
     Executed,
@@ -59,6 +60,7 @@ impl From<SnsProposalStatusArg> for SnsProposalStatusFilter {
         match value {
             SnsProposalStatusArg::Any => Self::Any,
             SnsProposalStatusArg::Open => Self::Open,
+            SnsProposalStatusArg::Decided => Self::Decided,
             SnsProposalStatusArg::Rejected => Self::Rejected,
             SnsProposalStatusArg::Adopted => Self::Adopted,
             SnsProposalStatusArg::Executed => Self::Executed,

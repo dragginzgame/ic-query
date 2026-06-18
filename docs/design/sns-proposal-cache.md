@@ -40,6 +40,7 @@ cached proposal rows:
 - `--desc`
 - `--status any`
 - `--status open`
+- `--status decided`
 - `--status executed`
 - `--status failed`
 

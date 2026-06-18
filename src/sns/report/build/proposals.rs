@@ -66,12 +66,29 @@ pub(in crate::sns::report) fn build_sns_proposals_report_with_source(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
+    validate_sns_proposals_request(request)?;
     if let Some(icp_root) = request.icp_root.as_ref()
         && request_can_use_proposals_cache(request)
     {
         return build_sns_proposals_report_from_cache_or_refresh(request, icp_root, source);
     }
     build_sns_proposals_report_live(request, source)
+}
+
+fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), SnsHostError> {
+    if request.status == SnsProposalStatusFilter::Decided
+        && request.topic != SnsProposalTopicFilter::Any
+    {
+        return Err(SnsHostError::UnsupportedProposalView {
+            reason: "`--status decided` requires `--topic any`".to_string(),
+        });
+    }
+    if request.status == SnsProposalStatusFilter::Decided && request.icp_root.is_none() {
+        return Err(SnsHostError::UnsupportedProposalView {
+            reason: "`--status decided` requires a complete proposal cache".to_string(),
+        });
+    }
+    Ok(())
 }
 
 fn build_sns_proposals_report_live(
@@ -127,6 +144,7 @@ const fn request_can_use_proposals_cache(request: &SnsProposalsRequest) -> bool 
         request.status,
         SnsProposalStatusFilter::Any
             | SnsProposalStatusFilter::Open
+            | SnsProposalStatusFilter::Decided
             | SnsProposalStatusFilter::Executed
             | SnsProposalStatusFilter::Failed
     )

@@ -29,6 +29,7 @@ const SNS_PROPOSALS_HELP_AFTER: &str = "\
 Examples:
   icq sns proposals 1
   icq sns proposals 1 --status open
+  icq sns proposals 1 --status decided
   icq sns proposals 1 --topic governance
   icq sns proposals 1 --sort created
   icq sns proposals 1 --sort decided
@@ -135,7 +136,7 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
         .arg(
             value_arg("status")
                 .long("status")
-                .value_name("any|open|rejected|adopted|executed|failed")
+                .value_name("any|open|decided|rejected|adopted|executed|failed")
                 .default_value("any")
                 .value_parser(clap::value_parser!(SnsProposalStatusArg))
                 .help("Governance decision status filter"),

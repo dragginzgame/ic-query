@@ -119,4 +119,7 @@ pub enum SnsHostError {
 
     #[error("SNS cache root is required for cache-backed neuron reports")]
     MissingCacheRoot,
+
+    #[error("unsupported SNS proposal view: {reason}")]
+    UnsupportedProposalView { reason: String },
 }

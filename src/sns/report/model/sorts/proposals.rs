@@ -71,6 +71,7 @@ pub enum SnsProposalStatusFilter {
     #[default]
     Any,
     Open,
+    Decided,
     Rejected,
     Adopted,
     Executed,
@@ -84,6 +85,7 @@ impl SnsProposalStatusFilter {
         match self {
             Self::Any => "any",
             Self::Open => "open",
+            Self::Decided => "decided",
             Self::Rejected => "rejected",
             Self::Adopted => "adopted",
             Self::Executed => "executed",
@@ -95,7 +97,7 @@ impl SnsProposalStatusFilter {
     #[must_use]
     pub const fn governance_status_code(self) -> Option<i32> {
         match self {
-            Self::Any => None,
+            Self::Any | Self::Decided => None,
             Self::Open => Some(1),
             Self::Rejected => Some(2),
             Self::Adopted => Some(3),

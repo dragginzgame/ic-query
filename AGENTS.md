@@ -29,10 +29,13 @@ If code or habit conflicts with this file, this file wins.
 - Detailed patch breakdowns live in `docs/changelog/<major>.<minor>.md`; link
   the detailed file from the matching minor line in root `CHANGELOG.md` when
   present.
-- When a patch introduces a new command or subcommand, include a fenced `bash`
-  command example in both root `CHANGELOG.md` and the matching detailed
-  changelog file. Do not add command examples for cleanup-only patches that do
-  not change CLI behavior.
+- When a patch introduces any new CLI surface, include a fenced `bash` example
+  in both root `CHANGELOG.md` and the matching detailed changelog file. "New
+  CLI surface" includes commands, subcommands, options, option values, and new
+  supported combinations of existing options. Use `bash`, not `sh`, for the
+  fence language. The example must show the newly introduced surface directly.
+  Do not add command examples for cleanup-only patches that do not change CLI
+  behavior.
 
 ## Code Boundaries
 
@@ -62,6 +65,9 @@ If code or habit conflicts with this file, this file wins.
 - More than three generic parameters on a function, struct, or impl is a design
   smell; prefer associated types, concrete provider traits, or smaller helpers
   unless the extra type parameters are clearly justified.
+- Prefer `#[expect(...)]` over `#[allow(...)]` for lint suppressions so stale
+  suppressions are caught. Use `#[allow(...)]` only when `#[expect(...)]`
+  generates false positives or otherwise cannot model the lint accurately.
 - Keep imports at file top, changes scoped to the task, comments limited to
   intent/invariants/non-obvious behavior, and avoid module restructuring unless
   restructuring is the task.

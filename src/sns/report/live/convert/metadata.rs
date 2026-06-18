@@ -84,7 +84,8 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::CacheNetworkMismatch { .. }
         | SnsHostError::Cache(_)
         | SnsHostError::IncompleteRefresh { .. }
-        | SnsHostError::MissingCacheRoot => None,
+        | SnsHostError::MissingCacheRoot
+        | SnsHostError::UnsupportedProposalView { .. } => None,
     }
 }
 

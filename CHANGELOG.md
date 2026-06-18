@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.18` adds cache-backed `icq sns proposals --status decided` filtering
+  for complete proposal snapshots, rejects combining that synthetic local
+  status with topic filters, and documents that adopted/rejected still require
+  live fallback because cached proposal rows do not carry the raw governance
+  status enum.
+
+  ```bash
+  icq sns proposals 1 --status decided
+  ```
+
 - `0.2.17` adds `icq sns proposals --sort decided|executed|failed` for
   newest decision, execution, and failure proposal views, adds `--asc` and
   `--desc` direction controls for local proposal sorts, applies sorting
