@@ -15,7 +15,8 @@ use super::{
     },
 };
 use crate::{
-    cli::common::OutputFormat, sns::report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    cli::common::OutputFormat,
+    sns::report::{DEFAULT_SNS_SOURCE_ENDPOINT, SnsProposalSortDirection},
     test_support::assert_snapshot,
 };
 use std::ffi::OsString;

@@ -75,7 +75,7 @@ fn sns_proposals_report_from_cache(
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
         .filter(|proposal| proposal_matches_status(proposal, request.status))
         .collect::<Vec<_>>();
-    sort_sns_proposal_rows(&mut proposals, request.sort);
+    sort_sns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
     sns_proposals_report_from_parts(SnsProposalsReportParts {
         list: projection.list,
@@ -86,6 +86,7 @@ fn sns_proposals_report_from_cache(
         status: request.status,
         topic: request.topic,
         sort: request.sort,
+        sort_direction: request.sort_direction,
         verbose: request.verbose,
         provenance: SnsReportProvenance::cache(&cache_path, cache_complete),
         proposals: MainnetSnsProposals { proposals },

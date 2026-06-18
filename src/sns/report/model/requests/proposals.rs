@@ -4,7 +4,9 @@
 //! Does not own: command option parsing, live proposal fetches, or rendering.
 //! Boundary: carries validated proposal inputs into SNS report builders.
 
-use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort};
+use crate::sns::report::{
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+};
 use std::path::PathBuf;
 
 ///
@@ -67,6 +69,7 @@ pub struct SnsProposalsRequest {
     pub status: SnsProposalStatusFilter,
     pub topic: SnsProposalTopicFilter,
     pub sort: SnsProposalsSort,
+    pub sort_direction: SnsProposalSortDirection,
     pub icp_root: Option<PathBuf>,
     pub verbose: bool,
 }

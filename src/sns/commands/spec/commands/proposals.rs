@@ -31,6 +31,10 @@ Examples:
   icq sns proposals 1 --status open
   icq sns proposals 1 --topic governance
   icq sns proposals 1 --sort created
+  icq sns proposals 1 --sort decided
+  icq sns proposals 1 --sort executed
+  icq sns proposals 1 --sort failed
+  icq sns proposals 1 --sort created --asc
   icq sns proposals refresh 1
   icq sns proposals cache status 1
   icq sns proposals 1 --before 100 --limit 50
@@ -147,10 +151,22 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
         .arg(
             value_arg("sort")
                 .long("sort")
-                .value_name("api|id|created")
+                .value_name("api|id|created|decided|executed|failed")
                 .default_value("api")
                 .value_parser(clap::value_parser!(SnsProposalsSortArg))
-                .help("Sort proposals locally; id and created sort newest first"),
+                .help("Sort proposals locally; timestamp sorts are newest first"),
+        )
+        .arg(
+            flag_arg("asc")
+                .long("asc")
+                .conflicts_with("desc")
+                .help("Sort ascending for local sort modes"),
+        )
+        .arg(
+            flag_arg("desc")
+                .long("desc")
+                .conflicts_with("asc")
+                .help("Sort descending for local sort modes; this is the default"),
         )
         .arg(
             flag_arg("verbose")

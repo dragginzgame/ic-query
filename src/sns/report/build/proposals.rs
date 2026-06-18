@@ -98,7 +98,11 @@ fn build_sns_proposals_report_live(
         &include_status,
         request.topic,
     )?;
-    sort_sns_proposal_rows(&mut proposals.proposals, request.sort);
+    sort_sns_proposal_rows(
+        &mut proposals.proposals,
+        request.sort,
+        request.sort_direction,
+    );
     Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
         list: lookup.list,
         id: lookup.id,
@@ -108,6 +112,7 @@ fn build_sns_proposals_report_live(
         status: request.status,
         topic: request.topic,
         sort: request.sort,
+        sort_direction: request.sort_direction,
         verbose: request.verbose,
         provenance: SnsReportProvenance::live(),
         proposals,

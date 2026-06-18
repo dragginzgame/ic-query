@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.17` adds `icq sns proposals --sort decided|executed|failed` for
+  newest decision, execution, and failure proposal views, adds `--asc` and
+  `--desc` direction controls for local proposal sorts, applies sorting
+  through the shared proposal view layer for live rows and complete proposal
+  snapshots, and keeps cache identity, cache paths, and JSON row fields
+  unchanged.
+
 - `0.2.16` moves changelog contribution rules out of the public changelog and
   into `AGENTS.md`, routes SNS nested `neurons`/`proposals` refresh/cache
   dispatch through shared clap helpers, shares cached lookup/cache command

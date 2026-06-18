@@ -55,6 +55,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.status_filter, "open");
     assert_eq!(report.topic_filter, "governance");
     assert_eq!(report.sort, "api");
+    assert_eq!(report.sort_direction, "desc");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(42));
     assert_eq!(report.proposals[0].action, "motion");
@@ -75,6 +76,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert!(text.contains("data_source: live"));
     assert!(text.contains("topic_filter: governance"));
     assert!(text.contains("sort: api"));
+    assert!(text.contains("sort_direction: desc"));
     assert!(text.contains("before_proposal_id: 99"));
     assert!(text.contains("proposal_count: 1"));
     assert!(text.contains("ID   ACTION"));
@@ -222,6 +224,186 @@ fn sns_proposals_cached_sort_created_orders_before_limit() {
 }
 
 #[test]
+fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-created-asc");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Created;
+    request.sort_direction = SnsProposalSortDirection::Asc;
+    request.limit = 2;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh ascending sorted proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.sort, "created");
+    assert_eq!(first.sort_direction, "asc");
+    assert_eq!(
+        first
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![10, 30]
+    );
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse ascending sorted proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.sort, "created");
+    assert_eq!(second.sort_direction, "asc");
+    assert_eq!(
+        second
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![10, 30]
+    );
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains("sort: created"));
+    assert!(text.contains("sort_direction: asc"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_cached_sort_decided_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-decided");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Decided;
+    request.limit = 2;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh decided sorted proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.sort, "decided");
+    assert_eq!(
+        first
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![30, 10]
+    );
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse decided sorted proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.sort, "decided");
+    assert_eq!(
+        second
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![30, 10]
+    );
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains("sort: decided"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_cached_sort_executed_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-executed");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Executed;
+    request.limit = 2;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh executed sorted proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.sort, "executed");
+    assert_eq!(
+        first
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![10, 30]
+    );
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse executed sorted proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.sort, "executed");
+    assert_eq!(
+        second
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![10, 30]
+    );
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains("sort: executed"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_cached_sort_failed_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-failed");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Failed;
+    request.limit = 2;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh failed sorted proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.sort, "failed");
+    assert_eq!(
+        first
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![30, 10]
+    );
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse failed sorted proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.sort, "failed");
+    assert_eq!(
+        second
+            .proposals
+            .iter()
+            .filter_map(|proposal| proposal.proposal_id)
+            .collect::<Vec<_>>(),
+        vec![30, 10]
+    );
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains("sort: failed"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
     let mut request = proposals_request("1");
@@ -308,20 +490,50 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
         assert_eq!(before_proposal_id, None);
         Ok(MainnetSnsProposalPage {
             proposals: vec![
-                proposal_row_with_id_and_created_at(10, 1_700_000_100),
-                proposal_row_with_id_and_created_at(20, 1_700_000_300),
-                proposal_row_with_id_and_created_at(30, 1_700_000_200),
+                proposal_row_with_id_created_decided_and_executed_at(
+                    10,
+                    1_700_000_100,
+                    Some(1_700_001_100),
+                    Some(1_700_002_300),
+                    Some(1_700_003_100),
+                ),
+                proposal_row_with_id_created_decided_and_executed_at(
+                    20,
+                    1_700_000_300,
+                    None,
+                    None,
+                    None,
+                ),
+                proposal_row_with_id_created_decided_and_executed_at(
+                    30,
+                    1_700_000_200,
+                    Some(1_700_001_300),
+                    Some(1_700_002_100),
+                    Some(1_700_003_300),
+                ),
             ],
             last_cursor: None,
         })
     }
 }
 
-fn proposal_row_with_id_and_created_at(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
+fn proposal_row_with_id_created_decided_and_executed_at(
+    proposal_id: u64,
+    created_at_secs: u64,
+    decided_at_secs: Option<u64>,
+    executed_at_secs: Option<u64>,
+    failed_at_secs: Option<u64>,
+) -> SnsProposalRow {
     SnsProposalRow {
         proposal_id: Some(proposal_id),
         proposal_creation_timestamp_seconds: created_at_secs,
         created_at: format_utc_timestamp_secs(created_at_secs),
+        decided_timestamp_seconds: decided_at_secs,
+        decided_at: decided_at_secs.map(format_utc_timestamp_secs),
+        executed_timestamp_seconds: executed_at_secs,
+        executed_at: executed_at_secs.map(format_utc_timestamp_secs),
+        failed_timestamp_seconds: failed_at_secs,
+        failed_at: failed_at_secs.map(format_utc_timestamp_secs),
         ..fixture_proposal_row()
     }
 }

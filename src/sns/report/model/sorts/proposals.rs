@@ -16,6 +16,9 @@ pub enum SnsProposalsSort {
     Api,
     Id,
     Created,
+    Decided,
+    Executed,
+    Failed,
 }
 
 impl SnsProposalsSort {
@@ -26,6 +29,33 @@ impl SnsProposalsSort {
             Self::Api => "api",
             Self::Id => "id",
             Self::Created => "created",
+            Self::Decided => "decided",
+            Self::Executed => "executed",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+///
+/// SnsProposalSortDirection
+///
+/// Report-model direction selector for local SNS proposal sorting.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum SnsProposalSortDirection {
+    Asc,
+    #[default]
+    Desc,
+}
+
+impl SnsProposalSortDirection {
+    /// Return the stable label used in text and JSON reports.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Asc => "asc",
+            Self::Desc => "desc",
         }
     }
 }

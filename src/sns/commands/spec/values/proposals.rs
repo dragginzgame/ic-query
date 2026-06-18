@@ -19,6 +19,9 @@ pub(in crate::sns::commands) enum SnsProposalsSortArg {
     Api,
     Id,
     Created,
+    Decided,
+    Executed,
+    Failed,
 }
 
 impl From<SnsProposalsSortArg> for SnsProposalsSort {
@@ -27,6 +30,9 @@ impl From<SnsProposalsSortArg> for SnsProposalsSort {
             SnsProposalsSortArg::Api => Self::Api,
             SnsProposalsSortArg::Id => Self::Id,
             SnsProposalsSortArg::Created => Self::Created,
+            SnsProposalsSortArg::Decided => Self::Decided,
+            SnsProposalsSortArg::Executed => Self::Executed,
+            SnsProposalsSortArg::Failed => Self::Failed,
         }
     }
 }

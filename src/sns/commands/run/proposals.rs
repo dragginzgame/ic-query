@@ -93,6 +93,7 @@ where
         status: options.status.into(),
         topic: options.topic.into(),
         sort: options.sort.into(),
+        sort_direction: options.sort_direction,
         icp_root: Some(parts.icp_root),
         verbose: options.verbose,
     };

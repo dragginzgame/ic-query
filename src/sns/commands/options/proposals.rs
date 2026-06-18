@@ -20,7 +20,9 @@ use crate::{
             sns_proposals_usage,
         },
     },
+    sns::report::SnsProposalSortDirection,
 };
+use clap::ArgMatches;
 use std::ffi::OsString;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,6 +33,7 @@ pub(in crate::sns::commands) struct SnsProposalsOptions {
     pub(in crate::sns::commands) status: SnsProposalStatusArg,
     pub(in crate::sns::commands) topic: SnsProposalTopicArg,
     pub(in crate::sns::commands) sort: SnsProposalsSortArg,
+    pub(in crate::sns::commands) sort_direction: SnsProposalSortDirection,
     pub(in crate::sns::commands) verbose: bool,
 }
 
@@ -68,16 +71,34 @@ impl SnsProposalsOptions {
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(sns_proposals_command(), args, sns_proposals_usage)?;
+        let sort = required_typed(&matches, "sort");
+        let sort_direction = proposal_sort_direction(&matches, sort)?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(&matches),
             limit: required_typed(&matches, "limit"),
             before_proposal_id: typed_option::<u64>(&matches, "before"),
             status: required_typed(&matches, "status"),
             topic: required_typed(&matches, "topic"),
-            sort: required_typed(&matches, "sort"),
+            sort,
+            sort_direction,
             verbose: matches.get_flag("verbose"),
         })
     }
+}
+
+fn proposal_sort_direction(
+    matches: &ArgMatches,
+    sort: SnsProposalsSortArg,
+) -> Result<SnsProposalSortDirection, SnsCommandError> {
+    if matches.get_flag("asc") {
+        if sort == SnsProposalsSortArg::Api {
+            return Err(SnsCommandError::Usage(
+                "--asc requires --sort id|created|decided|executed|failed".to_string(),
+            ));
+        }
+        return Ok(SnsProposalSortDirection::Asc);
+    }
+    Ok(SnsProposalSortDirection::Desc)
 }
 
 impl SnsProposalOptions {

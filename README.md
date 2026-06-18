@@ -119,15 +119,20 @@ adopted/rejected status filters currently use bounded live queries:
 icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
 icq sns proposals 1 --sort created
+icq sns proposals 1 --sort decided
+icq sns proposals 1 --sort executed
+icq sns proposals 1 --sort failed
+icq sns proposals 1 --sort created --asc
 icq sns proposals 1 --topic governance
 icq sns proposals 1 --before 100 --format json
 icq sns proposal 1 387
 icq sns proposal 1 387 --ballots
 ```
 
-Proposal list views support `--sort api|id|created`. Cache-compatible views
-sort complete local snapshots before applying `--limit`; bounded live fallback
-views sort the returned API rows.
+Proposal list views support `--sort api|id|created|decided|executed|failed`.
+Local sort modes accept `--asc` or `--desc`, defaulting to descending.
+Cache-compatible views sort complete local snapshots before applying `--limit`;
+bounded live fallback views sort the returned API rows.
 
 Complete SNS proposal snapshots can also be refreshed and inspected manually:
 
