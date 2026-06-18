@@ -4,7 +4,7 @@
 //! Does not own: cache discovery, refresh-attempt reads, or rendering.
 //! Boundary: preserves cache summary fields for cache list/status output.
 
-use super::attempt::SnsNeuronsRefreshAttemptStatus;
+use super::SnsNeuronsRefreshAttemptStatus;
 use crate::sns::report::SnsCacheSummarySortKey;
 use serde::Serialize;
 

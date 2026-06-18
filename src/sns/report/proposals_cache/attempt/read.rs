@@ -17,14 +17,5 @@ pub(in crate::sns::report::proposals_cache) fn read_sns_proposals_attempt_status
     path: &Path,
 ) -> Option<SnsProposalsRefreshAttemptStatus> {
     let attempt = read_snapshot_refresh_attempt::<SnsProposalsRefreshAttempt>(path)?;
-    Some(SnsProposalsRefreshAttemptStatus {
-        status: attempt.status,
-        started_at: attempt.started_at,
-        updated_at: attempt.updated_at,
-        page_size: attempt.page_size,
-        pages_fetched: attempt.pages_fetched,
-        rows_fetched: attempt.rows_fetched,
-        last_cursor: attempt.last_cursor,
-        last_error: attempt.last_error,
-    })
+    Some(SnsProposalsRefreshAttemptStatus::from(attempt))
 }

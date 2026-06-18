@@ -4,13 +4,12 @@
 //! Does not own: live governance calls, proposal conversion, cache storage, or rendering.
 //! Boundary: re-exports serializable proposal report models.
 
-mod attempt;
 mod cache;
 mod refresh;
 mod report;
 mod row;
 
-pub use attempt::SnsProposalsRefreshAttemptStatus;
+pub type SnsProposalsRefreshAttemptStatus = super::attempt::SnsRefreshAttemptStatus;
 pub use cache::{
     SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
 };

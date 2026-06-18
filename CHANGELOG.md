@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.19` centralizes shared SNS neuron/proposal cache-status lookup flow
+  behind associated-type cache-family traits, keeping family-specific storage
+  and report DTOs separate, shares the identical refresh-attempt status DTO,
+  and removes duplicated id/root cache-status branching without changing CLI
+  behavior, cache paths, report schemas, text output, or JSON fields.
+
 - `0.2.18` adds cache-backed `icq sns proposals --status decided` filtering
   for complete proposal snapshots, rejects combining that synthetic local
   status with topic filters, and documents that adopted/rejected still require

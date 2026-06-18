@@ -4,7 +4,7 @@
 //! Does not own: cache discovery, cache file reads, or text rendering.
 //! Boundary: preserves cache metadata fields for text and JSON reports.
 
-use super::attempt::SnsProposalsRefreshAttemptStatus;
+use super::SnsProposalsRefreshAttemptStatus;
 use crate::sns::report::SnsCacheSummarySortKey;
 
 use serde::Serialize;
