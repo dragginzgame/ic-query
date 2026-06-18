@@ -2,7 +2,7 @@
 name = "ic-query"
 edition = "2024"
 rust-version = "1.91.0"
-version = "0.2.14"
+version = "0.2.15"
 license = "MIT"
 authors = ["borovan <84897664+borovan@users.noreply.github.com>"]
 description = "Internet Computer query CLI for NNS, SNS, and related public network metadata"
