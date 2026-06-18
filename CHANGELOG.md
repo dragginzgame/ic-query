@@ -20,6 +20,14 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.15` removes over-fragmented one-function and single-child modules
+  across NNS topology, NNS leaf runtime/cache errors, SNS text/source/live
+  helpers, and proposal cache reports, enforces the `module.rs` versus
+  `module/mod.rs` layout rule across the touched tree, and shares SNS cache
+  summary ordering plus root-principal parsing between neuron and proposal
+  cache reports without changing CLI behavior, cache behavior, report schemas,
+  or text output.
+
 - `0.2.14` moves deployed SNS list sorting into the report view layer and
   leaves lookup focused on stable id assignment and input resolution, applies
   the code-hygiene module-header and module-granularity standard to SNS

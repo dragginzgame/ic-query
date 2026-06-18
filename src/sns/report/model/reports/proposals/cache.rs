@@ -5,6 +5,7 @@
 //! Boundary: preserves cache metadata fields for text and JSON reports.
 
 use super::attempt::SnsProposalsRefreshAttemptStatus;
+use crate::sns::report::SnsCacheSummarySortKey;
 
 use serde::Serialize;
 
@@ -63,4 +64,14 @@ pub struct SnsProposalsCacheSummary {
     pub cache_path: String,
     pub refresh_attempt_path: String,
     pub latest_attempt: Option<SnsProposalsRefreshAttemptStatus>,
+}
+
+impl SnsCacheSummarySortKey for SnsProposalsCacheSummary {
+    fn id(&self) -> usize {
+        self.id
+    }
+
+    fn root_canister_id(&self) -> &str {
+        &self.root_canister_id
+    }
 }

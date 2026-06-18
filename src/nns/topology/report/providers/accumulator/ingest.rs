@@ -1,4 +1,4 @@
-use super::{NnsTopologyProviderAccumulator, data_centers::insert_provider_data_center};
+use super::NnsTopologyProviderAccumulator;
 use crate::nns::{
     node::report::NnsNodeListReport,
     node_operator::report::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
@@ -31,13 +31,7 @@ impl NnsTopologyProviderAccumulator {
                 .topology_node_counts
                 .entry(provider.clone())
                 .or_default() += 1;
-            insert_provider_data_center(
-                &provider,
-                &node.data_center_id,
-                &self.data_center_regions,
-                &mut self.data_center_ids,
-                &mut self.region_ids,
-            );
+            self.insert_provider_data_center(&provider, &node.data_center_id);
         }
     }
 
@@ -71,12 +65,19 @@ impl NnsTopologyProviderAccumulator {
             .over_assigned_node_counts
             .entry(provider.clone())
             .or_default() += assigned_node_count.saturating_sub(operator.node_allowance);
-        insert_provider_data_center(
-            &provider,
-            &operator.data_center_id,
-            &self.data_center_regions,
-            &mut self.data_center_ids,
-            &mut self.region_ids,
-        );
+        self.insert_provider_data_center(&provider, &operator.data_center_id);
+    }
+
+    fn insert_provider_data_center(&mut self, provider: &str, data_center_id: &str) {
+        self.data_center_ids
+            .entry(provider.to_string())
+            .or_default()
+            .insert(data_center_id.to_string());
+        if let Some(region) = self.data_center_regions.get(data_center_id) {
+            self.region_ids
+                .entry(provider.to_string())
+                .or_default()
+                .insert(region.clone());
+        }
     }
 }

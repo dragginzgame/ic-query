@@ -26,6 +26,7 @@ use source::{
 mod assemble;
 mod build;
 mod cache_error;
+mod cache_summary;
 mod live;
 mod lookup;
 mod model;
@@ -39,6 +40,9 @@ pub use build::{
     build_sns_info_report, build_sns_list_report, build_sns_neurons_report,
     build_sns_params_report, build_sns_proposal_report, build_sns_proposals_report,
     build_sns_token_report,
+};
+pub(in crate::sns::report) use cache_summary::{
+    SnsCacheSummarySortKey, parse_sns_root_canister_input, sort_sns_cache_summaries,
 };
 #[cfg(test)]
 use neurons_cache::{

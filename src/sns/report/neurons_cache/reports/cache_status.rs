@@ -15,8 +15,8 @@ use crate::sns::report::{
             find_sns_neurons_cache_by_id, load_sns_neurons_cache_at, sns_neurons_cache_summary,
         },
     },
+    parse_sns_root_canister_input,
 };
-use candid::Principal;
 
 pub fn build_sns_neurons_cache_status_report(
     request: &SnsNeuronsCacheStatusRequest,
@@ -56,11 +56,7 @@ fn build_root_cache_status_report(
     request: &SnsNeuronsCacheStatusRequest,
     cache_root: String,
 ) -> Result<SnsNeuronsCacheStatusReport, SnsHostError> {
-    let root_canister_id = Principal::from_text(&request.input)
-        .map_err(|_| SnsHostError::InvalidLookup {
-            input: request.input.clone(),
-        })?
-        .to_text();
+    let root_canister_id = parse_sns_root_canister_input(&request.input)?;
     let paths =
         SnsNeuronsCachePaths::for_root(&request.icp_root, &request.network, &root_canister_id);
     let cache = if paths.cache_path.is_file() {

@@ -1,8 +1,8 @@
-//! Module: nns::topology::report::text::capacity::attention
+//! Module: nns::topology::report::text::capacity
 //!
-//! Responsibility: render NNS topology capacity attention rows.
-//! Does not own: capacity row construction, cache loading, or JSON output.
-//! Boundary: formats over-assigned and unknown-capacity rows for humans.
+//! Responsibility: render NNS topology capacity reports as text.
+//! Does not own: capacity calculation, source reads, or JSON output.
+//! Boundary: combines summary and attention capacity tables for humans.
 
 use crate::{
     nns::{
@@ -14,7 +14,55 @@ use crate::{
     table::{ColumnAlign, render_table},
 };
 
-pub(super) fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String {
+#[must_use]
+pub fn nns_topology_capacity_report_text(report: &NnsTopologyCapacityReport) -> String {
+    let lines = [
+        render_capacity_summary_table(report),
+        String::new(),
+        render_capacity_attention_table(report),
+    ];
+    lines.join("\n")
+}
+
+fn render_capacity_summary_table(report: &NnsTopologyCapacityReport) -> String {
+    let headers = ["FIELD", "VALUE"];
+    let rows = [
+        ["network".to_string(), report.network.clone()],
+        ["status".to_string(), report.status.clone()],
+        [
+            "node_operators".to_string(),
+            report.node_operator_count.to_string(),
+        ],
+        [
+            "total_node_allowance".to_string(),
+            report.total_node_allowance.to_string(),
+        ],
+        [
+            "assigned_nodes".to_string(),
+            report.assigned_node_count.to_string(),
+        ],
+        [
+            "available_node_slots".to_string(),
+            report.available_node_slots.to_string(),
+        ],
+        [
+            "over_assigned_operators".to_string(),
+            report.over_assigned_operator_count.to_string(),
+        ],
+        [
+            "over_assigned_nodes".to_string(),
+            report.over_assigned_node_count.to_string(),
+        ],
+        [
+            "unknown_node_count_operators".to_string(),
+            report.unknown_node_count_operator_count.to_string(),
+        ],
+    ];
+    let alignments = [ColumnAlign::Left, ColumnAlign::Right];
+    render_table(&headers, &rows, &alignments)
+}
+
+fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String {
     let attention_rows = report
         .capacity
         .iter()

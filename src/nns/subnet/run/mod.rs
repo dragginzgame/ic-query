@@ -1,10 +1,12 @@
-mod cache;
 mod info;
 mod list;
 mod refresh;
 
 use super::commands::{subnet_command, subnet_usage};
-use crate::nns::{NnsCommandError, command_args, parse_nns_required_subcommand};
+use crate::{
+    nns::{NnsCommandError, command_args, command_icp_root, parse_nns_required_subcommand},
+    subnet_catalog::SubnetCatalogCacheRequest,
+};
 use std::ffi::OsString;
 
 pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
@@ -22,4 +24,12 @@ where
         "refresh" => refresh::run_catalog_refresh(args),
         _ => unreachable!("nns subnet dispatch command only defines known commands"),
     }
+}
+
+fn cache_request(network: &str) -> Result<SubnetCatalogCacheRequest, NnsCommandError> {
+    let icp_root = command_icp_root()?;
+    Ok(SubnetCatalogCacheRequest {
+        icp_root,
+        network: network.to_string(),
+    })
 }

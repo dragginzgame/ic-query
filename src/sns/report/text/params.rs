@@ -1,21 +1,43 @@
-//! Module: sns::report::text::params::rows
+//! Module: sns::report::text::params
 //!
-//! Responsibility: construct grouped SNS parameter table rows.
-//! Does not own: parameter fetching, report construction, or table rendering.
-//! Boundary: keeps parameter row grouping together without one-function modules.
+//! Responsibility: render SNS governance parameter reports as text.
+//! Does not own: parameter fetching, report construction, or JSON output.
+//! Boundary: groups governance parameter rows into a human-readable table.
 
-use crate::sns::report::{
-    SnsGovernanceParameters,
-    text::common::{
-        comma_join_u64, optional_basis_points_text, optional_bool_text, optional_duration_text,
-        optional_e8s_text, optional_percentage_text, optional_permissions_text, optional_u32_text,
-        optional_u64_text,
+use crate::{
+    sns::report::{
+        SnsGovernanceParameters, SnsParamsReport,
+        text::common::{
+            comma_join_u64, optional_basis_points_text, optional_bool_text, optional_duration_text,
+            optional_e8s_text, optional_percentage_text, optional_permissions_text,
+            optional_u32_text, optional_u64_text,
+        },
     },
+    table::{ColumnAlign, render_table},
 };
 
-pub(in crate::sns::report::text::params) fn sns_params_text_rows(
-    parameters: &SnsGovernanceParameters,
-) -> Vec<[String; 2]> {
+#[must_use]
+pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", report.network),
+        format!("sns_id: {}", report.id),
+        format!("name: {}", report.name),
+        format!("root_canister_id: {}", report.root_canister_id),
+        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    lines.push(String::new());
+    lines.push(render_table(
+        &["PARAMETER", "VALUE"],
+        &sns_params_text_rows(&report.parameters),
+        &[ColumnAlign::Left, ColumnAlign::Right],
+    ));
+    lines.join("\n")
+}
+
+fn sns_params_text_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
     [
         economic_rows(parameters),
         delay_rows(parameters),

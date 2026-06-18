@@ -6,11 +6,10 @@
 
 use super::{load::load_sns_proposals_cache_at, scan::read_sns_proposals_cache_header};
 use crate::sns::report::{
-    SnsHostError,
+    SnsHostError, parse_sns_root_canister_input,
     proposals_cache::model::SnsProposalsCache,
     proposals_cache::paths::{SnsProposalsCachePaths, sns_network_cache_dir},
 };
-use candid::Principal;
 use std::path::{Path, PathBuf};
 
 use super::scan::collect_sns_proposals_cache_paths;
@@ -29,11 +28,7 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_inpu
         });
     }
 
-    let root_canister_id = Principal::from_text(input)
-        .map_err(|_| SnsHostError::InvalidLookup {
-            input: input.to_string(),
-        })?
-        .to_text();
+    let root_canister_id = parse_sns_root_canister_input(input)?;
     let cache_path =
         SnsProposalsCachePaths::for_root(icp_root, network, &root_canister_id).cache_path;
     let cache = load_sns_proposals_cache_at(cache_path.clone(), network)?;

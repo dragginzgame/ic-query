@@ -1,4 +1,4 @@
-use super::cache::cache_request;
+use super::cache_request;
 use crate::nns::{
     NnsCommandError, command_args,
     node::{

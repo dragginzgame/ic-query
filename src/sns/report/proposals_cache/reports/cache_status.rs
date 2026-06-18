@@ -7,6 +7,7 @@
 use crate::sns::report::{
     SnsHostError, SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest,
     SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus, enforce_mainnet_network,
+    parse_sns_root_canister_input,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         attempt::read_sns_proposals_attempt_status,
@@ -17,7 +18,6 @@ use crate::sns::report::{
         },
     },
 };
-use candid::Principal;
 
 /// Build a local SNS proposal cache status report.
 pub fn build_sns_proposals_cache_status_report(
@@ -58,11 +58,7 @@ fn build_root_cache_status_report(
     request: &SnsProposalsCacheStatusRequest,
     cache_root: String,
 ) -> Result<SnsProposalsCacheStatusReport, SnsHostError> {
-    let root_canister_id = Principal::from_text(&request.input)
-        .map_err(|_| SnsHostError::InvalidLookup {
-            input: request.input.clone(),
-        })?
-        .to_text();
+    let root_canister_id = parse_sns_root_canister_input(&request.input)?;
     let paths =
         SnsProposalsCachePaths::for_root(&request.icp_root, &request.network, &root_canister_id);
     let cache = if paths.cache_path.is_file() {

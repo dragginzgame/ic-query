@@ -11,6 +11,7 @@ use crate::sns::report::{
         SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::sns_network_cache_dir,
         storage::list_sns_proposals_cache_summaries,
     },
+    sort_sns_cache_summaries,
 };
 
 /// Build a local SNS proposal cache list report.
@@ -20,11 +21,7 @@ pub fn build_sns_proposals_cache_list_report(
     enforce_mainnet_network(&request.network)?;
     let cache_root = sns_network_cache_dir(&request.icp_root, &request.network);
     let mut caches = list_sns_proposals_cache_summaries(&request.icp_root, &request.network)?;
-    caches.sort_by(|left, right| {
-        left.id
-            .cmp(&right.id)
-            .then_with(|| left.root_canister_id.cmp(&right.root_canister_id))
-    });
+    sort_sns_cache_summaries(&mut caches);
     Ok(SnsProposalsCacheListReport {
         schema_version: SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),

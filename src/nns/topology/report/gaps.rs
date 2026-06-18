@@ -1,10 +1,53 @@
+//! Module: nns::topology::report::gaps
+//!
+//! Responsibility: build NNS topology join-gap reports.
+//! Does not own: source reads, cache refresh, or text rendering.
+//! Boundary: projects cached topology component reports into missing-relation rows.
+
+use super::relations::TopologyRelationIndex;
+use super::{NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION, NnsTopologyGapsReport};
 use crate::nns::{
-    node::report::NnsNodeRow,
-    node_operator::report::NnsNodeOperatorRow,
-    topology::report::{NnsTopologyGapRow, relations::TopologyRelationIndex},
+    data_center::report::NnsDataCenterListReport,
+    node::report::{NnsNodeListReport, NnsNodeRow},
+    node_operator::report::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
+    node_provider::report::NnsNodeProviderListReport,
+    topology::report::NnsTopologyGapRow,
 };
 
-pub(super) fn collect_node_gaps(
+pub(super) fn topology_gaps_report_from_reports(
+    network: String,
+    source_endpoint: String,
+    node_report: NnsNodeListReport,
+    node_provider_report: NnsNodeProviderListReport,
+    node_operator_report: NnsNodeOperatorListReport,
+    data_center_report: NnsDataCenterListReport,
+) -> NnsTopologyGapsReport {
+    let index = TopologyRelationIndex::from_reports(
+        &node_provider_report,
+        &node_operator_report,
+        &data_center_report,
+    );
+    let mut gaps = collect_node_gaps(&node_report.nodes, &index);
+    gaps.extend(collect_node_operator_gaps(
+        &node_operator_report.node_operators,
+        &index,
+    ));
+    sort_gap_rows(&mut gaps);
+
+    let gap_count = gaps.len();
+    let status = if gap_count == 0 { "ok" } else { "attention" }.to_string();
+
+    NnsTopologyGapsReport {
+        schema_version: NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION,
+        network,
+        source_endpoint,
+        status,
+        gap_count,
+        gaps,
+    }
+}
+
+fn collect_node_gaps(
     nodes: &[NnsNodeRow],
     index: &TopologyRelationIndex<'_>,
 ) -> Vec<NnsTopologyGapRow> {
@@ -38,7 +81,7 @@ pub(super) fn collect_node_gaps(
     gaps
 }
 
-pub(super) fn collect_node_operator_gaps(
+fn collect_node_operator_gaps(
     operators: &[NnsNodeOperatorRow],
     index: &TopologyRelationIndex<'_>,
 ) -> Vec<NnsTopologyGapRow> {
@@ -64,7 +107,7 @@ pub(super) fn collect_node_operator_gaps(
     gaps
 }
 
-pub(super) fn sort_gap_rows(gaps: &mut [NnsTopologyGapRow]) {
+fn sort_gap_rows(gaps: &mut [NnsTopologyGapRow]) {
     gaps.sort_by(|left, right| {
         (
             left.subject_kind.as_str(),

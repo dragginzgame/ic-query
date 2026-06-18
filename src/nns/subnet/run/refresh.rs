@@ -1,4 +1,4 @@
-use super::cache::cache_request;
+use super::cache_request;
 use crate::{
     cli::common::write_text_or_json,
     nns::{

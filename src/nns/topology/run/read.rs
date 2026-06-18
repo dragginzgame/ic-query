@@ -1,8 +1,12 @@
-use super::core::run_topology_read;
 use crate::{
-    nns::NnsCommandError,
     nns::topology::{commands as topology_commands, options as topology_options, report},
+    nns::{
+        NnsCommandError, command_args, command_icp_root, now_unix_secs,
+        topology::options::TopologyReadOptions,
+    },
+    nns::{topology::report::NnsTopologyHostError, write_text_or_json},
 };
+use serde::Serialize;
 use std::ffi::OsString;
 
 macro_rules! topology_read_runner {
@@ -95,3 +99,24 @@ topology_read_runner!(
     report::build_nns_topology_providers_report,
     report::nns_topology_providers_report_text
 );
+
+fn run_topology_read<Options, Request, Report>(
+    args: Vec<OsString>,
+    usage: fn() -> String,
+    build_report: fn(&Request) -> Result<Report, NnsTopologyHostError>,
+    render_text: fn(&Report) -> String,
+) -> Result<(), NnsCommandError>
+where
+    Options: TopologyReadOptions<Request>,
+    Report: Serialize,
+{
+    let Some(args) = command_args(args, usage) else {
+        return Ok(());
+    };
+    let options = Options::parse_args(args)?;
+    let format = options.format();
+    let icp_root = command_icp_root()?;
+    let request = options.into_request(icp_root, now_unix_secs()?);
+    let report = build_report(&request)?;
+    write_text_or_json(format, &report, render_text)
+}

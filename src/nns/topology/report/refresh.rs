@@ -1,4 +1,10 @@
-use super::components::NnsTopologyRefreshComponentReports;
+//! Module: nns::topology::report::refresh
+//!
+//! Responsibility: build NNS topology refresh reports from component refreshes.
+//! Does not own: component refresh execution, cache writes, or text rendering.
+//! Boundary: combines component refresh reports into one topology refresh report.
+
+use super::{NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION, NnsTopologyRefreshReport};
 use crate::{
     nns::{
         data_center::report::NnsDataCenterRefreshReport, node::report::NnsNodeRefreshReport,
@@ -9,7 +15,43 @@ use crate::{
     subnet_catalog::SubnetCatalogRefreshReport,
 };
 
-pub(super) fn refresh_rows_from_reports(
+pub(in crate::nns::topology::report) struct NnsTopologyRefreshComponentReports {
+    pub(in crate::nns::topology::report) subnet: SubnetCatalogRefreshReport,
+    pub(in crate::nns::topology::report) node: NnsNodeRefreshReport,
+    pub(in crate::nns::topology::report) node_provider: NnsNodeProviderRefreshReport,
+    pub(in crate::nns::topology::report) node_operator: NnsNodeOperatorRefreshReport,
+    pub(in crate::nns::topology::report) data_center: NnsDataCenterRefreshReport,
+}
+
+pub(super) fn topology_refresh_report_from_reports(
+    network: String,
+    source_endpoint: String,
+    dry_run: bool,
+    reports: NnsTopologyRefreshComponentReports,
+) -> NnsTopologyRefreshReport {
+    let components = refresh_rows_from_reports(reports);
+    let wrote_cache_count = components
+        .iter()
+        .filter(|component| component.wrote_cache)
+        .count();
+    let replaced_existing_cache_count = components
+        .iter()
+        .filter(|component| component.replaced_existing_cache)
+        .count();
+
+    NnsTopologyRefreshReport {
+        schema_version: NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION,
+        network,
+        source_endpoint,
+        dry_run,
+        component_count: components.len(),
+        wrote_cache_count,
+        replaced_existing_cache_count,
+        components,
+    }
+}
+
+fn refresh_rows_from_reports(
     reports: NnsTopologyRefreshComponentReports,
 ) -> Vec<NnsTopologyRefreshRow> {
     vec![

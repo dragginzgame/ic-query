@@ -15,8 +15,8 @@ use crate::sns::report::{
         model::SnsNeuronsCache,
         paths::{sns_network_cache_dir, sns_neurons_cache_path},
     },
+    parse_sns_root_canister_input,
 };
-use candid::Principal;
 use std::path::{Path, PathBuf};
 
 pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_for_input(
@@ -30,9 +30,8 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_for_input(
             .ok_or_else(|| missing_id_error(id, sns_network_cache_dir(icp_root, network)));
     }
 
-    let root_canister_id = Principal::from_text(input)
-        .map_err(|_| invalid_lookup_error(input))?
-        .to_text();
+    let root_canister_id =
+        parse_sns_root_canister_input(input).map_err(|_| invalid_lookup_error(input))?;
     let path = sns_neurons_cache_path(icp_root, network, &root_canister_id);
     let cache = load_sns_neurons_cache_at(path.clone(), network)?;
     Ok((path, cache))

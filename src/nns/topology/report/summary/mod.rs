@@ -4,7 +4,6 @@
 //! Does not own: component refresh, text rendering, or command parsing.
 //! Boundary: combines component report counts, relations, and versions.
 
-mod counts;
 mod join;
 mod registry_versions;
 
@@ -21,7 +20,6 @@ use crate::{
     },
     subnet_catalog::{SubnetCatalogListReport, SubnetKind},
 };
-use counts::{node_count_by_subnet_kind, subnet_count_by_kind};
 use join::topology_summary_join_coverage_counts;
 use registry_versions::topology_summary_registry_versions;
 
@@ -106,4 +104,20 @@ pub(super) fn topology_summary_report_from_reports(
         subnet_catalog_stale_reason: subnet_report.stale_reason,
         registry_versions,
     }
+}
+
+fn subnet_count_by_kind(report: &SubnetCatalogListReport, kind: SubnetKind) -> usize {
+    report
+        .subnets
+        .iter()
+        .filter(|subnet| subnet.subnet_kind == kind)
+        .count()
+}
+
+fn node_count_by_subnet_kind(report: &NnsNodeListReport, kind: &str) -> usize {
+    report
+        .nodes
+        .iter()
+        .filter(|node| node.subnet_kind.eq_ignore_ascii_case(kind))
+        .count()
 }

@@ -5,6 +5,7 @@
 //! Boundary: preserves cache summary fields for cache list/status output.
 
 use super::attempt::SnsNeuronsRefreshAttemptStatus;
+use crate::sns::report::SnsCacheSummarySortKey;
 use serde::Serialize;
 
 ///
@@ -62,4 +63,14 @@ pub struct SnsNeuronsCacheSummary {
     pub cache_path: String,
     pub refresh_attempt_path: String,
     pub latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
+}
+
+impl SnsCacheSummarySortKey for SnsNeuronsCacheSummary {
+    fn id(&self) -> usize {
+        self.id
+    }
+
+    fn root_canister_id(&self) -> &str {
+        &self.root_canister_id
+    }
 }
