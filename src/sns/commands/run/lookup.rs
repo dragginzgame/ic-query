@@ -1,10 +1,16 @@
-use super::common::{command_args, lookup_command_parts};
+//! Module: sns::commands::run::lookup
+//!
+//! Responsibility: run SNS lookup-style commands for info, token, and params.
+//! Does not own: clap command construction, live source reads, or rendering.
+//! Boundary: maps shared lookup options into report requests.
+
 use crate::{
     cli::common::write_text_or_json,
     sns::{
         commands::{
             SnsCommandError,
             options::SnsLookupOptions,
+            run::common::{command_args, lookup_command_parts},
             spec::{
                 sns_info_command, sns_info_usage, sns_params_command, sns_params_usage,
                 sns_token_command, sns_token_usage,

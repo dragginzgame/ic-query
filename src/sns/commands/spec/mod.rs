@@ -1,3 +1,9 @@
+//! Module: sns::commands::spec
+//!
+//! Responsibility: expose clap command definitions, usage text, and value enums.
+//! Does not own: option DTO parsing, command execution, or reports.
+//! Boundary: keeps SNS command shape separate from runtime behavior.
+
 mod commands;
 mod usage;
 mod values;

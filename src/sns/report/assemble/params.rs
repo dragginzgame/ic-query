@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::assemble::params
+//!
+//! Responsibility: assemble SNS governance parameter reports.
+//! Does not own: governance parameter fetching, lookup resolution, or rendering.
+//! Boundary: combines resolved SNS identity and raw parameter DTOs into report output.
+
+use crate::sns::report::{
     MainnetSns, MainnetSnsList, SNS_PARAMS_REPORT_SCHEMA_VERSION, SnsGovernanceParameters,
     SnsParamsReport,
 };

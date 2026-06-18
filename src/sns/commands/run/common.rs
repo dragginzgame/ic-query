@@ -1,3 +1,9 @@
+//! Module: sns::commands::run::common
+//!
+//! Responsibility: provide shared runtime helpers for SNS command execution.
+//! Does not own: command specs, report building, or cache policy.
+//! Boundary: adapts CLI-level helpers into SNS command errors and request parts.
+
 use crate::{
     cli::{
         clap::parse_required_subcommand_or_usage,

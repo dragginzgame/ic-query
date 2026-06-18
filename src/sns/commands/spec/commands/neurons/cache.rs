@@ -1,4 +1,13 @@
-use crate::cli::{clap::passthrough_subcommand, common::format_arg, globals::internal_network_arg};
+//! Module: sns::commands::spec::commands::neurons::cache
+//!
+//! Responsibility: build clap specs for SNS neuron cache inspection commands.
+//! Does not own: cache discovery, cache status reports, or command execution.
+//! Boundary: defines local-only cache command shape and examples.
+
+use crate::{
+    cli::{clap::passthrough_subcommand, common::format_arg, globals::internal_network_arg},
+    sns::commands::spec::commands::args::sns_lookup_input_arg,
+};
 use clap::Command as ClapCommand;
 
 const SNS_NEURONS_CACHE_HELP_AFTER: &str = "\
@@ -49,7 +58,7 @@ pub(in crate::sns::commands) fn sns_neurons_cache_status_command() -> ClapComman
         .bin_name("icq sns neurons cache status")
         .about("Show local SNS neuron snapshot and refresh-attempt status")
         .disable_help_flag(true)
-        .arg(super::super::args::sns_lookup_input_arg())
+        .arg(sns_lookup_input_arg())
         .arg(format_arg())
         .arg(internal_network_arg().default_value("ic"))
         .after_help(SNS_NEURONS_CACHE_STATUS_HELP_AFTER)

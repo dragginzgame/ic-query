@@ -1,9 +1,17 @@
-use super::super::common::{command_args, command_icp_root, lookup_command_parts};
+//! Module: sns::commands::run::neurons::refresh
+//!
+//! Responsibility: run explicit SNS neuron complete-snapshot refresh commands.
+//! Does not own: refresh paging, attempt files, cache publishing, or rendering.
+//! Boundary: maps refresh CLI options into the SNS neuron refresh request.
+
 use crate::{
     cli::common::write_text_or_json,
     sns::{
         commands::{
-            SnsCommandError, options::SnsNeuronsRefreshOptions, spec::sns_neurons_refresh_usage,
+            SnsCommandError,
+            options::SnsNeuronsRefreshOptions,
+            run::common::{command_args, command_icp_root, lookup_command_parts},
+            spec::sns_neurons_refresh_usage,
         },
         report::{
             SnsNeuronsRefreshRequest, refresh_sns_neurons_cache, sns_neurons_refresh_report_text,

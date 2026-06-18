@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache
+//!
+//! Responsibility: manage complete SNS neuron snapshot cache behavior.
+//! Does not own: CLI parsing, live SNS transport, generic snapshot mechanics, or text rendering.
+//! Boundary: coordinates neuron cache refresh, lookup, storage, and cache-backed reports.
+
 mod attempt;
 mod collection;
 mod errors;

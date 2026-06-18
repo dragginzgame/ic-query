@@ -4,10 +4,9 @@
 //! Does not own: ledger transport, token report assembly, or rendering.
 //! Boundary: maps ICRC metadata wire values into report rows and compact errors.
 
-use super::super::{
-    super::{SNS_TOKEN_LOGO_METADATA_KEY, SnsTokenMetadataRow, hex_bytes},
-    SnsHostError,
-    types::{GetIndexPrincipalError, IcrcMetadataValue},
+use crate::sns::report::{
+    SNS_TOKEN_LOGO_METADATA_KEY, SnsHostError, SnsTokenMetadataRow, hex_bytes,
+    live::types::{GetIndexPrincipalError, IcrcMetadataValue},
 };
 use serde_json::Value as JsonValue;
 

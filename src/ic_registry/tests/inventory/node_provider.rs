@@ -1,4 +1,4 @@
-use super::super::{fixtures::*, *};
+use crate::ic_registry::tests::{fixtures::*, *};
 
 #[test]
 fn node_provider_counts_follow_subnet_nodes_to_providers() {

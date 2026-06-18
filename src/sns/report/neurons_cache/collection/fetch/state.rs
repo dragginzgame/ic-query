@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache::collection::fetch::state
+//!
+//! Responsibility: maintain SNS neuron collection paging state.
+//! Does not own: live fetching, cache writing, report construction, or CLI parsing.
+//! Boundary: deduplicates rows, tracks cursors, and produces a complete neuron collection.
+
 use crate::snapshot_cache::{PagedCollectionPage, PagedCollectionState};
 use crate::sns::report::{
     SnsNeuronRow, hex_bytes,

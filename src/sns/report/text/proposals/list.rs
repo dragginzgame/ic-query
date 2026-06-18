@@ -1,3 +1,9 @@
+//! Module: sns::report::text::proposals::list
+//!
+//! Responsibility: render SNS proposal list reports as text.
+//! Does not own: proposal fetching, cache filtering, report construction, or JSON output.
+//! Boundary: formats live or cache-backed proposal rows for humans.
+
 use super::{
     SNS_PROPOSAL_DETAIL_TEXT_LIMIT,
     detail::{proposal_detail_lines, proposal_title_for_list},

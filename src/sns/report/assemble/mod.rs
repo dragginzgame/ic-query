@@ -1,3 +1,9 @@
+//! Module: sns::report::assemble
+//!
+//! Responsibility: group SNS report DTO assembly helpers.
+//! Does not own: command parsing, source/cache reads, view transforms, or text rendering.
+//! Boundary: converts resolved source/cache data into serializable report DTOs.
+
 mod list;
 mod neurons;
 mod params;

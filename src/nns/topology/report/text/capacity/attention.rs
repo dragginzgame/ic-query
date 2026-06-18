@@ -1,10 +1,18 @@
+//! Module: nns::topology::report::text::capacity::attention
+//!
+//! Responsibility: render NNS topology capacity attention rows.
+//! Does not own: capacity row construction, cache loading, or JSON output.
+//! Boundary: formats over-assigned and unknown-capacity rows for humans.
+
 use crate::{
-    nns::{render::compact_text, topology::report::NnsTopologyCapacityReport},
+    nns::{
+        render::compact_text,
+        topology::report::{
+            COMPACT_PRINCIPAL_CHARS, NnsTopologyCapacityReport, text::common::optional_u64_text,
+        },
+    },
     table::{ColumnAlign, render_table},
 };
-
-use super::super::super::COMPACT_PRINCIPAL_CHARS;
-use super::super::common::optional_u64_text;
 
 pub(super) fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String {
     let attention_rows = report

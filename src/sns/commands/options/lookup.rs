@@ -1,10 +1,15 @@
-use super::common::parse_sns_matches;
+//! Module: sns::commands::options::lookup
+//!
+//! Responsibility: parse shared SNS lookup command options.
+//! Does not own: command-specific option fields or report requests.
+//! Boundary: captures network, format, endpoint, and SNS selector inputs.
+
 use crate::{
     cli::{
         clap::{required_string, required_typed},
         common::OutputFormat,
     },
-    sns::commands::SnsCommandError,
+    sns::commands::{SnsCommandError, options::common::parse_sns_matches},
 };
 use clap::Command as ClapCommand;
 use std::ffi::OsString;

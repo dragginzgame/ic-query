@@ -4,12 +4,10 @@
 //! Does not own: governance transport, cache storage, or text rendering.
 //! Boundary: maps live neuron rows and cursors into source/report models.
 
-use super::super::{
-    super::{SnsNeuronRow, hex_bytes},
-    SnsNeuronId,
-    types::SnsGovernanceNeuron,
+use crate::{
+    sns::report::{SnsNeuronId, SnsNeuronRow, hex_bytes, live::types::SnsGovernanceNeuron},
+    subnet_catalog::format_utc_timestamp_secs,
 };
-use crate::subnet_catalog::format_utc_timestamp_secs;
 
 /// Convert one SNS governance neuron wire row into a report/cache row.
 pub(in crate::sns::report::live) fn sns_neuron_row(neuron: SnsGovernanceNeuron) -> SnsNeuronRow {

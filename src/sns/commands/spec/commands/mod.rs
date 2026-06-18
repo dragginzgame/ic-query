@@ -1,16 +1,21 @@
+//! Module: sns::commands::spec::commands
+//!
+//! Responsibility: build clap command definitions for SNS commands.
+//! Does not own: command execution, report requests, or text rendering.
+//! Boundary: defines command shape and help examples only.
+
 mod args;
 mod lookup;
 mod neurons;
 mod proposals;
 
-use super::values::SnsListSortArg;
 use crate::{
     cli::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
         common::{format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
-    sns::report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    sns::{commands::spec::values::SnsListSortArg, report::DEFAULT_SNS_SOURCE_ENDPOINT},
 };
 use clap::Command as ClapCommand;
 

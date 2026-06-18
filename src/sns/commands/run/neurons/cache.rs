@@ -1,10 +1,16 @@
-use super::super::common::{command_args, command_icp_root, parse_required_command};
+//! Module: sns::commands::run::neurons::cache
+//!
+//! Responsibility: run local SNS neuron cache inspection subcommands.
+//! Does not own: snapshot discovery, status report construction, or text rendering.
+//! Boundary: maps cache CLI options into cache-list and cache-status requests.
+
 use crate::{
     cli::common::{OutputFormat, write_text_or_json},
     sns::{
         commands::{
             SnsCommandError,
             options::{SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions},
+            run::common::{command_args, command_icp_root, parse_required_command},
             spec::{
                 sns_neurons_cache_command, sns_neurons_cache_list_usage,
                 sns_neurons_cache_status_usage, sns_neurons_cache_usage,

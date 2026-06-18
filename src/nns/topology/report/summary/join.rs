@@ -1,10 +1,15 @@
+//! Module: nns::topology::report::summary::join
+//!
+//! Responsibility: count known and unknown NNS topology relation joins.
+//! Does not own: component reports, registry versions, or text rendering.
+//! Boundary: summarizes relation coverage for topology summary reports.
+
 use crate::nns::{
     data_center::report::NnsDataCenterListReport, node::report::NnsNodeListReport,
     node_operator::report::NnsNodeOperatorListReport,
     node_provider::report::NnsNodeProviderListReport,
+    topology::report::relations::TopologyRelationIndex,
 };
-
-use super::super::relations::TopologyRelationIndex;
 
 ///
 /// NnsTopologyJoinCoverageCounts

@@ -1,4 +1,4 @@
-use super::super::super::{fixtures::*, *};
+use crate::sns::report::tests::{fixtures::*, *};
 use crate::test_support::temp_dir;
 use std::fs;
 

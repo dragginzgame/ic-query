@@ -1,9 +1,15 @@
-use super::super::{
-    SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::sns_network_cache_dir,
-    storage::list_sns_neurons_cache_summaries,
-};
+//! Module: sns::report::neurons_cache::reports::cache_list
+//!
+//! Responsibility: build SNS neuron cache list reports.
+//! Does not own: snapshot scanning details, text rendering, refresh, or CLI parsing.
+//! Boundary: projects cache summaries into stable id-ordered report output.
+
 use crate::sns::report::{
     SnsHostError, SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest, enforce_mainnet_network,
+    neurons_cache::{
+        SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::sns_network_cache_dir,
+        storage::list_sns_neurons_cache_summaries,
+    },
 };
 
 pub fn build_sns_neurons_cache_list_report(

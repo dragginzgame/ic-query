@@ -1,12 +1,20 @@
-use super::commands::{
-    sns_command, sns_info_command, sns_list_command, sns_neurons_cache_command,
-    sns_neurons_cache_list_command, sns_neurons_cache_status_command, sns_neurons_command,
-    sns_neurons_refresh_command, sns_params_command, sns_proposal_command,
-    sns_proposals_cache_command, sns_proposals_cache_list_command,
-    sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_refresh_command,
-    sns_token_command,
+//! Module: sns::commands::spec::usage
+//!
+//! Responsibility: render help text for SNS command specs.
+//! Does not own: command execution, option parsing, or report text.
+//! Boundary: converts clap command definitions into human-facing usage text.
+
+use crate::{
+    cli::clap::render_help,
+    sns::commands::spec::commands::{
+        sns_command, sns_info_command, sns_list_command, sns_neurons_cache_command,
+        sns_neurons_cache_list_command, sns_neurons_cache_status_command, sns_neurons_command,
+        sns_neurons_refresh_command, sns_params_command, sns_proposal_command,
+        sns_proposals_cache_command, sns_proposals_cache_list_command,
+        sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_refresh_command,
+        sns_token_command,
+    },
 };
-use crate::cli::clap::render_help;
 
 pub(in crate::sns::commands) fn usage() -> String {
     render_help(sns_command())

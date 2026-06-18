@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::text
+//!
+//! Responsibility: expose NNS topology text renderers.
+//! Does not own: report construction, cache loading, or JSON output.
+//! Boundary: groups human-facing topology report renderers by report type.
+
 mod capacity;
 mod common;
 mod coverage;

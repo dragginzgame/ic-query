@@ -1,4 +1,9 @@
-use super::common::{command_args, command_icp_root, lookup_command_parts, parse_required_command};
+//! Module: sns::commands::run::proposals
+//!
+//! Responsibility: run SNS proposal detail, list, refresh, and cache commands.
+//! Does not own: proposal cache storage, live governance calls, or rendering.
+//! Boundary: maps proposal CLI options into report/cache request DTOs.
+
 use crate::{
     cli::common::{OutputFormat, write_text_or_json},
     sns::{
@@ -7,6 +12,9 @@ use crate::{
             options::{
                 SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
                 SnsProposalsOptions, SnsProposalsRefreshOptions,
+            },
+            run::common::{
+                command_args, command_icp_root, lookup_command_parts, parse_required_command,
             },
             spec::{
                 sns_proposal_usage, sns_proposals_cache_command, sns_proposals_cache_list_usage,

@@ -1,3 +1,9 @@
+//! Module: sns::commands::spec::commands::neurons
+//!
+//! Responsibility: expose clap specs for SNS neuron list, refresh, and cache commands.
+//! Does not own: option parsing, cache policy, or report construction.
+//! Boundary: groups neuron command spec leaves under one command family.
+
 mod cache;
 mod refresh;
 mod root;

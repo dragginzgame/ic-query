@@ -1,12 +1,17 @@
+//! Module: sns::report::neurons_cache::collection::fetch
+//!
+//! Responsibility: drive paged SNS neuron collection refreshes.
+//! Does not own: cache paths, snapshot publishing, report assembly, or CLI parsing.
+//! Boundary: adapts SNS neuron page fetching to the shared paged snapshot runner.
+
 mod attempt;
 mod state;
 
-use super::super::model::CompleteSnsNeurons;
-use super::progress::sns_neurons_progress_text;
 use crate::{
     snapshot_cache::{PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh},
     sns::report::{
         SnsHostError, SnsNeuronsRefreshRequest,
+        neurons_cache::model::CompleteSnsNeurons,
         source::{MainnetSns, SnsFetchRequest, SnsNeuronsSource},
     },
 };
@@ -90,4 +95,11 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
     fn into_complete(self) -> Self::Complete {
         self.state.into_complete()
     }
+}
+
+fn sns_neurons_progress_text(sns: &MainnetSns, pages: u32, rows: usize) -> String {
+    format!(
+        "refreshing SNS neurons for {}: pages={} rows={}",
+        sns.name, pages, rows
+    )
 }

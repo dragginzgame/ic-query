@@ -1,6 +1,12 @@
-use super::super::super::{SnsNeuronsCacheListReport, short_principal};
+//! Module: sns::report::text::neurons::cache_list
+//!
+//! Responsibility: render SNS neuron cache list reports as text.
+//! Does not own: cache discovery, cache refresh, report construction, or JSON output.
+//! Boundary: formats discovered neuron snapshots into a human-readable table.
+
 use crate::{
     nns::render::yes_no,
+    sns::report::{SnsNeuronsCacheListReport, short_principal},
     table::{ColumnAlign, render_table},
 };
 

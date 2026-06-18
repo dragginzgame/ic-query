@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::build::params
+//!
+//! Responsibility: build SNS governance parameter reports.
+//! Does not own: command parsing, governance transport internals, DTO assembly, or rendering.
+//! Boundary: resolves SNS identity, fetches parameters, and delegates report assembly.
+
+use crate::sns::report::{
     SnsHostError, SnsParamsReport, SnsParamsRequest, assemble::sns_params_report_from_parts,
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsParamsSource,
 };

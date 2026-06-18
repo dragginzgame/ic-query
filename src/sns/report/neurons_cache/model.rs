@@ -1,5 +1,13 @@
-use super::super::{SnsNeuronRow, SnsNeuronsSort};
-use crate::snapshot_cache::{SnapshotEnvelope, SnapshotHeader};
+//! Module: sns::report::neurons_cache::model
+//!
+//! Responsibility: define SNS neuron cache snapshot and projection DTOs.
+//! Does not own: cache storage, refresh collection, report rendering, or CLI parsing.
+//! Boundary: keeps persisted cache models separate from public report models.
+
+use crate::{
+    snapshot_cache::{SnapshotEnvelope, SnapshotHeader},
+    sns::report::{SnsNeuronRow, SnsNeuronsSort},
+};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::PathBuf;
 

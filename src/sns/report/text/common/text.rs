@@ -1,3 +1,9 @@
+//! Module: sns::report::text::common::text
+//!
+//! Responsibility: render small shared text fragments for SNS reports.
+//! Does not own: report DTOs, table rendering, cache behavior, or source reads.
+//! Boundary: provides compact ids, truncation, and comma-joined numeric lists.
+
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 
 pub(in crate::sns::report::text) fn comma_join_u64(values: &[u64]) -> String {

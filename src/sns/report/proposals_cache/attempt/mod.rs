@@ -4,12 +4,12 @@
 //! Does not own: cache publishing, page fetching, or cache status rendering.
 //! Boundary: re-exports attempt context, progress, read, and write helpers.
 
-mod failure;
 mod model;
 mod read;
 mod write;
 
-pub(super) use failure::write_failed_attempt;
 pub(super) use model::{SnsProposalsAttemptContext, SnsProposalsAttemptProgress};
 pub(super) use read::read_sns_proposals_attempt_status;
-pub(super) use write::{write_complete_attempt, write_running_attempt, write_starting_attempt};
+pub(super) use write::{
+    write_complete_attempt, write_failed_attempt, write_running_attempt, write_starting_attempt,
+};

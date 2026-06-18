@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::assemble::token
+//!
+//! Responsibility: assemble SNS token reports.
+//! Does not own: ledger metadata fetching, supply lookup, amount formatting, or rendering.
+//! Boundary: combines resolved SNS identity and source token data into report output.
+
+use crate::sns::report::{
     MainnetSns, MainnetSnsList, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION, SnsTokenReport,
 };
 

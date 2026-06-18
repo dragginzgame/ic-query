@@ -1,12 +1,20 @@
-use super::super::{
-    SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    attempt::read_sns_neurons_attempt_status,
-    paths::{SnsNeuronsCachePaths, sns_network_cache_dir},
-    storage::{find_sns_neurons_cache_by_id, load_sns_neurons_cache_at, sns_neurons_cache_summary},
-};
+//! Module: sns::report::neurons_cache::reports::cache_status
+//!
+//! Responsibility: build SNS neuron cache status reports for one SNS input.
+//! Does not own: cache refresh, storage implementation, text rendering, or CLI parsing.
+//! Boundary: resolves id/root status views over cache snapshots and refresh-attempt sidecars.
+
 use crate::sns::report::{
     SnsHostError, SnsNeuronsCacheStatusReport, SnsNeuronsCacheStatusRequest,
-    SnsNeuronsCacheSummary, enforce_mainnet_network,
+    SnsNeuronsCacheSummary, SnsNeuronsRefreshAttemptStatus, enforce_mainnet_network,
+    neurons_cache::{
+        SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
+        attempt::read_sns_neurons_attempt_status,
+        paths::{SnsNeuronsCachePaths, sns_network_cache_dir},
+        storage::{
+            find_sns_neurons_cache_by_id, load_sns_neurons_cache_at, sns_neurons_cache_summary,
+        },
+    },
 };
 use candid::Principal;
 
@@ -83,7 +91,7 @@ fn cache_status_report(
     cache: Option<SnsNeuronsCacheSummary>,
     expected_cache_path: Option<String>,
     refresh_attempt_path: Option<String>,
-    latest_attempt: Option<crate::sns::report::SnsNeuronsRefreshAttemptStatus>,
+    latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
 ) -> SnsNeuronsCacheStatusReport {
     SnsNeuronsCacheStatusReport {
         schema_version: SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,

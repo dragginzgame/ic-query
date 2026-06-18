@@ -1,10 +1,17 @@
-use super::args::sns_lookup_input_arg;
+//! Module: sns::commands::spec::commands::lookup
+//!
+//! Responsibility: build clap specs for SNS info, token, and params commands.
+//! Does not own: option parsing, report building, or source calls.
+//! Boundary: defines shared lookup command shape and examples.
+
 use crate::{
     cli::{
         common::{format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
-    sns::report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    sns::{
+        commands::spec::commands::args::sns_lookup_input_arg, report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    },
 };
 use clap::Command as ClapCommand;
 

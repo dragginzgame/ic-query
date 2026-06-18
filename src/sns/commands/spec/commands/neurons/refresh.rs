@@ -1,9 +1,17 @@
+//! Module: sns::commands::spec::commands::neurons::refresh
+//!
+//! Responsibility: build the clap spec for SNS neuron snapshot refresh.
+//! Does not own: refresh execution, progress reporting, or cache storage.
+//! Boundary: defines refresh limits, source endpoint option, and examples.
+
 use crate::{
     cli::{
         clap::value_arg, common::format_arg, common::source_endpoint_arg,
         globals::internal_network_arg,
     },
-    sns::report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    sns::{
+        commands::spec::commands::args::sns_lookup_input_arg, report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    },
 };
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
@@ -22,7 +30,7 @@ pub(in crate::sns::commands) fn sns_neurons_refresh_command() -> ClapCommand {
         .bin_name("icq sns neurons refresh")
         .about("Force-refresh and cache a complete SNS governance neuron snapshot")
         .disable_help_flag(true)
-        .arg(super::super::args::sns_lookup_input_arg())
+        .arg(sns_lookup_input_arg())
         .arg(format_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)

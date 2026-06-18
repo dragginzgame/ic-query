@@ -1,5 +1,5 @@
 use super::NnsTopologyProviderAccumulator;
-use crate::nns::topology::report::NnsTopologyProviderRow;
+use crate::nns::topology::report::{NnsTopologyProviderRow, providers::status::provider_status};
 use std::collections::BTreeSet;
 
 impl NnsTopologyProviderAccumulator {
@@ -56,7 +56,7 @@ impl NnsTopologyProviderAccumulator {
                 .copied()
                 .unwrap_or(0),
             over_assigned_node_count,
-            status: super::super::status::provider_status(
+            status: provider_status(
                 registered,
                 topology_node_count,
                 node_operator_count,

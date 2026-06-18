@@ -1,4 +1,4 @@
-use super::super::{fixtures::*, *};
+use crate::ic_registry::tests::{fixtures::*, *};
 
 #[test]
 fn data_center_list_aggregates_registry_relations() {

@@ -1,4 +1,10 @@
-use super::super::NnsTopologyCapacityRow;
+//! Module: nns::topology::report::capacity::sort
+//!
+//! Responsibility: sort NNS topology capacity rows for stable report output.
+//! Does not own: capacity row construction, summary calculation, or rendering.
+//! Boundary: defines the attention-first capacity row ordering.
+
+use crate::nns::topology::report::NnsTopologyCapacityRow;
 
 pub(super) fn sort_capacity_rows(capacity: &mut [NnsTopologyCapacityRow]) {
     capacity.sort_by(|left, right| {

@@ -1,3 +1,9 @@
+//! Module: sns::report::text
+//!
+//! Responsibility: group SNS text report renderers.
+//! Does not own: report construction, source/cache reads, or JSON output.
+//! Boundary: converts already-built report DTOs into human-readable text.
+
 mod common;
 mod info;
 mod list;

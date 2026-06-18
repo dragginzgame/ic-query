@@ -1,22 +1,22 @@
-use super::super::{
-    NnsTopologyCapacityReport, NnsTopologyCapacityRequest, NnsTopologyGapsReport,
-    NnsTopologyGapsRequest, NnsTopologyHostError, NnsTopologyProvidersReport,
-    NnsTopologyProvidersRequest, NnsTopologyRegionsReport, NnsTopologyRegionsRequest,
-    capacity::topology_capacity_report_from_report,
-    enforce_mainnet_network,
-    gaps::topology_gaps_report_from_reports,
-    providers::topology_providers_report_from_reports,
-    regions::topology_regions_report_from_report,
-    request::{
-        TopologyRequestParts, data_center_list_request, node_list_request,
-        node_operator_list_request, node_provider_list_request,
-    },
-};
 use crate::nns::{
     data_center::report::build_nns_data_center_list_report,
     node::report::build_nns_node_list_report,
     node_operator::report::build_nns_node_operator_list_report,
     node_provider::report::build_nns_node_provider_list_report,
+    topology::report::{
+        NnsTopologyCapacityReport, NnsTopologyCapacityRequest, NnsTopologyGapsReport,
+        NnsTopologyGapsRequest, NnsTopologyHostError, NnsTopologyProvidersReport,
+        NnsTopologyProvidersRequest, NnsTopologyRegionsReport, NnsTopologyRegionsRequest,
+        capacity::topology_capacity_report_from_report,
+        enforce_mainnet_network,
+        gaps::topology_gaps_report_from_reports,
+        providers::topology_providers_report_from_reports,
+        regions::topology_regions_report_from_report,
+        request::{
+            TopologyRequestParts, data_center_list_request, node_list_request,
+            node_operator_list_request, node_provider_list_request,
+        },
+    },
 };
 
 pub fn build_nns_topology_gaps_report(

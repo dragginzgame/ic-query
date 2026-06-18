@@ -1,9 +1,15 @@
-use super::super::{
+//! Module: sns::report::assemble::proposals
+//!
+//! Responsibility: assemble SNS proposal list and detail reports.
+//! Does not own: proposal fetching, cache loading, view filtering/sorting, or rendering.
+//! Boundary: maps resolved proposal rows and provenance into serializable report DTOs.
+
+use super::SnsReportProvenance;
+use crate::sns::report::{
     MainnetSns, MainnetSnsList, MainnetSnsProposal, MainnetSnsProposals,
     SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalReport,
     SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsSort,
 };
-use super::SnsReportProvenance;
 
 pub(in crate::sns::report) struct SnsProposalReportParts {
     pub(in crate::sns::report) list: MainnetSnsList,

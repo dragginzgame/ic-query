@@ -1,11 +1,11 @@
-use super::super::{
+use super::summary::build_nns_topology_summary_report;
+use crate::nns::topology::report::{
     NnsTopologyCoverageReport, NnsTopologyCoverageRequest, NnsTopologyHealthReport,
     NnsTopologyHealthRequest, NnsTopologyHostError, NnsTopologyVersionsReport,
     NnsTopologyVersionsRequest, coverage::topology_coverage_report_from_summary,
     health::topology_health_report_from_summary, request::summary_request_from,
     versions::topology_versions_report_from_summary,
 };
-use super::summary::build_nns_topology_summary_report;
 
 pub fn build_nns_topology_versions_report(
     request: &NnsTopologyVersionsRequest,

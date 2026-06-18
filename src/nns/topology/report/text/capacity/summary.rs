@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::text::capacity::summary
+//!
+//! Responsibility: render the NNS topology capacity summary table.
+//! Does not own: capacity calculation, attention row filtering, or JSON output.
+//! Boundary: formats aggregate capacity fields for humans.
+
 use crate::{
     nns::topology::report::NnsTopologyCapacityReport,
     table::{ColumnAlign, render_table},

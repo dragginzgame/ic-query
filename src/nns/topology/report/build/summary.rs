@@ -1,18 +1,19 @@
-use super::super::{
-    NnsTopologyHostError, NnsTopologySummaryReport, NnsTopologySummaryRequest,
-    enforce_mainnet_network,
-    request::{
-        TopologyRequestParts, data_center_list_request, node_list_request,
-        node_operator_list_request, node_provider_list_request, subnet_catalog_list_request,
-    },
-    summary::topology_summary_report_from_reports,
-};
 use crate::{
     nns::{
         data_center::report::build_nns_data_center_list_report,
         node::report::build_nns_node_list_report,
         node_operator::report::build_nns_node_operator_list_report,
         node_provider::report::build_nns_node_provider_list_report,
+        topology::report::{
+            NnsTopologyHostError, NnsTopologySummaryReport, NnsTopologySummaryRequest,
+            enforce_mainnet_network,
+            request::{
+                TopologyRequestParts, data_center_list_request, node_list_request,
+                node_operator_list_request, node_provider_list_request,
+                subnet_catalog_list_request,
+            },
+            summary::topology_summary_report_from_reports,
+        },
     },
     subnet_catalog::build_subnet_catalog_list_report,
 };

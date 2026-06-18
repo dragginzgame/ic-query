@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::capacity
+//!
+//! Responsibility: build NNS topology capacity reports.
+//! Does not own: source report loading, text rendering, or command parsing.
+//! Boundary: maps node-operator rows into sorted capacity report rows.
+
 mod row;
 mod sort;
 mod summary;

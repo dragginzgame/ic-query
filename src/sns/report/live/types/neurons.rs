@@ -4,7 +4,7 @@
 //! Does not own: live transport, neuron conversion, cache IO, or rendering.
 //! Boundary: mirrors list_neurons request and response payloads.
 
-use super::super::SnsNeuronId;
+use crate::sns::report::SnsNeuronId;
 use candid::{CandidType, Deserialize, Principal};
 
 ///

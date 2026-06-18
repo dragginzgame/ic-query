@@ -1,6 +1,15 @@
-use super::super::super::{SnsNeuronsCacheStatusReport, SnsNeuronsRefreshAttemptStatus};
-use super::super::common::optional_text;
-use crate::nns::render::yes_no;
+//! Module: sns::report::text::neurons::cache_status
+//!
+//! Responsibility: render one SNS neuron cache status report as text.
+//! Does not own: cache lookup, refresh-attempt loading, report construction, or JSON output.
+//! Boundary: formats neuron snapshot status and latest refresh attempt for humans.
+
+use crate::{
+    nns::render::yes_no,
+    sns::report::{
+        SnsNeuronsCacheStatusReport, SnsNeuronsRefreshAttemptStatus, text::common::optional_text,
+    },
+};
 
 #[must_use]
 pub fn sns_neurons_cache_status_report_text(report: &SnsNeuronsCacheStatusReport) -> String {

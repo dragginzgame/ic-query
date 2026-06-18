@@ -4,11 +4,11 @@
 //! Does not own: attempt file IO, cache paths, or status report rendering.
 //! Boundary: builds typed proposal refresh-attempt snapshots from refresh context.
 
-use super::super::model::{SnsProposalsRefreshAttempt, SnsProposalsRefreshAttemptMetadata};
 use crate::{
     snapshot_cache::SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
     sns::report::{
         SnsProposalsRefreshRequest,
+        proposals_cache::model::{SnsProposalsRefreshAttempt, SnsProposalsRefreshAttemptMetadata},
         source::{MainnetSns, SnsFetchRequest},
     },
 };

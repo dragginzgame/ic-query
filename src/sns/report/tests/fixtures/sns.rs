@@ -1,4 +1,4 @@
-use super::super::*;
+use crate::sns::report::tests::*;
 
 pub(in crate::sns::report::tests) const ROOT_A: &str = "be2us-64aaa-aaaaa-qaabq-cai";
 pub(in crate::sns::report::tests) const GOVERNANCE_A: &str = "bkyz2-fmaaa-aaaaa-qaaaq-cai";

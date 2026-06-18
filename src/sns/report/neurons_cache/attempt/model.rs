@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache::attempt::model
+//!
+//! Responsibility: define SNS neuron refresh-attempt sidecar models.
+//! Does not own: sidecar IO, cache snapshots, refresh fetching, or rendering.
+//! Boundary: maps refresh context and progress into the generic snapshot attempt envelope.
+
 use super::timestamp::current_timestamp_text;
 use crate::{
     snapshot_cache::{SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt},

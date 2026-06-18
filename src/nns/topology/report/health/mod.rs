@@ -1,8 +1,11 @@
-mod checks;
-mod coverage;
-mod metrics;
+//! Module: nns::topology::report::health
+//!
+//! Responsibility: build derived NNS topology health reports.
+//! Does not own: topology summary construction, text rendering, or cache IO.
+//! Boundary: turns summary metrics into status fields and health check rows.
 
-pub(in crate::nns::topology::report) use coverage::coverage_percent_text;
+mod checks;
+mod metrics;
 
 use super::{
     NNS_TOPOLOGY_HEALTH_REPORT_SCHEMA_VERSION, NnsTopologyHealthReport, NnsTopologySummaryReport,

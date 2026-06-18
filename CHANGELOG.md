@@ -20,6 +20,11 @@ not change CLI behavior.
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.15` applies the code-hygiene module-header and module-granularity
+  standard to SNS command/report modules and touched NNS topology modules, and
+  normalizes touched SNS/NNS imports away from `super::super` paths without
+  changing behavior.
+
 - `0.2.14` moves deployed SNS list sorting into the report view layer and
   leaves lookup focused on stable id assignment and input resolution, without
   changing CLI behavior or report output.

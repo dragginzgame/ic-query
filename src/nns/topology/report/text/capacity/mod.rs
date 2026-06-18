@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::text::capacity
+//!
+//! Responsibility: render NNS topology capacity reports as text.
+//! Does not own: capacity calculation, source reads, or JSON output.
+//! Boundary: combines summary and attention capacity tables for humans.
+
 mod attention;
 mod summary;
 

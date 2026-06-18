@@ -4,11 +4,11 @@
 //! Does not own: proposal conversion, cache refresh orchestration, or rendering.
 //! Boundary: builds list_proposals requests and maps responses into source models.
 
-use super::super::governance_canister;
 use crate::sns::report::{
     SnsHostError, SnsProposalTopicFilter,
     live::{
         convert::sns_proposal_row,
+        fetch::governance_canister,
         query::{query_canister, sns_agent},
         types::{
             ListProposalsRequest, ListProposalsResponse, SnsProposalId, SnsTopic, SnsTopicSelector,

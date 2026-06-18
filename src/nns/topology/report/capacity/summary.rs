@@ -1,4 +1,10 @@
-use super::super::NnsTopologyCapacityRow;
+//! Module: nns::topology::report::capacity::summary
+//!
+//! Responsibility: summarize NNS topology capacity rows.
+//! Does not own: row construction, sorting, source reads, or rendering.
+//! Boundary: derives aggregate capacity totals and status.
+
+use crate::nns::topology::report::NnsTopologyCapacityRow;
 
 pub(super) struct CapacitySummary {
     pub(super) status: String,

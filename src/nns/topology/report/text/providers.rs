@@ -1,7 +1,17 @@
-use super::super::{COMPACT_PRINCIPAL_CHARS, NnsTopologyProviderRow, NnsTopologyProvidersReport};
+//! Module: nns::topology::report::text::providers
+//!
+//! Responsibility: render NNS topology provider reports as text.
+//! Does not own: provider aggregation, source reads, or JSON output.
+//! Boundary: formats provider distribution rows for human inspection.
+
 use super::common::optional_u64_text;
 use crate::{
-    nns::render::compact_text,
+    nns::{
+        render::compact_text,
+        topology::report::{
+            COMPACT_PRINCIPAL_CHARS, NnsTopologyProviderRow, NnsTopologyProvidersReport,
+        },
+    },
     table::{ColumnAlign, render_table},
 };
 

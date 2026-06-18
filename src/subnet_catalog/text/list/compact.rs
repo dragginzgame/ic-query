@@ -1,11 +1,9 @@
 use super::ranges::append_compact_range_lines;
 use crate::{
     nns::render::yes_no,
-    subnet_catalog::SubnetCatalogListReport,
+    subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal},
     table::{ColumnAlign, render_table},
 };
-
-use super::super::principal::compact_principal;
 
 #[must_use]
 pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> String {

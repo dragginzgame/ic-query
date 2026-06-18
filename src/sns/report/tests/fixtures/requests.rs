@@ -1,4 +1,4 @@
-use super::super::*;
+use crate::sns::report::tests::*;
 use std::path::Path;
 
 pub(in crate::sns::report::tests) fn list_request(verbose: bool) -> SnsListRequest {

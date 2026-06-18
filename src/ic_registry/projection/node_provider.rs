@@ -1,10 +1,12 @@
-use super::super::{
-    MAINNET_GOVERNANCE_CANISTER_ID, MainnetNodeProvider, MainnetNodeProviderList,
-    MainnetRegistryFetchRequest, RegistryFetchError,
-    transport::hex_bytes,
-    wire::{GovernanceNodeProvider, ListNodeProvidersResponse},
+use crate::{
+    ic_registry::{
+        MAINNET_GOVERNANCE_CANISTER_ID, MainnetNodeProvider, MainnetNodeProviderList,
+        MainnetRegistryFetchRequest, RegistryFetchError,
+        transport::hex_bytes,
+        wire::{GovernanceNodeProvider, ListNodeProvidersResponse},
+    },
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_provider_list_from_response(

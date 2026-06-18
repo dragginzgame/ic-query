@@ -5,6 +5,5 @@
 //! Boundary: re-exports the complete proposal collection fetcher.
 
 mod fetch;
-mod progress;
 
 pub(super) use fetch::fetch_complete_sns_proposals;

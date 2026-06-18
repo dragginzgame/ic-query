@@ -1,11 +1,22 @@
-use super::sort::neurons_sort_arg;
+//! Module: sns::commands::spec::commands::neurons::root
+//!
+//! Responsibility: build the clap spec for `icq sns neurons`.
+//! Does not own: neuron list execution, cache selection, or report output.
+//! Boundary: defines list options, owner filtering input, and examples.
+
 use crate::{
     cli::{
         clap::{flag_arg, value_arg},
         common::{format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
-    sns::report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    sns::{
+        commands::spec::commands::{
+            args::{principal_value_parser, sns_lookup_input_arg},
+            neurons::sort::neurons_sort_arg,
+        },
+        report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    },
 };
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
@@ -28,7 +39,7 @@ pub(in crate::sns::commands) fn sns_neurons_command() -> ClapCommand {
         .bin_name("icq sns neurons")
         .about("List and refresh SNS governance neurons by SNS list id or root principal")
         .disable_help_flag(true)
-        .arg(super::super::args::sns_lookup_input_arg())
+        .arg(sns_lookup_input_arg())
         .arg(format_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
@@ -46,7 +57,7 @@ pub(in crate::sns::commands) fn sns_neurons_command() -> ClapCommand {
             value_arg("owner")
                 .long("owner")
                 .value_name("principal")
-                .value_parser(super::super::args::principal_value_parser())
+                .value_parser(principal_value_parser())
                 .help("Filter neurons by controlling principal"),
         )
         .arg(

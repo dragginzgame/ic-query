@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache::paths
+//!
+//! Responsibility: construct SNS neuron snapshot cache paths.
+//! Does not own: cache reads/writes, refresh policy, report construction, or rendering.
+//! Boundary: maps SNS root principals to generic snapshot-cache file locations.
+
 use crate::snapshot_cache::{SnapshotJsonPaths, SnapshotKey, snapshot_network_dir};
 use std::path::{Path, PathBuf};
 

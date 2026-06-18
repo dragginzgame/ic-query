@@ -1,18 +1,19 @@
-use super::super::{
-    NnsTopologyHostError, NnsTopologyRefreshReport, NnsTopologyRefreshRequest,
-    enforce_mainnet_network,
-    refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports},
-    request::{
-        TopologyRefreshParts, TopologyRequestParts, data_center_refresh_request,
-        node_operator_refresh_request, node_provider_refresh_request, node_refresh_request,
-        subnet_catalog_refresh_request,
-    },
-};
 use crate::{
     nns::{
-        data_center::report::refresh_nns_data_center_report, node::report::refresh_nns_node_report,
+        data_center::report::refresh_nns_data_center_report,
+        node::report::refresh_nns_node_report,
         node_operator::report::refresh_nns_node_operator_report,
         node_provider::report::refresh_nns_node_provider_report,
+        topology::report::{
+            NnsTopologyHostError, NnsTopologyRefreshReport, NnsTopologyRefreshRequest,
+            enforce_mainnet_network,
+            refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports},
+            request::{
+                TopologyRefreshParts, TopologyRequestParts, data_center_refresh_request,
+                node_operator_refresh_request, node_provider_refresh_request, node_refresh_request,
+                subnet_catalog_refresh_request,
+            },
+        },
     },
     subnet_catalog::refresh_subnet_catalog,
 };

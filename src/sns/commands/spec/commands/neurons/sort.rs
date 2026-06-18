@@ -1,3 +1,9 @@
+//! Module: sns::commands::spec::commands::neurons::sort
+//!
+//! Responsibility: build the clap value argument for SNS neuron row sorting.
+//! Does not own: sort implementation, cache selection, or report views.
+//! Boundary: keeps the CLI sort vocabulary aligned with SNS neuron reports.
+
 use crate::{cli::clap::value_arg, sns::commands::spec::values::SnsNeuronsSortArg};
 
 pub(super) fn neurons_sort_arg() -> clap::Arg {

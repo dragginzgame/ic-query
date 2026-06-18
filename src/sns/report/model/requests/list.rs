@@ -4,7 +4,7 @@
 //! Does not own: command option parsing, source lookup, or text rendering.
 //! Boundary: carries validated command inputs into the list report builder.
 
-use super::super::SnsListSort;
+use crate::sns::report::SnsListSort;
 
 ///
 /// SnsListRequest

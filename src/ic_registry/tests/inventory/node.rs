@@ -1,4 +1,4 @@
-use super::super::{fixtures::*, *};
+use crate::ic_registry::tests::{fixtures::*, *};
 
 #[test]
 fn node_list_follows_nodes_to_subnets_operators_and_providers() {

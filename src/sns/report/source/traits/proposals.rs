@@ -4,11 +4,11 @@
 //! Does not own: live governance transport, proposal conversion, or rendering.
 //! Boundary: extends deployed SNS lookup sources with proposal fetching.
 
-use super::super::{
-    MainnetSns, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest,
-};
 use super::list::SnsListSource;
-use crate::sns::report::{SnsHostError, SnsProposalTopicFilter};
+use crate::sns::report::{
+    MainnetSns, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest,
+    SnsHostError, SnsProposalTopicFilter,
+};
 
 ///
 /// SnsProposalSource

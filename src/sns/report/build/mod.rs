@@ -1,3 +1,9 @@
+//! Module: sns::report::build
+//!
+//! Responsibility: group public SNS report builder entry points.
+//! Does not own: command parsing, cache file primitives, source models, or rendering.
+//! Boundary: exposes builders that coordinate lookup/source/cache reads and assembly.
+
 mod info;
 mod list;
 mod neurons;

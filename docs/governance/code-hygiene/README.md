@@ -114,7 +114,28 @@ Example:
 Use these headers to prevent architectural drift. Keep them current when module
 ownership changes.
 
-## 3. Type Documentation
+## 3. Module Granularity
+
+Split modules by ownership boundary, not by every conceptual label.
+
+Good reasons to split a file:
+
+1. separate parsing, command runtime, report building, cache IO, source IO, or
+   rendering boundaries
+2. keep a large file navigable after several cohesive helper groups have grown
+3. isolate reusable public or `pub(crate)` helpers with a stable contract
+4. keep large fixture/test groups countable under `tests.rs` or `tests/mod.rs`
+
+Avoid creating one-function leaf modules for tiny category groups when one
+owner module with private helpers is easier to scan. A one-function module is
+acceptable only when the function itself is the boundary, such as a parser,
+cache load/write primitive, live fetch operation, or reusable formatting
+helper.
+
+Before splitting a small file, check whether the caller will become clearer or
+whether the split only replaces local scrolling with extra files and imports.
+
+## 4. Type Documentation
 
 Public structs, enums, and traits should document:
 
@@ -148,7 +169,7 @@ Error enum formatting:
    is stronger.
 3. Assert typed errors in tests; do not test error strings.
 
-## 4. Function Documentation
+## 5. Function Documentation
 
 Comment intent, invariants, ownership, or non-obvious tradeoffs only.
 
@@ -173,7 +194,7 @@ Ordering rule for documented items with attributes:
 Public APIs with reachable panic paths must include a `# Panics` section naming
 the condition. Prefer typed errors when callers can recover.
 
-## 5. Section Banners
+## 6. Section Banners
 
 Use section banners only when grouping multiple related functions in a large
 module.
@@ -189,7 +210,7 @@ Example:
 Do not add banners to small files where the type and function order is already
 obvious.
 
-## 6. Function Ordering
+## 7. Function Ordering
 
 Prefer stable ordering:
 
@@ -205,7 +226,7 @@ When a type and its impls live in the same file:
 2. follow with trait impls for that type
 3. keep each type family together
 
-## 7. Function Size
+## 8. Function Size
 
 Functions longer than roughly 80 lines should be reviewed for decomposition.
 
@@ -221,7 +242,7 @@ Split by semantic phase when possible:
 Avoid deeply nested logic blocks. Large `match` bodies should dispatch to
 helpers.
 
-## 8. Visibility and Layer Boundaries
+## 9. Visibility and Layer Boundaries
 
 Minimize visibility by default.
 

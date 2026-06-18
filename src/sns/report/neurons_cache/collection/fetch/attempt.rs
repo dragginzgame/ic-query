@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache::collection::fetch::attempt
+//!
+//! Responsibility: write in-progress SNS neuron collection attempts.
+//! Does not own: attempt model construction, cache publishing, page fetching, or rendering.
+//! Boundary: records page and row progress after each fetched neuron page.
+
 use super::state::SnsNeuronsCollectionState;
 use crate::snapshot_cache::PagedCollectionPage;
 use crate::sns::report::{

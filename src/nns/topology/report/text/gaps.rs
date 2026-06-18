@@ -1,5 +1,13 @@
-use super::super::{NnsTopologyGapRow, NnsTopologyGapsReport};
-use crate::table::{ColumnAlign, render_table};
+//! Module: nns::topology::report::text::gaps
+//!
+//! Responsibility: render NNS topology gap reports as text.
+//! Does not own: gap detection, source reads, or JSON output.
+//! Boundary: formats known topology relation gaps for human inspection.
+
+use crate::{
+    nns::topology::report::{NnsTopologyGapRow, NnsTopologyGapsReport},
+    table::{ColumnAlign, render_table},
+};
 
 #[must_use]
 pub fn nns_topology_gaps_report_text(report: &NnsTopologyGapsReport) -> String {

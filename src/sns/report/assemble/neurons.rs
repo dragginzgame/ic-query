@@ -1,8 +1,14 @@
-use super::super::{
+//! Module: sns::report::assemble::neurons
+//!
+//! Responsibility: assemble live SNS neuron list reports.
+//! Does not own: neuron fetching, cache-backed sorting, cache loading, or rendering.
+//! Boundary: maps resolved live neuron rows into the serializable neuron report DTO.
+
+use super::SnsReportProvenance;
+use crate::sns::report::{
     MainnetSns, MainnetSnsList, MainnetSnsNeurons, SNS_NEURONS_REPORT_SCHEMA_VERSION,
     SnsNeuronsReport, SnsNeuronsSort,
 };
-use super::SnsReportProvenance;
 
 pub(in crate::sns::report) struct SnsNeuronsLiveReportParts {
     pub(in crate::sns::report) list: MainnetSnsList,

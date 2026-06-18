@@ -1,6 +1,14 @@
-use super::super::NnsTopologyCoverageReport;
+//! Module: nns::topology::report::text::coverage
+//!
+//! Responsibility: render NNS topology coverage reports as text.
+//! Does not own: coverage report construction, cache loading, or JSON output.
+//! Boundary: formats coverage count and join-coverage tables for humans.
+
 use super::common::render_join_coverage_table;
-use crate::table::{ColumnAlign, render_table};
+use crate::{
+    nns::topology::report::NnsTopologyCoverageReport,
+    table::{ColumnAlign, render_table},
+};
 
 #[must_use]
 pub fn nns_topology_coverage_report_text(report: &NnsTopologyCoverageReport) -> String {

@@ -1,6 +1,12 @@
-use super::super::{attempt::SnsNeuronsAttemptContext, paths::SnsNeuronsCachePaths};
+//! Module: sns::report::neurons_cache::refresh::context
+//!
+//! Responsibility: carry SNS neuron refresh state across lock, fetch, and publish steps.
+//! Does not own: lookup, cache writes, attempt serialization, or report rendering.
+//! Boundary: builds attempt contexts from one resolved refresh operation.
+
 use crate::sns::report::{
     SnsNeuronsRefreshRequest,
+    neurons_cache::{attempt::SnsNeuronsAttemptContext, paths::SnsNeuronsCachePaths},
     source::{MainnetSns, MainnetSnsList, SnsFetchRequest},
 };
 

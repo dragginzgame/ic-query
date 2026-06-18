@@ -1,3 +1,9 @@
+//! Module: sns::report::text::proposals::single
+//!
+//! Responsibility: render one SNS proposal detail report as text.
+//! Does not own: proposal fetching, cache lookup, report construction, or JSON output.
+//! Boundary: formats one proposal DTO and optional ballot table for humans.
+
 use super::{
     SNS_PROPOSAL_DETAIL_TEXT_LIMIT,
     detail::{proposal_ballot_table, proposal_detail_lines},

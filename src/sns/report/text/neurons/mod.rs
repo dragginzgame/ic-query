@@ -1,6 +1,11 @@
+//! Module: sns::report::text::neurons
+//!
+//! Responsibility: group SNS neuron text report renderers.
+//! Does not own: neuron report construction, cache loading, or JSON output.
+//! Boundary: renders neuron list, refresh, and cache status DTOs for humans.
+
 mod cache_list;
 mod cache_status;
-mod common;
 mod list;
 mod refresh;
 

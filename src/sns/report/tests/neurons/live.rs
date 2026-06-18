@@ -1,4 +1,4 @@
-use super::super::{fixtures::*, *};
+use crate::sns::report::tests::{fixtures::*, *};
 
 #[test]
 fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {

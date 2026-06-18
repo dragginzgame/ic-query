@@ -7,12 +7,11 @@
 mod attempt;
 mod state;
 
-use super::super::model::CompleteSnsProposals;
-use super::progress::sns_proposals_progress_text;
 use crate::{
     snapshot_cache::{PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh},
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest,
+        proposals_cache::model::CompleteSnsProposals,
         source::{MainnetSns, SnsFetchRequest, SnsProposalsSource},
     },
 };
@@ -102,4 +101,11 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
     fn into_complete(self) -> Self::Complete {
         self.state.into_complete()
     }
+}
+
+fn sns_proposals_progress_text(sns: &MainnetSns, pages: u32, rows: usize) -> String {
+    format!(
+        "refreshing SNS proposals for {}: pages={} rows={}",
+        sns.name, pages, rows
+    )
 }

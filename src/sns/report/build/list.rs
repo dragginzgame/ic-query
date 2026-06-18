@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::build::list
+//!
+//! Responsibility: build deployed SNS list reports.
+//! Does not own: command parsing, SNS-W transport internals, report DTO mapping, or rendering.
+//! Boundary: fetches source rows, assigns stable ids, applies view sorting, and assembles output.
+
+use crate::sns::report::{
     SnsHostError, SnsListReport, SnsListRequest,
     assemble::sns_list_report_from_list,
     live::LiveSnsSource,

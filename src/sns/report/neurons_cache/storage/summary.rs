@@ -1,11 +1,18 @@
-use super::{load::load_sns_neurons_cache_at, scan::collect_sns_neurons_cache_paths};
-use crate::sns::report::{SnsHostError, SnsNeuronsCacheSummary};
-use std::path::{Path, PathBuf};
+//! Module: sns::report::neurons_cache::storage::summary
+//!
+//! Responsibility: project stored SNS neuron caches into cache summary reports.
+//! Does not own: summary text rendering, cache refresh, or full report assembly.
+//! Boundary: combines cache metadata with the latest refresh-attempt sidecar status.
 
-use super::super::{
-    attempt::read_sns_neurons_attempt_status, model::SnsNeuronsCache,
-    paths::sns_neurons_attempt_path_for_cache_path,
+use super::{load::load_sns_neurons_cache_at, scan::collect_sns_neurons_cache_paths};
+use crate::sns::report::{
+    SnsHostError, SnsNeuronsCacheSummary,
+    neurons_cache::{
+        attempt::read_sns_neurons_attempt_status, model::SnsNeuronsCache,
+        paths::sns_neurons_attempt_path_for_cache_path,
+    },
 };
+use std::path::{Path, PathBuf};
 
 pub(in crate::sns::report::neurons_cache) fn list_sns_neurons_cache_summaries(
     icp_root: &Path,

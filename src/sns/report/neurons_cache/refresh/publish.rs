@@ -1,14 +1,22 @@
-use super::super::{
-    SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
-    attempt::{SnsNeuronsAttemptProgress, write_complete_sns_neurons_attempt},
-    errors::sns_cache_file_error,
-    model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheMetadata, SnsNeuronsCacheRows},
-};
+//! Module: sns::report::neurons_cache::refresh::publish
+//!
+//! Responsibility: publish complete SNS neuron snapshots and refresh reports.
+//! Does not own: page fetching, lock acquisition, lookup, or text rendering.
+//! Boundary: writes the complete cache JSON and marks the refresh attempt complete.
+
 use super::context::SnsNeuronsRefreshContext;
 use crate::{
     snapshot_cache::{SnapshotCompleteness, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
+        neurons_cache::{
+            SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
+            attempt::{SnsNeuronsAttemptProgress, write_complete_sns_neurons_attempt},
+            errors::sns_cache_file_error,
+            model::{
+                CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheMetadata, SnsNeuronsCacheRows,
+            },
+        },
         source::{MainnetSns, MainnetSnsList},
     },
 };

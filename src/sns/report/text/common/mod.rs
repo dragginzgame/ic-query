@@ -1,3 +1,9 @@
+//! Module: sns::report::text::common
+//!
+//! Responsibility: group shared SNS text rendering helpers.
+//! Does not own: report DTOs, tables, cache behavior, or source reads.
+//! Boundary: exposes small formatting helpers used by text report leaves.
+
 mod metadata;
 mod optional;
 mod provenance;

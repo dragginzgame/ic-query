@@ -1,6 +1,14 @@
-use super::super::{NnsTopologyRegistryVersionRow, health::coverage_percent_text};
+//! Module: nns::topology::report::text::common
+//!
+//! Responsibility: provide shared NNS topology text table helpers.
+//! Does not own: report construction, source reads, or command parsing.
+//! Boundary: centralizes repeated table formatting for topology renderers.
+
 use crate::{
-    nns::render::yes_no,
+    nns::{
+        render::yes_no,
+        topology::report::{NnsTopologyRegistryVersionRow, percent::coverage_percent_text},
+    },
     table::{ColumnAlign, render_table},
 };
 

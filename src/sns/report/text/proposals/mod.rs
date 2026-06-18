@@ -1,3 +1,9 @@
+//! Module: sns::report::text::proposals
+//!
+//! Responsibility: group SNS proposal text report renderers.
+//! Does not own: proposal fetching, cache loading, report construction, or JSON output.
+//! Boundary: renders proposal list, detail, refresh, and cache DTOs for humans.
+
 mod cache_list;
 mod cache_status;
 mod detail;

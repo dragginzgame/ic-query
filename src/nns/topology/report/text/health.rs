@@ -1,5 +1,13 @@
-use super::super::{NnsTopologyHealthCheckRow, NnsTopologyHealthReport};
-use crate::table::{ColumnAlign, render_table};
+//! Module: nns::topology::report::text::health
+//!
+//! Responsibility: render NNS topology health reports as text.
+//! Does not own: health check derivation, cache loading, or JSON output.
+//! Boundary: formats health check rows and report status for humans.
+
+use crate::{
+    nns::topology::report::{NnsTopologyHealthCheckRow, NnsTopologyHealthReport},
+    table::{ColumnAlign, render_table},
+};
 
 #[must_use]
 pub fn nns_topology_health_report_text(report: &NnsTopologyHealthReport) -> String {

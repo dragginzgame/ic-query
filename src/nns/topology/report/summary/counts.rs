@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::summary::counts
+//!
+//! Responsibility: count NNS topology summary entities by subnet kind.
+//! Does not own: relation joins, registry-version rows, or text rendering.
+//! Boundary: provides focused count helpers for summary construction.
+
 use crate::{
     nns::node::report::NnsNodeListReport,
     subnet_catalog::{SubnetCatalogListReport, SubnetKind},

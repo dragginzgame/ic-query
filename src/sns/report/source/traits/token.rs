@@ -4,9 +4,8 @@
 //! Does not own: live ledger transport, token report assembly, or rendering.
 //! Boundary: extends deployed SNS lookup sources with token metadata fetching.
 
-use super::super::{MainnetSns, MainnetSnsToken, SnsFetchRequest};
 use super::list::SnsListSource;
-use crate::sns::report::SnsHostError;
+use crate::sns::report::{MainnetSns, MainnetSnsToken, SnsFetchRequest, SnsHostError};
 
 ///
 /// SnsTokenSource

@@ -1,10 +1,12 @@
-use super::super::{
-    MainnetNodeOperator, MainnetNodeOperatorList, MainnetRegistryFetchRequest, RegistryFetchError,
-    principal_text_from_required_raw,
-    proto::NodeOperatorRecord,
-    relations::{RegistryRelationInventory, node_operator_counts_from_records},
+use crate::{
+    ic_registry::{
+        MainnetNodeOperator, MainnetNodeOperatorList, MainnetRegistryFetchRequest,
+        RegistryFetchError, principal_text_from_required_raw,
+        proto::NodeOperatorRecord,
+        relations::{RegistryRelationInventory, node_operator_counts_from_records},
+    },
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_operator_list_from_inventory(

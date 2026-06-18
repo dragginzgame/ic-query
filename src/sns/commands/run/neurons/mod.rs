@@ -1,13 +1,19 @@
+//! Module: sns::commands::run::neurons
+//!
+//! Responsibility: run SNS neuron list, refresh, and cache subcommands.
+//! Does not own: neuron cache mechanics, live governance calls, or rendering.
+//! Boundary: chooses live versus cache-capable request setup from CLI options.
+
 mod cache;
 mod refresh;
 
-use super::common::{command_args, command_icp_root, lookup_command_parts};
 use crate::{
     cli::common::write_text_or_json,
     sns::{
         commands::{
             SnsCommandError,
             options::SnsNeuronsOptions,
+            run::common::{command_args, command_icp_root, lookup_command_parts},
             spec::{SnsNeuronsSortArg, sns_neurons_usage},
         },
         report::{

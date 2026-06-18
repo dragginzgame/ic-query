@@ -1,16 +1,23 @@
+//! Module: sns::report::neurons_cache::storage::lookup
+//!
+//! Responsibility: resolve SNS neuron cache input to a complete cached snapshot.
+//! Does not own: CLI argument parsing, refresh collection, cache rendering, or live fetches.
+//! Boundary: supports numeric SNS ids and root canister principals over local cache files.
+
 use super::{
     errors::{invalid_lookup_error, missing_id_error},
     load::load_sns_neurons_cache_at,
     scan::{collect_sns_neurons_cache_paths, read_sns_neurons_cache_header},
 };
-use crate::sns::report::{SnsHostError, enforce_mainnet_network};
+use crate::sns::report::{
+    SnsHostError, enforce_mainnet_network,
+    neurons_cache::{
+        model::SnsNeuronsCache,
+        paths::{sns_network_cache_dir, sns_neurons_cache_path},
+    },
+};
 use candid::Principal;
 use std::path::{Path, PathBuf};
-
-use super::super::{
-    model::SnsNeuronsCache,
-    paths::{sns_network_cache_dir, sns_neurons_cache_path},
-};
 
 pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_for_input(
     icp_root: &Path,

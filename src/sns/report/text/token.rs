@@ -1,8 +1,12 @@
-use super::{
-    super::SnsTokenReport,
-    common::{optional_text, token_metadata_value_text, truncate_text_value},
-};
+//! Module: sns::report::text::token
+//!
+//! Responsibility: render SNS token reports as text.
+//! Does not own: token source reads, report construction, or JSON output.
+//! Boundary: formats token metadata and base-unit amounts for humans.
+
+use super::common::{optional_text, token_metadata_value_text, truncate_text_value};
 use crate::{
+    sns::report::SnsTokenReport,
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
 };

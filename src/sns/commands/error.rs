@@ -1,3 +1,9 @@
+//! Module: sns::commands::error
+//!
+//! Responsibility: define errors surfaced by SNS command parsing and runtime.
+//! Does not own: report-layer host errors or text rendering.
+//! Boundary: converts command setup failures into user-facing CLI errors.
+
 use crate::sns::report::SnsHostError;
 use std::io;
 use thiserror::Error as ThisError;

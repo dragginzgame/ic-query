@@ -1,5 +1,5 @@
-use super::super::*;
 use super::{FixtureSnsListSource, GOVERNANCE_A, INDEX_A, LEDGER_A};
+use crate::sns::report::tests::*;
 
 pub(in crate::sns::report::tests) struct FixtureSnsTokenSource;
 

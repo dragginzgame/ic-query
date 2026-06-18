@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::assemble::list
+//!
+//! Responsibility: assemble deployed SNS list and info reports.
+//! Does not own: SNS-W fetching, list sorting, lookup resolution, or rendering.
+//! Boundary: maps source-layer deployed SNS rows into serializable report DTOs.
+
+use crate::sns::report::{
     MainnetSns, MainnetSnsList, SNS_INFO_REPORT_SCHEMA_VERSION, SNS_LIST_REPORT_SCHEMA_VERSION,
     SnsInfoReport, SnsListReport, SnsListRow, SnsListSort,
 };

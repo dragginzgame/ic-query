@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::summary
+//!
+//! Responsibility: build NNS topology summary reports from component reports.
+//! Does not own: component refresh, text rendering, or command parsing.
+//! Boundary: combines component report counts, relations, and versions.
+
 mod counts;
 mod join;
 mod registry_versions;

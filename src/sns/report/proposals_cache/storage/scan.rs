@@ -4,14 +4,16 @@
 //! Does not own: complete cache loading, report summaries, or cache status rendering.
 //! Boundary: centralizes deterministic proposal snapshot path discovery.
 
-use super::super::{
-    SNS_PROPOSALS_CACHE_SCHEMA_VERSION, model::SnsProposalsCacheHeader,
-    paths::sns_network_cache_dir,
-};
 use crate::{
     cache_file::LoadJsonCacheRequest,
     snapshot_cache::{collect_full_collection_snapshot_paths, load_snapshot_header},
-    sns::report::{SnsHostError, proposals_cache::errors::SnsProposalsCacheErrors},
+    sns::report::{
+        SnsHostError,
+        proposals_cache::{
+            SNS_PROPOSALS_CACHE_SCHEMA_VERSION, errors::SnsProposalsCacheErrors,
+            model::SnsProposalsCacheHeader, paths::sns_network_cache_dir,
+        },
+    },
 };
 use std::path::{Path, PathBuf};
 

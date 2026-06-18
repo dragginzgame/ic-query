@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::build::token
+//!
+//! Responsibility: build SNS token reports.
+//! Does not own: command parsing, ledger transport internals, DTO assembly, or rendering.
+//! Boundary: resolves SNS identity, fetches token data, and delegates report assembly.
+
+use crate::sns::report::{
     SnsHostError, SnsTokenReport, SnsTokenRequest, assemble::sns_token_report_from_parts,
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsTokenSource,
 };

@@ -8,11 +8,11 @@ mod ballot;
 mod labels;
 mod timestamp;
 
-use super::super::{
-    super::{SnsProposalFailureReason, SnsProposalRow, SnsProposalTally, hex_bytes},
-    types::SnsGovernanceProposalData,
-};
 use super::common::clean_optional_text;
+use crate::sns::report::{
+    SnsProposalFailureReason, SnsProposalRow, SnsProposalTally, hex_bytes,
+    live::types::SnsGovernanceProposalData,
+};
 use ballot::sns_proposal_ballot_row;
 use labels::proposal_action_text;
 use timestamp::{nonzero_timestamp, optional_timestamp_text};

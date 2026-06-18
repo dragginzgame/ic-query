@@ -4,9 +4,8 @@
 //! Does not own: live governance transport, params assembly, or rendering.
 //! Boundary: extends deployed SNS lookup sources with parameter fetching.
 
-use super::super::{MainnetSns, SnsFetchRequest};
 use super::list::SnsListSource;
-use crate::sns::report::{SnsGovernanceParameters, SnsHostError};
+use crate::sns::report::{MainnetSns, SnsFetchRequest, SnsGovernanceParameters, SnsHostError};
 
 ///
 /// SnsParamsSource

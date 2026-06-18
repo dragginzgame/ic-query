@@ -1,12 +1,22 @@
-use super::super::values::{SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg};
-use super::args::sns_lookup_input_arg;
+//! Module: sns::commands::spec::commands::proposals
+//!
+//! Responsibility: build clap specs for SNS proposal and proposal-cache commands.
+//! Does not own: option parsing, proposal cache behavior, or reports.
+//! Boundary: defines proposal command shape, limits, and help examples.
+
 use crate::{
     cli::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
         common::{format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
-    sns::report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    sns::{
+        commands::spec::{
+            commands::args::sns_lookup_input_arg,
+            values::{SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg},
+        },
+        report::DEFAULT_SNS_SOURCE_ENDPOINT,
+    },
 };
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 

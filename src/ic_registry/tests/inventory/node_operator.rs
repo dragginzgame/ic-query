@@ -1,4 +1,4 @@
-use super::super::{fixtures::*, *};
+use crate::ic_registry::tests::{fixtures::*, *};
 
 #[test]
 fn node_operator_list_follows_assigned_nodes_to_operator_records() {

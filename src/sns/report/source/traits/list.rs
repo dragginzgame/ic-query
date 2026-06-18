@@ -4,8 +4,7 @@
 //! Does not own: live SNS-W transport, lookup sorting, or report assembly.
 //! Boundary: lets report builders fetch deployed SNS inventory from fixtures or live sources.
 
-use super::super::{MainnetSnsList, SnsFetchRequest};
-use crate::sns::report::SnsHostError;
+use crate::sns::report::{MainnetSnsList, SnsFetchRequest, SnsHostError};
 
 ///
 /// SnsListSource

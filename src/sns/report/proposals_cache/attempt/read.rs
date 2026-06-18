@@ -4,9 +4,11 @@
 //! Does not own: cache snapshot loading, refresh orchestration, or text rendering.
 //! Boundary: maps stored refresh attempts into public status report DTOs.
 
-use super::super::model::SnsProposalsRefreshAttempt;
 use crate::{
-    snapshot_cache::read_snapshot_refresh_attempt, sns::report::SnsProposalsRefreshAttemptStatus,
+    snapshot_cache::read_snapshot_refresh_attempt,
+    sns::report::{
+        SnsProposalsRefreshAttemptStatus, proposals_cache::model::SnsProposalsRefreshAttempt,
+    },
 };
 use std::path::Path;
 

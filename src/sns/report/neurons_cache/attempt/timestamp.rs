@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache::attempt::timestamp
+//!
+//! Responsibility: format refresh-attempt update timestamps.
+//! Does not own: attempt persistence, cache refresh, or report rendering.
+//! Boundary: supplies deterministic fallback behavior for attempt timestamp text.
+
 use crate::subnet_catalog::format_utc_timestamp_secs;
 use std::time::{SystemTime, UNIX_EPOCH};
 

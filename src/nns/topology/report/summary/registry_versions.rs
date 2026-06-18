@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::summary::registry_versions
+//!
+//! Responsibility: collect registry-version rows for topology summaries.
+//! Does not own: component report construction, relation joins, or rendering.
+//! Boundary: projects component registry versions into summary report rows.
+
 use crate::{
     nns::{
         data_center::report::NnsDataCenterListReport, node::report::NnsNodeListReport,

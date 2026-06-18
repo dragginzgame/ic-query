@@ -4,11 +4,11 @@
 //! Does not own: proposal conversion policy outside direct lookup results.
 //! Boundary: maps get_proposal Candid responses into source-layer proposal data.
 
-use super::super::governance_canister;
 use crate::sns::report::{
     SnsHostError,
     live::{
         convert::sns_proposal_row,
+        fetch::governance_canister,
         query::{query_canister, sns_agent},
         types::{GetProposalRequest, GetProposalResponse, GetProposalResult, SnsProposalId},
     },

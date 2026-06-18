@@ -4,11 +4,16 @@
 //! Does not own: cache path scanning, status summaries, or refresh orchestration.
 //! Boundary: maps snapshot JSON loading errors into SNS host errors.
 
-use super::super::{SNS_PROPOSALS_CACHE_SCHEMA_VERSION, model::SnsProposalsCache};
 use crate::{
     cache_file::LoadJsonCacheRequest,
     snapshot_cache::load_complete_snapshot,
-    sns::report::{SnsHostError, proposals_cache::errors::SnsProposalsCacheErrors},
+    sns::report::{
+        SnsHostError,
+        proposals_cache::{
+            SNS_PROPOSALS_CACHE_SCHEMA_VERSION, errors::SnsProposalsCacheErrors,
+            model::SnsProposalsCache,
+        },
+    },
 };
 use std::path::PathBuf;
 

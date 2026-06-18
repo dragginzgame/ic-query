@@ -4,13 +4,13 @@
 //! Does not own: cache scanning internals, refresh attempts, or rendering.
 //! Boundary: shapes complete proposal cache summaries into public report DTOs.
 
-use super::super::{
-    SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::sns_network_cache_dir,
-    storage::list_sns_proposals_cache_summaries,
-};
 use crate::sns::report::{
     SnsHostError, SnsProposalsCacheListReport, SnsProposalsCacheListRequest,
     enforce_mainnet_network,
+    proposals_cache::{
+        SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::sns_network_cache_dir,
+        storage::list_sns_proposals_cache_summaries,
+    },
 };
 
 /// Build a local SNS proposal cache list report.

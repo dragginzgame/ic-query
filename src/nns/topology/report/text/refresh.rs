@@ -1,6 +1,11 @@
-use super::super::NnsTopologyRefreshReport;
+//! Module: nns::topology::report::text::refresh
+//!
+//! Responsibility: render NNS topology refresh reports as text.
+//! Does not own: refresh execution, cache writing, or JSON output.
+//! Boundary: formats component refresh outcomes for humans.
+
 use crate::{
-    nns::render::yes_no,
+    nns::{render::yes_no, topology::report::NnsTopologyRefreshReport},
     table::{ColumnAlign, render_table},
 };
 

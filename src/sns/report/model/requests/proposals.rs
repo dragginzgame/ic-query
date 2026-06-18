@@ -4,7 +4,7 @@
 //! Does not own: command option parsing, live proposal fetches, or rendering.
 //! Boundary: carries validated proposal inputs into SNS report builders.
 
-use super::super::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort};
+use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort};
 use std::path::PathBuf;
 
 ///

@@ -4,12 +4,12 @@
 //! Does not own: SNS-W transport, metadata fetch scheduling, or report rendering.
 //! Boundary: maps live SNS-W/root responses into source-layer SNS identity models.
 
-use super::super::{
-    super::{MainnetSns, MainnetSnsCanisters, short_principal},
-    SnsHostError,
-    types::{DeployedSns, GetMetadataResponse},
-};
 use super::common::clean_optional_text;
+use crate::sns::report::{
+    MainnetSns, MainnetSnsCanisters, SnsHostError,
+    live::types::{DeployedSns, GetMetadataResponse},
+    short_principal,
+};
 use candid::Principal;
 
 /// Convert one SNS-W deployed SNS entry into required canister id strings.

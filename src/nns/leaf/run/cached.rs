@@ -1,16 +1,16 @@
-use super::super::{
-    commands::{command, info_usage, list_usage, refresh_usage, usage},
-    model::{
-        NnsLeafCacheRequest, NnsLeafCommandSpec, NnsLeafInfoRequest, NnsLeafListRequest,
-        NnsLeafRefreshRequest, NnsLeafReports,
-    },
-    options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
-};
 use crate::{
     cli::common::write_text_or_json_verbose,
     nns::{
-        NnsCommandError, command_args, command_icp_root, now_unix_secs,
-        parse_nns_required_subcommand, write_text_or_json,
+        NnsCommandError, command_args, command_icp_root,
+        leaf::{
+            commands::{command, info_usage, list_usage, refresh_usage, usage},
+            model::{
+                NnsLeafCacheRequest, NnsLeafCommandSpec, NnsLeafInfoRequest, NnsLeafListRequest,
+                NnsLeafRefreshRequest, NnsLeafReports,
+            },
+            options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
+        },
+        now_unix_secs, parse_nns_required_subcommand, write_text_or_json,
     },
 };
 use std::ffi::OsString;

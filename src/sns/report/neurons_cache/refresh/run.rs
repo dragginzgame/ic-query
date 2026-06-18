@@ -1,9 +1,9 @@
-use super::super::{
-    attempt::{write_failed_sns_neurons_attempt, write_starting_sns_neurons_attempt},
-    collection::fetch_complete_sns_neurons,
-    errors::sns_cache_file_error,
-    paths::SnsNeuronsCachePaths,
-};
+//! Module: sns::report::neurons_cache::refresh::run
+//!
+//! Responsibility: run SNS neuron cache refresh operations.
+//! Does not own: page collection internals, snapshot publishing details, text rendering, or CLI parsing.
+//! Boundary: resolves the target SNS, acquires the refresh lock, and wraps attempt lifecycle hooks.
+
 use super::{context::SnsNeuronsRefreshContext, publish::publish_complete_sns_neurons_cache};
 use crate::{
     snapshot_cache::{
@@ -14,6 +14,12 @@ use crate::{
         SnsHostError, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
         live::LiveSnsSource,
         lookup::{enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup},
+        neurons_cache::{
+            attempt::{write_failed_sns_neurons_attempt, write_starting_sns_neurons_attempt},
+            collection::fetch_complete_sns_neurons,
+            errors::sns_cache_file_error,
+            paths::SnsNeuronsCachePaths,
+        },
         source::SnsNeuronsSource,
     },
 };

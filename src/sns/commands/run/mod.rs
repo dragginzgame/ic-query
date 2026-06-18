@@ -1,18 +1,26 @@
+//! Module: sns::commands::run
+//!
+//! Responsibility: dispatch parsed SNS command families into report builders.
+//! Does not own: clap command shape, report construction, or text rendering.
+//! Boundary: maps command-line options into report requests.
+
 mod common;
 mod lookup;
 mod neurons;
 mod proposals;
 
-use super::{
-    SnsCommandError,
-    options::SnsListOptions,
-    spec::{sns_command, sns_list_usage, usage},
-};
 use crate::{
     cli::common::write_text_or_json,
-    sns::report::{SnsListRequest, build_sns_list_report, sns_list_report_text},
+    sns::{
+        commands::{
+            SnsCommandError,
+            options::SnsListOptions,
+            run::common::{command_args, command_unix_secs, parse_required_command},
+            spec::{sns_command, sns_list_usage, usage},
+        },
+        report::{SnsListRequest, build_sns_list_report, sns_list_report_text},
+    },
 };
-use common::{command_args, command_unix_secs, parse_required_command};
 use std::ffi::OsString;
 
 pub fn run<I>(args: I) -> Result<(), SnsCommandError>

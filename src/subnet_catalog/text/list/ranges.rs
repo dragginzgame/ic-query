@@ -1,5 +1,4 @@
-use super::super::principal::compact_principal;
-use crate::subnet_catalog::SubnetCatalogListReport;
+use crate::subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal};
 
 pub(super) fn append_range_lines(report: &SubnetCatalogListReport, lines: &mut Vec<String>) {
     for subnet in &report.subnets {

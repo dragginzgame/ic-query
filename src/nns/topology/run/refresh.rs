@@ -1,12 +1,14 @@
-use super::super::{
-    commands::topology_refresh_usage,
-    options::TopologyRefreshOptions,
-    report::{
-        NnsTopologyRefreshRequest, nns_topology_refresh_report_text, refresh_nns_topology_report,
-    },
-};
 use crate::nns::{
-    NnsCommandError, command_args, command_icp_root, now_unix_secs, write_text_or_json,
+    NnsCommandError, command_args, command_icp_root, now_unix_secs,
+    topology::{
+        commands::topology_refresh_usage,
+        options::TopologyRefreshOptions,
+        report::{
+            NnsTopologyRefreshRequest, nns_topology_refresh_report_text,
+            refresh_nns_topology_report,
+        },
+    },
+    write_text_or_json,
 };
 use std::ffi::OsString;
 

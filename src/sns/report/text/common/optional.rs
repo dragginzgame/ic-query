@@ -1,3 +1,9 @@
+//! Module: sns::report::text::common::optional
+//!
+//! Responsibility: render optional SNS report fields for text output.
+//! Does not own: report DTOs, source reads, cache behavior, or table layout.
+//! Boundary: converts missing values and small scalar values into display strings.
+
 use crate::{
     duration::display_duration_seconds, nns::render::yes_no, sns::report::SnsNeuronPermissionList,
     token_amount::e8s_decimal_text,

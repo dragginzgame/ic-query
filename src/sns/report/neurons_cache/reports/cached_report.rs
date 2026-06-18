@@ -1,7 +1,16 @@
-use super::super::{model::SnsNeuronsCachedReportParts, storage::load_sns_neurons_cache_for_input};
+//! Module: sns::report::neurons_cache::reports::cached_report
+//!
+//! Responsibility: build normal SNS neuron list reports from complete local snapshots.
+//! Does not own: live neuron fetching, cache refresh, text rendering, or CLI parsing.
+//! Boundary: applies view sorting/limit over one complete cached neuron snapshot.
+
 use crate::sns::report::{
     SNS_NEURONS_REPORT_SCHEMA_VERSION, SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::SnsReportProvenance, view::sort_sns_neurons,
+    assemble::SnsReportProvenance,
+    neurons_cache::{
+        model::SnsNeuronsCachedReportParts, storage::load_sns_neurons_cache_for_input,
+    },
+    view::sort_sns_neurons,
 };
 
 pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(

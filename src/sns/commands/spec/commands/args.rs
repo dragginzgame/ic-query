@@ -1,3 +1,9 @@
+//! Module: sns::commands::spec::commands::args
+//!
+//! Responsibility: provide shared SNS clap argument builders and value parsers.
+//! Does not own: command specs, option DTOs, or command runtime validation.
+//! Boundary: centralizes reusable clap argument shapes for SNS commands.
+
 use crate::cli::clap::value_arg;
 use candid::Principal;
 

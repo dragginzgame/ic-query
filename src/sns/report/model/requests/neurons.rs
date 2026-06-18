@@ -4,7 +4,7 @@
 //! Does not own: command option parsing, cache storage, or live neuron fetches.
 //! Boundary: carries validated neuron inputs into SNS report builders.
 
-use super::super::SnsNeuronsSort;
+use crate::sns::report::SnsNeuronsSort;
 use std::path::PathBuf;
 
 ///

@@ -1,3 +1,9 @@
+//! Module: nns::topology::report::health::checks
+//!
+//! Responsibility: construct NNS topology health check rows.
+//! Does not own: derived metric calculation, text rendering, or source reads.
+//! Boundary: maps health metrics into user-facing check names and details.
+
 use super::metrics::NnsTopologyHealthDerivedMetrics;
 use crate::nns::topology::report::{NnsTopologyHealthCheckRow, NnsTopologySummaryReport};
 

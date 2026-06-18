@@ -4,12 +4,6 @@
 //! Does not own: cache publication details, attempt models, or text rendering.
 //! Boundary: resolves lookup, acquires refresh lock, fetches pages, and publishes.
 
-use super::super::{
-    attempt::{write_failed_attempt, write_starting_attempt},
-    collection::fetch_complete_sns_proposals,
-    errors::sns_cache_file_error,
-    paths::SnsProposalsCachePaths,
-};
 use super::{context::SnsProposalsRefreshContext, publish::publish_complete_sns_proposals_cache};
 use crate::{
     snapshot_cache::{
@@ -20,6 +14,12 @@ use crate::{
         SnsHostError, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
         live::LiveSnsSource,
         lookup::{enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup},
+        proposals_cache::{
+            attempt::{write_failed_attempt, write_starting_attempt},
+            collection::fetch_complete_sns_proposals,
+            errors::sns_cache_file_error,
+            paths::SnsProposalsCachePaths,
+        },
         source::SnsProposalsSource,
     },
 };

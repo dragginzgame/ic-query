@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::build::neurons
+//!
+//! Responsibility: build SNS neuron list reports.
+//! Does not own: command parsing, cache file primitives, row rendering, or amount formatting.
+//! Boundary: routes cache-backed sorts to cache reports or live API reads to assembly.
+
+use crate::sns::report::{
     SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
     assemble::{SnsNeuronsLiveReportParts, sns_neurons_report_from_parts},
     live::LiveSnsSource,

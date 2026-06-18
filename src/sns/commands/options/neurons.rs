@@ -1,4 +1,9 @@
-use super::{common::parse_sns_matches, lookup::SnsLookupOptions};
+//! Module: sns::commands::options::neurons
+//!
+//! Responsibility: parse SNS neuron list, refresh, and cache options.
+//! Does not own: neuron cache policy, live governance reads, or reports.
+//! Boundary: validates clap matches into neuron command request inputs.
+
 use crate::{
     cli::{
         clap::{required_string, required_typed, typed_option},
@@ -6,6 +11,7 @@ use crate::{
     },
     sns::commands::{
         SnsCommandError,
+        options::{common::parse_sns_matches, lookup::SnsLookupOptions},
         spec::{
             SnsNeuronsSortArg, sns_neurons_cache_list_command, sns_neurons_cache_list_usage,
             sns_neurons_cache_status_command, sns_neurons_cache_status_usage, sns_neurons_command,

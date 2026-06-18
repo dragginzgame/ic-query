@@ -1,5 +1,10 @@
-use super::super::super::SnsNeuronsRefreshReport;
-use crate::nns::render::yes_no;
+//! Module: sns::report::text::neurons::refresh
+//!
+//! Responsibility: render SNS neuron refresh reports as text.
+//! Does not own: refresh execution, cache writes, report construction, or JSON output.
+//! Boundary: formats complete neuron snapshot refresh results for humans.
+
+use crate::{nns::render::yes_no, sns::report::SnsNeuronsRefreshReport};
 
 #[must_use]
 pub fn sns_neurons_refresh_report_text(report: &SnsNeuronsRefreshReport) -> String {

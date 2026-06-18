@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache::attempt::read
+//!
+//! Responsibility: read SNS neuron refresh-attempt sidecars.
+//! Does not own: attempt writes, cache snapshots, refresh execution, or text rendering.
+//! Boundary: projects persisted attempt envelopes into public status report DTOs.
+
 use super::model::SnsNeuronsRefreshAttempt;
 use crate::{
     snapshot_cache::read_snapshot_refresh_attempt, sns::report::SnsNeuronsRefreshAttemptStatus,

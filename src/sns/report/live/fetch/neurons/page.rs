@@ -4,11 +4,11 @@
 //! Does not own: cache refresh orchestration, sorting, or rendering.
 //! Boundary: maps list_neurons Candid responses into source-layer page data.
 
-use super::super::governance_canister;
 use crate::sns::report::{
     SnsHostError,
     live::{
         convert::{sns_neuron_cursor, sns_neuron_row},
+        fetch::governance_canister,
         query::{principal_from_text, query_canister, sns_agent},
         types::{ListNeuronsRequest, ListNeuronsResponse},
     },

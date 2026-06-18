@@ -1,5 +1,13 @@
-use super::super::{NnsTopologyRegionRow, NnsTopologyRegionsReport};
-use crate::table::{ColumnAlign, render_table};
+//! Module: nns::topology::report::text::regions
+//!
+//! Responsibility: render NNS topology region reports as text.
+//! Does not own: region aggregation, source reads, or JSON output.
+//! Boundary: formats data-center region rows for human inspection.
+
+use crate::{
+    nns::topology::report::{NnsTopologyRegionRow, NnsTopologyRegionsReport},
+    table::{ColumnAlign, render_table},
+};
 
 #[must_use]
 pub fn nns_topology_regions_report_text(report: &NnsTopologyRegionsReport) -> String {

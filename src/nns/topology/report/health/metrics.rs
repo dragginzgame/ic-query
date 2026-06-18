@@ -1,5 +1,10 @@
-use super::coverage::coverage_percent_text;
-use crate::nns::topology::report::NnsTopologySummaryReport;
+//! Module: nns::topology::report::health::metrics
+//!
+//! Responsibility: derive aggregate NNS topology health metrics.
+//! Does not own: check row wording, text rendering, or report serialization.
+//! Boundary: calculates registry, staleness, and join-coverage health inputs.
+
+use crate::nns::topology::report::{NnsTopologySummaryReport, percent::coverage_percent_text};
 
 pub(super) struct NnsTopologyHealthDerivedMetrics {
     pub(super) registry_source_count: usize,

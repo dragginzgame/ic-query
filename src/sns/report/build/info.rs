@@ -1,4 +1,10 @@
-use super::super::{
+//! Module: sns::report::build::info
+//!
+//! Responsibility: build one deployed SNS info report.
+//! Does not own: command parsing, SNS-W transport internals, report DTO mapping, or rendering.
+//! Boundary: resolves lookup input through a source and delegates DTO assembly.
+
+use crate::sns::report::{
     SnsHostError, SnsInfoReport, SnsInfoRequest, assemble::sns_info_report_from_list,
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsListSource,
 };

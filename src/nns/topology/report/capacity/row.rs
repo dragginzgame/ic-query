@@ -1,5 +1,13 @@
-use super::super::{NnsTopologyCapacityRow, percent::ratio_percent_text};
-use crate::nns::node_operator::report::NnsNodeOperatorRow;
+//! Module: nns::topology::report::capacity::row
+//!
+//! Responsibility: project node-operator rows into capacity rows.
+//! Does not own: capacity sorting, summary status, or text rendering.
+//! Boundary: calculates per-operator capacity fields.
+
+use crate::nns::{
+    node_operator::report::NnsNodeOperatorRow,
+    topology::report::{NnsTopologyCapacityRow, percent::ratio_percent_text},
+};
 
 pub(super) fn capacity_row_from_operator(operator: &NnsNodeOperatorRow) -> NnsTopologyCapacityRow {
     let assigned_node_count = operator.node_count.map(u64::from);

@@ -1,4 +1,9 @@
-use super::common::parse_sns_matches;
+//! Module: sns::commands::options::list
+//!
+//! Responsibility: parse options for `icq sns list`.
+//! Does not own: deployed SNS lookup, report construction, or text output.
+//! Boundary: converts clap matches into the SNS list request inputs.
+
 use crate::{
     cli::{
         clap::{required_string, required_typed},
@@ -6,6 +11,7 @@ use crate::{
     },
     sns::commands::{
         SnsCommandError,
+        options::common::parse_sns_matches,
         spec::{SnsListSortArg, sns_list_command, sns_list_usage},
     },
 };

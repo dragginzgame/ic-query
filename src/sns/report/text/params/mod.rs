@@ -1,8 +1,9 @@
-mod delay;
-mod economic;
-mod limits;
-mod permissions;
-mod rewards;
+//! Module: sns::report::text::params
+//!
+//! Responsibility: render SNS governance parameter reports as text.
+//! Does not own: parameter fetching, report construction, or JSON output.
+//! Boundary: groups governance parameter rows into a human-readable table.
+
 mod rows;
 
 use crate::{
@@ -32,12 +33,5 @@ pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
 }
 
 fn sns_params_text_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
-    [
-        economic::rows(parameters),
-        delay::rows(parameters),
-        limits::rows(parameters),
-        permissions::rows(parameters),
-        rewards::rows(parameters),
-    ]
-    .concat()
+    rows::sns_params_text_rows(parameters)
 }

@@ -4,11 +4,10 @@
 //! Does not own: live governance transport, cache reads, sorting, or rendering.
 //! Boundary: extends deployed SNS lookup sources with bounded and paged neuron fetching.
 
-use super::super::{
-    MainnetSns, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsFetchRequest, SnsNeuronId,
-};
 use super::list::SnsListSource;
-use crate::sns::report::SnsHostError;
+use crate::sns::report::{
+    MainnetSns, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsFetchRequest, SnsHostError, SnsNeuronId,
+};
 
 ///
 /// SnsNeuronsSource

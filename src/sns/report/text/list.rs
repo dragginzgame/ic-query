@@ -1,4 +1,10 @@
-use super::super::{SnsListReport, short_principal};
+//! Module: sns::report::text::list
+//!
+//! Responsibility: render deployed SNS list reports as text.
+//! Does not own: report construction, list sorting, lookup ids, or JSON output.
+//! Boundary: formats list DTO rows into compact or verbose human-readable tables.
+
+use crate::sns::report::{SnsListReport, short_principal};
 use crate::table::{ColumnAlign, render_table};
 
 #[must_use]

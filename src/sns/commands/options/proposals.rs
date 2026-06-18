@@ -1,4 +1,9 @@
-use super::{common::parse_sns_matches, lookup::SnsLookupOptions};
+//! Module: sns::commands::options::proposals
+//!
+//! Responsibility: parse SNS proposal detail, list, refresh, and cache options.
+//! Does not own: proposal command specs, proposal cache policy, or reports.
+//! Boundary: validates clap matches into proposal command request inputs.
+
 use crate::{
     cli::{
         clap::{required_string, required_typed, typed_option},
@@ -6,6 +11,7 @@ use crate::{
     },
     sns::commands::{
         SnsCommandError,
+        options::{common::parse_sns_matches, lookup::SnsLookupOptions},
         spec::{
             SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg, sns_proposal_command,
             sns_proposal_usage, sns_proposals_cache_list_command, sns_proposals_cache_list_usage,

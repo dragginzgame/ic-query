@@ -4,9 +4,9 @@
 //! Does not own: source fetching, cache publishing, or attempt persistence.
 //! Boundary: adapts refresh context fields into attempt-writer context.
 
-use super::super::{attempt::SnsProposalsAttemptContext, paths::SnsProposalsCachePaths};
 use crate::sns::report::{
     SnsProposalsRefreshRequest,
+    proposals_cache::{attempt::SnsProposalsAttemptContext, paths::SnsProposalsCachePaths},
     source::{MainnetSns, MainnetSnsList, SnsFetchRequest},
 };
 

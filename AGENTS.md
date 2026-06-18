@@ -49,6 +49,9 @@ If code or habit conflicts with this file, this file wins.
   broad abstractions.
 - Modules with child files use directory `mod.rs`; never keep both `foo.rs`
   and `foo/`, and do not use `#[path = "..."]`.
+- Do not split code into one-function leaf modules unless that function owns a
+  real boundary such as parsing, IO, cache policy, or a reusable public helper.
+  Prefer grouping small related helpers in one owner module.
 - More than three generic parameters on a function, struct, or impl is a design
   smell; prefer associated types, concrete provider traits, or smaller helpers
   unless the extra type parameters are clearly justified.

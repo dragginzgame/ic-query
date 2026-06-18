@@ -1,3 +1,9 @@
+//! Module: sns::report::text::proposals::detail
+//!
+//! Responsibility: render shared SNS proposal detail fragments.
+//! Does not own: proposal fetching, cache loading, report construction, or JSON output.
+//! Boundary: formats proposal detail lines and ballot tables for proposal text reports.
+
 use super::SNS_PROPOSAL_TITLE_TEXT_LIMIT;
 use crate::{
     nns::render::yes_no,

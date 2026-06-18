@@ -1,14 +1,22 @@
+//! Module: sns::report::neurons_cache::storage::scan
+//!
+//! Responsibility: scan SNS neuron cache directories and read snapshot headers.
+//! Does not own: full cache loading, lookup policy, refresh, or rendering.
+//! Boundary: exposes only complete snapshot paths and validated cache headers.
+
+use super::errors::SnsNeuronsCacheErrors;
 use crate::{
     cache_file::LoadJsonCacheRequest,
     snapshot_cache::{collect_full_collection_snapshot_paths, load_snapshot_header},
-    sns::report::SnsHostError,
+    sns::report::{
+        SnsHostError,
+        neurons_cache::{
+            SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCacheHeader,
+            paths::sns_network_cache_dir,
+        },
+    },
 };
 use std::path::{Path, PathBuf};
-
-use super::super::{
-    SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCacheHeader, paths::sns_network_cache_dir,
-};
-use super::errors::SnsNeuronsCacheErrors;
 
 pub(super) fn collect_sns_neurons_cache_paths(
     icp_root: &Path,

@@ -1,3 +1,9 @@
+//! Module: sns::report::neurons_cache::storage::errors
+//!
+//! Responsibility: map SNS neuron cache storage failures into host errors.
+//! Does not own: cache parsing, cache paths, refresh attempts, or rendering.
+//! Boundary: adapts generic cache-file errors to SNS neuron cache error variants.
+
 use crate::{cache_file::LoadJsonCacheErrorMapper, sns::report::SnsHostError};
 use std::path::PathBuf;
 

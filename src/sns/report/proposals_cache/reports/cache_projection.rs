@@ -4,9 +4,9 @@
 //! Does not own: cache loading, view filtering, or text rendering.
 //! Boundary: keeps cache metadata conversion shared by list and detail reports.
 
-use super::super::model::SnsProposalsCache;
 use crate::sns::report::{
     SnsProposalRow,
+    proposals_cache::model::SnsProposalsCache,
     source::{MainnetSns, MainnetSnsList},
 };
 

@@ -1,11 +1,19 @@
+//! Module: sns::report::neurons_cache::storage::load
+//!
+//! Responsibility: load one complete SNS neuron cache snapshot from disk.
+//! Does not own: lookup resolution, cache path construction, refresh, or rendering.
+//! Boundary: validates schema, network, and completeness before returning a cache model.
+
 use super::errors::{SnsNeuronsCacheErrors, incomplete_cache_error};
 use crate::{
-    cache_file::LoadJsonCacheRequest, snapshot_cache::load_complete_snapshot,
-    sns::report::SnsHostError,
+    cache_file::LoadJsonCacheRequest,
+    snapshot_cache::load_complete_snapshot,
+    sns::report::{
+        SnsHostError,
+        neurons_cache::{SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache},
+    },
 };
 use std::path::PathBuf;
-
-use super::super::{SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache};
 
 pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
     path: PathBuf,
