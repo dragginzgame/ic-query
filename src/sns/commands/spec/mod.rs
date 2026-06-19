@@ -24,6 +24,6 @@ pub(super) use usage::{
     usage,
 };
 pub(super) use values::{
-    SnsListSortArg, SnsNeuronsSortArg, SnsProposalStatusArg, SnsProposalTopicArg,
-    SnsProposalsSortArg,
+    SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsListSortArg, SnsNeuronsSortArg, SnsProposalStatusArg,
+    SnsProposalTopicArg, SnsProposalsSortArg,
 };

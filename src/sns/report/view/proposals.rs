@@ -44,6 +44,21 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
         SnsProposalsSort::Id => {
             sort_by_optional_u64(proposals, direction, |proposal| proposal.proposal_id);
         }
+        SnsProposalsSort::Title => {
+            sort_by_text(proposals, direction, |proposal| proposal.title.as_str());
+        }
+        SnsProposalsSort::Action => {
+            sort_by_text(proposals, direction, |proposal| proposal.action.as_str());
+        }
+        SnsProposalsSort::Yes => sort_by_optional_u64(proposals, direction, |proposal| {
+            proposal.latest_tally.as_ref().map(|tally| tally.yes)
+        }),
+        SnsProposalsSort::No => sort_by_optional_u64(proposals, direction, |proposal| {
+            proposal.latest_tally.as_ref().map(|tally| tally.no)
+        }),
+        SnsProposalsSort::TotalVotes => sort_by_optional_u64(proposals, direction, |proposal| {
+            proposal.latest_tally.as_ref().map(|tally| tally.total)
+        }),
         SnsProposalsSort::Created => sort_by_optional_u64(proposals, direction, |proposal| {
             Some(proposal.proposal_creation_timestamp_seconds)
         }),
@@ -68,6 +83,26 @@ fn sort_by_optional_u64(
         compare_optional_u64(key(left), key(right), direction)
             .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
     });
+}
+
+fn sort_by_text(
+    proposals: &mut [SnsProposalRow],
+    direction: SnsProposalSortDirection,
+    key: impl Fn(&SnsProposalRow) -> &str,
+) {
+    proposals.sort_by(|left, right| {
+        compare_text(key(left), key(right), direction)
+            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+    });
+}
+
+fn compare_text(left: &str, right: &str, direction: SnsProposalSortDirection) -> Ordering {
+    let left_key = left.to_ascii_lowercase();
+    let right_key = right.to_ascii_lowercase();
+    match direction {
+        SnsProposalSortDirection::Asc => left_key.cmp(&right_key),
+        SnsProposalSortDirection::Desc => right_key.cmp(&left_key),
+    }
 }
 
 fn compare_optional_u64(
@@ -180,6 +215,74 @@ mod tests {
     }
 
     #[test]
+    fn proposal_title_sort_orders_case_insensitive_with_id_tiebreaker() {
+        let mut proposals = vec![
+            proposal_row_with_title(2, "Zoo"),
+            proposal_row_with_title(10, "alpha"),
+            proposal_row_with_title(1, "Alpha"),
+        ];
+
+        sort_sns_proposal_rows(
+            &mut proposals,
+            SnsProposalsSort::Title,
+            SnsProposalSortDirection::Asc,
+        );
+
+        assert_eq!(proposal_ids(&proposals), vec![1, 10, 2]);
+    }
+
+    #[test]
+    fn proposal_action_sort_orders_descending_with_id_tiebreaker() {
+        let mut proposals = vec![
+            proposal_row_with_action(2, "motion"),
+            proposal_row_with_action(10, "upgrade-sns-controlled-canister"),
+            proposal_row_with_action(1, "motion"),
+        ];
+
+        sort_sns_proposal_rows(
+            &mut proposals,
+            SnsProposalsSort::Action,
+            SnsProposalSortDirection::Desc,
+        );
+
+        assert_eq!(proposal_ids(&proposals), vec![10, 2, 1]);
+    }
+
+    #[test]
+    fn proposal_total_votes_sort_orders_highest_tally_first() {
+        let mut proposals = vec![
+            proposal_row_with_tally(2, Some((10, 20, 30))),
+            proposal_row_with_tally(10, None),
+            proposal_row_with_tally(1, Some((50, 60, 110))),
+        ];
+
+        sort_sns_proposal_rows(
+            &mut proposals,
+            SnsProposalsSort::TotalVotes,
+            SnsProposalSortDirection::Desc,
+        );
+
+        assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
+    }
+
+    #[test]
+    fn proposal_yes_sort_orders_ascending_with_id_tiebreaker() {
+        let mut proposals = vec![
+            proposal_row_with_tally(2, Some((10, 20, 30))),
+            proposal_row_with_tally(10, Some((10, 30, 40))),
+            proposal_row_with_tally(1, Some((50, 60, 110))),
+        ];
+
+        sort_sns_proposal_rows(
+            &mut proposals,
+            SnsProposalsSort::Yes,
+            SnsProposalSortDirection::Asc,
+        );
+
+        assert_eq!(proposal_ids(&proposals), vec![2, 10, 1]);
+    }
+
+    #[test]
     fn proposal_before_filter_requires_lower_present_id() {
         assert!(proposal_matches_before(&proposal_row(9, 100), Some(10)));
         assert!(!proposal_matches_before(&proposal_row(10, 100), Some(10)));
@@ -225,6 +328,32 @@ mod tests {
         SnsProposalRow {
             decision_state: decision_state.to_string(),
             ..proposal_row(1, 100)
+        }
+    }
+
+    fn proposal_row_with_title(proposal_id: u64, title: &str) -> SnsProposalRow {
+        SnsProposalRow {
+            title: title.to_string(),
+            ..proposal_row(proposal_id, 100)
+        }
+    }
+
+    fn proposal_row_with_action(proposal_id: u64, action: &str) -> SnsProposalRow {
+        SnsProposalRow {
+            action: action.to_string(),
+            ..proposal_row(proposal_id, 100)
+        }
+    }
+
+    fn proposal_row_with_tally(proposal_id: u64, tally: Option<(u64, u64, u64)>) -> SnsProposalRow {
+        SnsProposalRow {
+            latest_tally: tally.map(|(yes, no, total)| crate::sns::report::SnsProposalTally {
+                timestamp_seconds: 100,
+                yes,
+                no,
+                total,
+            }),
+            ..proposal_row(proposal_id, 100)
         }
     }
 

@@ -15,6 +15,11 @@ pub enum SnsProposalsSort {
     #[default]
     Api,
     Id,
+    Title,
+    Action,
+    Yes,
+    No,
+    TotalVotes,
     Created,
     Decided,
     Executed,
@@ -28,6 +33,11 @@ impl SnsProposalsSort {
         match self {
             Self::Api => "api",
             Self::Id => "id",
+            Self::Title => "title",
+            Self::Action => "action",
+            Self::Yes => "yes",
+            Self::No => "no",
+            Self::TotalVotes => "total-votes",
             Self::Created => "created",
             Self::Decided => "decided",
             Self::Executed => "executed",

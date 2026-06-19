@@ -13,8 +13,9 @@ use crate::{
         SnsCommandError,
         options::{common::parse_sns_matches, lookup::SnsLookupOptions},
         spec::{
-            SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg, sns_proposal_command,
-            sns_proposal_usage, sns_proposals_cache_list_command, sns_proposals_cache_list_usage,
+            SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsProposalStatusArg, SnsProposalTopicArg,
+            SnsProposalsSortArg, sns_proposal_command, sns_proposal_usage,
+            sns_proposals_cache_list_command, sns_proposals_cache_list_usage,
             sns_proposals_cache_status_command, sns_proposals_cache_status_usage,
             sns_proposals_command, sns_proposals_refresh_command, sns_proposals_refresh_usage,
             sns_proposals_usage,
@@ -107,9 +108,9 @@ fn proposal_sort_direction(
 ) -> Result<SnsProposalSortDirection, SnsCommandError> {
     if matches.get_flag("asc") {
         if sort == SnsProposalsSortArg::Api {
-            return Err(SnsCommandError::Usage(
-                "--asc requires --sort id|created|decided|executed|failed".to_string(),
-            ));
+            return Err(SnsCommandError::Usage(format!(
+                "--asc requires --sort {SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME}"
+            )));
         }
         return Ok(SnsProposalSortDirection::Asc);
     }

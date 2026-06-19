@@ -13,7 +13,10 @@ use crate::{
     sns::{
         commands::spec::{
             commands::{args::sns_lookup_input_arg, nested_dispatch_command},
-            values::{SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg},
+            values::{
+                SNS_PROPOSALS_SORT_VALUE_NAME, SnsProposalStatusArg, SnsProposalTopicArg,
+                SnsProposalsSortArg,
+            },
         },
         report::DEFAULT_SNS_SOURCE_ENDPOINT,
     },
@@ -31,6 +34,9 @@ Examples:
   icq sns proposals 1 --status open
   icq sns proposals 1 --status decided
   icq sns proposals 1 --topic governance
+  icq sns proposals 1 --sort title --asc
+  icq sns proposals 1 --sort action
+  icq sns proposals 1 --sort total-votes
   icq sns proposals 1 --sort created
   icq sns proposals 1 --sort decided
   icq sns proposals 1 --sort executed
@@ -152,10 +158,10 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
         .arg(
             value_arg("sort")
                 .long("sort")
-                .value_name("api|id|created|decided|executed|failed")
+                .value_name(SNS_PROPOSALS_SORT_VALUE_NAME)
                 .default_value("api")
                 .value_parser(clap::value_parser!(SnsProposalsSortArg))
-                .help("Sort proposals locally; timestamp sorts are newest first"),
+                .help("Sort proposals locally; timestamp and tally sorts are highest/newest first"),
         )
         .arg(
             flag_arg("asc")

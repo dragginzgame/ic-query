@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.21` adds local SNS proposal list sorting by proposal title, action,
+  yes tally, no tally, and total vote tally, reusing the shared proposal view
+  sorter for live rows and complete proposal snapshots while keeping cache
+  identity, cache paths, and JSON row fields unchanged.
+
+  ```bash
+  icq sns proposals 1 --sort title --asc
+  icq sns proposals 1 --sort action
+  icq sns proposals 1 --sort total-votes
+  ```
+
 - `0.2.20` shares SNS neuron/proposal refresh-attempt metadata and progress
   DTO plumbing, snapshot cache path construction, and cache-list lookup flow
   plus snapshot scan/load helpers while keeping family-specific storage error

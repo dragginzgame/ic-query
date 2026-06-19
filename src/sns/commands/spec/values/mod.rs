@@ -11,5 +11,6 @@ mod proposals;
 pub(in crate::sns::commands) use list::SnsListSortArg;
 pub(in crate::sns::commands) use neurons::SnsNeuronsSortArg;
 pub(in crate::sns::commands) use proposals::{
-    SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg,
+    SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SNS_PROPOSALS_SORT_VALUE_NAME, SnsProposalStatusArg,
+    SnsProposalTopicArg, SnsProposalsSortArg,
 };

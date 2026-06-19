@@ -37,6 +37,40 @@ fn sns_proposals_parses_filters_and_json_format() {
 }
 
 #[test]
+fn sns_proposals_parses_title_and_action_sorts() {
+    let title = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("title"),
+        OsString::from("--asc"),
+    ])
+    .expect("parse title proposal sort");
+
+    assert_eq!(title.sort, SnsProposalsSortArg::Title);
+    assert_eq!(title.sort_direction, SnsProposalSortDirection::Asc);
+
+    let action = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("action"),
+    ])
+    .expect("parse action proposal sort");
+
+    assert_eq!(action.sort, SnsProposalsSortArg::Action);
+    assert_eq!(action.sort_direction, SnsProposalSortDirection::Desc);
+
+    let total_votes = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("total-votes"),
+    ])
+    .expect("parse total-votes proposal sort");
+
+    assert_eq!(total_votes.sort, SnsProposalsSortArg::TotalVotes);
+    assert_eq!(total_votes.sort_direction, SnsProposalSortDirection::Desc);
+}
+
+#[test]
 fn sns_proposal_parses_id_and_json_format() {
     let options = SnsProposalOptions::parse([
         OsString::from("1"),

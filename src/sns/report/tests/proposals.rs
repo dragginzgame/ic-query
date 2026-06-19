@@ -440,6 +440,50 @@ fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
 }
 
 #[test]
+fn sns_proposals_cached_sort_title_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-title");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Title;
+    request.sort_direction = SnsProposalSortDirection::Asc;
+    request.limit = 2;
+
+    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh title sorted proposals cache");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.sort, "title");
+    assert_eq!(proposal_ids(&report), vec![20, 30]);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-total-votes");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::TotalVotes;
+    request.sort_direction = SnsProposalSortDirection::Desc;
+    request.limit = 2;
+
+    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh total-votes sorted proposals cache");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.sort, "total-votes");
+    assert_eq!(proposal_ids(&report), vec![10, 30]);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_status_decided_requires_cache_compatible_view() {
     let mut request = proposals_request("1");
     request.status = SnsProposalStatusFilter::Decided;
@@ -550,30 +594,39 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
         assert_eq!(before_proposal_id, None);
         Ok(MainnetSnsProposalPage {
             proposals: vec![
-                proposal_row_with_id_created_decided_and_executed_at(
-                    10,
-                    1_700_000_100,
-                    Some(1_700_001_100),
-                    Some(1_700_002_300),
-                    Some(1_700_003_100),
-                    "executed",
-                ),
-                proposal_row_with_id_created_decided_and_executed_at(
-                    20,
-                    1_700_000_300,
-                    None,
-                    None,
-                    None,
-                    "open",
-                ),
-                proposal_row_with_id_created_decided_and_executed_at(
-                    30,
-                    1_700_000_200,
-                    Some(1_700_001_300),
-                    Some(1_700_002_100),
-                    Some(1_700_003_300),
-                    "decided",
-                ),
+                proposal_row_with_fixture(ProposalRowFixture {
+                    proposal_id: 10,
+                    created_at_secs: 1_700_000_100,
+                    decided_at_secs: Some(1_700_001_100),
+                    executed_at_secs: Some(1_700_002_300),
+                    failed_at_secs: Some(1_700_003_100),
+                    decision_state: "executed",
+                    title: "Zulu proposal",
+                    action: "motion",
+                    tally: (90, 10, 100),
+                }),
+                proposal_row_with_fixture(ProposalRowFixture {
+                    proposal_id: 20,
+                    created_at_secs: 1_700_000_300,
+                    decided_at_secs: None,
+                    executed_at_secs: None,
+                    failed_at_secs: None,
+                    decision_state: "open",
+                    title: "Alpha proposal",
+                    action: "upgrade-sns-controlled-canister",
+                    tally: (5, 10, 15),
+                }),
+                proposal_row_with_fixture(ProposalRowFixture {
+                    proposal_id: 30,
+                    created_at_secs: 1_700_000_200,
+                    decided_at_secs: Some(1_700_001_300),
+                    executed_at_secs: Some(1_700_002_100),
+                    failed_at_secs: Some(1_700_003_300),
+                    decision_state: "decided",
+                    title: "Beta proposal",
+                    action: "motion",
+                    tally: (50, 25, 75),
+                }),
             ],
             last_cursor: None,
         })
@@ -588,25 +641,38 @@ fn proposal_ids(report: &SnsProposalsReport) -> Vec<u64> {
         .collect()
 }
 
-fn proposal_row_with_id_created_decided_and_executed_at(
+struct ProposalRowFixture {
     proposal_id: u64,
     created_at_secs: u64,
     decided_at_secs: Option<u64>,
     executed_at_secs: Option<u64>,
     failed_at_secs: Option<u64>,
-    decision_state: &str,
-) -> SnsProposalRow {
+    decision_state: &'static str,
+    title: &'static str,
+    action: &'static str,
+    tally: (u64, u64, u64),
+}
+
+fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(proposal_id),
-        decision_state: decision_state.to_string(),
-        proposal_creation_timestamp_seconds: created_at_secs,
-        created_at: format_utc_timestamp_secs(created_at_secs),
-        decided_timestamp_seconds: decided_at_secs,
-        decided_at: decided_at_secs.map(format_utc_timestamp_secs),
-        executed_timestamp_seconds: executed_at_secs,
-        executed_at: executed_at_secs.map(format_utc_timestamp_secs),
-        failed_timestamp_seconds: failed_at_secs,
-        failed_at: failed_at_secs.map(format_utc_timestamp_secs),
+        proposal_id: Some(fixture.proposal_id),
+        decision_state: fixture.decision_state.to_string(),
+        title: fixture.title.to_string(),
+        action: fixture.action.to_string(),
+        proposal_creation_timestamp_seconds: fixture.created_at_secs,
+        created_at: format_utc_timestamp_secs(fixture.created_at_secs),
+        decided_timestamp_seconds: fixture.decided_at_secs,
+        decided_at: fixture.decided_at_secs.map(format_utc_timestamp_secs),
+        executed_timestamp_seconds: fixture.executed_at_secs,
+        executed_at: fixture.executed_at_secs.map(format_utc_timestamp_secs),
+        failed_timestamp_seconds: fixture.failed_at_secs,
+        failed_at: fixture.failed_at_secs.map(format_utc_timestamp_secs),
+        latest_tally: Some(SnsProposalTally {
+            timestamp_seconds: fixture.created_at_secs,
+            yes: fixture.tally.0,
+            no: fixture.tally.1,
+            total: fixture.tally.2,
+        }),
         ..fixture_proposal_row()
     }
 }
