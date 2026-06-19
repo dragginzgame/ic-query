@@ -4,15 +4,12 @@
 //! Does not own: cache path scanning, status summaries, or refresh orchestration.
 //! Boundary: maps snapshot JSON loading errors into SNS host errors.
 
-use crate::{
-    cache_file::LoadJsonCacheRequest,
-    snapshot_cache::load_complete_snapshot,
-    sns::report::{
-        SnsHostError,
-        proposals_cache::{
-            SNS_PROPOSALS_CACHE_SCHEMA_VERSION, errors::SnsProposalsCacheErrors,
-            model::SnsProposalsCache,
-        },
+use crate::sns::report::{
+    SnsHostError,
+    cache_storage::load_sns_complete_cache,
+    proposals_cache::{
+        SNS_PROPOSALS_CACHE_SCHEMA_VERSION, errors::SnsProposalsCacheErrors,
+        model::SnsProposalsCache,
     },
 };
 use std::path::PathBuf;
@@ -22,12 +19,10 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_at(
     cache_path: PathBuf,
     network: &str,
 ) -> Result<SnsProposalsCache, SnsHostError> {
-    load_complete_snapshot(
-        LoadJsonCacheRequest {
-            path: cache_path,
-            network,
-            expected_schema_version: SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
-        },
+    load_sns_complete_cache(
+        cache_path,
+        network,
+        SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
         SnsProposalsCacheErrors,
         |completeness| SnsHostError::IncompleteRefresh {
             pages_fetched: completeness.page_count,

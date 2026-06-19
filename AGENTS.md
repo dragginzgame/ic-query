@@ -65,6 +65,10 @@ If code or habit conflicts with this file, this file wins.
 - More than three generic parameters on a function, struct, or impl is a design
   smell; prefer associated types, concrete provider traits, or smaller helpers
   unless the extra type parameters are clearly justified.
+- Structs, enums, and traits that cross module boundaries, including
+  `pub(crate)` and `pub(in ...)` items, use the repository section-style doc
+  block: empty `///`, type name, empty `///`, description, closing empty `///`,
+  then a blank line before attributes or the item.
 - Prefer `#[expect(...)]` over `#[allow(...)]` for lint suppressions so stale
   suppressions are caught. Use `#[allow(...)]` only when `#[expect(...)]`
   generates false positives or otherwise cannot model the lint accurately.

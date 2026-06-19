@@ -10,6 +10,12 @@ use crate::sns::report::{
     SnsNeuronsReport, SnsNeuronsSort,
 };
 
+///
+/// SnsNeuronsLiveReportParts
+///
+/// Live-source inputs needed to assemble an SNS neurons report.
+///
+
 pub(in crate::sns::report) struct SnsNeuronsLiveReportParts {
     pub(in crate::sns::report) list: MainnetSnsList,
     pub(in crate::sns::report) id: usize,
@@ -21,6 +27,7 @@ pub(in crate::sns::report) struct SnsNeuronsLiveReportParts {
     pub(in crate::sns::report) neurons: MainnetSnsNeurons,
 }
 
+/// Assemble an SNS neurons report from resolved live-source parts.
 pub(in crate::sns::report) fn sns_neurons_report_from_parts(
     parts: SnsNeuronsLiveReportParts,
 ) -> SnsNeuronsReport {

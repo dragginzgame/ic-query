@@ -7,10 +7,22 @@
 use crate::sns::report::{SnsHostError, enforce_mainnet_network, parse_sns_root_canister_input};
 use std::path::{Path, PathBuf};
 
+///
+/// SnsCacheStatusPaths
+///
+/// Filesystem paths needed to report status for one SNS snapshot cache.
+///
+
 pub(in crate::sns::report) struct SnsCacheStatusPaths {
     pub(in crate::sns::report) cache_path: PathBuf,
     pub(in crate::sns::report) attempt_path: PathBuf,
 }
+
+///
+/// SnsCacheStatusLookup
+///
+/// Shared lookup result used to assemble SNS cache-status reports.
+///
 
 pub(in crate::sns::report) struct SnsCacheStatusLookup<Summary, Attempt> {
     pub(in crate::sns::report) cache_root: String,
@@ -20,12 +32,24 @@ pub(in crate::sns::report) struct SnsCacheStatusLookup<Summary, Attempt> {
     pub(in crate::sns::report) latest_attempt: Option<Attempt>,
 }
 
+///
+/// SnsCacheStatusSummaryView
+///
+/// Summary fields required by the shared SNS cache-status report flow.
+///
+
 pub(in crate::sns::report) trait SnsCacheStatusSummaryView {
     type Attempt: Clone;
 
     fn refresh_attempt_path(&self) -> &str;
     fn latest_attempt(&self) -> Option<Self::Attempt>;
 }
+
+///
+/// SnsCacheStatusFamily
+///
+/// Family-specific hooks required by the shared SNS cache-status report flow.
+///
 
 pub(in crate::sns::report) trait SnsCacheStatusFamily {
     type Summary: SnsCacheStatusSummaryView<Attempt = Self::Attempt>;
@@ -49,6 +73,7 @@ pub(in crate::sns::report) trait SnsCacheStatusFamily {
     fn read_attempt_status(attempt_path: &Path) -> Option<Self::Attempt>;
 }
 
+/// Build a cache-status lookup for an SNS cache family by list id or root principal.
 pub(in crate::sns::report) fn build_sns_cache_status_lookup<Family>(
     network: &str,
     icp_root: &Path,

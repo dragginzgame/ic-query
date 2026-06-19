@@ -8,24 +8,24 @@ use crate::{
     snapshot_cache::{SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt},
     sns::report::{
         SnsNeuronsRefreshRequest,
+        cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
         source::{MainnetSns, SnsFetchRequest},
     },
     subnet_catalog::format_utc_timestamp_secs,
 };
-use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::{
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 pub(in crate::sns::report::neurons_cache) type SnsNeuronsRefreshAttempt =
-    SnapshotRefreshAttempt<SnsNeuronsRefreshAttemptMetadata>;
+    SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
 
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(in crate::sns::report::neurons_cache) struct SnsNeuronsRefreshAttemptMetadata {
-    pub(in crate::sns::report::neurons_cache::attempt) root_canister_id: String,
-    pub(in crate::sns::report::neurons_cache::attempt) governance_canister_id: String,
-}
+///
+/// SnsNeuronsAttemptContext
+///
+/// Shared context required to write one neuron refresh-attempt file.
+///
 
 #[derive(Clone, Copy)]
 pub(in crate::sns::report::neurons_cache) struct SnsNeuronsAttemptContext<'a> {
@@ -35,34 +35,14 @@ pub(in crate::sns::report::neurons_cache) struct SnsNeuronsAttemptContext<'a> {
     pub(in crate::sns::report::neurons_cache) sns: &'a MainnetSns,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report::neurons_cache) struct SnsNeuronsAttemptProgress {
-    pub(in crate::sns::report::neurons_cache::attempt) pages_fetched: u32,
-    pub(in crate::sns::report::neurons_cache::attempt) rows_fetched: usize,
-    pub(in crate::sns::report::neurons_cache::attempt) last_cursor: Option<String>,
-}
+pub(in crate::sns::report::neurons_cache) type SnsNeuronsAttemptProgress =
+    SnsRefreshAttemptProgress;
 
-impl SnsNeuronsAttemptProgress {
-    pub(in crate::sns::report::neurons_cache) const fn new(
-        pages_fetched: u32,
-        rows_fetched: usize,
-        last_cursor: Option<String>,
-    ) -> Self {
-        Self {
-            pages_fetched,
-            rows_fetched,
-            last_cursor,
-        }
-    }
-
-    pub(in crate::sns::report::neurons_cache) const fn starting() -> Self {
-        Self {
-            pages_fetched: 0,
-            rows_fetched: 0,
-            last_cursor: None,
-        }
-    }
-}
+///
+/// SnsNeuronsAttemptParts
+///
+/// In-progress neuron refresh state converted into an attempt sidecar snapshot.
+///
 
 pub(in crate::sns::report::neurons_cache::attempt) struct SnsNeuronsAttemptParts<'a> {
     pub(in crate::sns::report::neurons_cache::attempt) context: SnsNeuronsAttemptContext<'a>,
@@ -80,7 +60,7 @@ pub(in crate::sns::report::neurons_cache::attempt) fn attempt_from_parts(
         source_endpoint: parts.context.request.source_endpoint.clone(),
         started_at: parts.context.fetch_request.fetched_at.clone(),
         updated_at: current_timestamp_text(&parts.context.fetch_request.fetched_at),
-        metadata: SnsNeuronsRefreshAttemptMetadata {
+        metadata: SnsRefreshAttemptMetadata {
             root_canister_id: parts.context.sns.root_canister_id.clone(),
             governance_canister_id: parts.context.sns.governance_canister_id.clone(),
         },

@@ -4,26 +4,19 @@
 //! Does not own: cache reads/writes, refresh policy, report construction, or rendering.
 //! Boundary: maps SNS root principals to generic snapshot-cache file locations.
 
-use crate::snapshot_cache::{SnapshotJsonPaths, SnapshotKey, snapshot_network_dir};
+use crate::sns::report::cache_paths::{
+    SnsCacheCollection, SnsSnapshotCachePaths, sns_attempt_path_for_cache_path,
+    sns_snapshot_network_cache_dir,
+};
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct SnsNeuronsCachePaths {
-    pub(super) cache_path: PathBuf,
-    pub(super) lock_path: PathBuf,
-    pub(super) attempt_path: PathBuf,
-}
+pub(super) type SnsNeuronsCachePaths = SnsSnapshotCachePaths<SnsNeuronsCacheCollection>;
 
-impl SnsNeuronsCachePaths {
-    pub(super) fn for_root(icp_root: &Path, network: &str, root_canister_id: &str) -> Self {
-        let snapshot_key = SnapshotKey::full("sns", network, root_canister_id, "neurons");
-        let snapshot_paths = SnapshotJsonPaths::for_key(icp_root, &snapshot_key);
-        Self {
-            cache_path: snapshot_paths.snapshot_path,
-            lock_path: snapshot_paths.refresh_lock_path,
-            attempt_path: snapshot_paths.refresh_attempt_path,
-        }
-    }
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum SnsNeuronsCacheCollection {}
+
+impl SnsCacheCollection for SnsNeuronsCacheCollection {
+    const COLLECTION: &'static str = "neurons";
 }
 
 pub(in crate::sns::report) fn sns_neurons_cache_path(
@@ -35,7 +28,7 @@ pub(in crate::sns::report) fn sns_neurons_cache_path(
 }
 
 pub(super) fn sns_network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
-    snapshot_network_dir(icp_root, "sns", network)
+    sns_snapshot_network_cache_dir(icp_root, network)
 }
 
 #[cfg(test)]
@@ -57,5 +50,5 @@ pub(in crate::sns::report) fn sns_neurons_refresh_attempt_path(
 }
 
 pub(super) fn sns_neurons_attempt_path_for_cache_path(cache_path: &Path) -> PathBuf {
-    cache_path.with_file_name("full.refresh-attempt.json")
+    sns_attempt_path_for_cache_path(cache_path)
 }

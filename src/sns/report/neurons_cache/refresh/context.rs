@@ -10,6 +10,12 @@ use crate::sns::report::{
     source::{MainnetSns, MainnetSnsList, SnsFetchRequest},
 };
 
+///
+/// SnsNeuronsRefreshContext
+///
+/// Resolved context for one locked neuron snapshot refresh.
+///
+
 pub(super) struct SnsNeuronsRefreshContext<'a> {
     pub(super) request: &'a SnsNeuronsRefreshRequest,
     pub(super) fetch_request: &'a SnsFetchRequest,

@@ -6,6 +6,12 @@
 
 use std::path::Path;
 
+///
+/// SnsReportProvenance
+///
+/// Shared source metadata attached to SNS reports.
+///
+
 pub(in crate::sns::report) struct SnsReportProvenance {
     pub(in crate::sns::report) data_source: String,
     pub(in crate::sns::report) cache_path: Option<String>,
@@ -13,6 +19,7 @@ pub(in crate::sns::report) struct SnsReportProvenance {
 }
 
 impl SnsReportProvenance {
+    /// Build provenance for live SNS source reports.
     pub(in crate::sns::report) fn live() -> Self {
         Self {
             data_source: "live".to_string(),
@@ -21,6 +28,7 @@ impl SnsReportProvenance {
         }
     }
 
+    /// Build provenance for complete-cache SNS source reports.
     pub(in crate::sns::report) fn cache(cache_path: &Path, cache_complete: bool) -> Self {
         Self {
             data_source: "cache".to_string(),

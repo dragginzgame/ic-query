@@ -8,7 +8,8 @@ use crate::{
     snapshot_cache::SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
     sns::report::{
         SnsProposalsRefreshRequest,
-        proposals_cache::model::{SnsProposalsRefreshAttempt, SnsProposalsRefreshAttemptMetadata},
+        cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
+        proposals_cache::model::SnsProposalsRefreshAttempt,
         source::{MainnetSns, SnsFetchRequest},
     },
 };
@@ -28,41 +29,14 @@ pub(in crate::sns::report::proposals_cache) struct SnsProposalsAttemptContext<'a
     pub(in crate::sns::report::proposals_cache) sns: &'a MainnetSns,
 }
 
-///
-/// SnsProposalsAttemptProgress
-///
-/// Proposal refresh progress persisted into refresh-attempt metadata.
-///
+pub(in crate::sns::report::proposals_cache) type SnsProposalsAttemptProgress =
+    SnsRefreshAttemptProgress;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report::proposals_cache) struct SnsProposalsAttemptProgress {
-    pub(in crate::sns::report::proposals_cache::attempt) pages_fetched: u32,
-    pub(in crate::sns::report::proposals_cache::attempt) rows_fetched: usize,
-    pub(in crate::sns::report::proposals_cache::attempt) last_cursor: Option<String>,
-}
-
-impl SnsProposalsAttemptProgress {
-    /// Build refresh-attempt progress from current paging counters.
-    pub(in crate::sns::report::proposals_cache) const fn new(
-        pages_fetched: u32,
-        rows_fetched: usize,
-        last_cursor: Option<String>,
-    ) -> Self {
-        Self {
-            pages_fetched,
-            rows_fetched,
-            last_cursor,
-        }
-    }
-
-    pub(in crate::sns::report::proposals_cache::attempt) const fn starting() -> Self {
-        Self {
-            pages_fetched: 0,
-            rows_fetched: 0,
-            last_cursor: None,
-        }
-    }
-}
+///
+/// SnsProposalsAttemptParts
+///
+/// In-progress proposal refresh state converted into an attempt sidecar snapshot.
+///
 
 pub(in crate::sns::report::proposals_cache::attempt) struct SnsProposalsAttemptParts<'a> {
     pub(in crate::sns::report::proposals_cache::attempt) context: SnsProposalsAttemptContext<'a>,
@@ -80,7 +54,7 @@ pub(in crate::sns::report::proposals_cache::attempt) fn attempt_from_parts(
         source_endpoint: parts.context.request.source_endpoint.clone(),
         started_at: parts.context.fetch_request.fetched_at.clone(),
         updated_at: parts.context.fetch_request.fetched_at.clone(),
-        metadata: SnsProposalsRefreshAttemptMetadata {
+        metadata: SnsRefreshAttemptMetadata {
             root_canister_id: parts.context.sns.root_canister_id.clone(),
             governance_canister_id: parts.context.sns.governance_canister_id.clone(),
         },

@@ -18,6 +18,7 @@ use crate::{
 use state::SnsNeuronsCollectionState;
 use std::path::Path;
 
+/// Fetch every neuron page required for a complete SNS neuron snapshot.
 pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
     request: &SnsNeuronsRefreshRequest,
     fetch_request: &SnsFetchRequest,
@@ -34,6 +35,12 @@ pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
         state: SnsNeuronsCollectionState::new(),
     })
 }
+
+///
+/// SnsNeuronsRefreshPages
+///
+/// Paged refresh runner state for complete SNS neuron collection.
+///
 
 struct SnsNeuronsRefreshPages<'a> {
     request: &'a SnsNeuronsRefreshRequest,

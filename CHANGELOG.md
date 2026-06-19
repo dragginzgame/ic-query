@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.20` shares SNS neuron/proposal refresh-attempt metadata and progress
+  DTO plumbing, snapshot cache path construction, and cache-list lookup flow
+  plus snapshot scan/load helpers while keeping family-specific storage error
+  mapping, report DTOs, cache paths, report schemas, text output, and JSON
+  fields unchanged, and documents the section-style type doc rule for scoped
+  public helper types.
+
 - `0.2.19` centralizes shared SNS neuron/proposal cache-status lookup flow
   behind associated-type cache-family traits, keeping family-specific storage
   and report DTOs separate, shares the identical refresh-attempt status DTO,

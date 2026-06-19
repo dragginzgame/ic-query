@@ -12,6 +12,12 @@ use crate::sns::report::{
     SnsProposalsSort,
 };
 
+///
+/// SnsProposalReportParts
+///
+/// Inputs needed to assemble one SNS proposal detail report.
+///
+
 pub(in crate::sns::report) struct SnsProposalReportParts {
     pub(in crate::sns::report) list: MainnetSnsList,
     pub(in crate::sns::report) id: usize,
@@ -22,6 +28,12 @@ pub(in crate::sns::report) struct SnsProposalReportParts {
     pub(in crate::sns::report) provenance: SnsReportProvenance,
     pub(in crate::sns::report) proposal: MainnetSnsProposal,
 }
+
+///
+/// SnsProposalsReportParts
+///
+/// Inputs needed to assemble one SNS proposal list report.
+///
 
 pub(in crate::sns::report) struct SnsProposalsReportParts {
     pub(in crate::sns::report) list: MainnetSnsList,
@@ -38,6 +50,7 @@ pub(in crate::sns::report) struct SnsProposalsReportParts {
     pub(in crate::sns::report) proposals: MainnetSnsProposals,
 }
 
+/// Assemble an SNS proposal detail report from resolved proposal parts.
 pub(in crate::sns::report) fn sns_proposal_report_from_parts(
     parts: SnsProposalReportParts,
 ) -> SnsProposalReport {
@@ -62,6 +75,7 @@ pub(in crate::sns::report) fn sns_proposal_report_from_parts(
     }
 }
 
+/// Assemble an SNS proposal list report from resolved proposal parts.
 pub(in crate::sns::report) fn sns_proposals_report_from_parts(
     parts: SnsProposalsReportParts,
 ) -> SnsProposalsReport {

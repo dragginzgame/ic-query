@@ -143,6 +143,9 @@ Public structs, enums, and traits should document:
 2. which layer owns it
 3. where it is used
 
+For this repository, "public" includes scoped visibility such as `pub(crate)`
+and `pub(in ...)` when the type crosses a module boundary.
+
 Use the repository's scan-friendly section style above structs, enums, and
 traits when the type is part of a report, command contract, cache contract, or
 source contract:
@@ -161,6 +164,8 @@ Spacing rule for documented type declarations:
 2. Leave one blank line after the doc comment block and before attributes or
    the item declaration.
 3. Keep related type, inherent impl, and trait impls together when feasible.
+4. Use the section-style block with an empty `///` line, the type name, another
+   empty `///` line, the description, and a closing empty `///` line.
 
 Error enum formatting:
 

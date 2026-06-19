@@ -13,6 +13,12 @@ use std::path::PathBuf;
 
 pub(super) type SnsNeuronsCache = SnapshotEnvelope<SnsNeuronsCacheMetadata, SnsNeuronsCacheRows>;
 
+///
+/// SnsNeuronsCacheMetadata
+///
+/// Snapshot metadata identifying the SNS covered by a complete neuron cache.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub(super) struct SnsNeuronsCacheMetadata {
     pub(super) sns_wasm_canister_id: String,
@@ -22,6 +28,12 @@ pub(super) struct SnsNeuronsCacheMetadata {
     pub(super) governance_canister_id: String,
 }
 
+///
+/// SnsNeuronsCacheRows
+///
+/// Snapshot payload containing complete SNS neuron rows.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub(super) struct SnsNeuronsCacheRows {
     pub(super) neurons: Vec<SnsNeuronRow>,
@@ -29,10 +41,22 @@ pub(super) struct SnsNeuronsCacheRows {
 
 pub(super) type SnsNeuronsCacheHeader = SnapshotHeader<SnsNeuronsCacheHeaderMetadata>;
 
+///
+/// SnsNeuronsCacheHeaderMetadata
+///
+/// Minimal metadata loaded while scanning neuron cache headers.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
 pub(super) struct SnsNeuronsCacheHeaderMetadata {
     pub(super) id: usize,
 }
+
+///
+/// CompleteSnsNeurons
+///
+/// Complete in-memory neuron collection produced by refresh paging.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct CompleteSnsNeurons {
@@ -40,6 +64,12 @@ pub(super) struct CompleteSnsNeurons {
     pub(super) page_count: u32,
     pub(super) last_cursor: Option<String>,
 }
+
+///
+/// SnsNeuronsCachedReportParts
+///
+/// Cache-derived inputs needed to assemble an SNS neurons report.
+///
 
 pub(super) struct SnsNeuronsCachedReportParts {
     pub(super) requested_limit: u32,

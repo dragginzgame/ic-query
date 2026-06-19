@@ -9,6 +9,12 @@ use crate::sns::report::{
     SnsProposalRow, proposals_cache::model::CompleteSnsProposals, source::MainnetSnsProposalPage,
 };
 
+///
+/// SnsProposalsCollectionState
+///
+/// Accumulated page state for a complete SNS proposal snapshot refresh.
+///
+
 pub(super) struct SnsProposalsCollectionState {
     pages: PagedCollectionState<SnsProposalRow, u64>,
 }

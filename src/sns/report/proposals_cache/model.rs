@@ -5,7 +5,7 @@
 //! Boundary: defines complete proposal snapshot metadata, rows, and attempts.
 
 use crate::snapshot_cache::{SnapshotEnvelope, SnapshotHeader, SnapshotRefreshAttempt};
-use crate::sns::report::SnsProposalRow;
+use crate::sns::report::{SnsProposalRow, cache_attempt::SnsRefreshAttemptMetadata};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 pub(super) type SnsProposalsCache =
@@ -13,8 +13,7 @@ pub(super) type SnsProposalsCache =
 
 pub(super) type SnsProposalsCacheHeader = SnapshotHeader<SnsProposalsCacheHeaderMetadata>;
 
-pub(super) type SnsProposalsRefreshAttempt =
-    SnapshotRefreshAttempt<SnsProposalsRefreshAttemptMetadata>;
+pub(super) type SnsProposalsRefreshAttempt = SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
 
 ///
 /// SnsProposalsCacheMetadata
@@ -51,18 +50,6 @@ pub(super) struct SnsProposalsCacheRows {
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
 pub(super) struct SnsProposalsCacheHeaderMetadata {
     pub(super) id: usize,
-}
-
-///
-/// SnsProposalsRefreshAttemptMetadata
-///
-/// Refresh-attempt metadata identifying the SNS proposal collection.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct SnsProposalsRefreshAttemptMetadata {
-    pub(super) root_canister_id: String,
-    pub(super) governance_canister_id: String,
 }
 
 ///

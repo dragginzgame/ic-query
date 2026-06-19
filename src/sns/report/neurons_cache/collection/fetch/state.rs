@@ -11,6 +11,12 @@ use crate::sns::report::{
     source::{MainnetSnsNeuronPage, SnsNeuronId},
 };
 
+///
+/// SnsNeuronsCollectionState
+///
+/// Accumulated page state for a complete SNS neuron snapshot refresh.
+///
+
 pub(super) struct SnsNeuronsCollectionState {
     pages: PagedCollectionState<SnsNeuronRow, SnsNeuronId>,
 }

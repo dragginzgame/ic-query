@@ -5,13 +5,10 @@
 //! Boundary: validates schema, network, and completeness before returning a cache model.
 
 use super::errors::{SnsNeuronsCacheErrors, incomplete_cache_error};
-use crate::{
-    cache_file::LoadJsonCacheRequest,
-    snapshot_cache::load_complete_snapshot,
-    sns::report::{
-        SnsHostError,
-        neurons_cache::{SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache},
-    },
+use crate::sns::report::{
+    SnsHostError,
+    cache_storage::load_sns_complete_cache,
+    neurons_cache::{SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache},
 };
 use std::path::PathBuf;
 
@@ -19,12 +16,10 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
     path: PathBuf,
     network: &str,
 ) -> Result<SnsNeuronsCache, SnsHostError> {
-    load_complete_snapshot(
-        LoadJsonCacheRequest {
-            path,
-            network,
-            expected_schema_version: SNS_NEURONS_CACHE_SCHEMA_VERSION,
-        },
+    load_sns_complete_cache(
+        path,
+        network,
+        SNS_NEURONS_CACHE_SCHEMA_VERSION,
         SnsNeuronsCacheErrors,
         |completeness| incomplete_cache_error(completeness.page_count, completeness.row_count),
     )
