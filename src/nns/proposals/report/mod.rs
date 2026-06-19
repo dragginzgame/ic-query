@@ -49,7 +49,7 @@ const NNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[derive(Debug, ThisError)]
 pub enum NnsProposalHostError {
     #[error(
-        "`icq nns proposal(s)` supports only the mainnet `ic` network\n\nThe NNS proposal list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not implemented yet.\n\nTry:\n  icq --network ic nns proposals"
+        "`icq nns proposal` supports only the mainnet `ic` network\n\nThe NNS proposal list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not implemented yet.\n\nTry:\n  icq --network ic nns proposal list"
     )]
     LocalNetworkUnsupported,
 

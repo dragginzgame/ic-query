@@ -14,7 +14,9 @@ pub(in crate::nns) use report::NnsProposalHostError;
 pub(in crate::nns) use run::run;
 
 #[cfg(test)]
-pub(in crate::nns) use commands::{nns_proposal_usage, nns_proposals_usage};
+pub(in crate::nns) use commands::{
+    nns_proposal_info_usage, nns_proposal_list_usage, nns_proposal_usage,
+};
 #[cfg(test)]
 pub(in crate::nns) use options::{NnsProposalOptions, NnsProposalsOptions};
 #[cfg(test)]

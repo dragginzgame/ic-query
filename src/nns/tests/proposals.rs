@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn nns_proposals_parses_defaults_and_json_format() {
-    let defaults = NnsProposalsOptions::parse([]).expect("parse defaults");
+fn nns_proposal_list_parses_defaults_and_json_format() {
+    let defaults = NnsProposalsOptions::parse_list([]).expect("parse defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -30,7 +30,7 @@ fn nns_proposals_parses_defaults_and_json_format() {
     );
     assert!(!defaults.verbose);
 
-    let options = NnsProposalsOptions::parse([
+    let options = NnsProposalsOptions::parse_list([
         OsString::from("--format"),
         OsString::from("json"),
         OsString::from("--source-endpoint"),
@@ -50,7 +50,7 @@ fn nns_proposals_parses_defaults_and_json_format() {
         OsString::from("--asc"),
         OsString::from("--verbose"),
     ])
-    .expect("parse nns proposals");
+    .expect("parse nns proposal list");
 
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
@@ -76,11 +76,25 @@ fn nns_proposals_parses_defaults_and_json_format() {
         NNS_PROPOSAL_SORT_ASC_LABEL
     );
     assert!(options.verbose);
+
+    let grouped_options = NnsProposalsOptions::parse_list([
+        OsString::from("--limit"),
+        OsString::from("10"),
+        OsString::from("--reward-status"),
+        OsString::from(NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL),
+    ])
+    .expect("parse nns proposal list");
+
+    assert_eq!(grouped_options.limit, 10);
+    assert_eq!(
+        grouped_options.reward_status,
+        NnsProposalRewardStatusFilter::Settled
+    );
 }
 
 #[test]
 fn nns_proposal_parses_id_and_json_format() {
-    let options = NnsProposalOptions::parse([
+    let options = NnsProposalOptions::parse_info([
         OsString::from("132411"),
         OsString::from("--format"),
         OsString::from("json"),
@@ -89,7 +103,7 @@ fn nns_proposal_parses_id_and_json_format() {
         OsString::from("--ballots"),
         OsString::from("--verbose"),
     ])
-    .expect("parse nns proposal");
+    .expect("parse nns proposal info");
 
     assert_eq!(options.network, MAINNET_NETWORK);
     assert_eq!(options.format, OutputFormat::Json);
@@ -97,41 +111,60 @@ fn nns_proposal_parses_id_and_json_format() {
     assert_eq!(options.proposal_id, 132_411);
     assert!(options.show_ballots);
     assert!(options.verbose);
+
+    let grouped_options = NnsProposalOptions::parse_info([
+        OsString::from("132411"),
+        OsString::from("--ballots"),
+        OsString::from("--verbose"),
+    ])
+    .expect("parse nns proposal info");
+
+    assert_eq!(grouped_options.proposal_id, 132_411);
+    assert!(grouped_options.show_ballots);
+    assert!(grouped_options.verbose);
 }
 
 #[test]
 fn nns_proposal_help_is_advertised_under_nns() {
     let nns = usage();
-    let proposals = nns_proposals_usage();
     let proposal = nns_proposal_usage();
+    let proposal_list = nns_proposal_list_usage();
+    let proposal_info = nns_proposal_info_usage();
 
     assert!(nns.contains("proposal"));
-    assert!(nns.contains("proposals"));
-    assert!(proposals.contains("icq nns proposals"));
-    assert!(proposals.contains("--limit 50"));
-    assert!(proposals.contains("--before 132000"));
-    assert!(proposals.contains("--status open"));
-    assert!(proposals.contains("--reward-status settled"));
-    assert!(proposals.contains("--topic governance"));
-    assert!(proposals.contains("--sort title --asc"));
-    assert!(proposal.contains("icq nns proposal 132411"));
-    assert!(proposal.contains("--ballots"));
-    assert!(proposal.contains("--verbose"));
-    assert!(proposal.contains("--format json"));
+    assert!(!nns.contains("\n  proposals"));
+    assert!(proposal.contains("list"));
+    assert!(proposal.contains("info"));
+    assert!(proposal.contains("icq nns proposal list"));
+    assert!(proposal.contains("icq nns proposal info 132411"));
+    assert!(proposal_list.contains("icq nns proposal list"));
+    assert!(proposal_list.contains("--reward-status settled"));
+    assert!(proposal_info.contains("icq nns proposal info 132411"));
+    assert!(proposal_list.contains("--limit 50"));
+    assert!(proposal_list.contains("--before 132000"));
+    assert!(proposal_list.contains("--status open"));
+    assert!(proposal_list.contains("--reward-status settled"));
+    assert!(proposal_list.contains("--topic governance"));
+    assert!(proposal_list.contains("--sort title --asc"));
+    assert!(!proposal.contains("icq nns proposal 132411"));
+    assert!(proposal_info.contains("--ballots"));
+    assert!(proposal_info.contains("--verbose"));
+    assert!(proposal_info.contains("--format json"));
 }
 
 #[test]
-fn nns_proposals_rejects_direction_without_local_sort() {
-    let err = NnsProposalsOptions::parse([OsString::from("--desc")])
+fn nns_proposal_list_rejects_direction_without_local_sort() {
+    let err = NnsProposalsOptions::parse_list([OsString::from("--desc")])
         .expect_err("direction without local sort rejected");
 
     assert!(err.to_string().contains("--desc requires --sort"));
 }
 
 #[test]
-fn nns_proposals_local_is_rejected_with_pinned_message() {
+fn nns_proposal_list_local_is_rejected_with_pinned_message() {
     let err = run([
-        OsString::from("proposals"),
+        OsString::from("proposal"),
+        OsString::from("list"),
         OsString::from("--__icq-network"),
         OsString::from("local"),
     ])
@@ -139,5 +172,25 @@ fn nns_proposals_local_is_rejected_with_pinned_message() {
 
     let message = err.to_string();
     assert!(message.contains("supports only the mainnet `ic` network"));
-    assert!(message.contains("icq --network ic nns proposals"));
+    assert!(message.contains("icq --network ic nns proposal list"));
+}
+
+#[test]
+fn nns_proposals_alias_is_rejected() {
+    let err = run([
+        OsString::from("proposals"),
+        OsString::from("--limit"),
+        OsString::from("10"),
+    ])
+    .expect_err("old proposals alias rejected");
+
+    assert!(err.to_string().contains("Usage: icq nns"));
+}
+
+#[test]
+fn nns_proposal_bare_id_alias_is_rejected() {
+    let err = run([OsString::from("proposal"), OsString::from("132411")])
+        .expect_err("bare proposal id alias rejected");
+
+    assert!(err.to_string().contains("Usage: icq nns proposal"));
 }

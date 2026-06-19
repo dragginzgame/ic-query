@@ -11,6 +11,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.27` moves NNS proposal queries under grouped commands
+  `icq nns proposal list` and `icq nns proposal info <proposal-id>`, removes
+  the ungrouped `icq nns proposals` and `icq nns proposal <proposal-id>` forms,
+  and updates help, README examples, and parser coverage to enforce the grouped
+  surface.
+
+  ```bash
+  icq nns proposal list --reward-status settled
+  icq nns proposal info 132411 --ballots
+  icq nns proposal info 132411 --verbose
+  ```
+
 - `0.2.26` adds `icq nns proposal <proposal-id> --ballots`,
   `icq nns proposal <proposal-id> --verbose`, and
   `icq nns proposals --reward-status <status>`, including deterministic NNS

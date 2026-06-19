@@ -26,7 +26,7 @@ pub(in crate::nns::proposals) const NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME: &str = 
 ///
 /// NnsProposalsSortArg
 ///
-/// Command-local clap value accepted by `icq nns proposals --sort`.
+/// Command-local clap value accepted by `icq nns proposal list --sort`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
@@ -78,7 +78,7 @@ impl From<NnsProposalsSortArg> for NnsProposalsSort {
 ///
 /// NnsProposalStatusArg
 ///
-/// Command-local clap value accepted by `icq nns proposals --status`.
+/// Command-local clap value accepted by `icq nns proposal list --status`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
@@ -108,7 +108,7 @@ impl From<NnsProposalStatusArg> for NnsProposalStatusFilter {
 ///
 /// NnsProposalRewardStatusArg
 ///
-/// Command-local clap value accepted by `icq nns proposals --reward-status`.
+/// Command-local clap value accepted by `icq nns proposal list --reward-status`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
@@ -136,7 +136,7 @@ impl From<NnsProposalRewardStatusArg> for NnsProposalRewardStatusFilter {
 ///
 /// NnsProposalTopicArg
 ///
-/// Command-local clap value accepted by `icq nns proposals --topic`.
+/// Command-local clap value accepted by `icq nns proposal list --topic`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]

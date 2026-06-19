@@ -26,8 +26,8 @@ use super::{
         NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
         NNS_PROPOSAL_TOPIC_ANY_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL, NnsProposalOptions,
         NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
-        NnsProposalTopicFilter, NnsProposalsOptions, NnsProposalsSort, nns_proposal_usage,
-        nns_proposals_usage,
+        NnsProposalTopicFilter, NnsProposalsOptions, NnsProposalsSort, nns_proposal_info_usage,
+        nns_proposal_list_usage, nns_proposal_usage,
     },
     registry::{RegistryVersionOptions, registry_usage, registry_version_usage},
     subnet::{

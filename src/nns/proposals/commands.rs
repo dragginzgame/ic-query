@@ -2,10 +2,10 @@
 //!
 //! Responsibility: clap specs for NNS proposal list and detail commands.
 //! Does not own: option validation, live governance calls, or report rendering.
-//! Boundary: defines the public `icq nns proposal(s)` command shape.
+//! Boundary: defines the public `icq nns proposal` command shape.
 
 use crate::{
-    cli::clap::{flag_arg, render_help, value_arg},
+    cli::clap::{flag_arg, passthrough_subcommand, render_help, value_arg},
     nns::{
         leaf,
         proposals::{
@@ -29,30 +29,43 @@ use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 const NNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
 const NNS_PROPOSALS_MAX_LIMIT: u64 = 100;
 
-const NNS_PROPOSALS_HELP_AFTER: &str = "\
+const NNS_PROPOSAL_LIST_HELP_AFTER: &str = "\
 Examples:
-  icq nns proposals
-  icq nns proposals --limit 50
-  icq nns proposals --before 132000
-  icq nns proposals --status open
-  icq nns proposals --reward-status settled
-  icq nns proposals --topic governance
-  icq nns proposals --sort proposed
-  icq nns proposals --sort title --asc
-  icq nns proposals --format json
-  icq nns proposals --source-endpoint https://icp-api.io";
+  icq nns proposal list
+  icq nns proposal list --limit 50
+  icq nns proposal list --before 132000
+  icq nns proposal list --status open
+  icq nns proposal list --reward-status settled
+  icq nns proposal list --topic governance
+  icq nns proposal list --sort proposed
+  icq nns proposal list --sort title --asc
+  icq nns proposal list --format json
+  icq nns proposal list --source-endpoint https://icp-api.io";
 
 const NNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
-  icq nns proposal 132411
-  icq nns proposal 132411 --ballots
-  icq nns proposal 132411 --verbose
-  icq nns proposal 132411 --format json
-  icq nns proposal 132411 --source-endpoint https://icp-api.io";
+  icq nns proposal list
+  icq nns proposal info 132411
+  icq nns proposal info 132411 --ballots
+  icq nns proposal info 132411 --verbose
+  icq nns proposal info 132411 --format json
+  icq nns proposal info 132411 --source-endpoint https://icp-api.io";
 
-pub(in crate::nns::proposals) fn nns_proposals_command() -> ClapCommand {
-    ClapCommand::new("proposals")
-        .bin_name("icq nns proposals")
+const NNS_PROPOSAL_INFO_HELP_AFTER: &str = "\
+Examples:
+  icq nns proposal info 132411
+  icq nns proposal info 132411 --ballots
+  icq nns proposal info 132411 --verbose
+  icq nns proposal info 132411 --format json
+  icq nns proposal info 132411 --source-endpoint https://icp-api.io";
+
+fn nns_proposal_list_command_with(
+    name: &'static str,
+    bin_name: &'static str,
+    help_after: &'static str,
+) -> ClapCommand {
+    ClapCommand::new(name)
+        .bin_name(bin_name)
         .about("List NNS governance proposals")
         .disable_help_flag(true)
         .arg(leaf::format_arg())
@@ -125,12 +138,24 @@ pub(in crate::nns::proposals) fn nns_proposals_command() -> ClapCommand {
                 .help("Show per-proposal detail lines in text output"),
         )
         .arg(leaf::network_arg())
-        .after_help(NNS_PROPOSALS_HELP_AFTER)
+        .after_help(help_after)
 }
 
-pub(in crate::nns::proposals) fn nns_proposal_command() -> ClapCommand {
-    ClapCommand::new("proposal")
-        .bin_name("icq nns proposal")
+pub(in crate::nns::proposals) fn nns_proposal_list_command() -> ClapCommand {
+    nns_proposal_list_command_with(
+        "list",
+        "icq nns proposal list",
+        NNS_PROPOSAL_LIST_HELP_AFTER,
+    )
+}
+
+fn nns_proposal_detail_command_with(
+    name: &'static str,
+    bin_name: &'static str,
+    help_after: &'static str,
+) -> ClapCommand {
+    ClapCommand::new(name)
+        .bin_name(bin_name)
         .about("Show one NNS governance proposal")
         .disable_help_flag(true)
         .arg(
@@ -156,16 +181,38 @@ pub(in crate::nns::proposals) fn nns_proposal_command() -> ClapCommand {
                 .help("Show full NNS proposal detail text"),
         )
         .arg(leaf::network_arg())
+        .after_help(help_after)
+}
+
+pub(in crate::nns::proposals) fn nns_proposal_command() -> ClapCommand {
+    ClapCommand::new("proposal")
+        .bin_name("icq nns proposal")
+        .about("Inspect NNS governance proposals")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("list").about("List NNS governance proposals"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("info").about("Show one NNS governance proposal"),
+        ))
         .after_help(NNS_PROPOSAL_HELP_AFTER)
 }
 
-#[cfg(test)]
-pub(in crate::nns) fn nns_proposals_usage() -> String {
-    render_help(nns_proposals_command())
+pub(in crate::nns::proposals) fn nns_proposal_info_command() -> ClapCommand {
+    nns_proposal_detail_command_with(
+        "info",
+        "icq nns proposal info",
+        NNS_PROPOSAL_INFO_HELP_AFTER,
+    )
 }
 
-pub(in crate::nns::proposals) fn nns_proposals_usage_for_error() -> String {
-    render_help(nns_proposals_command())
+#[cfg(test)]
+pub(in crate::nns) fn nns_proposal_list_usage() -> String {
+    render_help(nns_proposal_list_command())
+}
+
+pub(in crate::nns::proposals) fn nns_proposal_list_usage_for_error() -> String {
+    render_help(nns_proposal_list_command())
 }
 
 #[cfg(test)]
@@ -175,4 +222,13 @@ pub(in crate::nns) fn nns_proposal_usage() -> String {
 
 pub(in crate::nns::proposals) fn nns_proposal_usage_for_error() -> String {
     render_help(nns_proposal_command())
+}
+
+#[cfg(test)]
+pub(in crate::nns) fn nns_proposal_info_usage() -> String {
+    render_help(nns_proposal_info_command())
+}
+
+pub(in crate::nns::proposals) fn nns_proposal_info_usage_for_error() -> String {
+    render_help(nns_proposal_info_command())
 }

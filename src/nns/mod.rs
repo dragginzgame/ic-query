@@ -94,7 +94,7 @@ where
         "node" => node::run(args),
         "node-provider" => node_provider::run(args),
         "node-operator" => node_operator::run(args),
-        "proposal" | "proposals" => proposals::run(&command, args),
+        "proposal" => proposals::run(args),
         "registry" => registry::run(args),
         "topology" => topology::run(args),
         _ => unreachable!("nns dispatch command only defines known commands"),
@@ -172,10 +172,7 @@ fn nns_command() -> ClapCommand {
             ClapCommand::new("node-operator").about("Inspect NNS node-operator metadata"),
         ))
         .subcommand(passthrough_subcommand(
-            ClapCommand::new("proposal").about("Show one NNS governance proposal"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("proposals").about("List NNS governance proposals"),
+            ClapCommand::new("proposal").about("Inspect NNS governance proposals"),
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("registry").about("Inspect NNS registry metadata"),

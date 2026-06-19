@@ -36,8 +36,7 @@ icq nns node [list|info|refresh]
 icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
-icq nns proposal <proposal-id>
-icq nns proposals
+icq nns proposal [list|info]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns proposals [cache|refresh]
@@ -116,16 +115,16 @@ sent to governance where supported, topic filters are applied to returned rows,
 and local sort modes mirror the SNS proposal direction rules:
 
 ```sh
-icq nns proposals --limit 25
-icq nns proposals --status open
-icq nns proposals --reward-status settled
-icq nns proposals --topic governance
-icq nns proposals --sort proposed
-icq nns proposals --sort title --asc
-icq nns proposal 132411
-icq nns proposal 132411 --ballots
-icq nns proposal 132411 --verbose
-icq nns proposal 132411 --format json
+icq nns proposal list --limit 25
+icq nns proposal list --status open
+icq nns proposal list --reward-status settled
+icq nns proposal list --topic governance
+icq nns proposal list --sort proposed
+icq nns proposal list --sort title --asc
+icq nns proposal info 132411
+icq nns proposal info 132411 --ballots
+icq nns proposal info 132411 --verbose
+icq nns proposal info 132411 --format json
 ```
 
 NNS proposal list views support
@@ -193,8 +192,8 @@ linking registry adapters directly. For one integration example, see
 The command namespace is intentionally small:
 
 - `nns` is implemented.
-- `nns proposal` and `nns proposals` are implemented as direct live mainnet
-  NNS governance proposal queries.
+- `nns proposal list` and `nns proposal info` are implemented as direct live
+  mainnet NNS governance proposal queries.
 - `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
   `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
   instances.

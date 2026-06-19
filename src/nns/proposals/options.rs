@@ -5,8 +5,8 @@
 //! Boundary: converts clap matches into command-local option structs.
 
 use super::commands::{
-    nns_proposal_command, nns_proposal_usage_for_error, nns_proposals_command,
-    nns_proposals_usage_for_error,
+    nns_proposal_info_command, nns_proposal_info_usage_for_error, nns_proposal_list_command,
+    nns_proposal_list_usage_for_error,
 };
 use crate::nns::{
     NnsCommandError, OutputFormat,
@@ -27,12 +27,13 @@ use crate::nns::{
     },
 };
 use clap::ArgMatches;
+use clap::Command as ClapCommand;
 use std::ffi::OsString;
 
 ///
 /// NnsProposalsOptions
 ///
-/// Options accepted by `icq nns proposals`.
+/// Options accepted by `icq nns proposal list`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -51,12 +52,26 @@ pub(in crate::nns) struct NnsProposalsOptions {
 }
 
 impl NnsProposalsOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches =
-            parse_nns_matches(nns_proposals_command(), args, nns_proposals_usage_for_error)?;
+        Self::parse_with(
+            args,
+            nns_proposal_list_command(),
+            nns_proposal_list_usage_for_error,
+        )
+    }
+
+    fn parse_with<I>(
+        args: I,
+        command: ClapCommand,
+        usage: impl FnOnce() -> String,
+    ) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_nns_matches(command, args, usage)?;
         let common = NnsCommonOptions::from_matches(&matches);
         let sort = *matches
             .get_one::<NnsProposalsSortArg>("sort")
@@ -127,7 +142,7 @@ fn explicit_proposal_sort_direction(
 ///
 /// NnsProposalOptions
 ///
-/// Options accepted by `icq nns proposal`.
+/// Options accepted by `icq nns proposal info`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -141,12 +156,26 @@ pub(in crate::nns) struct NnsProposalOptions {
 }
 
 impl NnsProposalOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    pub(in crate::nns) fn parse_info<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches =
-            parse_nns_matches(nns_proposal_command(), args, nns_proposal_usage_for_error)?;
+        Self::parse_with(
+            args,
+            nns_proposal_info_command(),
+            nns_proposal_info_usage_for_error,
+        )
+    }
+
+    fn parse_with<I>(
+        args: I,
+        command: ClapCommand,
+        usage: impl FnOnce() -> String,
+    ) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_nns_matches(command, args, usage)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,

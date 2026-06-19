@@ -13,29 +13,32 @@ use super::{
 };
 use crate::{
     cli::common::write_text_or_json,
-    nns::{NnsCommandError, command_args, now_unix_secs},
+    nns::{NnsCommandError, command_args, now_unix_secs, parse_nns_required_subcommand},
 };
 use std::ffi::OsString;
 
-pub(in crate::nns) fn run<I>(command: &str, args: I) -> Result<(), NnsCommandError>
+const PROPOSAL_INFO_COMMAND: &str = "info";
+const PROPOSAL_LIST_COMMAND: &str = "list";
+
+pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    match command {
-        "proposals" => run_nns_proposals(args),
-        "proposal" => run_nns_proposal(args),
-        _ => unreachable!("nns dispatch only routes proposal commands here"),
-    }
+    run_nns_proposal(args)
 }
 
-fn run_nns_proposals<I>(args: I) -> Result<(), NnsCommandError>
+fn run_nns_proposal_list<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, super::commands::nns_proposals_usage_for_error) else {
+    let Some(args) = command_args(args, super::commands::nns_proposal_list_usage_for_error) else {
         return Ok(());
     };
-    let options = NnsProposalsOptions::parse(args)?;
+    let options = NnsProposalsOptions::parse_list(args)?;
+    run_nns_proposals_with_options(options)
+}
+
+fn run_nns_proposals_with_options(options: NnsProposalsOptions) -> Result<(), NnsCommandError> {
     let request = NnsProposalsRequest {
         network: options.network,
         source_endpoint: options.source_endpoint,
@@ -60,7 +63,30 @@ where
     let Some(args) = command_args(args, super::commands::nns_proposal_usage_for_error) else {
         return Ok(());
     };
-    let options = NnsProposalOptions::parse(args)?;
+    let (command, args) = parse_nns_required_subcommand(
+        super::commands::nns_proposal_command(),
+        args,
+        super::commands::nns_proposal_usage_for_error,
+    )?;
+    match command.as_str() {
+        PROPOSAL_LIST_COMMAND => run_nns_proposal_list(args),
+        PROPOSAL_INFO_COMMAND => run_nns_proposal_info(args),
+        _ => unreachable!("nns proposal dispatch only defines known commands"),
+    }
+}
+
+fn run_nns_proposal_info<I>(args: I) -> Result<(), NnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = command_args(args, super::commands::nns_proposal_info_usage_for_error) else {
+        return Ok(());
+    };
+    let options = NnsProposalOptions::parse_info(args)?;
+    run_nns_proposal_with_options(options)
+}
+
+fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
     let request = NnsProposalRequest {
         network: options.network,
         source_endpoint: options.source_endpoint,
