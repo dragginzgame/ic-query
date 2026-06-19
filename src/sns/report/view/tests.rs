@@ -64,6 +64,23 @@ fn proposal_status_sort_orders_lifecycle_states_first() {
 }
 
 #[test]
+fn proposal_proposer_sort_orders_present_ids_before_missing_ids() {
+    let mut proposals = vec![
+        proposal_row_with_proposer(2, Some("ffff")),
+        proposal_row_with_proposer(10, None),
+        proposal_row_with_proposer(1, Some("aaaa")),
+    ];
+
+    sort_sns_proposal_rows(
+        &mut proposals,
+        SnsProposalsSort::Proposer,
+        SnsProposalSortDirection::Asc,
+    );
+
+    assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
+}
+
+#[test]
 fn proposal_decided_ascending_sort_orders_oldest_decision_first_and_open_last() {
     let mut proposals = vec![
         proposal_row_with_decision(2, Some(100)),
@@ -217,6 +234,23 @@ fn proposal_reject_cost_sort_orders_lowest_cost_first_when_ascending() {
 }
 
 #[test]
+fn proposal_reward_round_sort_orders_highest_round_first() {
+    let mut proposals = vec![
+        proposal_row_with_reward_round(2, 1),
+        proposal_row_with_reward_round(10, 5),
+        proposal_row_with_reward_round(1, 5),
+    ];
+
+    sort_sns_proposal_rows(
+        &mut proposals,
+        SnsProposalsSort::RewardRound,
+        SnsProposalSortDirection::Desc,
+    );
+
+    assert_eq!(proposal_ids(&proposals), vec![10, 1, 2]);
+}
+
+#[test]
 fn proposal_before_filter_requires_lower_present_id() {
     assert!(proposal_matches_before(&proposal_row(9, 100), Some(10)));
     assert!(!proposal_matches_before(&proposal_row(10, 100), Some(10)));
@@ -287,6 +321,16 @@ fn proposal_row_with_action(proposal_id: u64, action: &str) -> SnsProposalRow {
     }
 }
 
+fn proposal_row_with_proposer(
+    proposal_id: u64,
+    proposer_neuron_id: Option<&str>,
+) -> SnsProposalRow {
+    SnsProposalRow {
+        proposer_neuron_id: proposer_neuron_id.map(ToString::to_string),
+        ..proposal_row(proposal_id, 100)
+    }
+}
+
 fn proposal_row_with_tally(proposal_id: u64, tally: Option<(u64, u64, u64)>) -> SnsProposalRow {
     SnsProposalRow {
         latest_tally: tally.map(|(yes, no, total)| SnsProposalTally {
@@ -309,6 +353,13 @@ fn proposal_row_with_ballot_count(proposal_id: u64, ballot_count: usize) -> SnsP
 fn proposal_row_with_reject_cost(proposal_id: u64, reject_cost_e8s: u64) -> SnsProposalRow {
     SnsProposalRow {
         reject_cost_e8s,
+        ..proposal_row(proposal_id, 100)
+    }
+}
+
+fn proposal_row_with_reward_round(proposal_id: u64, reward_event_round: u64) -> SnsProposalRow {
+    SnsProposalRow {
+        reward_event_round,
         ..proposal_row(proposal_id, 100)
     }
 }

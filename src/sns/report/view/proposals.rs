@@ -53,6 +53,11 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
         SnsProposalsSort::Status => {
             sort_by_status(proposals, direction);
         }
+        SnsProposalsSort::Proposer => {
+            sort_by_optional_text(proposals, direction, |proposal| {
+                proposal.proposer_neuron_id.as_deref()
+            });
+        }
         SnsProposalsSort::Title => {
             sort_by_text(proposals, direction, |proposal| proposal.title.as_str());
         }
@@ -73,6 +78,9 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
         }),
         SnsProposalsSort::RejectCost => sort_by_optional_u64(proposals, direction, |proposal| {
             Some(proposal.reject_cost_e8s)
+        }),
+        SnsProposalsSort::RewardRound => sort_by_optional_u64(proposals, direction, |proposal| {
+            Some(proposal.reward_event_round)
         }),
         SnsProposalsSort::Created => sort_by_optional_u64(proposals, direction, |proposal| {
             Some(proposal.proposal_creation_timestamp_seconds)
@@ -111,6 +119,17 @@ fn sort_by_text(
     });
 }
 
+fn sort_by_optional_text(
+    proposals: &mut [SnsProposalRow],
+    direction: SnsProposalSortDirection,
+    key: impl for<'a> Fn(&'a SnsProposalRow) -> Option<&'a str>,
+) {
+    proposals.sort_by(|left, right| {
+        compare_optional_text(key(left), key(right), direction)
+            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+    });
+}
+
 fn sort_by_status(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDirection) {
     proposals.sort_by(|left, right| {
         compare_ord(
@@ -129,6 +148,19 @@ fn status_sort_rank(decision_state: &str) -> u8 {
         state if state == SNS_PROPOSAL_DECISION_EXECUTED => 2,
         state if state == SNS_PROPOSAL_DECISION_FAILED => 3,
         _ => 4,
+    }
+}
+
+fn compare_optional_text(
+    left: Option<&str>,
+    right: Option<&str>,
+    direction: SnsProposalSortDirection,
+) -> Ordering {
+    match (left, right) {
+        (Some(left), Some(right)) => compare_text(left, right, direction),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => Ordering::Equal,
     }
 }
 

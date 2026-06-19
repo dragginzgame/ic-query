@@ -16,6 +16,7 @@ pub enum SnsProposalsSort {
     Api,
     Id,
     Status,
+    Proposer,
     Title,
     Action,
     Yes,
@@ -23,6 +24,7 @@ pub enum SnsProposalsSort {
     TotalVotes,
     Ballots,
     RejectCost,
+    RewardRound,
     Created,
     Decided,
     Executed,
@@ -37,6 +39,7 @@ impl SnsProposalsSort {
             Self::Api => "api",
             Self::Id => "id",
             Self::Status => "status",
+            Self::Proposer => "proposer",
             Self::Title => "title",
             Self::Action => "action",
             Self::Yes => "yes",
@@ -44,6 +47,7 @@ impl SnsProposalsSort {
             Self::TotalVotes => "total-votes",
             Self::Ballots => "ballots",
             Self::RejectCost => "reject-cost",
+            Self::RewardRound => "reward-round",
             Self::Created => "created",
             Self::Decided => "decided",
             Self::Executed => "executed",
@@ -55,7 +59,9 @@ impl SnsProposalsSort {
     #[must_use]
     pub const fn default_direction(self) -> SnsProposalSortDirection {
         match self {
-            Self::Status | Self::Title | Self::Action => SnsProposalSortDirection::Asc,
+            Self::Status | Self::Proposer | Self::Title | Self::Action => {
+                SnsProposalSortDirection::Asc
+            }
             _ => SnsProposalSortDirection::Desc,
         }
     }

@@ -444,90 +444,56 @@ fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
 
 #[test]
 fn sns_proposals_cached_sort_title_orders_before_limit() {
-    let root = temp_dir("ic-query-sns-proposals-sort-title");
-    let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
-    request.topic = SnsProposalTopicFilter::Any;
-    request.before_proposal_id = None;
-    request.sort = SnsProposalsSort::Title;
-    request.sort_direction = SnsProposalSortDirection::Asc;
-    request.limit = 2;
-
-    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .expect("auto refresh title sorted proposals cache");
-
-    assert_eq!(report.data_source, "cache");
-    assert_eq!(report.sort, "title");
-    assert_eq!(proposal_ids(&report), vec![20, 30]);
-
-    let _ = fs::remove_dir_all(root);
+    assert_cached_proposal_sort(
+        SnsProposalsSort::Title,
+        SnsProposalSortDirection::Asc,
+        &[20, 30],
+    );
 }
 
 #[test]
 fn sns_proposals_cached_sort_status_orders_before_limit() {
-    let root = temp_dir("ic-query-sns-proposals-sort-status");
-    let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
-    request.topic = SnsProposalTopicFilter::Any;
-    request.before_proposal_id = None;
-    request.sort = SnsProposalsSort::Status;
-    request.sort_direction = SnsProposalSortDirection::Asc;
-    request.limit = 2;
+    assert_cached_proposal_sort(
+        SnsProposalsSort::Status,
+        SnsProposalSortDirection::Asc,
+        &[20, 30],
+    );
+}
 
-    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .expect("auto refresh status sorted proposals cache");
-
-    assert_eq!(report.data_source, "cache");
-    assert_eq!(report.sort, "status");
-    assert_eq!(proposal_ids(&report), vec![20, 30]);
-
-    let _ = fs::remove_dir_all(root);
+#[test]
+fn sns_proposals_cached_sort_proposer_orders_before_limit() {
+    assert_cached_proposal_sort(
+        SnsProposalsSort::Proposer,
+        SnsProposalSortDirection::Asc,
+        &[30, 10],
+    );
 }
 
 #[test]
 fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
-    let root = temp_dir("ic-query-sns-proposals-sort-total-votes");
-    let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
-    request.topic = SnsProposalTopicFilter::Any;
-    request.before_proposal_id = None;
-    request.sort = SnsProposalsSort::TotalVotes;
-    request.sort_direction = SnsProposalSortDirection::Desc;
-    request.limit = 2;
+    assert_cached_proposal_sort(
+        SnsProposalsSort::TotalVotes,
+        SnsProposalSortDirection::Desc,
+        &[10, 30],
+    );
+}
 
-    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .expect("auto refresh total-votes sorted proposals cache");
-
-    assert_eq!(report.data_source, "cache");
-    assert_eq!(report.sort, "total-votes");
-    assert_eq!(proposal_ids(&report), vec![10, 30]);
-
-    let _ = fs::remove_dir_all(root);
+#[test]
+fn sns_proposals_cached_sort_reward_round_orders_before_limit() {
+    assert_cached_proposal_sort(
+        SnsProposalsSort::RewardRound,
+        SnsProposalSortDirection::Desc,
+        &[20, 30],
+    );
 }
 
 #[test]
 fn sns_proposals_cached_sort_reject_cost_orders_before_limit() {
-    let root = temp_dir("ic-query-sns-proposals-sort-reject-cost");
-    let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
-    request.topic = SnsProposalTopicFilter::Any;
-    request.before_proposal_id = None;
-    request.sort = SnsProposalsSort::RejectCost;
-    request.sort_direction = SnsProposalSortDirection::Desc;
-    request.limit = 2;
-
-    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .expect("auto refresh reject-cost sorted proposals cache");
-
-    assert_eq!(report.data_source, "cache");
-    assert_eq!(report.sort, "reject-cost");
-    assert_eq!(proposal_ids(&report), vec![30, 10]);
-
-    let _ = fs::remove_dir_all(root);
+    assert_cached_proposal_sort(
+        SnsProposalsSort::RejectCost,
+        SnsProposalSortDirection::Desc,
+        &[30, 10],
+    );
 }
 
 #[test]
@@ -653,6 +619,8 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     tally: (90, 10, 100),
                     ballot_count: 4,
                     reject_cost_e8s: 100_000_000,
+                    reward_event_round: 7,
+                    proposer_neuron_id: Some("bbbb"),
                 }),
                 proposal_row_with_fixture(ProposalRowFixture {
                     proposal_id: 20,
@@ -666,6 +634,8 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     tally: (5, 10, 15),
                     ballot_count: 2,
                     reject_cost_e8s: 50_000_000,
+                    reward_event_round: 10,
+                    proposer_neuron_id: None,
                 }),
                 proposal_row_with_fixture(ProposalRowFixture {
                     proposal_id: 30,
@@ -679,6 +649,8 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     tally: (50, 25, 75),
                     ballot_count: 6,
                     reject_cost_e8s: 200_000_000,
+                    reward_event_round: 8,
+                    proposer_neuron_id: Some("aaaa"),
                 }),
             ],
             last_cursor: None,
@@ -694,6 +666,31 @@ fn proposal_ids(report: &SnsProposalsReport) -> Vec<u64> {
         .collect()
 }
 
+fn assert_cached_proposal_sort(
+    sort: SnsProposalsSort,
+    direction: SnsProposalSortDirection,
+    expected_proposal_ids: &[u64],
+) {
+    let root = temp_dir(&format!("ic-query-sns-proposals-sort-{}", sort.as_str()));
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = sort;
+    request.sort_direction = direction;
+    request.limit = 2;
+
+    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh sorted proposals cache");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.sort, sort.as_str());
+    assert_eq!(proposal_ids(&report), expected_proposal_ids);
+
+    let _ = fs::remove_dir_all(root);
+}
+
 struct ProposalRowFixture {
     proposal_id: u64,
     created_at_secs: u64,
@@ -706,6 +703,8 @@ struct ProposalRowFixture {
     tally: (u64, u64, u64),
     ballot_count: usize,
     reject_cost_e8s: u64,
+    reward_event_round: u64,
+    proposer_neuron_id: Option<&'static str>,
 }
 
 fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
@@ -724,6 +723,8 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         failed_at: fixture.failed_at_secs.map(format_utc_timestamp_secs),
         reject_cost_e8s: fixture.reject_cost_e8s,
         ballot_count: fixture.ballot_count,
+        reward_event_round: fixture.reward_event_round,
+        proposer_neuron_id: fixture.proposer_neuron_id.map(ToString::to_string),
         latest_tally: Some(SnsProposalTally {
             timestamp_seconds: fixture.created_at_secs,
             yes: fixture.tally.0,

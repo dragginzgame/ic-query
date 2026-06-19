@@ -37,7 +37,7 @@ fn sns_proposals_parses_filters_and_json_format() {
 }
 
 #[test]
-fn sns_proposals_parses_title_and_action_sorts() {
+fn sns_proposals_parses_local_sort_defaults_and_directions() {
     let title = SnsProposalsOptions::parse([
         OsString::from("1"),
         OsString::from("--sort"),
@@ -67,6 +67,16 @@ fn sns_proposals_parses_title_and_action_sorts() {
 
     assert_eq!(status.sort, SnsProposalsSortArg::Status);
     assert_eq!(status.sort_direction, SnsProposalSortDirection::Asc);
+
+    let proposer = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("proposer"),
+    ])
+    .expect("parse proposer proposal sort");
+
+    assert_eq!(proposer.sort, SnsProposalsSortArg::Proposer);
+    assert_eq!(proposer.sort_direction, SnsProposalSortDirection::Asc);
 
     let title_desc = SnsProposalsOptions::parse([
         OsString::from("1"),
@@ -98,6 +108,16 @@ fn sns_proposals_parses_title_and_action_sorts() {
 
     assert_eq!(reject_cost.sort, SnsProposalsSortArg::RejectCost);
     assert_eq!(reject_cost.sort_direction, SnsProposalSortDirection::Desc);
+
+    let reward_round = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("reward-round"),
+    ])
+    .expect("parse reward-round proposal sort");
+
+    assert_eq!(reward_round.sort, SnsProposalsSortArg::RewardRound);
+    assert_eq!(reward_round.sort_direction, SnsProposalSortDirection::Desc);
 
     let ballots = SnsProposalsOptions::parse([
         OsString::from("1"),

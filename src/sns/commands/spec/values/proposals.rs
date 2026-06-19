@@ -8,12 +8,12 @@ use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsPro
 use clap::ValueEnum;
 
 pub(in crate::sns::commands) const SNS_PROPOSALS_SORT_VALUE_NAME: &str = concat!(
-    "api|id|status|title|action|yes|no|total-votes|",
-    "ballots|reject-cost|created|decided|executed|failed"
+    "api|id|status|proposer|title|action|yes|no|total-votes|",
+    "ballots|reject-cost|reward-round|created|decided|executed|failed"
 );
 pub(in crate::sns::commands) const SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME: &str = concat!(
-    "id|status|title|action|yes|no|total-votes|",
-    "ballots|reject-cost|created|decided|executed|failed"
+    "id|status|proposer|title|action|yes|no|total-votes|",
+    "ballots|reject-cost|reward-round|created|decided|executed|failed"
 );
 
 ///
@@ -28,6 +28,7 @@ pub(in crate::sns::commands) enum SnsProposalsSortArg {
     Api,
     Id,
     Status,
+    Proposer,
     Title,
     Action,
     Yes,
@@ -35,6 +36,7 @@ pub(in crate::sns::commands) enum SnsProposalsSortArg {
     TotalVotes,
     Ballots,
     RejectCost,
+    RewardRound,
     Created,
     Decided,
     Executed,
@@ -47,6 +49,7 @@ impl From<SnsProposalsSortArg> for SnsProposalsSort {
             SnsProposalsSortArg::Api => Self::Api,
             SnsProposalsSortArg::Id => Self::Id,
             SnsProposalsSortArg::Status => Self::Status,
+            SnsProposalsSortArg::Proposer => Self::Proposer,
             SnsProposalsSortArg::Title => Self::Title,
             SnsProposalsSortArg::Action => Self::Action,
             SnsProposalsSortArg::Yes => Self::Yes,
@@ -54,6 +57,7 @@ impl From<SnsProposalsSortArg> for SnsProposalsSort {
             SnsProposalsSortArg::TotalVotes => Self::TotalVotes,
             SnsProposalsSortArg::Ballots => Self::Ballots,
             SnsProposalsSortArg::RejectCost => Self::RejectCost,
+            SnsProposalsSortArg::RewardRound => Self::RewardRound,
             SnsProposalsSortArg::Created => Self::Created,
             SnsProposalsSortArg::Decided => Self::Decided,
             SnsProposalsSortArg::Executed => Self::Executed,
