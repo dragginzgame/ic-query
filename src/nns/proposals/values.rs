@@ -5,10 +5,15 @@
 //! Boundary: converts CLI option values into NNS proposal report-model values.
 
 use crate::nns::proposals::report::{
-    NnsProposalStatusFilter, NnsProposalTopicFilter, NnsProposalsSort,
+    NnsProposalRewardStatusFilter, NnsProposalStatusFilter, NnsProposalTopicFilter,
+    NnsProposalsSort,
 };
 use clap::ValueEnum;
 
+pub(in crate::nns::proposals) const NNS_PROPOSAL_ID_ARG: &str = "proposal-id";
+pub(in crate::nns::proposals) const NNS_PROPOSAL_BALLOTS_FLAG: &str = "ballots";
+pub(in crate::nns::proposals) const NNS_PROPOSAL_VERBOSE_FLAG: &str = "verbose";
+pub(in crate::nns::proposals) const NNS_PROPOSALS_REWARD_STATUS_ARG: &str = "reward-status";
 pub(in crate::nns::proposals) const NNS_PROPOSALS_SORT_VALUE_NAME: &str = concat!(
     "api|id|status|topic|proposer|title|action|yes|no|total-votes|",
     "ballots|reject-cost|reward-round|proposed|decided|executed|failed"
@@ -96,6 +101,34 @@ impl From<NnsProposalStatusArg> for NnsProposalStatusFilter {
             NnsProposalStatusArg::Adopted => Self::Adopted,
             NnsProposalStatusArg::Executed => Self::Executed,
             NnsProposalStatusArg::Failed => Self::Failed,
+        }
+    }
+}
+
+///
+/// NnsProposalRewardStatusArg
+///
+/// Command-local clap value accepted by `icq nns proposals --reward-status`.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub(in crate::nns::proposals) enum NnsProposalRewardStatusArg {
+    #[default]
+    Any,
+    AcceptVotes,
+    ReadyToSettle,
+    Settled,
+    Ineligible,
+}
+
+impl From<NnsProposalRewardStatusArg> for NnsProposalRewardStatusFilter {
+    fn from(value: NnsProposalRewardStatusArg) -> Self {
+        match value {
+            NnsProposalRewardStatusArg::Any => Self::Any,
+            NnsProposalRewardStatusArg::AcceptVotes => Self::AcceptVotes,
+            NnsProposalRewardStatusArg::ReadyToSettle => Self::ReadyToSettle,
+            NnsProposalRewardStatusArg::Settled => Self::Settled,
+            NnsProposalRewardStatusArg::Ineligible => Self::Ineligible,
         }
     }
 }

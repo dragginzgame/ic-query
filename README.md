@@ -118,10 +118,13 @@ and local sort modes mirror the SNS proposal direction rules:
 ```sh
 icq nns proposals --limit 25
 icq nns proposals --status open
+icq nns proposals --reward-status settled
 icq nns proposals --topic governance
 icq nns proposals --sort proposed
 icq nns proposals --sort title --asc
 icq nns proposal 132411
+icq nns proposal 132411 --ballots
+icq nns proposal 132411 --verbose
 icq nns proposal 132411 --format json
 ```
 

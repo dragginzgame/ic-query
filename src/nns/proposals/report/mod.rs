@@ -17,18 +17,19 @@ use crate::{
 use thiserror::Error as ThisError;
 
 pub(in crate::nns) use model::{
-    NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
-    NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL, NnsProposalRequest,
-    NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter, NnsProposalsRequest,
-    NnsProposalsSort,
+    NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL,
+    NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL,
+    NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
+    NnsProposalStatusFilter, NnsProposalTopicFilter, NnsProposalsRequest, NnsProposalsSort,
 };
 pub(in crate::nns::proposals) use source::{build_nns_proposal_report, build_nns_proposals_report};
 pub(in crate::nns::proposals) use text::{nns_proposal_report_text, nns_proposals_report_text};
 
 #[cfg(test)]
 pub(in crate::nns) use model::{
-    NNS_PROPOSAL_SORT_NONE_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
-    NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+    NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_NONE_LABEL,
+    NNS_PROPOSAL_SORT_TITLE_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+    NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
 };
 
 #[cfg(test)]

@@ -43,6 +43,7 @@ where
         limit: options.limit,
         before_proposal_id: options.before_proposal_id,
         status: options.status,
+        reward_status: options.reward_status,
         topic: options.topic,
         sort: options.sort,
         sort_direction: options.sort_direction,
@@ -65,6 +66,8 @@ where
         source_endpoint: options.source_endpoint,
         now_unix_secs: now_unix_secs()?,
         proposal_id: options.proposal_id,
+        show_ballots: options.show_ballots,
+        verbose: options.verbose,
     };
     let report = build_nns_proposal_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_report_text)

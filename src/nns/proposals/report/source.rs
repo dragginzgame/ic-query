@@ -8,29 +8,52 @@ use super::{
     MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
     NNS_PROPOSALS_REPORT_SCHEMA_VERSION, NnsProposalHostError, enforce_mainnet_network,
     model::{
-        NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL, NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL,
-        NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL, NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
-        NNS_PROPOSAL_STATUS_ADOPTED_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-        NNS_PROPOSAL_STATUS_FAILED_LABEL, NNS_PROPOSAL_STATUS_OPEN_LABEL,
-        NNS_PROPOSAL_STATUS_REJECTED_LABEL, NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL,
+        NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE,
+        NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL, NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE,
+        NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL,
+        NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE,
+        NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL, NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE,
+        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_REWARD_STATUS_UNSPECIFIED_LABEL,
+        NNS_PROPOSAL_STATUS_ADOPTED_CODE, NNS_PROPOSAL_STATUS_ADOPTED_LABEL,
+        NNS_PROPOSAL_STATUS_EXECUTED_CODE, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+        NNS_PROPOSAL_STATUS_FAILED_CODE, NNS_PROPOSAL_STATUS_FAILED_LABEL,
+        NNS_PROPOSAL_STATUS_OPEN_CODE, NNS_PROPOSAL_STATUS_OPEN_LABEL,
+        NNS_PROPOSAL_STATUS_REJECTED_CODE, NNS_PROPOSAL_STATUS_REJECTED_LABEL,
+        NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL,
+        NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_CODE,
         NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_LABEL,
+        NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE,
         NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_LABEL,
-        NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_CODE, NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_LABEL,
+        NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_CODE,
         NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_LABEL,
-        NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_LABEL, NNS_PROPOSAL_TOPIC_KYC_LABEL,
+        NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_CODE,
+        NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_LABEL, NNS_PROPOSAL_TOPIC_KYC_CODE,
+        NNS_PROPOSAL_TOPIC_KYC_LABEL, NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_CODE,
         NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_LABEL,
-        NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_LABEL, NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL,
-        NNS_PROPOSAL_TOPIC_NODE_ADMIN_LABEL, NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_LABEL,
+        NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_CODE, NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_LABEL,
+        NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_CODE, NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL,
+        NNS_PROPOSAL_TOPIC_NODE_ADMIN_CODE, NNS_PROPOSAL_TOPIC_NODE_ADMIN_LABEL,
+        NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_CODE,
+        NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_LABEL,
+        NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_CODE,
         NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_LABEL,
+        NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE,
         NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL,
-        NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_LABEL,
-        NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_LABEL, NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_LABEL,
+        NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_CODE,
+        NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_LABEL, NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE,
+        NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_LABEL, NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_CODE,
+        NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_LABEL, NNS_PROPOSAL_TOPIC_UNSPECIFIED_LABEL,
+        NNS_PROPOSAL_VOTE_NO_CODE, NNS_PROPOSAL_VOTE_NO_LABEL, NNS_PROPOSAL_VOTE_UNSPECIFIED_LABEL,
+        NNS_PROPOSAL_VOTE_YES_CODE, NNS_PROPOSAL_VOTE_YES_LABEL, NnsProposalBallotRow,
         NnsProposalReport, NnsProposalRequest, NnsProposalRow, NnsProposalTally,
         NnsProposalsReport, NnsProposalsRequest,
     },
     view::{proposal_matches_topic, sort_nns_proposal_rows},
     wire::{
-        NnsListProposalInfoRequest, NnsListProposalInfoResponse, NnsProposalId, NnsProposalInfo,
+        NnsGovernanceBallot, NnsListProposalInfoRequest, NnsListProposalInfoResponse,
+        NnsProposalId, NnsProposalInfo,
     },
 };
 use crate::{
@@ -64,11 +87,17 @@ pub(in crate::nns::proposals::report) fn build_nns_proposals_report_with_source(
         .governance_status_code()
         .into_iter()
         .collect::<Vec<_>>();
+    let include_reward_status = request
+        .reward_status
+        .governance_reward_status_code()
+        .into_iter()
+        .collect::<Vec<_>>();
     let proposal_infos = source.fetch_proposals(
         &fetch_request,
         request.limit,
         request.before_proposal_id,
         &include_status,
+        &include_reward_status,
     )?;
     let mut proposals = proposal_infos
         .into_iter()
@@ -86,6 +115,7 @@ pub(in crate::nns::proposals::report) fn build_nns_proposals_report_with_source(
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status_filter: request.status.as_str().to_string(),
+        reward_status_filter: request.reward_status.as_str().to_string(),
         topic_filter: request.topic.as_str().to_string(),
         sort: request.sort.as_str().to_string(),
         sort_direction: request
@@ -114,6 +144,8 @@ pub(in crate::nns::proposals::report) fn build_nns_proposal_report_with_source(
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
         proposal_id: request.proposal_id,
+        show_ballots: request.show_ballots,
+        verbose: request.verbose,
         proposal: nns_proposal_row_from_info(proposal_info),
     })
 }
@@ -154,6 +186,7 @@ pub(in crate::nns::proposals::report) trait NnsProposalSource {
         limit: u32,
         before_proposal_id: Option<u64>,
         include_status: &[i32],
+        include_reward_status: &[i32],
     ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError>;
 
     fn fetch_proposal(
@@ -178,12 +211,14 @@ impl NnsProposalSource for LiveNnsProposalSource {
         limit: u32,
         before_proposal_id: Option<u64>,
         include_status: &[i32],
+        include_reward_status: &[i32],
     ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError> {
         block_on_current_thread(fetch_nns_proposals_async(
             request,
             limit,
             before_proposal_id,
             include_status,
+            include_reward_status,
         ))
         .map_err(NnsProposalHostError::Runtime)?
     }
@@ -203,6 +238,7 @@ async fn fetch_nns_proposals_async(
     limit: u32,
     before_proposal_id: Option<u64>,
     include_status: &[i32],
+    include_reward_status: &[i32],
 ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError> {
     let agent = nns_agent(&request.endpoint)?;
     let governance_canister = governance_canister()?;
@@ -213,7 +249,7 @@ async fn fetch_nns_proposals_async(
         "ListProposalInfoRequest",
         "ListProposalInfoResponse",
         &NnsListProposalInfoRequest {
-            include_reward_status: Vec::new(),
+            include_reward_status: include_reward_status.to_vec(),
             omit_large_fields: Some(false),
             before_proposal: before_proposal_id.map(|id| NnsProposalId { id }),
             limit,
@@ -297,6 +333,8 @@ fn governance_canister() -> Result<Principal, NnsProposalHostError> {
 
 fn nns_proposal_row_from_info(info: NnsProposalInfo) -> NnsProposalRow {
     let proposal = info.proposal;
+    let ballot_count = info.ballots.len();
+    let ballots = nns_proposal_ballot_rows(info.ballots);
     NnsProposalRow {
         proposal_id: info.id.map(|id| id.id),
         proposer_neuron_id: info.proposer.map(|id| id.id),
@@ -340,8 +378,23 @@ fn nns_proposal_row_from_info(info: NnsProposalInfo) -> NnsProposalRow {
             no: tally.no,
             total: tally.total,
         }),
-        ballot_count: info.ballots.len(),
+        ballot_count,
+        ballots,
     }
+}
+
+fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<NnsProposalBallotRow> {
+    let mut rows = ballots
+        .into_iter()
+        .map(|(neuron_id, ballot)| NnsProposalBallotRow {
+            neuron_id,
+            vote: ballot.vote,
+            vote_text: nns_vote_text(ballot.vote).to_string(),
+            voting_power: ballot.voting_power,
+        })
+        .collect::<Vec<_>>();
+    rows.sort_by_key(|ballot| ballot.neuron_id);
+    rows
 }
 
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
@@ -350,71 +403,110 @@ fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
 
 const fn nns_proposal_status_text(status: i32) -> &'static str {
     match status {
-        1 => NNS_PROPOSAL_STATUS_OPEN_LABEL,
-        2 => NNS_PROPOSAL_STATUS_REJECTED_LABEL,
-        3 => NNS_PROPOSAL_STATUS_ADOPTED_LABEL,
-        4 => NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-        5 => NNS_PROPOSAL_STATUS_FAILED_LABEL,
+        NNS_PROPOSAL_STATUS_OPEN_CODE => NNS_PROPOSAL_STATUS_OPEN_LABEL,
+        NNS_PROPOSAL_STATUS_REJECTED_CODE => NNS_PROPOSAL_STATUS_REJECTED_LABEL,
+        NNS_PROPOSAL_STATUS_ADOPTED_CODE => NNS_PROPOSAL_STATUS_ADOPTED_LABEL,
+        NNS_PROPOSAL_STATUS_EXECUTED_CODE => NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+        NNS_PROPOSAL_STATUS_FAILED_CODE => NNS_PROPOSAL_STATUS_FAILED_LABEL,
         _ => NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL,
     }
 }
 
 const fn nns_reward_status_text(status: i32) -> &'static str {
     match status {
-        1 => NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL,
-        2 => NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL,
-        3 => NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
-        4 => NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL,
-        _ => NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL,
+        NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE => {
+            NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL
+        }
+        NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE => {
+            NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL
+        }
+        NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE => NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
+        NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE => NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL,
+        _ => NNS_PROPOSAL_REWARD_STATUS_UNSPECIFIED_LABEL,
+    }
+}
+
+const fn nns_vote_text(vote: i32) -> &'static str {
+    match vote {
+        NNS_PROPOSAL_VOTE_YES_CODE => NNS_PROPOSAL_VOTE_YES_LABEL,
+        NNS_PROPOSAL_VOTE_NO_CODE => NNS_PROPOSAL_VOTE_NO_LABEL,
+        _ => NNS_PROPOSAL_VOTE_UNSPECIFIED_LABEL,
     }
 }
 
 const fn nns_topic_text(topic: i32) -> &'static str {
     match topic {
-        1 => NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL,
-        2 => NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_LABEL,
-        3 => NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_LABEL,
-        4 => NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-        5 => NNS_PROPOSAL_TOPIC_NODE_ADMIN_LABEL,
-        6 => NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_LABEL,
-        7 => NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_LABEL,
-        8 => NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_LABEL,
-        9 => NNS_PROPOSAL_TOPIC_KYC_LABEL,
-        10 => NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_LABEL,
-        12 => NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_LABEL,
-        13 => NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_LABEL,
-        14 => NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_LABEL,
-        15 => NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_LABEL,
-        16 => NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_LABEL,
-        17 => NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_LABEL,
-        18 => NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL,
-        _ => NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL,
+        NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_CODE => NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL,
+        NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_CODE => NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_LABEL,
+        NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_CODE => NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_LABEL,
+        NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE => NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        NNS_PROPOSAL_TOPIC_NODE_ADMIN_CODE => NNS_PROPOSAL_TOPIC_NODE_ADMIN_LABEL,
+        NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_CODE => {
+            NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE => NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_LABEL,
+        NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_CODE => {
+            NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_KYC_CODE => NNS_PROPOSAL_TOPIC_KYC_LABEL,
+        NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_CODE => {
+            NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_CODE => {
+            NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_CODE => {
+            NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_CODE => {
+            NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_CODE => {
+            NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_CODE => NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_LABEL,
+        NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE => {
+            NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_LABEL
+        }
+        NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE => {
+            NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL
+        }
+        _ => NNS_PROPOSAL_TOPIC_UNSPECIFIED_LABEL,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-        NNS_PROPOSAL_STATUS_OPEN_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE, NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
+        NNS_PROPOSAL_STATUS_EXECUTED_CODE, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+        NNS_PROPOSAL_STATUS_OPEN_CODE, NNS_PROPOSAL_STATUS_OPEN_LABEL,
+        NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE,
         NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL, nns_proposal_status_text,
         nns_reward_status_text, nns_topic_text,
     };
 
     #[test]
     fn nns_proposal_labels_cover_common_values() {
-        assert_eq!(nns_proposal_status_text(1), NNS_PROPOSAL_STATUS_OPEN_LABEL);
         assert_eq!(
-            nns_proposal_status_text(4),
+            nns_proposal_status_text(NNS_PROPOSAL_STATUS_OPEN_CODE),
+            NNS_PROPOSAL_STATUS_OPEN_LABEL
+        );
+        assert_eq!(
+            nns_proposal_status_text(NNS_PROPOSAL_STATUS_EXECUTED_CODE),
             NNS_PROPOSAL_STATUS_EXECUTED_LABEL
         );
         assert_eq!(
-            nns_reward_status_text(3),
+            nns_reward_status_text(NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE),
             NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL
         );
-        assert_eq!(nns_topic_text(4), NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
         assert_eq!(
-            nns_topic_text(18),
+            nns_topic_text(NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE),
+            NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL
+        );
+        assert_eq!(
+            nns_topic_text(NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE),
             NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL
         );
     }

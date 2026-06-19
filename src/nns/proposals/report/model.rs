@@ -34,11 +34,28 @@ pub(in crate::nns) const NNS_PROPOSAL_STATUS_ADOPTED_LABEL: &str = "adopted";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_EXECUTED_LABEL: &str = "executed";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_FAILED_LABEL: &str = "failed";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL: &str = "unspecified";
+pub(in crate::nns) const NNS_PROPOSAL_STATUS_OPEN_CODE: i32 = 1;
+pub(in crate::nns) const NNS_PROPOSAL_STATUS_REJECTED_CODE: i32 = 2;
+pub(in crate::nns) const NNS_PROPOSAL_STATUS_ADOPTED_CODE: i32 = 3;
+pub(in crate::nns) const NNS_PROPOSAL_STATUS_EXECUTED_CODE: i32 = 4;
+pub(in crate::nns) const NNS_PROPOSAL_STATUS_FAILED_CODE: i32 = 5;
 
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL: &str = "accept-votes";
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL: &str = "ready-to-settle";
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL: &str = "settled";
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL: &str = "ineligible";
+pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL: &str = "any";
+pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_UNSPECIFIED_LABEL: &str = "unspecified";
+pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE: i32 = 1;
+pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE: i32 = 2;
+pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE: i32 = 3;
+pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE: i32 = 4;
+
+pub(in crate::nns) const NNS_PROPOSAL_VOTE_UNSPECIFIED_LABEL: &str = "unspecified";
+pub(in crate::nns) const NNS_PROPOSAL_VOTE_YES_LABEL: &str = "yes";
+pub(in crate::nns) const NNS_PROPOSAL_VOTE_NO_LABEL: &str = "no";
+pub(in crate::nns) const NNS_PROPOSAL_VOTE_YES_CODE: i32 = 1;
+pub(in crate::nns) const NNS_PROPOSAL_VOTE_NO_CODE: i32 = 2;
 
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_ANY_LABEL: &str = "any";
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL: &str = "neuron-management";
@@ -67,6 +84,24 @@ pub(in crate::nns) const NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_LABE
     "application-canister-management";
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL: &str =
     "protocol-canister-management";
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_UNSPECIFIED_LABEL: &str = "unspecified";
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_CODE: i32 = 1;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_CODE: i32 = 2;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_CODE: i32 = 3;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE: i32 = 4;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_ADMIN_CODE: i32 = 5;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_CODE: i32 = 6;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE: i32 = 7;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_CODE: i32 = 8;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_KYC_CODE: i32 = 9;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_CODE: i32 = 10;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_CODE: i32 = 12;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_CODE: i32 = 13;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_CODE: i32 = 14;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_CODE: i32 = 15;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_CODE: i32 = 16;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE: i32 = 17;
+pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE: i32 = 18;
 
 ///
 /// NnsProposalsRequest
@@ -82,6 +117,7 @@ pub(in crate::nns) struct NnsProposalsRequest {
     pub(in crate::nns::proposals) limit: u32,
     pub(in crate::nns::proposals) before_proposal_id: Option<u64>,
     pub(in crate::nns::proposals) status: NnsProposalStatusFilter,
+    pub(in crate::nns::proposals) reward_status: NnsProposalRewardStatusFilter,
     pub(in crate::nns::proposals) topic: NnsProposalTopicFilter,
     pub(in crate::nns::proposals) sort: NnsProposalsSort,
     pub(in crate::nns::proposals) sort_direction: NnsProposalSortDirection,
@@ -100,6 +136,8 @@ pub(in crate::nns) struct NnsProposalRequest {
     pub(in crate::nns::proposals) source_endpoint: String,
     pub(in crate::nns::proposals) now_unix_secs: u64,
     pub(in crate::nns::proposals) proposal_id: u64,
+    pub(in crate::nns::proposals) show_ballots: bool,
+    pub(in crate::nns::proposals) verbose: bool,
 }
 
 ///
@@ -119,6 +157,7 @@ pub(in crate::nns) struct NnsProposalsReport {
     pub requested_limit: u32,
     pub before_proposal_id: Option<u64>,
     pub status_filter: String,
+    pub reward_status_filter: String,
     pub topic_filter: String,
     pub sort: String,
     pub sort_direction: String,
@@ -142,6 +181,8 @@ pub(in crate::nns) struct NnsProposalReport {
     pub source_endpoint: String,
     pub fetched_by: String,
     pub proposal_id: u64,
+    pub show_ballots: bool,
+    pub verbose: bool,
     pub proposal: NnsProposalRow,
 }
 
@@ -180,6 +221,21 @@ pub(in crate::nns) struct NnsProposalRow {
     pub total_potential_voting_power: Option<u64>,
     pub latest_tally: Option<NnsProposalTally>,
     pub ballot_count: usize,
+    pub ballots: Vec<NnsProposalBallotRow>,
+}
+
+///
+/// NnsProposalBallotRow
+///
+/// Serializable NNS proposal ballot row.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub(in crate::nns) struct NnsProposalBallotRow {
+    pub neuron_id: u64,
+    pub vote: i32,
+    pub vote_text: String,
+    pub voting_power: u64,
 }
 
 ///
@@ -310,6 +366,44 @@ pub(in crate::nns) enum NnsProposalStatusFilter {
     Failed,
 }
 
+///
+/// NnsProposalRewardStatusFilter
+///
+/// Report-model reward status filter for bounded NNS proposal listings.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(in crate::nns) enum NnsProposalRewardStatusFilter {
+    #[default]
+    Any,
+    AcceptVotes,
+    ReadyToSettle,
+    Settled,
+    Ineligible,
+}
+
+impl NnsProposalRewardStatusFilter {
+    pub(in crate::nns) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Any => NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
+            Self::AcceptVotes => NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL,
+            Self::ReadyToSettle => NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL,
+            Self::Settled => NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
+            Self::Ineligible => NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL,
+        }
+    }
+
+    pub(in crate::nns) const fn governance_reward_status_code(self) -> Option<i32> {
+        match self {
+            Self::Any => None,
+            Self::AcceptVotes => Some(NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE),
+            Self::ReadyToSettle => Some(NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE),
+            Self::Settled => Some(NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE),
+            Self::Ineligible => Some(NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE),
+        }
+    }
+}
+
 impl NnsProposalStatusFilter {
     pub(in crate::nns) const fn as_str(self) -> &'static str {
         match self {
@@ -325,11 +419,11 @@ impl NnsProposalStatusFilter {
     pub(in crate::nns) const fn governance_status_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
-            Self::Open => Some(1),
-            Self::Rejected => Some(2),
-            Self::Adopted => Some(3),
-            Self::Executed => Some(4),
-            Self::Failed => Some(5),
+            Self::Open => Some(NNS_PROPOSAL_STATUS_OPEN_CODE),
+            Self::Rejected => Some(NNS_PROPOSAL_STATUS_REJECTED_CODE),
+            Self::Adopted => Some(NNS_PROPOSAL_STATUS_ADOPTED_CODE),
+            Self::Executed => Some(NNS_PROPOSAL_STATUS_EXECUTED_CODE),
+            Self::Failed => Some(NNS_PROPOSAL_STATUS_FAILED_CODE),
         }
     }
 }
@@ -396,23 +490,31 @@ impl NnsProposalTopicFilter {
     pub(in crate::nns) const fn topic_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
-            Self::NeuronManagement => Some(1),
-            Self::ExchangeRate => Some(2),
-            Self::NetworkEconomics => Some(3),
-            Self::Governance => Some(4),
-            Self::NodeAdmin => Some(5),
-            Self::ParticipantManagement => Some(6),
-            Self::SubnetManagement => Some(7),
-            Self::NetworkCanisterManagement => Some(8),
-            Self::Kyc => Some(9),
-            Self::NodeProviderRewards => Some(10),
-            Self::IcOsVersionDeployment => Some(12),
-            Self::IcOsVersionElection => Some(13),
-            Self::SnsAndCommunityFund => Some(14),
-            Self::ApiBoundaryNodeManagement => Some(15),
-            Self::SubnetRental => Some(16),
-            Self::ApplicationCanisterManagement => Some(17),
-            Self::ProtocolCanisterManagement => Some(18),
+            Self::NeuronManagement => Some(NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_CODE),
+            Self::ExchangeRate => Some(NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_CODE),
+            Self::NetworkEconomics => Some(NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_CODE),
+            Self::Governance => Some(NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE),
+            Self::NodeAdmin => Some(NNS_PROPOSAL_TOPIC_NODE_ADMIN_CODE),
+            Self::ParticipantManagement => Some(NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_CODE),
+            Self::SubnetManagement => Some(NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE),
+            Self::NetworkCanisterManagement => {
+                Some(NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_CODE)
+            }
+            Self::Kyc => Some(NNS_PROPOSAL_TOPIC_KYC_CODE),
+            Self::NodeProviderRewards => Some(NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_CODE),
+            Self::IcOsVersionDeployment => Some(NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_CODE),
+            Self::IcOsVersionElection => Some(NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_CODE),
+            Self::SnsAndCommunityFund => Some(NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_CODE),
+            Self::ApiBoundaryNodeManagement => {
+                Some(NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_CODE)
+            }
+            Self::SubnetRental => Some(NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_CODE),
+            Self::ApplicationCanisterManagement => {
+                Some(NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE)
+            }
+            Self::ProtocolCanisterManagement => {
+                Some(NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE)
+            }
         }
     }
 }

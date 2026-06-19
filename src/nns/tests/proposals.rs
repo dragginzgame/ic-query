@@ -13,10 +13,15 @@ fn nns_proposals_parses_defaults_and_json_format() {
     assert_eq!(defaults.limit, 25);
     assert_eq!(defaults.before_proposal_id, None);
     assert_eq!(defaults.status, NnsProposalStatusFilter::Any);
+    assert_eq!(defaults.reward_status, NnsProposalRewardStatusFilter::Any);
     assert_eq!(defaults.topic, NnsProposalTopicFilter::Any);
     assert_eq!(defaults.sort, NnsProposalsSort::Api);
     assert_eq!(defaults.sort_direction, NnsProposalSortDirection::Desc);
     assert_eq!(defaults.status.as_str(), NNS_PROPOSAL_STATUS_ANY_LABEL);
+    assert_eq!(
+        defaults.reward_status.as_str(),
+        NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL
+    );
     assert_eq!(defaults.topic.as_str(), NNS_PROPOSAL_TOPIC_ANY_LABEL);
     assert_eq!(defaults.sort.as_str(), NNS_PROPOSAL_SORT_API_LABEL);
     assert_eq!(
@@ -36,6 +41,8 @@ fn nns_proposals_parses_defaults_and_json_format() {
         OsString::from("132000"),
         OsString::from("--status"),
         OsString::from(NNS_PROPOSAL_STATUS_EXECUTED_LABEL),
+        OsString::from("--reward-status"),
+        OsString::from(NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL),
         OsString::from("--topic"),
         OsString::from(NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL),
         OsString::from("--sort"),
@@ -50,10 +57,18 @@ fn nns_proposals_parses_defaults_and_json_format() {
     assert_eq!(options.limit, 50);
     assert_eq!(options.before_proposal_id, Some(132_000));
     assert_eq!(options.status, NnsProposalStatusFilter::Executed);
+    assert_eq!(
+        options.reward_status,
+        NnsProposalRewardStatusFilter::Settled
+    );
     assert_eq!(options.topic, NnsProposalTopicFilter::Governance);
     assert_eq!(options.sort, NnsProposalsSort::Title);
     assert_eq!(options.sort_direction, NnsProposalSortDirection::Asc);
     assert_eq!(options.status.as_str(), NNS_PROPOSAL_STATUS_EXECUTED_LABEL);
+    assert_eq!(
+        options.reward_status.as_str(),
+        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL
+    );
     assert_eq!(options.topic.as_str(), NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
     assert_eq!(options.sort.as_str(), NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(
@@ -71,6 +86,8 @@ fn nns_proposal_parses_id_and_json_format() {
         OsString::from("json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
+        OsString::from("--ballots"),
+        OsString::from("--verbose"),
     ])
     .expect("parse nns proposal");
 
@@ -78,6 +95,8 @@ fn nns_proposal_parses_id_and_json_format() {
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
     assert_eq!(options.proposal_id, 132_411);
+    assert!(options.show_ballots);
+    assert!(options.verbose);
 }
 
 #[test]
@@ -92,9 +111,12 @@ fn nns_proposal_help_is_advertised_under_nns() {
     assert!(proposals.contains("--limit 50"));
     assert!(proposals.contains("--before 132000"));
     assert!(proposals.contains("--status open"));
+    assert!(proposals.contains("--reward-status settled"));
     assert!(proposals.contains("--topic governance"));
     assert!(proposals.contains("--sort title --asc"));
     assert!(proposal.contains("icq nns proposal 132411"));
+    assert!(proposal.contains("--ballots"));
+    assert!(proposal.contains("--verbose"));
     assert!(proposal.contains("--format json"));
 }
 

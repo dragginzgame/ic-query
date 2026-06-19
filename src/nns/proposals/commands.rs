@@ -10,12 +10,15 @@ use crate::{
         leaf,
         proposals::{
             report::{
-                DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_SORT_API_LABEL,
-                NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
-                NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL,
+                DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
+                NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL,
+                NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_STATUS_ANY_LABEL,
+                NNS_PROPOSAL_TOPIC_ANY_LABEL,
             },
             values::{
-                NNS_PROPOSALS_SORT_VALUE_NAME, NnsProposalStatusArg, NnsProposalTopicArg,
+                NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_VERBOSE_FLAG,
+                NNS_PROPOSALS_REWARD_STATUS_ARG, NNS_PROPOSALS_SORT_VALUE_NAME,
+                NnsProposalRewardStatusArg, NnsProposalStatusArg, NnsProposalTopicArg,
                 NnsProposalsSortArg,
             },
         },
@@ -32,6 +35,7 @@ Examples:
   icq nns proposals --limit 50
   icq nns proposals --before 132000
   icq nns proposals --status open
+  icq nns proposals --reward-status settled
   icq nns proposals --topic governance
   icq nns proposals --sort proposed
   icq nns proposals --sort title --asc
@@ -41,6 +45,8 @@ Examples:
 const NNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
   icq nns proposal 132411
+  icq nns proposal 132411 --ballots
+  icq nns proposal 132411 --verbose
   icq nns proposal 132411 --format json
   icq nns proposal 132411 --source-endpoint https://icp-api.io";
 
@@ -78,6 +84,14 @@ pub(in crate::nns::proposals) fn nns_proposals_command() -> ClapCommand {
                 .help("NNS governance decision status filter"),
         )
         .arg(
+            value_arg(NNS_PROPOSALS_REWARD_STATUS_ARG)
+                .long(NNS_PROPOSALS_REWARD_STATUS_ARG)
+                .value_name("any|accept-votes|ready-to-settle|settled|ineligible")
+                .default_value(NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL)
+                .value_parser(clap::value_parser!(NnsProposalRewardStatusArg))
+                .help("NNS governance voting reward status filter"),
+        )
+        .arg(
             value_arg("topic")
                 .long("topic")
                 .value_name("topic")
@@ -106,8 +120,8 @@ pub(in crate::nns::proposals) fn nns_proposals_command() -> ClapCommand {
                 .help("Sort descending for local sort modes; this is the default for id/tally/ballots/reject-cost/reward-round/timestamps"),
         )
         .arg(
-            flag_arg("verbose")
-                .long("verbose")
+            flag_arg(NNS_PROPOSAL_VERBOSE_FLAG)
+                .long(NNS_PROPOSAL_VERBOSE_FLAG)
                 .help("Show per-proposal detail lines in text output"),
         )
         .arg(leaf::network_arg())
@@ -120,8 +134,8 @@ pub(in crate::nns::proposals) fn nns_proposal_command() -> ClapCommand {
         .about("Show one NNS governance proposal")
         .disable_help_flag(true)
         .arg(
-            value_arg("proposal-id")
-                .value_name("proposal-id")
+            value_arg(NNS_PROPOSAL_ID_ARG)
+                .value_name(NNS_PROPOSAL_ID_ARG)
                 .required(true)
                 .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
                 .help("NNS governance proposal id"),
@@ -130,6 +144,16 @@ pub(in crate::nns::proposals) fn nns_proposal_command() -> ClapCommand {
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS governance query"),
+        )
+        .arg(
+            flag_arg(NNS_PROPOSAL_BALLOTS_FLAG)
+                .long(NNS_PROPOSAL_BALLOTS_FLAG)
+                .help("Show NNS proposal ballot rows in text output"),
+        )
+        .arg(
+            flag_arg(NNS_PROPOSAL_VERBOSE_FLAG)
+                .long(NNS_PROPOSAL_VERBOSE_FLAG)
+                .help("Show full NNS proposal detail text"),
         )
         .arg(leaf::network_arg())
         .after_help(NNS_PROPOSAL_HELP_AFTER)

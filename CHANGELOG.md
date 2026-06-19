@@ -11,6 +11,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.26` adds `icq nns proposal <proposal-id> --ballots`,
+  `icq nns proposal <proposal-id> --verbose`, and
+  `icq nns proposals --reward-status <status>`, including deterministic NNS
+  ballot rows in JSON, compact-by-default NNS proposal summaries, and
+  API-backed NNS proposal reward-status filtering.
+
+  ```bash
+  icq nns proposal 132411 --ballots
+  icq nns proposal 132411 --verbose
+  icq nns proposals --reward-status settled
+  ```
+
 - `0.2.25` adds direct live NNS governance proposal list and detail queries,
   including status/topic filters, local proposal sorting, sort direction
   controls, verbose list details, and text/JSON reports that expose the

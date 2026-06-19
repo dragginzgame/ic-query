@@ -4,11 +4,13 @@
 //! Does not own: live governance calls, JSON output, or report assembly.
 //! Boundary: formats NNS proposal rows for human CLI output.
 
-use super::model::{NnsProposalReport, NnsProposalRow, NnsProposalsReport};
+use super::model::{NnsProposalBallotRow, NnsProposalReport, NnsProposalRow, NnsProposalsReport};
 use crate::{
     table::{ColumnAlign, render_table},
     token_amount::e8s_decimal_text,
 };
+
+const NNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;
 
 #[must_use]
 pub(in crate::nns::proposals) fn nns_proposals_report_text(report: &NnsProposalsReport) -> String {
@@ -21,6 +23,7 @@ pub(in crate::nns::proposals) fn nns_proposals_report_text(report: &NnsProposals
             optional_u64_text(report.before_proposal_id)
         ),
         format!("status_filter: {}", report.status_filter),
+        format!("reward_status_filter: {}", report.reward_status_filter),
         format!("topic_filter: {}", report.topic_filter),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
@@ -60,7 +63,7 @@ pub(in crate::nns::proposals) fn nns_proposals_report_text(report: &NnsProposals
         lines.push(String::new());
         lines.push("proposal_details:".to_string());
         for proposal in &report.proposals {
-            lines.extend(proposal_detail_lines(proposal));
+            lines.extend(proposal_detail_lines(proposal, None));
         }
     }
     lines.join("\n")
@@ -73,16 +76,32 @@ pub(in crate::nns::proposals) fn nns_proposal_report_text(report: &NnsProposalRe
         format!("network: {}", report.network),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("proposal_id: {}", report.proposal_id),
+        format!("show_ballots: {}", yes_no(report.show_ballots)),
+        format!("verbose: {}", yes_no(report.verbose)),
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
         format!("fetched_by: {}", report.fetched_by),
         String::new(),
     ];
-    lines.extend(proposal_detail_lines(proposal));
+    let detail_limit = if report.verbose {
+        None
+    } else {
+        Some(NNS_PROPOSAL_DETAIL_TEXT_LIMIT)
+    };
+    lines.extend(proposal_detail_lines(proposal, detail_limit));
+    if report.show_ballots {
+        lines.push(String::new());
+        lines.push("ballots:".to_string());
+        if let Some(table) = proposal_ballot_table(&proposal.ballots) {
+            lines.push(table);
+        } else {
+            lines.push("-".to_string());
+        }
+    }
     lines.join("\n")
 }
 
-fn proposal_detail_lines(proposal: &NnsProposalRow) -> Vec<String> {
+fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>) -> Vec<String> {
     let tally = proposal.latest_tally.as_ref();
     vec![
         format!("proposal_id: {}", optional_u64_text(proposal.proposal_id)),
@@ -134,7 +153,10 @@ fn proposal_detail_lines(proposal: &NnsProposalRow) -> Vec<String> {
             "latest_tally_no: {}",
             tally.map_or_else(|| "-".to_string(), |tally| tally.no.to_string())
         ),
-        format!("summary: {}", empty_text(&proposal.summary)),
+        format!(
+            "summary: {}",
+            proposal_detail_text(&proposal.summary, summary_limit)
+        ),
     ]
 }
 
@@ -151,8 +173,47 @@ fn empty_text(value: &str) -> &str {
     if value.trim().is_empty() { "-" } else { value }
 }
 
+fn proposal_detail_text(value: &str, limit: Option<usize>) -> String {
+    let value = empty_text(value);
+    if value == "-" {
+        return value.to_string();
+    }
+    limit.map_or_else(
+        || value.to_string(),
+        |limit| truncate_text_value(value, limit),
+    )
+}
+
+fn truncate_text_value(value: &str, limit: usize) -> String {
+    if value.chars().count() <= limit {
+        return value.to_string();
+    }
+    let truncated = value.chars().take(limit).collect::<String>();
+    format!("{truncated}...")
+}
+
 fn optional_u64_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
+    if ballots.is_empty() {
+        return None;
+    }
+    Some(render_table(
+        &["NEURON_ID", "VOTE", "VOTING_POWER"],
+        &ballots
+            .iter()
+            .map(|ballot| {
+                [
+                    ballot.neuron_id.to_string(),
+                    ballot.vote_text.clone(),
+                    e8s_decimal_text(ballot.voting_power),
+                ]
+            })
+            .collect::<Vec<_>>(),
+        &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+    ))
 }
 
 const fn yes_no(value: bool) -> &'static str {

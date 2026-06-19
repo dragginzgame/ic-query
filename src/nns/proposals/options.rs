@@ -14,11 +14,14 @@ use crate::nns::{
     parse_nns_matches,
     proposals::{
         report::{
-            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL, NnsProposalSortDirection,
-            NnsProposalStatusFilter, NnsProposalTopicFilter, NnsProposalsSort,
+            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
+            NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
+            NnsProposalTopicFilter, NnsProposalsSort,
         },
         values::{
-            NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, NnsProposalStatusArg, NnsProposalTopicArg,
+            NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_VERBOSE_FLAG,
+            NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, NNS_PROPOSALS_REWARD_STATUS_ARG,
+            NnsProposalRewardStatusArg, NnsProposalStatusArg, NnsProposalTopicArg,
             NnsProposalsSortArg,
         },
     },
@@ -40,6 +43,7 @@ pub(in crate::nns) struct NnsProposalsOptions {
     pub(in crate::nns) limit: u32,
     pub(in crate::nns) before_proposal_id: Option<u64>,
     pub(in crate::nns) status: NnsProposalStatusFilter,
+    pub(in crate::nns) reward_status: NnsProposalRewardStatusFilter,
     pub(in crate::nns) topic: NnsProposalTopicFilter,
     pub(in crate::nns) sort: NnsProposalsSort,
     pub(in crate::nns) sort_direction: NnsProposalSortDirection,
@@ -70,13 +74,17 @@ impl NnsProposalsOptions {
                 .get_one::<NnsProposalStatusArg>("status")
                 .expect("clap default supplies proposal status"))
             .into(),
+            reward_status: (*matches
+                .get_one::<NnsProposalRewardStatusArg>(NNS_PROPOSALS_REWARD_STATUS_ARG)
+                .expect("clap default supplies proposal reward status"))
+            .into(),
             topic: (*matches
                 .get_one::<NnsProposalTopicArg>("topic")
                 .expect("clap default supplies proposal topic"))
             .into(),
             sort: sort.into(),
             sort_direction,
-            verbose: matches.get_flag("verbose"),
+            verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         })
     }
 }
@@ -128,6 +136,8 @@ pub(in crate::nns) struct NnsProposalOptions {
     pub(in crate::nns) format: OutputFormat,
     pub(in crate::nns) source_endpoint: String,
     pub(in crate::nns) proposal_id: u64,
+    pub(in crate::nns) show_ballots: bool,
+    pub(in crate::nns) verbose: bool,
 }
 
 impl NnsProposalOptions {
@@ -143,8 +153,10 @@ impl NnsProposalOptions {
             format: common.format,
             source_endpoint: common.source_endpoint,
             proposal_id: *matches
-                .get_one::<u64>("proposal-id")
+                .get_one::<u64>(NNS_PROPOSAL_ID_ARG)
                 .expect("required proposal id"),
+            show_ballots: matches.get_flag(NNS_PROPOSAL_BALLOTS_FLAG),
+            verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         })
     }
 }
