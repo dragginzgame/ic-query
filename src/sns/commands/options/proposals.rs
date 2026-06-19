@@ -120,7 +120,7 @@ fn explicit_proposal_sort_direction(
     direction: SnsProposalSortDirection,
     flag: &'static str,
 ) -> Result<SnsProposalSortDirection, SnsCommandError> {
-    if sort == SnsProposalsSortArg::Api {
+    if !SnsProposalsSort::from(sort).uses_local_direction() {
         return Err(SnsCommandError::Usage(format!(
             "{flag} requires --sort {SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME}"
         )));

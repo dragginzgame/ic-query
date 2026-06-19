@@ -10,8 +10,9 @@ mod timestamp;
 
 use super::common::clean_optional_text;
 use crate::sns::report::{
-    SnsProposalFailureReason, SnsProposalRow, SnsProposalTally, hex_bytes,
-    live::types::SnsGovernanceProposalData,
+    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
+    SNS_PROPOSAL_DECISION_OPEN, SnsProposalFailureReason, SnsProposalRow, SnsProposalTally,
+    hex_bytes, live::types::SnsGovernanceProposalData,
 };
 use ballot::sns_proposal_ballot_row;
 use labels::proposal_action_text;
@@ -75,13 +76,13 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
 
 fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> String {
     if proposal.failed_timestamp_seconds > 0 {
-        "failed"
+        SNS_PROPOSAL_DECISION_FAILED
     } else if proposal.executed_timestamp_seconds > 0 {
-        "executed"
+        SNS_PROPOSAL_DECISION_EXECUTED
     } else if proposal.decided_timestamp_seconds > 0 {
-        "decided"
+        SNS_PROPOSAL_DECISION_DECIDED
     } else {
-        "open"
+        SNS_PROPOSAL_DECISION_OPEN
     }
     .to_string()
 }

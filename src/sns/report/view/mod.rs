@@ -7,6 +7,8 @@
 mod list;
 mod neurons;
 mod proposals;
+#[cfg(test)]
+mod tests;
 
 pub(in crate::sns::report) use list::sort_mainnet_sns_instances;
 pub(in crate::sns::report) use neurons::sort_sns_neurons;

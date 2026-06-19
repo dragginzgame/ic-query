@@ -21,6 +21,10 @@ pub use neurons::{
     SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsReport,
 };
 pub use params::SnsParamsReport;
+pub(in crate::sns::report) use proposals::{
+    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
+    SNS_PROPOSAL_DECISION_OPEN,
+};
 pub use proposals::{
     SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
     SnsProposalTally, SnsProposalsCacheListReport, SnsProposalsCacheStatusReport,

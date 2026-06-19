@@ -6,6 +6,11 @@
 
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
+pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_DECIDED: &str = "decided";
+pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_EXECUTED: &str = "executed";
+pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_FAILED: &str = "failed";
+pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_OPEN: &str = "open";
+
 ///
 /// SnsProposalRow
 ///

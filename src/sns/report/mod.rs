@@ -1,5 +1,9 @@
 use crate::{hex::hex_bytes, ic_registry::DEFAULT_MAINNET_ENDPOINT};
 use lookup::enforce_mainnet_network;
+pub(in crate::sns::report) use model::{
+    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
+    SNS_PROPOSAL_DECISION_OPEN,
+};
 #[cfg(test)]
 pub use model::{SnsCustomProposalCriticality, SnsVotingRewardsParameters};
 pub use model::{

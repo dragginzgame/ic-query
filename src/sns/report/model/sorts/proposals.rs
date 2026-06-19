@@ -15,11 +15,14 @@ pub enum SnsProposalsSort {
     #[default]
     Api,
     Id,
+    Status,
     Title,
     Action,
     Yes,
     No,
     TotalVotes,
+    Ballots,
+    RejectCost,
     Created,
     Decided,
     Executed,
@@ -33,11 +36,14 @@ impl SnsProposalsSort {
         match self {
             Self::Api => "api",
             Self::Id => "id",
+            Self::Status => "status",
             Self::Title => "title",
             Self::Action => "action",
             Self::Yes => "yes",
             Self::No => "no",
             Self::TotalVotes => "total-votes",
+            Self::Ballots => "ballots",
+            Self::RejectCost => "reject-cost",
             Self::Created => "created",
             Self::Decided => "decided",
             Self::Executed => "executed",
@@ -49,16 +55,23 @@ impl SnsProposalsSort {
     #[must_use]
     pub const fn default_direction(self) -> SnsProposalSortDirection {
         match self {
-            Self::Title | Self::Action => SnsProposalSortDirection::Asc,
-            Self::Api
-            | Self::Id
-            | Self::Yes
-            | Self::No
-            | Self::TotalVotes
-            | Self::Created
-            | Self::Decided
-            | Self::Executed
-            | Self::Failed => SnsProposalSortDirection::Desc,
+            Self::Status | Self::Title | Self::Action => SnsProposalSortDirection::Asc,
+            _ => SnsProposalSortDirection::Desc,
+        }
+    }
+
+    /// Return whether this sort applies a local direction.
+    #[must_use]
+    pub const fn uses_local_direction(self) -> bool {
+        !matches!(self, Self::Api)
+    }
+
+    /// Return the stable direction label used in text and JSON reports.
+    #[must_use]
+    pub const fn direction_label(self, direction: SnsProposalSortDirection) -> &'static str {
+        match self {
+            Self::Api => "none",
+            _ => direction.as_str(),
         }
     }
 }

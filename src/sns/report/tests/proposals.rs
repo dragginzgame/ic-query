@@ -19,7 +19,7 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert!(report.show_ballots);
     assert_eq!(report.proposal.proposal_id, Some(42));
     assert_eq!(report.proposal.action, "motion");
-    assert_eq!(report.proposal.decision_state, "open");
+    assert_eq!(report.proposal.decision_state, SNS_PROPOSAL_DECISION_OPEN);
     assert_eq!(report.proposal.ballot_count, 1);
     assert_eq!(report.proposal.ballots[0].vote_text, "yes");
     assert_eq!(report.data_source, "live");
@@ -59,7 +59,10 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(42));
     assert_eq!(report.proposals[0].action, "motion");
-    assert_eq!(report.proposals[0].decision_state, "open");
+    assert_eq!(
+        report.proposals[0].decision_state,
+        SNS_PROPOSAL_DECISION_OPEN
+    );
     assert_eq!(report.proposals[0].reject_cost_e8s, 100_000_000);
     assert_eq!(report.proposals[0].created_at, "2026-06-01T00:00:00Z");
     assert_eq!(
@@ -431,7 +434,7 @@ fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
         second
             .proposals
             .iter()
-            .all(|proposal| proposal.decision_state == "decided")
+            .all(|proposal| proposal.decision_state == SNS_PROPOSAL_DECISION_DECIDED)
     );
     let text = sns_proposals_report_text(&second);
     assert!(text.contains("status_filter: decided"));
@@ -462,6 +465,28 @@ fn sns_proposals_cached_sort_title_orders_before_limit() {
 }
 
 #[test]
+fn sns_proposals_cached_sort_status_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-status");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Status;
+    request.sort_direction = SnsProposalSortDirection::Asc;
+    request.limit = 2;
+
+    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh status sorted proposals cache");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.sort, "status");
+    assert_eq!(proposal_ids(&report), vec![20, 30]);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-total-votes");
     let mut request = proposals_request("1");
@@ -479,6 +504,28 @@ fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
     assert_eq!(report.data_source, "cache");
     assert_eq!(report.sort, "total-votes");
     assert_eq!(proposal_ids(&report), vec![10, 30]);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_cached_sort_reject_cost_orders_before_limit() {
+    let root = temp_dir("ic-query-sns-proposals-sort-reject-cost");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::RejectCost;
+    request.sort_direction = SnsProposalSortDirection::Desc;
+    request.limit = 2;
+
+    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh reject-cost sorted proposals cache");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.sort, "reject-cost");
+    assert_eq!(proposal_ids(&report), vec![30, 10]);
 
     let _ = fs::remove_dir_all(root);
 }
@@ -600,10 +647,12 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     decided_at_secs: Some(1_700_001_100),
                     executed_at_secs: Some(1_700_002_300),
                     failed_at_secs: Some(1_700_003_100),
-                    decision_state: "executed",
+                    decision_state: SNS_PROPOSAL_DECISION_EXECUTED,
                     title: "Zulu proposal",
                     action: "motion",
                     tally: (90, 10, 100),
+                    ballot_count: 4,
+                    reject_cost_e8s: 100_000_000,
                 }),
                 proposal_row_with_fixture(ProposalRowFixture {
                     proposal_id: 20,
@@ -611,10 +660,12 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     decided_at_secs: None,
                     executed_at_secs: None,
                     failed_at_secs: None,
-                    decision_state: "open",
+                    decision_state: SNS_PROPOSAL_DECISION_OPEN,
                     title: "Alpha proposal",
                     action: "upgrade-sns-controlled-canister",
                     tally: (5, 10, 15),
+                    ballot_count: 2,
+                    reject_cost_e8s: 50_000_000,
                 }),
                 proposal_row_with_fixture(ProposalRowFixture {
                     proposal_id: 30,
@@ -622,10 +673,12 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     decided_at_secs: Some(1_700_001_300),
                     executed_at_secs: Some(1_700_002_100),
                     failed_at_secs: Some(1_700_003_300),
-                    decision_state: "decided",
+                    decision_state: SNS_PROPOSAL_DECISION_DECIDED,
                     title: "Beta proposal",
                     action: "motion",
                     tally: (50, 25, 75),
+                    ballot_count: 6,
+                    reject_cost_e8s: 200_000_000,
                 }),
             ],
             last_cursor: None,
@@ -651,6 +704,8 @@ struct ProposalRowFixture {
     title: &'static str,
     action: &'static str,
     tally: (u64, u64, u64),
+    ballot_count: usize,
+    reject_cost_e8s: u64,
 }
 
 fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
@@ -667,6 +722,8 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         executed_at: fixture.executed_at_secs.map(format_utc_timestamp_secs),
         failed_timestamp_seconds: fixture.failed_at_secs,
         failed_at: fixture.failed_at_secs.map(format_utc_timestamp_secs),
+        reject_cost_e8s: fixture.reject_cost_e8s,
+        ballot_count: fixture.ballot_count,
         latest_tally: Some(SnsProposalTally {
             timestamp_seconds: fixture.created_at_secs,
             yes: fixture.tally.0,

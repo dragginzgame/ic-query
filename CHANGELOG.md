@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.23` adds local SNS proposal list sorting by status, ballot count, and
+  reject cost, and centralizes SNS proposal sort direction policy in the
+  report sort model so command parsing and report assembly share the same
+  API-order versus local-sort behavior.
+
+  ```bash
+  icq sns proposals 1 --sort status
+  icq sns proposals 1 --sort ballots
+  icq sns proposals 1 --sort reject-cost
+  ```
+
 - `0.2.22` makes SNS proposal sort direction defaults match the selected
   sort: title/action default ascending, id/tally/timestamp sorts default
   descending, and explicit `--asc`/`--desc` is rejected for API-order views.

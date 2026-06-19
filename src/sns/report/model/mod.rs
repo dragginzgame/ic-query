@@ -10,6 +10,10 @@ mod requests;
 mod sorts;
 
 pub use errors::SnsHostError;
+pub(in crate::sns::report) use reports::{
+    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
+    SNS_PROPOSAL_DECISION_OPEN,
+};
 #[cfg(test)]
 pub use reports::{SnsCustomProposalCriticality, SnsVotingRewardsParameters};
 pub use reports::{

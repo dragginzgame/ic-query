@@ -58,6 +58,16 @@ fn sns_proposals_parses_title_and_action_sorts() {
     assert_eq!(action.sort, SnsProposalsSortArg::Action);
     assert_eq!(action.sort_direction, SnsProposalSortDirection::Asc);
 
+    let status = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("status"),
+    ])
+    .expect("parse status proposal sort");
+
+    assert_eq!(status.sort, SnsProposalsSortArg::Status);
+    assert_eq!(status.sort_direction, SnsProposalSortDirection::Asc);
+
     let title_desc = SnsProposalsOptions::parse([
         OsString::from("1"),
         OsString::from("--sort"),
@@ -78,6 +88,27 @@ fn sns_proposals_parses_title_and_action_sorts() {
 
     assert_eq!(total_votes.sort, SnsProposalsSortArg::TotalVotes);
     assert_eq!(total_votes.sort_direction, SnsProposalSortDirection::Desc);
+
+    let reject_cost = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("reject-cost"),
+    ])
+    .expect("parse reject-cost proposal sort");
+
+    assert_eq!(reject_cost.sort, SnsProposalsSortArg::RejectCost);
+    assert_eq!(reject_cost.sort_direction, SnsProposalSortDirection::Desc);
+
+    let ballots = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("ballots"),
+        OsString::from("--asc"),
+    ])
+    .expect("parse ballots proposal sort");
+
+    assert_eq!(ballots.sort, SnsProposalsSortArg::Ballots);
+    assert_eq!(ballots.sort_direction, SnsProposalSortDirection::Asc);
 }
 
 #[test]
