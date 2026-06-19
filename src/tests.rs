@@ -61,6 +61,8 @@ fn command_family_help_returns_ok() {
         &["nns", "node-operator", "list", "help"],
         &["nns", "node-operator", "info", "help"],
         &["nns", "node-operator", "refresh", "help"],
+        &["nns", "proposal", "help"],
+        &["nns", "proposals", "help"],
         &["nns", "registry", "help"],
         &["nns", "registry", "version", "help"],
         &["nns", "subnet", "help"],

@@ -19,6 +19,14 @@ use super::{
         node_provider_list_usage, node_provider_refresh_options, node_provider_refresh_usage,
         node_provider_usage,
     },
+    proposals::{
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_SORT_API_LABEL,
+        NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_NONE_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
+        NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+        NNS_PROPOSAL_TOPIC_ANY_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL, NnsProposalOptions,
+        NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
+        NnsProposalsOptions, NnsProposalsSort, nns_proposal_usage, nns_proposals_usage,
+    },
     registry::{RegistryVersionOptions, registry_usage, registry_version_usage},
     subnet::{
         CatalogInfoOptions, CatalogListOptions, CatalogRefreshOptions, DEFAULT_RANGE_LIMIT,
@@ -58,6 +66,7 @@ mod data_center;
 mod node;
 mod node_operator;
 mod node_provider;
+mod proposals;
 mod registry;
 mod subnet;
 mod topology_help;

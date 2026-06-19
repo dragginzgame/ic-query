@@ -5,6 +5,7 @@ mod leaf;
 mod node;
 mod node_operator;
 mod node_provider;
+mod proposals;
 mod registry;
 pub mod render;
 mod subnet;
@@ -25,8 +26,8 @@ use crate::{
     nns::{
         data_center::report::NnsDataCenterHostError, node::report::NnsNodeHostError,
         node_operator::report::NnsNodeOperatorHostError,
-        node_provider::report::NnsNodeProviderHostError, registry::report::NnsRegistryHostError,
-        topology::report::NnsTopologyHostError,
+        node_provider::report::NnsNodeProviderHostError, proposals::NnsProposalHostError,
+        registry::report::NnsRegistryHostError, topology::report::NnsTopologyHostError,
     },
     project::icp_root as project_icp_root,
     subnet_catalog::SubnetCatalogHostError,
@@ -60,6 +61,9 @@ pub enum NnsCommandError {
     NodeOperatorHost(#[from] NnsNodeOperatorHostError),
 
     #[error(transparent)]
+    ProposalHost(#[from] NnsProposalHostError),
+
+    #[error(transparent)]
     RegistryHost(#[from] NnsRegistryHostError),
 
     #[error(transparent)]
@@ -90,6 +94,7 @@ where
         "node" => node::run(args),
         "node-provider" => node_provider::run(args),
         "node-operator" => node_operator::run(args),
+        "proposal" | "proposals" => proposals::run(&command, args),
         "registry" => registry::run(args),
         "topology" => topology::run(args),
         _ => unreachable!("nns dispatch command only defines known commands"),
@@ -165,6 +170,12 @@ fn nns_command() -> ClapCommand {
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("node-operator").about("Inspect NNS node-operator metadata"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("proposal").about("Show one NNS governance proposal"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("proposals").about("List NNS governance proposals"),
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("registry").about("Inspect NNS registry metadata"),

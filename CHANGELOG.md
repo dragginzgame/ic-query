@@ -11,6 +11,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.25` adds direct live NNS governance proposal list and detail queries,
+  including status/topic filters, local proposal sorting, sort direction
+  controls, verbose list details, and text/JSON reports that expose the
+  selected view options.
+
+  ```bash
+  icq nns proposals --status open
+  icq nns proposals --topic governance
+  icq nns proposals --sort title --asc
+  icq nns proposal 132411 --format json
+  ```
+
 - `0.2.24` adds local SNS proposal list sorting by proposer neuron id and
   reward event round, reusing the existing proposal view sorter for bounded
   live rows and complete proposal snapshots before limit truncation.

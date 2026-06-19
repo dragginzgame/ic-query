@@ -1,0 +1,150 @@
+//! Module: nns::proposals::options
+//!
+//! Responsibility: parse NNS proposal command options.
+//! Does not own: clap command construction, report requests, or live queries.
+//! Boundary: converts clap matches into command-local option structs.
+
+use super::commands::{
+    nns_proposal_command, nns_proposal_usage_for_error, nns_proposals_command,
+    nns_proposals_usage_for_error,
+};
+use crate::nns::{
+    NnsCommandError, OutputFormat,
+    leaf::NnsCommonOptions,
+    parse_nns_matches,
+    proposals::{
+        report::{
+            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL, NnsProposalSortDirection,
+            NnsProposalStatusFilter, NnsProposalTopicFilter, NnsProposalsSort,
+        },
+        values::{
+            NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, NnsProposalStatusArg, NnsProposalTopicArg,
+            NnsProposalsSortArg,
+        },
+    },
+};
+use clap::ArgMatches;
+use std::ffi::OsString;
+
+///
+/// NnsProposalsOptions
+///
+/// Options accepted by `icq nns proposals`.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::nns) struct NnsProposalsOptions {
+    pub(in crate::nns) network: String,
+    pub(in crate::nns) format: OutputFormat,
+    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) limit: u32,
+    pub(in crate::nns) before_proposal_id: Option<u64>,
+    pub(in crate::nns) status: NnsProposalStatusFilter,
+    pub(in crate::nns) topic: NnsProposalTopicFilter,
+    pub(in crate::nns) sort: NnsProposalsSort,
+    pub(in crate::nns) sort_direction: NnsProposalSortDirection,
+    pub(in crate::nns) verbose: bool,
+}
+
+impl NnsProposalsOptions {
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches =
+            parse_nns_matches(nns_proposals_command(), args, nns_proposals_usage_for_error)?;
+        let common = NnsCommonOptions::from_matches(&matches);
+        let sort = *matches
+            .get_one::<NnsProposalsSortArg>("sort")
+            .expect("clap default supplies proposal sort");
+        let sort_direction = proposal_sort_direction(&matches, sort)?;
+        Ok(Self {
+            network: common.network,
+            format: common.format,
+            source_endpoint: common.source_endpoint,
+            limit: *matches
+                .get_one::<u32>("limit")
+                .expect("clap default supplies limit"),
+            before_proposal_id: matches.get_one::<u64>("before").copied(),
+            status: (*matches
+                .get_one::<NnsProposalStatusArg>("status")
+                .expect("clap default supplies proposal status"))
+            .into(),
+            topic: (*matches
+                .get_one::<NnsProposalTopicArg>("topic")
+                .expect("clap default supplies proposal topic"))
+            .into(),
+            sort: sort.into(),
+            sort_direction,
+            verbose: matches.get_flag("verbose"),
+        })
+    }
+}
+
+fn proposal_sort_direction(
+    matches: &ArgMatches,
+    sort: NnsProposalsSortArg,
+) -> Result<NnsProposalSortDirection, NnsCommandError> {
+    let sort = NnsProposalsSort::from(sort);
+    if matches.get_flag(NNS_PROPOSAL_SORT_ASC_LABEL) {
+        return explicit_proposal_sort_direction(
+            sort,
+            NnsProposalSortDirection::Asc,
+            NNS_PROPOSAL_SORT_ASC_LABEL,
+        );
+    }
+    if matches.get_flag(NNS_PROPOSAL_SORT_DESC_LABEL) {
+        return explicit_proposal_sort_direction(
+            sort,
+            NnsProposalSortDirection::Desc,
+            NNS_PROPOSAL_SORT_DESC_LABEL,
+        );
+    }
+    Ok(sort.default_direction())
+}
+
+fn explicit_proposal_sort_direction(
+    sort: NnsProposalsSort,
+    direction: NnsProposalSortDirection,
+    flag: &'static str,
+) -> Result<NnsProposalSortDirection, NnsCommandError> {
+    if !sort.uses_local_direction() {
+        return Err(NnsCommandError::Usage(format!(
+            "--{flag} requires --sort {NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME}"
+        )));
+    }
+    Ok(direction)
+}
+
+///
+/// NnsProposalOptions
+///
+/// Options accepted by `icq nns proposal`.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::nns) struct NnsProposalOptions {
+    pub(in crate::nns) network: String,
+    pub(in crate::nns) format: OutputFormat,
+    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) proposal_id: u64,
+}
+
+impl NnsProposalOptions {
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches =
+            parse_nns_matches(nns_proposal_command(), args, nns_proposal_usage_for_error)?;
+        let common = NnsCommonOptions::from_matches(&matches);
+        Ok(Self {
+            network: common.network,
+            format: common.format,
+            source_endpoint: common.source_endpoint,
+            proposal_id: *matches
+                .get_one::<u64>("proposal-id")
+                .expect("required proposal id"),
+        })
+    }
+}

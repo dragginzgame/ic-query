@@ -36,6 +36,8 @@ icq nns node [list|info|refresh]
 icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
+icq nns proposal <proposal-id>
+icq nns proposals
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns proposals [cache|refresh]
@@ -108,6 +110,27 @@ icq sns params 1
 icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
 
+NNS governance proposals can be queried directly from the mainnet NNS
+governance canister. List views are bounded live queries; status filters are
+sent to governance where supported, topic filters are applied to returned rows,
+and local sort modes mirror the SNS proposal direction rules:
+
+```sh
+icq nns proposals --limit 25
+icq nns proposals --status open
+icq nns proposals --topic governance
+icq nns proposals --sort proposed
+icq nns proposals --sort title --asc
+icq nns proposal 132411
+icq nns proposal 132411 --format json
+```
+
+NNS proposal list views support
+`--sort api|id|status|topic|proposer|title|action|yes|no|total-votes|ballots|reject-cost|reward-round|proposed|decided|executed|failed`.
+Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
+and action default to ascending, while id, tally, ballot count, reject cost,
+reward round, and timestamp sorts default to descending.
+
 SNS governance proposals can be queried as cached list views or direct live
 detail lookups. Normal proposal list views auto-create a complete local
 snapshot on first use, then apply supported view options locally. Proposal
@@ -167,6 +190,8 @@ linking registry adapters directly. For one integration example, see
 The command namespace is intentionally small:
 
 - `nns` is implemented.
+- `nns proposal` and `nns proposals` are implemented as direct live mainnet
+  NNS governance proposal queries.
 - `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
   `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
   instances.
