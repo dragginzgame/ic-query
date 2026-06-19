@@ -119,7 +119,8 @@ adopted/rejected status filters currently use bounded live queries:
 icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
 icq sns proposals 1 --status decided
-icq sns proposals 1 --sort title --asc
+icq sns proposals 1 --sort title
+icq sns proposals 1 --sort title --desc
 icq sns proposals 1 --sort action
 icq sns proposals 1 --sort total-votes
 icq sns proposals 1 --sort created
@@ -135,7 +136,8 @@ icq sns proposal 1 387 --ballots
 
 Proposal list views support
 `--sort api|id|title|action|yes|no|total-votes|created|decided|executed|failed`.
-Local sort modes accept `--asc` or `--desc`, defaulting to descending.
+Local sort modes accept `--asc` or `--desc`; title/action default to
+ascending, while id, tally, and timestamp sorts default to descending.
 Cache-compatible views filter and sort complete local snapshots before
 applying `--limit`; bounded live fallback views sort the returned API rows.
 

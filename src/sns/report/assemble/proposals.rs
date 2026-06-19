@@ -96,12 +96,31 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
         status_filter: parts.status.as_str().to_string(),
         topic_filter: parts.topic.as_str().to_string(),
         sort: parts.sort.as_str().to_string(),
-        sort_direction: parts.sort_direction.as_str().to_string(),
+        sort_direction: proposal_sort_direction_label(parts.sort, parts.sort_direction).to_string(),
         verbose: parts.verbose,
         data_source: parts.provenance.data_source,
         cache_path: parts.provenance.cache_path,
         cache_complete: parts.provenance.cache_complete,
         proposal_count,
         proposals: parts.proposals.proposals,
+    }
+}
+
+const fn proposal_sort_direction_label(
+    sort: SnsProposalsSort,
+    direction: SnsProposalSortDirection,
+) -> &'static str {
+    match sort {
+        SnsProposalsSort::Api => "none",
+        SnsProposalsSort::Id
+        | SnsProposalsSort::Title
+        | SnsProposalsSort::Action
+        | SnsProposalsSort::Yes
+        | SnsProposalsSort::No
+        | SnsProposalsSort::TotalVotes
+        | SnsProposalsSort::Created
+        | SnsProposalsSort::Decided
+        | SnsProposalsSort::Executed
+        | SnsProposalsSort::Failed => direction.as_str(),
     }
 }

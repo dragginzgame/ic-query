@@ -21,7 +21,7 @@ use crate::{
             sns_proposals_usage,
         },
     },
-    sns::report::SnsProposalSortDirection,
+    sns::report::{SnsProposalSortDirection, SnsProposalsSort},
 };
 use clap::ArgMatches;
 use std::ffi::OsString;
@@ -107,14 +107,25 @@ fn proposal_sort_direction(
     sort: SnsProposalsSortArg,
 ) -> Result<SnsProposalSortDirection, SnsCommandError> {
     if matches.get_flag("asc") {
-        if sort == SnsProposalsSortArg::Api {
-            return Err(SnsCommandError::Usage(format!(
-                "--asc requires --sort {SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME}"
-            )));
-        }
-        return Ok(SnsProposalSortDirection::Asc);
+        return explicit_proposal_sort_direction(sort, SnsProposalSortDirection::Asc, "--asc");
     }
-    Ok(SnsProposalSortDirection::Desc)
+    if matches.get_flag("desc") {
+        return explicit_proposal_sort_direction(sort, SnsProposalSortDirection::Desc, "--desc");
+    }
+    Ok(SnsProposalsSort::from(sort).default_direction())
+}
+
+fn explicit_proposal_sort_direction(
+    sort: SnsProposalsSortArg,
+    direction: SnsProposalSortDirection,
+    flag: &'static str,
+) -> Result<SnsProposalSortDirection, SnsCommandError> {
+    if sort == SnsProposalsSortArg::Api {
+        return Err(SnsCommandError::Usage(format!(
+            "{flag} requires --sort {SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME}"
+        )));
+    }
+    Ok(direction)
 }
 
 impl SnsProposalOptions {

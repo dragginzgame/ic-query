@@ -55,7 +55,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.status_filter, "open");
     assert_eq!(report.topic_filter, "governance");
     assert_eq!(report.sort, "api");
-    assert_eq!(report.sort_direction, "desc");
+    assert_eq!(report.sort_direction, "none");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(42));
     assert_eq!(report.proposals[0].action, "motion");
@@ -76,7 +76,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert!(text.contains("data_source: live"));
     assert!(text.contains("topic_filter: governance"));
     assert!(text.contains("sort: api"));
-    assert!(text.contains("sort_direction: desc"));
+    assert!(text.contains("sort_direction: none"));
     assert!(text.contains("before_proposal_id: 99"));
     assert!(text.contains("proposal_count: 1"));
     assert!(text.contains("ID   ACTION"));

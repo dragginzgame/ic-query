@@ -42,7 +42,6 @@ fn sns_proposals_parses_title_and_action_sorts() {
         OsString::from("1"),
         OsString::from("--sort"),
         OsString::from("title"),
-        OsString::from("--asc"),
     ])
     .expect("parse title proposal sort");
 
@@ -57,7 +56,18 @@ fn sns_proposals_parses_title_and_action_sorts() {
     .expect("parse action proposal sort");
 
     assert_eq!(action.sort, SnsProposalsSortArg::Action);
-    assert_eq!(action.sort_direction, SnsProposalSortDirection::Desc);
+    assert_eq!(action.sort_direction, SnsProposalSortDirection::Asc);
+
+    let title_desc = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("title"),
+        OsString::from("--desc"),
+    ])
+    .expect("parse descending title proposal sort");
+
+    assert_eq!(title_desc.sort, SnsProposalsSortArg::Title);
+    assert_eq!(title_desc.sort_direction, SnsProposalSortDirection::Desc);
 
     let total_votes = SnsProposalsOptions::parse([
         OsString::from("1"),
@@ -68,6 +78,19 @@ fn sns_proposals_parses_title_and_action_sorts() {
 
     assert_eq!(total_votes.sort, SnsProposalsSortArg::TotalVotes);
     assert_eq!(total_votes.sort_direction, SnsProposalSortDirection::Desc);
+}
+
+#[test]
+fn sns_proposals_rejects_explicit_direction_for_api_sort() {
+    let error = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("api"),
+        OsString::from("--desc"),
+    ])
+    .expect_err("api sort rejects explicit direction");
+
+    assert!(matches!(error, SnsCommandError::Usage(_)));
 }
 
 #[test]

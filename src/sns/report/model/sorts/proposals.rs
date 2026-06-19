@@ -44,6 +44,23 @@ impl SnsProposalsSort {
             Self::Failed => "failed",
         }
     }
+
+    /// Return the natural default direction for this local sort value.
+    #[must_use]
+    pub const fn default_direction(self) -> SnsProposalSortDirection {
+        match self {
+            Self::Title | Self::Action => SnsProposalSortDirection::Asc,
+            Self::Api
+            | Self::Id
+            | Self::Yes
+            | Self::No
+            | Self::TotalVotes
+            | Self::Created
+            | Self::Decided
+            | Self::Executed
+            | Self::Failed => SnsProposalSortDirection::Desc,
+        }
+    }
 }
 
 ///

@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.22` makes SNS proposal sort direction defaults match the selected
+  sort: title/action default ascending, id/tally/timestamp sorts default
+  descending, and explicit `--asc`/`--desc` is rejected for API-order views.
+
+  ```bash
+  icq sns proposals 1 --sort title
+  icq sns proposals 1 --sort title --desc
+  icq sns proposals 1 --sort total-votes
+  ```
+
 - `0.2.21` adds local SNS proposal list sorting by proposal title, action,
   yes tally, no tally, and total vote tally, reusing the shared proposal view
   sorter for live rows and complete proposal snapshots while keeping cache
