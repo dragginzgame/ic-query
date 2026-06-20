@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.38` adds cache-backed SNS proposal topic sorting with
+  `icq sns proposals <id|root-principal> --sort topic`, defaulting to
+  ascending topic-label order and applying the sort before `--limit`.
+
+  ```bash
+  icq sns proposals 1 --sort topic
+  ```
+
 - `0.2.37` makes SNS proposal `--topic <topic>` filters cache-compatible by
   preserving proposal topic labels in complete snapshots, refreshing legacy
   proposal snapshots that lack topic labels before topic-filtered views, and

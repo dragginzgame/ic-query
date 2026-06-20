@@ -68,6 +68,9 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
         SnsProposalsSort::Status => {
             sort_by_status(proposals, direction);
         }
+        SnsProposalsSort::Topic => {
+            sort_by_optional_text(proposals, direction, |proposal| proposal.topic.as_deref());
+        }
         SnsProposalsSort::Proposer => {
             sort_by_optional_text(proposals, direction, |proposal| {
                 proposal.proposer_neuron_id.as_deref()

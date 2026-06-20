@@ -8,11 +8,11 @@ use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsPro
 use clap::ValueEnum;
 
 pub(in crate::sns::commands) const SNS_PROPOSALS_SORT_VALUE_NAME: &str = concat!(
-    "api|id|status|proposer|title|action|yes|no|total-votes|",
+    "api|id|status|topic|proposer|title|action|yes|no|total-votes|",
     "ballots|reject-cost|reward-round|created|decided|executed|failed"
 );
 pub(in crate::sns::commands) const SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME: &str = concat!(
-    "id|status|proposer|title|action|yes|no|total-votes|",
+    "id|status|topic|proposer|title|action|yes|no|total-votes|",
     "ballots|reject-cost|reward-round|created|decided|executed|failed"
 );
 
@@ -28,6 +28,7 @@ pub(in crate::sns::commands) enum SnsProposalsSortArg {
     Api,
     Id,
     Status,
+    Topic,
     Proposer,
     Title,
     Action,
@@ -49,6 +50,7 @@ impl From<SnsProposalsSortArg> for SnsProposalsSort {
             SnsProposalsSortArg::Api => Self::Api,
             SnsProposalsSortArg::Id => Self::Id,
             SnsProposalsSortArg::Status => Self::Status,
+            SnsProposalsSortArg::Topic => Self::Topic,
             SnsProposalsSortArg::Proposer => Self::Proposer,
             SnsProposalsSortArg::Title => Self::Title,
             SnsProposalsSortArg::Action => Self::Action,

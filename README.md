@@ -169,6 +169,7 @@ icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
 icq sns proposals 1 --status decided
 icq sns proposals 1 --sort status
+icq sns proposals 1 --sort topic
 icq sns proposals 1 --sort proposer
 icq sns proposals 1 --sort title
 icq sns proposals 1 --sort title --desc
@@ -190,11 +191,11 @@ icq sns proposal 1 387 --ballots
 ```
 
 Proposal list views support
-`--sort api|id|status|proposer|title|action|yes|no|total-votes|ballots|reject-cost|reward-round|created|decided|executed|failed`.
-Local sort modes accept `--asc` or `--desc`; status, proposer, title, and
-action default to ascending, while id, tally, ballot count, reject cost,
-reward round, and timestamp sorts default to descending. Cache-compatible
-views filter and sort complete local snapshots before applying `--limit`.
+`--sort api|id|status|topic|proposer|title|action|yes|no|total-votes|ballots|reject-cost|reward-round|created|decided|executed|failed`.
+Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
+and action default to ascending, while id, tally, ballot count, reject cost,
+reward round, and timestamp sorts default to descending. Cache-compatible views
+filter and sort complete local snapshots before applying `--limit`.
 
 Complete SNS proposal snapshots can also be refreshed and inspected manually:
 

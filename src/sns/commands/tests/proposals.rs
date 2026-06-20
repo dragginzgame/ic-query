@@ -68,6 +68,16 @@ fn sns_proposals_parses_local_sort_defaults_and_directions() {
     assert_eq!(status.sort, SnsProposalsSortArg::Status);
     assert_eq!(status.sort_direction, SnsProposalSortDirection::Asc);
 
+    let topic = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("topic"),
+    ])
+    .expect("parse topic proposal sort");
+
+    assert_eq!(topic.sort, SnsProposalsSortArg::Topic);
+    assert_eq!(topic.sort_direction, SnsProposalSortDirection::Asc);
+
     let proposer = SnsProposalsOptions::parse([
         OsString::from("1"),
         OsString::from("--sort"),

@@ -35,6 +35,7 @@ Examples:
   icq sns proposals 1 --status decided
   icq sns proposals 1 --topic governance
   icq sns proposals 1 --sort status
+  icq sns proposals 1 --sort topic
   icq sns proposals 1 --sort proposer
   icq sns proposals 1 --sort title
   icq sns proposals 1 --sort action
@@ -166,13 +167,13 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
                 .value_name(SNS_PROPOSALS_SORT_VALUE_NAME)
                 .default_value("api")
                 .value_parser(clap::value_parser!(SnsProposalsSortArg))
-                .help("Sort proposals locally; status/text sorts default ascending, numeric and timestamp sorts default descending"),
+                .help("Sort proposals locally; status/topic/text sorts default ascending, numeric and timestamp sorts default descending"),
         )
         .arg(
             flag_arg("asc")
                 .long("asc")
                 .conflicts_with("desc")
-                .help("Sort ascending for local sort modes; this is the default for status/proposer/title/action"),
+                .help("Sort ascending for local sort modes; this is the default for status/topic/proposer/title/action"),
         )
         .arg(
             flag_arg("desc")

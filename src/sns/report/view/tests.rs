@@ -86,6 +86,23 @@ fn proposal_proposer_sort_orders_present_ids_before_missing_ids() {
 }
 
 #[test]
+fn proposal_topic_sort_orders_present_labels_before_missing_labels() {
+    let mut proposals = vec![
+        proposal_row_with_topic(2, Some("governance")),
+        proposal_row_with_topic(10, None),
+        proposal_row_with_topic(1, Some("application-business-logic")),
+    ];
+
+    sort_sns_proposal_rows(
+        &mut proposals,
+        SnsProposalsSort::Topic,
+        SnsProposalSortDirection::Asc,
+    );
+
+    assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
+}
+
+#[test]
 fn proposal_decided_ascending_sort_orders_oldest_decision_first_and_open_last() {
     let mut proposals = vec![
         proposal_row_with_decision(2, Some(100)),
@@ -411,6 +428,13 @@ fn proposal_with_topic(topic: Option<&str>) -> SnsProposalRow {
     SnsProposalRow {
         topic: topic.map(ToString::to_string),
         ..proposal_row(1, 100)
+    }
+}
+
+fn proposal_row_with_topic(proposal_id: u64, topic: Option<&str>) -> SnsProposalRow {
+    SnsProposalRow {
+        topic: topic.map(ToString::to_string),
+        ..proposal_row(proposal_id, 100)
     }
 }
 

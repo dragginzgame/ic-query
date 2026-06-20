@@ -32,6 +32,17 @@ cached proposal rows:
 - `--before`
 - `--sort api`
 - `--sort id`
+- `--sort status`
+- `--sort topic`
+- `--sort proposer`
+- `--sort title`
+- `--sort action`
+- `--sort yes`
+- `--sort no`
+- `--sort total-votes`
+- `--sort ballots`
+- `--sort reject-cost`
+- `--sort reward-round`
 - `--sort created`
 - `--sort decided`
 - `--sort executed`

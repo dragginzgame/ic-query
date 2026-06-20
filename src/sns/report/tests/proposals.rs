@@ -675,6 +675,15 @@ fn sns_proposals_cached_sort_status_orders_before_limit() {
 }
 
 #[test]
+fn sns_proposals_cached_sort_topic_orders_before_limit() {
+    assert_cached_proposal_sort(
+        SnsProposalsSort::Topic,
+        SnsProposalSortDirection::Asc,
+        &[10, 30],
+    );
+}
+
+#[test]
 fn sns_proposals_cached_sort_proposer_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Proposer,
