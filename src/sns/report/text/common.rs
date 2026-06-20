@@ -7,7 +7,7 @@
 use crate::{
     duration::display_duration_seconds,
     nns::render::yes_no,
-    sns::report::{SnsNeuronPermissionList, SnsTokenMetadataRow},
+    sns::report::{SnsCacheSummarySortKey, SnsNeuronPermissionList, SnsTokenMetadataRow},
     token_amount::{base_units_decimal_text, e8s_decimal_text},
 };
 use serde_json::Value as JsonValue;
@@ -107,6 +107,17 @@ pub(in crate::sns::report::text) fn push_report_provenance_lines(
     if let Some(cache_complete) = cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
     }
+}
+
+pub(in crate::sns::report::text) fn push_cache_error_lines<T>(lines: &mut Vec<String>, caches: &[T])
+where
+    T: SnsCacheSummarySortKey,
+{
+    lines.extend(caches.iter().filter_map(|cache| {
+        cache
+            .cache_error()
+            .map(|error| format!("cache_error: {}: {error}", cache.cache_path()))
+    }));
 }
 
 pub(in crate::sns::report::text) fn token_metadata_value_text(

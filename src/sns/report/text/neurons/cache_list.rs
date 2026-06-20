@@ -6,7 +6,9 @@
 
 use crate::{
     nns::render::yes_no,
-    sns::report::{SnsNeuronsCacheListReport, short_principal},
+    sns::report::{
+        SnsNeuronsCacheListReport, short_principal, text::common::push_cache_error_lines,
+    },
     table::{ColumnAlign, render_table},
 };
 
@@ -57,11 +59,7 @@ pub fn sns_neurons_cache_list_report_text(report: &SnsNeuronsCacheListReport) ->
                 ColumnAlign::Left,
             ],
         ));
-        for cache in &report.caches {
-            if let Some(error) = cache.cache_error.as_ref() {
-                lines.push(format!("cache_error: {}: {error}", cache.cache_path));
-            }
-        }
+        push_cache_error_lines(&mut lines, &report.caches);
     }
     lines.join("\n")
 }

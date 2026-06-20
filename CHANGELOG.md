@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.35` deduplicates SNS cache inspection plumbing by sharing invalid-cache
+  summary fields, valid cache-id lookup, and cache-error text rendering across
+  SNS neuron and proposal cache reports without changing CLI behavior, cache
+  paths, report schemas, or output semantics.
+
 - `0.2.34` hardens complete snapshot cache inspection so NNS proposal, SNS
   proposal, and SNS neuron cache list/status reports surface malformed,
   unsupported, or identity-mismatched local cache files as invalid local rows

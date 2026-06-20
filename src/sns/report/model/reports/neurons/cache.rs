@@ -75,4 +75,12 @@ impl SnsCacheSummarySortKey for SnsNeuronsCacheSummary {
     fn root_canister_id(&self) -> &str {
         &self.root_canister_id
     }
+
+    fn cache_path(&self) -> &str {
+        &self.cache_path
+    }
+
+    fn cache_error(&self) -> Option<&str> {
+        self.cache_error.as_deref()
+    }
 }

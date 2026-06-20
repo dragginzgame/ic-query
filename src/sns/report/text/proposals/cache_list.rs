@@ -5,7 +5,7 @@
 //! Boundary: formats discovered proposal snapshots for humans.
 
 use crate::{
-    sns::report::SnsProposalsCacheListReport,
+    sns::report::{SnsProposalsCacheListReport, text::common::push_cache_error_lines},
     table::{ColumnAlign, render_table},
 };
 
@@ -52,11 +52,7 @@ pub fn sns_proposals_cache_list_report_text(report: &SnsProposalsCacheListReport
                 ColumnAlign::Left,
             ],
         ));
-        for cache in &report.caches {
-            if let Some(error) = cache.cache_error.as_ref() {
-                lines.push(format!("cache_error: {}: {error}", cache.cache_path));
-            }
-        }
+        push_cache_error_lines(&mut lines, &report.caches);
     }
     lines.join("\n")
 }

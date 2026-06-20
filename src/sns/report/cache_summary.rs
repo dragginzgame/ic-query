@@ -4,7 +4,10 @@
 //! Does not own: cache storage, refresh attempts, or text rendering.
 //! Boundary: keeps common cache-summary ordering deterministic.
 
-use crate::sns::report::{SnsHostError, enforce_mainnet_network};
+use crate::{
+    snapshot_cache::SNAPSHOT_CACHE_STATUS_INVALID,
+    sns::report::{SnsHostError, enforce_mainnet_network},
+};
 use candid::Principal;
 use std::path::{Path, PathBuf};
 
@@ -28,6 +31,28 @@ pub(in crate::sns::report) struct SnsCacheListLookup<Summary> {
 pub(in crate::sns::report) trait SnsCacheSummarySortKey {
     fn id(&self) -> usize;
     fn root_canister_id(&self) -> &str;
+    fn cache_path(&self) -> &str;
+    fn cache_error(&self) -> Option<&str>;
+}
+
+///
+/// SnsInvalidCacheSummaryFields
+///
+/// Shared invalid-cache fields reused by SNS cache summary DTOs.
+///
+
+pub(in crate::sns::report) struct SnsInvalidCacheSummaryFields {
+    pub(in crate::sns::report) root_canister_id: String,
+    pub(in crate::sns::report) cache_status: String,
+    pub(in crate::sns::report) cache_error: Option<String>,
+    pub(in crate::sns::report) complete: bool,
+    pub(in crate::sns::report) row_count: usize,
+    pub(in crate::sns::report) page_count: u32,
+    pub(in crate::sns::report) page_size: u32,
+    pub(in crate::sns::report) fetched_at: String,
+    pub(in crate::sns::report) source_endpoint: String,
+    pub(in crate::sns::report) cache_path: String,
+    pub(in crate::sns::report) refresh_attempt_path: String,
 }
 
 ///
@@ -84,4 +109,49 @@ where
             .cmp(&right.id())
             .then_with(|| left.root_canister_id().cmp(right.root_canister_id()))
     });
+}
+
+/// Find a valid SNS cache summary by stable SNS list id.
+pub(in crate::sns::report) fn find_valid_sns_cache_summary_by_id<T>(
+    caches: impl IntoIterator<Item = T>,
+    id: usize,
+) -> Option<T>
+where
+    T: SnsCacheSummarySortKey,
+{
+    caches
+        .into_iter()
+        .find(|cache| cache.id() == id && cache.cache_error().is_none())
+}
+
+/// Build shared invalid-cache summary fields from a failed local cache read.
+pub(in crate::sns::report) fn invalid_sns_cache_summary_fields(
+    cache_path: &Path,
+    refresh_attempt_path: &Path,
+    error: &SnsHostError,
+) -> SnsInvalidCacheSummaryFields {
+    SnsInvalidCacheSummaryFields {
+        root_canister_id: root_from_cache_path(cache_path),
+        cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
+        cache_error: Some(error.to_string()),
+        complete: false,
+        row_count: 0,
+        page_count: 0,
+        page_size: 0,
+        fetched_at: "-".to_string(),
+        source_endpoint: "-".to_string(),
+        cache_path: cache_path.display().to_string(),
+        refresh_attempt_path: refresh_attempt_path.display().to_string(),
+    }
+}
+
+fn root_from_cache_path(cache_path: &Path) -> String {
+    cache_path
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::file_name)
+        .map_or_else(
+            || "-".to_string(),
+            |name| name.to_string_lossy().into_owned(),
+        )
 }

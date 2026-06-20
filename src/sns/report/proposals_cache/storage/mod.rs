@@ -9,9 +9,5 @@ mod lookup;
 mod scan;
 mod summary;
 
-pub(super) use load::load_sns_proposals_cache_at;
 pub(super) use lookup::load_sns_proposals_cache_for_input_with_path;
-pub(super) use summary::{
-    invalid_sns_proposals_cache_summary, list_sns_proposals_cache_summaries,
-    sns_proposals_cache_summary,
-};
+pub(super) use summary::{list_sns_proposals_cache_summaries, load_sns_proposals_cache_summary_at};

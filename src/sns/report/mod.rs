@@ -51,6 +51,7 @@ pub use build::{
 };
 pub(in crate::sns::report) use cache_summary::{
     SnsCacheListFamily, SnsCacheSummarySortKey, build_sns_cache_list_lookup,
+    find_valid_sns_cache_summary_by_id, invalid_sns_cache_summary_fields,
     parse_sns_root_canister_input,
 };
 #[cfg(test)]

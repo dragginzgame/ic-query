@@ -5,9 +5,9 @@
 //! Boundary: combines cache metadata with the latest refresh-attempt sidecar status.
 
 use super::{load::load_sns_neurons_cache_at, scan::collect_sns_neurons_cache_paths};
-use crate::snapshot_cache::{SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK};
+use crate::snapshot_cache::SNAPSHOT_CACHE_STATUS_OK;
 use crate::sns::report::{
-    SnsHostError, SnsNeuronsCacheSummary,
+    SnsHostError, SnsNeuronsCacheSummary, invalid_sns_cache_summary_fields,
     neurons_cache::{
         attempt::read_sns_neurons_attempt_status, model::SnsNeuronsCache,
         paths::sns_neurons_attempt_path_for_cache_path,
@@ -21,13 +21,18 @@ pub(in crate::sns::report::neurons_cache) fn list_sns_neurons_cache_summaries(
 ) -> Result<Vec<SnsNeuronsCacheSummary>, SnsHostError> {
     collect_sns_neurons_cache_paths(icp_root, network)?
         .into_iter()
-        .map(|path| {
-            Ok(match load_sns_neurons_cache_at(path.clone(), network) {
-                Ok(cache) => sns_neurons_cache_summary(path, cache),
-                Err(error) => invalid_sns_neurons_cache_summary(path, error),
-            })
-        })
+        .map(|path| Ok(load_sns_neurons_cache_summary_at(path, network)))
         .collect()
+}
+
+pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_summary_at(
+    cache_path: PathBuf,
+    network: &str,
+) -> SnsNeuronsCacheSummary {
+    match load_sns_neurons_cache_at(cache_path.clone(), network) {
+        Ok(cache) => sns_neurons_cache_summary(cache_path, cache),
+        Err(error) => invalid_sns_neurons_cache_summary(cache_path, &error),
+    }
 }
 
 pub(in crate::sns::report::neurons_cache) fn sns_neurons_cache_summary(
@@ -57,35 +62,25 @@ pub(in crate::sns::report::neurons_cache) fn sns_neurons_cache_summary(
 
 pub(in crate::sns::report::neurons_cache) fn invalid_sns_neurons_cache_summary(
     cache_path: PathBuf,
-    error: SnsHostError,
+    error: &SnsHostError,
 ) -> SnsNeuronsCacheSummary {
     let attempt_path = sns_neurons_attempt_path_for_cache_path(&cache_path);
+    let fields = invalid_sns_cache_summary_fields(&cache_path, &attempt_path, error);
     SnsNeuronsCacheSummary {
         id: 0,
         name: "-".to_string(),
-        root_canister_id: root_from_cache_path(&cache_path),
+        root_canister_id: fields.root_canister_id,
         governance_canister_id: "-".to_string(),
-        cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
-        cache_error: Some(error.to_string()),
-        complete: false,
-        row_count: 0,
-        page_count: 0,
-        page_size: 0,
-        fetched_at: "-".to_string(),
-        source_endpoint: "-".to_string(),
-        cache_path: cache_path.display().to_string(),
-        refresh_attempt_path: attempt_path.display().to_string(),
+        cache_status: fields.cache_status,
+        cache_error: fields.cache_error,
+        complete: fields.complete,
+        row_count: fields.row_count,
+        page_count: fields.page_count,
+        page_size: fields.page_size,
+        fetched_at: fields.fetched_at,
+        source_endpoint: fields.source_endpoint,
+        cache_path: fields.cache_path,
+        refresh_attempt_path: fields.refresh_attempt_path,
         latest_attempt: read_sns_neurons_attempt_status(&attempt_path),
     }
-}
-
-fn root_from_cache_path(cache_path: &Path) -> String {
-    cache_path
-        .parent()
-        .and_then(Path::parent)
-        .and_then(Path::file_name)
-        .map_or_else(
-            || "-".to_string(),
-            |name| name.to_string_lossy().into_owned(),
-        )
 }

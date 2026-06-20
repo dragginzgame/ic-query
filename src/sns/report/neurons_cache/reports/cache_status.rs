@@ -11,14 +11,12 @@ use crate::sns::report::{
         SnsCacheStatusFamily, SnsCacheStatusPaths, SnsCacheStatusSummaryView,
         build_sns_cache_status_lookup,
     },
+    find_valid_sns_cache_summary_by_id,
     neurons_cache::{
         SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         attempt::read_sns_neurons_attempt_status,
         paths::{SnsNeuronsCachePaths, sns_network_cache_dir},
-        storage::{
-            invalid_sns_neurons_cache_summary, list_sns_neurons_cache_summaries,
-            load_sns_neurons_cache_at, sns_neurons_cache_summary,
-        },
+        storage::{list_sns_neurons_cache_summaries, load_sns_neurons_cache_summary_at},
     },
 };
 use std::path::{Path, PathBuf};
@@ -77,9 +75,10 @@ impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
         network: &str,
         id: usize,
     ) -> Result<Option<Self::Summary>, SnsHostError> {
-        Ok(list_sns_neurons_cache_summaries(icp_root, network)?
-            .into_iter()
-            .find(|cache| cache.id == id && cache.cache_error.is_none()))
+        Ok(find_valid_sns_cache_summary_by_id(
+            list_sns_neurons_cache_summaries(icp_root, network)?,
+            id,
+        ))
     }
 
     fn root_cache_paths(
@@ -98,12 +97,7 @@ impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
         cache_path: PathBuf,
         network: &str,
     ) -> Result<Self::Summary, SnsHostError> {
-        Ok(
-            match load_sns_neurons_cache_at(cache_path.clone(), network) {
-                Ok(cache) => sns_neurons_cache_summary(cache_path, cache),
-                Err(error) => invalid_sns_neurons_cache_summary(cache_path, error),
-            },
-        )
+        Ok(load_sns_neurons_cache_summary_at(cache_path, network))
     }
 
     fn read_attempt_status(attempt_path: &Path) -> Option<Self::Attempt> {
