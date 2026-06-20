@@ -12,6 +12,14 @@ homepage = "https://github.com/dragginzgame/ic-query"
 repository = "https://github.com/dragginzgame/ic-query"
 keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
 categories = ["command-line-utilities"]
+exclude = [
+    ".github/",
+    ".gitignore",
+    "AGENTS.md",
+    "docs/governance/",
+    "rust-toolchain.toml",
+    "scripts/dev/",
+]
 
 [[bin]]
 name = "icq"

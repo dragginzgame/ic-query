@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.33` makes crate packaging more intentional by excluding internal
+  workflow, agent, governance, toolchain, and dev-only script files from the
+  published tarball, and adds a CI guard for package contents without changing
+  CLI behavior.
+
 - `0.2.32` validates complete snapshot cache identity fields when present,
   rejecting caches whose recorded domain, entity, collection, or scope does not
   match the logical cache key while preserving compatibility with older caches

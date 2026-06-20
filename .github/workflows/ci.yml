@@ -59,6 +59,7 @@ jobs:
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
       - run: make changelog-check
       - run: make actions-check
+      - run: make package-contents-check
       - run: make fmt-check
       - run: make check
       - run: make clippy
