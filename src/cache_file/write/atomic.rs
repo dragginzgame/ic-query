@@ -1,3 +1,9 @@
+//! Module: cache_file::write::atomic
+//!
+//! Responsibility: atomically replace text cache files.
+//! Does not own: refresh locking, JSON serialization, or output-path writes.
+//! Boundary: writes a temp file, syncs it, renames it, and syncs the directory.
+
 use super::path::{sync_directory, target_directory};
 use crate::cache_file::CacheFileError;
 use std::{

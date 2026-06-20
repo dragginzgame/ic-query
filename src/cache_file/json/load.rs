@@ -1,3 +1,9 @@
+//! Module: cache_file::json::load
+//!
+//! Responsibility: load and validate JSON cache report files.
+//! Does not own: missing-cache refresh policy or owner error definitions.
+//! Boundary: checks existence, schema version, and network through shared report traits.
+
 use super::{
     errors::LoadJsonCacheErrorMapper,
     model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest},

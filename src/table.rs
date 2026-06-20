@@ -91,39 +91,3 @@ fn pad_cell(value: &str, width: usize, alignment: ColumnAlign) -> String {
         ColumnAlign::Right => format!("{padding}{value}"),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_table_handles_long_left_aligned_cells() {
-        let rows = [[
-            "ICRC-1".to_string(),
-            "https://github.com/dfinity/ICRC-1?with=a-long-token-metadata-url".to_string(),
-        ]];
-
-        let table = render_table(
-            &["STANDARD", "URL"],
-            &rows,
-            &[ColumnAlign::Left, ColumnAlign::Left],
-        );
-
-        assert!(table.contains("ICRC-1"));
-        assert!(table.contains("a-long-token-metadata-url"));
-    }
-
-    #[test]
-    fn render_table_right_aligns_cells() {
-        let rows = [["1".to_string(), "Dragginz".to_string()]];
-
-        let table = render_table(
-            &["ID", "NAME"],
-            &rows,
-            &[ColumnAlign::Right, ColumnAlign::Left],
-        );
-
-        assert!(table.contains("ID   NAME"));
-        assert!(table.contains(" 1   Dragginz"));
-    }
-}

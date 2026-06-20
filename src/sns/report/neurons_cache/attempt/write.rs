@@ -11,10 +11,7 @@ use super::{
     },
     read::read_sns_neurons_attempt,
 };
-use crate::{
-    snapshot_cache::write_snapshot_refresh_attempt,
-    sns::report::{SnsHostError, cache_error::sns_cache_file_error},
-};
+use crate::{snapshot_cache::write_snapshot_refresh_attempt, sns::report::SnsHostError};
 use std::path::Path;
 
 pub(in crate::sns::report::neurons_cache) fn write_starting_sns_neurons_attempt(
@@ -80,6 +77,6 @@ fn write_sns_neurons_attempt(
         path,
         attempt,
         |path, source| SnsHostError::SerializeCache { path, source },
-        sns_cache_file_error,
+        SnsHostError::Cache,
     )
 }

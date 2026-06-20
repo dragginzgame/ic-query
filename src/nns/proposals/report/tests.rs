@@ -1,11 +1,15 @@
 use super::{
     NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
     NnsProposalHostError,
+    labels::{nns_proposal_status_text, nns_reward_status_text, nns_topic_text},
     model::{
         NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE, NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
         NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
         NNS_PROPOSAL_STATUS_EXECUTED_CODE, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+        NNS_PROPOSAL_STATUS_OPEN_CODE, NNS_PROPOSAL_STATUS_OPEN_LABEL,
         NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE,
+        NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL,
         NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE, NNS_PROPOSAL_VOTE_YES_LABEL,
         NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
         NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
@@ -125,6 +129,9 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
+    assert_eq!(report.data_source, "live");
+    assert!(report.cache_path.is_none());
+    assert!(report.cache_complete.is_none());
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(101));
     assert!(text.contains(&format!(
@@ -136,6 +143,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert!(text.contains(&format!(
         "topic_filter: {NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL}"
     )));
+    assert!(text.contains("data_source: live"));
     assert!(text.contains("proposal_details:"));
 }
 
@@ -168,6 +176,9 @@ fn nns_proposal_report_renders_detail() {
 
     assert_eq!(report.schema_version, NNS_PROPOSAL_REPORT_SCHEMA_VERSION);
     assert_eq!(report.proposal_id, 101);
+    assert_eq!(report.data_source, "live");
+    assert!(report.cache_path.is_none());
+    assert!(report.cache_complete.is_none());
     assert!(report.show_ballots);
     assert!(report.verbose);
     assert_eq!(report.proposal.title.as_deref(), Some("Bravo"));
@@ -213,9 +224,35 @@ fn nns_proposal_report_truncates_summary_without_verbose() {
     let text = nns_proposal_report_text(&report);
 
     assert!(!report.verbose);
+    assert_eq!(report.data_source, "live");
     assert!(text.contains("verbose: no"));
+    assert!(text.contains("data_source: live"));
     assert!(text.contains(&format!("summary: {}...", "x".repeat(240))));
     assert!(!text.contains(&format!("summary: {}", "x".repeat(260))));
+}
+
+#[test]
+fn nns_proposal_labels_cover_common_values() {
+    assert_eq!(
+        nns_proposal_status_text(NNS_PROPOSAL_STATUS_OPEN_CODE),
+        NNS_PROPOSAL_STATUS_OPEN_LABEL
+    );
+    assert_eq!(
+        nns_proposal_status_text(NNS_PROPOSAL_STATUS_EXECUTED_CODE),
+        NNS_PROPOSAL_STATUS_EXECUTED_LABEL
+    );
+    assert_eq!(
+        nns_reward_status_text(NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE),
+        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL
+    );
+    assert_eq!(
+        nns_topic_text(NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE),
+        NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL
+    );
+    assert_eq!(
+        nns_topic_text(NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE),
+        NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL
+    );
 }
 
 fn proposal_info(

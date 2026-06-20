@@ -4,11 +4,15 @@
 //! Does not own: report assembly, cache IO, live source conversion, or text rendering.
 //! Boundary: exercises in-memory row transformations through the view module.
 
-use super::{proposal_matches_before, proposal_matches_status, sort_sns_proposal_rows};
+use super::{
+    proposal_matches_before, proposal_matches_status, sort_mainnet_sns_instances, sort_sns_neurons,
+    sort_sns_proposal_rows,
+};
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN, SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter,
-    SnsProposalTally, SnsProposalsSort,
+    SNS_PROPOSAL_DECISION_OPEN, SnsListSort, SnsNeuronRow, SnsNeuronsSort, SnsProposalRow,
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalsSort,
+    source::MainnetSns,
 };
 
 #[test]
@@ -251,6 +255,32 @@ fn proposal_reward_round_sort_orders_highest_round_first() {
 }
 
 #[test]
+fn sns_name_sort_preserves_stable_id_tiebreaker() {
+    let mut instances = vec![
+        mainnet_sns(3, "beta"),
+        mainnet_sns(1, "Alpha"),
+        mainnet_sns(2, "alpha"),
+    ];
+
+    sort_mainnet_sns_instances(&mut instances, SnsListSort::Name);
+
+    assert_eq!(sns_instance_ids(&instances), vec![1, 2, 3]);
+}
+
+#[test]
+fn neuron_stake_sort_orders_highest_stake_first_with_id_tiebreaker() {
+    let mut neurons = vec![
+        neuron_row("bb", 10, 1, 1),
+        neuron_row("aa", 10, 2, 2),
+        neuron_row("cc", 20, 1, 3),
+    ];
+
+    sort_sns_neurons(&mut neurons, SnsNeuronsSort::Stake);
+
+    assert_eq!(neuron_ids(&neurons), vec!["cc", "aa", "bb"]);
+}
+
+#[test]
 fn proposal_before_filter_requires_lower_present_id() {
     assert!(proposal_matches_before(&proposal_row(9, 100), Some(10)));
     assert!(!proposal_matches_before(&proposal_row(10, 100), Some(10)));
@@ -283,6 +313,48 @@ fn proposal_ids(proposals: &[SnsProposalRow]) -> Vec<u64> {
         .iter()
         .filter_map(|proposal| proposal.proposal_id)
         .collect()
+}
+
+fn sns_instance_ids(instances: &[MainnetSns]) -> Vec<usize> {
+    instances.iter().map(|sns| sns.id).collect()
+}
+
+fn mainnet_sns(id: usize, name: &str) -> MainnetSns {
+    MainnetSns {
+        id,
+        name: name.to_string(),
+        description: None,
+        url: None,
+        root_canister_id: format!("{id}-root"),
+        governance_canister_id: format!("{id}-governance"),
+        ledger_canister_id: format!("{id}-ledger"),
+        swap_canister_id: format!("{id}-swap"),
+        index_canister_id: format!("{id}-index"),
+        metadata_error: None,
+    }
+}
+
+fn neuron_ids(neurons: &[SnsNeuronRow]) -> Vec<&str> {
+    neurons
+        .iter()
+        .map(|neuron| neuron.neuron_id.as_str())
+        .collect()
+}
+
+fn neuron_row(
+    neuron_id: &str,
+    stake_e8s: u64,
+    maturity_e8s: u64,
+    created_timestamp_seconds: u64,
+) -> SnsNeuronRow {
+    SnsNeuronRow {
+        neuron_id: neuron_id.to_string(),
+        cached_neuron_stake_e8s: stake_e8s,
+        maturity_e8s_equivalent: maturity_e8s,
+        staked_maturity_e8s_equivalent: None,
+        created_timestamp_seconds,
+        created_at: created_timestamp_seconds.to_string(),
+    }
 }
 
 fn proposal_without_id() -> SnsProposalRow {

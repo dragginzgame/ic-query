@@ -13,7 +13,8 @@ use super::{
         NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalListRequest,
         NnsProposalRefreshRequest, NnsProposalRequest, build_nns_proposal_cache_list_report,
         build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
-        build_nns_proposal_report, nns_proposal_cache_list_report_text,
+        build_nns_proposal_list_report_from_cache, build_nns_proposal_report,
+        build_nns_proposal_report_from_cache, nns_proposal_cache_list_report_text,
         nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
         nns_proposal_refresh_report_text, nns_proposal_report_text, refresh_nns_proposal_cache,
     },
@@ -68,7 +69,8 @@ fn run_nns_proposal_list_with_options(
         sort_direction: options.sort_direction,
         verbose: options.verbose,
     };
-    let report = build_nns_proposal_list_report(&request)?;
+    let report = build_nns_proposal_list_report_from_cache(&request, &command_icp_root()?)?
+        .map_or_else(|| build_nns_proposal_list_report(&request), Ok)?;
     write_text_or_json(options.format, &report, nns_proposal_list_report_text)
 }
 
@@ -113,7 +115,8 @@ fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsC
         show_ballots: options.show_ballots,
         verbose: options.verbose,
     };
-    let report = build_nns_proposal_report(&request)?;
+    let report = build_nns_proposal_report_from_cache(&request, &command_icp_root()?)?
+        .map_or_else(|| build_nns_proposal_report(&request), Ok)?;
     write_text_or_json(options.format, &report, nns_proposal_report_text)
 }
 

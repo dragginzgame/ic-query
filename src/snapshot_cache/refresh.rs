@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::refresh
+//!
+//! Responsibility: run command-owned paged snapshot refresh adapters.
+//! Does not own: source APIs, cache publication, or refresh-attempt schemas.
+//! Boundary: drives progress, page fetching, running-attempt writes, and completion.
+
 use super::PagedCollectionPage;
 use crate::progress::ProgressLine;
 

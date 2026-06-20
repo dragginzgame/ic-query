@@ -41,7 +41,14 @@ pub(in crate::nns::proposals) fn nns_proposal_list_report_text(
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
         format!("fetched_by: {}", report.fetched_by),
+        format!("data_source: {}", report.data_source),
     ];
+    if let Some(cache_path) = report.cache_path.as_ref() {
+        lines.push(format!("cache_path: {cache_path}"));
+    }
+    if let Some(cache_complete) = report.cache_complete {
+        lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
+    }
     if !report.proposals.is_empty() {
         lines.push(String::new());
         lines.push(render_table(
@@ -90,8 +97,15 @@ pub(in crate::nns::proposals) fn nns_proposal_report_text(report: &NnsProposalRe
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
         format!("fetched_by: {}", report.fetched_by),
-        String::new(),
+        format!("data_source: {}", report.data_source),
     ];
+    if let Some(cache_path) = report.cache_path.as_ref() {
+        lines.push(format!("cache_path: {cache_path}"));
+    }
+    if let Some(cache_complete) = report.cache_complete {
+        lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
+    }
+    lines.push(String::new());
     let detail_limit = if report.verbose {
         None
     } else {

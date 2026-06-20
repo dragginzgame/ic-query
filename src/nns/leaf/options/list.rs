@@ -1,3 +1,9 @@
+//! Module: nns::leaf::options::list
+//!
+//! Responsibility: parse clap options for generic NNS leaf list commands.
+//! Does not own: clap command specs, report construction, or rendering.
+//! Boundary: converts list command arguments into command-runner options.
+
 use super::NnsCommonOptions;
 use crate::{
     cli::common::OutputFormat,
@@ -11,6 +17,12 @@ use crate::{
     },
 };
 use std::ffi::OsString;
+
+///
+/// NnsLeafListOptions
+///
+/// Parsed options accepted by generic NNS leaf list command runners.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsLeafListOptions {

@@ -1,3 +1,9 @@
+//! Module: cache_file::write::output
+//!
+//! Responsibility: write explicit refresh output files.
+//! Does not own: cache replacement, refresh locking, or JSON serialization.
+//! Boundary: creates parent directories and writes/syncs the requested output path.
+
 use super::path::create_parent_directory;
 use crate::cache_file::CacheFileError;
 use std::{fs, io::Write, path::Path};

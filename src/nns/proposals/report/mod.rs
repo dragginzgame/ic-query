@@ -4,7 +4,9 @@
 //! Does not own: CLI parsing, SNS proposal reports, cache files, or topology reports.
 //! Boundary: maps live NNS governance proposal rows into text and JSON reports.
 
+mod assemble;
 mod cache;
+mod labels;
 mod model;
 mod source;
 mod text;
@@ -12,6 +14,7 @@ mod view;
 mod wire;
 
 use crate::{
+    cache_file::CacheFileError,
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
     runtime::RuntimeError,
     subnet_catalog::MAINNET_NETWORK,
@@ -24,6 +27,7 @@ pub(in crate::nns) use cache::{
 };
 pub(in crate::nns::proposals) use cache::{
     build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
+    build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
     refresh_nns_proposal_cache,
 };
 pub(in crate::nns) use model::{
@@ -54,6 +58,7 @@ pub(in crate::nns) const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = DEFAULT_MA
 
 const NNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
 const NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-query";
 
 ///
 /// NnsProposalHostError
@@ -90,7 +95,7 @@ pub enum NnsProposalHostError {
     },
 
     #[error("NNS proposal cache operation failed: {0}")]
-    Cache(String),
+    Cache(#[from] CacheFileError),
 
     #[error(
         "cached NNS proposal network mismatch: path is for {requested}, report is for {actual}"

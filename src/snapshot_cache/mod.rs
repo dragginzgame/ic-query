@@ -1,3 +1,9 @@
+//! Module: snapshot_cache
+//!
+//! Responsibility: shared complete-snapshot cache primitives.
+//! Does not own: NNS/SNS cache schemas, command parsing, or text rendering.
+//! Boundary: provides snapshot keys, paths, envelopes, locks, attempts, and paged refresh flow.
+
 mod attempt;
 mod json;
 mod key;

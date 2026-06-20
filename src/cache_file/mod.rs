@@ -1,7 +1,15 @@
+//! Module: cache_file
+//!
+//! Responsibility: shared cache-file IO, locking, and missing-cache policy.
+//! Does not own: command-specific cache schemas, report DTOs, or live refreshes.
+//! Boundary: exposes reusable cache mechanics used by NNS and SNS report modules.
+
 mod error;
 mod json;
 mod lock;
 mod policy;
+#[cfg(test)]
+mod tests;
 mod write;
 
 pub use error::CacheFileError;

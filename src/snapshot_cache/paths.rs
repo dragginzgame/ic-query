@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::paths
+//!
+//! Responsibility: build and discover snapshot cache paths.
+//! Does not own: cache JSON schemas, locking, or refresh attempts.
+//! Boundary: maps logical snapshot keys to `.icq` filesystem locations.
+
 use super::SnapshotKey;
 use std::{
     fs,

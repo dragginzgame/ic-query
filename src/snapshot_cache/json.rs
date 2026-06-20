@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::json
+//!
+//! Responsibility: load and write shared complete-snapshot JSON files.
+//! Does not own: snapshot path discovery, refresh attempts, or family-specific schemas.
+//! Boundary: validates complete snapshot envelopes through cache-file JSON helpers.
+
 use super::{SnapshotCompleteness, SnapshotHeader, SnapshotReport};
 use crate::cache_file::{
     CacheFileError, CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,

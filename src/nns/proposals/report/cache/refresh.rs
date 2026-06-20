@@ -6,7 +6,6 @@
 
 use super::{
     attempt::{write_failed_attempt, write_starting_attempt},
-    cache_file_error,
     collection::fetch_complete_nns_proposal_collection,
     model::{NnsProposalRefreshReport, NnsProposalRefreshRequest},
     paths::nns_proposal_cache_paths,
@@ -46,7 +45,7 @@ pub(in crate::nns::proposals::report) fn refresh_nns_proposal_cache_with_source(
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: NNS_PROPOSAL_REFRESH_LOCK_STALE_AFTER_SECONDS,
         },
-        cache_file_error,
+        NnsProposalHostError::Cache,
         |refresh_state| {
             run_snapshot_refresh_with_attempts(
                 || write_starting_attempt(&paths.refresh_attempt_path, request),

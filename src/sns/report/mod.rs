@@ -31,7 +31,6 @@ use source::{
 mod assemble;
 mod build;
 mod cache_attempt;
-mod cache_error;
 mod cache_paths;
 mod cache_status;
 mod cache_storage;

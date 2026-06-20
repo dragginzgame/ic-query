@@ -16,10 +16,27 @@ use super::{
 };
 use crate::{
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
-    nns::proposals::report::{NnsProposalHostError, enforce_mainnet_network},
+    nns::proposals::report::{
+        NnsProposalHostError,
+        assemble::{
+            NnsProposalListReportParts, NnsProposalReportParts, NnsProposalReportProvenance,
+            nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
+        },
+        enforce_mainnet_network,
+        model::{
+            NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
+        },
+        view::{
+            proposal_matches_before, proposal_matches_reward_status, proposal_matches_status,
+            proposal_matches_topic, sort_nns_proposal_rows,
+        },
+    },
     snapshot_cache::{SnapshotCompleteness, load_complete_snapshot},
 };
-use std::{io, path::PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 /// Build a local NNS proposal cache list report.
 pub(in crate::nns::proposals) fn build_nns_proposal_cache_list_report(
@@ -79,6 +96,42 @@ pub(in crate::nns::proposals) fn build_nns_proposal_cache_status_report(
     })
 }
 
+/// Build an NNS proposal list report from a complete local proposal snapshot.
+pub(in crate::nns::proposals) fn build_nns_proposal_list_report_from_cache(
+    request: &NnsProposalListRequest,
+    icp_root: &Path,
+) -> Result<Option<NnsProposalListReport>, NnsProposalHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let paths = nns_proposal_cache_paths(icp_root, &request.network);
+    if !paths.snapshot_path.is_file() {
+        return Ok(None);
+    }
+    let cache = load_nns_proposal_cache(paths.snapshot_path.clone(), &request.network)?;
+    Ok(Some(nns_proposal_list_report_from_cache(
+        request,
+        paths.snapshot_path,
+        cache,
+    )))
+}
+
+/// Build an NNS proposal detail report from a complete local proposal snapshot.
+pub(in crate::nns::proposals) fn build_nns_proposal_report_from_cache(
+    request: &NnsProposalRequest,
+    icp_root: &Path,
+) -> Result<Option<NnsProposalReport>, NnsProposalHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let paths = nns_proposal_cache_paths(icp_root, &request.network);
+    if !paths.snapshot_path.is_file() {
+        return Ok(None);
+    }
+    let cache = load_nns_proposal_cache(paths.snapshot_path.clone(), &request.network)?;
+    Ok(nns_proposal_report_from_cache(
+        request,
+        paths.snapshot_path,
+        cache,
+    ))
+}
+
 fn load_nns_proposal_cache_summary(
     cache_path: PathBuf,
     network: &str,
@@ -102,6 +155,67 @@ fn load_nns_proposal_cache(
     )
 }
 
+fn nns_proposal_list_report_from_cache(
+    request: &NnsProposalListRequest,
+    cache_path: PathBuf,
+    cache: NnsProposalCache,
+) -> NnsProposalListReport {
+    let cache_complete = cache.completeness.is_api_exhausted();
+    let mut proposals = cache
+        .data
+        .proposals
+        .into_iter()
+        .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
+        .filter(|proposal| proposal_matches_status(proposal, request.status))
+        .filter(|proposal| proposal_matches_reward_status(proposal, request.reward_status))
+        .filter(|proposal| proposal_matches_topic(proposal, request.topic))
+        .collect::<Vec<_>>();
+    sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
+    proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
+    nns_proposal_list_report_from_parts(NnsProposalListReportParts {
+        network: cache.network,
+        governance_canister_id: cache.metadata.governance_canister_id,
+        fetched_at: cache.fetched_at,
+        source_endpoint: cache.source_endpoint,
+        fetched_by: cache.fetched_by,
+        provenance: NnsProposalReportProvenance::cache(&cache_path, cache_complete),
+        requested_limit: request.limit,
+        before_proposal_id: request.before_proposal_id,
+        status: request.status,
+        reward_status: request.reward_status,
+        topic: request.topic,
+        sort: request.sort,
+        sort_direction: request.sort_direction,
+        verbose: request.verbose,
+        proposals,
+    })
+}
+
+fn nns_proposal_report_from_cache(
+    request: &NnsProposalRequest,
+    cache_path: PathBuf,
+    cache: NnsProposalCache,
+) -> Option<NnsProposalReport> {
+    let cache_complete = cache.completeness.is_api_exhausted();
+    let proposal = cache
+        .data
+        .proposals
+        .into_iter()
+        .find(|proposal| proposal.proposal_id == Some(request.proposal_id))?;
+    Some(nns_proposal_report_from_parts(NnsProposalReportParts {
+        network: cache.network,
+        governance_canister_id: cache.metadata.governance_canister_id,
+        fetched_at: cache.fetched_at,
+        source_endpoint: cache.source_endpoint,
+        fetched_by: cache.fetched_by,
+        provenance: NnsProposalReportProvenance::cache(&cache_path, cache_complete),
+        proposal_id: request.proposal_id,
+        show_ballots: request.show_ballots,
+        verbose: request.verbose,
+        proposal,
+    }))
+}
+
 fn nns_proposal_cache_summary(
     cache_path: PathBuf,
     cache: NnsProposalCache,
@@ -121,7 +235,7 @@ fn nns_proposal_cache_summary(
     }
 }
 
-fn nns_proposal_cache_paths_for_cache_path(cache_path: &std::path::Path) -> PathBuf {
+fn nns_proposal_cache_paths_for_cache_path(cache_path: &Path) -> PathBuf {
     cache_path.with_file_name("full.refresh-attempt.json")
 }
 

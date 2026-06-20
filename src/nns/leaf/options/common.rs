@@ -1,3 +1,9 @@
+//! Module: nns::leaf::options::common
+//!
+//! Responsibility: parse common clap options for generic NNS leaf commands.
+//! Does not own: command specs, report requests, or output rendering.
+//! Boundary: converts shared clap matches into reusable leaf option values.
+
 use crate::{
     cli::{
         clap::{required_string, required_typed},
@@ -6,6 +12,12 @@ use crate::{
     nns::leaf::commands::NETWORK_ARG,
 };
 use clap::ArgMatches;
+
+///
+/// NnsCommonOptions
+///
+/// Common parsed options shared by generic NNS leaf command variants.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsCommonOptions {

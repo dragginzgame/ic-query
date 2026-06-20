@@ -1,5 +1,17 @@
+//! Module: cache_file::lock::guard
+//!
+//! Responsibility: release refresh lock files.
+//! Does not own: lock acquisition, stale-lock detection, or refresh execution.
+//! Boundary: removes an active lock on explicit release or best-effort drop.
+
 use crate::cache_file::CacheFileError;
 use std::{fs, path::PathBuf};
+
+///
+/// RefreshLockGuard
+///
+/// Active refresh lock owned by one guarded cache refresh.
+///
 
 #[derive(Debug)]
 pub(super) struct RefreshLockGuard {

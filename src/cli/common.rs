@@ -1,3 +1,9 @@
+//! Module: cli::common
+//!
+//! Responsibility: shared CLI output format and clock helpers.
+//! Does not own: command parsing, report construction, or command-specific rendering.
+//! Boundary: writes text/JSON reports and builds common CLI arguments.
+
 use crate::{
     cli::clap::value_arg,
     output::{write_pretty_json, write_text},
@@ -14,6 +20,12 @@ pub const FORMAT_ARG: &str = "format";
 pub const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
 
 const DEFAULT_FORMAT: &str = "text";
+
+///
+/// OutputFormat
+///
+/// User-selected CLI output format for report rendering.
+///
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub enum OutputFormat {

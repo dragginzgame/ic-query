@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::model
+//!
+//! Responsibility: shared snapshot envelope and completeness DTOs.
+//! Does not own: cache-file IO, path construction, or command-specific metadata.
+//! Boundary: defines generic JSON shapes reused by NNS and SNS snapshot caches.
+
 use crate::cache_file::JsonCacheReport;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 

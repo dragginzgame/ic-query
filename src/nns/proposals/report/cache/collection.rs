@@ -17,7 +17,6 @@ use crate::{
     snapshot_cache::{
         PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh, run_paged_snapshot_refresh,
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
 use std::{cmp::Reverse, path::Path};
 
@@ -27,14 +26,9 @@ pub(super) fn fetch_complete_nns_proposal_collection(
     source: &dyn NnsProposalSource,
     attempt_path: &Path,
 ) -> Result<CompleteNnsProposalCollection, NnsProposalHostError> {
-    let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
     run_paged_snapshot_refresh(NnsProposalRefreshPages {
         request,
-        fetch_request: NnsProposalFetchRequest {
-            endpoint: request.source_endpoint.clone(),
-            fetched_at,
-            fetched_by: "ic-query".to_string(),
-        },
+        fetch_request: NnsProposalFetchRequest::new(&request.source_endpoint),
         source,
         attempt_path,
         state: NnsProposalCollectionState::new(),

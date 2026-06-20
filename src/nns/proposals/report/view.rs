@@ -5,9 +5,39 @@
 //! Boundary: transforms proposal rows without changing source identity.
 
 use super::model::{
-    NnsProposalListSort, NnsProposalRow, NnsProposalSortDirection, NnsProposalTopicFilter,
+    NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
+    NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
 use std::cmp::Ordering;
+
+pub(in crate::nns::proposals::report) fn proposal_matches_before(
+    proposal: &NnsProposalRow,
+    before_proposal_id: Option<u64>,
+) -> bool {
+    before_proposal_id.is_none_or(|before| {
+        proposal
+            .proposal_id
+            .is_some_and(|proposal_id| proposal_id < before)
+    })
+}
+
+pub(in crate::nns::proposals::report) fn proposal_matches_status(
+    proposal: &NnsProposalRow,
+    status: NnsProposalStatusFilter,
+) -> bool {
+    status
+        .governance_status_code()
+        .is_none_or(|status_code| proposal.status == status_code)
+}
+
+pub(in crate::nns::proposals::report) fn proposal_matches_reward_status(
+    proposal: &NnsProposalRow,
+    reward_status: NnsProposalRewardStatusFilter,
+) -> bool {
+    reward_status
+        .governance_reward_status_code()
+        .is_none_or(|reward_status_code| proposal.reward_status == reward_status_code)
+}
 
 pub(in crate::nns::proposals::report) fn proposal_matches_topic(
     proposal: &NnsProposalRow,

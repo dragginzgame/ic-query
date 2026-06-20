@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::paged
+//!
+//! Responsibility: accumulate deduplicated rows across paged API walks.
+//! Does not own: source fetching, progress rendering, or cache publication.
+//! Boundary: tracks page counters, cursors, and duplicate row suppression.
+
 use std::collections::HashSet;
 
 ///

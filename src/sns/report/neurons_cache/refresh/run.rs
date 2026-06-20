@@ -12,7 +12,6 @@ use crate::{
     },
     sns::report::{
         SnsHostError, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
-        cache_error::sns_cache_file_error,
         live::LiveSnsSource,
         lookup::{enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup},
         neurons_cache::{
@@ -62,7 +61,7 @@ pub(in crate::sns::report) fn refresh_sns_neurons_cache_with_source(
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: SNS_NEURONS_REFRESH_LOCK_STALE_AFTER_SECONDS,
         },
-        sns_cache_file_error,
+        SnsHostError::Cache,
         |refresh_state| {
             refresh_sns_neurons_cache_locked(
                 SnsNeuronsRefreshContext {

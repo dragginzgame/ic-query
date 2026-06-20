@@ -1,6 +1,18 @@
+//! Module: nns::leaf::error
+//!
+//! Responsibility: shared cache errors for generic NNS leaf metadata commands.
+//! Does not own: command parsing, report construction, or cache file primitives.
+//! Boundary: maps reusable cache-file errors into component-labelled NNS errors.
+
 use crate::cache_file::CacheFileError;
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
+
+///
+/// NnsLeafHostCacheError
+///
+/// Component-labelled cache error returned by generic NNS leaf report helpers.
+///
 
 #[derive(Debug, ThisError)]
 pub enum NnsLeafHostCacheError {

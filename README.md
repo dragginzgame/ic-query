@@ -109,10 +109,11 @@ icq sns params 1
 icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
 
-NNS governance proposals can be queried directly from the mainnet NNS
-governance canister. List views are bounded live queries; status filters are
-sent to governance where supported, topic filters are applied to returned rows,
-and local sort modes mirror the SNS proposal direction rules:
+NNS governance proposals can be queried from the mainnet NNS governance
+canister. Without a complete local snapshot, list views are bounded live
+queries; status filters are sent to governance where supported, topic filters
+are applied to returned rows, and local sort modes mirror the SNS proposal
+direction rules:
 
 ```sh
 icq nns proposal list --limit 25
@@ -146,7 +147,9 @@ icq nns proposal cache status
 
 Complete NNS proposal snapshots live under
 `.icq/nns/ic/governance/proposals/full.json`. Failed or capped refresh attempts
-are recorded separately and do not replace the last complete snapshot.
+are recorded separately and do not replace the last complete snapshot. Proposal
+list and detail lookups reuse an existing complete snapshot when it can satisfy
+the request, then fall back to live governance lookup.
 
 SNS governance proposals can be queried as cached list views or direct live
 detail lookups. Normal proposal list views auto-create a complete local

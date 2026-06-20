@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::key
+//!
+//! Responsibility: model logical complete-snapshot identity.
+//! Does not own: filesystem paths, JSON envelopes, or refresh flow.
+//! Boundary: keeps cache identity independent of view options.
+
 ///
 /// SnapshotKey
 ///

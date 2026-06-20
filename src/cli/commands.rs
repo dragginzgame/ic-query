@@ -1,3 +1,15 @@
+//! Module: cli::commands
+//!
+//! Responsibility: declare top-level command families.
+//! Does not own: family-specific command specs, parsing, or report execution.
+//! Boundary: lets root CLI help and global options reason about known families.
+
+///
+/// CommandFamily
+///
+/// Metadata for one top-level `icq` command family.
+///
+
 #[derive(Clone, Copy, Debug)]
 pub struct CommandFamily {
     pub name: &'static str,

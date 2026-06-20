@@ -1,3 +1,9 @@
+//! Module: cache_file::json::model
+//!
+//! Responsibility: shared JSON cache report contracts.
+//! Does not own: filesystem IO, refresh policy, or command-specific report fields.
+//! Boundary: defines minimal metadata needed for schema and network validation.
+
 use std::path::PathBuf;
 
 ///

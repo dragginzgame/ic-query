@@ -9,7 +9,6 @@ use crate::{
     snapshot_cache::{SnapshotCompleteness, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsProposalRow, SnsProposalsRefreshReport,
-        cache_error::sns_cache_file_error,
         proposals_cache::{
             SNS_PROPOSALS_CACHE_SCHEMA_VERSION, SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,
             attempt::{SnsProposalsAttemptProgress, write_complete_attempt},
@@ -44,7 +43,7 @@ pub(super) fn publish_complete_sns_proposals_cache(
         &context.paths.cache_path,
         &cache,
         |path, source| SnsHostError::SerializeCache { path, source },
-        sns_cache_file_error,
+        SnsHostError::Cache,
     )?;
     write_complete_attempt(
         context.attempt_context(),

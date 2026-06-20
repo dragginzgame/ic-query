@@ -1,8 +1,17 @@
+//! Module: nns::leaf::model
+//!
+//! Responsibility: shared command and request contracts for generic NNS leaf commands.
+//! Does not own: clap construction, report rendering, or cache file IO.
+//! Boundary: defines the traits used by data-center, node, operator, and provider commands.
+
 use std::path::{Path, PathBuf};
 
 ///
 /// NnsLeafCommandSpec
 ///
+/// Static command metadata used to build one generic NNS leaf command family.
+///
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsLeafCommandSpec {
     pub(in crate::nns) command_name: &'static str,
@@ -24,17 +33,35 @@ pub(in crate::nns) struct NnsLeafCommandSpec {
     pub(in crate::nns) output_help: &'static str,
 }
 
+///
+/// NnsLeafCacheRequest
+///
+/// Cache identity contract shared by generic NNS leaf report requests.
+///
+
 pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
     fn from_root_network(icp_root: &Path, network: &str) -> Self;
     fn icp_root(&self) -> &Path;
     fn network(&self) -> &str;
 }
 
+///
+/// NnsLeafListRequest
+///
+/// Report-builder request contract for generic NNS leaf list commands.
+///
+
 pub(in crate::nns) trait NnsLeafListRequest {
     type Cache: NnsLeafCacheRequest;
 
     fn from_leaf_parts(cache: Self::Cache, source_endpoint: String, now_unix_secs: u64) -> Self;
 }
+
+///
+/// NnsLeafInfoRequest
+///
+/// Report-builder request contract for generic NNS leaf info commands.
+///
 
 pub(in crate::nns) trait NnsLeafInfoRequest {
     type Cache: NnsLeafCacheRequest;
@@ -46,6 +73,12 @@ pub(in crate::nns) trait NnsLeafInfoRequest {
         now_unix_secs: u64,
     ) -> Self;
 }
+
+///
+/// NnsLeafRefreshRequest
+///
+/// Report-builder request contract for generic NNS leaf refresh commands.
+///
 
 pub(in crate::nns) trait NnsLeafRefreshRequest {
     type Cache: NnsLeafCacheRequest;
@@ -65,6 +98,12 @@ pub(in crate::nns) trait NnsLeafRefreshRequest {
     fn dry_run(&self) -> bool;
     fn output_path(&self) -> Option<&Path>;
 }
+
+///
+/// NnsLeafReports
+///
+/// Report construction and rendering callbacks for generic NNS leaf command runners.
+///
 
 pub(in crate::nns) trait NnsLeafReports {
     type Cache: NnsLeafCacheRequest;

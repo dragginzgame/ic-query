@@ -1,3 +1,9 @@
+//! Module: nns::leaf::options::info
+//!
+//! Responsibility: parse clap options for generic NNS leaf info commands.
+//! Does not own: clap command specs, report construction, or rendering.
+//! Boundary: converts info command arguments into command-runner options.
+
 use super::NnsCommonOptions;
 use crate::{
     cli::{clap::required_string, common::OutputFormat},
@@ -11,6 +17,12 @@ use crate::{
     },
 };
 use std::ffi::OsString;
+
+///
+/// NnsLeafInfoOptions
+///
+/// Parsed options accepted by generic NNS leaf info command runners.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsLeafInfoOptions {

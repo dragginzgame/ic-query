@@ -77,28 +77,3 @@ fn scaled_duration_unit_text(seconds: u64, unit_seconds: u64, suffix: &str) -> S
     let fractional = hundredths % 100;
     format!("{whole}.{fractional:02}{suffix}")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{display_duration_seconds, parse_duration_seconds};
-
-    #[test]
-    fn duration_display_uses_largest_readable_unit() {
-        assert_eq!(display_duration_seconds(0), "0s");
-        assert_eq!(display_duration_seconds(86_400), "1d");
-        assert_eq!(display_duration_seconds(2_629_800), "30.44d");
-        assert_eq!(display_duration_seconds(5_400), "1.50h");
-        assert_eq!(display_duration_seconds(90), "1.50m");
-        assert_eq!(display_duration_seconds(45), "45s");
-    }
-
-    #[test]
-    fn duration_parser_accepts_integer_units() {
-        assert_eq!(parse_duration_seconds("45").expect("seconds"), 45);
-        assert_eq!(parse_duration_seconds("30m").expect("minutes"), 1_800);
-        assert_eq!(parse_duration_seconds("2h").expect("hours"), 7_200);
-        assert_eq!(parse_duration_seconds("1d").expect("days"), 86_400);
-        assert!(parse_duration_seconds("0").is_err());
-        assert!(parse_duration_seconds("1.5h").is_err());
-    }
-}

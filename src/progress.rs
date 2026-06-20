@@ -1,4 +1,16 @@
+//! Module: progress
+//!
+//! Responsibility: render terminal progress updates on stderr.
+//! Does not own: refresh orchestration, cache publication, or report output.
+//! Boundary: writes and clears same-line progress text when stderr is a terminal.
+
 use std::io::{self, IsTerminal, Write};
+
+///
+/// ProgressLine
+///
+/// Same-line stderr progress writer used by refresh flows.
+///
 
 #[derive(Debug)]
 pub struct ProgressLine {

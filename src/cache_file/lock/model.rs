@@ -1,3 +1,9 @@
+//! Module: cache_file::lock::model
+//!
+//! Responsibility: refresh-lock request and file DTOs.
+//! Does not own: lock acquisition, stale-lock policy, or guarded execution.
+//! Boundary: defines the data exchanged by lock helpers.
+
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 

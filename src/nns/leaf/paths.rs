@@ -1,4 +1,16 @@
+//! Module: nns::leaf::paths
+//!
+//! Responsibility: derive cache and lock paths for generic NNS leaf commands.
+//! Does not own: cache file IO, command parsing, or report construction.
+//! Boundary: centralizes `.icq/<component>/<network>` path construction.
+
 use std::path::{Path, PathBuf};
+
+///
+/// NnsLeafCachePaths
+///
+/// Cache and lock paths for one generic NNS leaf component snapshot.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsLeafCachePaths {

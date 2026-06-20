@@ -4,7 +4,7 @@
 //! Does not own: command usage errors, clap parsing, or text rendering.
 //! Boundary: carries recoverable report-builder failures to command runners.
 
-use crate::runtime::RuntimeError;
+use crate::{cache_file::CacheFileError, runtime::RuntimeError};
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
 
@@ -107,7 +107,7 @@ pub enum SnsHostError {
     CacheNetworkMismatch { requested: String, actual: String },
 
     #[error("SNS cache operation failed: {0}")]
-    Cache(String),
+    Cache(#[from] CacheFileError),
 
     #[error(
         "SNS neurons refresh did not publish a complete snapshot after {pages_fetched} pages and {rows_fetched} rows: {reason}"

@@ -1,3 +1,9 @@
+//! Module: cache_file::lock::acquire
+//!
+//! Responsibility: acquire refresh locks and reject active locks.
+//! Does not own: guarded refresh execution or lock cleanup policy.
+//! Boundary: creates, reads, validates, and replaces stale lock files.
+
 use super::{
     guard::RefreshLockGuard,
     model::{RefreshLockFile, RefreshLockRequest},

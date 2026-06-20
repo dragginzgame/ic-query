@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::lifecycle
+//!
+//! Responsibility: coordinate snapshot refresh locks and attempt lifecycle hooks.
+//! Does not own: paged fetching, snapshot JSON publication, or cache schemas.
+//! Boundary: wraps command-owned refresh actions in shared lock/attempt sequencing.
+
 use crate::cache_file::{
     CacheFileError, RefreshLockRequest, create_parent_directory, with_refresh_lock,
 };

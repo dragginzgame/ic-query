@@ -4,7 +4,12 @@
 //! Does not own: live proposal paging, cache publication, or text rendering.
 //! Boundary: persists refresh lifecycle status for cache status reports.
 
+use super::model::{
+    NnsProposalRefreshAttempt, NnsProposalRefreshAttemptMetadata, NnsProposalRefreshAttemptStatus,
+    NnsProposalRefreshRequest,
+};
 use crate::{
+    nns::proposals::report::{MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError},
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
         read_snapshot_refresh_attempt, write_snapshot_refresh_attempt,
@@ -12,15 +17,6 @@ use crate::{
     subnet_catalog::format_utc_timestamp_secs,
 };
 use std::path::Path;
-
-use super::{
-    cache_file_error,
-    model::{
-        NnsProposalRefreshAttempt, NnsProposalRefreshAttemptMetadata,
-        NnsProposalRefreshAttemptStatus, NnsProposalRefreshRequest,
-    },
-};
-use crate::nns::proposals::report::{MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError};
 
 ///
 /// NnsProposalAttemptProgress
@@ -134,6 +130,6 @@ fn write_attempt_status(
         path,
         &attempt,
         |path, source| NnsProposalHostError::SerializeCache { path, source },
-        cache_file_error,
+        NnsProposalHostError::Cache,
     )
 }

@@ -1,3 +1,9 @@
+//! Module: nns::leaf::options::refresh
+//!
+//! Responsibility: parse clap options for generic NNS leaf refresh commands.
+//! Does not own: clap command specs, cache writes, or report construction.
+//! Boundary: converts refresh command arguments into command-runner options.
+
 use super::NnsCommonOptions;
 use crate::{
     cli::{
@@ -16,6 +22,12 @@ use crate::{
     },
 };
 use std::{ffi::OsString, path::PathBuf};
+
+///
+/// NnsLeafRefreshOptions
+///
+/// Parsed options accepted by generic NNS leaf refresh command runners.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsLeafRefreshOptions {

@@ -1,3 +1,9 @@
+//! Module: cache_file::error
+//!
+//! Responsibility: typed errors for shared cache-file operations.
+//! Does not own: command-specific error mapping or cache report schemas.
+//! Boundary: names filesystem, atomic-write, and refresh-lock failures.
+
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
 

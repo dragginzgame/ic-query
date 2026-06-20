@@ -3,15 +3,28 @@ use super::{
         NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalRefreshRequest,
     },
     refresh::refresh_nns_proposal_cache_with_source,
-    reports::{build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report},
+    reports::{
+        build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
+        build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
+    },
 };
 use crate::{
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
     nns::proposals::report::{
-        NnsProposalHostError,
+        NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+        NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
         cache::paths::nns_proposal_cache_paths,
+        model::{
+            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
+            NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+            NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
+            NnsProposalStatusFilter, NnsProposalTopicFilter,
+        },
         source::{NnsProposalFetchRequest, NnsProposalSource},
-        text::{nns_proposal_cache_status_report_text, nns_proposal_refresh_report_text},
+        text::{
+            nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
+            nns_proposal_refresh_report_text, nns_proposal_report_text,
+        },
         wire::{
             NnsGovernanceBallot, NnsNeuronId, NnsProposal, NnsProposalAction, NnsProposalId,
             NnsProposalInfo, NnsProposalTallyWire,
@@ -113,6 +126,158 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     );
     assert!(status_text.contains("latest_attempt:"));
     assert!(status_text.contains("status: complete"));
+}
+
+#[test]
+fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
+    let root = temp_dir("ic-query-nns-proposal-list-cache");
+    refresh_nns_proposal_cache_with_source(
+        &NnsProposalRefreshRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_000_000,
+            icp_root: root.clone(),
+            page_size: 2,
+            max_pages: None,
+        },
+        &FixtureSource,
+    )
+    .expect("refresh cache");
+
+    let request = NnsProposalListRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+        now_unix_secs: 1_700_100_000,
+        limit: 1,
+        before_proposal_id: Some(3),
+        status: NnsProposalStatusFilter::Executed,
+        reward_status: NnsProposalRewardStatusFilter::Settled,
+        topic: NnsProposalTopicFilter::Governance,
+        sort: NnsProposalListSort::Title,
+        sort_direction: NnsProposalSortDirection::Asc,
+        verbose: false,
+    };
+    let report = build_nns_proposal_list_report_from_cache(&request, &root)
+        .expect("cache lookup")
+        .expect("cached list report");
+    let text = nns_proposal_list_report_text(&report);
+
+    assert_eq!(
+        report.schema_version,
+        NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION
+    );
+    assert_eq!(report.data_source, "cache");
+    assert!(report.cache_complete.expect("cache completeness"));
+    assert_eq!(report.status_filter, NNS_PROPOSAL_STATUS_EXECUTED_LABEL);
+    assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
+    assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
+    assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
+    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals[0].proposal_id, Some(1));
+    assert!(text.contains("data_source: cache"));
+    assert!(text.contains("cache_complete: yes"));
+}
+
+#[test]
+fn nns_proposal_list_cache_lookup_returns_none_when_cache_is_missing() {
+    let root = temp_dir("ic-query-nns-proposal-list-cache-missing");
+    let report = build_nns_proposal_list_report_from_cache(
+        &NnsProposalListRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_100_000,
+            limit: 25,
+            before_proposal_id: None,
+            status: NnsProposalStatusFilter::Any,
+            reward_status: NnsProposalRewardStatusFilter::Any,
+            topic: NnsProposalTopicFilter::Any,
+            sort: NnsProposalListSort::Api,
+            sort_direction: NnsProposalSortDirection::Desc,
+            verbose: false,
+        },
+        &root,
+    )
+    .expect("cache lookup");
+
+    assert!(report.is_none());
+}
+
+#[test]
+fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
+    let root = temp_dir("ic-query-nns-proposal-detail-cache");
+    refresh_nns_proposal_cache_with_source(
+        &NnsProposalRefreshRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_000_000,
+            icp_root: root.clone(),
+            page_size: 2,
+            max_pages: None,
+        },
+        &FixtureSource,
+    )
+    .expect("refresh cache");
+
+    let request = NnsProposalRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+        now_unix_secs: 1_700_100_000,
+        proposal_id: 2,
+        show_ballots: true,
+        verbose: false,
+    };
+    let report = build_nns_proposal_report_from_cache(&request, &root)
+        .expect("cache lookup")
+        .expect("cached proposal report");
+    let text = nns_proposal_report_text(&report);
+
+    assert_eq!(report.schema_version, NNS_PROPOSAL_REPORT_SCHEMA_VERSION);
+    assert_eq!(report.proposal_id, 2);
+    assert_eq!(report.proposal.title.as_deref(), Some("Proposal 2"));
+    assert_eq!(report.data_source, "cache");
+    assert!(report.cache_complete.expect("cache completeness"));
+    assert!(
+        report
+            .cache_path
+            .as_deref()
+            .expect("cache path")
+            .ends_with(".icq/nns/ic/governance/proposals/full.json")
+    );
+    assert!(text.contains("data_source: cache"));
+    assert!(text.contains("cache_complete: yes"));
+    assert!(text.contains("cache_path: "));
+}
+
+#[test]
+fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
+    let root = temp_dir("ic-query-nns-proposal-detail-cache-missing");
+    refresh_nns_proposal_cache_with_source(
+        &NnsProposalRefreshRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_000_000,
+            icp_root: root.clone(),
+            page_size: 2,
+            max_pages: None,
+        },
+        &FixtureSource,
+    )
+    .expect("refresh cache");
+
+    let report = build_nns_proposal_report_from_cache(
+        &NnsProposalRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_100_000,
+            proposal_id: 42,
+            show_ballots: false,
+            verbose: false,
+        },
+        &root,
+    )
+    .expect("cache lookup");
+
+    assert!(report.is_none());
 }
 
 fn proposal_info(proposal_id: u64) -> NnsProposalInfo {

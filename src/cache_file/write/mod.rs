@@ -1,3 +1,9 @@
+//! Module: cache_file::write
+//!
+//! Responsibility: shared atomic and refresh-cache write helpers.
+//! Does not own: JSON cache schemas, refresh locking internals, or report construction.
+//! Boundary: exposes parent creation, atomic text writes, and refresh publication helpers.
+
 mod atomic;
 mod output;
 mod path;

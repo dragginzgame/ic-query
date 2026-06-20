@@ -1,3 +1,9 @@
+//! Module: cache_file::write::path
+//!
+//! Responsibility: validate cache write target directories.
+//! Does not own: file writes, refresh locking, or JSON serialization.
+//! Boundary: creates parents, resolves target directories, and syncs directories.
+
 use crate::cache_file::CacheFileError;
 use std::{fs, io, path::Path};
 

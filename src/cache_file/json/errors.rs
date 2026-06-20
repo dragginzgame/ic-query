@@ -1,3 +1,9 @@
+//! Module: cache_file::json::errors
+//!
+//! Responsibility: map generic JSON cache load failures to owner errors.
+//! Does not own: cache-file IO or command-specific error enums.
+//! Boundary: defines the error-mapping trait used by shared cache loaders.
+
 use std::{io, path::PathBuf};
 
 ///

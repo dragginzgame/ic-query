@@ -1,3 +1,9 @@
+//! Module: cache_file::write::refresh
+//!
+//! Responsibility: publish refresh reports to cache and optional output files.
+//! Does not own: command-specific reports, cache paths, or live refreshes.
+//! Boundary: serializes refresh output under the shared refresh-lock guard.
+
 use super::{create_parent_directory, write_text_atomically, write_text_output};
 use crate::cache_file::{
     CacheFileError,

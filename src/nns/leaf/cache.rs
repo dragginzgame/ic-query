@@ -1,3 +1,9 @@
+//! Module: nns::leaf::cache
+//!
+//! Responsibility: adapt shared JSON cache primitives for generic NNS leaf commands.
+//! Does not own: component report models, command parsing, or cache path policy.
+//! Boundary: maps generic cache-file load/write operations to leaf cache errors.
+
 use super::{
     error::NnsLeafHostCacheError,
     model::{NnsLeafCacheRequest, NnsLeafRefreshRequest},
@@ -10,6 +16,7 @@ use crate::cache_file::{
 use serde::{Serialize, de::DeserializeOwned};
 use std::{io, path::PathBuf};
 
+/// Load a generic NNS leaf JSON cache using component-labelled errors.
 pub(in crate::nns) fn load_nns_leaf_json_cache<Cache, Report>(
     cache: &Cache,
     component_dir: &'static str,
@@ -38,6 +45,7 @@ where
     )
 }
 
+/// Write a refreshed generic NNS leaf JSON cache using component-labelled errors.
 pub(in crate::nns) fn write_nns_leaf_json_refresh_cache<Request, Report>(
     request: &Request,
     component_dir: &'static str,

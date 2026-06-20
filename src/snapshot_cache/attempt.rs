@@ -1,3 +1,9 @@
+//! Module: snapshot_cache::attempt
+//!
+//! Responsibility: read and write refresh-attempt sidecar files.
+//! Does not own: command-specific attempt metadata or refresh execution.
+//! Boundary: persists generic refresh-attempt JSON through cache-file primitives.
+
 use super::json::write_snapshot_json;
 use crate::cache_file::CacheFileError;
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
