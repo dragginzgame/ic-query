@@ -8,7 +8,7 @@ use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
     SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
     SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalsSort,
+    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 use std::cmp::Ordering;
 
@@ -44,6 +44,15 @@ pub(in crate::sns::report) fn proposal_matches_status(
             proposal.status == Some(SNS_PROPOSAL_STATUS_ADOPTED_CODE)
         }
     }
+}
+
+pub(in crate::sns::report) fn proposal_matches_topic(
+    proposal: &SnsProposalRow,
+    topic: SnsProposalTopicFilter,
+) -> bool {
+    topic
+        .topic_label()
+        .is_none_or(|topic_label| proposal.topic.as_deref() == Some(topic_label))
 }
 
 pub(in crate::sns::report) fn sort_sns_proposal_rows(

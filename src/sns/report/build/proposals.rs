@@ -6,7 +6,7 @@
 
 use crate::sns::report::{
     SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
-    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest,
+    SnsProposalsReport, SnsProposalsRequest,
     assemble::{
         SnsProposalReportParts, SnsProposalsReportParts, SnsReportProvenance,
         sns_proposal_report_from_parts, sns_proposals_report_from_parts,
@@ -67,22 +67,13 @@ pub(in crate::sns::report) fn build_sns_proposals_report_with_source(
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
     validate_sns_proposals_request(request)?;
-    if let Some(icp_root) = request.icp_root.as_ref()
-        && request_can_use_proposals_cache(request)
-    {
+    if let Some(icp_root) = request.icp_root.as_ref() {
         return build_sns_proposals_report_from_cache_or_refresh(request, icp_root, source);
     }
     build_sns_proposals_report_live(request, source)
 }
 
 fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), SnsHostError> {
-    if request.status == SnsProposalStatusFilter::Decided
-        && request.topic != SnsProposalTopicFilter::Any
-    {
-        return Err(SnsHostError::UnsupportedProposalView {
-            reason: "`--status decided` requires `--topic any`".to_string(),
-        });
-    }
     if request.status == SnsProposalStatusFilter::Decided && request.icp_root.is_none() {
         return Err(SnsHostError::UnsupportedProposalView {
             reason: "`--status decided` requires a complete proposal cache".to_string(),
@@ -134,20 +125,4 @@ fn build_sns_proposals_report_live(
         provenance: SnsReportProvenance::live(),
         proposals,
     }))
-}
-
-const fn request_can_use_proposals_cache(request: &SnsProposalsRequest) -> bool {
-    if !matches!(request.topic, SnsProposalTopicFilter::Any) {
-        return false;
-    }
-    matches!(
-        request.status,
-        SnsProposalStatusFilter::Any
-            | SnsProposalStatusFilter::Open
-            | SnsProposalStatusFilter::Decided
-            | SnsProposalStatusFilter::Rejected
-            | SnsProposalStatusFilter::Adopted
-            | SnsProposalStatusFilter::Executed
-            | SnsProposalStatusFilter::Failed
-    )
 }

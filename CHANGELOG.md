@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.37` makes SNS proposal `--topic <topic>` filters cache-compatible by
+  preserving proposal topic labels in complete snapshots, refreshing legacy
+  proposal snapshots that lack topic labels before topic-filtered views, and
+  allowing decided-status filters to combine with topic filters through the
+  complete cache path.
+
+  ```bash
+  icq sns proposals 1 --status decided --topic governance
+  ```
+
 - `0.2.36` makes SNS proposal `--status adopted|rejected` filters
   cache-compatible for topic-free list views by preserving raw SNS governance
   status codes in proposal rows, refreshing legacy proposal snapshots that

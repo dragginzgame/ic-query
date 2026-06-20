@@ -89,16 +89,6 @@ fn sns_neurons_rejects_invalid_clap_values() {
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsProposalsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--status"),
-            OsString::from("decided"),
-            OsString::from("--topic"),
-            OsString::from("governance"),
-        ]),
-        Err(SnsCommandError::Usage(_))
-    ));
-    assert!(matches!(
         SnsProposalOptions::parse([OsString::from("1"), OsString::from("0")]),
         Err(SnsCommandError::Usage(_))
     ));

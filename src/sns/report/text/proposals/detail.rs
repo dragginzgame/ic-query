@@ -32,6 +32,7 @@ pub(super) fn proposal_detail_lines(
         format!("  action_id: {}", proposal.action_id),
         format!("  action: {}", proposal.action),
         format!("  decision_state: {}", proposal.decision_state),
+        format!("  topic: {}", optional_text(proposal.topic.as_ref())),
         format!("  title: {}", proposal.title),
         format!("  url: {}", optional_text(proposal.url.as_ref())),
         format!(

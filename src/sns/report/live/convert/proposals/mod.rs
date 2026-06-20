@@ -15,7 +15,7 @@ use crate::sns::report::{
     hex_bytes, live::types::SnsGovernanceProposalData,
 };
 use ballot::sns_proposal_ballot_row;
-use labels::proposal_action_text;
+use labels::{proposal_action_text, proposal_topic_text};
 use timestamp::{nonzero_timestamp, optional_timestamp_text};
 
 /// Convert one SNS governance proposal wire row into a report row.
@@ -40,6 +40,9 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
         url: clean_optional_text(Some(proposal_fields.url)),
         decision_state,
         status: Some(proposal.status),
+        topic: proposal
+            .topic
+            .map(|topic| proposal_topic_text(topic).to_string()),
         reject_cost_e8s: proposal.reject_cost_e8s,
         proposal_creation_timestamp_seconds: proposal.proposal_creation_timestamp_seconds,
         created_at: crate::subnet_catalog::format_utc_timestamp_secs(

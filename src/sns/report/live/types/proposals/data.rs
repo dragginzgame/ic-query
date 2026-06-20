@@ -4,6 +4,7 @@
 //! Does not own: request construction, live transport, or report rendering.
 //! Boundary: mirrors Candid fields converted into SNS proposal report rows.
 
+use super::SnsTopic;
 use crate::sns::report::source::SnsNeuronId;
 use candid::{CandidType, Deserialize};
 
@@ -107,4 +108,5 @@ pub(in crate::sns::report::live) struct SnsGovernanceProposalData {
     pub(in crate::sns::report::live) is_eligible_for_rewards: bool,
     pub(in crate::sns::report::live) executed_timestamp_seconds: u64,
     pub(in crate::sns::report::live) status: i32,
+    pub(in crate::sns::report::live) topic: Option<SnsTopic>,
 }

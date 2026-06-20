@@ -13,5 +13,6 @@ mod tests;
 pub(in crate::sns::report) use list::sort_mainnet_sns_instances;
 pub(in crate::sns::report) use neurons::sort_sns_neurons;
 pub(in crate::sns::report) use proposals::{
-    proposal_matches_before, proposal_matches_status, sort_sns_proposal_rows,
+    proposal_matches_before, proposal_matches_status, proposal_matches_topic,
+    sort_sns_proposal_rows,
 };

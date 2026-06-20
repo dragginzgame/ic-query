@@ -4,6 +4,8 @@
 //! Does not own: governance transport, filtering, or rendering.
 //! Boundary: converts raw vote/action codes into stable report labels.
 
+use crate::sns::report::live::types::SnsTopic;
+
 /// Convert an SNS governance ballot vote code into a stable label.
 pub(super) fn ballot_vote_text(vote: i32) -> String {
     match vote {
@@ -39,5 +41,18 @@ pub(super) fn proposal_action_text(action: u64) -> String {
         19 => "upgrade_extension".to_string(),
         id if id >= 1_000 => format!("generic:{id}"),
         id => format!("unknown:{id}"),
+    }
+}
+
+/// Convert an SNS governance proposal topic into a stable report label.
+pub(super) const fn proposal_topic_text(topic: SnsTopic) -> &'static str {
+    match topic {
+        SnsTopic::DaoCommunitySettings => "dao-community-settings",
+        SnsTopic::SnsFrameworkManagement => "sns-framework-management",
+        SnsTopic::DappCanisterManagement => "dapp-canister-management",
+        SnsTopic::ApplicationBusinessLogic => "application-business-logic",
+        SnsTopic::Governance => "governance",
+        SnsTopic::TreasuryAssetManagement => "treasury-asset-management",
+        SnsTopic::CriticalDappOperations => "critical-dapp-operations",
     }
 }

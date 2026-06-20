@@ -160,9 +160,9 @@ SNS governance proposals can be queried as cached list views or direct live
 detail lookups. Normal proposal list views auto-create a complete local
 snapshot on first use, then apply supported view options locally. Proposal
 detail lookups reuse an existing complete local snapshot when it contains the
-requested proposal, then fall back to live detail lookup. Status filters that
-can be reproduced from complete proposal rows, including adopted/rejected, use
-the local snapshot; topic filters currently use bounded live queries:
+requested proposal, then fall back to live detail lookup. Status and topic
+filters that can be reproduced from complete proposal rows use the local
+snapshot, including decided/adopted/rejected status filters:
 
 ```bash
 icq sns proposals 1 --limit 25
@@ -183,6 +183,7 @@ icq sns proposals 1 --sort executed
 icq sns proposals 1 --sort failed
 icq sns proposals 1 --sort created --asc
 icq sns proposals 1 --topic governance
+icq sns proposals 1 --status decided --topic governance
 icq sns proposals 1 --before 100 --format json
 icq sns proposal 1 387
 icq sns proposal 1 387 --ballots
@@ -193,8 +194,7 @@ Proposal list views support
 Local sort modes accept `--asc` or `--desc`; status, proposer, title, and
 action default to ascending, while id, tally, ballot count, reject cost,
 reward round, and timestamp sorts default to descending. Cache-compatible
-views filter and sort complete local snapshots before applying `--limit`;
-bounded live fallback views sort the returned API rows.
+views filter and sort complete local snapshots before applying `--limit`.
 
 Complete SNS proposal snapshots can also be refreshed and inspected manually:
 

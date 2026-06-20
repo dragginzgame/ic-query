@@ -5,15 +5,15 @@
 //! Boundary: exercises in-memory row transformations through the view module.
 
 use super::{
-    proposal_matches_before, proposal_matches_status, sort_mainnet_sns_instances, sort_sns_neurons,
-    sort_sns_proposal_rows,
+    proposal_matches_before, proposal_matches_status, proposal_matches_topic,
+    sort_mainnet_sns_instances, sort_sns_neurons, sort_sns_proposal_rows,
 };
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
     SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
     SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow, SnsNeuronsSort, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalsSort,
-    source::MainnetSns,
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
+    SnsProposalsSort, source::MainnetSns,
 };
 
 #[test]
@@ -317,6 +317,26 @@ fn proposal_status_filter_matches_cache_backed_statuses() {
     ));
 }
 
+#[test]
+fn proposal_topic_filter_matches_cached_topic_labels() {
+    assert!(proposal_matches_topic(
+        &proposal_with_topic(Some("governance")),
+        SnsProposalTopicFilter::Governance
+    ));
+    assert!(!proposal_matches_topic(
+        &proposal_with_topic(Some("treasury-asset-management")),
+        SnsProposalTopicFilter::Governance
+    ));
+    assert!(!proposal_matches_topic(
+        &proposal_with_topic(None),
+        SnsProposalTopicFilter::Governance
+    ));
+    assert!(proposal_matches_topic(
+        &proposal_with_topic(None),
+        SnsProposalTopicFilter::Any
+    ));
+}
+
 fn proposal_ids(proposals: &[SnsProposalRow]) -> Vec<u64> {
     proposals
         .iter()
@@ -383,6 +403,13 @@ fn proposal_with_decision_state(decision_state: &str) -> SnsProposalRow {
 fn proposal_with_status(status: Option<i32>) -> SnsProposalRow {
     SnsProposalRow {
         status,
+        ..proposal_row(1, 100)
+    }
+}
+
+fn proposal_with_topic(topic: Option<&str>) -> SnsProposalRow {
+    SnsProposalRow {
+        topic: topic.map(ToString::to_string),
         ..proposal_row(1, 100)
     }
 }
@@ -498,6 +525,7 @@ fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
         url: None,
         decision_state: SNS_PROPOSAL_DECISION_OPEN.to_string(),
         status: None,
+        topic: None,
         reject_cost_e8s: 0,
         proposal_creation_timestamp_seconds: created_at_secs,
         created_at: created_at_secs.to_string(),

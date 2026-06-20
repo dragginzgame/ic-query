@@ -569,6 +569,94 @@ fn sns_proposals_status_filter_refreshes_legacy_cache_without_raw_status() {
 }
 
 #[test]
+fn sns_proposals_cached_topic_filters_complete_snapshot() {
+    let root = temp_dir("ic-query-sns-proposals-topic-governance");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Governance;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh topic-filtered proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.topic_filter, "governance");
+    assert_eq!(proposal_ids(&first), vec![30, 10]);
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse topic-filtered proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.topic_filter, "governance");
+    assert_eq!(proposal_ids(&second), vec![30, 10]);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_cached_decided_status_combines_with_topic_filter() {
+    let root = temp_dir("ic-query-sns-proposals-topic-decided");
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Decided;
+    request.topic = SnsProposalTopicFilter::Governance;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh decided topic-filtered proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.status_filter, "decided");
+    assert_eq!(first.topic_filter, "governance");
+    assert_eq!(proposal_ids(&first), vec![30]);
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse decided topic-filtered proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.status_filter, "decided");
+    assert_eq!(second.topic_filter, "governance");
+    assert_eq!(proposal_ids(&second), vec![30]);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_topic_filter_refreshes_legacy_cache_without_topic() {
+    let root = temp_dir("ic-query-sns-proposals-topic-legacy");
+    let refresh = refresh_sns_proposals_cache_with_source(
+        &sns_proposals_refresh_request(&root, None),
+        &UnsortedSnsProposalsSource,
+    )
+    .expect("refresh proposals cache");
+    let cache_path = std::path::PathBuf::from(refresh.cache_path);
+    remove_cached_proposal_field(&cache_path, "topic");
+
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Governance;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("refresh legacy proposals cache before topic filter");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.topic_filter, "governance");
+    assert_eq!(proposal_ids(&report), vec![30, 10]);
+    assert_cached_proposal_field_present(&cache_path, "topic");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_cached_sort_title_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Title,
@@ -623,13 +711,13 @@ fn sns_proposals_cached_sort_reject_cost_orders_before_limit() {
 }
 
 #[test]
-fn sns_proposals_status_decided_requires_cache_compatible_view() {
+fn sns_proposals_status_decided_requires_cache_root() {
     let mut request = proposals_request("1");
     request.status = SnsProposalStatusFilter::Decided;
     request.topic = SnsProposalTopicFilter::Governance;
 
     let error = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .expect_err("decided topic filter rejected");
+        .expect_err("decided without cache rejected");
 
     assert!(matches!(
         error,
@@ -784,6 +872,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     failed_at_secs: Some(1_700_003_100),
                     decision_state: SNS_PROPOSAL_DECISION_EXECUTED,
                     status: SNS_PROPOSAL_STATUS_EXECUTED_CODE,
+                    topic: SnsProposalTopicFilter::Governance,
                     title: "Zulu proposal",
                     action: "motion",
                     tally: (90, 10, 100),
@@ -800,6 +889,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     failed_at_secs: None,
                     decision_state: SNS_PROPOSAL_DECISION_OPEN,
                     status: SNS_PROPOSAL_STATUS_REJECTED_CODE,
+                    topic: SnsProposalTopicFilter::TreasuryAssetManagement,
                     title: "Alpha proposal",
                     action: "upgrade-sns-controlled-canister",
                     tally: (5, 10, 15),
@@ -816,6 +906,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     failed_at_secs: Some(1_700_003_300),
                     decision_state: SNS_PROPOSAL_DECISION_DECIDED,
                     status: SNS_PROPOSAL_STATUS_ADOPTED_CODE,
+                    topic: SnsProposalTopicFilter::Governance,
                     title: "Beta proposal",
                     action: "motion",
                     tally: (50, 25, 75),
@@ -894,13 +985,17 @@ fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposa
 }
 
 fn remove_cached_proposal_status_fields(cache_path: &std::path::Path) {
+    remove_cached_proposal_field(cache_path, "status");
+}
+
+fn remove_cached_proposal_field(cache_path: &std::path::Path, field: &str) {
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
     for proposal in cache["proposals"].as_array_mut().expect("cached proposals") {
         proposal
             .as_object_mut()
             .expect("cached proposal object")
-            .remove("status");
+            .remove(field);
     }
     fs::write(
         cache_path,
@@ -910,6 +1005,10 @@ fn remove_cached_proposal_status_fields(cache_path: &std::path::Path) {
 }
 
 fn assert_cached_proposal_status_fields_present(cache_path: &std::path::Path) {
+    assert_cached_proposal_field_present(cache_path, "status");
+}
+
+fn assert_cached_proposal_field_present(cache_path: &std::path::Path, field: &str) {
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
     assert!(
@@ -917,7 +1016,7 @@ fn assert_cached_proposal_status_fields_present(cache_path: &std::path::Path) {
             .as_array()
             .expect("cached proposals")
             .iter()
-            .all(|proposal| proposal.get("status").is_some())
+            .all(|proposal| proposal.get(field).is_some())
     );
 }
 
@@ -929,6 +1028,7 @@ struct ProposalRowFixture {
     failed_at_secs: Option<u64>,
     decision_state: &'static str,
     status: i32,
+    topic: SnsProposalTopicFilter,
     title: &'static str,
     action: &'static str,
     tally: (u64, u64, u64),
@@ -943,6 +1043,7 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         proposal_id: Some(fixture.proposal_id),
         decision_state: fixture.decision_state.to_string(),
         status: Some(fixture.status),
+        topic: Some(fixture.topic.as_str().to_string()),
         title: fixture.title.to_string(),
         action: fixture.action.to_string(),
         proposal_creation_timestamp_seconds: fixture.created_at_secs,
