@@ -39,6 +39,9 @@ Examples:
   icq nns proposal list --status open
   icq nns proposal list --reward-status settled
   icq nns proposal list --topic governance
+  icq nns proposal list --sort reward-status
+  icq nns proposal list --sort deadline
+  icq nns proposal list --sort voting-power
   icq nns proposal list --sort proposed
   icq nns proposal list --sort title --asc
   icq nns proposal list --format json
@@ -146,19 +149,19 @@ fn nns_proposal_list_command_with(
                 .value_name(NNS_PROPOSAL_LIST_SORT_VALUE_NAME)
                 .default_value(NNS_PROPOSAL_SORT_API_LABEL)
                 .value_parser(clap::value_parser!(NnsProposalListSortArg))
-                .help("Sort proposals locally; status/text sorts default ascending, numeric and timestamp sorts default descending"),
+                .help("Sort proposals locally; status/reward-status/text sorts default ascending, numeric and timestamp sorts default descending"),
         )
         .arg(
             flag_arg(NNS_PROPOSAL_SORT_ASC_LABEL)
                 .long(NNS_PROPOSAL_SORT_ASC_LABEL)
                 .conflicts_with(NNS_PROPOSAL_SORT_DESC_LABEL)
-                .help("Sort ascending for local sort modes; this is the default for status/topic/proposer/title/action"),
+                .help("Sort ascending for local sort modes; this is the default for status/reward-status/topic/proposer/title/action"),
         )
         .arg(
             flag_arg(NNS_PROPOSAL_SORT_DESC_LABEL)
                 .long(NNS_PROPOSAL_SORT_DESC_LABEL)
                 .conflicts_with(NNS_PROPOSAL_SORT_ASC_LABEL)
-                .help("Sort descending for local sort modes; this is the default for id/tally/ballots/reject-cost/reward-round/timestamps"),
+                .help("Sort descending for local sort modes; this is the default for id/tally/voting-power/ballots/reject-cost/reward-round/timestamps"),
         )
         .arg(
             flag_arg(NNS_PROPOSAL_VERBOSE_FLAG)

@@ -123,6 +123,9 @@ icq nns proposal list --limit 25
 icq nns proposal list --status open
 icq nns proposal list --reward-status settled
 icq nns proposal list --topic governance
+icq nns proposal list --sort reward-status
+icq nns proposal list --sort deadline
+icq nns proposal list --sort voting-power
 icq nns proposal list --sort proposed
 icq nns proposal list --sort title --asc
 icq nns proposal info 132411
@@ -132,10 +135,11 @@ icq nns proposal info 132411 --format json
 ```
 
 NNS proposal list views support
-`--sort api|id|status|topic|proposer|title|action|yes|no|total-votes|ballots|reject-cost|reward-round|proposed|decided|executed|failed`.
-Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
-and action default to ascending, while id, tally, ballot count, reject cost,
-reward round, and timestamp sorts default to descending.
+`--sort api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|executed|failed`.
+Local sort modes accept `--asc` or `--desc`; status, reward status, topic,
+proposer, title, and action default to ascending, while id, tally, ballot
+count, reject cost, reward round, voting power, and timestamp sorts default to
+descending.
 
 Complete NNS proposal snapshots can be refreshed and inspected explicitly. A
 refresh pages through NNS governance until the API is exhausted, writes progress

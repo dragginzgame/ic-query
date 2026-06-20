@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.39` adds NNS proposal sorting by reward status, voting deadline, and
+  total potential voting power while reusing the existing live and
+  complete-cache proposal view sorter.
+
+  ```bash
+  icq nns proposal list --sort reward-status
+  icq nns proposal list --sort deadline
+  icq nns proposal list --sort voting-power
+  ```
+
 - `0.2.38` adds cache-backed SNS proposal topic sorting with
   `icq sns proposals <id|root-principal> --sort topic`, defaulting to
   ascending topic-label order and applying the sort before `--limit`.

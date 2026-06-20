@@ -93,6 +93,46 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
 }
 
 #[test]
+fn nns_proposal_list_parses_extended_local_sort_values() {
+    let reward_status_sort = NnsProposalListOptions::parse_list([
+        OsString::from("--sort"),
+        OsString::from(NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL),
+    ])
+    .expect("parse reward-status sort");
+
+    assert_eq!(reward_status_sort.sort, NnsProposalListSort::RewardStatus);
+    assert_eq!(
+        reward_status_sort.sort_direction,
+        NnsProposalSortDirection::Asc
+    );
+    assert_eq!(
+        reward_status_sort.sort.as_str(),
+        NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL
+    );
+
+    let deadline_sort = NnsProposalListOptions::parse_list([
+        OsString::from("--sort"),
+        OsString::from(NNS_PROPOSAL_SORT_DEADLINE_LABEL),
+    ])
+    .expect("parse deadline sort");
+
+    assert_eq!(deadline_sort.sort, NnsProposalListSort::Deadline);
+    assert_eq!(deadline_sort.sort_direction, NnsProposalSortDirection::Desc);
+
+    let voting_power_sort = NnsProposalListOptions::parse_list([
+        OsString::from("--sort"),
+        OsString::from(NNS_PROPOSAL_SORT_VOTING_POWER_LABEL),
+    ])
+    .expect("parse voting-power sort");
+
+    assert_eq!(voting_power_sort.sort, NnsProposalListSort::VotingPower);
+    assert_eq!(
+        voting_power_sort.sort_direction,
+        NnsProposalSortDirection::Desc
+    );
+}
+
+#[test]
 fn nns_proposal_parses_id_and_json_format() {
     let options = NnsProposalOptions::parse_info([
         OsString::from("132411"),
@@ -206,6 +246,9 @@ fn nns_proposal_help_is_advertised_under_nns() {
     assert!(proposal_list.contains("--status open"));
     assert!(proposal_list.contains("--reward-status settled"));
     assert!(proposal_list.contains("--topic governance"));
+    assert!(proposal_list.contains("--sort reward-status"));
+    assert!(proposal_list.contains("--sort deadline"));
+    assert!(proposal_list.contains("--sort voting-power"));
     assert!(proposal_list.contains("--sort title --asc"));
     assert!(!proposal.contains("icq nns proposal 132411"));
     assert!(proposal_info.contains("--ballots"));

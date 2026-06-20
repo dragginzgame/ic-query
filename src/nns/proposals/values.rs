@@ -15,12 +15,14 @@ pub(in crate::nns::proposals) const NNS_PROPOSAL_BALLOTS_FLAG: &str = "ballots";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_VERBOSE_FLAG: &str = "verbose";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_REWARD_STATUS_ARG: &str = "reward-status";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_SORT_VALUE_NAME: &str = concat!(
-    "api|id|status|topic|proposer|title|action|yes|no|total-votes|",
-    "ballots|reject-cost|reward-round|proposed|decided|executed|failed"
+    "api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|",
+    "voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
+    "executed|failed"
 );
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME: &str = concat!(
-    "id|status|topic|proposer|title|action|yes|no|total-votes|",
-    "ballots|reject-cost|reward-round|proposed|decided|executed|failed"
+    "id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|",
+    "voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
+    "executed|failed"
 );
 
 ///
@@ -35,6 +37,7 @@ pub(in crate::nns::proposals) enum NnsProposalListSortArg {
     Api,
     Id,
     Status,
+    RewardStatus,
     Topic,
     Proposer,
     Title,
@@ -42,10 +45,12 @@ pub(in crate::nns::proposals) enum NnsProposalListSortArg {
     Yes,
     No,
     TotalVotes,
+    VotingPower,
     Ballots,
     RejectCost,
     RewardRound,
     Proposed,
+    Deadline,
     Decided,
     Executed,
     Failed,
@@ -57,6 +62,7 @@ impl From<NnsProposalListSortArg> for NnsProposalListSort {
             NnsProposalListSortArg::Api => Self::Api,
             NnsProposalListSortArg::Id => Self::Id,
             NnsProposalListSortArg::Status => Self::Status,
+            NnsProposalListSortArg::RewardStatus => Self::RewardStatus,
             NnsProposalListSortArg::Topic => Self::Topic,
             NnsProposalListSortArg::Proposer => Self::Proposer,
             NnsProposalListSortArg::Title => Self::Title,
@@ -64,10 +70,12 @@ impl From<NnsProposalListSortArg> for NnsProposalListSort {
             NnsProposalListSortArg::Yes => Self::Yes,
             NnsProposalListSortArg::No => Self::No,
             NnsProposalListSortArg::TotalVotes => Self::TotalVotes,
+            NnsProposalListSortArg::VotingPower => Self::VotingPower,
             NnsProposalListSortArg::Ballots => Self::Ballots,
             NnsProposalListSortArg::RejectCost => Self::RejectCost,
             NnsProposalListSortArg::RewardRound => Self::RewardRound,
             NnsProposalListSortArg::Proposed => Self::Proposed,
+            NnsProposalListSortArg::Deadline => Self::Deadline,
             NnsProposalListSortArg::Decided => Self::Decided,
             NnsProposalListSortArg::Executed => Self::Executed,
             NnsProposalListSortArg::Failed => Self::Failed,

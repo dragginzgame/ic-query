@@ -63,6 +63,11 @@ pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
                 proposal.status_text.as_str()
             });
         }
+        NnsProposalListSort::RewardStatus => {
+            sort_by_text(proposals, direction, |proposal| {
+                proposal.reward_status_text.as_str()
+            });
+        }
         NnsProposalListSort::Topic => {
             sort_by_text(proposals, direction, |proposal| {
                 proposal.topic_text.as_str()
@@ -94,6 +99,11 @@ pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
                 proposal.latest_tally.as_ref().map(|tally| tally.total)
             });
         }
+        NnsProposalListSort::VotingPower => {
+            sort_by_optional_u64(proposals, direction, |proposal| {
+                proposal.total_potential_voting_power
+            });
+        }
         NnsProposalListSort::Ballots => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 Some(proposal.ballot_count as u64)
@@ -112,6 +122,11 @@ pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
         NnsProposalListSort::Proposed => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 Some(proposal.proposal_timestamp_seconds)
+            });
+        }
+        NnsProposalListSort::Deadline => {
+            sort_by_optional_u64(proposals, direction, |proposal| {
+                proposal.deadline_timestamp_seconds
             });
         }
         NnsProposalListSort::Decided => {

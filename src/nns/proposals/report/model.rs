@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 pub(in crate::nns) const NNS_PROPOSAL_SORT_API_LABEL: &str = "api";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_ID_LABEL: &str = "id";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_STATUS_LABEL: &str = "status";
+pub(in crate::nns) const NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL: &str = "reward-status";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_TOPIC_LABEL: &str = "topic";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_PROPOSER_LABEL: &str = "proposer";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_TITLE_LABEL: &str = "title";
@@ -16,10 +17,12 @@ pub(in crate::nns) const NNS_PROPOSAL_SORT_ACTION_LABEL: &str = "action";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_YES_LABEL: &str = "yes";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_NO_LABEL: &str = "no";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_TOTAL_VOTES_LABEL: &str = "total-votes";
+pub(in crate::nns) const NNS_PROPOSAL_SORT_VOTING_POWER_LABEL: &str = "voting-power";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_BALLOTS_LABEL: &str = "ballots";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_REJECT_COST_LABEL: &str = "reject-cost";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_REWARD_ROUND_LABEL: &str = "reward-round";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_PROPOSED_LABEL: &str = "proposed";
+pub(in crate::nns) const NNS_PROPOSAL_SORT_DEADLINE_LABEL: &str = "deadline";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_DECIDED_LABEL: &str = "decided";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_EXECUTED_LABEL: &str = "executed";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_FAILED_LABEL: &str = "failed";
@@ -270,6 +273,7 @@ pub(in crate::nns) enum NnsProposalListSort {
     Api,
     Id,
     Status,
+    RewardStatus,
     Topic,
     Proposer,
     Title,
@@ -277,10 +281,12 @@ pub(in crate::nns) enum NnsProposalListSort {
     Yes,
     No,
     TotalVotes,
+    VotingPower,
     Ballots,
     RejectCost,
     RewardRound,
     Proposed,
+    Deadline,
     Decided,
     Executed,
     Failed,
@@ -292,6 +298,7 @@ impl NnsProposalListSort {
             Self::Api => NNS_PROPOSAL_SORT_API_LABEL,
             Self::Id => NNS_PROPOSAL_SORT_ID_LABEL,
             Self::Status => NNS_PROPOSAL_SORT_STATUS_LABEL,
+            Self::RewardStatus => NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
             Self::Topic => NNS_PROPOSAL_SORT_TOPIC_LABEL,
             Self::Proposer => NNS_PROPOSAL_SORT_PROPOSER_LABEL,
             Self::Title => NNS_PROPOSAL_SORT_TITLE_LABEL,
@@ -299,10 +306,12 @@ impl NnsProposalListSort {
             Self::Yes => NNS_PROPOSAL_SORT_YES_LABEL,
             Self::No => NNS_PROPOSAL_SORT_NO_LABEL,
             Self::TotalVotes => NNS_PROPOSAL_SORT_TOTAL_VOTES_LABEL,
+            Self::VotingPower => NNS_PROPOSAL_SORT_VOTING_POWER_LABEL,
             Self::Ballots => NNS_PROPOSAL_SORT_BALLOTS_LABEL,
             Self::RejectCost => NNS_PROPOSAL_SORT_REJECT_COST_LABEL,
             Self::RewardRound => NNS_PROPOSAL_SORT_REWARD_ROUND_LABEL,
             Self::Proposed => NNS_PROPOSAL_SORT_PROPOSED_LABEL,
+            Self::Deadline => NNS_PROPOSAL_SORT_DEADLINE_LABEL,
             Self::Decided => NNS_PROPOSAL_SORT_DECIDED_LABEL,
             Self::Executed => NNS_PROPOSAL_SORT_EXECUTED_LABEL,
             Self::Failed => NNS_PROPOSAL_SORT_FAILED_LABEL,
@@ -311,9 +320,12 @@ impl NnsProposalListSort {
 
     pub(in crate::nns) const fn default_direction(self) -> NnsProposalSortDirection {
         match self {
-            Self::Status | Self::Topic | Self::Proposer | Self::Title | Self::Action => {
-                NnsProposalSortDirection::Asc
-            }
+            Self::Status
+            | Self::RewardStatus
+            | Self::Topic
+            | Self::Proposer
+            | Self::Title
+            | Self::Action => NnsProposalSortDirection::Asc,
             _ => NnsProposalSortDirection::Desc,
         }
     }
