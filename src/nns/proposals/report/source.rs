@@ -5,8 +5,8 @@
 //! Boundary: executes mainnet governance queries and converts wire rows to report DTOs.
 
 use super::{
-    MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-    NNS_PROPOSALS_REPORT_SCHEMA_VERSION, NnsProposalHostError, enforce_mainnet_network,
+    MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION,
+    NNS_PROPOSAL_REPORT_SCHEMA_VERSION, NnsProposalHostError, enforce_mainnet_network,
     model::{
         NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE,
         NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL, NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE,
@@ -47,8 +47,8 @@ use super::{
         NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_LABEL, NNS_PROPOSAL_TOPIC_UNSPECIFIED_LABEL,
         NNS_PROPOSAL_VOTE_NO_CODE, NNS_PROPOSAL_VOTE_NO_LABEL, NNS_PROPOSAL_VOTE_UNSPECIFIED_LABEL,
         NNS_PROPOSAL_VOTE_YES_CODE, NNS_PROPOSAL_VOTE_YES_LABEL, NnsProposalBallotRow,
-        NnsProposalReport, NnsProposalRequest, NnsProposalRow, NnsProposalTally,
-        NnsProposalsReport, NnsProposalsRequest,
+        NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
+        NnsProposalRow, NnsProposalTally,
     },
     view::{proposal_matches_topic, sort_nns_proposal_rows},
     wire::{
@@ -63,10 +63,10 @@ use crate::{
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Agent;
 
-pub(in crate::nns::proposals) fn build_nns_proposals_report(
-    request: &NnsProposalsRequest,
-) -> Result<NnsProposalsReport, NnsProposalHostError> {
-    build_nns_proposals_report_with_source(request, &LiveNnsProposalSource)
+pub(in crate::nns::proposals) fn build_nns_proposal_list_report(
+    request: &NnsProposalListRequest,
+) -> Result<NnsProposalListReport, NnsProposalHostError> {
+    build_nns_proposal_list_report_with_source(request, &LiveNnsProposalSource)
 }
 
 pub(in crate::nns::proposals) fn build_nns_proposal_report(
@@ -75,10 +75,10 @@ pub(in crate::nns::proposals) fn build_nns_proposal_report(
     build_nns_proposal_report_with_source(request, &LiveNnsProposalSource)
 }
 
-pub(in crate::nns::proposals::report) fn build_nns_proposals_report_with_source(
-    request: &NnsProposalsRequest,
+pub(in crate::nns::proposals::report) fn build_nns_proposal_list_report_with_source(
+    request: &NnsProposalListRequest,
     source: &dyn NnsProposalSource,
-) -> Result<NnsProposalsReport, NnsProposalHostError> {
+) -> Result<NnsProposalListReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
     let fetch_request = NnsProposalFetchRequest::new(&request.source_endpoint, &fetched_at);
@@ -105,8 +105,8 @@ pub(in crate::nns::proposals::report) fn build_nns_proposals_report_with_source(
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
         .collect::<Vec<_>>();
     sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
-    Ok(NnsProposalsReport {
-        schema_version: NNS_PROPOSALS_REPORT_SCHEMA_VERSION,
+    Ok(NnsProposalListReport {
+        schema_version: NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION,
         network: MAINNET_NETWORK.to_string(),
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
         fetched_at,
@@ -213,7 +213,7 @@ impl NnsProposalSource for LiveNnsProposalSource {
         include_status: &[i32],
         include_reward_status: &[i32],
     ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError> {
-        block_on_current_thread(fetch_nns_proposals_async(
+        block_on_current_thread(fetch_nns_proposal_list_async(
             request,
             limit,
             before_proposal_id,
@@ -233,7 +233,7 @@ impl NnsProposalSource for LiveNnsProposalSource {
     }
 }
 
-async fn fetch_nns_proposals_async(
+async fn fetch_nns_proposal_list_async(
     request: &NnsProposalFetchRequest,
     limit: u32,
     before_proposal_id: Option<u64>,
@@ -331,7 +331,9 @@ fn governance_canister() -> Result<Principal, NnsProposalHostError> {
     })
 }
 
-fn nns_proposal_row_from_info(info: NnsProposalInfo) -> NnsProposalRow {
+pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
+    info: NnsProposalInfo,
+) -> NnsProposalRow {
     let proposal = info.proposal;
     let ballot_count = info.ballots.len();
     let ballots = nns_proposal_ballot_rows(info.ballots);

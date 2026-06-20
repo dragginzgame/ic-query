@@ -1,0 +1,160 @@
+//! Module: nns::proposals::report::cache::reports
+//!
+//! Responsibility: build NNS proposal cache list and status reports.
+//! Does not own: refresh execution, live governance calls, or text rendering.
+//! Boundary: loads local complete snapshots and projects cache metadata.
+
+use super::{
+    NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
+    NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
+    attempt::read_attempt_status,
+    model::{
+        NnsProposalCache, NnsProposalCacheListReport, NnsProposalCacheListRequest,
+        NnsProposalCacheStatusReport, NnsProposalCacheStatusRequest, NnsProposalCacheSummary,
+    },
+    paths::{nns_proposal_cache_paths, nns_proposal_cache_root},
+};
+use crate::{
+    cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
+    nns::proposals::report::{NnsProposalHostError, enforce_mainnet_network},
+    snapshot_cache::{SnapshotCompleteness, load_complete_snapshot},
+};
+use std::{io, path::PathBuf};
+
+/// Build a local NNS proposal cache list report.
+pub(in crate::nns::proposals) fn build_nns_proposal_cache_list_report(
+    request: &NnsProposalCacheListRequest,
+) -> Result<NnsProposalCacheListReport, NnsProposalHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let paths = nns_proposal_cache_paths(&request.icp_root, &request.network);
+    let snapshot_path = paths.snapshot_path;
+    let caches = if snapshot_path.is_file() {
+        vec![load_nns_proposal_cache_summary(
+            snapshot_path,
+            &request.network,
+        )?]
+    } else {
+        Vec::new()
+    };
+    Ok(NnsProposalCacheListReport {
+        schema_version: NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
+        network: request.network.clone(),
+        cache_root: nns_proposal_cache_root(&request.icp_root, &request.network)
+            .display()
+            .to_string(),
+        cache_count: caches.len(),
+        caches,
+    })
+}
+
+/// Build a local NNS proposal cache status report.
+pub(in crate::nns::proposals) fn build_nns_proposal_cache_status_report(
+    request: &NnsProposalCacheStatusRequest,
+) -> Result<NnsProposalCacheStatusReport, NnsProposalHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let paths = nns_proposal_cache_paths(&request.icp_root, &request.network);
+    let cache = if paths.snapshot_path.is_file() {
+        Some(load_nns_proposal_cache_summary(
+            paths.snapshot_path.clone(),
+            &request.network,
+        )?)
+    } else {
+        None
+    };
+    let latest_attempt = cache
+        .as_ref()
+        .and_then(|summary| summary.latest_attempt.clone())
+        .or_else(|| read_attempt_status(&paths.refresh_attempt_path));
+    Ok(NnsProposalCacheStatusReport {
+        schema_version: NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
+        network: request.network.clone(),
+        cache_root: nns_proposal_cache_root(&request.icp_root, &request.network)
+            .display()
+            .to_string(),
+        found: cache.is_some(),
+        cache,
+        expected_cache_path: paths.snapshot_path.display().to_string(),
+        refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
+        latest_attempt,
+    })
+}
+
+fn load_nns_proposal_cache_summary(
+    cache_path: PathBuf,
+    network: &str,
+) -> Result<NnsProposalCacheSummary, NnsProposalHostError> {
+    let cache = load_nns_proposal_cache(cache_path.clone(), network)?;
+    Ok(nns_proposal_cache_summary(cache_path, cache))
+}
+
+fn load_nns_proposal_cache(
+    cache_path: PathBuf,
+    network: &str,
+) -> Result<NnsProposalCache, NnsProposalHostError> {
+    load_complete_snapshot(
+        LoadJsonCacheRequest {
+            path: cache_path,
+            network,
+            expected_schema_version: NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
+        },
+        NnsProposalCacheErrors,
+        incomplete_snapshot_error,
+    )
+}
+
+fn nns_proposal_cache_summary(
+    cache_path: PathBuf,
+    cache: NnsProposalCache,
+) -> NnsProposalCacheSummary {
+    let attempt_path = nns_proposal_cache_paths_for_cache_path(&cache_path);
+    NnsProposalCacheSummary {
+        governance_canister_id: cache.metadata.governance_canister_id,
+        complete: cache.completeness.is_api_exhausted(),
+        row_count: cache.completeness.row_count,
+        page_count: cache.completeness.page_count,
+        page_size: cache.completeness.page_size,
+        fetched_at: cache.fetched_at,
+        source_endpoint: cache.source_endpoint,
+        cache_path: cache_path.display().to_string(),
+        refresh_attempt_path: attempt_path.display().to_string(),
+        latest_attempt: read_attempt_status(&attempt_path),
+    }
+}
+
+fn nns_proposal_cache_paths_for_cache_path(cache_path: &std::path::Path) -> PathBuf {
+    cache_path.with_file_name("full.refresh-attempt.json")
+}
+
+fn incomplete_snapshot_error(completeness: &SnapshotCompleteness) -> NnsProposalHostError {
+    NnsProposalHostError::IncompleteRefresh {
+        pages_fetched: completeness.page_count,
+        rows_fetched: completeness.row_count,
+        reason: "cached NNS proposals snapshot is not complete".to_string(),
+    }
+}
+
+struct NnsProposalCacheErrors;
+
+impl LoadJsonCacheErrorMapper for NnsProposalCacheErrors {
+    type Error = NnsProposalHostError;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        NnsProposalHostError::MissingProposalCache { path }
+    }
+
+    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
+        NnsProposalHostError::ReadCache { path, source }
+    }
+
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
+        NnsProposalHostError::ParseCache { path, source }
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        NnsProposalHostError::UnsupportedCacheSchemaVersion { version, expected }
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        NnsProposalHostError::CacheNetworkMismatch { requested, actual }
+    }
+}

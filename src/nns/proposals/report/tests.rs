@@ -1,19 +1,21 @@
 use super::{
-    NNS_PROPOSAL_REPORT_SCHEMA_VERSION, NNS_PROPOSALS_REPORT_SCHEMA_VERSION, NnsProposalHostError,
+    NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+    NnsProposalHostError,
     model::{
         NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE, NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
         NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
         NNS_PROPOSAL_STATUS_EXECUTED_CODE, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
         NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-        NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE, NNS_PROPOSAL_VOTE_YES_LABEL, NnsProposalRequest,
+        NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE, NNS_PROPOSAL_VOTE_YES_LABEL,
+        NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
         NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
-        NnsProposalTopicFilter, NnsProposalsRequest, NnsProposalsSort,
+        NnsProposalTopicFilter,
     },
     source::{
-        NnsProposalFetchRequest, NnsProposalSource, build_nns_proposal_report_with_source,
-        build_nns_proposals_report_with_source,
+        NnsProposalFetchRequest, NnsProposalSource, build_nns_proposal_list_report_with_source,
+        build_nns_proposal_report_with_source,
     },
-    text::{nns_proposal_report_text, nns_proposals_report_text},
+    text::{nns_proposal_list_report_text, nns_proposal_report_text},
     wire::{
         NnsGovernanceBallot, NnsNeuronId, NnsProposal, NnsProposalAction, NnsProposalId,
         NnsProposalInfo, NnsProposalTallyWire,
@@ -60,7 +62,7 @@ impl NnsProposalSource for FixtureSource {
 }
 
 #[test]
-fn nns_proposals_report_filters_sorts_and_renders_rows() {
+fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     let source = FixtureSource {
         expected_status: vec![NNS_PROPOSAL_STATUS_EXECUTED_CODE],
         expected_reward_status: vec![NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE],
@@ -88,7 +90,7 @@ fn nns_proposals_report_filters_sorts_and_renders_rows() {
             20,
         ),
     };
-    let request = NnsProposalsRequest {
+    let request = NnsProposalListRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
         now_unix_secs: 1_700_000_000,
@@ -97,16 +99,19 @@ fn nns_proposals_report_filters_sorts_and_renders_rows() {
         status: NnsProposalStatusFilter::Executed,
         reward_status: NnsProposalRewardStatusFilter::Settled,
         topic: NnsProposalTopicFilter::Governance,
-        sort: NnsProposalsSort::Title,
+        sort: NnsProposalListSort::Title,
         sort_direction: NnsProposalSortDirection::Asc,
         verbose: true,
     };
 
-    let report =
-        build_nns_proposals_report_with_source(&request, &source).expect("build proposals report");
-    let text = nns_proposals_report_text(&report);
+    let report = build_nns_proposal_list_report_with_source(&request, &source)
+        .expect("build proposals report");
+    let text = nns_proposal_list_report_text(&report);
 
-    assert_eq!(report.schema_version, NNS_PROPOSALS_REPORT_SCHEMA_VERSION);
+    assert_eq!(
+        report.schema_version,
+        NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION
+    );
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(
         report.governance_canister_id,

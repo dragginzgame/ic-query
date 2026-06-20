@@ -4,8 +4,15 @@
 //! Does not own: live governance calls, JSON output, or report assembly.
 //! Boundary: formats NNS proposal rows for human CLI output.
 
-use super::model::{NnsProposalBallotRow, NnsProposalReport, NnsProposalRow, NnsProposalsReport};
+use super::{
+    cache::{
+        NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshAttemptStatus,
+        NnsProposalRefreshReport,
+    },
+    model::{NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow},
+};
 use crate::{
+    nns::render::yes_no,
     table::{ColumnAlign, render_table},
     token_amount::e8s_decimal_text,
 };
@@ -13,7 +20,9 @@ use crate::{
 const NNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;
 
 #[must_use]
-pub(in crate::nns::proposals) fn nns_proposals_report_text(report: &NnsProposalsReport) -> String {
+pub(in crate::nns::proposals) fn nns_proposal_list_report_text(
+    report: &NnsProposalListReport,
+) -> String {
     let mut lines = vec![
         format!("network: {}", report.network),
         format!("governance_canister_id: {}", report.governance_canister_id),
@@ -97,6 +106,99 @@ pub(in crate::nns::proposals) fn nns_proposal_report_text(report: &NnsProposalRe
         } else {
             lines.push("-".to_string());
         }
+    }
+    lines.join("\n")
+}
+
+#[must_use]
+pub(in crate::nns::proposals) fn nns_proposal_refresh_report_text(
+    report: &NnsProposalRefreshReport,
+) -> String {
+    [
+        format!("network: {}", report.network),
+        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!("proposal_count: {}", report.proposal_count),
+        format!("page_size: {}", report.page_size),
+        format!("page_count: {}", report.page_count),
+        format!("complete: {}", yes_no(report.complete)),
+        format!(
+            "replaced_existing_cache: {}",
+            yes_no(report.replaced_existing_cache)
+        ),
+        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_by: {}", report.fetched_by),
+        format!("cache_path: {}", report.cache_path),
+        format!("refresh_attempt_path: {}", report.refresh_attempt_path),
+        format!("refresh_lock_path: {}", report.refresh_lock_path),
+    ]
+    .join("\n")
+}
+
+#[must_use]
+pub(in crate::nns::proposals) fn nns_proposal_cache_list_report_text(
+    report: &NnsProposalCacheListReport,
+) -> String {
+    let mut lines = vec![
+        format!("network: {}", report.network),
+        format!("cache_root: {}", report.cache_root),
+        format!("cache_count: {}", report.cache_count),
+    ];
+    if !report.caches.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["GOVERNANCE", "ROWS", "PAGES", "FETCHED_AT"],
+            &report
+                .caches
+                .iter()
+                .map(|cache| {
+                    [
+                        cache.governance_canister_id.clone(),
+                        cache.row_count.to_string(),
+                        cache.page_count.to_string(),
+                        cache.fetched_at.clone(),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+            ],
+        ));
+    }
+    lines.join("\n")
+}
+
+#[must_use]
+pub(in crate::nns::proposals) fn nns_proposal_cache_status_report_text(
+    report: &NnsProposalCacheStatusReport,
+) -> String {
+    let mut lines = vec![
+        format!("network: {}", report.network),
+        format!("cache_root: {}", report.cache_root),
+        format!("found: {}", yes_no(report.found)),
+        format!("expected_cache_path: {}", report.expected_cache_path),
+        format!("refresh_attempt_path: {}", report.refresh_attempt_path),
+    ];
+    if let Some(cache) = report.cache.as_ref() {
+        lines.extend([
+            format!("governance_canister_id: {}", cache.governance_canister_id),
+            format!("complete: {}", yes_no(cache.complete)),
+            format!("row_count: {}", cache.row_count),
+            format!("page_count: {}", cache.page_count),
+            format!("page_size: {}", cache.page_size),
+            format!("fetched_at: {}", cache.fetched_at),
+            format!("source_endpoint: {}", cache.source_endpoint),
+            format!("cache_path: {}", cache.cache_path),
+        ]);
+    } else {
+        lines.push("refresh_hint: icq nns proposal refresh".to_string());
+    }
+    if let Some(attempt) = report.latest_attempt.as_ref() {
+        lines.extend(attempt_lines(attempt));
     }
     lines.join("\n")
 }
@@ -216,6 +318,22 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
     ))
 }
 
-const fn yes_no(value: bool) -> &'static str {
-    if value { "yes" } else { "no" }
+fn attempt_lines(attempt: &NnsProposalRefreshAttemptStatus) -> [String; 9] {
+    [
+        "latest_attempt:".to_string(),
+        format!("  status: {}", attempt.status),
+        format!("  started_at: {}", attempt.started_at),
+        format!("  updated_at: {}", attempt.updated_at),
+        format!("  page_size: {}", attempt.page_size),
+        format!("  pages_fetched: {}", attempt.pages_fetched),
+        format!("  rows_fetched: {}", attempt.rows_fetched),
+        format!(
+            "  last_cursor: {}",
+            attempt.last_cursor.as_deref().unwrap_or("-")
+        ),
+        format!(
+            "  last_error: {}",
+            attempt.last_error.as_deref().unwrap_or("-")
+        ),
+    ]
 }

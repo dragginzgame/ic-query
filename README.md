@@ -36,7 +36,7 @@ icq nns node [list|info|refresh]
 icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
-icq nns proposal [list|info]
+icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns proposals [cache|refresh]
@@ -133,6 +133,21 @@ Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
 and action default to ascending, while id, tally, ballot count, reject cost,
 reward round, and timestamp sorts default to descending.
 
+Complete NNS proposal snapshots can be refreshed and inspected explicitly. A
+refresh pages through NNS governance until the API is exhausted, writes progress
+to stderr in a terminal, and publishes only complete snapshots:
+
+```sh
+icq nns proposal refresh
+icq nns proposal refresh --max-pages 5
+icq nns proposal cache list
+icq nns proposal cache status
+```
+
+Complete NNS proposal snapshots live under
+`.icq/nns/ic/governance/proposals/full.json`. Failed or capped refresh attempts
+are recorded separately and do not replace the last complete snapshot.
+
 SNS governance proposals can be queried as cached list views or direct live
 detail lookups. Normal proposal list views auto-create a complete local
 snapshot on first use, then apply supported view options locally. Proposal
@@ -194,6 +209,10 @@ The command namespace is intentionally small:
 - `nns` is implemented.
 - `nns proposal list` and `nns proposal info` are implemented as direct live
   mainnet NNS governance proposal queries.
+- `nns proposal refresh` caches complete mainnet NNS governance proposal
+  snapshots.
+- `nns proposal cache list|status` inspects local complete NNS proposal
+  snapshots and refresh-attempt metadata without live calls.
 - `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
   `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
   instances.

@@ -5,32 +5,32 @@
 //! Boundary: converts CLI option values into NNS proposal report-model values.
 
 use crate::nns::proposals::report::{
-    NnsProposalRewardStatusFilter, NnsProposalStatusFilter, NnsProposalTopicFilter,
-    NnsProposalsSort,
+    NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalStatusFilter,
+    NnsProposalTopicFilter,
 };
 use clap::ValueEnum;
 
 pub(in crate::nns::proposals) const NNS_PROPOSAL_ID_ARG: &str = "proposal-id";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_BALLOTS_FLAG: &str = "ballots";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_VERBOSE_FLAG: &str = "verbose";
-pub(in crate::nns::proposals) const NNS_PROPOSALS_REWARD_STATUS_ARG: &str = "reward-status";
-pub(in crate::nns::proposals) const NNS_PROPOSALS_SORT_VALUE_NAME: &str = concat!(
+pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_REWARD_STATUS_ARG: &str = "reward-status";
+pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_SORT_VALUE_NAME: &str = concat!(
     "api|id|status|topic|proposer|title|action|yes|no|total-votes|",
     "ballots|reject-cost|reward-round|proposed|decided|executed|failed"
 );
-pub(in crate::nns::proposals) const NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME: &str = concat!(
+pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME: &str = concat!(
     "id|status|topic|proposer|title|action|yes|no|total-votes|",
     "ballots|reject-cost|reward-round|proposed|decided|executed|failed"
 );
 
 ///
-/// NnsProposalsSortArg
+/// NnsProposalListSortArg
 ///
 /// Command-local clap value accepted by `icq nns proposal list --sort`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(in crate::nns::proposals) enum NnsProposalsSortArg {
+pub(in crate::nns::proposals) enum NnsProposalListSortArg {
     #[default]
     Api,
     Id,
@@ -51,26 +51,26 @@ pub(in crate::nns::proposals) enum NnsProposalsSortArg {
     Failed,
 }
 
-impl From<NnsProposalsSortArg> for NnsProposalsSort {
-    fn from(value: NnsProposalsSortArg) -> Self {
+impl From<NnsProposalListSortArg> for NnsProposalListSort {
+    fn from(value: NnsProposalListSortArg) -> Self {
         match value {
-            NnsProposalsSortArg::Api => Self::Api,
-            NnsProposalsSortArg::Id => Self::Id,
-            NnsProposalsSortArg::Status => Self::Status,
-            NnsProposalsSortArg::Topic => Self::Topic,
-            NnsProposalsSortArg::Proposer => Self::Proposer,
-            NnsProposalsSortArg::Title => Self::Title,
-            NnsProposalsSortArg::Action => Self::Action,
-            NnsProposalsSortArg::Yes => Self::Yes,
-            NnsProposalsSortArg::No => Self::No,
-            NnsProposalsSortArg::TotalVotes => Self::TotalVotes,
-            NnsProposalsSortArg::Ballots => Self::Ballots,
-            NnsProposalsSortArg::RejectCost => Self::RejectCost,
-            NnsProposalsSortArg::RewardRound => Self::RewardRound,
-            NnsProposalsSortArg::Proposed => Self::Proposed,
-            NnsProposalsSortArg::Decided => Self::Decided,
-            NnsProposalsSortArg::Executed => Self::Executed,
-            NnsProposalsSortArg::Failed => Self::Failed,
+            NnsProposalListSortArg::Api => Self::Api,
+            NnsProposalListSortArg::Id => Self::Id,
+            NnsProposalListSortArg::Status => Self::Status,
+            NnsProposalListSortArg::Topic => Self::Topic,
+            NnsProposalListSortArg::Proposer => Self::Proposer,
+            NnsProposalListSortArg::Title => Self::Title,
+            NnsProposalListSortArg::Action => Self::Action,
+            NnsProposalListSortArg::Yes => Self::Yes,
+            NnsProposalListSortArg::No => Self::No,
+            NnsProposalListSortArg::TotalVotes => Self::TotalVotes,
+            NnsProposalListSortArg::Ballots => Self::Ballots,
+            NnsProposalListSortArg::RejectCost => Self::RejectCost,
+            NnsProposalListSortArg::RewardRound => Self::RewardRound,
+            NnsProposalListSortArg::Proposed => Self::Proposed,
+            NnsProposalListSortArg::Decided => Self::Decided,
+            NnsProposalListSortArg::Executed => Self::Executed,
+            NnsProposalListSortArg::Failed => Self::Failed,
         }
     }
 }

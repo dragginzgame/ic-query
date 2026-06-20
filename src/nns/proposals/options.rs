@@ -5,24 +5,33 @@
 //! Boundary: converts clap matches into command-local option structs.
 
 use super::commands::{
+    nns_proposal_cache_list_command, nns_proposal_cache_list_usage_for_error,
+    nns_proposal_cache_status_command, nns_proposal_cache_status_usage_for_error,
     nns_proposal_info_command, nns_proposal_info_usage_for_error, nns_proposal_list_command,
-    nns_proposal_list_usage_for_error,
+    nns_proposal_list_usage_for_error, nns_proposal_refresh_command,
+    nns_proposal_refresh_usage_for_error,
 };
-use crate::nns::{
-    NnsCommandError, OutputFormat,
-    leaf::NnsCommonOptions,
-    parse_nns_matches,
-    proposals::{
-        report::{
-            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
-            NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
-            NnsProposalTopicFilter, NnsProposalsSort,
-        },
-        values::{
-            NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_VERBOSE_FLAG,
-            NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, NNS_PROPOSALS_REWARD_STATUS_ARG,
-            NnsProposalRewardStatusArg, NnsProposalStatusArg, NnsProposalTopicArg,
-            NnsProposalsSortArg,
+use crate::{
+    cli::{
+        clap::{required_string, required_typed},
+        common::FORMAT_ARG,
+    },
+    nns::{
+        NnsCommandError, OutputFormat,
+        leaf::NnsCommonOptions,
+        parse_nns_matches,
+        proposals::{
+            report::{
+                NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL, NnsProposalListSort,
+                NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
+                NnsProposalTopicFilter,
+            },
+            values::{
+                NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG,
+                NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
+                NNS_PROPOSAL_VERBOSE_FLAG, NnsProposalListSortArg, NnsProposalRewardStatusArg,
+                NnsProposalStatusArg, NnsProposalTopicArg,
+            },
         },
     },
 };
@@ -31,13 +40,13 @@ use clap::Command as ClapCommand;
 use std::ffi::OsString;
 
 ///
-/// NnsProposalsOptions
+/// NnsProposalListOptions
 ///
 /// Options accepted by `icq nns proposal list`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalsOptions {
+pub(in crate::nns) struct NnsProposalListOptions {
     pub(in crate::nns) network: String,
     pub(in crate::nns) format: OutputFormat,
     pub(in crate::nns) source_endpoint: String,
@@ -46,12 +55,12 @@ pub(in crate::nns) struct NnsProposalsOptions {
     pub(in crate::nns) status: NnsProposalStatusFilter,
     pub(in crate::nns) reward_status: NnsProposalRewardStatusFilter,
     pub(in crate::nns) topic: NnsProposalTopicFilter,
-    pub(in crate::nns) sort: NnsProposalsSort,
+    pub(in crate::nns) sort: NnsProposalListSort,
     pub(in crate::nns) sort_direction: NnsProposalSortDirection,
     pub(in crate::nns) verbose: bool,
 }
 
-impl NnsProposalsOptions {
+impl NnsProposalListOptions {
     pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
@@ -74,7 +83,7 @@ impl NnsProposalsOptions {
         let matches = parse_nns_matches(command, args, usage)?;
         let common = NnsCommonOptions::from_matches(&matches);
         let sort = *matches
-            .get_one::<NnsProposalsSortArg>("sort")
+            .get_one::<NnsProposalListSortArg>("sort")
             .expect("clap default supplies proposal sort");
         let sort_direction = proposal_sort_direction(&matches, sort)?;
         Ok(Self {
@@ -90,7 +99,7 @@ impl NnsProposalsOptions {
                 .expect("clap default supplies proposal status"))
             .into(),
             reward_status: (*matches
-                .get_one::<NnsProposalRewardStatusArg>(NNS_PROPOSALS_REWARD_STATUS_ARG)
+                .get_one::<NnsProposalRewardStatusArg>(NNS_PROPOSAL_LIST_REWARD_STATUS_ARG)
                 .expect("clap default supplies proposal reward status"))
             .into(),
             topic: (*matches
@@ -106,9 +115,9 @@ impl NnsProposalsOptions {
 
 fn proposal_sort_direction(
     matches: &ArgMatches,
-    sort: NnsProposalsSortArg,
+    sort: NnsProposalListSortArg,
 ) -> Result<NnsProposalSortDirection, NnsCommandError> {
-    let sort = NnsProposalsSort::from(sort);
+    let sort = NnsProposalListSort::from(sort);
     if matches.get_flag(NNS_PROPOSAL_SORT_ASC_LABEL) {
         return explicit_proposal_sort_direction(
             sort,
@@ -127,13 +136,13 @@ fn proposal_sort_direction(
 }
 
 fn explicit_proposal_sort_direction(
-    sort: NnsProposalsSort,
+    sort: NnsProposalListSort,
     direction: NnsProposalSortDirection,
     flag: &'static str,
 ) -> Result<NnsProposalSortDirection, NnsCommandError> {
     if !sort.uses_local_direction() {
         return Err(NnsCommandError::Usage(format!(
-            "--{flag} requires --sort {NNS_PROPOSALS_LOCAL_SORT_VALUE_NAME}"
+            "--{flag} requires --sort {NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME}"
         )));
     }
     Ok(direction)
@@ -186,6 +195,102 @@ impl NnsProposalOptions {
                 .expect("required proposal id"),
             show_ballots: matches.get_flag(NNS_PROPOSAL_BALLOTS_FLAG),
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
+        })
+    }
+}
+
+///
+/// NnsProposalRefreshOptions
+///
+/// Options accepted by `icq nns proposal refresh`.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::nns) struct NnsProposalRefreshOptions {
+    pub(in crate::nns) network: String,
+    pub(in crate::nns) format: OutputFormat,
+    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) page_size: u32,
+    pub(in crate::nns) max_pages: Option<u32>,
+}
+
+impl NnsProposalRefreshOptions {
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_nns_matches(
+            nns_proposal_refresh_command(),
+            args,
+            nns_proposal_refresh_usage_for_error,
+        )?;
+        let common = NnsCommonOptions::from_matches(&matches);
+        Ok(Self {
+            network: common.network,
+            format: common.format,
+            source_endpoint: common.source_endpoint,
+            page_size: *matches
+                .get_one::<u32>("page-size")
+                .expect("clap default supplies page size"),
+            max_pages: matches.get_one::<u32>("max-pages").copied(),
+        })
+    }
+}
+
+///
+/// NnsProposalCacheListOptions
+///
+/// Options accepted by `icq nns proposal cache list`.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::nns) struct NnsProposalCacheListOptions {
+    pub(in crate::nns) network: String,
+    pub(in crate::nns) format: OutputFormat,
+}
+
+impl NnsProposalCacheListOptions {
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_nns_matches(
+            nns_proposal_cache_list_command(),
+            args,
+            nns_proposal_cache_list_usage_for_error,
+        )?;
+        Ok(Self {
+            network: required_string(&matches, "network"),
+            format: required_typed(&matches, FORMAT_ARG),
+        })
+    }
+}
+
+///
+/// NnsProposalCacheStatusOptions
+///
+/// Options accepted by `icq nns proposal cache status`.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::nns) struct NnsProposalCacheStatusOptions {
+    pub(in crate::nns) network: String,
+    pub(in crate::nns) format: OutputFormat,
+}
+
+impl NnsProposalCacheStatusOptions {
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_nns_matches(
+            nns_proposal_cache_status_command(),
+            args,
+            nns_proposal_cache_status_usage_for_error,
+        )?;
+        Ok(Self {
+            network: required_string(&matches, "network"),
+            format: required_typed(&matches, FORMAT_ARG),
         })
     }
 }

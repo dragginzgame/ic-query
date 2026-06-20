@@ -5,7 +5,7 @@
 //! Boundary: transforms proposal rows without changing source identity.
 
 use super::model::{
-    NnsProposalRow, NnsProposalSortDirection, NnsProposalTopicFilter, NnsProposalsSort,
+    NnsProposalListSort, NnsProposalRow, NnsProposalSortDirection, NnsProposalTopicFilter,
 };
 use std::cmp::Ordering;
 
@@ -20,81 +20,81 @@ pub(in crate::nns::proposals::report) fn proposal_matches_topic(
 
 pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
     proposals: &mut [NnsProposalRow],
-    sort: NnsProposalsSort,
+    sort: NnsProposalListSort,
     direction: NnsProposalSortDirection,
 ) {
     match sort {
-        NnsProposalsSort::Api => {}
-        NnsProposalsSort::Id => {
+        NnsProposalListSort::Api => {}
+        NnsProposalListSort::Id => {
             sort_by_optional_u64(proposals, direction, |proposal| proposal.proposal_id);
         }
-        NnsProposalsSort::Status => {
+        NnsProposalListSort::Status => {
             sort_by_text(proposals, direction, |proposal| {
                 proposal.status_text.as_str()
             });
         }
-        NnsProposalsSort::Topic => {
+        NnsProposalListSort::Topic => {
             sort_by_text(proposals, direction, |proposal| {
                 proposal.topic_text.as_str()
             });
         }
-        NnsProposalsSort::Proposer => {
+        NnsProposalListSort::Proposer => {
             sort_by_optional_u64(proposals, direction, |proposal| proposal.proposer_neuron_id);
         }
-        NnsProposalsSort::Title => {
+        NnsProposalListSort::Title => {
             sort_by_optional_text(proposals, direction, |proposal| proposal.title.as_deref());
         }
-        NnsProposalsSort::Action => {
+        NnsProposalListSort::Action => {
             sort_by_optional_text(proposals, direction, |proposal| {
                 proposal.action_text.as_deref()
             });
         }
-        NnsProposalsSort::Yes => {
+        NnsProposalListSort::Yes => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 proposal.latest_tally.as_ref().map(|tally| tally.yes)
             });
         }
-        NnsProposalsSort::No => {
+        NnsProposalListSort::No => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 proposal.latest_tally.as_ref().map(|tally| tally.no)
             });
         }
-        NnsProposalsSort::TotalVotes => {
+        NnsProposalListSort::TotalVotes => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 proposal.latest_tally.as_ref().map(|tally| tally.total)
             });
         }
-        NnsProposalsSort::Ballots => {
+        NnsProposalListSort::Ballots => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 Some(proposal.ballot_count as u64)
             });
         }
-        NnsProposalsSort::RejectCost => {
+        NnsProposalListSort::RejectCost => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 Some(proposal.reject_cost_e8s)
             });
         }
-        NnsProposalsSort::RewardRound => {
+        NnsProposalListSort::RewardRound => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 Some(proposal.reward_event_round)
             });
         }
-        NnsProposalsSort::Proposed => {
+        NnsProposalListSort::Proposed => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 Some(proposal.proposal_timestamp_seconds)
             });
         }
-        NnsProposalsSort::Decided => {
+        NnsProposalListSort::Decided => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 nonzero_timestamp(proposal.decided_timestamp_seconds)
             });
         }
-        NnsProposalsSort::Executed => {
+        NnsProposalListSort::Executed => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 nonzero_timestamp(proposal.executed_timestamp_seconds)
             });
         }
-        NnsProposalsSort::Failed => {
+        NnsProposalListSort::Failed => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 nonzero_timestamp(proposal.failed_timestamp_seconds)
             });

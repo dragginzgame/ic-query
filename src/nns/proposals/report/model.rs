@@ -104,13 +104,13 @@ pub(in crate::nns) const NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE: i32 = 18;
 
 ///
-/// NnsProposalsRequest
+/// NnsProposalListRequest
 ///
 /// Request accepted by the NNS proposal list report builder.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalsRequest {
+pub(in crate::nns) struct NnsProposalListRequest {
     pub(in crate::nns::proposals) network: String,
     pub(in crate::nns::proposals) source_endpoint: String,
     pub(in crate::nns::proposals) now_unix_secs: u64,
@@ -119,7 +119,7 @@ pub(in crate::nns) struct NnsProposalsRequest {
     pub(in crate::nns::proposals) status: NnsProposalStatusFilter,
     pub(in crate::nns::proposals) reward_status: NnsProposalRewardStatusFilter,
     pub(in crate::nns::proposals) topic: NnsProposalTopicFilter,
-    pub(in crate::nns::proposals) sort: NnsProposalsSort,
+    pub(in crate::nns::proposals) sort: NnsProposalListSort,
     pub(in crate::nns::proposals) sort_direction: NnsProposalSortDirection,
     pub(in crate::nns::proposals) verbose: bool,
 }
@@ -141,13 +141,13 @@ pub(in crate::nns) struct NnsProposalRequest {
 }
 
 ///
-/// NnsProposalsReport
+/// NnsProposalListReport
 ///
 /// Serializable report for a bounded NNS governance proposal listing.
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalsReport {
+pub(in crate::nns) struct NnsProposalListReport {
     pub schema_version: u32,
     pub network: String,
     pub governance_canister_id: String,
@@ -253,13 +253,13 @@ pub(in crate::nns) struct NnsProposalTally {
 }
 
 ///
-/// NnsProposalsSort
+/// NnsProposalListSort
 ///
 /// Report-model sort selector for NNS proposal listings.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(in crate::nns) enum NnsProposalsSort {
+pub(in crate::nns) enum NnsProposalListSort {
     #[default]
     Api,
     Id,
@@ -280,7 +280,7 @@ pub(in crate::nns) enum NnsProposalsSort {
     Failed,
 }
 
-impl NnsProposalsSort {
+impl NnsProposalListSort {
     pub(in crate::nns) const fn as_str(self) -> &'static str {
         match self {
             Self::Api => NNS_PROPOSAL_SORT_API_LABEL,

@@ -15,17 +15,22 @@ pub(in crate::nns) use run::run;
 
 #[cfg(test)]
 pub(in crate::nns) use commands::{
-    nns_proposal_info_usage, nns_proposal_list_usage, nns_proposal_usage,
+    nns_proposal_cache_list_usage, nns_proposal_cache_status_usage, nns_proposal_cache_usage,
+    nns_proposal_info_usage, nns_proposal_list_usage, nns_proposal_refresh_usage,
+    nns_proposal_usage,
 };
 #[cfg(test)]
-pub(in crate::nns) use options::{NnsProposalOptions, NnsProposalsOptions};
+pub(in crate::nns) use options::{
+    NnsProposalCacheListOptions, NnsProposalCacheStatusOptions, NnsProposalListOptions,
+    NnsProposalOptions, NnsProposalRefreshOptions,
+};
 #[cfg(test)]
 pub(in crate::nns) use report::{
     DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
     NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_API_LABEL,
     NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_NONE_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
     NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-    NNS_PROPOSAL_TOPIC_ANY_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+    NNS_PROPOSAL_TOPIC_ANY_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL, NnsProposalListSort,
     NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
-    NnsProposalTopicFilter, NnsProposalsSort,
+    NnsProposalTopicFilter,
 };

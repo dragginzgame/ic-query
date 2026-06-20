@@ -11,6 +11,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.28` adds explicit complete NNS proposal snapshot refresh and cache
+  inspection commands under `icq nns proposal refresh` and
+  `icq nns proposal cache list|status`, reusing the shared snapshot cache
+  lock, progress, attempt sidecar, and complete-only publish flow while
+  keeping normal `icq nns proposal list` as a bounded live query.
+
+  ```bash
+  icq nns proposal refresh
+  icq nns proposal refresh --max-pages 5
+  icq nns proposal cache status
+  ```
+
 - `0.2.27` moves NNS proposal queries under grouped commands
   `icq nns proposal list` and `icq nns proposal info <proposal-id>`, removes
   the ungrouped `icq nns proposals` and `icq nns proposal <proposal-id>` forms,

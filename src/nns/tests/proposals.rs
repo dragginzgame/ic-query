@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn nns_proposal_list_parses_defaults_and_json_format() {
-    let defaults = NnsProposalsOptions::parse_list([]).expect("parse defaults");
+    let defaults = NnsProposalListOptions::parse_list([]).expect("parse defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -15,7 +15,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(defaults.status, NnsProposalStatusFilter::Any);
     assert_eq!(defaults.reward_status, NnsProposalRewardStatusFilter::Any);
     assert_eq!(defaults.topic, NnsProposalTopicFilter::Any);
-    assert_eq!(defaults.sort, NnsProposalsSort::Api);
+    assert_eq!(defaults.sort, NnsProposalListSort::Api);
     assert_eq!(defaults.sort_direction, NnsProposalSortDirection::Desc);
     assert_eq!(defaults.status.as_str(), NNS_PROPOSAL_STATUS_ANY_LABEL);
     assert_eq!(
@@ -30,7 +30,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     );
     assert!(!defaults.verbose);
 
-    let options = NnsProposalsOptions::parse_list([
+    let options = NnsProposalListOptions::parse_list([
         OsString::from("--format"),
         OsString::from("json"),
         OsString::from("--source-endpoint"),
@@ -62,7 +62,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
         NnsProposalRewardStatusFilter::Settled
     );
     assert_eq!(options.topic, NnsProposalTopicFilter::Governance);
-    assert_eq!(options.sort, NnsProposalsSort::Title);
+    assert_eq!(options.sort, NnsProposalListSort::Title);
     assert_eq!(options.sort_direction, NnsProposalSortDirection::Asc);
     assert_eq!(options.status.as_str(), NNS_PROPOSAL_STATUS_EXECUTED_LABEL);
     assert_eq!(
@@ -77,7 +77,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     );
     assert!(options.verbose);
 
-    let grouped_options = NnsProposalsOptions::parse_list([
+    let grouped_options = NnsProposalListOptions::parse_list([
         OsString::from("--limit"),
         OsString::from("10"),
         OsString::from("--reward-status"),
@@ -125,21 +125,82 @@ fn nns_proposal_parses_id_and_json_format() {
 }
 
 #[test]
+fn nns_proposal_refresh_parses_cache_options() {
+    let defaults = NnsProposalRefreshOptions::parse([]).expect("parse refresh defaults");
+
+    assert_eq!(defaults.network, MAINNET_NETWORK);
+    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(
+        defaults.source_endpoint,
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT
+    );
+    assert_eq!(defaults.page_size, 100);
+    assert_eq!(defaults.max_pages, None);
+
+    let options = NnsProposalRefreshOptions::parse([
+        OsString::from("--format"),
+        OsString::from("json"),
+        OsString::from("--source-endpoint"),
+        OsString::from("https://icp-api.io"),
+        OsString::from("--page-size"),
+        OsString::from("25"),
+        OsString::from("--max-pages"),
+        OsString::from("2"),
+    ])
+    .expect("parse refresh options");
+
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.page_size, 25);
+    assert_eq!(options.max_pages, Some(2));
+}
+
+#[test]
+fn nns_proposal_cache_options_parse_json_format() {
+    let list =
+        NnsProposalCacheListOptions::parse([OsString::from("--format"), OsString::from("json")])
+            .expect("parse cache list");
+    let status =
+        NnsProposalCacheStatusOptions::parse([OsString::from("--format"), OsString::from("json")])
+            .expect("parse cache status");
+
+    assert_eq!(list.network, MAINNET_NETWORK);
+    assert_eq!(list.format, OutputFormat::Json);
+    assert_eq!(status.network, MAINNET_NETWORK);
+    assert_eq!(status.format, OutputFormat::Json);
+}
+
+#[test]
 fn nns_proposal_help_is_advertised_under_nns() {
     let nns = usage();
     let proposal = nns_proposal_usage();
     let proposal_list = nns_proposal_list_usage();
     let proposal_info = nns_proposal_info_usage();
+    let proposal_refresh = nns_proposal_refresh_usage();
+    let proposal_cache = nns_proposal_cache_usage();
+    let proposal_cache_list = nns_proposal_cache_list_usage();
+    let proposal_cache_status = nns_proposal_cache_status_usage();
 
     assert!(nns.contains("proposal"));
     assert!(!nns.contains("\n  proposals"));
     assert!(proposal.contains("list"));
     assert!(proposal.contains("info"));
+    assert!(proposal.contains("refresh"));
+    assert!(proposal.contains("cache"));
     assert!(proposal.contains("icq nns proposal list"));
     assert!(proposal.contains("icq nns proposal info 132411"));
+    assert!(proposal.contains("icq nns proposal refresh"));
+    assert!(proposal.contains("icq nns proposal cache status"));
     assert!(proposal_list.contains("icq nns proposal list"));
     assert!(proposal_list.contains("--reward-status settled"));
     assert!(proposal_info.contains("icq nns proposal info 132411"));
+    assert!(proposal_refresh.contains("icq nns proposal refresh"));
+    assert!(proposal_refresh.contains("--page-size"));
+    assert!(proposal_refresh.contains("--max-pages"));
+    assert!(proposal_cache.contains("icq nns proposal cache list"));
+    assert!(proposal_cache.contains("icq nns proposal cache status"));
+    assert!(proposal_cache_list.contains("icq nns proposal cache list"));
+    assert!(proposal_cache_status.contains("icq nns proposal cache status"));
     assert!(proposal_list.contains("--limit 50"));
     assert!(proposal_list.contains("--before 132000"));
     assert!(proposal_list.contains("--status open"));
@@ -154,7 +215,7 @@ fn nns_proposal_help_is_advertised_under_nns() {
 
 #[test]
 fn nns_proposal_list_rejects_direction_without_local_sort() {
-    let err = NnsProposalsOptions::parse_list([OsString::from("--desc")])
+    let err = NnsProposalListOptions::parse_list([OsString::from("--desc")])
         .expect_err("direction without local sort rejected");
 
     assert!(err.to_string().contains("--desc requires --sort"));
