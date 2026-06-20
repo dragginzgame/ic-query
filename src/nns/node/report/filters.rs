@@ -42,11 +42,10 @@ fn principal_filter_matches(value: &str, filter: &str) -> bool {
     let Some(filter) = non_empty_filter(filter) else {
         return false;
     };
-    if let Ok(principal) = canonical_principal_text(filter) {
-        value == principal
-    } else {
-        value.starts_with(&filter.to_ascii_lowercase())
-    }
+    canonical_principal_text(filter).map_or_else(
+        |_| value.starts_with(&filter.to_ascii_lowercase()),
+        |principal| value == principal,
+    )
 }
 
 fn text_filter_starts_with(value: &str, filter: &str) -> bool {

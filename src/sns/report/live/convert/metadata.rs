@@ -82,6 +82,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::SerializeCache { .. }
         | SnsHostError::UnsupportedCacheSchemaVersion { .. }
         | SnsHostError::CacheNetworkMismatch { .. }
+        | SnsHostError::CacheIdentityMismatch { .. }
         | SnsHostError::Cache(_)
         | SnsHostError::IncompleteRefresh { .. }
         | SnsHostError::MissingCacheRoot

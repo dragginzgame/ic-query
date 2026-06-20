@@ -91,12 +91,57 @@ impl<Metadata, Data> JsonCacheReport for SnapshotEnvelope<Metadata, Data> {
 
 pub trait SnapshotReport: JsonCacheReport {
     fn completeness(&self) -> &SnapshotCompleteness;
+
+    fn snapshot_domain(&self) -> Option<&str> {
+        None
+    }
+
+    fn snapshot_entity(&self) -> Option<&str> {
+        None
+    }
+
+    fn snapshot_collection(&self) -> Option<&str> {
+        None
+    }
+
+    fn snapshot_scope(&self) -> Option<&str> {
+        None
+    }
 }
 
 impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
     fn completeness(&self) -> &SnapshotCompleteness {
         &self.completeness
     }
+
+    fn snapshot_domain(&self) -> Option<&str> {
+        self.domain.as_deref()
+    }
+
+    fn snapshot_entity(&self) -> Option<&str> {
+        self.entity.as_deref()
+    }
+
+    fn snapshot_collection(&self) -> Option<&str> {
+        self.collection.as_deref()
+    }
+
+    fn snapshot_scope(&self) -> Option<&str> {
+        self.scope.as_deref()
+    }
+}
+
+///
+/// SnapshotIdentityMismatch
+///
+/// Mismatch between a snapshot envelope identity field and its logical key.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnapshotIdentityMismatch {
+    pub field: &'static str,
+    pub expected: String,
+    pub actual: String,
 }
 
 ///

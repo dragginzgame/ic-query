@@ -106,6 +106,17 @@ pub enum SnsHostError {
     #[error("cached SNS network mismatch: path is for {requested}, report is for {actual}")]
     CacheNetworkMismatch { requested: String, actual: String },
 
+    #[error(
+        "cached SNS snapshot identity mismatch at {}: {field} is {actual}, expected {expected}",
+        path.display()
+    )]
+    CacheIdentityMismatch {
+        path: PathBuf,
+        field: &'static str,
+        expected: String,
+        actual: String,
+    },
+
     #[error("SNS cache operation failed: {0}")]
     Cache(#[from] CacheFileError),
 

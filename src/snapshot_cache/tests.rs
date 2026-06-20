@@ -1,12 +1,20 @@
 use super::{
     LockedSnapshotRefreshRequest, PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
-    SnapshotCompleteness, SnapshotEnvelope, SnapshotJsonPaths, SnapshotKey, SnapshotRefreshAttempt,
-    collect_full_collection_snapshot_paths, run_paged_snapshot_refresh,
-    run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
+    SnapshotCompleteness, SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotJsonPaths,
+    SnapshotKey, SnapshotRefreshAttempt, collect_full_collection_snapshot_paths,
+    load_complete_snapshot_for_key, run_paged_snapshot_refresh, run_snapshot_refresh_with_attempts,
+    with_locked_snapshot_refresh,
 };
-use crate::{cache_file::CacheFileError, test_support::temp_dir};
+use crate::{
+    cache_file::{CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
+    test_support::temp_dir,
+};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-use std::{cell::RefCell, fs, path::Path};
+use std::{
+    cell::RefCell,
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 #[test]
 fn snapshot_json_paths_encode_full_collection_scope() {
@@ -125,6 +133,80 @@ fn snapshot_envelope_deserializes_legacy_cache_without_identity() {
     assert_eq!(envelope.scope, None);
     assert_eq!(envelope.metadata.id, 7);
     assert_eq!(envelope.data.rows, vec!["row".to_string()]);
+}
+
+#[test]
+fn load_complete_snapshot_rejects_identity_mismatch() {
+    let root = temp_dir("ic-query-snapshot-identity-mismatch");
+    let path = root.join("full.json");
+    write_snapshot_fixture(
+        &path,
+        serde_json::json!({
+            "schema_version": 1,
+            "network": "ic",
+            "source_endpoint": "https://icp-api.io",
+            "fetched_at": "2026-06-15T00:00:00Z",
+            "fetched_by": "ic-query",
+            "domain": "sns",
+            "entity": "wrong-root",
+            "collection": "neurons",
+            "scope": "full",
+            "id": 7,
+            "completeness": {
+                "status": "api_exhausted",
+                "page_size": 100,
+                "page_count": 2,
+                "row_count": 101,
+                "point_in_time_guaranteed": false
+            },
+            "rows": ["row"]
+        }),
+    );
+
+    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
+    let err = load_fixture_snapshot(&path, &key).expect_err("identity mismatch is rejected");
+
+    assert_eq!(
+        err,
+        SnapshotLoadTestError::Identity(SnapshotIdentityMismatch {
+            field: "entity",
+            expected: "root".to_string(),
+            actual: "wrong-root".to_string(),
+        })
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn load_complete_snapshot_allows_legacy_snapshot_without_identity() {
+    let root = temp_dir("ic-query-snapshot-legacy-identity");
+    let path = root.join("full.json");
+    write_snapshot_fixture(
+        &path,
+        serde_json::json!({
+            "schema_version": 1,
+            "network": "ic",
+            "source_endpoint": "https://icp-api.io",
+            "fetched_at": "2026-06-15T00:00:00Z",
+            "fetched_by": "ic-query",
+            "id": 7,
+            "completeness": {
+                "status": "api_exhausted",
+                "page_size": 100,
+                "page_count": 2,
+                "row_count": 101,
+                "point_in_time_guaranteed": false
+            },
+            "rows": ["row"]
+        }),
+    );
+
+    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
+    let loaded = load_fixture_snapshot(&path, &key).expect("legacy snapshot loads");
+
+    assert_eq!(loaded.metadata.id, 7);
+    assert_eq!(loaded.data.rows, vec!["row".to_string()]);
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -306,6 +388,82 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
 
 fn identity_cache_error(err: CacheFileError) -> CacheFileError {
     err
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum SnapshotLoadTestError {
+    Missing(PathBuf),
+    Read(PathBuf),
+    Parse(PathBuf),
+    UnsupportedSchema { version: u32, expected: u32 },
+    NetworkMismatch { requested: String, actual: String },
+    Incomplete,
+    Identity(SnapshotIdentityMismatch),
+}
+
+struct SnapshotLoadTestErrors;
+
+impl LoadJsonCacheErrorMapper for SnapshotLoadTestErrors {
+    type Error = SnapshotLoadTestError;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        SnapshotLoadTestError::Missing(path)
+    }
+
+    fn read_cache(&self, path: PathBuf, _source: io::Error) -> Self::Error {
+        SnapshotLoadTestError::Read(path)
+    }
+
+    fn parse_cache(&self, path: PathBuf, _source: serde_json::Error) -> Self::Error {
+        SnapshotLoadTestError::Parse(path)
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        SnapshotLoadTestError::UnsupportedSchema { version, expected }
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        SnapshotLoadTestError::NetworkMismatch { requested, actual }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+struct FixtureSnapshotMetadata {
+    id: usize,
+}
+
+#[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+struct FixtureSnapshotRows {
+    rows: Vec<String>,
+}
+
+type FixtureSnapshot = SnapshotEnvelope<FixtureSnapshotMetadata, FixtureSnapshotRows>;
+
+fn load_fixture_snapshot(
+    path: &Path,
+    key: &SnapshotKey,
+) -> Result<FixtureSnapshot, SnapshotLoadTestError> {
+    load_complete_snapshot_for_key(
+        LoadJsonCacheRequest {
+            path: path.to_path_buf(),
+            network: "ic",
+            expected_schema_version: 1,
+        },
+        key,
+        SnapshotLoadTestErrors,
+        |_| SnapshotLoadTestError::Incomplete,
+        SnapshotLoadTestError::Identity,
+    )
+}
+
+fn write_snapshot_fixture(path: &Path, value: serde_json::Value) {
+    fs::create_dir_all(path.parent().expect("snapshot fixture parent"))
+        .expect("create snapshot fixture parent");
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(&value).expect("serialize snapshot fixture"),
+    )
+    .expect("write snapshot fixture");
 }
 
 struct FixturePagedRefresh {

@@ -90,3 +90,44 @@ fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn sns_neurons_cached_sort_rejects_snapshot_identity_mismatch() {
+    let root = temp_dir("ic-query-sns-neurons-identity-mismatch");
+    let request = sns_neurons_refresh_request(&root, None);
+    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect("refresh neurons");
+
+    let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    cache["entity"] = serde_json::json!("wrong-root");
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+    )
+    .expect("write cache");
+
+    let mut cached_request = neurons_request("1");
+    cached_request.icp_root = Some(root.clone());
+    cached_request.sort = SnsNeuronsSort::Stake;
+    let err = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
+        .expect_err("identity mismatch rejected");
+
+    match err {
+        SnsHostError::CacheIdentityMismatch {
+            path,
+            field,
+            expected,
+            actual,
+        } => {
+            assert_eq!(path, cache_path);
+            assert_eq!(field, "entity");
+            assert_eq!(expected, ROOT_A);
+            assert_eq!(actual, "wrong-root");
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}

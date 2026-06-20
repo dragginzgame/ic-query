@@ -8,7 +8,10 @@ use super::errors::{SnsNeuronsCacheErrors, incomplete_cache_error};
 use crate::sns::report::{
     SnsHostError,
     cache_storage::load_sns_complete_cache,
-    neurons_cache::{SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache},
+    neurons_cache::{
+        SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache,
+        paths::sns_neurons_cache_key_for_cache_path,
+    },
 };
 use std::path::PathBuf;
 
@@ -16,10 +19,12 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
     path: PathBuf,
     network: &str,
 ) -> Result<SnsNeuronsCache, SnsHostError> {
+    let key = sns_neurons_cache_key_for_cache_path(network, &path);
     load_sns_complete_cache(
         path,
         network,
         SNS_NEURONS_CACHE_SCHEMA_VERSION,
+        &key,
         SnsNeuronsCacheErrors,
         |completeness| incomplete_cache_error(completeness.page_count, completeness.row_count),
     )

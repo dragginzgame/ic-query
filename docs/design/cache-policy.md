@@ -57,6 +57,9 @@ Cache status and cache list commands should inspect local state only. They
 should discover complete full-collection snapshots through the shared
 snapshot-cache path scanner so cache listing and id lookup behavior stays
 deterministic across command families.
+Complete snapshot caches that carry logical identity fields should be validated
+against the expected cache key on load; older snapshots without identity fields
+remain readable for compatibility.
 
 ## Current Coverage
 

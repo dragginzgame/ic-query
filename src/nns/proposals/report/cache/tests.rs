@@ -207,6 +207,56 @@ fn nns_proposal_list_cache_lookup_returns_none_when_cache_is_missing() {
 }
 
 #[test]
+fn nns_proposal_cache_status_rejects_snapshot_identity_mismatch() {
+    let root = temp_dir("ic-query-nns-proposal-identity-mismatch");
+    refresh_nns_proposal_cache_with_source(
+        &NnsProposalRefreshRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_000_000,
+            icp_root: root.clone(),
+            page_size: 2,
+            max_pages: None,
+        },
+        &FixtureSource,
+    )
+    .expect("refresh cache");
+
+    let cache_path = nns_proposal_cache_paths(&root, MAINNET_NETWORK).snapshot_path;
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    cache["entity"] = serde_json::json!("wrong-governance");
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+    )
+    .expect("write cache");
+
+    let err = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+    })
+    .expect_err("identity mismatch rejected");
+
+    match err {
+        NnsProposalHostError::CacheIdentityMismatch {
+            path,
+            field,
+            expected,
+            actual,
+        } => {
+            assert_eq!(path, cache_path);
+            assert_eq!(field, "entity");
+            assert_eq!(expected, "governance");
+            assert_eq!(actual, "wrong-governance");
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-nns-proposal-detail-cache");
     refresh_nns_proposal_cache_with_source(

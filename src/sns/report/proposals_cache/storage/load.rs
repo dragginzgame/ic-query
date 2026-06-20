@@ -9,7 +9,7 @@ use crate::sns::report::{
     cache_storage::load_sns_complete_cache,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_SCHEMA_VERSION, errors::SnsProposalsCacheErrors,
-        model::SnsProposalsCache,
+        model::SnsProposalsCache, paths::sns_proposals_cache_key_for_cache_path,
     },
 };
 use std::path::PathBuf;
@@ -19,10 +19,12 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_at(
     cache_path: PathBuf,
     network: &str,
 ) -> Result<SnsProposalsCache, SnsHostError> {
+    let key = sns_proposals_cache_key_for_cache_path(network, &cache_path);
     load_sns_complete_cache(
         cache_path,
         network,
         SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
+        &key,
         SnsProposalsCacheErrors,
         |completeness| SnsHostError::IncompleteRefresh {
             pages_fetched: completeness.page_count,

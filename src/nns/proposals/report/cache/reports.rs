@@ -31,7 +31,9 @@ use crate::{
             proposal_matches_topic, sort_nns_proposal_rows,
         },
     },
-    snapshot_cache::{SnapshotCompleteness, load_complete_snapshot},
+    snapshot_cache::{
+        SnapshotCompleteness, SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key,
+    },
 };
 use std::{
     io,
@@ -144,14 +146,17 @@ fn load_nns_proposal_cache(
     cache_path: PathBuf,
     network: &str,
 ) -> Result<NnsProposalCache, NnsProposalHostError> {
-    load_complete_snapshot(
+    let key = SnapshotKey::full("nns", network, "governance", "proposals");
+    load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
-            path: cache_path,
+            path: cache_path.clone(),
             network,
             expected_schema_version: NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
         },
+        &key,
         NnsProposalCacheErrors,
         incomplete_snapshot_error,
+        |mismatch| nns_identity_mismatch_error(cache_path, mismatch),
     )
 }
 
@@ -270,5 +275,17 @@ impl LoadJsonCacheErrorMapper for NnsProposalCacheErrors {
 
     fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
         NnsProposalHostError::CacheNetworkMismatch { requested, actual }
+    }
+}
+
+fn nns_identity_mismatch_error(
+    path: PathBuf,
+    mismatch: SnapshotIdentityMismatch,
+) -> NnsProposalHostError {
+    NnsProposalHostError::CacheIdentityMismatch {
+        path,
+        field: mismatch.field,
+        expected: mismatch.expected,
+        actual: mismatch.actual,
     }
 }

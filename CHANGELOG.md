@@ -11,12 +11,24 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
-- `0.2.30` fixes release documentation drift, clarifies NNS proposal cache
+- `0.2.32` validates complete snapshot cache identity fields when present,
+  rejecting caches whose recorded domain, entity, collection, or scope does not
+  match the logical cache key while preserving compatibility with older caches
+  that do not yet contain identity fields, adds NNS/SNS family-level mismatch
+  coverage, adds a CI guard against tag-pinned GitHub Actions, standardizes
+  README command fences, and removes stale clippy allow-list entries.
+
+- `0.2.31` fixes release documentation drift, clarifies NNS proposal cache
   status wording, documents corrupted refresh-lock handling, and adds a
   changelog/version consistency check to the local and CI gate, pins CI actions
   to exact revisions, documents clap required-value invariants, and adds
   logical identity fields to newly written snapshot caches without changing CLI
   behavior.
+
+- `0.2.30` continues internal cleanup by splitting NNS proposal report assembly,
+  labels, and source modules into focused owners, moving shared cache policy
+  tests under the cache-file module, tightening clap/parser coverage, and
+  preserving CLI behavior, cache paths, report schemas, and output.
 
 - `0.2.29` centralizes shared cache-file, clock, and runtime error formatting
   through typed `thiserror` errors, splits NNS proposal snapshot refresh into

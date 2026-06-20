@@ -7,8 +7,9 @@
 use crate::{
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
     snapshot_cache::{
-        SnapshotCompleteness, SnapshotHeader, SnapshotReport,
-        collect_full_collection_snapshot_paths, load_complete_snapshot, load_snapshot_header,
+        SnapshotCompleteness, SnapshotHeader, SnapshotIdentityMismatch, SnapshotKey,
+        SnapshotReport, collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
+        load_snapshot_header,
     },
     sns::report::{
         SnsHostError,
@@ -57,6 +58,7 @@ pub(in crate::sns::report) fn load_sns_complete_cache<Cache, Errors>(
     path: PathBuf,
     network: &str,
     expected_schema_version: u32,
+    expected_key: &SnapshotKey,
     errors: Errors,
     incomplete_error: impl FnOnce(&SnapshotCompleteness) -> SnsHostError,
 ) -> Result<Cache, SnsHostError>
@@ -64,13 +66,24 @@ where
     Cache: DeserializeOwned + SnapshotReport,
     Errors: LoadJsonCacheErrorMapper<Error = SnsHostError>,
 {
-    load_complete_snapshot(
+    load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
-            path,
+            path: path.clone(),
             network,
             expected_schema_version,
         },
+        expected_key,
         errors,
         incomplete_error,
+        |mismatch| sns_identity_mismatch_error(path, mismatch),
     )
+}
+
+fn sns_identity_mismatch_error(path: PathBuf, mismatch: SnapshotIdentityMismatch) -> SnsHostError {
+    SnsHostError::CacheIdentityMismatch {
+        path,
+        field: mismatch.field,
+        expected: mismatch.expected,
+        actual: mismatch.actual,
+    }
 }

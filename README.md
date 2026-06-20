@@ -16,19 +16,19 @@ reports, and deployed SNS reports.
 
 From this checkout:
 
-```sh
+```bash
 make install
 ```
 
 From crates.io after publication:
 
-```sh
+```bash
 cargo install ic-query
 ```
 
 ## Commands
 
-```sh
+```bash
 icq nns help
 icq nns registry version
 icq nns subnet [list|info|refresh]
@@ -49,7 +49,7 @@ Use `icq nns <family> help`, `icq nns topology <report> help`, or
 Most commands support text output by default and JSON output with
 `--format json`:
 
-```sh
+```bash
 icq --network ic nns subnet info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 ```
 
@@ -59,7 +59,7 @@ The NNS subnet, node, provider, operator, data-center, and topology commands
 use project-local cache files under `.icq/`. Refresh commands fetch current
 mainnet registry data and replace the matching cache atomically:
 
-```sh
+```bash
 icq nns subnet refresh
 icq nns topology refresh
 ```
@@ -72,7 +72,7 @@ SNS neuron commands keep quick `--sort api` output on a bounded live query.
 Whole-collection neuron sorts use complete snapshots and require an explicit
 refresh first:
 
-```sh
+```bash
 icq sns neurons refresh 1
 icq sns neurons 1 --limit 500 --sort stake
 ```
@@ -86,7 +86,7 @@ when running in a terminal.
 Inspect local SNS neuron snapshots and their latest refresh-attempt metadata
 without making live calls:
 
-```sh
+```bash
 icq sns neurons cache list
 icq sns neurons cache status 1
 ```
@@ -104,7 +104,7 @@ keeps the raw base-unit and e8s fields.
 SNS governance nervous system parameters can be queried by list id or root
 principal:
 
-```sh
+```bash
 icq sns params 1
 icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
@@ -115,7 +115,7 @@ queries; status filters are sent to governance where supported, topic filters
 are applied to returned rows, and local sort modes mirror the SNS proposal
 direction rules:
 
-```sh
+```bash
 icq nns proposal list --limit 25
 icq nns proposal list --status open
 icq nns proposal list --reward-status settled
@@ -138,7 +138,7 @@ Complete NNS proposal snapshots can be refreshed and inspected explicitly. A
 refresh pages through NNS governance until the API is exhausted, writes progress
 to stderr in a terminal, and publishes only complete snapshots:
 
-```sh
+```bash
 icq nns proposal refresh
 icq nns proposal refresh --max-pages 5
 icq nns proposal cache list
@@ -158,7 +158,7 @@ detail lookups reuse an existing complete local snapshot when it contains the
 requested proposal, then fall back to live detail lookup. Topic filters and
 adopted/rejected status filters currently use bounded live queries:
 
-```sh
+```bash
 icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
 icq sns proposals 1 --status decided
@@ -192,7 +192,7 @@ bounded live fallback views sort the returned API rows.
 
 Complete SNS proposal snapshots can also be refreshed and inspected manually:
 
-```sh
+```bash
 icq sns proposals refresh 1
 icq sns proposals cache list
 icq sns proposals cache status 1

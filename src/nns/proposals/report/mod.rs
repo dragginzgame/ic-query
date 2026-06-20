@@ -103,6 +103,17 @@ pub enum NnsProposalHostError {
     CacheNetworkMismatch { requested: String, actual: String },
 
     #[error(
+        "cached NNS proposal snapshot identity mismatch at {}: {field} is {actual}, expected {expected}",
+        path.display()
+    )]
+    CacheIdentityMismatch {
+        path: PathBuf,
+        field: &'static str,
+        expected: String,
+        actual: String,
+    },
+
+    #[error(
         "NNS proposal refresh did not publish a complete snapshot after {pages_fetched} pages and {rows_fetched} rows: {reason}"
     )]
     IncompleteRefresh {

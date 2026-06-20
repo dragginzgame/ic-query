@@ -69,3 +69,20 @@ pub(in crate::sns::report) fn sns_snapshot_network_cache_dir(
 pub(in crate::sns::report) fn sns_attempt_path_for_cache_path(cache_path: &Path) -> PathBuf {
     cache_path.with_file_name("full.refresh-attempt.json")
 }
+
+/// Return the logical key expected for a complete SNS cache path.
+pub(in crate::sns::report) fn sns_snapshot_key_for_cache_path<Collection>(
+    network: &str,
+    cache_path: &Path,
+) -> SnapshotKey
+where
+    Collection: SnsCacheCollection,
+{
+    let entity = cache_path
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::file_name)
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    SnapshotKey::full("sns", network, entity, Collection::COLLECTION)
+}
