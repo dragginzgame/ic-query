@@ -86,6 +86,10 @@ fn sns_proposals_cache_from_parts(
         fetched_at: list.fetched_at.clone(),
         source_endpoint: list.source_endpoint.clone(),
         fetched_by: list.fetched_by.clone(),
+        domain: Some("sns".to_string()),
+        entity: Some(sns.root_canister_id.clone()),
+        collection: Some("proposals".to_string()),
+        scope: Some("full".to_string()),
         metadata: SnsProposalsCacheMetadata {
             sns_wasm_canister_id: list.sns_wasm_canister_id.clone(),
             id,

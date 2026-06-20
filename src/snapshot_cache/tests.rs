@@ -67,6 +67,10 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
         source_endpoint: "https://icp-api.io".to_string(),
         fetched_at: "2026-06-15T00:00:00Z".to_string(),
         fetched_by: "ic-query".to_string(),
+        domain: Some("sns".to_string()),
+        entity: Some("root".to_string()),
+        collection: Some("neurons".to_string()),
+        scope: Some("full".to_string()),
         metadata: Metadata { id: 7 },
         completeness: SnapshotCompleteness::api_exhausted(100, 2, 101, false),
         data: Data {
@@ -75,10 +79,52 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
     };
 
     let value = serde_json::to_value(&envelope).expect("snapshot envelope serializes");
+    assert_eq!(value["domain"], "sns");
+    assert_eq!(value["entity"], "root");
+    assert_eq!(value["collection"], "neurons");
+    assert_eq!(value["scope"], "full");
     assert_eq!(value["id"], 7);
     assert_eq!(value["rows"][0], "row");
     assert!(value.get("metadata").is_none());
     assert!(value.get("data").is_none());
+}
+
+#[test]
+fn snapshot_envelope_deserializes_legacy_cache_without_identity() {
+    #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+    struct Metadata {
+        id: usize,
+    }
+
+    #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+    struct Data {
+        rows: Vec<String>,
+    }
+
+    let envelope: SnapshotEnvelope<Metadata, Data> = serde_json::from_value(serde_json::json!({
+        "schema_version": 1,
+        "network": "ic",
+        "source_endpoint": "https://icp-api.io",
+        "fetched_at": "2026-06-15T00:00:00Z",
+        "fetched_by": "ic-query",
+        "id": 7,
+        "completeness": {
+            "status": "api_exhausted",
+            "page_size": 100,
+            "page_count": 2,
+            "row_count": 101,
+            "point_in_time_guaranteed": false
+        },
+        "rows": ["row"]
+    }))
+    .expect("legacy snapshot envelope deserializes");
+
+    assert_eq!(envelope.domain, None);
+    assert_eq!(envelope.entity, None);
+    assert_eq!(envelope.collection, None);
+    assert_eq!(envelope.scope, None);
+    assert_eq!(envelope.metadata.id, 7);
+    assert_eq!(envelope.data.rows, vec!["row".to_string()]);
 }
 
 #[test]

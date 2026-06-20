@@ -85,7 +85,10 @@ pub enum NnsLeafHostCacheError {
         source: io::Error,
     },
 
-    #[error("failed to parse {component} refresh lock at {}: {source}", path.display())]
+    #[error(
+        "failed to parse {component} refresh lock at {}; remove the lock manually after verifying no refresh is running: {source}",
+        path.display()
+    )]
     ParseRefreshLock {
         component: &'static str,
         path: PathBuf,

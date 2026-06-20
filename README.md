@@ -210,8 +210,10 @@ linking registry adapters directly. For one integration example, see
 The command namespace is intentionally small:
 
 - `nns` is implemented.
-- `nns proposal list` and `nns proposal info` are implemented as direct live
-  mainnet NNS governance proposal queries.
+- `nns proposal list` and `nns proposal info` are cache-aware mainnet NNS
+  governance proposal queries: they reuse complete local snapshots when those
+  snapshots can satisfy the request, then fall back to bounded or direct live
+  governance queries where applicable.
 - `nns proposal refresh` caches complete mainnet NNS governance proposal
   snapshots.
 - `nns proposal cache list|status` inspects local complete NNS proposal

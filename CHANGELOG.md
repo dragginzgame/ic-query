@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.30` fixes release documentation drift, clarifies NNS proposal cache
+  status wording, documents corrupted refresh-lock handling, and adds a
+  changelog/version consistency check to the local and CI gate, pins CI actions
+  to exact revisions, documents clap required-value invariants, and adds
+  logical identity fields to newly written snapshot caches without changing CLI
+  behavior.
+
 - `0.2.29` centralizes shared cache-file, clock, and runtime error formatting
   through typed `thiserror` errors, splits NNS proposal snapshot refresh into
   orchestration, page collection, and publish modules, deduplicates NNS
@@ -224,7 +231,7 @@ Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
   model plumbing into focused modules while preserving existing list, neuron,
   and proposal option behavior.
 
-  ```sh
+  ```bash
   icq sns list --sort name
   icq sns neurons 1 --sort stake
   icq sns proposals 1 --topic governance
@@ -235,7 +242,7 @@ Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
   tightens request-mapping coverage for unfiltered versus concrete topic
   selectors.
 
-  ```sh
+  ```bash
   icq sns proposals 1 --topic any
   icq sns proposals 1 --topic governance
   icq sns proposals 1 --topic treasury-asset-management --format json
@@ -245,7 +252,7 @@ Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
   removes duplicated cache-error macro plumbing, and tightens command/test
   module hygiene.
 
-  ```sh
+  ```bash
   icq nns node list
   icq nns node-provider refresh
   icq sns neurons 1 --owner 2vxsx-fae --sort api
@@ -254,7 +261,7 @@ Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 - `0.2.0` adds direct SNS proposal ballot table output with compact neuron IDs
   by default and full IDs under `--verbose`.
 
-  ```sh
+  ```bash
   icq sns proposal 1 387 --ballots
   icq sns proposal 1 387 --ballots --verbose
   ```

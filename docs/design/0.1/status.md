@@ -111,8 +111,9 @@ each refresh call site.
 - [x] Add a reusable snapshot cache module with logical `SnapshotKey` values.
 - [x] Add shared snapshot envelope and completeness primitives for the current
       flattened JSON backend.
-- [ ] Add a published `SnapshotEnvelope<T>` shape carrying logical domain,
-      entity, collection, and scope metadata.
+- [x] Add a published `SnapshotEnvelope<T>` shape carrying logical domain,
+      entity, collection, and scope metadata for newly written complete
+      snapshots while preserving compatibility with older local JSON caches.
 - [x] Add JSON backend path encoding under `.icq/`.
 - [x] Add shared JSON snapshot loading/writing, header loading,
       refresh-attempt, and cache discovery helpers.

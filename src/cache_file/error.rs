@@ -24,7 +24,10 @@ pub enum CacheFileError {
     #[error("failed to read refresh lock at {}: {source}", path.display())]
     ReadRefreshLock { path: PathBuf, source: io::Error },
 
-    #[error("failed to parse refresh lock at {}: {source}", path.display())]
+    #[error(
+        "failed to parse refresh lock at {}; remove the lock manually after verifying no refresh is running: {source}",
+        path.display()
+    )]
     ParseRefreshLock {
         path: PathBuf,
         source: serde_json::Error,

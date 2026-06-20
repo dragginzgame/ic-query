@@ -38,6 +38,10 @@ pub(super) fn publish_complete_nns_proposal_cache(
         source_endpoint: request.source_endpoint.clone(),
         fetched_at: fetched_at.clone(),
         fetched_by: NNS_PROPOSAL_FETCHED_BY.to_string(),
+        domain: Some("nns".to_string()),
+        entity: Some("governance".to_string()),
+        collection: Some("proposals".to_string()),
+        scope: Some("full".to_string()),
         metadata: NnsProposalCacheMetadata {
             governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
         },

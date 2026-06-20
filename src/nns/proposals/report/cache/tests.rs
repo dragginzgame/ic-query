@@ -34,6 +34,7 @@ use crate::{
     test_support::temp_dir,
 };
 use candid::Reserved;
+use std::fs;
 
 struct FixtureSource;
 
@@ -92,11 +93,14 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     assert!(report.wrote_cache);
     assert!(!report.replaced_existing_cache);
     assert!(refresh_text.contains("proposal_count: 3"));
-    assert!(
-        nns_proposal_cache_paths(&root, MAINNET_NETWORK)
-            .snapshot_path
-            .is_file()
-    );
+    let cache_path = nns_proposal_cache_paths(&root, MAINNET_NETWORK).snapshot_path;
+    assert!(cache_path.is_file());
+    let cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
+    assert_eq!(cache["domain"], "nns");
+    assert_eq!(cache["entity"], "governance");
+    assert_eq!(cache["collection"], "proposals");
+    assert_eq!(cache["scope"], "full");
 
     let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
         network: MAINNET_NETWORK.to_string(),

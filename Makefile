@@ -1,4 +1,4 @@
-.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push test-bump build check ci clean clippy ensure-clean fmt fmt-check install msrv package publish test
+.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push test-bump build changelog-check check ci clean clippy ensure-clean fmt fmt-check install msrv package publish test
 
 MSRV ?= 1.91.0
 
@@ -7,6 +7,7 @@ help:
 	@echo ""
 	@echo "  fmt        Format Rust code"
 	@echo "  fmt-check  Check Rust formatting"
+	@echo "  changelog-check  Check changelog entries for the package version"
 	@echo "  check      Run cargo check with locked dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
@@ -48,6 +49,9 @@ fmt-check:
 check:
 	cargo check --all-targets --all-features --locked
 
+changelog-check:
+	bash scripts/ci/check-changelog-version.sh
+
 clippy:
 	cargo clippy --all-targets --all-features --locked -- -D warnings
 
@@ -60,7 +64,7 @@ msrv:
 package: ensure-clean
 	cargo package --locked
 
-ci: fmt-check check clippy test package
+ci: changelog-check fmt-check check clippy test package
 
 test-bump: clippy test
 

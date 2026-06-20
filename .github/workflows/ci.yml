@@ -24,14 +24,17 @@ jobs:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@v1
+      # actions/checkout v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      # dtolnay/rust-toolchain v1
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
         with:
           toolchain: ${{ env.IC_QUERY_MSRV }}
       - name: Pin cargo/rustc to MSRV
         shell: bash
         run: echo "RUSTUP_TOOLCHAIN=$IC_QUERY_MSRV" >> "$GITHUB_ENV"
-      - uses: Swatinem/rust-cache@v2
+      # Swatinem/rust-cache v2
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
       - name: Check MSRV
         run: make msrv
 
@@ -39,18 +42,21 @@ jobs:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      # actions/checkout v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           clean: true
           fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@v1
+      # dtolnay/rust-toolchain v1
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
         with:
           toolchain: ${{ env.IC_QUERY_INTERNAL_TOOLCHAIN }}
           components: rustfmt, clippy
       - name: Pin cargo/rustc to internal toolchain
         shell: bash
         run: echo "RUSTUP_TOOLCHAIN=$IC_QUERY_INTERNAL_TOOLCHAIN" >> "$GITHUB_ENV"
-      - uses: Swatinem/rust-cache@v2
+      # Swatinem/rust-cache v2
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
       - run: make fmt-check
       - run: make check
       - run: make clippy

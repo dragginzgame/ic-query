@@ -8,6 +8,8 @@ mod acquire;
 mod guard;
 mod model;
 mod run;
+#[cfg(test)]
+mod tests;
 
 pub use model::RefreshLockRequest;
 pub use run::with_refresh_lock;

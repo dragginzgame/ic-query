@@ -58,6 +58,14 @@ pub struct SnapshotEnvelope<Metadata, Data> {
     pub source_endpoint: String,
     pub fetched_at: String,
     pub fetched_by: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub domain: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entity: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collection: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
     #[serde(flatten)]
     pub metadata: Metadata,
     pub completeness: SnapshotCompleteness,
@@ -101,6 +109,14 @@ impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
 pub struct SnapshotHeader<Metadata> {
     pub schema_version: u32,
     pub network: String,
+    #[serde(default)]
+    pub domain: Option<String>,
+    #[serde(default)]
+    pub entity: Option<String>,
+    #[serde(default)]
+    pub collection: Option<String>,
+    #[serde(default)]
+    pub scope: Option<String>,
     #[serde(flatten)]
     pub metadata: Metadata,
 }

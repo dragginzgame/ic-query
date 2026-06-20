@@ -115,6 +115,12 @@ pub fn string_option(matches: &ArgMatches, id: &str) -> Option<String> {
     matches.get_one::<String>(id).cloned()
 }
 
+/// Returns a required string argument that clap has already validated.
+///
+/// # Panics
+///
+/// Panics when `id` is not present in `matches`. Callers should only use this
+/// for arguments declared as required in the same clap command definition.
 pub fn required_string(matches: &ArgMatches, id: &str) -> String {
     string_option(matches, id).unwrap_or_else(|| panic!("clap requires {id}"))
 }
@@ -126,6 +132,12 @@ where
     matches.get_one::<T>(id).cloned()
 }
 
+/// Returns a required typed argument that clap has already validated.
+///
+/// # Panics
+///
+/// Panics when `id` is not present in `matches`. Callers should only use this
+/// for arguments declared as required in the same clap command definition.
 pub fn required_typed<T>(matches: &ArgMatches, id: &str) -> T
 where
     T: Clone + Send + Sync + 'static,

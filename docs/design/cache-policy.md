@@ -42,6 +42,15 @@ Manual refresh commands always refresh explicitly and should report refresh
 progress or status through their owning report modules. They do not need the
 missing-cache helper because the user has already requested refresh behavior.
 
+## Refresh Locks
+
+Refresh locks are removed automatically only when they can be parsed and their
+recorded start time is older than the command's stale-lock threshold. Corrupted
+or malformed refresh locks are not removed automatically because the lock owner
+and start time cannot be trusted safely enough to avoid a removal race. Commands
+should report the parse failure, show the lock path, and require the operator to
+remove the lock manually after verifying that no refresh is still running.
+
 ## Cache Discovery
 
 Cache status and cache list commands should inspect local state only. They

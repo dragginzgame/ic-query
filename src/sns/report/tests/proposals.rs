@@ -108,6 +108,10 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     assert_eq!(cache["schema_version"], 1);
+    assert_eq!(cache["domain"], "sns");
+    assert_eq!(cache["entity"], ROOT_A);
+    assert_eq!(cache["collection"], "proposals");
+    assert_eq!(cache["scope"], "full");
     assert_eq!(cache["id"], 1);
     assert_eq!(cache["completeness"]["status"], "api_exhausted");
     assert_eq!(
