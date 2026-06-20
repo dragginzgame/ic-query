@@ -6,6 +6,12 @@ use crate::cache_file::{
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
+///
+/// RefreshCacheWriteRequest
+///
+/// Inputs for publishing a refresh result into the shared JSON cache.
+///
+
 #[derive(Clone, Copy, Debug)]
 pub struct RefreshCacheWriteRequest<'a, T> {
     pub cache_path: &'a Path,
@@ -17,6 +23,12 @@ pub struct RefreshCacheWriteRequest<'a, T> {
     pub output_path: Option<&'a Path>,
     pub report: &'a T,
 }
+
+///
+/// RefreshCacheWriteResult
+///
+/// File paths and write status returned after publishing a refresh result.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RefreshCacheWriteResult {

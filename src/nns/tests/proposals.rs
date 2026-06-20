@@ -158,10 +158,10 @@ fn nns_proposal_refresh_parses_cache_options() {
 #[test]
 fn nns_proposal_cache_options_parse_json_format() {
     let list =
-        NnsProposalCacheListOptions::parse([OsString::from("--format"), OsString::from("json")])
+        NnsProposalCacheOptions::parse_list([OsString::from("--format"), OsString::from("json")])
             .expect("parse cache list");
     let status =
-        NnsProposalCacheStatusOptions::parse([OsString::from("--format"), OsString::from("json")])
+        NnsProposalCacheOptions::parse_status([OsString::from("--format"), OsString::from("json")])
             .expect("parse cache status");
 
     assert_eq!(list.network, MAINNET_NETWORK);

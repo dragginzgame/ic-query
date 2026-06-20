@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.29` centralizes shared cache-file, clock, and runtime error formatting
+  through typed `thiserror` errors, splits NNS proposal snapshot refresh into
+  orchestration, page collection, and publish modules, deduplicates NNS
+  proposal cache option parsing, and normalizes shared cache/snapshot helper
+  docs without changing CLI behavior, cache paths, report schemas, or output.
+
 - `0.2.28` adds explicit complete NNS proposal snapshot refresh and cache
   inspection commands under `icq nns proposal refresh` and
   `icq nns proposal cache list|status`, reusing the shared snapshot cache

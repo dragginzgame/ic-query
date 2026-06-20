@@ -4,6 +4,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+///
+/// SnapshotJsonPaths
+///
+/// Filesystem paths for one complete snapshot and its refresh sidecars.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnapshotJsonPaths {
     pub snapshot_path: PathBuf,

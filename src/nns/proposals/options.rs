@@ -13,7 +13,7 @@ use super::commands::{
 };
 use crate::{
     cli::{
-        clap::{required_string, required_typed},
+        clap::{required_string, required_typed, typed_option},
         common::FORMAT_ARG,
     },
     nns::{
@@ -82,30 +82,21 @@ impl NnsProposalListOptions {
     {
         let matches = parse_nns_matches(command, args, usage)?;
         let common = NnsCommonOptions::from_matches(&matches);
-        let sort = *matches
-            .get_one::<NnsProposalListSortArg>("sort")
-            .expect("clap default supplies proposal sort");
+        let sort = required_typed::<NnsProposalListSortArg>(&matches, "sort");
         let sort_direction = proposal_sort_direction(&matches, sort)?;
         Ok(Self {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-            limit: *matches
-                .get_one::<u32>("limit")
-                .expect("clap default supplies limit"),
-            before_proposal_id: matches.get_one::<u64>("before").copied(),
-            status: (*matches
-                .get_one::<NnsProposalStatusArg>("status")
-                .expect("clap default supplies proposal status"))
+            limit: required_typed(&matches, "limit"),
+            before_proposal_id: typed_option(&matches, "before"),
+            status: required_typed::<NnsProposalStatusArg>(&matches, "status").into(),
+            reward_status: required_typed::<NnsProposalRewardStatusArg>(
+                &matches,
+                NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
+            )
             .into(),
-            reward_status: (*matches
-                .get_one::<NnsProposalRewardStatusArg>(NNS_PROPOSAL_LIST_REWARD_STATUS_ARG)
-                .expect("clap default supplies proposal reward status"))
-            .into(),
-            topic: (*matches
-                .get_one::<NnsProposalTopicArg>("topic")
-                .expect("clap default supplies proposal topic"))
-            .into(),
+            topic: required_typed::<NnsProposalTopicArg>(&matches, "topic").into(),
             sort: sort.into(),
             sort_direction,
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
@@ -190,9 +181,7 @@ impl NnsProposalOptions {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-            proposal_id: *matches
-                .get_one::<u64>(NNS_PROPOSAL_ID_ARG)
-                .expect("required proposal id"),
+            proposal_id: required_typed(&matches, NNS_PROPOSAL_ID_ARG),
             show_ballots: matches.get_flag(NNS_PROPOSAL_BALLOTS_FLAG),
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         })
@@ -229,65 +218,56 @@ impl NnsProposalRefreshOptions {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-            page_size: *matches
-                .get_one::<u32>("page-size")
-                .expect("clap default supplies page size"),
-            max_pages: matches.get_one::<u32>("max-pages").copied(),
+            page_size: required_typed(&matches, "page-size"),
+            max_pages: typed_option(&matches, "max-pages"),
         })
     }
 }
 
 ///
-/// NnsProposalCacheListOptions
+/// NnsProposalCacheOptions
 ///
-/// Options accepted by `icq nns proposal cache list`.
+/// Options accepted by `icq nns proposal cache list/status`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalCacheListOptions {
+pub(in crate::nns) struct NnsProposalCacheOptions {
     pub(in crate::nns) network: String,
     pub(in crate::nns) format: OutputFormat,
 }
 
-impl NnsProposalCacheListOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+impl NnsProposalCacheOptions {
+    pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(
+        Self::parse_with(
+            args,
             nns_proposal_cache_list_command(),
-            args,
             nns_proposal_cache_list_usage_for_error,
-        )?;
-        Ok(Self {
-            network: required_string(&matches, "network"),
-            format: required_typed(&matches, FORMAT_ARG),
-        })
+        )
     }
-}
 
-///
-/// NnsProposalCacheStatusOptions
-///
-/// Options accepted by `icq nns proposal cache status`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalCacheStatusOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-}
-
-impl NnsProposalCacheStatusOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    pub(in crate::nns) fn parse_status<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(
-            nns_proposal_cache_status_command(),
+        Self::parse_with(
             args,
+            nns_proposal_cache_status_command(),
             nns_proposal_cache_status_usage_for_error,
-        )?;
+        )
+    }
+
+    fn parse_with<I>(
+        args: I,
+        command: ClapCommand,
+        usage: impl FnOnce() -> String,
+    ) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_nns_matches(command, args, usage)?;
         Ok(Self {
             network: required_string(&matches, "network"),
             format: required_typed(&matches, FORMAT_ARG),

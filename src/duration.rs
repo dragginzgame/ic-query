@@ -9,7 +9,12 @@
 
 use thiserror::Error as ThisError;
 
+///
+/// DurationParseError
+///
 /// Error returned when a CLI duration value cannot be parsed into seconds.
+///
+
 #[derive(Debug, ThisError)]
 pub enum DurationParseError {
     #[error("invalid duration {value:?}; use positive seconds or a value ending in s, m, h, or d")]

@@ -6,8 +6,8 @@
 
 use super::{
     options::{
-        NnsProposalCacheListOptions, NnsProposalCacheStatusOptions, NnsProposalListOptions,
-        NnsProposalOptions, NnsProposalRefreshOptions,
+        NnsProposalCacheOptions, NnsProposalListOptions, NnsProposalOptions,
+        NnsProposalRefreshOptions,
     },
     report::{
         NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalListRequest,
@@ -167,7 +167,7 @@ where
     ) else {
         return Ok(());
     };
-    let options = NnsProposalCacheListOptions::parse(args)?;
+    let options = NnsProposalCacheOptions::parse_list(args)?;
     let request = NnsProposalCacheListRequest {
         network: options.network,
         icp_root: command_icp_root()?,
@@ -186,7 +186,7 @@ where
     ) else {
         return Ok(());
     };
-    let options = NnsProposalCacheStatusOptions::parse(args)?;
+    let options = NnsProposalCacheOptions::parse_status(args)?;
     let request = NnsProposalCacheStatusRequest {
         network: options.network,
         icp_root: command_icp_root()?,

@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+///
+/// RefreshLockRequest
+///
+/// Inputs used to acquire a refresh lock for one cache target.
+///
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RefreshLockRequest<'a> {
     pub lock_path: &'a Path,
@@ -9,6 +15,12 @@ pub struct RefreshLockRequest<'a> {
     pub now_unix_secs: u64,
     pub lock_stale_after_seconds: u64,
 }
+
+///
+/// RefreshLockFile
+///
+/// Serialized lock file content used to detect active or stale refreshes.
+///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub(super) struct RefreshLockFile {

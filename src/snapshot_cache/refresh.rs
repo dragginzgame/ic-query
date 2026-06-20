@@ -1,6 +1,12 @@
 use super::PagedCollectionPage;
 use crate::progress::ProgressLine;
 
+///
+/// PagedSnapshotRefresh
+///
+/// Command-specific adapter for running a complete paged snapshot refresh.
+///
+
 pub trait PagedSnapshotRefresh {
     type Complete;
     type Error;

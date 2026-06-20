@@ -20,7 +20,7 @@ use crate::{
             parse_matches_or_usage, parse_required_subcommand_or_usage, passthrough_subcommand,
             render_help,
         },
-        common::{OutputFormat, current_unix_secs, write_text_or_json},
+        common::{CurrentUnixSecsError, OutputFormat, current_unix_secs, write_text_or_json},
         help::{collect_args_or_print_help_or_version, collect_args_or_print_help_or_version_flag},
     },
     nns::{
@@ -69,8 +69,8 @@ pub enum NnsCommandError {
     #[error(transparent)]
     TopologyHost(#[from] NnsTopologyHostError),
 
-    #[error("system clock before unix epoch: {0}")]
-    Clock(String),
+    #[error(transparent)]
+    Clock(#[from] CurrentUnixSecsError),
 
     #[error(transparent)]
     Io(#[from] io::Error),
@@ -144,7 +144,7 @@ where
 }
 
 fn now_unix_secs() -> Result<u64, NnsCommandError> {
-    current_unix_secs().map_err(NnsCommandError::Clock)
+    Ok(current_unix_secs()?)
 }
 
 fn command_icp_root() -> Result<PathBuf, NnsCommandError> {

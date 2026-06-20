@@ -1,3 +1,9 @@
+///
+/// SnapshotKey
+///
+/// Stable identity for a complete snapshot independent of display options.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnapshotKey {
     domain: String,

@@ -45,7 +45,7 @@ pub(in crate::sns::commands::run) struct SnsCacheCommandParts {
 }
 
 pub(super) fn command_unix_secs() -> Result<u64, SnsCommandError> {
-    current_unix_secs().map_err(SnsCommandError::Clock)
+    Ok(current_unix_secs()?)
 }
 
 pub(super) fn command_args<I>(args: I, usage: impl FnOnce() -> String) -> Option<Vec<OsString>>

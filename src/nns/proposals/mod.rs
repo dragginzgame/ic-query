@@ -21,8 +21,7 @@ pub(in crate::nns) use commands::{
 };
 #[cfg(test)]
 pub(in crate::nns) use options::{
-    NnsProposalCacheListOptions, NnsProposalCacheStatusOptions, NnsProposalListOptions,
-    NnsProposalOptions, NnsProposalRefreshOptions,
+    NnsProposalCacheOptions, NnsProposalListOptions, NnsProposalOptions, NnsProposalRefreshOptions,
 };
 #[cfg(test)]
 pub(in crate::nns) use report::{

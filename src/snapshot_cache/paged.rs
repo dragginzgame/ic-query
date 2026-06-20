@@ -1,16 +1,34 @@
 use std::collections::HashSet;
 
+///
+/// CompletePagedCollection
+///
+/// Deduplicated rows and pagination metadata from a complete API walk.
+///
+
 pub struct CompletePagedCollection<Row> {
     pub rows: Vec<Row>,
     pub page_count: u32,
     pub last_cursor: Option<String>,
 }
 
+///
+/// PagedCollectionPage
+///
+/// Per-page counters used to decide whether pagination has completed.
+///
+
 pub struct PagedCollectionPage {
     page_len: usize,
     new_rows: usize,
     pub last_cursor_text: Option<String>,
 }
+
+///
+/// PagedCollectionState
+///
+/// Accumulates unique rows while walking a cursor-based collection.
+///
 
 pub struct PagedCollectionState<Row, Cursor> {
     rows: Vec<Row>,

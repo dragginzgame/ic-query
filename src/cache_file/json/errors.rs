@@ -1,5 +1,11 @@
 use std::{io, path::PathBuf};
 
+///
+/// LoadJsonCacheErrorMapper
+///
+/// Maps shared JSON cache loading failures into command-family errors.
+///
+
 pub trait LoadJsonCacheErrorMapper {
     type Error;
 

@@ -8,6 +8,12 @@ use std::{
 
 pub const SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION: u32 = 1;
 
+///
+/// SnapshotRefreshAttempt
+///
+/// Sidecar status for an in-progress or failed complete snapshot refresh.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnapshotRefreshAttempt<Metadata> {
     pub schema_version: u32,

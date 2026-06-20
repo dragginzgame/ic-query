@@ -4,6 +4,7 @@
 //! Does not own: command usage errors, clap parsing, or text rendering.
 //! Boundary: carries recoverable report-builder failures to command runners.
 
+use crate::runtime::RuntimeError;
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
 
@@ -21,7 +22,7 @@ pub enum SnsHostError {
     UnsupportedNetwork { network: String },
 
     #[error("failed to create Tokio runtime for SNS query: {0}")]
-    Runtime(String),
+    Runtime(#[from] RuntimeError),
 
     #[error("failed to build IC agent for endpoint {endpoint}: {reason}")]
     AgentBuild { endpoint: String, reason: String },

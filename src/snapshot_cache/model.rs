@@ -3,6 +3,12 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 pub const SNAPSHOT_STATUS_API_EXHAUSTED: &str = "api_exhausted";
 
+///
+/// SnapshotCompleteness
+///
+/// Completion metadata for a published complete snapshot.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnapshotCompleteness {
     pub status: String,
@@ -33,6 +39,12 @@ impl SnapshotCompleteness {
     }
 }
 
+///
+/// SnapshotEnvelope
+///
+/// Shared JSON cache envelope for complete snapshot reports.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnapshotEnvelope<Metadata, Data> {
     pub schema_version: u32,
@@ -57,6 +69,12 @@ impl<Metadata, Data> JsonCacheReport for SnapshotEnvelope<Metadata, Data> {
     }
 }
 
+///
+/// SnapshotReport
+///
+/// JSON cache report that exposes complete snapshot metadata.
+///
+
 pub trait SnapshotReport: JsonCacheReport {
     fn completeness(&self) -> &SnapshotCompleteness;
 }
@@ -66,6 +84,12 @@ impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
         &self.completeness
     }
 }
+
+///
+/// SnapshotHeader
+///
+/// Minimal snapshot metadata loaded when only header validation is needed.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
 pub struct SnapshotHeader<Metadata> {

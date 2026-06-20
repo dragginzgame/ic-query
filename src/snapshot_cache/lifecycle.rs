@@ -3,6 +3,12 @@ use crate::cache_file::{
 };
 use std::path::Path;
 
+///
+/// LockedSnapshotRefreshRequest
+///
+/// Inputs for refreshing one complete snapshot under a shared lock.
+///
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LockedSnapshotRefreshRequest<'a> {
     pub snapshot_path: &'a Path,
@@ -11,6 +17,12 @@ pub struct LockedSnapshotRefreshRequest<'a> {
     pub now_unix_secs: u64,
     pub lock_stale_after_seconds: u64,
 }
+
+///
+/// LockedSnapshotRefreshState
+///
+/// State derived after acquiring the snapshot refresh lock.
+///
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LockedSnapshotRefreshState {

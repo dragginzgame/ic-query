@@ -6,8 +6,9 @@ use clap::ValueEnum;
 use serde::Serialize;
 use std::{
     io,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{SystemTime, SystemTimeError, UNIX_EPOCH},
 };
+use thiserror::Error as ThisError;
 
 pub const FORMAT_ARG: &str = "format";
 pub const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
@@ -18,6 +19,18 @@ const DEFAULT_FORMAT: &str = "text";
 pub enum OutputFormat {
     Text,
     Json,
+}
+
+///
+/// CurrentUnixSecsError
+///
+/// Error returned when the system clock cannot be represented as Unix seconds.
+///
+
+#[derive(Debug, ThisError)]
+pub enum CurrentUnixSecsError {
+    #[error("system clock before unix epoch: {source}")]
+    BeforeUnixEpoch { source: SystemTimeError },
 }
 
 pub fn write_text_or_json<T, E>(
@@ -58,11 +71,11 @@ where
     })
 }
 
-pub fn current_unix_secs() -> Result<u64, String> {
+pub fn current_unix_secs() -> Result<u64, CurrentUnixSecsError> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
-        .map_err(|err| err.to_string())
+        .map_err(|source| CurrentUnixSecsError::BeforeUnixEpoch { source })
 }
 
 pub fn format_arg() -> clap::Arg {

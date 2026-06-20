@@ -13,6 +13,7 @@ mod wire;
 
 use crate::{
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
+    runtime::RuntimeError,
     subnet_catalog::MAINNET_NETWORK,
 };
 use std::{io, path::PathBuf};
@@ -124,7 +125,7 @@ pub enum NnsProposalHostError {
     ReadCache { path: PathBuf, source: io::Error },
 
     #[error("failed to create Tokio runtime for NNS proposal query: {0}")]
-    Runtime(String),
+    Runtime(#[from] RuntimeError),
 
     #[error("failed to serialize NNS proposal cache JSON for {}: {source}", path.display())]
     SerializeCache {

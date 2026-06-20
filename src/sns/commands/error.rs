@@ -4,7 +4,7 @@
 //! Does not own: report-layer host errors or text rendering.
 //! Boundary: converts command setup failures into user-facing CLI errors.
 
-use crate::sns::report::SnsHostError;
+use crate::{cli::common::CurrentUnixSecsError, sns::report::SnsHostError};
 use std::io;
 use thiserror::Error as ThisError;
 
@@ -16,8 +16,8 @@ pub enum SnsCommandError {
     #[error(transparent)]
     Host(#[from] SnsHostError),
 
-    #[error("system clock before unix epoch: {0}")]
-    Clock(String),
+    #[error(transparent)]
+    Clock(#[from] CurrentUnixSecsError),
 
     #[error(transparent)]
     Io(#[from] io::Error),

@@ -9,7 +9,12 @@
 
 const COLUMN_GAP: &str = "   ";
 
+///
+/// ColumnAlign
+///
 /// Text alignment to apply when rendering a table column.
+///
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ColumnAlign {
     Left,
