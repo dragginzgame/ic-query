@@ -39,6 +39,6 @@ pub(in crate::sns::report) use sorts::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
 pub use sorts::{
-    SnsListSort, SnsNeuronsSort, SnsProposalSortDirection, SnsProposalStatusFilter,
-    SnsProposalTopicFilter, SnsProposalsSort,
+    SnsListSort, SnsNeuronsSort, SnsProposalEligibilityFilter, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };

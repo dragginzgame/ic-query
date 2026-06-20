@@ -54,6 +54,8 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.before_proposal_id, Some(99));
     assert_eq!(report.status_filter, "open");
     assert_eq!(report.topic_filter, "governance");
+    assert_eq!(report.eligibility_filter, "any");
+    assert_eq!(report.proposer_filter, None);
     assert_eq!(report.sort, "api");
     assert_eq!(report.sort_direction, "none");
     assert_eq!(report.proposal_count, 1);
@@ -78,6 +80,8 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert!(text.contains("status_filter: open"));
     assert!(text.contains("data_source: live"));
     assert!(text.contains("topic_filter: governance"));
+    assert!(text.contains("eligibility_filter: any"));
+    assert!(text.contains("proposer_filter: -"));
     assert!(text.contains("sort: api"));
     assert!(text.contains("sort_direction: none"));
     assert!(text.contains("before_proposal_id: 99"));
@@ -85,6 +89,34 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert!(text.contains("ID   ACTION"));
     assert!(text.contains("motion"));
     assert!(text.contains("Fixture proposal"));
+}
+
+#[test]
+fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
+    let mut request = proposals_request("1");
+    request.proposer_neuron_id = Some("000102".to_string());
+
+    let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .expect("sns proposals report");
+
+    assert_eq!(report.data_source, "live");
+    assert_eq!(report.proposer_filter.as_deref(), Some("000102"));
+    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals[0].proposal_id, Some(42));
+}
+
+#[test]
+fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
+    let mut request = proposals_request("1");
+    request.eligibility = SnsProposalEligibilityFilter::No;
+
+    let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .expect("sns proposals report");
+
+    assert_eq!(report.data_source, "live");
+    assert_eq!(report.eligibility_filter, "no");
+    assert_eq!(report.proposal_count, 0);
+    assert!(report.proposals.is_empty());
 }
 
 #[test]
@@ -536,6 +568,21 @@ fn sns_proposals_cached_status_adopted_filters_complete_snapshot() {
 #[test]
 fn sns_proposals_cached_status_rejected_filters_complete_snapshot() {
     assert_cached_status_filter(SnsProposalStatusFilter::Rejected, &[20]);
+}
+
+#[test]
+fn sns_proposals_cached_eligible_filters_complete_snapshot() {
+    assert_cached_eligibility_filter(SnsProposalEligibilityFilter::Yes, &[30, 20]);
+}
+
+#[test]
+fn sns_proposals_cached_ineligible_filters_complete_snapshot() {
+    assert_cached_eligibility_filter(SnsProposalEligibilityFilter::No, &[10]);
+}
+
+#[test]
+fn sns_proposals_cached_proposer_filters_complete_snapshot() {
+    assert_cached_proposer_filter("aaaa", &[30]);
 }
 
 #[test]
@@ -1034,6 +1081,76 @@ fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposa
     assert_eq!(second.data_source, "cache");
     assert_eq!(second.status_filter, status.as_str());
     assert_eq!(proposal_ids(&second), expected_proposal_ids);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+fn assert_cached_eligibility_filter(
+    eligibility: SnsProposalEligibilityFilter,
+    expected_proposal_ids: &[u64],
+) {
+    let root = temp_dir(&format!(
+        "ic-query-sns-proposals-eligibility-{}",
+        eligibility.as_str()
+    ));
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.eligibility = eligibility;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh eligibility-filtered proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.eligibility_filter, eligibility.as_str());
+    assert_eq!(proposal_ids(&first), expected_proposal_ids);
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse eligibility-filtered proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.eligibility_filter, eligibility.as_str());
+    assert_eq!(proposal_ids(&second), expected_proposal_ids);
+
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains(&format!("eligibility_filter: {}", eligibility.as_str())));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids: &[u64]) {
+    let root = temp_dir(&format!(
+        "ic-query-sns-proposals-proposer-{proposer_neuron_id}"
+    ));
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Any;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.proposer_neuron_id = Some(proposer_neuron_id.to_string());
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh proposer-filtered proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.proposer_filter.as_deref(), Some(proposer_neuron_id));
+    assert_eq!(proposal_ids(&first), expected_proposal_ids);
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse proposer-filtered proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.proposer_filter.as_deref(), Some(proposer_neuron_id));
+    assert_eq!(proposal_ids(&second), expected_proposal_ids);
+
+    let text = sns_proposals_report_text(&second);
+    assert!(text.contains(&format!("proposer_filter: {proposer_neuron_id}")));
 
     let _ = fs::remove_dir_all(root);
 }

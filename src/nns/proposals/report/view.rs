@@ -48,6 +48,13 @@ pub(in crate::nns::proposals::report) fn proposal_matches_topic(
         .is_none_or(|topic_code| proposal.topic == topic_code)
 }
 
+pub(in crate::nns::proposals::report) fn proposal_matches_proposer(
+    proposal: &NnsProposalRow,
+    proposer_neuron_id: Option<u64>,
+) -> bool {
+    proposer_neuron_id.is_none_or(|id| proposal.proposer_neuron_id == Some(id))
+}
+
 pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
     proposals: &mut [NnsProposalRow],
     sort: NnsProposalListSort,

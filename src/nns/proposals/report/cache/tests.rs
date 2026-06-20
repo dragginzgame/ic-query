@@ -191,6 +191,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         status: NnsProposalStatusFilter::Executed,
         reward_status: NnsProposalRewardStatusFilter::Settled,
         topic: NnsProposalTopicFilter::Governance,
+        proposer_neuron_id: Some(99),
         sort: NnsProposalListSort::Title,
         sort_direction: NnsProposalSortDirection::Asc,
         verbose: false,
@@ -208,6 +209,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert!(report.cache_complete.expect("cache completeness"));
     assert_eq!(report.status_filter, NNS_PROPOSAL_STATUS_EXECUTED_LABEL);
     assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
+    assert_eq!(report.proposer_filter, Some(99));
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
     assert_eq!(report.proposal_count, 1);
@@ -229,6 +231,7 @@ fn nns_proposal_list_cache_lookup_returns_none_when_cache_is_missing() {
             status: NnsProposalStatusFilter::Any,
             reward_status: NnsProposalRewardStatusFilter::Any,
             topic: NnsProposalTopicFilter::Any,
+            proposer_neuron_id: None,
             sort: NnsProposalListSort::Api,
             sort_direction: NnsProposalSortDirection::Desc,
             verbose: false,

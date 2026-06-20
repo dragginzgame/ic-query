@@ -18,8 +18,8 @@ use crate::{
         },
         source::{MainnetSnsProposals, SnsProposalsSource},
         view::{
-            proposal_matches_before, proposal_matches_status, proposal_matches_topic,
-            sort_sns_proposal_rows,
+            proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,
+            proposal_matches_status, proposal_matches_topic, sort_sns_proposal_rows,
         },
     },
 };
@@ -145,6 +145,10 @@ fn sns_proposals_report_from_cache(
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
         .filter(|proposal| proposal_matches_status(proposal, request.status))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
+        .filter(|proposal| proposal_matches_eligibility(proposal, request.eligibility))
+        .filter(|proposal| {
+            proposal_matches_proposer(proposal, request.proposer_neuron_id.as_deref())
+        })
         .collect::<Vec<_>>();
     sort_sns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
@@ -156,6 +160,8 @@ fn sns_proposals_report_from_cache(
         before_proposal_id: request.before_proposal_id,
         status: request.status,
         topic: request.topic,
+        eligibility: request.eligibility,
+        proposer_neuron_id: request.proposer_neuron_id.clone(),
         sort: request.sort,
         sort_direction: request.sort_direction,
         verbose: request.verbose,

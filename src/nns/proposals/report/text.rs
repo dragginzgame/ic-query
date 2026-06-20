@@ -34,6 +34,10 @@ pub(in crate::nns::proposals) fn nns_proposal_list_report_text(
         format!("status_filter: {}", report.status_filter),
         format!("reward_status_filter: {}", report.reward_status_filter),
         format!("topic_filter: {}", report.topic_filter),
+        format!(
+            "proposer_filter: {}",
+            optional_u64_text(report.proposer_filter)
+        ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
         format!("verbose: {}", yes_no(report.verbose)),

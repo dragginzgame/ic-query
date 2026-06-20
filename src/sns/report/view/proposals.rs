@@ -7,8 +7,8 @@
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
     SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
-    SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+    SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalEligibilityFilter, SnsProposalRow,
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 use std::cmp::Ordering;
 
@@ -53,6 +53,27 @@ pub(in crate::sns::report) fn proposal_matches_topic(
     topic
         .topic_label()
         .is_none_or(|topic_label| proposal.topic.as_deref() == Some(topic_label))
+}
+
+pub(in crate::sns::report) fn proposal_matches_eligibility(
+    proposal: &SnsProposalRow,
+    eligibility: SnsProposalEligibilityFilter,
+) -> bool {
+    eligibility
+        .eligibility_value()
+        .is_none_or(|value| proposal.is_eligible_for_rewards == value)
+}
+
+pub(in crate::sns::report) fn proposal_matches_proposer(
+    proposal: &SnsProposalRow,
+    proposer_neuron_id: Option<&str>,
+) -> bool {
+    proposer_neuron_id.is_none_or(|proposer| {
+        proposal
+            .proposer_neuron_id
+            .as_deref()
+            .is_some_and(|neuron_id| neuron_id.starts_with(proposer))
+    })
 }
 
 pub(in crate::sns::report) fn sort_sns_proposal_rows(

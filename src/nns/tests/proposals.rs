@@ -15,6 +15,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(defaults.status, NnsProposalStatusFilter::Any);
     assert_eq!(defaults.reward_status, NnsProposalRewardStatusFilter::Any);
     assert_eq!(defaults.topic, NnsProposalTopicFilter::Any);
+    assert_eq!(defaults.proposer_neuron_id, None);
     assert_eq!(defaults.sort, NnsProposalListSort::Api);
     assert_eq!(defaults.sort_direction, NnsProposalSortDirection::Desc);
     assert_eq!(defaults.status.as_str(), NNS_PROPOSAL_STATUS_ANY_LABEL);
@@ -45,6 +46,8 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
         OsString::from(NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL),
         OsString::from("--topic"),
         OsString::from(NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL),
+        OsString::from("--proposer"),
+        OsString::from("123456789"),
         OsString::from("--sort"),
         OsString::from(NNS_PROPOSAL_SORT_TITLE_LABEL),
         OsString::from("--asc"),
@@ -62,6 +65,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
         NnsProposalRewardStatusFilter::Settled
     );
     assert_eq!(options.topic, NnsProposalTopicFilter::Governance);
+    assert_eq!(options.proposer_neuron_id, Some(123_456_789));
     assert_eq!(options.sort, NnsProposalListSort::Title);
     assert_eq!(options.sort_direction, NnsProposalSortDirection::Asc);
     assert_eq!(options.status.as_str(), NNS_PROPOSAL_STATUS_EXECUTED_LABEL);

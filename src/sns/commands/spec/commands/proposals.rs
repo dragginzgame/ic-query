@@ -14,13 +14,14 @@ use crate::{
         commands::spec::{
             commands::{args::sns_lookup_input_arg, nested_dispatch_command},
             values::{
-                SNS_PROPOSALS_SORT_VALUE_NAME, SnsProposalStatusArg, SnsProposalTopicArg,
-                SnsProposalsSortArg,
+                SNS_PROPOSALS_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
+                SnsProposalTopicArg, SnsProposalsSortArg,
             },
         },
         report::DEFAULT_SNS_SOURCE_ENDPOINT,
     },
 };
+use clap::builder::NonEmptyStringValueParser;
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
 const SNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
@@ -34,6 +35,8 @@ Examples:
   icq sns proposals 1 --status open
   icq sns proposals 1 --status decided
   icq sns proposals 1 --topic governance
+  icq sns proposals 1 --eligible yes
+  icq sns proposals 1 --proposer 00010203
   icq sns proposals 1 --sort status
   icq sns proposals 1 --sort topic
   icq sns proposals 1 --sort proposer
@@ -164,6 +167,21 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
                 .default_value("any")
                 .value_parser(clap::value_parser!(SnsProposalTopicArg))
                 .help("SNS governance topic filter"),
+        )
+        .arg(
+            value_arg("eligible")
+                .long("eligible")
+                .value_name("any|yes|no")
+                .default_value("any")
+                .value_parser(clap::value_parser!(SnsProposalEligibilityArg))
+                .help("Reward eligibility filter"),
+        )
+        .arg(
+            value_arg("proposer")
+                .long("proposer")
+                .value_name("neuron-id-prefix")
+                .value_parser(NonEmptyStringValueParser::new())
+                .help("Filter proposals by proposer neuron id prefix"),
         )
         .arg(
             value_arg("sort")

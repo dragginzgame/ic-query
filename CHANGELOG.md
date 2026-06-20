@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.41` adds proposal list filters for SNS reward eligibility and
+  NNS/SNS proposers while keeping them cache-compatible where complete
+  snapshots are available.
+
+  ```bash
+  icq nns proposal list --proposer 123456789
+  icq sns proposals 1 --eligible yes
+  icq sns proposals 1 --proposer 00010203
+  ```
+
 - `0.2.40` adds NNS and SNS proposal sorting by latest tally timestamp, plus
   SNS proposal sorting by action id, reward eligibility, and reward-event end
   timestamp, while reusing the existing live and complete-cache proposal view

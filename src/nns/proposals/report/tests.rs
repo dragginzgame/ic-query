@@ -106,6 +106,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         status: NnsProposalStatusFilter::Executed,
         reward_status: NnsProposalRewardStatusFilter::Settled,
         topic: NnsProposalTopicFilter::Governance,
+        proposer_neuron_id: Some(99),
         sort: NnsProposalListSort::Title,
         sort_direction: NnsProposalSortDirection::Asc,
         verbose: true,
@@ -130,6 +131,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL
     );
     assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
+    assert_eq!(report.proposer_filter, Some(99));
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
     assert_eq!(report.data_source, "live");
@@ -146,6 +148,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert!(text.contains(&format!(
         "topic_filter: {NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL}"
     )));
+    assert!(text.contains("proposer_filter: 99"));
     assert!(text.contains("data_source: live"));
     assert!(text.contains("proposal_details:"));
 }
@@ -198,6 +201,7 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
         status: NnsProposalStatusFilter::Any,
         reward_status: NnsProposalRewardStatusFilter::Any,
         topic: NnsProposalTopicFilter::Any,
+        proposer_neuron_id: None,
         sort: NnsProposalListSort::RewardStatus,
         sort_direction: NnsProposalSortDirection::Asc,
         verbose: false,
@@ -216,6 +220,30 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
             .collect::<Vec<_>>(),
         vec![102, 103, 101]
     );
+}
+
+#[test]
+fn nns_proposal_list_report_filters_by_proposer() {
+    let source = FixtureSource {
+        expected_status: Vec::new(),
+        expected_reward_status: Vec::new(),
+        proposals: vec![
+            proposal_info_with_proposer(101, 99),
+            proposal_info_with_proposer(102, 100),
+            proposal_info_with_proposer(103, 99),
+        ],
+        proposal: proposal_info_with_proposer(101, 99),
+    };
+    let mut request = proposal_sort_request(NnsProposalListSort::Id);
+    request.proposer_neuron_id = Some(99);
+
+    let report = build_nns_proposal_list_report_with_source(&request, &source)
+        .expect("build proposer-filtered report");
+    let text = nns_proposal_list_report_text(&report);
+
+    assert_eq!(report.proposer_filter, Some(99));
+    assert_eq!(proposal_ids(&report), vec![103, 101]);
+    assert!(text.contains("proposer_filter: 99"));
 }
 
 #[test]
@@ -412,6 +440,7 @@ fn proposal_sort_request(sort: NnsProposalListSort) -> NnsProposalListRequest {
         status: NnsProposalStatusFilter::Any,
         reward_status: NnsProposalRewardStatusFilter::Any,
         topic: NnsProposalTopicFilter::Any,
+        proposer_neuron_id: None,
         sort,
         sort_direction: sort.default_direction(),
         verbose: false,
@@ -486,6 +515,21 @@ fn proposal_info_with_tally_timestamp(
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
             NNS_PROPOSAL_STATUS_EXECUTED_CODE,
             "Tally timestamp proposal",
+            20,
+        )
+    }
+}
+
+fn proposal_info_with_proposer(proposal_id: u64, proposer_neuron_id: u64) -> NnsProposalInfo {
+    NnsProposalInfo {
+        proposer: Some(NnsNeuronId {
+            id: proposer_neuron_id,
+        }),
+        ..proposal_info(
+            proposal_id,
+            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            "Proposer proposal",
             20,
         )
     }

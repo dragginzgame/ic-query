@@ -5,7 +5,8 @@
 //! Boundary: carries validated proposal inputs into SNS report builders.
 
 use crate::sns::report::{
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+    SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
+    SnsProposalTopicFilter, SnsProposalsSort,
 };
 use std::path::PathBuf;
 
@@ -68,6 +69,8 @@ pub struct SnsProposalsRequest {
     pub before_proposal_id: Option<u64>,
     pub status: SnsProposalStatusFilter,
     pub topic: SnsProposalTopicFilter,
+    pub eligibility: SnsProposalEligibilityFilter,
+    pub proposer_neuron_id: Option<String>,
     pub sort: SnsProposalsSort,
     pub sort_direction: SnsProposalSortDirection,
     pub icp_root: Option<PathBuf>,

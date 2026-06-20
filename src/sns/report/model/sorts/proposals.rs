@@ -123,6 +123,42 @@ impl SnsProposalSortDirection {
 }
 
 ///
+/// SnsProposalEligibilityFilter
+///
+/// Report-model reward eligibility filter for SNS proposal listings.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum SnsProposalEligibilityFilter {
+    #[default]
+    Any,
+    Yes,
+    No,
+}
+
+impl SnsProposalEligibilityFilter {
+    /// Return the stable label used in text and JSON reports.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Any => "any",
+            Self::Yes => "yes",
+            Self::No => "no",
+        }
+    }
+
+    /// Return the boolean row value for concrete eligibility filters.
+    #[must_use]
+    pub const fn eligibility_value(self) -> Option<bool> {
+        match self {
+            Self::Any => None,
+            Self::Yes => Some(true),
+            Self::No => Some(false),
+        }
+    }
+}
+
+///
 /// SnsProposalStatusFilter
 ///
 /// Report-model status filter for bounded SNS proposal listings.

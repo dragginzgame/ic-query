@@ -4,7 +4,9 @@
 //! Does not own: live proposal request mapping or report view behavior.
 //! Boundary: converts CLI option values into report-model values.
 
-use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort};
+use crate::sns::report::{
+    SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+};
 use clap::ValueEnum;
 
 pub(in crate::sns::commands) const SNS_PROPOSALS_SORT_VALUE_NAME: &str = concat!(
@@ -74,6 +76,30 @@ impl From<SnsProposalsSortArg> for SnsProposalsSort {
             SnsProposalsSortArg::Decided => Self::Decided,
             SnsProposalsSortArg::Executed => Self::Executed,
             SnsProposalsSortArg::Failed => Self::Failed,
+        }
+    }
+}
+
+///
+/// SnsProposalEligibilityArg
+///
+/// Command-local clap value accepted by `icq sns proposals --eligible`.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub(in crate::sns::commands) enum SnsProposalEligibilityArg {
+    #[default]
+    Any,
+    Yes,
+    No,
+}
+
+impl From<SnsProposalEligibilityArg> for SnsProposalEligibilityFilter {
+    fn from(value: SnsProposalEligibilityArg) -> Self {
+        match value {
+            SnsProposalEligibilityArg::Any => Self::Any,
+            SnsProposalEligibilityArg::Yes => Self::Yes,
+            SnsProposalEligibilityArg::No => Self::No,
         }
     }
 }

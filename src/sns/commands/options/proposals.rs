@@ -6,15 +6,15 @@
 
 use crate::{
     cli::{
-        clap::{required_string, required_typed, typed_option},
+        clap::{required_string, required_typed, string_option, typed_option},
         common::OutputFormat,
     },
     sns::commands::{
         SnsCommandError,
         options::{common::parse_sns_matches, lookup::SnsLookupOptions},
         spec::{
-            SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsProposalStatusArg, SnsProposalTopicArg,
-            SnsProposalsSortArg, sns_proposal_command, sns_proposal_usage,
+            SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
+            SnsProposalTopicArg, SnsProposalsSortArg, sns_proposal_command, sns_proposal_usage,
             sns_proposals_cache_list_command, sns_proposals_cache_list_usage,
             sns_proposals_cache_status_command, sns_proposals_cache_status_usage,
             sns_proposals_command, sns_proposals_refresh_command, sns_proposals_refresh_usage,
@@ -33,6 +33,8 @@ pub(in crate::sns::commands) struct SnsProposalsOptions {
     pub(in crate::sns::commands) before_proposal_id: Option<u64>,
     pub(in crate::sns::commands) status: SnsProposalStatusArg,
     pub(in crate::sns::commands) topic: SnsProposalTopicArg,
+    pub(in crate::sns::commands) eligibility: SnsProposalEligibilityArg,
+    pub(in crate::sns::commands) proposer_neuron_id: Option<String>,
     pub(in crate::sns::commands) sort: SnsProposalsSortArg,
     pub(in crate::sns::commands) sort_direction: SnsProposalSortDirection,
     pub(in crate::sns::commands) verbose: bool,
@@ -81,6 +83,8 @@ impl SnsProposalsOptions {
             before_proposal_id: typed_option::<u64>(&matches, "before"),
             status,
             topic: required_typed(&matches, "topic"),
+            eligibility: required_typed(&matches, "eligible"),
+            proposer_neuron_id: string_option(&matches, "proposer"),
             sort,
             sort_direction,
             verbose: matches.get_flag("verbose"),

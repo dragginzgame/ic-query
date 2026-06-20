@@ -123,6 +123,7 @@ icq nns proposal list --limit 25
 icq nns proposal list --status open
 icq nns proposal list --reward-status settled
 icq nns proposal list --topic governance
+icq nns proposal list --proposer 123456789
 icq nns proposal list --sort reward-status
 icq nns proposal list --sort tally-time
 icq nns proposal list --sort deadline
@@ -136,6 +137,7 @@ icq nns proposal info 132411 --format json
 ```
 
 NNS proposal list views support
+`--proposer <neuron-id>` and
 `--sort api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|executed|failed`.
 Local sort modes accept `--asc` or `--desc`; status, reward status, topic,
 proposer, title, and action default to ascending, while id, tally values, tally
@@ -167,12 +169,17 @@ snapshot on first use, then apply supported view options locally. Proposal
 detail lookups reuse an existing complete local snapshot when it contains the
 requested proposal, then fall back to live detail lookup. Status and topic
 filters that can be reproduced from complete proposal rows use the local
-snapshot, including decided/adopted/rejected status filters:
+snapshot, including decided/adopted/rejected status filters; reward eligibility
+can be filtered with `--eligible any|yes|no`, and proposer neuron ids can be
+filtered by prefix with `--proposer`:
 
 ```bash
 icq sns proposals 1 --limit 25
 icq sns proposals 1 --status open
 icq sns proposals 1 --status decided
+icq sns proposals 1 --eligible yes
+icq sns proposals 1 --eligible no
+icq sns proposals 1 --proposer 00010203
 icq sns proposals 1 --sort status
 icq sns proposals 1 --sort topic
 icq sns proposals 1 --sort proposer
@@ -200,6 +207,7 @@ icq sns proposal 1 387 --ballots
 ```
 
 Proposal list views support
+`--eligible any|yes|no`, `--proposer <neuron-id-prefix>`, and
 `--sort api|id|status|topic|proposer|title|action|action-id|yes|no|total-votes|tally-time|ballots|eligible|reject-cost|reward-round|reward-end|created|decided|executed|failed`.
 Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
 and action default to ascending, while id, action id, tally values, tally time,

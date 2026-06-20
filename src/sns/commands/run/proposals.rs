@@ -92,6 +92,8 @@ where
         before_proposal_id: options.before_proposal_id,
         status: options.status.into(),
         topic: options.topic.into(),
+        eligibility: options.eligibility.into(),
+        proposer_neuron_id: options.proposer_neuron_id,
         sort: options.sort.into(),
         sort_direction: options.sort_direction,
         icp_root: Some(parts.icp_root),

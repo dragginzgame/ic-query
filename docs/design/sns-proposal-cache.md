@@ -61,6 +61,10 @@ cached proposal rows:
 - `--status executed`
 - `--status failed`
 - `--topic <topic>`
+- `--eligible any`
+- `--eligible yes`
+- `--eligible no`
+- `--proposer <neuron-id-prefix>`
 
 Older complete proposal snapshots that predate cached raw proposal status
 codes or topic labels are refreshed before status or topic filters that depend
@@ -79,8 +83,8 @@ scope: full
 ```
 
 View options such as `--limit`, `--before`, `--sort`, `--asc`, `--desc`,
-`--status`, `--topic`, `--verbose`, and `--format` do not change snapshot
-identity.
+`--status`, `--topic`, `--eligible`, `--proposer`, `--verbose`, and
+`--format` do not change snapshot identity.
 
 Published cache files remain complete-only:
 

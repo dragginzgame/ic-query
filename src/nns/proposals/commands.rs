@@ -39,6 +39,7 @@ Examples:
   icq nns proposal list --status open
   icq nns proposal list --reward-status settled
   icq nns proposal list --topic governance
+  icq nns proposal list --proposer 123456789
   icq nns proposal list --sort reward-status
   icq nns proposal list --sort tally-time
   icq nns proposal list --sort deadline
@@ -143,6 +144,13 @@ fn nns_proposal_list_command_with(
                 .default_value(NNS_PROPOSAL_TOPIC_ANY_LABEL)
                 .value_parser(clap::value_parser!(NnsProposalTopicArg))
                 .help("NNS governance topic filter applied to returned rows"),
+        )
+        .arg(
+            value_arg("proposer")
+                .long("proposer")
+                .value_name("neuron-id")
+                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
+                .help("Filter proposals by exact proposer neuron id"),
         )
         .arg(
             value_arg("sort")

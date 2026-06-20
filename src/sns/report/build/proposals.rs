@@ -17,7 +17,7 @@ use crate::sns::report::{
         build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
     },
     source::{SnsProposalSource, SnsProposalsSource},
-    view::sort_sns_proposal_rows,
+    view::{proposal_matches_eligibility, proposal_matches_proposer, sort_sns_proposal_rows},
 };
 
 pub fn build_sns_proposal_report(
@@ -106,6 +106,12 @@ fn build_sns_proposals_report_live(
         &include_status,
         request.topic,
     )?;
+    proposals
+        .proposals
+        .retain(|proposal| proposal_matches_eligibility(proposal, request.eligibility));
+    proposals.proposals.retain(|proposal| {
+        proposal_matches_proposer(proposal, request.proposer_neuron_id.as_deref())
+    });
     sort_sns_proposal_rows(
         &mut proposals.proposals,
         request.sort,
@@ -119,6 +125,8 @@ fn build_sns_proposals_report_live(
         before_proposal_id: request.before_proposal_id,
         status: request.status,
         topic: request.topic,
+        eligibility: request.eligibility,
+        proposer_neuron_id: request.proposer_neuron_id.clone(),
         sort: request.sort,
         sort_direction: request.sort_direction,
         verbose: request.verbose,

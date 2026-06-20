@@ -57,6 +57,8 @@ pub struct SnsProposalsReport {
     pub before_proposal_id: Option<u64>,
     pub status_filter: String,
     pub topic_filter: String,
+    pub eligibility_filter: String,
+    pub proposer_filter: Option<String>,
     pub sort: String,
     pub sort_direction: String,
     pub verbose: bool,

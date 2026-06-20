@@ -5,15 +5,17 @@
 //! Boundary: exercises in-memory row transformations through the view module.
 
 use super::{
-    proposal_matches_before, proposal_matches_status, proposal_matches_topic,
-    sort_mainnet_sns_instances, sort_sns_neurons, sort_sns_proposal_rows,
+    proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,
+    proposal_matches_status, proposal_matches_topic, sort_mainnet_sns_instances, sort_sns_neurons,
+    sort_sns_proposal_rows,
 };
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
     SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
-    SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow, SnsNeuronsSort, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalsSort, source::MainnetSns,
+    SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow, SnsNeuronsSort,
+    SnsProposalEligibilityFilter, SnsProposalRow, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsSort,
+    source::MainnetSns,
 };
 
 #[test]
@@ -371,6 +373,46 @@ fn proposal_topic_filter_matches_cached_topic_labels() {
     ));
 }
 
+#[test]
+fn proposal_eligibility_filter_matches_reward_eligibility() {
+    assert!(proposal_matches_eligibility(
+        &proposal_with_eligibility(true),
+        SnsProposalEligibilityFilter::Yes
+    ));
+    assert!(proposal_matches_eligibility(
+        &proposal_with_eligibility(false),
+        SnsProposalEligibilityFilter::No
+    ));
+    assert!(!proposal_matches_eligibility(
+        &proposal_with_eligibility(false),
+        SnsProposalEligibilityFilter::Yes
+    ));
+    assert!(proposal_matches_eligibility(
+        &proposal_with_eligibility(false),
+        SnsProposalEligibilityFilter::Any
+    ));
+}
+
+#[test]
+fn proposal_proposer_filter_matches_neuron_id_prefix() {
+    assert!(proposal_matches_proposer(
+        &proposal_with_proposer(Some("0001020304")),
+        Some("000102")
+    ));
+    assert!(!proposal_matches_proposer(
+        &proposal_with_proposer(Some("0001020304")),
+        Some("ffff")
+    ));
+    assert!(!proposal_matches_proposer(
+        &proposal_with_proposer(None),
+        Some("000102")
+    ));
+    assert!(proposal_matches_proposer(
+        &proposal_with_proposer(None),
+        None
+    ));
+}
+
 fn proposal_ids(proposals: &[SnsProposalRow]) -> Vec<u64> {
     proposals
         .iter()
@@ -444,6 +486,20 @@ fn proposal_with_status(status: Option<i32>) -> SnsProposalRow {
 fn proposal_with_topic(topic: Option<&str>) -> SnsProposalRow {
     SnsProposalRow {
         topic: topic.map(ToString::to_string),
+        ..proposal_row(1, 100)
+    }
+}
+
+fn proposal_with_eligibility(is_eligible_for_rewards: bool) -> SnsProposalRow {
+    SnsProposalRow {
+        is_eligible_for_rewards,
+        ..proposal_row(1, 100)
+    }
+}
+
+fn proposal_with_proposer(proposer_neuron_id: Option<&str>) -> SnsProposalRow {
+    SnsProposalRow {
+        proposer_neuron_id: proposer_neuron_id.map(ToString::to_string),
         ..proposal_row(1, 100)
     }
 }

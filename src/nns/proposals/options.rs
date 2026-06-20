@@ -55,6 +55,7 @@ pub(in crate::nns) struct NnsProposalListOptions {
     pub(in crate::nns) status: NnsProposalStatusFilter,
     pub(in crate::nns) reward_status: NnsProposalRewardStatusFilter,
     pub(in crate::nns) topic: NnsProposalTopicFilter,
+    pub(in crate::nns) proposer_neuron_id: Option<u64>,
     pub(in crate::nns) sort: NnsProposalListSort,
     pub(in crate::nns) sort_direction: NnsProposalSortDirection,
     pub(in crate::nns) verbose: bool,
@@ -97,6 +98,7 @@ impl NnsProposalListOptions {
             )
             .into(),
             topic: required_typed::<NnsProposalTopicArg>(&matches, "topic").into(),
+            proposer_neuron_id: typed_option(&matches, "proposer"),
             sort: sort.into(),
             sort_direction,
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),

@@ -7,9 +7,9 @@
 use super::SnsReportProvenance;
 use crate::sns::report::{
     MainnetSns, MainnetSnsList, MainnetSnsProposal, MainnetSnsProposals,
-    SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalReport,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport,
-    SnsProposalsSort,
+    SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
+    SnsProposalEligibilityFilter, SnsProposalReport, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsSort,
 };
 
 ///
@@ -43,6 +43,8 @@ pub(in crate::sns::report) struct SnsProposalsReportParts {
     pub(in crate::sns::report) before_proposal_id: Option<u64>,
     pub(in crate::sns::report) status: SnsProposalStatusFilter,
     pub(in crate::sns::report) topic: SnsProposalTopicFilter,
+    pub(in crate::sns::report) eligibility: SnsProposalEligibilityFilter,
+    pub(in crate::sns::report) proposer_neuron_id: Option<String>,
     pub(in crate::sns::report) sort: SnsProposalsSort,
     pub(in crate::sns::report) sort_direction: SnsProposalSortDirection,
     pub(in crate::sns::report) verbose: bool,
@@ -95,6 +97,8 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
         before_proposal_id: parts.before_proposal_id,
         status_filter: parts.status.as_str().to_string(),
         topic_filter: parts.topic.as_str().to_string(),
+        eligibility_filter: parts.eligibility.as_str().to_string(),
+        proposer_filter: parts.proposer_neuron_id,
         sort: parts.sort.as_str().to_string(),
         sort_direction: parts.sort.direction_label(parts.sort_direction).to_string(),
         verbose: parts.verbose,

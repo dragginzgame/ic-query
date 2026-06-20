@@ -32,6 +32,11 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         ),
         format!("status_filter: {}", report.status_filter),
         format!("topic_filter: {}", report.topic_filter),
+        format!("eligibility_filter: {}", report.eligibility_filter),
+        format!(
+            "proposer_filter: {}",
+            report.proposer_filter.as_deref().unwrap_or("-")
+        ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
         format!("verbose: {}", yes_no(report.verbose)),
