@@ -119,6 +119,22 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
     assert_eq!(deadline_sort.sort, NnsProposalListSort::Deadline);
     assert_eq!(deadline_sort.sort_direction, NnsProposalSortDirection::Desc);
 
+    let tally_time_sort = NnsProposalListOptions::parse_list([
+        OsString::from("--sort"),
+        OsString::from(NNS_PROPOSAL_SORT_TALLY_TIME_LABEL),
+    ])
+    .expect("parse tally-time sort");
+
+    assert_eq!(tally_time_sort.sort, NnsProposalListSort::TallyTime);
+    assert_eq!(
+        tally_time_sort.sort_direction,
+        NnsProposalSortDirection::Desc
+    );
+    assert_eq!(
+        tally_time_sort.sort.as_str(),
+        NNS_PROPOSAL_SORT_TALLY_TIME_LABEL
+    );
+
     let voting_power_sort = NnsProposalListOptions::parse_list([
         OsString::from("--sort"),
         OsString::from(NNS_PROPOSAL_SORT_VOTING_POWER_LABEL),

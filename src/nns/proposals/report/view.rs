@@ -99,6 +99,14 @@ pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
                 proposal.latest_tally.as_ref().map(|tally| tally.total)
             });
         }
+        NnsProposalListSort::TallyTime => {
+            sort_by_optional_u64(proposals, direction, |proposal| {
+                proposal
+                    .latest_tally
+                    .as_ref()
+                    .map(|tally| tally.timestamp_seconds)
+            });
+        }
         NnsProposalListSort::VotingPower => {
             sort_by_optional_u64(proposals, direction, |proposal| {
                 proposal.total_potential_voting_power

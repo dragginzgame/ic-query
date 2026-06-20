@@ -40,6 +40,7 @@ Examples:
   icq nns proposal list --reward-status settled
   icq nns proposal list --topic governance
   icq nns proposal list --sort reward-status
+  icq nns proposal list --sort tally-time
   icq nns proposal list --sort deadline
   icq nns proposal list --sort voting-power
   icq nns proposal list --sort proposed
@@ -161,7 +162,7 @@ fn nns_proposal_list_command_with(
             flag_arg(NNS_PROPOSAL_SORT_DESC_LABEL)
                 .long(NNS_PROPOSAL_SORT_DESC_LABEL)
                 .conflicts_with(NNS_PROPOSAL_SORT_ASC_LABEL)
-                .help("Sort descending for local sort modes; this is the default for id/tally/voting-power/ballots/reject-cost/reward-round/timestamps"),
+                .help("Sort descending for local sort modes; this is the default for id/tally/tally-time/voting-power/ballots/reject-cost/reward-round/timestamps"),
         )
         .arg(
             flag_arg(NNS_PROPOSAL_VERBOSE_FLAG)

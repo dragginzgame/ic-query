@@ -7,11 +7,11 @@ use super::{
         NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE, NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
         NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
         NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
-        NNS_PROPOSAL_SORT_TITLE_LABEL, NNS_PROPOSAL_SORT_VOTING_POWER_LABEL,
-        NNS_PROPOSAL_STATUS_EXECUTED_CODE, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-        NNS_PROPOSAL_STATUS_OPEN_CODE, NNS_PROPOSAL_STATUS_OPEN_LABEL,
-        NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-        NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE,
+        NNS_PROPOSAL_SORT_TALLY_TIME_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
+        NNS_PROPOSAL_SORT_VOTING_POWER_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+        NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_STATUS_OPEN_CODE,
+        NNS_PROPOSAL_STATUS_OPEN_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+        NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL, NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE,
         NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL,
         NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE, NNS_PROPOSAL_VOTE_YES_LABEL,
         NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
@@ -265,6 +265,36 @@ fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
 }
 
 #[test]
+fn nns_proposal_list_report_sorts_by_tally_time() {
+    let source = FixtureSource {
+        expected_status: Vec::new(),
+        expected_reward_status: Vec::new(),
+        proposals: vec![
+            proposal_info_with_tally_timestamp(101, Some(1_700_000_300)),
+            proposal_info_with_tally_timestamp(102, None),
+            proposal_info_with_tally_timestamp(103, Some(1_700_000_100)),
+        ],
+        proposal: proposal_info(
+            101,
+            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            "Tally timestamp proposal",
+            20,
+        ),
+    };
+
+    let report = build_nns_proposal_list_report_with_source(
+        &proposal_sort_request(NnsProposalListSort::TallyTime),
+        &source,
+    )
+    .expect("build tally-time sorted report");
+
+    assert_eq!(report.sort, NNS_PROPOSAL_SORT_TALLY_TIME_LABEL);
+    assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_DESC_LABEL);
+    assert_eq!(proposal_ids(&report), vec![101, 103, 102]);
+}
+
+#[test]
 fn nns_proposal_report_renders_detail() {
     let source = FixtureSource {
         expected_status: Vec::new(),
@@ -433,6 +463,29 @@ fn proposal_info_with_deadline_and_voting_power(
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
             NNS_PROPOSAL_STATUS_EXECUTED_CODE,
             "Sortable proposal",
+            20,
+        )
+    }
+}
+
+fn proposal_info_with_tally_timestamp(
+    proposal_id: u64,
+    tally_timestamp_seconds: Option<u64>,
+) -> NnsProposalInfo {
+    let latest_tally = tally_timestamp_seconds.map(|timestamp_seconds| NnsProposalTallyWire {
+        timestamp_seconds,
+        yes: 20,
+        no: 1,
+        total: 21,
+    });
+
+    NnsProposalInfo {
+        latest_tally,
+        ..proposal_info(
+            proposal_id,
+            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            "Tally timestamp proposal",
             20,
         )
     }

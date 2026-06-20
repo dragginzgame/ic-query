@@ -8,12 +8,14 @@ use crate::sns::report::{SnsProposalStatusFilter, SnsProposalTopicFilter, SnsPro
 use clap::ValueEnum;
 
 pub(in crate::sns::commands) const SNS_PROPOSALS_SORT_VALUE_NAME: &str = concat!(
-    "api|id|status|topic|proposer|title|action|yes|no|total-votes|",
-    "ballots|reject-cost|reward-round|created|decided|executed|failed"
+    "api|id|status|topic|proposer|title|action|action-id|yes|no|total-votes|",
+    "tally-time|ballots|eligible|reject-cost|reward-round|reward-end|created|decided|",
+    "executed|failed"
 );
 pub(in crate::sns::commands) const SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME: &str = concat!(
-    "id|status|topic|proposer|title|action|yes|no|total-votes|",
-    "ballots|reject-cost|reward-round|created|decided|executed|failed"
+    "id|status|topic|proposer|title|action|action-id|yes|no|total-votes|",
+    "tally-time|ballots|eligible|reject-cost|reward-round|reward-end|created|decided|",
+    "executed|failed"
 );
 
 ///
@@ -32,12 +34,16 @@ pub(in crate::sns::commands) enum SnsProposalsSortArg {
     Proposer,
     Title,
     Action,
+    ActionId,
     Yes,
     No,
     TotalVotes,
+    TallyTime,
     Ballots,
+    Eligible,
     RejectCost,
     RewardRound,
+    RewardEnd,
     Created,
     Decided,
     Executed,
@@ -54,12 +60,16 @@ impl From<SnsProposalsSortArg> for SnsProposalsSort {
             SnsProposalsSortArg::Proposer => Self::Proposer,
             SnsProposalsSortArg::Title => Self::Title,
             SnsProposalsSortArg::Action => Self::Action,
+            SnsProposalsSortArg::ActionId => Self::ActionId,
             SnsProposalsSortArg::Yes => Self::Yes,
             SnsProposalsSortArg::No => Self::No,
             SnsProposalsSortArg::TotalVotes => Self::TotalVotes,
+            SnsProposalsSortArg::TallyTime => Self::TallyTime,
             SnsProposalsSortArg::Ballots => Self::Ballots,
+            SnsProposalsSortArg::Eligible => Self::Eligible,
             SnsProposalsSortArg::RejectCost => Self::RejectCost,
             SnsProposalsSortArg::RewardRound => Self::RewardRound,
+            SnsProposalsSortArg::RewardEnd => Self::RewardEnd,
             SnsProposalsSortArg::Created => Self::Created,
             SnsProposalsSortArg::Decided => Self::Decided,
             SnsProposalsSortArg::Executed => Self::Executed,

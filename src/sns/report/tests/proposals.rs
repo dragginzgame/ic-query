@@ -693,6 +693,15 @@ fn sns_proposals_cached_sort_proposer_orders_before_limit() {
 }
 
 #[test]
+fn sns_proposals_cached_sort_action_id_orders_before_limit() {
+    assert_cached_proposal_sort(
+        SnsProposalsSort::ActionId,
+        SnsProposalSortDirection::Desc,
+        &[20, 30],
+    );
+}
+
+#[test]
 fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::TotalVotes,
@@ -702,11 +711,38 @@ fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
 }
 
 #[test]
+fn sns_proposals_cached_sort_tally_time_orders_before_limit() {
+    assert_cached_proposal_sort(
+        SnsProposalsSort::TallyTime,
+        SnsProposalSortDirection::Desc,
+        &[20, 30],
+    );
+}
+
+#[test]
 fn sns_proposals_cached_sort_reward_round_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::RewardRound,
         SnsProposalSortDirection::Desc,
         &[20, 30],
+    );
+}
+
+#[test]
+fn sns_proposals_cached_sort_reward_end_orders_before_limit() {
+    assert_cached_proposal_sort(
+        SnsProposalsSort::RewardEnd,
+        SnsProposalSortDirection::Desc,
+        &[30, 10],
+    );
+}
+
+#[test]
+fn sns_proposals_cached_sort_eligible_orders_before_limit() {
+    assert_cached_proposal_sort(
+        SnsProposalsSort::Eligible,
+        SnsProposalSortDirection::Desc,
+        &[30, 20],
     );
 }
 
@@ -884,10 +920,13 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     topic: SnsProposalTopicFilter::Governance,
                     title: "Zulu proposal",
                     action: "motion",
-                    tally: (90, 10, 100),
+                    action_id: 2,
+                    tally: (1_700_005_100, 90, 10, 100),
                     ballot_count: 4,
                     reject_cost_e8s: 100_000_000,
                     reward_event_round: 7,
+                    reward_event_end_timestamp_seconds: Some(1_700_004_100),
+                    is_eligible_for_rewards: false,
                     proposer_neuron_id: Some("bbbb"),
                 }),
                 proposal_row_with_fixture(ProposalRowFixture {
@@ -901,10 +940,13 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     topic: SnsProposalTopicFilter::TreasuryAssetManagement,
                     title: "Alpha proposal",
                     action: "upgrade-sns-controlled-canister",
-                    tally: (5, 10, 15),
+                    action_id: 9,
+                    tally: (1_700_005_300, 5, 10, 15),
                     ballot_count: 2,
                     reject_cost_e8s: 50_000_000,
                     reward_event_round: 10,
+                    reward_event_end_timestamp_seconds: None,
+                    is_eligible_for_rewards: true,
                     proposer_neuron_id: None,
                 }),
                 proposal_row_with_fixture(ProposalRowFixture {
@@ -918,10 +960,13 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     topic: SnsProposalTopicFilter::Governance,
                     title: "Beta proposal",
                     action: "motion",
-                    tally: (50, 25, 75),
+                    action_id: 5,
+                    tally: (1_700_005_200, 50, 25, 75),
                     ballot_count: 6,
                     reject_cost_e8s: 200_000_000,
                     reward_event_round: 8,
+                    reward_event_end_timestamp_seconds: Some(1_700_004_300),
+                    is_eligible_for_rewards: true,
                     proposer_neuron_id: Some("aaaa"),
                 }),
             ],
@@ -1040,10 +1085,13 @@ struct ProposalRowFixture {
     topic: SnsProposalTopicFilter,
     title: &'static str,
     action: &'static str,
-    tally: (u64, u64, u64),
+    action_id: u64,
+    tally: (u64, u64, u64, u64),
     ballot_count: usize,
     reject_cost_e8s: u64,
     reward_event_round: u64,
+    reward_event_end_timestamp_seconds: Option<u64>,
+    is_eligible_for_rewards: bool,
     proposer_neuron_id: Option<&'static str>,
 }
 
@@ -1055,6 +1103,7 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         topic: Some(fixture.topic.as_str().to_string()),
         title: fixture.title.to_string(),
         action: fixture.action.to_string(),
+        action_id: fixture.action_id,
         proposal_creation_timestamp_seconds: fixture.created_at_secs,
         created_at: format_utc_timestamp_secs(fixture.created_at_secs),
         decided_timestamp_seconds: fixture.decided_at_secs,
@@ -1066,12 +1115,14 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         reject_cost_e8s: fixture.reject_cost_e8s,
         ballot_count: fixture.ballot_count,
         reward_event_round: fixture.reward_event_round,
+        reward_event_end_timestamp_seconds: fixture.reward_event_end_timestamp_seconds,
+        is_eligible_for_rewards: fixture.is_eligible_for_rewards,
         proposer_neuron_id: fixture.proposer_neuron_id.map(ToString::to_string),
         latest_tally: Some(SnsProposalTally {
-            timestamp_seconds: fixture.created_at_secs,
-            yes: fixture.tally.0,
-            no: fixture.tally.1,
-            total: fixture.tally.2,
+            timestamp_seconds: fixture.tally.0,
+            yes: fixture.tally.1,
+            no: fixture.tally.2,
+            total: fixture.tally.3,
         }),
         ..fixture_proposal_row()
     }

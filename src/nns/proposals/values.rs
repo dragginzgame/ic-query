@@ -16,12 +16,12 @@ pub(in crate::nns::proposals) const NNS_PROPOSAL_VERBOSE_FLAG: &str = "verbose";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_REWARD_STATUS_ARG: &str = "reward-status";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_SORT_VALUE_NAME: &str = concat!(
     "api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|",
-    "voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
+    "tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
     "executed|failed"
 );
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME: &str = concat!(
     "id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|",
-    "voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
+    "tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
     "executed|failed"
 );
 
@@ -45,6 +45,7 @@ pub(in crate::nns::proposals) enum NnsProposalListSortArg {
     Yes,
     No,
     TotalVotes,
+    TallyTime,
     VotingPower,
     Ballots,
     RejectCost,
@@ -70,6 +71,7 @@ impl From<NnsProposalListSortArg> for NnsProposalListSort {
             NnsProposalListSortArg::Yes => Self::Yes,
             NnsProposalListSortArg::No => Self::No,
             NnsProposalListSortArg::TotalVotes => Self::TotalVotes,
+            NnsProposalListSortArg::TallyTime => Self::TallyTime,
             NnsProposalListSortArg::VotingPower => Self::VotingPower,
             NnsProposalListSortArg::Ballots => Self::Ballots,
             NnsProposalListSortArg::RejectCost => Self::RejectCost,

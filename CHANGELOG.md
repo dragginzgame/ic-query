@@ -11,6 +11,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.40` adds NNS and SNS proposal sorting by latest tally timestamp, plus
+  SNS proposal sorting by action id, reward eligibility, and reward-event end
+  timestamp, while reusing the existing live and complete-cache proposal view
+  sorters.
+
+  ```bash
+  icq nns proposal list --sort tally-time
+  icq sns proposals 1 --sort action-id
+  icq sns proposals 1 --sort tally-time
+  icq sns proposals 1 --sort eligible
+  icq sns proposals 1 --sort reward-end
+  ```
+
 - `0.2.39` adds NNS proposal sorting by reward status, voting deadline, and
   total potential voting power while reusing the existing live and
   complete-cache proposal view sorter.

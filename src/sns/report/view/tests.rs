@@ -190,9 +190,9 @@ fn proposal_action_sort_orders_descending_with_id_tiebreaker() {
 #[test]
 fn proposal_total_votes_sort_orders_highest_tally_first() {
     let mut proposals = vec![
-        proposal_row_with_tally(2, Some((10, 20, 30))),
+        proposal_row_with_tally(2, Some((100, 10, 20, 30))),
         proposal_row_with_tally(10, None),
-        proposal_row_with_tally(1, Some((50, 60, 110))),
+        proposal_row_with_tally(1, Some((200, 50, 60, 110))),
     ];
 
     sort_sns_proposal_rows(
@@ -205,11 +205,28 @@ fn proposal_total_votes_sort_orders_highest_tally_first() {
 }
 
 #[test]
+fn proposal_tally_time_sort_orders_newest_tally_first() {
+    let mut proposals = vec![
+        proposal_row_with_tally(2, Some((100, 10, 20, 30))),
+        proposal_row_with_tally(10, None),
+        proposal_row_with_tally(1, Some((200, 50, 60, 110))),
+    ];
+
+    sort_sns_proposal_rows(
+        &mut proposals,
+        SnsProposalsSort::TallyTime,
+        SnsProposalSortDirection::Desc,
+    );
+
+    assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
+}
+
+#[test]
 fn proposal_yes_sort_orders_ascending_with_id_tiebreaker() {
     let mut proposals = vec![
-        proposal_row_with_tally(2, Some((10, 20, 30))),
-        proposal_row_with_tally(10, Some((10, 30, 40))),
-        proposal_row_with_tally(1, Some((50, 60, 110))),
+        proposal_row_with_tally(2, Some((100, 10, 20, 30))),
+        proposal_row_with_tally(10, Some((200, 10, 30, 40))),
+        proposal_row_with_tally(1, Some((300, 50, 60, 110))),
     ];
 
     sort_sns_proposal_rows(
@@ -470,10 +487,13 @@ fn proposal_row_with_proposer(
     }
 }
 
-fn proposal_row_with_tally(proposal_id: u64, tally: Option<(u64, u64, u64)>) -> SnsProposalRow {
+fn proposal_row_with_tally(
+    proposal_id: u64,
+    tally: Option<(u64, u64, u64, u64)>,
+) -> SnsProposalRow {
     SnsProposalRow {
-        latest_tally: tally.map(|(yes, no, total)| SnsProposalTally {
-            timestamp_seconds: 100,
+        latest_tally: tally.map(|(timestamp_seconds, yes, no, total)| SnsProposalTally {
+            timestamp_seconds,
             yes,
             no,
             total,

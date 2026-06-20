@@ -124,6 +124,7 @@ icq nns proposal list --status open
 icq nns proposal list --reward-status settled
 icq nns proposal list --topic governance
 icq nns proposal list --sort reward-status
+icq nns proposal list --sort tally-time
 icq nns proposal list --sort deadline
 icq nns proposal list --sort voting-power
 icq nns proposal list --sort proposed
@@ -135,11 +136,11 @@ icq nns proposal info 132411 --format json
 ```
 
 NNS proposal list views support
-`--sort api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|executed|failed`.
+`--sort api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|executed|failed`.
 Local sort modes accept `--asc` or `--desc`; status, reward status, topic,
-proposer, title, and action default to ascending, while id, tally, ballot
-count, reject cost, reward round, voting power, and timestamp sorts default to
-descending.
+proposer, title, and action default to ascending, while id, tally values, tally
+time, ballot count, reject cost, reward round, voting power, and timestamp
+sorts default to descending.
 
 Complete NNS proposal snapshots can be refreshed and inspected explicitly. A
 refresh pages through NNS governance until the API is exhausted, writes progress
@@ -178,10 +179,14 @@ icq sns proposals 1 --sort proposer
 icq sns proposals 1 --sort title
 icq sns proposals 1 --sort title --desc
 icq sns proposals 1 --sort action
+icq sns proposals 1 --sort action-id
 icq sns proposals 1 --sort total-votes
+icq sns proposals 1 --sort tally-time
 icq sns proposals 1 --sort ballots
+icq sns proposals 1 --sort eligible
 icq sns proposals 1 --sort reject-cost
 icq sns proposals 1 --sort reward-round
+icq sns proposals 1 --sort reward-end
 icq sns proposals 1 --sort created
 icq sns proposals 1 --sort decided
 icq sns proposals 1 --sort executed
@@ -195,11 +200,12 @@ icq sns proposal 1 387 --ballots
 ```
 
 Proposal list views support
-`--sort api|id|status|topic|proposer|title|action|yes|no|total-votes|ballots|reject-cost|reward-round|created|decided|executed|failed`.
+`--sort api|id|status|topic|proposer|title|action|action-id|yes|no|total-votes|tally-time|ballots|eligible|reject-cost|reward-round|reward-end|created|decided|executed|failed`.
 Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
-and action default to ascending, while id, tally, ballot count, reject cost,
-reward round, and timestamp sorts default to descending. Cache-compatible views
-filter and sort complete local snapshots before applying `--limit`.
+and action default to ascending, while id, action id, tally values, tally time,
+ballot count, reward eligibility, reject cost, reward round, and timestamp
+sorts default to descending. Cache-compatible views filter and sort complete
+local snapshots before applying `--limit`.
 
 Complete SNS proposal snapshots can also be refreshed and inspected manually:
 

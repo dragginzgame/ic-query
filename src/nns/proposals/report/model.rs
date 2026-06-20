@@ -17,6 +17,7 @@ pub(in crate::nns) const NNS_PROPOSAL_SORT_ACTION_LABEL: &str = "action";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_YES_LABEL: &str = "yes";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_NO_LABEL: &str = "no";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_TOTAL_VOTES_LABEL: &str = "total-votes";
+pub(in crate::nns) const NNS_PROPOSAL_SORT_TALLY_TIME_LABEL: &str = "tally-time";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_VOTING_POWER_LABEL: &str = "voting-power";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_BALLOTS_LABEL: &str = "ballots";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_REJECT_COST_LABEL: &str = "reject-cost";
@@ -281,6 +282,7 @@ pub(in crate::nns) enum NnsProposalListSort {
     Yes,
     No,
     TotalVotes,
+    TallyTime,
     VotingPower,
     Ballots,
     RejectCost,
@@ -306,6 +308,7 @@ impl NnsProposalListSort {
             Self::Yes => NNS_PROPOSAL_SORT_YES_LABEL,
             Self::No => NNS_PROPOSAL_SORT_NO_LABEL,
             Self::TotalVotes => NNS_PROPOSAL_SORT_TOTAL_VOTES_LABEL,
+            Self::TallyTime => NNS_PROPOSAL_SORT_TALLY_TIME_LABEL,
             Self::VotingPower => NNS_PROPOSAL_SORT_VOTING_POWER_LABEL,
             Self::Ballots => NNS_PROPOSAL_SORT_BALLOTS_LABEL,
             Self::RejectCost => NNS_PROPOSAL_SORT_REJECT_COST_LABEL,

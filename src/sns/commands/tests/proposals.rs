@@ -142,6 +142,49 @@ fn sns_proposals_parses_local_sort_defaults_and_directions() {
 }
 
 #[test]
+fn sns_proposals_parses_extended_local_sort_values() {
+    let action_id = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("action-id"),
+    ])
+    .expect("parse action-id proposal sort");
+
+    assert_eq!(action_id.sort, SnsProposalsSortArg::ActionId);
+    assert_eq!(action_id.sort_direction, SnsProposalSortDirection::Desc);
+
+    let tally_time = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("tally-time"),
+    ])
+    .expect("parse tally-time proposal sort");
+
+    assert_eq!(tally_time.sort, SnsProposalsSortArg::TallyTime);
+    assert_eq!(tally_time.sort_direction, SnsProposalSortDirection::Desc);
+
+    let eligible = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("eligible"),
+    ])
+    .expect("parse eligible proposal sort");
+
+    assert_eq!(eligible.sort, SnsProposalsSortArg::Eligible);
+    assert_eq!(eligible.sort_direction, SnsProposalSortDirection::Desc);
+
+    let reward_end = SnsProposalsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--sort"),
+        OsString::from("reward-end"),
+    ])
+    .expect("parse reward-end proposal sort");
+
+    assert_eq!(reward_end.sort, SnsProposalsSortArg::RewardEnd);
+    assert_eq!(reward_end.sort_direction, SnsProposalSortDirection::Desc);
+}
+
+#[test]
 fn sns_proposals_rejects_explicit_direction_for_api_sort() {
     let error = SnsProposalsOptions::parse([
         OsString::from("1"),

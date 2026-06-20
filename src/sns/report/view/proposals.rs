@@ -82,6 +82,9 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
         SnsProposalsSort::Action => {
             sort_by_text(proposals, direction, |proposal| proposal.action.as_str());
         }
+        SnsProposalsSort::ActionId => {
+            sort_by_optional_u64(proposals, direction, |proposal| Some(proposal.action_id));
+        }
         SnsProposalsSort::Yes => sort_by_optional_u64(proposals, direction, |proposal| {
             proposal.latest_tally.as_ref().map(|tally| tally.yes)
         }),
@@ -91,14 +94,26 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
         SnsProposalsSort::TotalVotes => sort_by_optional_u64(proposals, direction, |proposal| {
             proposal.latest_tally.as_ref().map(|tally| tally.total)
         }),
+        SnsProposalsSort::TallyTime => sort_by_optional_u64(proposals, direction, |proposal| {
+            proposal
+                .latest_tally
+                .as_ref()
+                .map(|tally| tally.timestamp_seconds)
+        }),
         SnsProposalsSort::Ballots => sort_by_optional_u64(proposals, direction, |proposal| {
             Some(proposal.ballot_count as u64)
+        }),
+        SnsProposalsSort::Eligible => sort_by_bool(proposals, direction, |proposal| {
+            proposal.is_eligible_for_rewards
         }),
         SnsProposalsSort::RejectCost => sort_by_optional_u64(proposals, direction, |proposal| {
             Some(proposal.reject_cost_e8s)
         }),
         SnsProposalsSort::RewardRound => sort_by_optional_u64(proposals, direction, |proposal| {
             Some(proposal.reward_event_round)
+        }),
+        SnsProposalsSort::RewardEnd => sort_by_optional_u64(proposals, direction, |proposal| {
+            proposal.reward_event_end_timestamp_seconds
         }),
         SnsProposalsSort::Created => sort_by_optional_u64(proposals, direction, |proposal| {
             Some(proposal.proposal_creation_timestamp_seconds)
@@ -144,6 +159,17 @@ fn sort_by_optional_text(
 ) {
     proposals.sort_by(|left, right| {
         compare_optional_text(key(left), key(right), direction)
+            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+    });
+}
+
+fn sort_by_bool(
+    proposals: &mut [SnsProposalRow],
+    direction: SnsProposalSortDirection,
+    key: impl Fn(&SnsProposalRow) -> bool,
+) {
+    proposals.sort_by(|left, right| {
+        compare_ord(key(left), key(right), direction)
             .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
     });
 }

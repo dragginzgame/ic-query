@@ -37,12 +37,16 @@ cached proposal rows:
 - `--sort proposer`
 - `--sort title`
 - `--sort action`
+- `--sort action-id`
 - `--sort yes`
 - `--sort no`
 - `--sort total-votes`
+- `--sort tally-time`
 - `--sort ballots`
+- `--sort eligible`
 - `--sort reject-cost`
 - `--sort reward-round`
+- `--sort reward-end`
 - `--sort created`
 - `--sort decided`
 - `--sort executed`
