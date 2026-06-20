@@ -6,8 +6,9 @@
 
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN, SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter,
-    SnsProposalsSort,
+    SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
+    SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalRow, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalsSort,
 };
 use std::cmp::Ordering;
 
@@ -36,7 +37,12 @@ pub(in crate::sns::report) fn proposal_matches_status(
             proposal.decision_state == SNS_PROPOSAL_DECISION_EXECUTED
         }
         SnsProposalStatusFilter::Failed => proposal.decision_state == SNS_PROPOSAL_DECISION_FAILED,
-        SnsProposalStatusFilter::Rejected | SnsProposalStatusFilter::Adopted => false,
+        SnsProposalStatusFilter::Rejected => {
+            proposal.status == Some(SNS_PROPOSAL_STATUS_REJECTED_CODE)
+        }
+        SnsProposalStatusFilter::Adopted => {
+            proposal.status == Some(SNS_PROPOSAL_STATUS_ADOPTED_CODE)
+        }
     }
 }
 

@@ -160,8 +160,9 @@ SNS governance proposals can be queried as cached list views or direct live
 detail lookups. Normal proposal list views auto-create a complete local
 snapshot on first use, then apply supported view options locally. Proposal
 detail lookups reuse an existing complete local snapshot when it contains the
-requested proposal, then fall back to live detail lookup. Topic filters and
-adopted/rejected status filters currently use bounded live queries:
+requested proposal, then fall back to live detail lookup. Status filters that
+can be reproduced from complete proposal rows, including adopted/rejected, use
+the local snapshot; topic filters currently use bounded live queries:
 
 ```bash
 icq sns proposals 1 --limit 25

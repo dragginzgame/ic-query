@@ -7,7 +7,8 @@
 use crate::{
     cache_file::load_or_refresh_missing_cache,
     sns::report::{
-        SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
+        SnsHostError, SnsProposalStatusFilter, SnsProposalsRefreshRequest, SnsProposalsReport,
+        SnsProposalsRequest,
         assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
@@ -36,21 +37,13 @@ fn load_or_refresh_sns_proposals_cache(
     icp_root: &Path,
     source: &dyn SnsProposalsSource,
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
-    load_or_refresh_missing_cache(
+    let (cache_path, cache) = load_or_refresh_missing_cache(
         "SNS proposals",
         &request.source_endpoint,
         || load_sns_proposals_cache_for_input_with_path(icp_root, &request.network, &request.input),
         || {
             refresh_sns_proposals_cache_with_source(
-                &SnsProposalsRefreshRequest {
-                    network: request.network.clone(),
-                    source_endpoint: request.source_endpoint.clone(),
-                    now_unix_secs: request.now_unix_secs,
-                    input: request.input.clone(),
-                    icp_root: icp_root.to_path_buf(),
-                    page_size: SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE,
-                    max_pages: None,
-                },
+                &proposals_refresh_request_from_list_request(request, icp_root),
                 source,
             )
             .map(|_| ())
@@ -59,7 +52,60 @@ fn load_or_refresh_sns_proposals_cache(
             SnsHostError::MissingProposalsCache { path } => Ok(path),
             err => Err(err),
         },
+    )?;
+    if proposal_status_requires_raw_status(request.status) && cache_lacks_raw_status(&cache) {
+        eprintln!(
+            "SNS proposals cache at {} lacks raw proposal status fields; calling {} to refresh cache",
+            cache_path.display(),
+            request.source_endpoint
+        );
+        refresh_sns_proposals_cache_with_source(
+            &proposals_refresh_request_from_list_request(request, icp_root),
+            source,
+        )?;
+        let refreshed = load_sns_proposals_cache_for_input_with_path(
+            icp_root,
+            &request.network,
+            &request.input,
+        )?;
+        if cache_lacks_raw_status(&refreshed.1) {
+            return Err(SnsHostError::UnsupportedProposalView {
+                reason: "refreshed SNS proposal cache lacks raw proposal status fields".to_string(),
+            });
+        }
+        return Ok(refreshed);
+    }
+    Ok((cache_path, cache))
+}
+
+fn proposals_refresh_request_from_list_request(
+    request: &SnsProposalsRequest,
+    icp_root: &Path,
+) -> SnsProposalsRefreshRequest {
+    SnsProposalsRefreshRequest {
+        network: request.network.clone(),
+        source_endpoint: request.source_endpoint.clone(),
+        now_unix_secs: request.now_unix_secs,
+        input: request.input.clone(),
+        icp_root: icp_root.to_path_buf(),
+        page_size: SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE,
+        max_pages: None,
+    }
+}
+
+const fn proposal_status_requires_raw_status(status: SnsProposalStatusFilter) -> bool {
+    matches!(
+        status,
+        SnsProposalStatusFilter::Rejected | SnsProposalStatusFilter::Adopted
     )
+}
+
+fn cache_lacks_raw_status(cache: &SnsProposalsCache) -> bool {
+    cache
+        .data
+        .proposals
+        .iter()
+        .any(|proposal| proposal.status.is_none())
 }
 
 fn sns_proposals_report_from_cache(

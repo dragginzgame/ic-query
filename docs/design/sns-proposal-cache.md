@@ -41,6 +41,8 @@ cached proposal rows:
 - `--status any`
 - `--status open`
 - `--status decided`
+- `--status adopted`
+- `--status rejected`
 - `--status executed`
 - `--status failed`
 
@@ -48,12 +50,11 @@ The existing bounded live path remains in use when the requested view cannot
 yet be reproduced from cached rows without changing semantics:
 
 - `--topic <topic>`
-- `--status adopted`
-- `--status rejected`
 
-Those live fallbacks should move to cache-backed views once cached proposal
-rows carry enough source detail to classify proposal topic and final adopted
-versus rejected state locally.
+Older complete proposal snapshots that predate cached raw proposal status
+codes are refreshed before adopted/rejected filters are applied. Topic live
+fallbacks should move to cache-backed views once cached proposal rows carry
+enough source detail to classify proposal topic locally.
 
 ## Cache Contract
 

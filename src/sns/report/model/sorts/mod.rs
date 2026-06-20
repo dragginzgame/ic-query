@@ -10,6 +10,13 @@ mod proposals;
 
 pub use list::SnsListSort;
 pub use neurons::SnsNeuronsSort;
+pub(in crate::sns::report) use proposals::{
+    SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
+};
+#[cfg(test)]
+pub(in crate::sns::report) use proposals::{
+    SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
+};
 pub use proposals::{
     SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };

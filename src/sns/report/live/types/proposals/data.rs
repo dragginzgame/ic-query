@@ -106,4 +106,5 @@ pub(in crate::sns::report::live) struct SnsGovernanceProposalData {
     pub(in crate::sns::report::live) proposer: Option<SnsNeuronId>,
     pub(in crate::sns::report::live) is_eligible_for_rewards: bool,
     pub(in crate::sns::report::live) executed_timestamp_seconds: u64,
+    pub(in crate::sns::report::live) status: i32,
 }

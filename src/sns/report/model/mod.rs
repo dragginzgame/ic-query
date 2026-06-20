@@ -31,6 +31,13 @@ pub use requests::{
     SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
     SnsProposalsRefreshRequest, SnsProposalsRequest, SnsTokenRequest,
 };
+pub(in crate::sns::report) use sorts::{
+    SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
+};
+#[cfg(test)]
+pub(in crate::sns::report) use sorts::{
+    SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
+};
 pub use sorts::{
     SnsListSort, SnsNeuronsSort, SnsProposalSortDirection, SnsProposalStatusFilter,
     SnsProposalTopicFilter, SnsProposalsSort,

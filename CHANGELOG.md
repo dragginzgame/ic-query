@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.36` makes SNS proposal `--status adopted|rejected` filters
+  cache-compatible for topic-free list views by preserving raw SNS governance
+  status codes in proposal rows, refreshing legacy proposal snapshots that
+  lack those codes before applying final-status filters, and bumping SNS
+  proposal JSON report schemas for the new optional raw `status` field.
+
 - `0.2.35` deduplicates SNS cache inspection plumbing by sharing invalid-cache
   summary fields, valid cache-id lookup, and cache-error text rendering across
   SNS neuron and proposal cache reports without changing CLI behavior, cache

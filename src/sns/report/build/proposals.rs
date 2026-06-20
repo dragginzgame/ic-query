@@ -145,6 +145,8 @@ const fn request_can_use_proposals_cache(request: &SnsProposalsRequest) -> bool 
         SnsProposalStatusFilter::Any
             | SnsProposalStatusFilter::Open
             | SnsProposalStatusFilter::Decided
+            | SnsProposalStatusFilter::Rejected
+            | SnsProposalStatusFilter::Adopted
             | SnsProposalStatusFilter::Executed
             | SnsProposalStatusFilter::Failed
     )

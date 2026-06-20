@@ -39,6 +39,7 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
         summary: proposal_fields.summary,
         url: clean_optional_text(Some(proposal_fields.url)),
         decision_state,
+        status: Some(proposal.status),
         reject_cost_e8s: proposal.reject_cost_e8s,
         proposal_creation_timestamp_seconds: proposal.proposal_creation_timestamp_seconds,
         created_at: crate::subnet_catalog::format_utc_timestamp_secs(

@@ -26,6 +26,8 @@ pub struct SnsProposalRow {
     pub summary: String,
     pub url: Option<String>,
     pub decision_state: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<i32>,
     pub reject_cost_e8s: u64,
     pub proposal_creation_timestamp_seconds: u64,
     pub created_at: String,

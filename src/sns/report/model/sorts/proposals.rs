@@ -4,6 +4,12 @@
 //! Does not own: CLI parsing, live proposal request transport, or rendering.
 //! Boundary: names report-level view options for proposal lists.
 
+pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_ADOPTED_CODE: i32 = 3;
+pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_EXECUTED_CODE: i32 = 4;
+pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_FAILED_CODE: i32 = 5;
+pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_OPEN_CODE: i32 = 1;
+pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_REJECTED_CODE: i32 = 2;
+
 ///
 /// SnsProposalsSort
 ///
@@ -144,11 +150,11 @@ impl SnsProposalStatusFilter {
     pub const fn governance_status_code(self) -> Option<i32> {
         match self {
             Self::Any | Self::Decided => None,
-            Self::Open => Some(1),
-            Self::Rejected => Some(2),
-            Self::Adopted => Some(3),
-            Self::Executed => Some(4),
-            Self::Failed => Some(5),
+            Self::Open => Some(SNS_PROPOSAL_STATUS_OPEN_CODE),
+            Self::Rejected => Some(SNS_PROPOSAL_STATUS_REJECTED_CODE),
+            Self::Adopted => Some(SNS_PROPOSAL_STATUS_ADOPTED_CODE),
+            Self::Executed => Some(SNS_PROPOSAL_STATUS_EXECUTED_CODE),
+            Self::Failed => Some(SNS_PROPOSAL_STATUS_FAILED_CODE),
         }
     }
 }

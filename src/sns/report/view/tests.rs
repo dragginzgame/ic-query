@@ -10,7 +10,8 @@ use super::{
 };
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN, SnsListSort, SnsNeuronRow, SnsNeuronsSort, SnsProposalRow,
+    SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
+    SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow, SnsNeuronsSort, SnsProposalRow,
     SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalsSort,
     source::MainnetSns,
 };
@@ -302,8 +303,16 @@ fn proposal_status_filter_matches_cache_backed_statuses() {
         &proposal_with_decision_state("open"),
         SnsProposalStatusFilter::Failed
     ));
+    assert!(proposal_matches_status(
+        &proposal_with_status(Some(SNS_PROPOSAL_STATUS_ADOPTED_CODE)),
+        SnsProposalStatusFilter::Adopted
+    ));
+    assert!(proposal_matches_status(
+        &proposal_with_status(Some(SNS_PROPOSAL_STATUS_REJECTED_CODE)),
+        SnsProposalStatusFilter::Rejected
+    ));
     assert!(!proposal_matches_status(
-        &proposal_with_decision_state("adopted"),
+        &proposal_with_status(None),
         SnsProposalStatusFilter::Adopted
     ));
 }
@@ -367,6 +376,13 @@ fn proposal_without_id() -> SnsProposalRow {
 fn proposal_with_decision_state(decision_state: &str) -> SnsProposalRow {
     SnsProposalRow {
         decision_state: decision_state.to_string(),
+        ..proposal_row(1, 100)
+    }
+}
+
+fn proposal_with_status(status: Option<i32>) -> SnsProposalRow {
+    SnsProposalRow {
+        status,
         ..proposal_row(1, 100)
     }
 }
@@ -481,6 +497,7 @@ fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
         summary: String::new(),
         url: None,
         decision_state: SNS_PROPOSAL_DECISION_OPEN.to_string(),
+        status: None,
         reject_cost_e8s: 0,
         proposal_creation_timestamp_seconds: created_at_secs,
         created_at: created_at_secs.to_string(),

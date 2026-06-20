@@ -529,6 +529,46 @@ fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
 }
 
 #[test]
+fn sns_proposals_cached_status_adopted_filters_complete_snapshot() {
+    assert_cached_status_filter(SnsProposalStatusFilter::Adopted, &[30]);
+}
+
+#[test]
+fn sns_proposals_cached_status_rejected_filters_complete_snapshot() {
+    assert_cached_status_filter(SnsProposalStatusFilter::Rejected, &[20]);
+}
+
+#[test]
+fn sns_proposals_status_filter_refreshes_legacy_cache_without_raw_status() {
+    let root = temp_dir("ic-query-sns-proposals-status-legacy");
+    let refresh = refresh_sns_proposals_cache_with_source(
+        &sns_proposals_refresh_request(&root, None),
+        &UnsortedSnsProposalsSource,
+    )
+    .expect("refresh proposals cache");
+    let cache_path = std::path::PathBuf::from(refresh.cache_path);
+    remove_cached_proposal_status_fields(&cache_path);
+
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = SnsProposalStatusFilter::Adopted;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("refresh legacy proposals cache before adopted filter");
+
+    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.status_filter, "adopted");
+    assert_eq!(proposal_ids(&report), vec![30]);
+    assert_cached_proposal_status_fields_present(&cache_path);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_cached_sort_title_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Title,
@@ -743,6 +783,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     executed_at_secs: Some(1_700_002_300),
                     failed_at_secs: Some(1_700_003_100),
                     decision_state: SNS_PROPOSAL_DECISION_EXECUTED,
+                    status: SNS_PROPOSAL_STATUS_EXECUTED_CODE,
                     title: "Zulu proposal",
                     action: "motion",
                     tally: (90, 10, 100),
@@ -758,6 +799,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     executed_at_secs: None,
                     failed_at_secs: None,
                     decision_state: SNS_PROPOSAL_DECISION_OPEN,
+                    status: SNS_PROPOSAL_STATUS_REJECTED_CODE,
                     title: "Alpha proposal",
                     action: "upgrade-sns-controlled-canister",
                     tally: (5, 10, 15),
@@ -773,6 +815,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     executed_at_secs: Some(1_700_002_100),
                     failed_at_secs: Some(1_700_003_300),
                     decision_state: SNS_PROPOSAL_DECISION_DECIDED,
+                    status: SNS_PROPOSAL_STATUS_ADOPTED_CODE,
                     title: "Beta proposal",
                     action: "motion",
                     tally: (50, 25, 75),
@@ -820,6 +863,64 @@ fn assert_cached_proposal_sort(
     let _ = fs::remove_dir_all(root);
 }
 
+fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposal_ids: &[u64]) {
+    let root = temp_dir(&format!(
+        "ic-query-sns-proposals-status-{}",
+        status.as_str()
+    ));
+    let mut request = proposals_request("1");
+    request.icp_root = Some(root.clone());
+    request.status = status;
+    request.topic = SnsProposalTopicFilter::Any;
+    request.before_proposal_id = None;
+    request.sort = SnsProposalsSort::Id;
+    request.limit = 10;
+
+    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .expect("auto refresh status-filtered proposals cache");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.status_filter, status.as_str());
+    assert_eq!(proposal_ids(&first), expected_proposal_ids);
+
+    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .expect("reuse status-filtered proposals cache");
+
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.status_filter, status.as_str());
+    assert_eq!(proposal_ids(&second), expected_proposal_ids);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+fn remove_cached_proposal_status_fields(cache_path: &std::path::Path) {
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
+    for proposal in cache["proposals"].as_array_mut().expect("cached proposals") {
+        proposal
+            .as_object_mut()
+            .expect("cached proposal object")
+            .remove("status");
+    }
+    fs::write(
+        cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize legacy cache"),
+    )
+    .expect("write legacy cache");
+}
+
+fn assert_cached_proposal_status_fields_present(cache_path: &std::path::Path) {
+    let cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
+    assert!(
+        cache["proposals"]
+            .as_array()
+            .expect("cached proposals")
+            .iter()
+            .all(|proposal| proposal.get("status").is_some())
+    );
+}
+
 struct ProposalRowFixture {
     proposal_id: u64,
     created_at_secs: u64,
@@ -827,6 +928,7 @@ struct ProposalRowFixture {
     executed_at_secs: Option<u64>,
     failed_at_secs: Option<u64>,
     decision_state: &'static str,
+    status: i32,
     title: &'static str,
     action: &'static str,
     tally: (u64, u64, u64),
@@ -840,6 +942,7 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
     SnsProposalRow {
         proposal_id: Some(fixture.proposal_id),
         decision_state: fixture.decision_state.to_string(),
+        status: Some(fixture.status),
         title: fixture.title.to_string(),
         action: fixture.action.to_string(),
         proposal_creation_timestamp_seconds: fixture.created_at_secs,
