@@ -91,6 +91,9 @@ icq sns neurons cache list
 icq sns neurons cache status 1
 ```
 
+Cache list and status commands are local-only; malformed, unsupported, or
+identity-mismatched snapshot files are shown as invalid local cache rows.
+
 Live API neuron listings are capped at 100 rows per call. Cache-backed sorts
 can use larger `--limit` values because they read from the complete local
 snapshot.
@@ -150,6 +153,8 @@ Complete NNS proposal snapshots live under
 are recorded separately and do not replace the last complete snapshot. Proposal
 list and detail lookups reuse an existing complete snapshot when it can satisfy
 the request, then fall back to live governance lookup.
+Cache list and status commands are local-only; malformed, unsupported, or
+identity-mismatched snapshot files are shown as invalid local cache rows.
 
 SNS governance proposals can be queried as cached list views or direct live
 detail lookups. Normal proposal list views auto-create a complete local
@@ -197,6 +202,9 @@ icq sns proposals refresh 1
 icq sns proposals cache list
 icq sns proposals cache status 1
 ```
+
+Cache list and status commands are local-only; malformed, unsupported, or
+identity-mismatched snapshot files are shown as invalid local cache rows.
 
 ## Integration
 

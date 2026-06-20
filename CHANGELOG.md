@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.34` hardens complete snapshot cache inspection so NNS proposal, SNS
+  proposal, and SNS neuron cache list/status reports surface malformed,
+  unsupported, or identity-mismatched local cache files as invalid local rows
+  while keeping normal cache-backed reads strict and live-free cache status
+  behavior unchanged.
+
 - `0.2.33` makes crate packaging more intentional by excluding internal
   workflow, agent, governance, toolchain, and dev-only script files from the
   published tarball, and adds a CI guard for package contents without changing

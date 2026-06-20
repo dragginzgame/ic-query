@@ -8,6 +8,8 @@ use crate::cache_file::JsonCacheReport;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 pub const SNAPSHOT_STATUS_API_EXHAUSTED: &str = "api_exhausted";
+pub const SNAPSHOT_CACHE_STATUS_INVALID: &str = "invalid";
+pub const SNAPSHOT_CACHE_STATUS_OK: &str = "ok";
 
 ///
 /// SnapshotCompleteness

@@ -11,5 +11,7 @@ mod scan;
 mod summary;
 
 pub(super) use load::load_sns_neurons_cache_at;
-pub(super) use lookup::{find_sns_neurons_cache_by_id, load_sns_neurons_cache_for_input};
-pub(super) use summary::{list_sns_neurons_cache_summaries, sns_neurons_cache_summary};
+pub(super) use lookup::load_sns_neurons_cache_for_input;
+pub(super) use summary::{
+    invalid_sns_neurons_cache_summary, list_sns_neurons_cache_summaries, sns_neurons_cache_summary,
+};

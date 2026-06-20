@@ -21,6 +21,7 @@ pub fn sns_neurons_cache_list_report_text(report: &SnsNeuronsCacheListReport) ->
         lines.push(String::new());
         lines.push(render_table(
             &[
+                "STATUS",
                 "ID",
                 "NAME",
                 "ROOT",
@@ -34,6 +35,7 @@ pub fn sns_neurons_cache_list_report_text(report: &SnsNeuronsCacheListReport) ->
                 .iter()
                 .map(|cache| {
                     [
+                        cache.cache_status.clone(),
                         cache.id.to_string(),
                         cache.name.clone(),
                         short_principal(&cache.root_canister_id),
@@ -45,6 +47,7 @@ pub fn sns_neurons_cache_list_report_text(report: &SnsNeuronsCacheListReport) ->
                 })
                 .collect::<Vec<_>>(),
             &[
+                ColumnAlign::Left,
                 ColumnAlign::Right,
                 ColumnAlign::Left,
                 ColumnAlign::Left,
@@ -54,6 +57,11 @@ pub fn sns_neurons_cache_list_report_text(report: &SnsNeuronsCacheListReport) ->
                 ColumnAlign::Left,
             ],
         ));
+        for cache in &report.caches {
+            if let Some(error) = cache.cache_error.as_ref() {
+                lines.push(format!("cache_error: {}: {error}", cache.cache_path));
+            }
+        }
     }
     lines.join("\n")
 }

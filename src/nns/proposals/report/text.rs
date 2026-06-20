@@ -162,12 +162,13 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_list_report_text(
     if !report.caches.is_empty() {
         lines.push(String::new());
         lines.push(render_table(
-            &["GOVERNANCE", "ROWS", "PAGES", "FETCHED_AT"],
+            &["STATUS", "GOVERNANCE", "ROWS", "PAGES", "FETCHED_AT"],
             &report
                 .caches
                 .iter()
                 .map(|cache| {
                     [
+                        cache.cache_status.clone(),
                         cache.governance_canister_id.clone(),
                         cache.row_count.to_string(),
                         cache.page_count.to_string(),
@@ -177,11 +178,17 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_list_report_text(
                 .collect::<Vec<_>>(),
             &[
                 ColumnAlign::Left,
+                ColumnAlign::Left,
                 ColumnAlign::Right,
                 ColumnAlign::Right,
                 ColumnAlign::Left,
             ],
         ));
+        for cache in &report.caches {
+            if let Some(error) = cache.cache_error.as_ref() {
+                lines.push(format!("cache_error: {}: {error}", cache.cache_path));
+            }
+        }
     }
     lines.join("\n")
 }
@@ -200,6 +207,7 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_status_report_text(
     if let Some(cache) = report.cache.as_ref() {
         lines.extend([
             format!("governance_canister_id: {}", cache.governance_canister_id),
+            format!("cache_status: {}", cache.cache_status),
             format!("complete: {}", yes_no(cache.complete)),
             format!("row_count: {}", cache.row_count),
             format!("page_count: {}", cache.page_count),
@@ -208,6 +216,9 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_status_report_text(
             format!("source_endpoint: {}", cache.source_endpoint),
             format!("cache_path: {}", cache.cache_path),
         ]);
+        if let Some(error) = cache.cache_error.as_ref() {
+            lines.push(format!("cache_error: {error}"));
+        }
     } else {
         lines.push("refresh_hint: icq nns proposal refresh".to_string());
     }

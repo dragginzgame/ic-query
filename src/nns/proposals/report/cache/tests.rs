@@ -109,6 +109,8 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     .expect("cache list");
 
     assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches[0].cache_status, "ok");
+    assert_eq!(list.caches[0].cache_error, None);
     assert_eq!(list.caches[0].row_count, 3);
     assert_eq!(list.caches[0].page_count, 2);
 
@@ -121,6 +123,10 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
 
     assert!(status.found);
     assert_eq!(
+        status.cache.as_ref().expect("cache").cache_status.as_str(),
+        "ok"
+    );
+    assert_eq!(
         status
             .latest_attempt
             .as_ref()
@@ -130,6 +136,34 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     );
     assert!(status_text.contains("latest_attempt:"));
     assert!(status_text.contains("status: complete"));
+}
+
+#[test]
+fn nns_proposal_cache_status_reports_missing_cache() {
+    let root = temp_dir("ic-query-nns-proposal-status-missing");
+
+    let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+    })
+    .expect("cache status");
+    let text = nns_proposal_cache_status_report_text(&status);
+
+    assert!(!status.found);
+    assert!(status.cache.is_none());
+    assert!(status.latest_attempt.is_none());
+    assert!(text.contains("found: no"));
+    assert!(text.contains("refresh_hint: icq nns proposal refresh"));
+
+    let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+    })
+    .expect("cache list");
+    assert_eq!(list.cache_count, 0);
+    assert!(list.caches.is_empty());
+
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -207,22 +241,9 @@ fn nns_proposal_list_cache_lookup_returns_none_when_cache_is_missing() {
 }
 
 #[test]
-fn nns_proposal_cache_status_rejects_snapshot_identity_mismatch() {
+fn nns_proposal_cache_status_reports_snapshot_identity_mismatch() {
     let root = temp_dir("ic-query-nns-proposal-identity-mismatch");
-    refresh_nns_proposal_cache_with_source(
-        &NnsProposalRefreshRequest {
-            network: MAINNET_NETWORK.to_string(),
-            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-            now_unix_secs: 1_700_000_000,
-            icp_root: root.clone(),
-            page_size: 2,
-            max_pages: None,
-        },
-        &FixtureSource,
-    )
-    .expect("refresh cache");
-
-    let cache_path = nns_proposal_cache_paths(&root, MAINNET_NETWORK).snapshot_path;
+    let cache_path = refresh_fixture_nns_proposal_cache(&root);
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["entity"] = serde_json::json!("wrong-governance");
@@ -232,26 +253,36 @@ fn nns_proposal_cache_status_rejects_snapshot_identity_mismatch() {
     )
     .expect("write cache");
 
-    let err = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
-        network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
-    })
-    .expect_err("identity mismatch rejected");
+    assert_invalid_nns_proposal_cache_status(&root, "identity mismatch");
 
-    match err {
-        NnsProposalHostError::CacheIdentityMismatch {
-            path,
-            field,
-            expected,
-            actual,
-        } => {
-            assert_eq!(path, cache_path);
-            assert_eq!(field, "entity");
-            assert_eq!(expected, "governance");
-            assert_eq!(actual, "wrong-governance");
-        }
-        other => panic!("unexpected error: {other:?}"),
-    }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn nns_proposal_cache_status_reports_unsupported_schema() {
+    let root = temp_dir("ic-query-nns-proposal-unsupported-schema");
+    let cache_path = refresh_fixture_nns_proposal_cache(&root);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    cache["schema_version"] = serde_json::json!(999);
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+    )
+    .expect("write cache");
+
+    assert_invalid_nns_proposal_cache_status(&root, "unsupported NNS proposal cache schema");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn nns_proposal_cache_status_reports_malformed_json() {
+    let root = temp_dir("ic-query-nns-proposal-malformed-json");
+    let cache_path = refresh_fixture_nns_proposal_cache(&root);
+    fs::write(&cache_path, "{").expect("write malformed cache");
+
+    assert_invalid_nns_proposal_cache_status(&root, "failed to parse NNS proposal cache");
 
     let _ = fs::remove_dir_all(root);
 }
@@ -332,6 +363,57 @@ fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
     .expect("cache lookup");
 
     assert!(report.is_none());
+}
+
+fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::PathBuf {
+    refresh_nns_proposal_cache_with_source(
+        &NnsProposalRefreshRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_000_000,
+            icp_root: root.to_path_buf(),
+            page_size: 2,
+            max_pages: None,
+        },
+        &FixtureSource,
+    )
+    .expect("refresh cache");
+    nns_proposal_cache_paths(root, MAINNET_NETWORK).snapshot_path
+}
+
+fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_error: &str) {
+    let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.to_path_buf(),
+    })
+    .expect("cache status");
+    let status_text = nns_proposal_cache_status_report_text(&status);
+    let cache = status.cache.as_ref().expect("cache summary");
+
+    assert!(status.found);
+    assert_eq!(cache.cache_status, "invalid");
+    assert!(
+        cache
+            .cache_error
+            .as_ref()
+            .is_some_and(|error| error.contains(expected_error))
+    );
+    assert!(status_text.contains("cache_status: invalid"));
+    assert!(status_text.contains("cache_error:"));
+
+    let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.to_path_buf(),
+    })
+    .expect("cache list");
+    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches[0].cache_status, "invalid");
+    assert!(
+        list.caches[0]
+            .cache_error
+            .as_ref()
+            .is_some_and(|error| error.contains(expected_error))
+    );
 }
 
 fn proposal_info(proposal_id: u64) -> NnsProposalInfo {

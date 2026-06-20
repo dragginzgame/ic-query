@@ -54,6 +54,8 @@ pub struct SnsNeuronsCacheSummary {
     pub name: String,
     pub root_canister_id: String,
     pub governance_canister_id: String,
+    pub cache_status: String,
+    pub cache_error: Option<String>,
     pub complete: bool,
     pub row_count: usize,
     pub page_count: u32,

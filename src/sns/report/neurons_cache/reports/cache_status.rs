@@ -16,7 +16,8 @@ use crate::sns::report::{
         attempt::read_sns_neurons_attempt_status,
         paths::{SnsNeuronsCachePaths, sns_network_cache_dir},
         storage::{
-            find_sns_neurons_cache_by_id, load_sns_neurons_cache_at, sns_neurons_cache_summary,
+            invalid_sns_neurons_cache_summary, list_sns_neurons_cache_summaries,
+            load_sns_neurons_cache_at, sns_neurons_cache_summary,
         },
     },
 };
@@ -76,8 +77,9 @@ impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
         network: &str,
         id: usize,
     ) -> Result<Option<Self::Summary>, SnsHostError> {
-        Ok(find_sns_neurons_cache_by_id(icp_root, network, id)?
-            .map(|(path, cache)| sns_neurons_cache_summary(path, cache)))
+        Ok(list_sns_neurons_cache_summaries(icp_root, network)?
+            .into_iter()
+            .find(|cache| cache.id == id && cache.cache_error.is_none()))
     }
 
     fn root_cache_paths(
@@ -96,10 +98,12 @@ impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
         cache_path: PathBuf,
         network: &str,
     ) -> Result<Self::Summary, SnsHostError> {
-        Ok(sns_neurons_cache_summary(
-            cache_path.clone(),
-            load_sns_neurons_cache_at(cache_path, network)?,
-        ))
+        Ok(
+            match load_sns_neurons_cache_at(cache_path.clone(), network) {
+                Ok(cache) => sns_neurons_cache_summary(cache_path, cache),
+                Err(error) => invalid_sns_neurons_cache_summary(cache_path, error),
+            },
+        )
     }
 
     fn read_attempt_status(attempt_path: &Path) -> Option<Self::Attempt> {

@@ -16,6 +16,7 @@ use super::{
 };
 use crate::{
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
+    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::proposals::report::{
         NnsProposalHostError,
         assemble::{
@@ -32,7 +33,8 @@ use crate::{
         },
     },
     snapshot_cache::{
-        SnapshotCompleteness, SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key,
+        SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotCompleteness,
+        SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key,
     },
 };
 use std::{
@@ -51,7 +53,7 @@ pub(in crate::nns::proposals) fn build_nns_proposal_cache_list_report(
         vec![load_nns_proposal_cache_summary(
             snapshot_path,
             &request.network,
-        )?]
+        )]
     } else {
         Vec::new()
     };
@@ -76,7 +78,7 @@ pub(in crate::nns::proposals) fn build_nns_proposal_cache_status_report(
         Some(load_nns_proposal_cache_summary(
             paths.snapshot_path.clone(),
             &request.network,
-        )?)
+        ))
     } else {
         None
     };
@@ -134,12 +136,11 @@ pub(in crate::nns::proposals) fn build_nns_proposal_report_from_cache(
     ))
 }
 
-fn load_nns_proposal_cache_summary(
-    cache_path: PathBuf,
-    network: &str,
-) -> Result<NnsProposalCacheSummary, NnsProposalHostError> {
-    let cache = load_nns_proposal_cache(cache_path.clone(), network)?;
-    Ok(nns_proposal_cache_summary(cache_path, cache))
+fn load_nns_proposal_cache_summary(cache_path: PathBuf, network: &str) -> NnsProposalCacheSummary {
+    match load_nns_proposal_cache(cache_path.clone(), network) {
+        Ok(cache) => nns_proposal_cache_summary(cache_path, cache),
+        Err(error) => invalid_nns_proposal_cache_summary(cache_path, error),
+    }
 }
 
 fn load_nns_proposal_cache(
@@ -228,12 +229,35 @@ fn nns_proposal_cache_summary(
     let attempt_path = nns_proposal_cache_paths_for_cache_path(&cache_path);
     NnsProposalCacheSummary {
         governance_canister_id: cache.metadata.governance_canister_id,
+        cache_status: SNAPSHOT_CACHE_STATUS_OK.to_string(),
+        cache_error: None,
         complete: cache.completeness.is_api_exhausted(),
         row_count: cache.completeness.row_count,
         page_count: cache.completeness.page_count,
         page_size: cache.completeness.page_size,
         fetched_at: cache.fetched_at,
         source_endpoint: cache.source_endpoint,
+        cache_path: cache_path.display().to_string(),
+        refresh_attempt_path: attempt_path.display().to_string(),
+        latest_attempt: read_attempt_status(&attempt_path),
+    }
+}
+
+fn invalid_nns_proposal_cache_summary(
+    cache_path: PathBuf,
+    error: NnsProposalHostError,
+) -> NnsProposalCacheSummary {
+    let attempt_path = nns_proposal_cache_paths_for_cache_path(&cache_path);
+    NnsProposalCacheSummary {
+        governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
+        cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
+        cache_error: Some(error.to_string()),
+        complete: false,
+        row_count: 0,
+        page_count: 0,
+        page_size: 0,
+        fetched_at: "-".to_string(),
+        source_endpoint: "-".to_string(),
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
         latest_attempt: read_attempt_status(&attempt_path),

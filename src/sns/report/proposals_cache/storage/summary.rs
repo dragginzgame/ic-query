@@ -5,6 +5,7 @@
 //! Boundary: maps loaded proposal snapshots into public cache report models.
 
 use super::{load::load_sns_proposals_cache_at, scan::collect_sns_proposals_cache_paths};
+use crate::snapshot_cache::{SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK};
 use crate::sns::report::proposals_cache::attempt::read_sns_proposals_attempt_status;
 use crate::sns::report::{
     SnsHostError, SnsProposalsCacheSummary,
@@ -20,8 +21,10 @@ pub(in crate::sns::report::proposals_cache) fn list_sns_proposals_cache_summarie
     collect_sns_proposals_cache_paths(icp_root, network)?
         .into_iter()
         .map(|path| {
-            let cache = load_sns_proposals_cache_at(path.clone(), network)?;
-            Ok(sns_proposals_cache_summary(path, cache))
+            Ok(match load_sns_proposals_cache_at(path.clone(), network) {
+                Ok(cache) => sns_proposals_cache_summary(path, cache),
+                Err(error) => invalid_sns_proposals_cache_summary(path, error),
+            })
         })
         .collect()
 }
@@ -38,6 +41,8 @@ pub(in crate::sns::report::proposals_cache) fn sns_proposals_cache_summary(
         name: cache.metadata.name,
         root_canister_id: cache.metadata.root_canister_id,
         governance_canister_id: cache.metadata.governance_canister_id,
+        cache_status: SNAPSHOT_CACHE_STATUS_OK.to_string(),
+        cache_error: None,
         complete: cache.completeness.is_api_exhausted(),
         row_count: cache.completeness.row_count,
         page_count: cache.completeness.page_count,
@@ -48,4 +53,39 @@ pub(in crate::sns::report::proposals_cache) fn sns_proposals_cache_summary(
         cache_path: cache_path.display().to_string(),
         latest_attempt,
     }
+}
+
+pub(in crate::sns::report::proposals_cache) fn invalid_sns_proposals_cache_summary(
+    cache_path: PathBuf,
+    error: SnsHostError,
+) -> SnsProposalsCacheSummary {
+    let attempt_path = attempt_path_for_cache_path(&cache_path);
+    SnsProposalsCacheSummary {
+        id: 0,
+        name: "-".to_string(),
+        root_canister_id: root_from_cache_path(&cache_path),
+        governance_canister_id: "-".to_string(),
+        cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
+        cache_error: Some(error.to_string()),
+        complete: false,
+        row_count: 0,
+        page_count: 0,
+        page_size: 0,
+        fetched_at: "-".to_string(),
+        source_endpoint: "-".to_string(),
+        refresh_attempt_path: attempt_path.display().to_string(),
+        cache_path: cache_path.display().to_string(),
+        latest_attempt: read_sns_proposals_attempt_status(&attempt_path),
+    }
+}
+
+fn root_from_cache_path(cache_path: &Path) -> String {
+    cache_path
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::file_name)
+        .map_or_else(
+            || "-".to_string(),
+            |name| name.to_string_lossy().into_owned(),
+        )
 }

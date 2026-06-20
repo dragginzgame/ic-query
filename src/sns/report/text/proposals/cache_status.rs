@@ -25,6 +25,7 @@ pub fn sns_proposals_cache_status_report_text(report: &SnsProposalsCacheStatusRe
             format!("name: {}", cache.name),
             format!("root_canister_id: {}", cache.root_canister_id),
             format!("governance_canister_id: {}", cache.governance_canister_id),
+            format!("cache_status: {}", cache.cache_status),
             format!("complete: {}", yes_no(cache.complete)),
             format!("row_count: {}", cache.row_count),
             format!("page_count: {}", cache.page_count),
@@ -34,6 +35,9 @@ pub fn sns_proposals_cache_status_report_text(report: &SnsProposalsCacheStatusRe
             format!("cache_path: {}", cache.cache_path),
             format!("refresh_attempt_path: {}", cache.refresh_attempt_path),
         ]);
+        if let Some(error) = cache.cache_error.as_ref() {
+            lines.push(format!("cache_error: {error}"));
+        }
     } else if let Some(path) = report.expected_cache_path.as_ref() {
         lines.push(format!("expected_cache_path: {path}"));
         lines.push(format!(

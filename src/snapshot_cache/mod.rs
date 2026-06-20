@@ -23,8 +23,8 @@ pub use lifecycle::{
     LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
 };
 pub use model::{
-    SnapshotCompleteness, SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
-    SnapshotReport,
+    SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotCompleteness,
+    SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch, SnapshotReport,
 };
 pub use paged::{PagedCollectionPage, PagedCollectionState};
 pub use paths::{SnapshotJsonPaths, collect_full_collection_snapshot_paths, snapshot_network_dir};

@@ -18,12 +18,21 @@ pub fn sns_proposals_cache_list_report_text(report: &SnsProposalsCacheListReport
     if !report.caches.is_empty() {
         lines.push(String::new());
         lines.push(render_table(
-            &["ID", "NAME", "ROOT", "ROWS", "PAGES", "FETCHED_AT"],
+            &[
+                "STATUS",
+                "ID",
+                "NAME",
+                "ROOT",
+                "ROWS",
+                "PAGES",
+                "FETCHED_AT",
+            ],
             &report
                 .caches
                 .iter()
                 .map(|cache| {
                     [
+                        cache.cache_status.clone(),
                         cache.id.to_string(),
                         cache.name.clone(),
                         cache.root_canister_id.clone(),
@@ -34,6 +43,7 @@ pub fn sns_proposals_cache_list_report_text(report: &SnsProposalsCacheListReport
                 })
                 .collect::<Vec<_>>(),
             &[
+                ColumnAlign::Left,
                 ColumnAlign::Right,
                 ColumnAlign::Left,
                 ColumnAlign::Left,
@@ -42,6 +52,11 @@ pub fn sns_proposals_cache_list_report_text(report: &SnsProposalsCacheListReport
                 ColumnAlign::Left,
             ],
         ));
+        for cache in &report.caches {
+            if let Some(error) = cache.cache_error.as_ref() {
+                lines.push(format!("cache_error: {}: {error}", cache.cache_path));
+            }
+        }
     }
     lines.join("\n")
 }

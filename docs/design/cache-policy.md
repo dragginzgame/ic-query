@@ -60,6 +60,10 @@ deterministic across command families.
 Complete snapshot caches that carry logical identity fields should be validated
 against the expected cache key on load; older snapshots without identity fields
 remain readable for compatibility.
+Cache status and cache list commands should render malformed, unsupported, or
+identity-mismatched local snapshot files as invalid local cache rows instead of
+silently ignoring them or making live calls. Normal cache-backed report reads
+should still reject those invalid snapshots.
 
 ## Current Coverage
 
