@@ -37,6 +37,7 @@ Examples:
   icq sns proposals 1 --topic governance
   icq sns proposals 1 --eligible yes
   icq sns proposals 1 --proposer 00010203
+  icq sns proposals 1 --query treasury
   icq sns proposals 1 --sort status
   icq sns proposals 1 --sort topic
   icq sns proposals 1 --sort proposer
@@ -182,6 +183,13 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
                 .value_name("neuron-id-prefix")
                 .value_parser(NonEmptyStringValueParser::new())
                 .help("Filter proposals by proposer neuron id prefix"),
+        )
+        .arg(
+            value_arg("query")
+                .long("query")
+                .value_name("text")
+                .value_parser(NonEmptyStringValueParser::new())
+                .help("Case-insensitive title, action, summary, URL, or payload text filter"),
         )
         .arg(
             value_arg("sort")

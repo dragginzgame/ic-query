@@ -19,7 +19,8 @@ use crate::{
         source::{MainnetSnsProposals, SnsProposalsSource},
         view::{
             proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,
-            proposal_matches_status, proposal_matches_topic, sort_sns_proposal_rows,
+            proposal_matches_query, proposal_matches_status, proposal_matches_topic,
+            sort_sns_proposal_rows,
         },
     },
 };
@@ -149,6 +150,7 @@ fn sns_proposals_report_from_cache(
         .filter(|proposal| {
             proposal_matches_proposer(proposal, request.proposer_neuron_id.as_deref())
         })
+        .filter(|proposal| proposal_matches_query(proposal, request.query.as_deref()))
         .collect::<Vec<_>>();
     sort_sns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
@@ -162,6 +164,7 @@ fn sns_proposals_report_from_cache(
         topic: request.topic,
         eligibility: request.eligibility,
         proposer_neuron_id: request.proposer_neuron_id.clone(),
+        query: request.query.clone(),
         sort: request.sort,
         sort_direction: request.sort_direction,
         verbose: request.verbose,

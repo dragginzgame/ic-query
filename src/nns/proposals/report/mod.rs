@@ -59,7 +59,7 @@ mod tests;
 pub(in crate::nns) const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
 
 const NNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
-const NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION: u32 = 2;
+const NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
 pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-query";
 
 ///

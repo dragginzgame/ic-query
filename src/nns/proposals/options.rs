@@ -13,7 +13,7 @@ use super::commands::{
 };
 use crate::{
     cli::{
-        clap::{required_string, required_typed, typed_option},
+        clap::{required_string, required_typed, string_option, typed_option},
         common::FORMAT_ARG,
     },
     nns::{
@@ -56,6 +56,7 @@ pub(in crate::nns) struct NnsProposalListOptions {
     pub(in crate::nns) reward_status: NnsProposalRewardStatusFilter,
     pub(in crate::nns) topic: NnsProposalTopicFilter,
     pub(in crate::nns) proposer_neuron_id: Option<u64>,
+    pub(in crate::nns) query: Option<String>,
     pub(in crate::nns) sort: NnsProposalListSort,
     pub(in crate::nns) sort_direction: NnsProposalSortDirection,
     pub(in crate::nns) verbose: bool,
@@ -99,6 +100,7 @@ impl NnsProposalListOptions {
             .into(),
             topic: required_typed::<NnsProposalTopicArg>(&matches, "topic").into(),
             proposer_neuron_id: typed_option(&matches, "proposer"),
+            query: string_option(&matches, "query"),
             sort: sort.into(),
             sort_direction,
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),

@@ -71,6 +71,7 @@ pub struct SnsProposalsRequest {
     pub topic: SnsProposalTopicFilter,
     pub eligibility: SnsProposalEligibilityFilter,
     pub proposer_neuron_id: Option<String>,
+    pub query: Option<String>,
     pub sort: SnsProposalsSort,
     pub sort_direction: SnsProposalSortDirection,
     pub icp_root: Option<PathBuf>,

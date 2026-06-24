@@ -24,7 +24,8 @@ use crate::{
         },
     },
 };
-use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
+use clap::Command as ClapCommand;
+use clap::builder::{NonEmptyStringValueParser, RangedU64ValueParser};
 
 const NNS_PROPOSAL_LIST_DEFAULT_LIMIT: &str = "25";
 const NNS_PROPOSAL_LIST_MAX_LIMIT: u64 = 100;
@@ -40,6 +41,7 @@ Examples:
   icq nns proposal list --reward-status settled
   icq nns proposal list --topic governance
   icq nns proposal list --proposer 123456789
+  icq nns proposal list --query subnet
   icq nns proposal list --sort reward-status
   icq nns proposal list --sort tally-time
   icq nns proposal list --sort deadline
@@ -151,6 +153,13 @@ fn nns_proposal_list_command_with(
                 .value_name("neuron-id")
                 .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
                 .help("Filter proposals by exact proposer neuron id"),
+        )
+        .arg(
+            value_arg("query")
+                .long("query")
+                .value_name("text")
+                .value_parser(NonEmptyStringValueParser::new())
+                .help("Case-insensitive title, action, summary, or URL text filter applied to view rows"),
         )
         .arg(
             value_arg("sort")

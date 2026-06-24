@@ -24,6 +24,7 @@ pub(in crate::nns::proposals::report) struct NnsProposalReportProvenance {
     pub(in crate::nns::proposals::report) data_source: String,
     pub(in crate::nns::proposals::report) cache_path: Option<String>,
     pub(in crate::nns::proposals::report) cache_complete: Option<bool>,
+    pub(in crate::nns::proposals::report) result_scope: String,
 }
 
 impl NnsProposalReportProvenance {
@@ -33,6 +34,7 @@ impl NnsProposalReportProvenance {
             data_source: "live".to_string(),
             cache_path: None,
             cache_complete: None,
+            result_scope: "bounded-live".to_string(),
         }
     }
 
@@ -45,6 +47,7 @@ impl NnsProposalReportProvenance {
             data_source: "cache".to_string(),
             cache_path: Some(cache_path.display().to_string()),
             cache_complete: Some(cache_complete),
+            result_scope: "complete-cache".to_string(),
         }
     }
 }
@@ -67,6 +70,7 @@ pub(in crate::nns::proposals::report) struct NnsProposalListReportParts {
     pub(in crate::nns::proposals::report) reward_status: NnsProposalRewardStatusFilter,
     pub(in crate::nns::proposals::report) topic: NnsProposalTopicFilter,
     pub(in crate::nns::proposals::report) proposer_neuron_id: Option<u64>,
+    pub(in crate::nns::proposals::report) query: Option<String>,
     pub(in crate::nns::proposals::report) sort: NnsProposalListSort,
     pub(in crate::nns::proposals::report) sort_direction: NnsProposalSortDirection,
     pub(in crate::nns::proposals::report) verbose: bool,
@@ -114,8 +118,10 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_parts(
         reward_status_filter: parts.reward_status.as_str().to_string(),
         topic_filter: parts.topic.as_str().to_string(),
         proposer_filter: parts.proposer_neuron_id,
+        query_filter: parts.query,
         sort: parts.sort.as_str().to_string(),
         sort_direction: parts.sort.direction_label(parts.sort_direction).to_string(),
+        result_scope: parts.provenance.result_scope,
         verbose: parts.verbose,
         proposal_count,
         proposals: parts.proposals,

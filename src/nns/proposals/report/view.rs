@@ -8,6 +8,7 @@ use super::model::{
     NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
     NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
+use crate::text_search::optional_text_contains_ascii_case_insensitive;
 use std::cmp::Ordering;
 
 pub(in crate::nns::proposals::report) fn proposal_matches_before(
@@ -53,6 +54,19 @@ pub(in crate::nns::proposals::report) fn proposal_matches_proposer(
     proposer_neuron_id: Option<u64>,
 ) -> bool {
     proposer_neuron_id.is_none_or(|id| proposal.proposer_neuron_id == Some(id))
+}
+
+pub(in crate::nns::proposals::report) fn proposal_matches_query(
+    proposal: &NnsProposalRow,
+    query: Option<&str>,
+) -> bool {
+    let Some(query) = query else {
+        return true;
+    };
+    optional_text_contains_ascii_case_insensitive(proposal.title.as_deref(), query)
+        || optional_text_contains_ascii_case_insensitive(proposal.action_text.as_deref(), query)
+        || optional_text_contains_ascii_case_insensitive(Some(&proposal.summary), query)
+        || optional_text_contains_ascii_case_insensitive(Some(&proposal.url), query)
 }
 
 pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(

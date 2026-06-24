@@ -115,8 +115,10 @@ icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 NNS governance proposals can be queried from the mainnet NNS governance
 canister. Without a complete local snapshot, list views are bounded live
 queries; status filters are sent to governance where supported, topic filters
-are applied to returned rows, and local sort modes mirror the SNS proposal
-direction rules:
+are applied to returned rows, query filters search returned title, action,
+summary, and URL text, and local sort modes mirror the SNS proposal direction
+rules. Text and JSON list reports include `result_scope` so bounded live views
+are distinguishable from complete-cache views:
 
 ```bash
 icq nns proposal list --limit 25
@@ -124,6 +126,7 @@ icq nns proposal list --status open
 icq nns proposal list --reward-status settled
 icq nns proposal list --topic governance
 icq nns proposal list --proposer 123456789
+icq nns proposal list --query subnet
 icq nns proposal list --sort reward-status
 icq nns proposal list --sort tally-time
 icq nns proposal list --sort deadline
@@ -137,7 +140,7 @@ icq nns proposal info 132411 --format json
 ```
 
 NNS proposal list views support
-`--proposer <neuron-id>` and
+`--proposer <neuron-id>`, `--query <text>`, and
 `--sort api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|executed|failed`.
 Local sort modes accept `--asc` or `--desc`; status, reward status, topic,
 proposer, title, and action default to ascending, while id, tally values, tally
@@ -171,7 +174,8 @@ requested proposal, then fall back to live detail lookup. Status and topic
 filters that can be reproduced from complete proposal rows use the local
 snapshot, including decided/adopted/rejected status filters; reward eligibility
 can be filtered with `--eligible any|yes|no`, and proposer neuron ids can be
-filtered by prefix with `--proposer`:
+filtered by prefix with `--proposer`. Use `--query <text>` to search proposal
+title, action, summary, URL, and payload text:
 
 ```bash
 icq sns proposals 1 --limit 25
@@ -180,6 +184,7 @@ icq sns proposals 1 --status decided
 icq sns proposals 1 --eligible yes
 icq sns proposals 1 --eligible no
 icq sns proposals 1 --proposer 00010203
+icq sns proposals 1 --query treasury
 icq sns proposals 1 --sort status
 icq sns proposals 1 --sort topic
 icq sns proposals 1 --sort proposer
@@ -207,7 +212,7 @@ icq sns proposal 1 387 --ballots
 ```
 
 Proposal list views support
-`--eligible any|yes|no`, `--proposer <neuron-id-prefix>`, and
+`--eligible any|yes|no`, `--proposer <neuron-id-prefix>`, `--query <text>`, and
 `--sort api|id|status|topic|proposer|title|action|action-id|yes|no|total-votes|tally-time|ballots|eligible|reject-cost|reward-round|reward-end|created|decided|executed|failed`.
 Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
 and action default to ascending, while id, action id, tally values, tally time,

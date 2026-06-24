@@ -66,6 +66,7 @@ fn run_nns_proposal_list_with_options(
         reward_status: options.reward_status,
         topic: options.topic,
         proposer_neuron_id: options.proposer_neuron_id,
+        query: options.query,
         sort: options.sort,
         sort_direction: options.sort_direction,
         verbose: options.verbose,

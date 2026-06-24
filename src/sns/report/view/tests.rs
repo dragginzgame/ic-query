@@ -6,8 +6,8 @@
 
 use super::{
     proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,
-    proposal_matches_status, proposal_matches_topic, sort_mainnet_sns_instances, sort_sns_neurons,
-    sort_sns_proposal_rows,
+    proposal_matches_query, proposal_matches_status, proposal_matches_topic,
+    sort_mainnet_sns_instances, sort_sns_neurons, sort_sns_proposal_rows,
 };
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
@@ -413,6 +413,19 @@ fn proposal_proposer_filter_matches_neuron_id_prefix() {
     ));
 }
 
+#[test]
+fn proposal_query_filter_matches_searchable_text_fields() {
+    let proposal = proposal_with_query_text();
+
+    assert!(proposal_matches_query(&proposal, Some("treasury")));
+    assert!(proposal_matches_query(&proposal, Some("UPGRADE")));
+    assert!(proposal_matches_query(&proposal, Some("committee")));
+    assert!(proposal_matches_query(&proposal, Some("forum")));
+    assert!(proposal_matches_query(&proposal, Some("payload")));
+    assert!(!proposal_matches_query(&proposal, Some("subnet")));
+    assert!(proposal_matches_query(&proposal, None));
+}
+
 fn proposal_ids(proposals: &[SnsProposalRow]) -> Vec<u64> {
     proposals
         .iter()
@@ -500,6 +513,17 @@ fn proposal_with_eligibility(is_eligible_for_rewards: bool) -> SnsProposalRow {
 fn proposal_with_proposer(proposer_neuron_id: Option<&str>) -> SnsProposalRow {
     SnsProposalRow {
         proposer_neuron_id: proposer_neuron_id.map(ToString::to_string),
+        ..proposal_row(1, 100)
+    }
+}
+
+fn proposal_with_query_text() -> SnsProposalRow {
+    SnsProposalRow {
+        title: "Treasury motion".to_string(),
+        action: "upgrade-sns-controlled-canister".to_string(),
+        summary: "Committee review".to_string(),
+        url: Some("https://forum.example/proposal".to_string()),
+        payload_text_rendering: Some("Payload preview".to_string()),
         ..proposal_row(1, 100)
     }
 }

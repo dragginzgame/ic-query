@@ -37,6 +37,10 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
             "proposer_filter: {}",
             report.proposer_filter.as_deref().unwrap_or("-")
         ),
+        format!(
+            "query_filter: {}",
+            report.query_filter.as_deref().unwrap_or("-")
+        ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
         format!("verbose: {}", yes_no(report.verbose)),

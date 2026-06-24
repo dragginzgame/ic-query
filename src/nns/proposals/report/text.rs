@@ -38,8 +38,13 @@ pub(in crate::nns::proposals) fn nns_proposal_list_report_text(
             "proposer_filter: {}",
             optional_u64_text(report.proposer_filter)
         ),
+        format!(
+            "query_filter: {}",
+            report.query_filter.as_deref().unwrap_or("-")
+        ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
+        format!("result_scope: {}", report.result_scope),
         format!("verbose: {}", yes_no(report.verbose)),
         format!("proposal_count: {}", report.proposal_count),
         format!("fetched_at: {}", report.fetched_at),

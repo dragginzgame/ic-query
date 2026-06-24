@@ -20,6 +20,8 @@ fn sns_proposals_parses_filters_and_json_format() {
         OsString::from("yes"),
         OsString::from("--proposer"),
         OsString::from("00010203"),
+        OsString::from("--query"),
+        OsString::from("treasury"),
         OsString::from("--sort"),
         OsString::from("decided"),
         OsString::from("--asc"),
@@ -37,6 +39,7 @@ fn sns_proposals_parses_filters_and_json_format() {
     assert_eq!(options.topic, SnsProposalTopicArg::Governance);
     assert_eq!(options.eligibility, SnsProposalEligibilityArg::Yes);
     assert_eq!(options.proposer_neuron_id.as_deref(), Some("00010203"));
+    assert_eq!(options.query.as_deref(), Some("treasury"));
     assert_eq!(options.sort, SnsProposalsSortArg::Decided);
     assert_eq!(options.sort_direction, SnsProposalSortDirection::Asc);
     assert!(options.verbose);

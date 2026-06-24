@@ -1,7 +1,20 @@
-use std::process::{Command, Output};
+use std::{
+    fs,
+    path::Path,
+    process::{Command, Output},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 fn run_icq(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_icq"))
+        .args(args)
+        .output()
+        .expect("run icq test binary")
+}
+
+fn run_icq_in_root(root: &Path, args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_icq"))
+        .env("ICQ_ICP_ROOT", root)
         .args(args)
         .output()
         .expect("run icq test binary")
@@ -22,6 +35,14 @@ fn assert_success(output: &Output) {
         output.status.code(),
         stderr_text(output)
     );
+}
+
+fn temp_icp_root(prefix: &str) -> std::path::PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time after epoch")
+        .as_nanos();
+    std::env::temp_dir().join(format!("{prefix}-{}-{unique}", std::process::id()))
 }
 
 #[test]
@@ -66,4 +87,39 @@ fn binary_version_smoke() {
         stdout_text(&output),
         format!("icq {}\n", env!("CARGO_PKG_VERSION"))
     );
+}
+
+#[test]
+fn binary_local_cache_commands_emit_json_without_live_calls() {
+    let root = temp_icp_root("ic-query-cli-cache-json");
+    fs::create_dir_all(&root).expect("create temp icp root");
+
+    let nns_status = run_icq_in_root(
+        &root,
+        &["nns", "proposal", "cache", "status", "--format", "json"],
+    );
+    assert_success(&nns_status);
+    let nns_status: serde_json::Value =
+        serde_json::from_str(&stdout_text(&nns_status)).expect("nns cache status json");
+    assert_eq!(nns_status["found"], false);
+
+    let sns_proposals = run_icq_in_root(
+        &root,
+        &["sns", "proposals", "cache", "list", "--format", "json"],
+    );
+    assert_success(&sns_proposals);
+    let sns_proposals: serde_json::Value =
+        serde_json::from_str(&stdout_text(&sns_proposals)).expect("sns proposals cache list json");
+    assert_eq!(sns_proposals["cache_count"], 0);
+
+    let sns_neurons = run_icq_in_root(
+        &root,
+        &["sns", "neurons", "cache", "list", "--format", "json"],
+    );
+    assert_success(&sns_neurons);
+    let sns_neurons: serde_json::Value =
+        serde_json::from_str(&stdout_text(&sns_neurons)).expect("sns neurons cache list json");
+    assert_eq!(sns_neurons["cache_count"], 0);
+
+    let _ = fs::remove_dir_all(root);
 }

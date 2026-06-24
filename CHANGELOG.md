@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)
 
+- `0.2.42` adds cache-compatible NNS and SNS proposal text search with
+  `--query <text>`, reports the selected `query_filter` in proposal list
+  text/JSON output, and makes NNS proposal list reports expose `result_scope`
+  so bounded live views are distinguishable from complete-cache views.
+
+  ```bash
+  icq nns proposal list --query subnet
+  icq sns proposals 1 --query treasury
+  ```
+
 - `0.2.41` adds proposal list filters for SNS reward eligibility and
   NNS/SNS proposers while keeping them cache-compatible where complete
   snapshots are available.

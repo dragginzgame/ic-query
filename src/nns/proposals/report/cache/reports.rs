@@ -28,8 +28,9 @@ use crate::{
             NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
         },
         view::{
-            proposal_matches_before, proposal_matches_proposer, proposal_matches_reward_status,
-            proposal_matches_status, proposal_matches_topic, sort_nns_proposal_rows,
+            proposal_matches_before, proposal_matches_proposer, proposal_matches_query,
+            proposal_matches_reward_status, proposal_matches_status, proposal_matches_topic,
+            sort_nns_proposal_rows,
         },
     },
     snapshot_cache::{
@@ -176,6 +177,7 @@ fn nns_proposal_list_report_from_cache(
         .filter(|proposal| proposal_matches_reward_status(proposal, request.reward_status))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
         .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
+        .filter(|proposal| proposal_matches_query(proposal, request.query.as_deref()))
         .collect::<Vec<_>>();
     sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
@@ -192,6 +194,7 @@ fn nns_proposal_list_report_from_cache(
         reward_status: request.reward_status,
         topic: request.topic,
         proposer_neuron_id: request.proposer_neuron_id,
+        query: request.query.clone(),
         sort: request.sort,
         sort_direction: request.sort_direction,
         verbose: request.verbose,

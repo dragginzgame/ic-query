@@ -12,6 +12,7 @@ pub(crate) mod snapshot_cache;
 mod sns;
 pub mod subnet_catalog;
 mod table;
+mod text_search;
 mod token_amount;
 
 #[cfg(test)]

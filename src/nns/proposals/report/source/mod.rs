@@ -18,7 +18,10 @@ use super::{
         NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalReport,
         NnsProposalRequest, NnsProposalRow, NnsProposalTally,
     },
-    view::{proposal_matches_proposer, proposal_matches_topic, sort_nns_proposal_rows},
+    view::{
+        proposal_matches_proposer, proposal_matches_query, proposal_matches_topic,
+        sort_nns_proposal_rows,
+    },
     wire::{NnsGovernanceBallot, NnsProposalInfo},
 };
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
@@ -66,6 +69,7 @@ pub(in crate::nns::proposals::report) fn build_nns_proposal_list_report_with_sou
         .map(nns_proposal_row_from_info)
         .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
+        .filter(|proposal| proposal_matches_query(proposal, request.query.as_deref()))
         .collect::<Vec<_>>();
     sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     Ok(nns_proposal_list_report_from_parts(
@@ -82,6 +86,7 @@ pub(in crate::nns::proposals::report) fn build_nns_proposal_list_report_with_sou
             reward_status: request.reward_status,
             topic: request.topic,
             proposer_neuron_id: request.proposer_neuron_id,
+            query: request.query.clone(),
             sort: request.sort,
             sort_direction: request.sort_direction,
             verbose: request.verbose,

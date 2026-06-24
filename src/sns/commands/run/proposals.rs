@@ -94,6 +94,7 @@ where
         topic: options.topic.into(),
         eligibility: options.eligibility.into(),
         proposer_neuron_id: options.proposer_neuron_id,
+        query: options.query,
         sort: options.sort.into(),
         sort_direction: options.sort_direction,
         icp_root: Some(parts.icp_root),

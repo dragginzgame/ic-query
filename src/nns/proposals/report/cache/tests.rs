@@ -192,6 +192,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         reward_status: NnsProposalRewardStatusFilter::Settled,
         topic: NnsProposalTopicFilter::Governance,
         proposer_neuron_id: Some(99),
+        query: Some("proposal 1".to_string()),
         sort: NnsProposalListSort::Title,
         sort_direction: NnsProposalSortDirection::Asc,
         verbose: false,
@@ -200,6 +201,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         .expect("cache lookup")
         .expect("cached list report");
     let text = nns_proposal_list_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize cached NNS proposal list report");
 
     assert_eq!(
         report.schema_version,
@@ -210,12 +212,18 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.status_filter, NNS_PROPOSAL_STATUS_EXECUTED_LABEL);
     assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
     assert_eq!(report.proposer_filter, Some(99));
+    assert_eq!(report.query_filter.as_deref(), Some("proposal 1"));
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
+    assert_eq!(report.result_scope, "complete-cache");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(1));
+    assert_eq!(json["query_filter"], "proposal 1");
+    assert_eq!(json["result_scope"], "complete-cache");
     assert!(text.contains("data_source: cache"));
     assert!(text.contains("cache_complete: yes"));
+    assert!(text.contains("query_filter: proposal 1"));
+    assert!(text.contains("result_scope: complete-cache"));
 }
 
 #[test]
@@ -232,6 +240,7 @@ fn nns_proposal_list_cache_lookup_returns_none_when_cache_is_missing() {
             reward_status: NnsProposalRewardStatusFilter::Any,
             topic: NnsProposalTopicFilter::Any,
             proposer_neuron_id: None,
+            query: None,
             sort: NnsProposalListSort::Api,
             sort_direction: NnsProposalSortDirection::Desc,
             verbose: false,

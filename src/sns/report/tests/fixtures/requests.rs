@@ -63,6 +63,7 @@ pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsPropos
         topic: SnsProposalTopicFilter::Governance,
         eligibility: SnsProposalEligibilityFilter::Any,
         proposer_neuron_id: None,
+        query: None,
         sort: SnsProposalsSort::Api,
         sort_direction: SnsProposalSortDirection::Desc,
         icp_root: None,
