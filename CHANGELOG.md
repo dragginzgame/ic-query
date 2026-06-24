@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.1` consolidates duplicated generic ICRC and SNS ledger-token live
+  plumbing behind a shared ICRC ledger helper for wire types, token metadata
+  calls, metadata conversion, and ledger query error mapping without changing
+  CLI behavior, report schemas, cache paths, or output.
+
 - `0.3.0` adds live generic ICRC ledger token metadata and account balance
   queries by ledger canister id, including text/JSON reports that show the
   queried source endpoint and preserve raw base-unit token amounts in JSON.

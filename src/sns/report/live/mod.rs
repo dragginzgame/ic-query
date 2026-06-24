@@ -12,7 +12,3 @@ mod types;
 
 pub(super) use super::SnsHostError;
 pub(super) use client::LiveSnsSource;
-#[cfg(test)]
-pub(super) use convert::metadata_row;
-#[cfg(test)]
-pub(super) use types::IcrcMetadataValue;

@@ -5,8 +5,34 @@
 //! Boundary: builds agents, parses principals, and maps query failures to typed errors.
 
 use super::SnsHostError;
-use candid::{CandidType, Deserialize, Encode, Principal};
+use crate::icrc::ledger::IcrcLedgerError;
+use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Agent;
+
+impl IcrcLedgerError for SnsHostError {
+    fn agent_build(endpoint: &str, reason: String) -> Self {
+        Self::AgentBuild {
+            endpoint: endpoint.to_string(),
+            reason,
+        }
+    }
+
+    fn invalid_principal(field: &'static str, reason: String) -> Self {
+        Self::InvalidPrincipal { field, reason }
+    }
+
+    fn candid_encode(message: &'static str, reason: String) -> Self {
+        Self::CandidEncode { message, reason }
+    }
+
+    fn agent_call(method: &'static str, reason: String) -> Self {
+        Self::AgentCall { method, reason }
+    }
+
+    fn candid_decode(message: &'static str, reason: String) -> Self {
+        Self::CandidDecode { message, reason }
+    }
+}
 
 /// Query one Candid canister method with an explicit request payload.
 pub(super) async fn query_canister<Arg, Response>(
@@ -36,34 +62,6 @@ where
         })?;
     candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
         message: response_message,
-        reason: err.to_string(),
-    })
-}
-
-/// Query one ICRC ledger method that takes an empty Candid argument tuple.
-pub(super) async fn query_ledger<T>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-    method: &'static str,
-) -> Result<T, SnsHostError>
-where
-    T: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = Encode!().map_err(|err| SnsHostError::CandidEncode {
-        message: method,
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(ledger_canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method,
-            reason: err.to_string(),
-        })?;
-    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
-        message: method,
         reason: err.to_string(),
     })
 }

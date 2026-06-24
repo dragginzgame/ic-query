@@ -4,37 +4,7 @@
 //! Does not own: ledger transport, token report assembly, or rendering.
 //! Boundary: maps ICRC metadata wire values into report rows and compact errors.
 
-use crate::sns::report::{
-    SNS_TOKEN_LOGO_METADATA_KEY, SnsHostError, SnsTokenMetadataRow, hex_bytes,
-    live::types::{GetIndexPrincipalError, IcrcMetadataValue},
-};
-use serde_json::Value as JsonValue;
-
-/// Convert one ICRC metadata key/value pair into a report row.
-pub(in crate::sns::report) fn metadata_row(
-    key: String,
-    value: IcrcMetadataValue,
-) -> SnsTokenMetadataRow {
-    if key == SNS_TOKEN_LOGO_METADATA_KEY {
-        return SnsTokenMetadataRow {
-            key,
-            value_type: "bool".to_string(),
-            value: JsonValue::Bool(metadata_value_is_present(&value)),
-        };
-    }
-
-    let (value_type, value) = match value {
-        IcrcMetadataValue::Nat(value) => ("nat", value.to_string()),
-        IcrcMetadataValue::Int(value) => ("int", value.to_string()),
-        IcrcMetadataValue::Text(value) => ("text", value),
-        IcrcMetadataValue::Blob(value) => ("blob", hex_bytes(&value)),
-    };
-    SnsTokenMetadataRow {
-        key,
-        value_type: value_type.to_string(),
-        value: JsonValue::String(value),
-    }
-}
+use crate::{icrc::ledger::GetIndexPrincipalError, sns::report::SnsHostError};
 
 /// Convert an index-principal discovery error into human-facing text.
 pub(in crate::sns::report::live) fn index_principal_error_text(
@@ -87,13 +57,5 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::IncompleteRefresh { .. }
         | SnsHostError::MissingCacheRoot
         | SnsHostError::UnsupportedProposalView { .. } => None,
-    }
-}
-
-fn metadata_value_is_present(value: &IcrcMetadataValue) -> bool {
-    match value {
-        IcrcMetadataValue::Text(value) => !value.trim().is_empty(),
-        IcrcMetadataValue::Blob(value) => !value.is_empty(),
-        IcrcMetadataValue::Nat(_) | IcrcMetadataValue::Int(_) => true,
     }
 }

@@ -84,7 +84,7 @@ pub use text::{
 };
 
 #[cfg(test)]
-use live::{IcrcMetadataValue, metadata_row};
+use crate::icrc::ledger::{IcrcMetadataValue, metadata_row};
 
 #[cfg(test)]
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
@@ -100,6 +100,7 @@ const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 5;
 const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 10;
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
+#[cfg(test)]
 const SNS_TOKEN_LOGO_METADATA_KEY: &str = "icrc1:logo";
 const SNS_METADATA_CONCURRENCY: usize = 16;
 

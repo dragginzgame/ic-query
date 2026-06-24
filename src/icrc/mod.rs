@@ -5,6 +5,7 @@
 //! Boundary: exposes live read-only token metadata and account balance reports.
 
 mod commands;
+pub mod ledger;
 mod live;
 mod model;
 mod text;
