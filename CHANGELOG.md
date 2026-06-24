@@ -7,6 +7,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.3.x] - 2026-06-24 - Generic ICRC ledger queries
+
+Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
+
+- `0.3.0` adds live generic ICRC ledger token metadata and account balance
+  queries by ledger canister id, including text/JSON reports that show the
+  queried source endpoint and preserve raw base-unit token amounts in JSON.
+
+  ```bash
+  icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai
+  icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000
+  ```
+
 ## [0.2.x] - 2026-06-16 - SNS proposal detail expansion
 
 Detailed patch breakdown: [docs/changelog/0.2.md](docs/changelog/0.2.md)

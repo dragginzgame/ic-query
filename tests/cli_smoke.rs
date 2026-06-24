@@ -52,8 +52,20 @@ fn binary_top_level_help_smoke() {
     assert_success(&output);
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq [OPTIONS] [COMMAND]"));
+    assert!(stdout.contains("icrc"));
     assert!(stdout.contains("nns"));
     assert!(stdout.contains("sns"));
+}
+
+#[test]
+fn binary_icrc_balance_help_smoke() {
+    let output = run_icq(&["icrc", "balance", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq icrc balance [OPTIONS] <ledger-canister-id> <principal>"));
+    assert!(stdout.contains("--subaccount <hex>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
 }
 
 #[test]

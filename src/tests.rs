@@ -13,6 +13,8 @@ fn usage_lists_query_families() {
     let text = usage();
 
     assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
+    assert!(text.contains("icrc"));
+    assert!(text.contains("Inspect generic ICRC ledger metadata"));
     assert!(text.contains("nns"));
     assert!(text.contains("Inspect NNS metadata"));
     assert!(text.contains("sns"));
@@ -30,8 +32,9 @@ Internet Computer metadata query CLI
 Usage: icq [OPTIONS] [COMMAND]
 
 Commands:
-  nns  Inspect NNS metadata
-  sns  Inspect SNS metadata
+  icrc  Inspect generic ICRC ledger metadata
+  nns   Inspect NNS metadata
+  sns   Inspect SNS metadata
 
 Options:
   -V, --version         Print version
@@ -49,6 +52,9 @@ Run `icq <command> help` for command-specific help.
 #[test]
 fn command_family_help_returns_ok() {
     for args in [
+        &["icrc", "help"][..],
+        &["icrc", "token", "help"],
+        &["icrc", "balance", "help"],
         &["nns", "help"][..],
         &["nns", "data-center", "help"],
         &["nns", "data-center", "list", "help"],
@@ -106,6 +112,7 @@ fn command_family_help_returns_ok() {
 fn version_flags_return_ok() {
     assert_eq!(version_text(), concat!("icq ", env!("CARGO_PKG_VERSION")));
     assert!(run([OsString::from("--version")]).is_ok());
+    assert!(run([OsString::from("icrc"), OsString::from("--version")]).is_ok());
     assert!(run([OsString::from("nns"), OsString::from("--version")]).is_ok());
     assert!(run([OsString::from("sns"), OsString::from("--version")]).is_ok());
     assert!(
@@ -161,6 +168,12 @@ fn global_network_is_forwarded_to_networked_leaf_commands() {
             OsString::from("ic")
         ]
     );
+
+    let mut icrc_tail = vec![OsString::from("token")];
+
+    cli::globals::apply_global_network("icrc", &mut icrc_tail, Some("ic".to_string()));
+
+    assert_eq!(icrc_tail, vec![OsString::from("token")]);
 }
 
 #[test]

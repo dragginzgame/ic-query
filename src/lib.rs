@@ -3,6 +3,7 @@ mod cli;
 mod duration;
 mod hex;
 mod ic_registry;
+mod icrc;
 mod nns;
 mod output;
 mod progress;
@@ -38,6 +39,9 @@ pub enum IcQueryError {
 
     #[error("nns: {0}")]
     Nns(String),
+
+    #[error("icrc: {0}")]
+    Icrc(String),
 
     #[error("sns: {0}")]
     Sns(String),
@@ -79,6 +83,7 @@ where
     let tail = tail.into_iter();
 
     match command {
+        "icrc" => icrc::run(tail).map_err(|err| IcQueryError::Icrc(err.to_string())),
         "nns" => nns::run(tail).map_err(|err| IcQueryError::Nns(err.to_string())),
         "sns" => sns::run(tail).map_err(|err| IcQueryError::Sns(err.to_string())),
         _ => unreachable!("top-level dispatch command only defines known commands"),

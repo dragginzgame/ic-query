@@ -19,6 +19,11 @@ pub struct CommandFamily {
 
 pub const COMMAND_FAMILIES: &[CommandFamily] = &[
     CommandFamily {
+        name: "icrc",
+        about: "Inspect generic ICRC ledger metadata",
+        accepts_global_network: icrc_accepts_global_network,
+    },
+    CommandFamily {
         name: "nns",
         about: "Inspect NNS metadata",
         accepts_global_network: nns_accepts_global_network,
@@ -47,6 +52,10 @@ fn nns_accepts_global_network(tail: &[std::ffi::OsString]) -> bool {
                 | "topology"
         )
     )
+}
+
+const fn icrc_accepts_global_network(_tail: &[std::ffi::OsString]) -> bool {
+    false
 }
 
 fn sns_accepts_global_network(tail: &[std::ffi::OsString]) -> bool {

@@ -8,9 +8,9 @@
 `ic-query` provides the `icq` executable for read-only Internet Computer
 metadata queries.
 
-`icq` currently supports NNS and SNS metadata queries: registry version,
-subnet catalog lookup, node/provider/operator/data-center inventory, topology
-reports, and deployed SNS reports.
+`icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
+version, subnet catalog lookup, node/provider/operator/data-center inventory,
+topology reports, deployed SNS reports, and ICRC ledger token/balance reports.
 
 ## Install
 
@@ -38,19 +38,31 @@ icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
+icq icrc [token|balance]
 icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns proposals [cache|refresh]
 icq sns neurons [cache|refresh]
 ```
 
 Use `icq nns <family> help`, `icq nns topology <report> help`, or
-`icq sns <command> help` for command options.
+`icq icrc <command> help`, or `icq sns <command> help` for command options.
 
 Most commands support text output by default and JSON output with
 `--format json`:
 
 ```bash
 icq --network ic nns subnet info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+```
+
+Generic ICRC ledgers can be queried directly by ledger canister id. These
+commands are live-only, include the queried source endpoint in text and JSON
+reports, and support endpoint overrides with `--source-endpoint`:
+
+```bash
+icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai
+icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
+icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000
 ```
 
 ## Cache
