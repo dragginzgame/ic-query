@@ -90,6 +90,22 @@ pub(in crate::icrc) struct IcrcBalanceRequest {
 }
 
 ///
+/// IcrcAllowanceRequest
+///
+/// Request accepted by the generic ICRC allowance report builder.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAllowanceRequest {
+    pub(in crate::icrc) source_endpoint: String,
+    pub(in crate::icrc) now_unix_secs: u64,
+    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) account_owner: String,
+    pub(in crate::icrc) account_subaccount_hex: Option<String>,
+    pub(in crate::icrc) spender_owner: String,
+    pub(in crate::icrc) spender_subaccount_hex: Option<String>,
+}
+
+///
 /// IcrcTokenReport
 ///
 /// Serializable report for generic ICRC ledger token metadata.
@@ -129,6 +145,28 @@ pub struct IcrcBalanceReport {
     pub token_symbol: String,
     pub decimals: u8,
     pub balance: String,
+}
+
+///
+/// IcrcAllowanceReport
+///
+/// Serializable report for one generic ICRC allowance lookup.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAllowanceReport {
+    pub schema_version: u32,
+    pub ledger_canister_id: String,
+    pub account_owner: String,
+    pub account_subaccount_hex: Option<String>,
+    pub spender_owner: String,
+    pub spender_subaccount_hex: Option<String>,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub token_symbol: String,
+    pub decimals: u8,
+    pub allowance: String,
+    pub expires_at_unix_nanos: Option<String>,
 }
 
 ///
@@ -182,6 +220,19 @@ pub(in crate::icrc) struct IcrcBalanceData {
     pub(in crate::icrc) token_symbol: String,
     pub(in crate::icrc) decimals: u8,
     pub(in crate::icrc) balance: String,
+}
+
+///
+/// IcrcAllowanceData
+///
+/// Source-layer allowance result plus enough token metadata for display.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAllowanceData {
+    pub(in crate::icrc) token_symbol: String,
+    pub(in crate::icrc) decimals: u8,
+    pub(in crate::icrc) allowance: String,
+    pub(in crate::icrc) expires_at_unix_nanos: Option<String>,
 }
 
 pub(in crate::icrc) fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {

@@ -5,7 +5,7 @@
 //! Boundary: formats token metadata and base-unit amounts for humans.
 
 use crate::{
-    icrc::model::{IcrcBalanceReport, IcrcTokenMetadataRow, IcrcTokenReport},
+    icrc::model::{IcrcAllowanceReport, IcrcBalanceReport, IcrcTokenMetadataRow, IcrcTokenReport},
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
 };
@@ -92,6 +92,38 @@ pub(in crate::icrc) fn icrc_balance_report_text(report: &IcrcBalanceReport) -> S
             report.token_symbol
         ),
         format!("balance_base_units: {}", report.balance),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ]
+    .join("\n")
+}
+
+#[must_use]
+pub(in crate::icrc) fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
+    [
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!("account_owner: {}", report.account_owner),
+        format!(
+            "account_subaccount_hex: {}",
+            optional_text(report.account_subaccount_hex.as_ref())
+        ),
+        format!("spender_owner: {}", report.spender_owner),
+        format!(
+            "spender_subaccount_hex: {}",
+            optional_text(report.spender_subaccount_hex.as_ref())
+        ),
+        format!("token_symbol: {}", report.token_symbol),
+        format!("decimals: {}", report.decimals),
+        format!(
+            "allowance: {} {}",
+            base_units_decimal_text(&report.allowance, report.decimals),
+            report.token_symbol
+        ),
+        format!("allowance_base_units: {}", report.allowance),
+        format!(
+            "expires_at_unix_nanos: {}",
+            optional_text(report.expires_at_unix_nanos.as_ref())
+        ),
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
     ]

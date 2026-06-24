@@ -69,6 +69,20 @@ fn binary_icrc_balance_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_allowance_help_smoke() {
+    let output = run_icq(&["icrc", "allowance", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains(
+        "Usage: icq icrc allowance [OPTIONS] <ledger-canister-id> <owner-principal> <spender-principal>"
+    ));
+    assert!(stdout.contains("--owner-subaccount <hex>"));
+    assert!(stdout.contains("--spender-subaccount <hex>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+}
+
+#[test]
 fn binary_sns_list_help_smoke() {
     let output = run_icq(&["sns", "list", "help"]);
 

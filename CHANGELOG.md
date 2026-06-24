@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.2` adds live ICRC-2 allowance queries by ledger canister id, owner
+  principal, and spender principal, including optional owner and spender
+  subaccounts plus text/JSON reports that keep raw allowance base units and
+  expiration nanoseconds script-friendly.
+
+  ```bash
+  icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa
+  icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000
+  ```
+
 - `0.3.1` consolidates duplicated generic ICRC and SNS ledger-token live
   plumbing behind a shared ICRC ledger helper for wire types, token metadata
   calls, metadata conversion, and ledger query error mapping without changing

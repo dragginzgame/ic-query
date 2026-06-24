@@ -55,6 +55,7 @@ fn command_family_help_returns_ok() {
         &["icrc", "help"][..],
         &["icrc", "token", "help"],
         &["icrc", "balance", "help"],
+        &["icrc", "allowance", "help"],
         &["nns", "help"][..],
         &["nns", "data-center", "help"],
         &["nns", "data-center", "list", "help"],

@@ -100,6 +100,30 @@ pub enum IcrcMetadataValue {
 }
 
 ///
+/// IcrcAllowanceArgs
+///
+/// Candid ICRC-2 allowance request argument.
+///
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct IcrcAllowanceArgs {
+    pub account: IcrcAccount,
+    pub spender: IcrcAccount,
+}
+
+///
+/// IcrcAllowance
+///
+/// Candid ICRC-2 allowance response.
+///
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct IcrcAllowance {
+    pub allowance: Nat,
+    pub expires_at: Option<u64>,
+}
+
+///
 /// GetIndexPrincipalResult
 ///
 /// Candid result returned by ICRC-106 index discovery.
