@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.4` cleans up the generic ICRC index slice by sharing ICRC/SNS token
+  metadata text formatting, centralizing generic ICRC live query setup, using
+  the shared ICRC-106 index-error formatter from SNS token reports, and
+  replacing the remaining plain test `unwrap` without changing CLI behavior,
+  report schemas, cache paths, or output.
+
 - `0.3.3` adds live ICRC-106 index discovery by ledger canister id, returning
   the configured index canister when available or the ledger-reported index
   discovery error as text/JSON fields.
