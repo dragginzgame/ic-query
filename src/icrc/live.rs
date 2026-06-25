@@ -8,15 +8,18 @@ use crate::{
     hex::hex_bytes,
     icrc::{
         ledger::{
-            GetIndexPrincipalResult, Icrc3ArchivedBlocks, Icrc3BlockWithId, Icrc3GetBlocksRequest,
-            Icrc3GetBlocksResult, Icrc3Value, IcrcAccount, IcrcAllowance, IcrcAllowanceArgs,
+            GetIndexPrincipalResult, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
+            Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, Icrc3GetBlocksResult,
+            Icrc3SupportedBlockType, Icrc3Value, IcrcAccount, IcrcAllowance, IcrcAllowanceArgs,
             IcrcLedgerError, IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
             fetch_icrc1_token_metadata, ic_agent, index_principal_error_text, principal_from_text,
             query_ledger, query_ledger_arg,
         },
         model::{
-            IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchivedBlocksRow,
-            IcrcArchivedRangeRow, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest,
+            IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveRow,
+            IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesReport,
+            IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest,
+            IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesReport, IcrcBlockTypesRequest,
             IcrcError, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest, IcrcTokenData,
             IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest, IcrcTokenStandardRow,
             IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
@@ -35,6 +38,8 @@ pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_INDEX_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_ARCHIVES_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
 
 impl IcrcLedgerError for IcrcError {
@@ -83,6 +88,13 @@ pub(in crate::icrc) trait IcrcSource {
         &self,
         request: &IcrcTransactionsRequest,
     ) -> Result<IcrcTransactionsData, IcrcError>;
+
+    fn fetch_block_types(
+        &self,
+        request: &IcrcBlockTypesRequest,
+    ) -> Result<IcrcBlockTypesData, IcrcError>;
+
+    fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError>;
 }
 
 ///
@@ -118,6 +130,17 @@ impl IcrcSource for LiveIcrcSource {
     ) -> Result<IcrcTransactionsData, IcrcError> {
         block_on_current_thread(fetch_transactions_async(request))?
     }
+
+    fn fetch_block_types(
+        &self,
+        request: &IcrcBlockTypesRequest,
+    ) -> Result<IcrcBlockTypesData, IcrcError> {
+        block_on_current_thread(fetch_block_types_async(request))?
+    }
+
+    fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError> {
+        block_on_current_thread(fetch_archives_async(request))?
+    }
 }
 
 pub(in crate::icrc) fn build_icrc_token_report(
@@ -148,6 +171,18 @@ pub(in crate::icrc) fn build_icrc_transactions_report(
     request: &IcrcTransactionsRequest,
 ) -> Result<IcrcTransactionsReport, IcrcError> {
     build_icrc_transactions_report_with_source(request, &LiveIcrcSource)
+}
+
+pub(in crate::icrc) fn build_icrc_block_types_report(
+    request: &IcrcBlockTypesRequest,
+) -> Result<IcrcBlockTypesReport, IcrcError> {
+    build_icrc_block_types_report_with_source(request, &LiveIcrcSource)
+}
+
+pub(in crate::icrc) fn build_icrc_archives_report(
+    request: &IcrcArchivesRequest,
+) -> Result<IcrcArchivesReport, IcrcError> {
+    build_icrc_archives_report_with_source(request, &LiveIcrcSource)
 }
 
 pub(in crate::icrc) fn build_icrc_token_report_with_source(
@@ -270,6 +305,48 @@ pub(in crate::icrc) fn build_icrc_transactions_report_with_source(
     })
 }
 
+pub(in crate::icrc) fn build_icrc_block_types_report_with_source(
+    request: &IcrcBlockTypesRequest,
+    source: &dyn IcrcSource,
+) -> Result<IcrcBlockTypesReport, IcrcError> {
+    let block_types = source.fetch_block_types(request)?;
+    Ok(IcrcBlockTypesReport {
+        schema_version: ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
+        ledger_canister_id: request.ledger_canister_id.clone(),
+        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
+        source_endpoint: request.source_endpoint.clone(),
+        fetched_by: ICRC_FETCHED_BY.to_string(),
+        block_types: block_types.block_types,
+    })
+}
+
+pub(in crate::icrc) fn build_icrc_archives_report_with_source(
+    request: &IcrcArchivesRequest,
+    source: &dyn IcrcSource,
+) -> Result<IcrcArchivesReport, IcrcError> {
+    let request = IcrcArchivesRequest {
+        from_canister_id: request
+            .from_canister_id
+            .as_deref()
+            .map(|canister_id| {
+                principal_from_text::<IcrcError>(canister_id, "from_canister_id")
+                    .map(|principal| principal.to_text())
+            })
+            .transpose()?,
+        ..request.clone()
+    };
+    let archives = source.fetch_archives(&request)?;
+    Ok(IcrcArchivesReport {
+        schema_version: ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
+        ledger_canister_id: request.ledger_canister_id,
+        from_canister_id: request.from_canister_id,
+        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
+        source_endpoint: request.source_endpoint,
+        fetched_by: ICRC_FETCHED_BY.to_string(),
+        archives: archives.archives,
+    })
+}
+
 async fn fetch_token_async(request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
@@ -378,6 +455,51 @@ async fn fetch_transactions_async(
     .await?;
 
     Ok(transactions_data_from_blocks(result))
+}
+
+async fn fetch_block_types_async(
+    request: &IcrcBlockTypesRequest,
+) -> Result<IcrcBlockTypesData, IcrcError> {
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let block_types = query_ledger::<Vec<Icrc3SupportedBlockType>, IcrcError>(
+        &agent,
+        &ledger_canister,
+        "icrc3_supported_block_types",
+    )
+    .await?;
+
+    Ok(IcrcBlockTypesData {
+        block_types: block_types
+            .into_iter()
+            .map(block_type_row_from_wire)
+            .collect(),
+    })
+}
+
+async fn fetch_archives_async(
+    request: &IcrcArchivesRequest,
+) -> Result<IcrcArchivesData, IcrcError> {
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let args = Icrc3GetArchivesArgs {
+        from: request
+            .from_canister_id
+            .as_deref()
+            .map(|from| principal_from_text::<IcrcError>(from, "from_canister_id"))
+            .transpose()?,
+    };
+    let archives = query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, IcrcError>(
+        &agent,
+        &ledger_canister,
+        "icrc3_get_archives",
+        &args,
+    )
+    .await?;
+
+    Ok(IcrcArchivesData {
+        archives: archives.into_iter().map(archive_row_from_wire).collect(),
+    })
 }
 
 fn live_query_context(
@@ -490,6 +612,21 @@ fn archived_blocks_row_from_wire(archive: Icrc3ArchivedBlocks) -> IcrcArchivedBl
                 length: range.length.to_string(),
             })
             .collect(),
+    }
+}
+
+fn block_type_row_from_wire(block_type: Icrc3SupportedBlockType) -> IcrcBlockTypeRow {
+    IcrcBlockTypeRow {
+        block_type: block_type.block_type,
+        url: block_type.url,
+    }
+}
+
+fn archive_row_from_wire(archive: Icrc3ArchiveInfo) -> IcrcArchiveRow {
+    IcrcArchiveRow {
+        canister_id: archive.canister_id.to_text(),
+        start: archive.start.to_string(),
+        end: archive.end.to_string(),
     }
 }
 

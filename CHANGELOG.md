@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.6` adds live generic ICRC-3 ledger discovery for supported block types
+  and archive ranges. Both reports are live-only, include the queried source
+  endpoint, and keep archive range bounds as string fields in JSON.
+
+  ```bash
+  icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai
+  icq icrc archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json
+  ```
+
 - `0.3.5` adds live generic ICRC transaction history pages through the
   ledger's `icrc3_get_blocks` endpoint. Text output shows compact block
   summaries and archive callback ranges; JSON keeps raw ICRC-3 block values

@@ -6,8 +6,8 @@
 
 use crate::{
     icrc::model::{
-        IcrcAllowanceReport, IcrcBalanceReport, IcrcIndexReport, IcrcTokenReport,
-        IcrcTransactionsReport,
+        IcrcAllowanceReport, IcrcArchivesReport, IcrcBalanceReport, IcrcBlockTypesReport,
+        IcrcIndexReport, IcrcTokenReport, IcrcTransactionsReport,
     },
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
@@ -214,6 +214,62 @@ pub(in crate::icrc) fn icrc_transactions_report_text(report: &IcrcTransactionsRe
                 ColumnAlign::Right,
                 ColumnAlign::Right,
             ],
+        ));
+    }
+    lines.join("\n")
+}
+
+#[must_use]
+pub(in crate::icrc) fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
+    let mut lines = vec![
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!("block_type_count: {}", report.block_types.len()),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    if !report.block_types.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["BLOCK_TYPE", "URL"],
+            &report
+                .block_types
+                .iter()
+                .map(|block_type| [block_type.block_type.clone(), block_type.url.clone()])
+                .collect::<Vec<_>>(),
+            &[ColumnAlign::Left, ColumnAlign::Left],
+        ));
+    }
+    lines.join("\n")
+}
+
+#[must_use]
+pub(in crate::icrc) fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
+    let mut lines = vec![
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!(
+            "from_canister_id: {}",
+            optional_text(report.from_canister_id.as_ref())
+        ),
+        format!("archive_count: {}", report.archives.len()),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    if !report.archives.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["ARCHIVE_CANISTER", "START", "END"],
+            &report
+                .archives
+                .iter()
+                .map(|archive| {
+                    [
+                        archive.canister_id.clone(),
+                        archive.start.clone(),
+                        archive.end.clone(),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[ColumnAlign::Left, ColumnAlign::Right, ColumnAlign::Right],
         ));
     }
     lines.join("\n")

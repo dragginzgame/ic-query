@@ -232,6 +232,39 @@ pub(in crate::icrc) struct Icrc3GetBlocksResult {
     pub(in crate::icrc) archived_blocks: Vec<Icrc3ArchivedBlocks>,
 }
 
+///
+/// Icrc3GetArchivesArgs
+///
+/// Candid ICRC-3 archive discovery request.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3GetArchivesArgs {
+    pub(in crate::icrc) from: Option<Principal>,
+}
+
+///
+/// Icrc3ArchiveInfo
+///
+/// Candid ICRC-3 archive range information.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3ArchiveInfo {
+    pub(in crate::icrc) canister_id: Principal,
+    pub(in crate::icrc) start: Nat,
+    pub(in crate::icrc) end: Nat,
+}
+
+///
+/// Icrc3SupportedBlockType
+///
+/// Candid ICRC-3 supported block type row.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3SupportedBlockType {
+    pub(in crate::icrc) block_type: String,
+    pub(in crate::icrc) url: String,
+}
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcSupportedStandard {
     name: String,

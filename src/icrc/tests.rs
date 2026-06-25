@@ -1,29 +1,36 @@
 use super::{
     commands::test_support::{
-        allowance_usage, balance_usage, index_usage, parse_allowance_options,
-        parse_balance_options, parse_index_options, parse_token_options,
+        allowance_usage, archives_usage, balance_usage, block_types_usage, index_usage,
+        parse_allowance_options, parse_archives_options, parse_balance_options,
+        parse_block_types_options, parse_index_options, parse_token_options,
         parse_transactions_options, root_usage, token_usage, transactions_usage,
-        try_parse_allowance_options, try_parse_balance_options, try_parse_index_options,
-        try_parse_token_options, try_parse_transactions_options,
+        try_parse_allowance_options, try_parse_archives_options, try_parse_balance_options,
+        try_parse_block_types_options, try_parse_index_options, try_parse_token_options,
+        try_parse_transactions_options,
     },
     ledger::{
-        Icrc3ArchiveCallback, Icrc3ArchivedBlocks, Icrc3BlockWithId, Icrc3GetBlocksRequest,
-        Icrc3GetBlocksResult, Icrc3Value,
+        Icrc3ArchiveCallback, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
+        Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, Icrc3GetBlocksResult, Icrc3SupportedBlockType,
+        Icrc3Value,
     },
     live::{
-        IcrcSource, build_icrc_allowance_report_with_source, build_icrc_balance_report_with_source,
-        build_icrc_index_report_with_source, build_icrc_token_report_with_source,
-        build_icrc_transactions_report_with_source,
+        IcrcSource, build_icrc_allowance_report_with_source,
+        build_icrc_archives_report_with_source, build_icrc_balance_report_with_source,
+        build_icrc_block_types_report_with_source, build_icrc_index_report_with_source,
+        build_icrc_token_report_with_source, build_icrc_transactions_report_with_source,
     },
     model::{
-        IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
-        IcrcBalanceData, IcrcBalanceRequest, IcrcError, IcrcIndexData, IcrcIndexRequest,
-        IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest, IcrcTokenStandardRow,
-        IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsRequest,
+        IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchiveRow, IcrcArchivedBlocksRow,
+        IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
+        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest, IcrcError,
+        IcrcIndexData, IcrcIndexRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest,
+        IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
+        IcrcTransactionsRequest,
     },
     text::{
-        icrc_allowance_report_text, icrc_balance_report_text, icrc_index_report_text,
-        icrc_token_report_text, icrc_transactions_report_text,
+        icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
+        icrc_block_types_report_text, icrc_index_report_text, icrc_token_report_text,
+        icrc_transactions_report_text,
     },
 };
 use crate::cli::common::OutputFormat;
@@ -33,6 +40,7 @@ use std::collections::BTreeMap;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const INDEX_CANISTER_ID: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
+const ARCHIVE_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 const ACCOUNT_OWNER: &str = "aaaaa-aa";
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 const FETCHED_AT_UNIX_SECS: u64 = 1_700_000_000;
@@ -185,12 +193,50 @@ impl IcrcSource for FixtureIcrcSource {
                 },
             ],
             archived_blocks: vec![IcrcArchivedBlocksRow {
-                callback_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+                callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
                 callback_method: "icrc3_get_blocks".to_string(),
                 ranges: vec![IcrcArchivedRangeRow {
                     start: "0".to_string(),
                     length: "100".to_string(),
                 }],
+            }],
+        })
+    }
+
+    fn fetch_block_types(
+        &self,
+        request: &IcrcBlockTypesRequest,
+    ) -> Result<IcrcBlockTypesData, IcrcError> {
+        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+
+        Ok(IcrcBlockTypesData {
+            block_types: vec![
+                IcrcBlockTypeRow {
+                    block_type: "1xfer".to_string(),
+                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
+                },
+                IcrcBlockTypeRow {
+                    block_type: "2approve".to_string(),
+                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
+                },
+            ],
+        })
+    }
+
+    fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError> {
+        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+        assert_eq!(
+            request.from_canister_id.as_deref(),
+            Some(ARCHIVE_CANISTER_ID)
+        );
+
+        Ok(IcrcArchivesData {
+            archives: vec![IcrcArchiveRow {
+                canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                start: "0".to_string(),
+                end: "999".to_string(),
             }],
         })
     }
@@ -223,6 +269,20 @@ impl IcrcSource for PanickingIcrcSource {
         _request: &IcrcTransactionsRequest,
     ) -> Result<IcrcTransactionsData, IcrcError> {
         panic!("transactions source should not be called")
+    }
+
+    fn fetch_block_types(
+        &self,
+        _request: &IcrcBlockTypesRequest,
+    ) -> Result<IcrcBlockTypesData, IcrcError> {
+        panic!("block types source should not be called")
+    }
+
+    fn fetch_archives(
+        &self,
+        _request: &IcrcArchivesRequest,
+    ) -> Result<IcrcArchivesData, IcrcError> {
+        panic!("archives source should not be called")
     }
 }
 
@@ -357,6 +417,47 @@ fn transactions_options_parse_through_clap() {
 }
 
 #[test]
+fn block_types_options_parse_through_clap() {
+    let options = parse_block_types_options(&[
+        LEDGER_CANISTER_ID,
+        "--format",
+        "json",
+        "--source-endpoint",
+        SOURCE_ENDPOINT,
+    ]);
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+    assert!(try_parse_block_types_options(&["not-a-principal"]).is_err());
+}
+
+#[test]
+fn archives_options_parse_through_clap() {
+    let options = parse_archives_options(&[
+        LEDGER_CANISTER_ID,
+        "--from",
+        ARCHIVE_CANISTER_ID,
+        "--format",
+        "json",
+        "--source-endpoint",
+        SOURCE_ENDPOINT,
+    ]);
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(
+        options.from_canister_id.as_deref(),
+        Some(ARCHIVE_CANISTER_ID)
+    );
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+    assert!(try_parse_archives_options(&["not-a-principal"]).is_err());
+    assert!(
+        try_parse_archives_options(&[LEDGER_CANISTER_ID, "--from", "not-a-principal"]).is_err()
+    );
+}
+
+#[test]
 fn icrc3_blocks_result_round_trips_through_candid() {
     let mut tx = BTreeMap::new();
     tx.insert("op".to_string(), Icrc3Value::Text("mint".to_string()));
@@ -394,6 +495,39 @@ fn icrc3_blocks_result_round_trips_through_candid() {
         candid::decode_one(&bytes).expect("decode ICRC-3 blocks result");
 
     assert_eq!(decoded, result);
+}
+
+#[test]
+fn icrc3_archive_and_block_type_shapes_round_trip_through_candid() {
+    let archives_args = Icrc3GetArchivesArgs {
+        from: Some(
+            Principal::from_text(ARCHIVE_CANISTER_ID).expect("archive pagination principal"),
+        ),
+    };
+    let archives = vec![Icrc3ArchiveInfo {
+        canister_id: Principal::from_text(ARCHIVE_CANISTER_ID).expect("archive canister principal"),
+        start: Nat::from(0_u64),
+        end: Nat::from(999_u64),
+    }];
+    let block_types = vec![Icrc3SupportedBlockType {
+        block_type: "1xfer".to_string(),
+        url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
+    }];
+
+    let archives_args_bytes = candid::encode_one(&archives_args).expect("encode archives args");
+    let archives_bytes = candid::encode_one(&archives).expect("encode archives result");
+    let block_types_bytes = candid::encode_one(&block_types).expect("encode block types result");
+
+    let decoded_archives_args: Icrc3GetArchivesArgs =
+        candid::decode_one(&archives_args_bytes).expect("decode archives args");
+    let decoded_archives: Vec<Icrc3ArchiveInfo> =
+        candid::decode_one(&archives_bytes).expect("decode archives result");
+    let decoded_block_types: Vec<Icrc3SupportedBlockType> =
+        candid::decode_one(&block_types_bytes).expect("decode block types result");
+
+    assert_eq!(decoded_archives_args, archives_args);
+    assert_eq!(decoded_archives, archives);
+    assert_eq!(decoded_block_types, block_types);
 }
 
 #[test]
@@ -567,6 +701,71 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
 }
 
 #[test]
+fn block_types_report_builds_text_and_json_friendly_fields() {
+    let request = IcrcBlockTypesRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+    };
+
+    let report = build_icrc_block_types_report_with_source(&request, &FixtureIcrcSource)
+        .expect("build ICRC block types report");
+
+    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.block_types.len(), 2);
+    assert_eq!(report.block_types[0].block_type, "1xfer");
+
+    let text = icrc_block_types_report_text(&report);
+    assert!(text.contains("block_type_count: 2"));
+    assert!(text.contains("1xfer"));
+    assert!(text.contains("2approve"));
+
+    let json = serde_json::to_value(&report).expect("serialize ICRC block types report");
+    assert_eq!(json["block_types"][0]["block_type"], json!("1xfer"));
+    assert_eq!(json["block_types"][1]["block_type"], json!("2approve"));
+}
+
+#[test]
+fn archives_report_builds_text_and_json_friendly_fields() {
+    let request = IcrcArchivesRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        from_canister_id: Some(ARCHIVE_CANISTER_ID.to_string()),
+    };
+
+    let report = build_icrc_archives_report_with_source(&request, &FixtureIcrcSource)
+        .expect("build ICRC archives report");
+
+    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(
+        report.from_canister_id.as_deref(),
+        Some(ARCHIVE_CANISTER_ID)
+    );
+    assert_eq!(report.archives.len(), 1);
+    assert_eq!(report.archives[0].canister_id, ARCHIVE_CANISTER_ID);
+    assert_eq!(report.archives[0].start, "0");
+    assert_eq!(report.archives[0].end, "999");
+
+    let text = icrc_archives_report_text(&report);
+    assert!(text.contains("archive_count: 1"));
+    assert!(text.contains("from_canister_id: qaa6y-5yaaa-aaaaa-aaafa-cai"));
+    assert!(text.contains("qaa6y-5yaaa-aaaaa-aaafa-cai"));
+    assert!(text.contains("999"));
+
+    let json = serde_json::to_value(&report).expect("serialize ICRC archives report");
+    assert_eq!(json["from_canister_id"], json!(ARCHIVE_CANISTER_ID));
+    assert_eq!(
+        json["archives"][0]["canister_id"],
+        json!(ARCHIVE_CANISTER_ID)
+    );
+    assert_eq!(json["archives"][0]["start"], json!("0"));
+    assert_eq!(json["archives"][0]["end"], json!("999"));
+}
+
+#[test]
 fn index_report_renders_index_error_when_not_set() {
     struct MissingIndexSource;
 
@@ -605,6 +804,20 @@ fn index_report_renders_index_error_when_not_set() {
                 blocks: Vec::new(),
                 archived_blocks: Vec::new(),
             })
+        }
+
+        fn fetch_block_types(
+            &self,
+            _request: &IcrcBlockTypesRequest,
+        ) -> Result<IcrcBlockTypesData, IcrcError> {
+            panic!("block types source should not be called")
+        }
+
+        fn fetch_archives(
+            &self,
+            _request: &IcrcArchivesRequest,
+        ) -> Result<IcrcArchivesData, IcrcError> {
+            panic!("archives source should not be called")
         }
     }
 
@@ -669,6 +882,8 @@ fn usage_mentions_icrc_command_surface() {
     assert!(root.contains("allowance"));
     assert!(root.contains("index"));
     assert!(root.contains("transactions"));
+    assert!(root.contains("block-types"));
+    assert!(root.contains("archives"));
 
     let token = token_usage();
     assert!(token.contains("Usage: icq icrc token [OPTIONS] <ledger-canister-id>"));
@@ -697,4 +912,15 @@ fn usage_mentions_icrc_command_surface() {
     assert!(transactions.contains("--limit <count>"));
     assert!(transactions.contains("--source-endpoint <url>"));
     assert!(transactions.contains("--format <text|json>"));
+
+    let block_types = block_types_usage();
+    assert!(block_types.contains("Usage: icq icrc block-types [OPTIONS] <ledger-canister-id>"));
+    assert!(block_types.contains("--source-endpoint <url>"));
+    assert!(block_types.contains("--format <text|json>"));
+
+    let archives = archives_usage();
+    assert!(archives.contains("Usage: icq icrc archives [OPTIONS] <ledger-canister-id>"));
+    assert!(archives.contains("--from <canister-id>"));
+    assert!(archives.contains("--source-endpoint <url>"));
+    assert!(archives.contains("--format <text|json>"));
 }

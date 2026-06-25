@@ -132,6 +132,31 @@ pub(in crate::icrc) struct IcrcTransactionsRequest {
 }
 
 ///
+/// IcrcBlockTypesRequest
+///
+/// Request accepted by the generic ICRC supported block types report builder.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcBlockTypesRequest {
+    pub(in crate::icrc) source_endpoint: String,
+    pub(in crate::icrc) now_unix_secs: u64,
+    pub(in crate::icrc) ledger_canister_id: String,
+}
+
+///
+/// IcrcArchivesRequest
+///
+/// Request accepted by the generic ICRC archives report builder.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcArchivesRequest {
+    pub(in crate::icrc) source_endpoint: String,
+    pub(in crate::icrc) now_unix_secs: u64,
+    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) from_canister_id: Option<String>,
+}
+
+///
 /// IcrcTokenReport
 ///
 /// Serializable report for generic ICRC ledger token metadata.
@@ -231,6 +256,37 @@ pub struct IcrcTransactionsReport {
 }
 
 ///
+/// IcrcBlockTypesReport
+///
+/// Serializable report for generic ICRC-3 supported block type discovery.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcBlockTypesReport {
+    pub schema_version: u32,
+    pub ledger_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub block_types: Vec<IcrcBlockTypeRow>,
+}
+
+///
+/// IcrcArchivesReport
+///
+/// Serializable report for generic ICRC-3 archive range discovery.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcArchivesReport {
+    pub schema_version: u32,
+    pub ledger_canister_id: String,
+    pub from_canister_id: Option<String>,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub archives: Vec<IcrcArchiveRow>,
+}
+
+///
 /// IcrcTokenStandardRow
 ///
 /// Serializable row for one ICRC standard supported by a ledger.
@@ -289,6 +345,29 @@ pub struct IcrcArchivedBlocksRow {
 pub struct IcrcArchivedRangeRow {
     pub start: String,
     pub length: String,
+}
+
+///
+/// IcrcBlockTypeRow
+///
+/// Serializable row for one supported ICRC-3 block type.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcBlockTypeRow {
+    pub block_type: String,
+    pub url: String,
+}
+
+///
+/// IcrcArchiveRow
+///
+/// Serializable row for one ICRC-3 archive range.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcArchiveRow {
+    pub canister_id: String,
+    pub start: String,
+    pub end: String,
 }
 
 ///
@@ -355,6 +434,26 @@ pub(in crate::icrc) struct IcrcTransactionsData {
     pub(in crate::icrc) log_length: Option<String>,
     pub(in crate::icrc) blocks: Vec<IcrcTransactionBlockRow>,
     pub(in crate::icrc) archived_blocks: Vec<IcrcArchivedBlocksRow>,
+}
+
+///
+/// IcrcBlockTypesData
+///
+/// Source-layer ICRC-3 supported block types result.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcBlockTypesData {
+    pub(in crate::icrc) block_types: Vec<IcrcBlockTypeRow>,
+}
+
+///
+/// IcrcArchivesData
+///
+/// Source-layer ICRC-3 archive range discovery result.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcArchivesData {
+    pub(in crate::icrc) archives: Vec<IcrcArchiveRow>,
 }
 
 pub(in crate::icrc) fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {
