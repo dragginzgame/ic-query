@@ -35,7 +35,7 @@ wrapper:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.4", default-features = false }
+ic-query = { version = "0.5", default-features = false }
 ```
 
 The library default feature set is empty. Enable `host` for native live-call

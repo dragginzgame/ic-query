@@ -1,4 +1,4 @@
-.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push test-bump actions-check build changelog-check check ci clean clippy ensure-clean fmt fmt-check install msrv package package-contents-check publish test
+.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push test-bump actions-check build changelog-check check ci clean clippy ensure-clean feature-boundary-check fmt fmt-check install msrv package package-contents-check publish test
 
 MSRV ?= 1.91.0
 
@@ -10,6 +10,7 @@ help:
 	@echo "  actions-check  Check GitHub Actions are pinned to commit SHAs"
 	@echo "  changelog-check  Check changelog entries for the package version"
 	@echo "  package-contents-check  Check crate package excludes internal files"
+	@echo "  feature-boundary-check  Check library default/no-default feature boundaries"
 	@echo "  check      Run cargo check with locked dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
@@ -60,6 +61,9 @@ changelog-check:
 package-contents-check:
 	bash scripts/ci/check-package-contents.sh
 
+feature-boundary-check:
+	bash scripts/ci/check-library-feature-boundaries.sh
+
 clippy:
 	cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
@@ -72,7 +76,7 @@ msrv:
 package: ensure-clean
 	cargo package --workspace --locked
 
-ci: changelog-check actions-check package-contents-check fmt-check check clippy test package
+ci: changelog-check actions-check package-contents-check feature-boundary-check fmt-check check clippy test package
 
 test-bump: clippy test
 

@@ -7,16 +7,27 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.4.x] - 2026-06-25 - Library and CLI package split
+## [0.5.x] - 2026-06-25 - Library boundary cleanup
 
-Detailed patch breakdown: [docs/changelog/0.4.md](docs/changelog/0.4.md)
+Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
-- `0.4.1` tightens the library and CLI package boundary after the initial
+- `0.5.1` corrects release documentation after the library-boundary cleanup
+  was published as `0.5.0`. The detailed changelog now has a `0.5.x` ledger,
+  the `0.5.0` notes live in the matching release line, and the README library
+  dependency example points at the `0.5` release series. This slice also adds
+  a CI guard for the library feature boundary so default/no-default
+  `ic-query` builds stay free of CLI parsing and native live-call dependencies.
+
+- `0.5.0` tightens the library and CLI package boundary after the initial
   split. The top-level process runner now lives in `ic-query-cli`, while
   `ic-query` keeps only family-level CLI adapters behind the `cli` feature for
   the wrapper. This slice also changes the `ic-query` default feature set to
   empty so plain library dependencies do not pull CLI parsing or native
   live-call adapters.
+
+## [0.4.x] - 2026-06-25 - Library and CLI package split
+
+Detailed patch breakdown: [docs/changelog/0.4.md](docs/changelog/0.4.md)
 
 - `0.4.0` splits the project into a virtual workspace with
   `crates/ic-query` as the reusable library package and `crates/ic-query-cli`
