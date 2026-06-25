@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.9` adds `--follow-archives` to `icq icrc transactions`, allowing the
+  bounded live transaction query to follow returned ICRC-3 archive callbacks.
+  Followed archive blocks and archive follow errors are reported separately so
+  ledger-returned blocks, callback ranges, and archive fetch results remain
+  script-friendly.
+
+  ```bash
+  icq icrc transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives
+  icq icrc transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --format json
+  ```
+
 - `0.3.8` adds `icq icrc capabilities <ledger-canister-id>` for live generic
   ICRC endpoint probing. The report keeps each probed method independent so
   unsupported optional endpoints appear as `unsupported` rows instead of

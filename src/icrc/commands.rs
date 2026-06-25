@@ -7,8 +7,9 @@
 use crate::{
     cli::{
         clap::{
-            parse_matches_or_usage, parse_required_subcommand_or_usage, passthrough_subcommand,
-            render_help, required_string, required_typed, string_option, value_arg,
+            flag_arg, parse_matches_or_usage, parse_required_subcommand_or_usage,
+            passthrough_subcommand, render_help, required_string, required_typed, string_option,
+            value_arg,
         },
         common::{
             OutputFormat, current_unix_secs, format_arg, source_endpoint_arg, write_text_or_json,
@@ -56,6 +57,7 @@ const OWNER_SUBACCOUNT_ARG: &str = "owner-subaccount";
 const SPENDER_SUBACCOUNT_ARG: &str = "spender-subaccount";
 const START_ARG: &str = "start";
 const LIMIT_ARG: &str = "limit";
+const FOLLOW_ARCHIVES_ARG: &str = "follow-archives";
 const FROM_CANISTER_ID_ARG: &str = "from";
 const FORMAT_ARG: &str = "format";
 const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
@@ -179,6 +181,7 @@ where
         ledger_canister_id: options.ledger_canister_id,
         start: options.start,
         limit: options.limit,
+        follow_archives: options.follow_archives,
     };
     let report = build_icrc_transactions_report(&request)?;
     write_text_or_json(options.format, &report, icrc_transactions_report_text)
@@ -406,7 +409,7 @@ fn icrc_transactions_command() -> ClapCommand {
         .bin_name("icq icrc transactions")
         .about("Show a generic ICRC ledger transaction history page")
         .after_help(
-            "Examples:\n  icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai --start 100 --limit 50 --format json",
+            "Examples:\n  icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --format json",
         )
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -431,6 +434,11 @@ fn icrc_transactions_command() -> ClapCommand {
         .arg(
             source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for ICRC ledger queries"),
+        )
+        .arg(
+            flag_arg(FOLLOW_ARCHIVES_ARG)
+                .long(FOLLOW_ARCHIVES_ARG)
+                .help("Follow returned ICRC-3 archive callbacks for the requested block page"),
         )
         .arg(format_arg())
 }
@@ -688,6 +696,7 @@ pub(in crate::icrc) struct IcrcTransactionsOptions {
     pub(in crate::icrc) ledger_canister_id: String,
     pub(in crate::icrc) start: u64,
     pub(in crate::icrc) limit: u32,
+    pub(in crate::icrc) follow_archives: bool,
     pub(in crate::icrc) format: OutputFormat,
     pub(in crate::icrc) source_endpoint: String,
 }
@@ -704,6 +713,7 @@ impl IcrcTransactionsOptions {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
             start: required_typed(&matches, START_ARG),
             limit: required_typed(&matches, LIMIT_ARG),
+            follow_archives: matches.get_flag(FOLLOW_ARCHIVES_ARG),
             format: format_from_matches(&matches),
             source_endpoint: source_endpoint_from_matches(&matches),
         })

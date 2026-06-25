@@ -113,6 +113,7 @@ fn binary_icrc_transactions_help_smoke() {
     assert!(stdout.contains("Usage: icq icrc transactions [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--start <index>"));
     assert!(stdout.contains("--limit <count>"));
+    assert!(stdout.contains("--follow-archives"));
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--format <text|json>"));
 }

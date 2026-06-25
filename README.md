@@ -72,6 +72,7 @@ icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai --start 100 --limit 50 --format json
+icq icrc transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives
 icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json
 icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai

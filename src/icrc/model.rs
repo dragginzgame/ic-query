@@ -129,6 +129,7 @@ pub(in crate::icrc) struct IcrcTransactionsRequest {
     pub(in crate::icrc) ledger_canister_id: String,
     pub(in crate::icrc) start: u64,
     pub(in crate::icrc) limit: u32,
+    pub(in crate::icrc) follow_archives: bool,
 }
 
 ///
@@ -274,9 +275,12 @@ pub struct IcrcTransactionsReport {
     pub fetched_by: String,
     pub requested_start: String,
     pub requested_limit: u32,
+    pub follow_archives: bool,
     pub log_length: Option<String>,
     pub blocks: Vec<IcrcTransactionBlockRow>,
     pub archived_blocks: Vec<IcrcArchivedBlocksRow>,
+    pub followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
+    pub archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
 }
 
 ///
@@ -421,6 +425,36 @@ pub struct IcrcArchivedRangeRow {
 }
 
 ///
+/// IcrcFollowedArchiveBlockRow
+///
+/// Serializable row for one ICRC-3 block fetched from an archive callback.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcFollowedArchiveBlockRow {
+    pub archive_canister_id: String,
+    pub callback_method: String,
+    pub index: String,
+    pub block_type: Option<String>,
+    pub transaction_kind: Option<String>,
+    pub timestamp_unix_nanos: Option<String>,
+    pub amount_base_units: Option<String>,
+    pub raw_block: JsonValue,
+}
+
+///
+/// IcrcArchiveFollowErrorRow
+///
+/// Serializable row for one archive callback that could not be followed.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcArchiveFollowErrorRow {
+    pub callback_canister_id: String,
+    pub callback_method: String,
+    pub ranges: Vec<IcrcArchivedRangeRow>,
+    pub error: String,
+}
+
+///
 /// IcrcBlockTypeRow
 ///
 /// Serializable row for one supported ICRC-3 block type.
@@ -507,6 +541,8 @@ pub(in crate::icrc) struct IcrcTransactionsData {
     pub(in crate::icrc) log_length: Option<String>,
     pub(in crate::icrc) blocks: Vec<IcrcTransactionBlockRow>,
     pub(in crate::icrc) archived_blocks: Vec<IcrcArchivedBlocksRow>,
+    pub(in crate::icrc) followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
+    pub(in crate::icrc) archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
 }
 
 ///

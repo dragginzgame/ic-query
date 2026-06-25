@@ -22,13 +22,14 @@ use super::{
         build_icrc_token_report_with_source, build_icrc_transactions_report_with_source,
     },
     model::{
-        IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchiveRow, IcrcArchivedBlocksRow,
-        IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
-        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest,
-        IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcError, IcrcIndexData,
-        IcrcIndexRequest, IcrcTipCertificateData, IcrcTipCertificateRequest, IcrcTokenData,
-        IcrcTokenMetadataRow, IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow,
-        IcrcTransactionsData, IcrcTransactionsRequest,
+        IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
+        IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest,
+        IcrcBalanceData, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData,
+        IcrcBlockTypesRequest, IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcCapabilityRow,
+        IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexRequest,
+        IcrcTipCertificateData, IcrcTipCertificateRequest, IcrcTokenData, IcrcTokenMetadataRow,
+        IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
+        IcrcTransactionsRequest,
     },
     text::{
         icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
@@ -154,6 +155,7 @@ impl IcrcSource for FixtureIcrcSource {
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
         assert_eq!(request.start, 100);
         assert_eq!(request.limit, 2);
+        assert!(request.follow_archives);
 
         Ok(IcrcTransactionsData {
             log_length: Some("1000".to_string()),
@@ -202,6 +204,35 @@ impl IcrcSource for FixtureIcrcSource {
                     start: "0".to_string(),
                     length: "100".to_string(),
                 }],
+            }],
+            followed_archive_blocks: vec![IcrcFollowedArchiveBlockRow {
+                archive_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                callback_method: "icrc3_get_blocks".to_string(),
+                index: "0".to_string(),
+                block_type: Some("1mint".to_string()),
+                transaction_kind: Some("1mint".to_string()),
+                timestamp_unix_nanos: Some("1699999999123456789".to_string()),
+                amount_base_units: Some("987654321".to_string()),
+                raw_block: json!({
+                    "Map": {
+                        "btype": { "Text": "1mint" },
+                        "ts": { "Nat": "1699999999123456789" },
+                        "tx": {
+                            "Map": {
+                                "amt": { "Nat": "987654321" }
+                            }
+                        }
+                    }
+                }),
+            }],
+            archive_follow_errors: vec![IcrcArchiveFollowErrorRow {
+                callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                callback_method: "icrc3_get_blocks".to_string(),
+                ranges: vec![IcrcArchivedRangeRow {
+                    start: "200".to_string(),
+                    length: "10".to_string(),
+                }],
+                error: "archive query failed".to_string(),
             }],
         })
     }
@@ -484,6 +515,7 @@ fn transactions_options_parse_through_clap() {
         "100",
         "--limit",
         "2",
+        "--follow-archives",
         "--format",
         "json",
         "--source-endpoint",
@@ -493,6 +525,7 @@ fn transactions_options_parse_through_clap() {
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.start, 100);
     assert_eq!(options.limit, 2);
+    assert!(options.follow_archives);
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
     assert!(try_parse_transactions_options(&["not-a-principal"]).is_err());
@@ -786,6 +819,7 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
         start: 100,
         limit: 2,
+        follow_archives: true,
     };
 
     let report = build_icrc_transactions_report_with_source(&request, &FixtureIcrcSource)
@@ -798,17 +832,25 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.log_length.as_deref(), Some("1000"));
     assert_eq!(report.blocks.len(), 2);
     assert_eq!(report.archived_blocks.len(), 1);
+    assert_eq!(report.followed_archive_blocks.len(), 1);
+    assert_eq!(report.archive_follow_errors.len(), 1);
 
     let text = icrc_transactions_report_text(&report);
     assert!(text.contains("requested_start: 100"));
+    assert!(text.contains("follow_archives: true"));
     assert!(text.contains("returned_blocks: 2"));
+    assert!(text.contains("followed_archive_blocks: 1"));
+    assert!(text.contains("archive_follow_errors: 1"));
     assert!(text.contains("1xfer"));
+    assert!(text.contains("1mint"));
     assert!(text.contains("1700000000123456789"));
     assert!(text.contains("qaa6y-5yaaa-aaaaa-aaafa-cai"));
+    assert!(text.contains("archive query failed"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC transactions report");
     assert_eq!(json["requested_start"], json!("100"));
     assert_eq!(json["requested_limit"], json!(2));
+    assert_eq!(json["follow_archives"], json!(true));
     assert_eq!(json["log_length"], json!("1000"));
     assert_eq!(json["blocks"][0]["index"], json!("100"));
     assert_eq!(json["blocks"][0]["amount_base_units"], json!("123456789"));
@@ -819,6 +861,19 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
     assert_eq!(
         json["archived_blocks"][0]["ranges"][0]["length"],
         json!("100")
+    );
+    assert_eq!(json["followed_archive_blocks"][0]["index"], json!("0"));
+    assert_eq!(
+        json["followed_archive_blocks"][0]["archive_canister_id"],
+        json!(ARCHIVE_CANISTER_ID)
+    );
+    assert_eq!(
+        json["followed_archive_blocks"][0]["amount_base_units"],
+        json!("987654321")
+    );
+    assert_eq!(
+        json["archive_follow_errors"][0]["error"],
+        json!("archive query failed")
     );
 }
 
@@ -997,6 +1052,8 @@ fn index_report_renders_index_error_when_not_set() {
                 log_length: None,
                 blocks: Vec::new(),
                 archived_blocks: Vec::new(),
+                followed_archive_blocks: Vec::new(),
+                archive_follow_errors: Vec::new(),
             })
         }
 
@@ -1125,6 +1182,7 @@ fn usage_mentions_icrc_command_surface() {
     assert!(transactions.contains("Usage: icq icrc transactions [OPTIONS] <ledger-canister-id>"));
     assert!(transactions.contains("--start <index>"));
     assert!(transactions.contains("--limit <count>"));
+    assert!(transactions.contains("--follow-archives"));
     assert!(transactions.contains("--source-endpoint <url>"));
     assert!(transactions.contains("--format <text|json>"));
 

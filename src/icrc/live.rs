@@ -17,12 +17,13 @@ use crate::{
             query_ledger_arg,
         },
         model::{
-            IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveRow,
-            IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesReport,
-            IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest,
-            IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesReport, IcrcBlockTypesRequest,
-            IcrcCapabilitiesData, IcrcCapabilitiesReport, IcrcCapabilitiesRequest,
-            IcrcCapabilityRow, IcrcError, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest,
+            IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest,
+            IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
+            IcrcArchivesData, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceData,
+            IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData,
+            IcrcBlockTypesReport, IcrcBlockTypesRequest, IcrcCapabilitiesData,
+            IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcError,
+            IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest,
             IcrcTipCertificateData, IcrcTipCertificateReport, IcrcTipCertificateRequest,
             IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
             IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
@@ -347,9 +348,12 @@ pub(in crate::icrc) fn build_icrc_transactions_report_with_source(
         fetched_by: ICRC_FETCHED_BY.to_string(),
         requested_start: request.start.to_string(),
         requested_limit: request.limit,
+        follow_archives: request.follow_archives,
         log_length: transactions.log_length,
         blocks: transactions.blocks,
         archived_blocks: transactions.archived_blocks,
+        followed_archive_blocks: transactions.followed_archive_blocks,
+        archive_follow_errors: transactions.archive_follow_errors,
     })
 }
 
@@ -536,8 +540,58 @@ async fn fetch_transactions_async(
         &block_args,
     )
     .await?;
+    let followed_archives = if request.follow_archives {
+        fetch_archive_blocks(&agent, &result.archived_blocks).await
+    } else {
+        ArchiveFollowResult::default()
+    };
 
-    Ok(transactions_data_from_blocks(result))
+    Ok(transactions_data_from_blocks(result, followed_archives))
+}
+
+#[derive(Default)]
+struct ArchiveFollowResult {
+    blocks: Vec<IcrcFollowedArchiveBlockRow>,
+    errors: Vec<IcrcArchiveFollowErrorRow>,
+}
+
+async fn fetch_archive_blocks(
+    agent: &Agent,
+    archives: &[Icrc3ArchivedBlocks],
+) -> ArchiveFollowResult {
+    let mut result = ArchiveFollowResult::default();
+    for archive in archives {
+        let canister_id = archive.callback.0.principal.to_text();
+        let method = archive.callback.0.method.clone();
+        if method != ICRC3_GET_BLOCKS_METHOD {
+            result.errors.push(archive_follow_error_row(
+                archive,
+                format!(
+                    "unsupported archive callback method {method}; expected {ICRC3_GET_BLOCKS_METHOD}"
+                ),
+            ));
+            continue;
+        }
+
+        match query_ledger_arg::<Vec<Icrc3GetBlocksRequest>, Icrc3GetBlocksResult, IcrcError>(
+            agent,
+            &archive.callback.0.principal,
+            ICRC3_GET_BLOCKS_METHOD,
+            &archive.args,
+        )
+        .await
+        {
+            Ok(blocks) => {
+                result.blocks.extend(blocks.blocks.into_iter().map(|block| {
+                    followed_archive_block_row_from_wire(&canister_id, &method, block)
+                }));
+            }
+            Err(err) => result
+                .errors
+                .push(archive_follow_error_row(archive, err.to_string())),
+        }
+    }
+    result
 }
 
 async fn fetch_block_types_async(
@@ -849,7 +903,10 @@ fn token_metadata_row_from_ledger(row: IcrcLedgerMetadataRow) -> IcrcTokenMetada
     }
 }
 
-fn transactions_data_from_blocks(result: Icrc3GetBlocksResult) -> IcrcTransactionsData {
+fn transactions_data_from_blocks(
+    result: Icrc3GetBlocksResult,
+    followed_archives: ArchiveFollowResult,
+) -> IcrcTransactionsData {
     IcrcTransactionsData {
         log_length: Some(result.log_length.to_string()),
         blocks: result
@@ -862,6 +919,8 @@ fn transactions_data_from_blocks(result: Icrc3GetBlocksResult) -> IcrcTransactio
             .into_iter()
             .map(archived_blocks_row_from_wire)
             .collect(),
+        followed_archive_blocks: followed_archives.blocks,
+        archive_follow_errors: followed_archives.errors,
     }
 }
 
@@ -891,6 +950,45 @@ fn archived_blocks_row_from_wire(archive: Icrc3ArchivedBlocks) -> IcrcArchivedBl
                 length: range.length.to_string(),
             })
             .collect(),
+    }
+}
+
+fn followed_archive_block_row_from_wire(
+    archive_canister_id: &str,
+    callback_method: &str,
+    block: Icrc3BlockWithId,
+) -> IcrcFollowedArchiveBlockRow {
+    let block_type = icrc3_text_at_path(&block.block, &["btype"]);
+    IcrcFollowedArchiveBlockRow {
+        archive_canister_id: archive_canister_id.to_string(),
+        callback_method: callback_method.to_string(),
+        index: block.id.to_string(),
+        transaction_kind: block_type
+            .clone()
+            .or_else(|| icrc3_text_at_path(&block.block, &["tx", "op"])),
+        block_type,
+        timestamp_unix_nanos: icrc3_nat_at_path(&block.block, &["ts"]),
+        amount_base_units: icrc3_nat_at_path(&block.block, &["tx", "amt"]),
+        raw_block: icrc3_value_json(&block.block),
+    }
+}
+
+fn archive_follow_error_row(
+    archive: &Icrc3ArchivedBlocks,
+    error: String,
+) -> IcrcArchiveFollowErrorRow {
+    IcrcArchiveFollowErrorRow {
+        callback_canister_id: archive.callback.0.principal.to_text(),
+        callback_method: archive.callback.0.method.clone(),
+        ranges: archive
+            .args
+            .iter()
+            .map(|range| IcrcArchivedRangeRow {
+                start: range.start.to_string(),
+                length: range.length.to_string(),
+            })
+            .collect(),
+        error,
     }
 }
 
