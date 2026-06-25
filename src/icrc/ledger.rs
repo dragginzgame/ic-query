@@ -269,6 +269,17 @@ pub fn metadata_row(key: String, value: IcrcMetadataValue) -> IcrcLedgerMetadata
     }
 }
 
+#[must_use]
+pub fn index_principal_error_text(error: GetIndexPrincipalError) -> String {
+    match error {
+        GetIndexPrincipalError::IndexPrincipalNotSet => "index principal not set".to_string(),
+        GetIndexPrincipalError::GenericError {
+            error_code,
+            description,
+        } => format!("generic error {error_code}: {description}"),
+    }
+}
+
 async fn query_encoded<T, E>(
     agent: &Agent,
     ledger_canister: &Principal,

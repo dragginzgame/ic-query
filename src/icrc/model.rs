@@ -106,6 +106,18 @@ pub(in crate::icrc) struct IcrcAllowanceRequest {
 }
 
 ///
+/// IcrcIndexRequest
+///
+/// Request accepted by the generic ICRC index discovery report builder.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcIndexRequest {
+    pub(in crate::icrc) source_endpoint: String,
+    pub(in crate::icrc) now_unix_secs: u64,
+    pub(in crate::icrc) ledger_canister_id: String,
+}
+
+///
 /// IcrcTokenReport
 ///
 /// Serializable report for generic ICRC ledger token metadata.
@@ -167,6 +179,22 @@ pub struct IcrcAllowanceReport {
     pub decimals: u8,
     pub allowance: String,
     pub expires_at_unix_nanos: Option<String>,
+}
+
+///
+/// IcrcIndexReport
+///
+/// Serializable report for one generic ICRC-106 index discovery lookup.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcIndexReport {
+    pub schema_version: u32,
+    pub ledger_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub index_canister_id: Option<String>,
+    pub index_error: Option<String>,
 }
 
 ///
@@ -233,6 +261,17 @@ pub(in crate::icrc) struct IcrcAllowanceData {
     pub(in crate::icrc) decimals: u8,
     pub(in crate::icrc) allowance: String,
     pub(in crate::icrc) expires_at_unix_nanos: Option<String>,
+}
+
+///
+/// IcrcIndexData
+///
+/// Source-layer ICRC-106 index discovery result.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcIndexData {
+    pub(in crate::icrc) index_canister_id: Option<String>,
+    pub(in crate::icrc) index_error: Option<String>,
 }
 
 pub(in crate::icrc) fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {

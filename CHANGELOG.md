@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.3` adds live ICRC-106 index discovery by ledger canister id, returning
+  the configured index canister when available or the ledger-reported index
+  discovery error as text/JSON fields.
+
+  ```bash
+  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai
+  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+  ```
+
 - `0.3.2` adds live ICRC-2 allowance queries by ledger canister id, owner
   principal, and spender principal, including optional owner and spender
   subaccounts plus text/JSON reports that keep raw allowance base units and

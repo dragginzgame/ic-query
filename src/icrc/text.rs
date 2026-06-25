@@ -5,11 +5,13 @@
 //! Boundary: formats token metadata and base-unit amounts for humans.
 
 use crate::{
-    icrc::model::{IcrcAllowanceReport, IcrcBalanceReport, IcrcTokenMetadataRow, IcrcTokenReport},
+    icrc::model::{IcrcAllowanceReport, IcrcBalanceReport, IcrcIndexReport, IcrcTokenReport},
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
+    token_metadata_text::{
+        optional_text, token_metadata_value_text as metadata_value_text, truncate_text_value,
+    },
 };
-use serde_json::Value as JsonValue;
 
 const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 
@@ -63,7 +65,7 @@ pub(in crate::icrc) fn icrc_token_report_text(report: &IcrcTokenReport) -> Strin
                         row.key.clone(),
                         row.value_type.clone(),
                         truncate_text_value(
-                            &token_metadata_value_text(row, report.decimals),
+                            &metadata_value_text(&row.key, &row.value, report.decimals),
                             ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT,
                         ),
                     ]
@@ -130,34 +132,19 @@ pub(in crate::icrc) fn icrc_allowance_report_text(report: &IcrcAllowanceReport) 
     .join("\n")
 }
 
-fn optional_text(value: Option<&String>) -> &str {
-    value.map_or("-", String::as_str)
-}
-
-fn truncate_text_value(value: &str, limit: usize) -> String {
-    if value.chars().count() <= limit {
-        return value.to_string();
+#[must_use]
+pub(in crate::icrc) fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
+    let mut lines = vec![
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!(
+            "index_canister_id: {}",
+            optional_text(report.index_canister_id.as_ref())
+        ),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    if let Some(error) = report.index_error.as_deref() {
+        lines.push(format!("index_error: {error}"));
     }
-    let mut truncated = value.chars().take(limit).collect::<String>();
-    truncated.push_str("...");
-    truncated
-}
-
-fn token_metadata_value_text(row: &IcrcTokenMetadataRow, decimals: u8) -> String {
-    let value = metadata_value_text(&row.value);
-    if row.key == "icrc1:fee" {
-        base_units_decimal_text(&value, decimals)
-    } else {
-        value
-    }
-}
-
-fn metadata_value_text(value: &JsonValue) -> String {
-    match value {
-        JsonValue::String(value) => value.clone(),
-        JsonValue::Bool(value) => value.to_string(),
-        JsonValue::Number(value) => value.to_string(),
-        JsonValue::Null => "-".to_string(),
-        JsonValue::Array(_) | JsonValue::Object(_) => value.to_string(),
-    }
+    lines.join("\n")
 }

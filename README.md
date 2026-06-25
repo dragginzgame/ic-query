@@ -11,7 +11,7 @@ metadata queries.
 `icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
 version, subnet catalog lookup, node/provider/operator/data-center inventory,
 topology reports, deployed SNS reports, and ICRC ledger token, balance, and
-allowance reports.
+allowance, and index reports.
 
 ## Install
 
@@ -39,7 +39,7 @@ icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq icrc [token|balance|allowance]
+icq icrc [token|balance|allowance|index]
 icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns proposals [cache|refresh]
 icq sns neurons [cache|refresh]
@@ -66,6 +66,8 @@ icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
 icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000
 icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa
 icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000
+icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai
+icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 ```
 
 ## Cache

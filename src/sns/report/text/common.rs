@@ -8,15 +8,15 @@ use crate::{
     duration::display_duration_seconds,
     nns::render::yes_no,
     sns::report::{SnsCacheSummarySortKey, SnsNeuronPermissionList, SnsTokenMetadataRow},
-    token_amount::{base_units_decimal_text, e8s_decimal_text},
+    token_amount::e8s_decimal_text,
+    token_metadata_text::token_metadata_value_text as shared_token_metadata_value_text,
 };
-use serde_json::Value as JsonValue;
 
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 
-pub(in crate::sns::report::text) fn optional_text(value: Option<&String>) -> &str {
-    value.map_or("-", String::as_str)
-}
+pub(in crate::sns::report::text) use crate::token_metadata_text::{
+    optional_text, truncate_text_value,
+};
 
 pub(in crate::sns::report::text) fn optional_e8s_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
@@ -77,15 +77,6 @@ pub(in crate::sns::report::text) fn comma_join_u64(values: &[u64]) -> String {
         .join(",")
 }
 
-pub(in crate::sns::report::text) fn truncate_text_value(value: &str, limit: usize) -> String {
-    if value.chars().count() <= limit {
-        return value.to_string();
-    }
-    let mut truncated = value.chars().take(limit).collect::<String>();
-    truncated.push_str("...");
-    truncated
-}
-
 pub(in crate::sns::report::text) fn neuron_id_text(value: &str, verbose: bool) -> String {
     if verbose || value == "-" {
         value.to_string()
@@ -124,26 +115,11 @@ pub(in crate::sns::report::text) fn token_metadata_value_text(
     row: &SnsTokenMetadataRow,
     decimals: u8,
 ) -> String {
-    let value = metadata_value_text(&row.value);
-    if row.key == "icrc1:fee" {
-        base_units_decimal_text(&value, decimals)
-    } else {
-        value
-    }
+    shared_token_metadata_value_text(&row.key, &row.value, decimals)
 }
 
 fn basis_points_text(value: u64) -> String {
     let whole = value / 100;
     let fractional = value % 100;
     format!("{whole}.{fractional:02}%")
-}
-
-fn metadata_value_text(value: &JsonValue) -> String {
-    match value {
-        JsonValue::String(value) => value.clone(),
-        JsonValue::Bool(value) => value.to_string(),
-        JsonValue::Number(value) => value.to_string(),
-        JsonValue::Null => "-".to_string(),
-        JsonValue::Array(_) | JsonValue::Object(_) => value.to_string(),
-    }
 }

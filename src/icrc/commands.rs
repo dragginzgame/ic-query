@@ -17,12 +17,18 @@ use crate::{
     },
     ic_registry::DEFAULT_MAINNET_ENDPOINT,
     icrc::{
-        live::{build_icrc_allowance_report, build_icrc_balance_report, build_icrc_token_report},
-        model::{
-            IcrcAllowanceRequest, IcrcBalanceRequest, IcrcError, IcrcTokenRequest,
-            normalize_subaccount_hex,
+        live::{
+            build_icrc_allowance_report, build_icrc_balance_report, build_icrc_index_report,
+            build_icrc_token_report,
         },
-        text::{icrc_allowance_report_text, icrc_balance_report_text, icrc_token_report_text},
+        model::{
+            IcrcAllowanceRequest, IcrcBalanceRequest, IcrcError, IcrcIndexRequest,
+            IcrcTokenRequest, normalize_subaccount_hex,
+        },
+        text::{
+            icrc_allowance_report_text, icrc_balance_report_text, icrc_index_report_text,
+            icrc_token_report_text,
+        },
     },
     version_text,
 };
@@ -54,6 +60,7 @@ where
         "token" => run_icrc_token(args),
         "balance" => run_icrc_balance(args),
         "allowance" => run_icrc_allowance(args),
+        "index" => run_icrc_index(args),
         _ => unreachable!("ICRC command only defines known subcommands"),
     }
 }
@@ -120,6 +127,24 @@ where
     write_text_or_json(options.format, &report, icrc_allowance_report_text)
 }
 
+fn run_icrc_index<I>(args: I) -> Result<(), IcrcError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = collect_args_or_print_help_or_version(args, icrc_index_usage, version_text())
+    else {
+        return Ok(());
+    };
+    let options = IcrcIndexOptions::parse(args)?;
+    let request = IcrcIndexRequest {
+        source_endpoint: options.source_endpoint,
+        now_unix_secs: current_unix_secs()?,
+        ledger_canister_id: options.ledger_canister_id,
+    };
+    let report = build_icrc_index_report(&request)?;
+    write_text_or_json(options.format, &report, icrc_index_report_text)
+}
+
 fn icrc_command() -> ClapCommand {
     ClapCommand::new("icrc")
         .bin_name("icq icrc")
@@ -134,6 +159,9 @@ fn icrc_command() -> ClapCommand {
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("allowance").about("Show a generic ICRC account allowance"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("index").about("Show a generic ICRC ledger index canister"),
         ))
 }
 
@@ -206,6 +234,22 @@ fn icrc_allowance_command() -> ClapCommand {
         .arg(format_arg())
 }
 
+fn icrc_index_command() -> ClapCommand {
+    ClapCommand::new("index")
+        .bin_name("icq icrc index")
+        .about("Show a generic ICRC ledger index canister")
+        .after_help(
+            "Examples:\n  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        )
+        .disable_help_flag(true)
+        .arg(ledger_canister_id_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for ICRC ledger queries"),
+        )
+        .arg(format_arg())
+}
+
 fn usage() -> String {
     render_help(icrc_command())
 }
@@ -220,6 +264,10 @@ fn icrc_balance_usage() -> String {
 
 fn icrc_allowance_usage() -> String {
     render_help(icrc_allowance_command())
+}
+
+fn icrc_index_usage() -> String {
+    render_help(icrc_index_command())
 }
 
 ///
@@ -315,6 +363,33 @@ impl IcrcAllowanceOptions {
     }
 }
 
+///
+/// IcrcIndexOptions
+///
+/// Clap-parsed options for generic ICRC index discovery queries.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcIndexOptions {
+    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) format: OutputFormat,
+    pub(in crate::icrc) source_endpoint: String,
+}
+
+impl IcrcIndexOptions {
+    fn parse<I>(args: I) -> Result<Self, IcrcError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches_or_usage(icrc_index_command(), args, icrc_index_usage)
+            .map_err(IcrcError::Usage)?;
+        Ok(Self {
+            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
+            format: format_from_matches(&matches),
+            source_endpoint: source_endpoint_from_matches(&matches),
+        })
+    }
+}
+
 fn ledger_canister_id_arg() -> clap::Arg {
     principal_arg(LEDGER_CANISTER_ID_ARG, "ICRC ledger canister principal")
 }
@@ -360,8 +435,8 @@ fn subaccount_hex_value_parser() -> ValueParser {
 #[cfg(test)]
 pub(in crate::icrc) mod test_support {
     use super::{
-        IcrcAllowanceOptions, IcrcBalanceOptions, IcrcTokenOptions, icrc_allowance_usage,
-        icrc_balance_usage, icrc_token_usage, usage,
+        IcrcAllowanceOptions, IcrcBalanceOptions, IcrcIndexOptions, IcrcTokenOptions,
+        icrc_allowance_usage, icrc_balance_usage, icrc_index_usage, icrc_token_usage, usage,
     };
 
     pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcTokenOptions {
@@ -394,6 +469,16 @@ pub(in crate::icrc) mod test_support {
         IcrcAllowanceOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
     }
 
+    pub(in crate::icrc) fn parse_index_options(args: &[&str]) -> IcrcIndexOptions {
+        try_parse_index_options(args).expect("parse ICRC index options")
+    }
+
+    pub(in crate::icrc) fn try_parse_index_options(
+        args: &[&str],
+    ) -> Result<IcrcIndexOptions, crate::icrc::model::IcrcError> {
+        IcrcIndexOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+    }
+
     pub(in crate::icrc) fn root_usage() -> String {
         usage()
     }
@@ -408,5 +493,9 @@ pub(in crate::icrc) mod test_support {
 
     pub(in crate::icrc) fn allowance_usage() -> String {
         icrc_allowance_usage()
+    }
+
+    pub(in crate::icrc) fn index_usage() -> String {
+        icrc_index_usage()
     }
 }

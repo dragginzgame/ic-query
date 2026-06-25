@@ -83,6 +83,17 @@ fn binary_icrc_allowance_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_index_help_smoke() {
+    let output = run_icq(&["icrc", "index", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq icrc index [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--format <text|json>"));
+}
+
+#[test]
 fn binary_sns_list_help_smoke() {
     let output = run_icq(&["sns", "list", "help"]);
 

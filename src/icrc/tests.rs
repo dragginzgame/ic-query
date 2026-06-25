@@ -1,23 +1,29 @@
 use super::{
     commands::test_support::{
-        allowance_usage, balance_usage, parse_allowance_options, parse_balance_options,
-        parse_token_options, root_usage, token_usage, try_parse_allowance_options,
-        try_parse_balance_options, try_parse_token_options,
+        allowance_usage, balance_usage, index_usage, parse_allowance_options,
+        parse_balance_options, parse_index_options, parse_token_options, root_usage, token_usage,
+        try_parse_allowance_options, try_parse_balance_options, try_parse_index_options,
+        try_parse_token_options,
     },
     live::{
         IcrcSource, build_icrc_allowance_report_with_source, build_icrc_balance_report_with_source,
-        build_icrc_token_report_with_source,
+        build_icrc_index_report_with_source, build_icrc_token_report_with_source,
     },
     model::{
         IcrcAllowanceData, IcrcAllowanceRequest, IcrcBalanceData, IcrcBalanceRequest, IcrcError,
-        IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest, IcrcTokenStandardRow,
+        IcrcIndexData, IcrcIndexRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest,
+        IcrcTokenStandardRow,
     },
-    text::{icrc_allowance_report_text, icrc_balance_report_text, icrc_token_report_text},
+    text::{
+        icrc_allowance_report_text, icrc_balance_report_text, icrc_index_report_text,
+        icrc_token_report_text,
+    },
 };
 use crate::cli::common::OutputFormat;
 use serde_json::{Value as JsonValue, json};
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
+const INDEX_CANISTER_ID: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
 const ACCOUNT_OWNER: &str = "aaaaa-aa";
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 const FETCHED_AT_UNIX_SECS: u64 = 1_700_000_000;
@@ -109,6 +115,16 @@ impl IcrcSource for FixtureIcrcSource {
             expires_at_unix_nanos: Some("1700000000123456789".to_string()),
         })
     }
+
+    fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+
+        Ok(IcrcIndexData {
+            index_canister_id: Some(INDEX_CANISTER_ID.to_string()),
+            index_error: None,
+        })
+    }
 }
 
 struct PanickingIcrcSource;
@@ -127,6 +143,10 @@ impl IcrcSource for PanickingIcrcSource {
         _request: &IcrcAllowanceRequest,
     ) -> Result<IcrcAllowanceData, IcrcError> {
         panic!("allowance source should not be called")
+    }
+
+    fn fetch_index(&self, _request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+        panic!("index source should not be called")
     }
 }
 
@@ -217,6 +237,22 @@ fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
         ])
         .is_err()
     );
+}
+
+#[test]
+fn index_options_parse_through_clap() {
+    let options = parse_index_options(&[
+        LEDGER_CANISTER_ID,
+        "--format",
+        "json",
+        "--source-endpoint",
+        SOURCE_ENDPOINT,
+    ]);
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+    assert!(try_parse_index_options(&["not-a-principal"]).is_err());
 }
 
 #[test]
@@ -321,6 +357,80 @@ fn allowance_report_builds_text_and_json_friendly_fields() {
 }
 
 #[test]
+fn index_report_builds_text_and_json_friendly_fields() {
+    let request = IcrcIndexRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+    };
+
+    let report = build_icrc_index_report_with_source(&request, &FixtureIcrcSource)
+        .expect("build ICRC index report");
+
+    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.index_canister_id.as_deref(), Some(INDEX_CANISTER_ID));
+    assert_eq!(report.index_error, None);
+
+    let text = icrc_index_report_text(&report);
+    assert!(text.contains("index_canister_id: bw4dl-smaaa-aaaaa-qaacq-cai"));
+    assert!(!text.contains("index_error"));
+
+    let json = serde_json::to_value(&report).expect("serialize ICRC index report");
+    assert_eq!(json["index_canister_id"], json!(INDEX_CANISTER_ID));
+    assert_eq!(json["index_error"], JsonValue::Null);
+}
+
+#[test]
+fn index_report_renders_index_error_when_not_set() {
+    struct MissingIndexSource;
+
+    impl IcrcSource for MissingIndexSource {
+        fn fetch_token(&self, _request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
+            panic!("token source should not be called")
+        }
+
+        fn fetch_balance(
+            &self,
+            _request: &IcrcBalanceRequest,
+        ) -> Result<IcrcBalanceData, IcrcError> {
+            panic!("balance source should not be called")
+        }
+
+        fn fetch_allowance(
+            &self,
+            _request: &IcrcAllowanceRequest,
+        ) -> Result<IcrcAllowanceData, IcrcError> {
+            panic!("allowance source should not be called")
+        }
+
+        fn fetch_index(&self, _request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+            Ok(IcrcIndexData {
+                index_canister_id: None,
+                index_error: Some("index principal not set".to_string()),
+            })
+        }
+    }
+
+    let request = IcrcIndexRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+    };
+
+    let report = build_icrc_index_report_with_source(&request, &MissingIndexSource)
+        .expect("build ICRC index report");
+
+    let text = icrc_index_report_text(&report);
+    assert!(text.contains("index_canister_id: -"));
+    assert!(text.contains("index_error: index principal not set"));
+
+    let json = serde_json::to_value(&report).expect("serialize ICRC index report");
+    assert_eq!(json["index_canister_id"], JsonValue::Null);
+    assert_eq!(json["index_error"], json!("index principal not set"));
+}
+
+#[test]
 fn invalid_subaccount_is_rejected_before_source_fetch() {
     let request = IcrcBalanceRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
@@ -361,6 +471,7 @@ fn usage_mentions_icrc_command_surface() {
     assert!(root.contains("token"));
     assert!(root.contains("balance"));
     assert!(root.contains("allowance"));
+    assert!(root.contains("index"));
 
     let token = token_usage();
     assert!(token.contains("Usage: icq icrc token [OPTIONS] <ledger-canister-id>"));
@@ -377,4 +488,9 @@ fn usage_mentions_icrc_command_surface() {
     ));
     assert!(allowance.contains("--owner-subaccount <hex>"));
     assert!(allowance.contains("--spender-subaccount <hex>"));
+
+    let index = index_usage();
+    assert!(index.contains("Usage: icq icrc index [OPTIONS] <ledger-canister-id>"));
+    assert!(index.contains("--source-endpoint <url>"));
+    assert!(index.contains("--format <text|json>"));
 }

@@ -2,7 +2,8 @@
 //!
 //! Responsibility: top-level generic ICRC ledger query commands.
 //! Does not own: SNS lookup, NNS registry cache behavior, or release flow.
-//! Boundary: exposes live read-only token metadata and account balance reports.
+//! Boundary: exposes live read-only token metadata, account balance, allowance,
+//! and index discovery reports.
 
 mod commands;
 pub mod ledger;

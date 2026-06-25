@@ -15,6 +15,7 @@ pub mod subnet_catalog;
 mod table;
 mod text_search;
 mod token_amount;
+mod token_metadata_text;
 
 #[cfg(test)]
 mod test_support;

@@ -10,7 +10,7 @@ mod neurons;
 mod proposals;
 mod sns;
 
-pub(super) use metadata::{index_principal_error_text, metadata_error_summary};
+pub(super) use metadata::metadata_error_summary;
 pub(super) use neurons::{sns_neuron_cursor, sns_neuron_row};
 pub(super) use proposals::sns_proposal_row;
 pub(super) use sns::{

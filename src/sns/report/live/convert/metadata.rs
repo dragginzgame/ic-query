@@ -4,20 +4,7 @@
 //! Does not own: ledger transport, token report assembly, or rendering.
 //! Boundary: maps ICRC metadata wire values into report rows and compact errors.
 
-use crate::{icrc::ledger::GetIndexPrincipalError, sns::report::SnsHostError};
-
-/// Convert an index-principal discovery error into human-facing text.
-pub(in crate::sns::report::live) fn index_principal_error_text(
-    error: GetIndexPrincipalError,
-) -> String {
-    match error {
-        GetIndexPrincipalError::IndexPrincipalNotSet => "index principal not set".to_string(),
-        GetIndexPrincipalError::GenericError {
-            error_code,
-            description,
-        } => format!("generic error {error_code}: {description}"),
-    }
-}
+use crate::sns::report::SnsHostError;
 
 /// Return a compact metadata-fetch error summary when the error is displayable.
 pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -> Option<String> {

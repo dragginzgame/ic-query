@@ -7,14 +7,16 @@
 use crate::{
     icrc::{
         ledger::{
-            IcrcAccount, IcrcAllowance, IcrcAllowanceArgs, IcrcLedgerError, IcrcLedgerMetadataRow,
-            IcrcLedgerStandardRow, IcrcLedgerTokenMetadata, fetch_icrc1_token_metadata, ic_agent,
-            principal_from_text, query_ledger, query_ledger_arg,
+            GetIndexPrincipalResult, IcrcAccount, IcrcAllowance, IcrcAllowanceArgs,
+            IcrcLedgerError, IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
+            fetch_icrc1_token_metadata, ic_agent, index_principal_error_text, principal_from_text,
+            query_ledger, query_ledger_arg,
         },
         model::{
             IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcBalanceData,
-            IcrcBalanceReport, IcrcBalanceRequest, IcrcError, IcrcTokenData, IcrcTokenMetadataRow,
-            IcrcTokenReport, IcrcTokenRequest, IcrcTokenStandardRow, normalize_subaccount_hex,
+            IcrcBalanceReport, IcrcBalanceRequest, IcrcError, IcrcIndexData, IcrcIndexReport,
+            IcrcIndexRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenReport,
+            IcrcTokenRequest, IcrcTokenStandardRow, normalize_subaccount_hex,
             subaccount_bytes_from_hex,
         },
     },
@@ -27,6 +29,7 @@ use ic_agent::Agent;
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_INDEX_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
 
 impl IcrcLedgerError for IcrcError {
@@ -57,7 +60,7 @@ impl IcrcLedgerError for IcrcError {
 ///
 /// IcrcSource
 ///
-/// Source contract for fetching generic ICRC ledger metadata, balances, and allowances.
+/// Source contract for fetching generic ICRC ledger metadata, balances, allowances, and indexes.
 ///
 pub(in crate::icrc) trait IcrcSource {
     fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError>;
@@ -68,6 +71,8 @@ pub(in crate::icrc) trait IcrcSource {
         &self,
         request: &IcrcAllowanceRequest,
     ) -> Result<IcrcAllowanceData, IcrcError>;
+
+    fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError>;
 }
 
 ///
@@ -92,6 +97,10 @@ impl IcrcSource for LiveIcrcSource {
     ) -> Result<IcrcAllowanceData, IcrcError> {
         block_on_current_thread(fetch_allowance_async(request))?
     }
+
+    fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+        block_on_current_thread(fetch_index_async(request))?
+    }
 }
 
 pub(in crate::icrc) fn build_icrc_token_report(
@@ -110,6 +119,12 @@ pub(in crate::icrc) fn build_icrc_allowance_report(
     request: &IcrcAllowanceRequest,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
     build_icrc_allowance_report_with_source(request, &LiveIcrcSource)
+}
+
+pub(in crate::icrc) fn build_icrc_index_report(
+    request: &IcrcIndexRequest,
+) -> Result<IcrcIndexReport, IcrcError> {
+    build_icrc_index_report_with_source(request, &LiveIcrcSource)
 }
 
 pub(in crate::icrc) fn build_icrc_token_report_with_source(
@@ -197,19 +212,33 @@ pub(in crate::icrc) fn build_icrc_allowance_report_with_source(
     })
 }
 
+pub(in crate::icrc) fn build_icrc_index_report_with_source(
+    request: &IcrcIndexRequest,
+    source: &dyn IcrcSource,
+) -> Result<IcrcIndexReport, IcrcError> {
+    let index = source.fetch_index(request)?;
+    Ok(IcrcIndexReport {
+        schema_version: ICRC_INDEX_REPORT_SCHEMA_VERSION,
+        ledger_canister_id: request.ledger_canister_id.clone(),
+        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
+        source_endpoint: request.source_endpoint.clone(),
+        fetched_by: ICRC_FETCHED_BY.to_string(),
+        index_canister_id: index.index_canister_id,
+        index_error: index.index_error,
+    })
+}
+
 async fn fetch_token_async(request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
-    let agent = ic_agent::<IcrcError>(&request.source_endpoint)?;
-    let ledger_canister =
-        principal_from_text::<IcrcError>(&request.ledger_canister_id, "ledger_canister_id")?;
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
     fetch_icrc1_token_metadata::<IcrcError>(&agent, &ledger_canister)
         .await
         .map(token_data_from_ledger)
 }
 
 async fn fetch_balance_async(request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
-    let agent = ic_agent::<IcrcError>(&request.source_endpoint)?;
-    let ledger_canister =
-        principal_from_text::<IcrcError>(&request.ledger_canister_id, "ledger_canister_id")?;
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
     let account = account_from_parts(
         &request.account_owner,
         request.subaccount_hex.as_deref(),
@@ -234,9 +263,8 @@ async fn fetch_balance_async(request: &IcrcBalanceRequest) -> Result<IcrcBalance
 async fn fetch_allowance_async(
     request: &IcrcAllowanceRequest,
 ) -> Result<IcrcAllowanceData, IcrcError> {
-    let agent = ic_agent::<IcrcError>(&request.source_endpoint)?;
-    let ledger_canister =
-        principal_from_text::<IcrcError>(&request.ledger_canister_id, "ledger_canister_id")?;
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
     let allowance_args = IcrcAllowanceArgs {
         account: account_from_parts(
             &request.account_owner,
@@ -266,6 +294,38 @@ async fn fetch_allowance_async(
             .expires_at
             .map(|expires_at| expires_at.to_string()),
     })
+}
+
+async fn fetch_index_async(request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let result = query_ledger::<GetIndexPrincipalResult, IcrcError>(
+        &agent,
+        &ledger_canister,
+        "icrc106_get_index_principal",
+    )
+    .await?;
+
+    Ok(match result {
+        GetIndexPrincipalResult::Ok(principal) => IcrcIndexData {
+            index_canister_id: Some(principal.to_text()),
+            index_error: None,
+        },
+        GetIndexPrincipalResult::Err(error) => IcrcIndexData {
+            index_canister_id: None,
+            index_error: Some(index_principal_error_text(error)),
+        },
+    })
+}
+
+fn live_query_context(
+    source_endpoint: &str,
+    ledger_canister_id: &str,
+) -> Result<(Agent, Principal), IcrcError> {
+    Ok((
+        ic_agent::<IcrcError>(source_endpoint)?,
+        principal_from_text::<IcrcError>(ledger_canister_id, "ledger_canister_id")?,
+    ))
 }
 
 async fn query_token_display_fields(

@@ -7,12 +7,9 @@
 use super::block_on_sns;
 use crate::icrc::ledger::{
     GetIndexPrincipalResult, IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
-    fetch_icrc1_token_metadata, query_ledger,
+    fetch_icrc1_token_metadata, index_principal_error_text, query_ledger,
 };
-use crate::sns::report::live::{
-    convert::index_principal_error_text,
-    query::{principal_from_text, sns_agent},
-};
+use crate::sns::report::live::query::{principal_from_text, sns_agent};
 use crate::sns::report::{
     SnsHostError, SnsTokenMetadataRow, SnsTokenStandardRow,
     source::{MainnetSns, MainnetSnsToken, SnsFetchRequest},

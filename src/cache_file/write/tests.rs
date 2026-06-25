@@ -21,7 +21,7 @@ fn atomic_write_rejects_parentless_target_path() {
 #[test]
 fn relative_single_file_target_uses_current_directory() {
     assert_eq!(
-        target_directory(Path::new("cache.json")).unwrap(),
+        target_directory(Path::new("cache.json")).expect("relative file target has directory"),
         Path::new(".")
     );
 }
