@@ -1,4 +1,4 @@
-use ic_query::run_from_env;
+use ic_query_cli::run_from_env;
 
 // Run the IC query CLI and report errors in a shell-friendly form.
 fn main() {

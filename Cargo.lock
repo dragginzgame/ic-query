@@ -1178,8 +1178,10 @@ dependencies = [
 name = "ic-query-cli"
 version = "0.4.0"
 dependencies = [
+ "clap",
  "ic-query",
  "serde_json",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

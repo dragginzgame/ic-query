@@ -7,4 +7,4 @@ pub use report::{
     SnsListRequest, SnsListRow, SnsListSort, build_sns_list_report, sns_list_report_text,
 };
 
-pub(crate) use commands::run;
+pub use commands::run;

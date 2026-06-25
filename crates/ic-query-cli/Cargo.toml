@@ -17,7 +17,9 @@ name = "icq"
 path = "src/main.rs"
 
 [dependencies]
+clap.workspace = true
 ic-query = { workspace = true, features = ["cli"] }
+thiserror.workspace = true
 
 [dev-dependencies]
 serde_json = "1.0"

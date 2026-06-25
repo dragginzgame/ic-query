@@ -15,21 +15,29 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 candid = { version = "0.10", default-features = false }
-clap = { version = "4.6.1", features = ["derive"], optional = true }
+clap = { workspace = true, optional = true }
 futures = { version = "0.3", optional = true }
 ic-agent = { version = "0.47.3", default-features = false, optional = true }
 prost = "0.14.3"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.9"
-thiserror = "2.0"
+thiserror.workspace = true
 time = { version = "=0.3.47", default-features = false }
 tokio = { version = "1.52.3", features = ["rt"], optional = true }
 
 [features]
-default = ["cli"]
+default = []
 cli = ["host", "dep:clap"]
 host = ["dep:futures", "dep:ic-agent", "dep:tokio"]
+
+[[test]]
+name = "nns_public_api"
+required-features = ["host"]
+
+[[test]]
+name = "sns_public_api"
+required-features = ["host"]
 
 [lints]
 workspace = true

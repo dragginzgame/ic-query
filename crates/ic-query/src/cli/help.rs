@@ -1,10 +1,4 @@
-use clap::Command;
 use std::ffi::OsString;
-
-use super::commands::COMMAND_FAMILIES;
-use super::globals::network_arg;
-
-const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{usage-heading} {usage}\n\nCommands:\n{subcommands}\n\nOptions:\n{options}{after-help}\n";
 
 fn is_help_arg(arg: &OsString) -> bool {
     arg.to_str()
@@ -72,22 +66,6 @@ where
     Some(args)
 }
 
-pub fn collect_args_or_print_help<I>(
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Option<Vec<OsString>>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    collect_args_or_print_if(args, |args| {
-        if first_arg_is_help(args) {
-            println!("{}", usage());
-            return true;
-        }
-        false
-    })
-}
-
 pub fn collect_args_or_print_help_or_version<I>(
     args: I,
     usage: impl FnOnce() -> String,
@@ -112,34 +90,4 @@ where
     collect_args_or_print_if(args, |args| {
         print_help_or_version_flag(args, usage, version_text)
     })
-}
-
-#[must_use]
-pub fn top_level_command() -> Command {
-    Command::new("icq")
-        .version(env!("CARGO_PKG_VERSION"))
-        .about("Internet Computer metadata query CLI")
-        .disable_help_subcommand(true)
-        .disable_version_flag(true)
-        .arg(
-            clap::Arg::new("version")
-                .short('V')
-                .long("version")
-                .action(clap::ArgAction::SetTrue)
-                .help("Print version"),
-        )
-        .arg(network_arg().global(true))
-        .subcommand_help_heading("Commands")
-        .help_template(TOP_LEVEL_HELP_TEMPLATE)
-        .after_help("Run `icq <command> help` for command-specific help.")
-        .subcommands(
-            COMMAND_FAMILIES
-                .iter()
-                .map(|family| Command::new(family.name).about(family.about)),
-        )
-}
-
-pub fn usage() -> String {
-    let mut command = top_level_command();
-    command.render_help().to_string()
 }

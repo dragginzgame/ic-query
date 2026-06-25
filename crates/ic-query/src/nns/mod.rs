@@ -79,7 +79,7 @@ pub enum NnsCommandError {
     Json(#[from] serde_json::Error),
 }
 
-pub(crate) fn run<I>(args: I) -> Result<(), NnsCommandError>
+pub fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {

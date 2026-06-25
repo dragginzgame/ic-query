@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.4.md](docs/changelog/0.4.md)
 
+- `0.4.1` tightens the library and CLI package boundary after the initial
+  split. The top-level process runner now lives in `ic-query-cli`, while
+  `ic-query` keeps only family-level CLI adapters behind the `cli` feature for
+  the wrapper. This slice also changes the `ic-query` default feature set to
+  empty so plain library dependencies do not pull CLI parsing or native
+  live-call adapters.
+
 - `0.4.0` splits the project into a virtual workspace with
   `crates/ic-query` as the reusable library package and `crates/ic-query-cli`
   as the package that installs the existing `icq` binary. This slice adds

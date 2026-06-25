@@ -6,6 +6,7 @@
 
 #[cfg(feature = "cli")]
 use crate::cli::common::CurrentUnixSecsError;
+#[cfg(feature = "host")]
 use crate::hex::hex_bytes;
 #[cfg(feature = "host")]
 use crate::runtime::RuntimeError;
@@ -488,6 +489,7 @@ pub struct IcrcArchiveRow {
 ///
 /// Source-layer token metadata returned by an ICRC ledger.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcTokenData {
     pub(in crate::icrc) token_name: String,
@@ -506,6 +508,7 @@ pub(in crate::icrc) struct IcrcTokenData {
 ///
 /// Source-layer balance result plus enough token metadata for display.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcBalanceData {
     pub(in crate::icrc) token_symbol: String,
@@ -518,6 +521,7 @@ pub(in crate::icrc) struct IcrcBalanceData {
 ///
 /// Source-layer allowance result plus enough token metadata for display.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAllowanceData {
     pub(in crate::icrc) token_symbol: String,
@@ -531,6 +535,7 @@ pub(in crate::icrc) struct IcrcAllowanceData {
 ///
 /// Source-layer ICRC-106 index discovery result.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcIndexData {
     pub(in crate::icrc) index_canister_id: Option<String>,
@@ -542,6 +547,7 @@ pub(in crate::icrc) struct IcrcIndexData {
 ///
 /// Source-layer ICRC-3 block history result from a ledger canister.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::icrc) struct IcrcTransactionsData {
     pub(in crate::icrc) log_length: Option<String>,
@@ -556,6 +562,7 @@ pub(in crate::icrc) struct IcrcTransactionsData {
 ///
 /// Source-layer ICRC-3 supported block types result.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcBlockTypesData {
     pub(in crate::icrc) block_types: Vec<IcrcBlockTypeRow>,
@@ -566,6 +573,7 @@ pub(in crate::icrc) struct IcrcBlockTypesData {
 ///
 /// Source-layer ICRC-3 archive range discovery result.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcArchivesData {
     pub(in crate::icrc) archives: Vec<IcrcArchiveRow>,
@@ -576,6 +584,7 @@ pub(in crate::icrc) struct IcrcArchivesData {
 ///
 /// Source-layer ICRC-3 tip certificate result.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcTipCertificateData {
     pub(in crate::icrc) certificate_hex: Option<String>,
@@ -589,17 +598,20 @@ pub(in crate::icrc) struct IcrcTipCertificateData {
 ///
 /// Source-layer generic ICRC ledger capability probe result.
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcCapabilitiesData {
     pub(in crate::icrc) supported_standards: Vec<IcrcTokenStandardRow>,
     pub(in crate::icrc) capabilities: Vec<IcrcCapabilityRow>,
 }
 
+#[cfg(feature = "host")]
 pub(in crate::icrc) fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {
     let bytes = subaccount_bytes_from_hex(value)?;
     Ok(hex_bytes(&bytes))
 }
 
+#[cfg(feature = "host")]
 pub(in crate::icrc) fn subaccount_bytes_from_hex(value: &str) -> Result<Vec<u8>, IcrcError> {
     let value = value.trim();
     if !value.len().is_multiple_of(2) {

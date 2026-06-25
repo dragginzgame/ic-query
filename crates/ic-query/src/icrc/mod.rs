@@ -37,7 +37,7 @@ pub use text::{
 };
 
 #[cfg(feature = "cli")]
-pub(crate) use commands::run;
+pub use commands::run;
 
 #[cfg(all(test, feature = "cli", feature = "host"))]
 mod tests;

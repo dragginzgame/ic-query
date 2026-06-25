@@ -28,6 +28,20 @@ From crates.io after publication:
 cargo install ic-query-cli
 ```
 
+## Library
+
+Use `ic-query` for typed report models and renderers without the `icq` process
+wrapper:
+
+```toml
+[dependencies]
+ic-query = { version = "0.4", default-features = false }
+```
+
+The library default feature set is empty. Enable `host` for native live-call
+adapters, or `cli` for the family-level command adapters used by
+`ic-query-cli`.
+
 ## Commands
 
 ```bash
