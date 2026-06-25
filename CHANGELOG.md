@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.5` adds live generic ICRC transaction history pages through the
+  ledger's `icrc3_get_blocks` endpoint. Text output shows compact block
+  summaries and archive callback ranges; JSON keeps raw ICRC-3 block values
+  and block/log indexes as string fields.
+
+  ```bash
+  icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai
+  icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai --start 100 --limit 50 --format json
+  ```
+
 - `0.3.4` cleans up the generic ICRC index slice by sharing ICRC/SNS token
   metadata text formatting, centralizing generic ICRC live query setup, using
   the shared ICRC-106 index-error formatter from SNS token reports, and

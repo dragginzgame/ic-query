@@ -94,6 +94,19 @@ fn binary_icrc_index_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_transactions_help_smoke() {
+    let output = run_icq(&["icrc", "transactions", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq icrc transactions [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("--start <index>"));
+    assert!(stdout.contains("--limit <count>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--format <text|json>"));
+}
+
+#[test]
 fn binary_sns_list_help_smoke() {
     let output = run_icq(&["sns", "list", "help"]);
 

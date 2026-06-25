@@ -5,9 +5,10 @@
 //! Boundary: keeps reusable ICRC ledger mechanics independent from report DTOs.
 
 use crate::hex::hex_bytes;
-use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal};
+use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal, types::reference::Func};
 use ic_agent::Agent;
 use serde_json::Value as JsonValue;
+use std::collections::BTreeMap;
 
 const ICRC_LOGO_METADATA_KEY: &str = "icrc1:logo";
 
@@ -148,6 +149,87 @@ pub enum GetIndexPrincipalError {
         error_code: Nat,
         description: String,
     },
+}
+
+///
+/// Icrc3Value
+///
+/// Candid ICRC-3 generic block value.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) enum Icrc3Value {
+    Blob(Vec<u8>),
+    Text(String),
+    Nat(Nat),
+    Int(Int),
+    Array(Vec<Self>),
+    Map(BTreeMap<String, Self>),
+}
+
+///
+/// Icrc3GetBlocksRequest
+///
+/// Candid ICRC-3 block range request.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3GetBlocksRequest {
+    pub(in crate::icrc) start: Nat,
+    pub(in crate::icrc) length: Nat,
+}
+
+///
+/// Icrc3BlockWithId
+///
+/// Candid ICRC-3 block paired with its block log id.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3BlockWithId {
+    pub(in crate::icrc) id: Nat,
+    pub(in crate::icrc) block: Icrc3Value,
+}
+
+///
+/// Icrc3ArchiveCallback
+///
+/// Candid ICRC-3 archive callback function reference.
+///
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3ArchiveCallback(pub(in crate::icrc) Func);
+
+impl CandidType for Icrc3ArchiveCallback {
+    fn _ty() -> candid::types::Type {
+        candid::func!((Vec<Icrc3GetBlocksRequest>) -> (Icrc3GetBlocksResult) query)
+    }
+
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: candid::types::Serializer,
+    {
+        self.0.idl_serialize(serializer)
+    }
+}
+
+///
+/// Icrc3ArchivedBlocks
+///
+/// Candid ICRC-3 archive callback and ranges returned for non-local blocks.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3ArchivedBlocks {
+    pub(in crate::icrc) args: Vec<Icrc3GetBlocksRequest>,
+    pub(in crate::icrc) callback: Icrc3ArchiveCallback,
+}
+
+///
+/// Icrc3GetBlocksResult
+///
+/// Candid ICRC-3 block range response.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3GetBlocksResult {
+    pub(in crate::icrc) log_length: Nat,
+    pub(in crate::icrc) blocks: Vec<Icrc3BlockWithId>,
+    pub(in crate::icrc) archived_blocks: Vec<Icrc3ArchivedBlocks>,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]

@@ -5,7 +5,10 @@
 //! Boundary: formats token metadata and base-unit amounts for humans.
 
 use crate::{
-    icrc::model::{IcrcAllowanceReport, IcrcBalanceReport, IcrcIndexReport, IcrcTokenReport},
+    icrc::model::{
+        IcrcAllowanceReport, IcrcBalanceReport, IcrcIndexReport, IcrcTokenReport,
+        IcrcTransactionsReport,
+    },
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
     token_metadata_text::{
@@ -145,6 +148,73 @@ pub(in crate::icrc) fn icrc_index_report_text(report: &IcrcIndexReport) -> Strin
     ];
     if let Some(error) = report.index_error.as_deref() {
         lines.push(format!("index_error: {error}"));
+    }
+    lines.join("\n")
+}
+
+#[must_use]
+pub(in crate::icrc) fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String {
+    let mut lines = vec![
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!("requested_start: {}", report.requested_start),
+        format!("requested_limit: {}", report.requested_limit),
+        format!("log_length: {}", optional_text(report.log_length.as_ref())),
+        format!("returned_blocks: {}", report.blocks.len()),
+        format!("archived_callbacks: {}", report.archived_blocks.len()),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    if !report.blocks.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["INDEX", "TYPE", "KIND", "TIMESTAMP_NS", "AMOUNT_BASE_UNITS"],
+            &report
+                .blocks
+                .iter()
+                .map(|block| {
+                    [
+                        block.index.clone(),
+                        optional_text(block.block_type.as_ref()).to_string(),
+                        optional_text(block.transaction_kind.as_ref()).to_string(),
+                        optional_text(block.timestamp_unix_nanos.as_ref()).to_string(),
+                        optional_text(block.amount_base_units.as_ref()).to_string(),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        ));
+    }
+    if !report.archived_blocks.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["ARCHIVE_CANISTER", "METHOD", "START", "LENGTH"],
+            &report
+                .archived_blocks
+                .iter()
+                .flat_map(|archive| {
+                    archive.ranges.iter().map(|range| {
+                        [
+                            archive.callback_canister_id.clone(),
+                            archive.callback_method.clone(),
+                            range.start.clone(),
+                            range.length.clone(),
+                        ]
+                    })
+                })
+                .collect::<Vec<_>>(),
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        ));
     }
     lines.join("\n")
 }

@@ -5,19 +5,22 @@
 //! Boundary: keeps live Candid calls behind a source trait for fixture tests.
 
 use crate::{
+    hex::hex_bytes,
     icrc::{
         ledger::{
-            GetIndexPrincipalResult, IcrcAccount, IcrcAllowance, IcrcAllowanceArgs,
+            GetIndexPrincipalResult, Icrc3ArchivedBlocks, Icrc3BlockWithId, Icrc3GetBlocksRequest,
+            Icrc3GetBlocksResult, Icrc3Value, IcrcAccount, IcrcAllowance, IcrcAllowanceArgs,
             IcrcLedgerError, IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
             fetch_icrc1_token_metadata, ic_agent, index_principal_error_text, principal_from_text,
             query_ledger, query_ledger_arg,
         },
         model::{
-            IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcBalanceData,
-            IcrcBalanceReport, IcrcBalanceRequest, IcrcError, IcrcIndexData, IcrcIndexReport,
-            IcrcIndexRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenReport,
-            IcrcTokenRequest, IcrcTokenStandardRow, normalize_subaccount_hex,
-            subaccount_bytes_from_hex,
+            IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchivedBlocksRow,
+            IcrcArchivedRangeRow, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest,
+            IcrcError, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest, IcrcTokenData,
+            IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest, IcrcTokenStandardRow,
+            IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
+            IcrcTransactionsRequest, normalize_subaccount_hex, subaccount_bytes_from_hex,
         },
     },
     runtime::block_on_current_thread,
@@ -25,11 +28,13 @@ use crate::{
 };
 use candid::{Nat, Principal};
 use ic_agent::Agent;
+use serde_json::{Map as JsonMap, Value as JsonValue};
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_INDEX_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
 
 impl IcrcLedgerError for IcrcError {
@@ -60,7 +65,7 @@ impl IcrcLedgerError for IcrcError {
 ///
 /// IcrcSource
 ///
-/// Source contract for fetching generic ICRC ledger metadata, balances, allowances, and indexes.
+/// Source contract for fetching generic ICRC ledger metadata, balances, allowances, indexes, and transactions.
 ///
 pub(in crate::icrc) trait IcrcSource {
     fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError>;
@@ -73,6 +78,11 @@ pub(in crate::icrc) trait IcrcSource {
     ) -> Result<IcrcAllowanceData, IcrcError>;
 
     fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError>;
+
+    fn fetch_transactions(
+        &self,
+        request: &IcrcTransactionsRequest,
+    ) -> Result<IcrcTransactionsData, IcrcError>;
 }
 
 ///
@@ -101,6 +111,13 @@ impl IcrcSource for LiveIcrcSource {
     fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
         block_on_current_thread(fetch_index_async(request))?
     }
+
+    fn fetch_transactions(
+        &self,
+        request: &IcrcTransactionsRequest,
+    ) -> Result<IcrcTransactionsData, IcrcError> {
+        block_on_current_thread(fetch_transactions_async(request))?
+    }
 }
 
 pub(in crate::icrc) fn build_icrc_token_report(
@@ -125,6 +142,12 @@ pub(in crate::icrc) fn build_icrc_index_report(
     request: &IcrcIndexRequest,
 ) -> Result<IcrcIndexReport, IcrcError> {
     build_icrc_index_report_with_source(request, &LiveIcrcSource)
+}
+
+pub(in crate::icrc) fn build_icrc_transactions_report(
+    request: &IcrcTransactionsRequest,
+) -> Result<IcrcTransactionsReport, IcrcError> {
+    build_icrc_transactions_report_with_source(request, &LiveIcrcSource)
 }
 
 pub(in crate::icrc) fn build_icrc_token_report_with_source(
@@ -228,6 +251,25 @@ pub(in crate::icrc) fn build_icrc_index_report_with_source(
     })
 }
 
+pub(in crate::icrc) fn build_icrc_transactions_report_with_source(
+    request: &IcrcTransactionsRequest,
+    source: &dyn IcrcSource,
+) -> Result<IcrcTransactionsReport, IcrcError> {
+    let transactions = source.fetch_transactions(request)?;
+    Ok(IcrcTransactionsReport {
+        schema_version: ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
+        ledger_canister_id: request.ledger_canister_id.clone(),
+        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
+        source_endpoint: request.source_endpoint.clone(),
+        fetched_by: ICRC_FETCHED_BY.to_string(),
+        requested_start: request.start.to_string(),
+        requested_limit: request.limit,
+        log_length: transactions.log_length,
+        blocks: transactions.blocks,
+        archived_blocks: transactions.archived_blocks,
+    })
+}
+
 async fn fetch_token_async(request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
@@ -318,6 +360,26 @@ async fn fetch_index_async(request: &IcrcIndexRequest) -> Result<IcrcIndexData, 
     })
 }
 
+async fn fetch_transactions_async(
+    request: &IcrcTransactionsRequest,
+) -> Result<IcrcTransactionsData, IcrcError> {
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let block_args = vec![Icrc3GetBlocksRequest {
+        start: Nat::from(request.start),
+        length: Nat::from(request.limit),
+    }];
+    let result = query_ledger_arg::<Vec<Icrc3GetBlocksRequest>, Icrc3GetBlocksResult, IcrcError>(
+        &agent,
+        &ledger_canister,
+        "icrc3_get_blocks",
+        &block_args,
+    )
+    .await?;
+
+    Ok(transactions_data_from_blocks(result))
+}
+
 fn live_query_context(
     source_endpoint: &str,
     ledger_canister_id: &str,
@@ -384,4 +446,108 @@ fn token_metadata_row_from_ledger(row: IcrcLedgerMetadataRow) -> IcrcTokenMetada
         value_type: row.value_type,
         value: row.value,
     }
+}
+
+fn transactions_data_from_blocks(result: Icrc3GetBlocksResult) -> IcrcTransactionsData {
+    IcrcTransactionsData {
+        log_length: Some(result.log_length.to_string()),
+        blocks: result
+            .blocks
+            .into_iter()
+            .map(transaction_block_row_from_wire)
+            .collect(),
+        archived_blocks: result
+            .archived_blocks
+            .into_iter()
+            .map(archived_blocks_row_from_wire)
+            .collect(),
+    }
+}
+
+fn transaction_block_row_from_wire(block: Icrc3BlockWithId) -> IcrcTransactionBlockRow {
+    let block_type = icrc3_text_at_path(&block.block, &["btype"]);
+    IcrcTransactionBlockRow {
+        index: block.id.to_string(),
+        transaction_kind: block_type
+            .clone()
+            .or_else(|| icrc3_text_at_path(&block.block, &["tx", "op"])),
+        block_type,
+        timestamp_unix_nanos: icrc3_nat_at_path(&block.block, &["ts"]),
+        amount_base_units: icrc3_nat_at_path(&block.block, &["tx", "amt"]),
+        raw_block: icrc3_value_json(&block.block),
+    }
+}
+
+fn archived_blocks_row_from_wire(archive: Icrc3ArchivedBlocks) -> IcrcArchivedBlocksRow {
+    IcrcArchivedBlocksRow {
+        callback_canister_id: archive.callback.0.principal.to_text(),
+        callback_method: archive.callback.0.method,
+        ranges: archive
+            .args
+            .into_iter()
+            .map(|range| IcrcArchivedRangeRow {
+                start: range.start.to_string(),
+                length: range.length.to_string(),
+            })
+            .collect(),
+    }
+}
+
+fn icrc3_text_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {
+    let value = icrc3_value_at_path(value, path)?;
+    match value {
+        Icrc3Value::Text(text) => Some(text.clone()),
+        _ => None,
+    }
+}
+
+fn icrc3_nat_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {
+    let value = icrc3_value_at_path(value, path)?;
+    match value {
+        Icrc3Value::Nat(nat) => Some(nat.to_string()),
+        _ => None,
+    }
+}
+
+fn icrc3_value_at_path<'a>(value: &'a Icrc3Value, path: &[&str]) -> Option<&'a Icrc3Value> {
+    path.iter().try_fold(value, |value, key| match value {
+        Icrc3Value::Map(map) => map.get(*key),
+        _ => None,
+    })
+}
+
+fn icrc3_value_json(value: &Icrc3Value) -> JsonValue {
+    let mut variant = JsonMap::new();
+    match value {
+        Icrc3Value::Blob(bytes) => {
+            variant.insert("Blob".to_string(), JsonValue::String(hex_bytes(bytes)));
+        }
+        Icrc3Value::Text(text) => {
+            variant.insert("Text".to_string(), JsonValue::String(text.clone()));
+        }
+        Icrc3Value::Nat(nat) => {
+            variant.insert("Nat".to_string(), JsonValue::String(nat.to_string()));
+        }
+        Icrc3Value::Int(int) => {
+            variant.insert("Int".to_string(), JsonValue::String(int.to_string()));
+        }
+        Icrc3Value::Array(values) => {
+            variant.insert(
+                "Array".to_string(),
+                JsonValue::Array(values.iter().map(icrc3_value_json).collect()),
+            );
+        }
+        Icrc3Value::Map(entries) => {
+            variant.insert(
+                "Map".to_string(),
+                JsonValue::Object(
+                    entries
+                        .iter()
+                        .map(|(key, value)| (key.clone(), icrc3_value_json(value)))
+                        .collect(),
+                ),
+            );
+        }
+    }
+    JsonValue::Object(variant)
 }
