@@ -6,9 +6,10 @@
 
 use crate::{
     icrc::model::{
-        IcrcAllowanceReport, IcrcArchiveFollowErrorRow, IcrcArchivedBlocksRow, IcrcArchivesReport,
-        IcrcBalanceReport, IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcCapabilityRow,
-        IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcTipCertificateReport, IcrcTokenReport,
+        IcrcAllowanceReport, IcrcArchiveFollowErrorRow, IcrcArchivedBlocksRow,
+        IcrcArchivedRangeRow, IcrcArchivesReport, IcrcBalanceReport, IcrcBlockTypesReport,
+        IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
+        IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
         IcrcTransactionBlockRow, IcrcTransactionsReport,
     },
     table::{ColumnAlign, render_table},
@@ -20,7 +21,24 @@ use crate::{
 
 const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 const ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT: usize = 160;
-const ICRC_CAPABILITY_DETAIL_TEXT_LIMIT: usize = 160;
+const ICRC_DETAIL_TEXT_LIMIT: usize = 160;
+const STANDARD_TABLE_HEADERS: [&str; 2] = ["STANDARD", "URL"];
+const LEFT_2_ALIGNMENTS: [ColumnAlign; 2] = [ColumnAlign::Left, ColumnAlign::Left];
+const ICRC3_BLOCK_TABLE_HEADERS: [&str; 5] =
+    ["INDEX", "TYPE", "KIND", "TIMESTAMP_NS", "AMOUNT_BASE_UNITS"];
+const ICRC3_BLOCK_TABLE_ALIGNMENTS: [ColumnAlign; 5] = [
+    ColumnAlign::Right,
+    ColumnAlign::Left,
+    ColumnAlign::Left,
+    ColumnAlign::Right,
+    ColumnAlign::Right,
+];
+const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [ColumnAlign; 4] = [
+    ColumnAlign::Left,
+    ColumnAlign::Left,
+    ColumnAlign::Right,
+    ColumnAlign::Right,
+];
 
 #[must_use]
 pub(in crate::icrc) fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
@@ -48,39 +66,14 @@ pub(in crate::icrc) fn icrc_token_report_text(report: &IcrcTokenReport) -> Strin
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
     ];
-    if !report.supported_standards.is_empty() {
-        lines.push(String::new());
-        lines.push(render_table(
-            &["STANDARD", "URL"],
-            &report
-                .supported_standards
-                .iter()
-                .map(|standard| [standard.name.clone(), standard.url.clone()])
-                .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Left],
-        ));
-    }
-    if !report.metadata.is_empty() {
-        lines.push(String::new());
-        lines.push(render_table(
-            &["METADATA", "TYPE", "VALUE"],
-            &report
-                .metadata
-                .iter()
-                .map(|row| {
-                    [
-                        row.key.clone(),
-                        row.value_type.clone(),
-                        truncate_text_value(
-                            &metadata_value_text(&row.key, &row.value, report.decimals),
-                            ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT,
-                        ),
-                    ]
-                })
-                .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left],
-        ));
-    }
+    push_table_section(
+        &mut lines,
+        &report.supported_standards,
+        render_standard_rows_table,
+    );
+    push_table_section(&mut lines, &report.metadata, |rows| {
+        render_metadata_rows_table(rows, report.decimals)
+    });
     lines.join("\n")
 }
 
@@ -177,51 +170,33 @@ pub(in crate::icrc) fn icrc_transactions_report_text(report: &IcrcTransactionsRe
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
     ];
-    if !report.blocks.is_empty() {
-        lines.push(String::new());
-        lines.push(render_transaction_blocks_table(&report.blocks));
-    }
-    if !report.followed_archive_blocks.is_empty() {
-        lines.push(String::new());
-        lines.push(render_followed_archive_blocks_table(
-            &report.followed_archive_blocks,
-        ));
-    }
-    if !report.archived_blocks.is_empty() {
-        lines.push(String::new());
-        lines.push(render_archive_callbacks_table(&report.archived_blocks));
-    }
-    if !report.archive_follow_errors.is_empty() {
-        lines.push(String::new());
-        lines.push(render_archive_follow_errors_table(
-            &report.archive_follow_errors,
-        ));
-    }
+    push_table_section(&mut lines, &report.blocks, render_transaction_blocks_table);
+    push_table_section(
+        &mut lines,
+        &report.followed_archive_blocks,
+        render_followed_archive_blocks_table,
+    );
+    push_table_section(
+        &mut lines,
+        &report.archived_blocks,
+        render_archive_callbacks_table,
+    );
+    push_table_section(
+        &mut lines,
+        &report.archive_follow_errors,
+        render_archive_follow_errors_table,
+    );
     lines.join("\n")
 }
 
 fn render_transaction_blocks_table(blocks: &[IcrcTransactionBlockRow]) -> String {
     render_table(
-        &["INDEX", "TYPE", "KIND", "TIMESTAMP_NS", "AMOUNT_BASE_UNITS"],
+        &ICRC3_BLOCK_TABLE_HEADERS,
         &blocks
             .iter()
-            .map(|block| {
-                [
-                    block.index.clone(),
-                    optional_text(block.block_type.as_ref()).to_string(),
-                    optional_text(block.transaction_kind.as_ref()).to_string(),
-                    optional_text(block.timestamp_unix_nanos.as_ref()).to_string(),
-                    optional_text(block.amount_base_units.as_ref()).to_string(),
-                ]
-            })
+            .map(transaction_block_cells)
             .collect::<Vec<_>>(),
-        &[
-            ColumnAlign::Right,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-        ],
+        &ICRC3_BLOCK_TABLE_ALIGNMENTS,
     )
 }
 
@@ -239,14 +214,16 @@ fn render_followed_archive_blocks_table(blocks: &[IcrcFollowedArchiveBlockRow]) 
         &blocks
             .iter()
             .map(|block| {
+                let [index, block_type, kind, timestamp, amount] =
+                    followed_archive_block_cells(block);
                 [
                     block.archive_canister_id.clone(),
                     block.callback_method.clone(),
-                    block.index.clone(),
-                    optional_text(block.block_type.as_ref()).to_string(),
-                    optional_text(block.transaction_kind.as_ref()).to_string(),
-                    optional_text(block.timestamp_unix_nanos.as_ref()).to_string(),
-                    optional_text(block.amount_base_units.as_ref()).to_string(),
+                    index,
+                    block_type,
+                    kind,
+                    timestamp,
+                    amount,
                 ]
             })
             .collect::<Vec<_>>(),
@@ -269,21 +246,15 @@ fn render_archive_callbacks_table(archives: &[IcrcArchivedBlocksRow]) -> String 
             .iter()
             .flat_map(|archive| {
                 archive.ranges.iter().map(|range| {
-                    [
-                        archive.callback_canister_id.clone(),
-                        archive.callback_method.clone(),
-                        range.start.clone(),
-                        range.length.clone(),
-                    ]
+                    archive_range_cells(
+                        &archive.callback_canister_id,
+                        &archive.callback_method,
+                        range,
+                    )
                 })
             })
             .collect::<Vec<_>>(),
-        &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-        ],
+        &ARCHIVE_RANGE_TABLE_ALIGNMENTS,
     )
 }
 
@@ -294,12 +265,17 @@ fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> S
             .iter()
             .flat_map(|error| {
                 error.ranges.iter().map(|range| {
+                    let [canister_id, method, start, length] = archive_range_cells(
+                        &error.callback_canister_id,
+                        &error.callback_method,
+                        range,
+                    );
                     [
-                        error.callback_canister_id.clone(),
-                        error.callback_method.clone(),
-                        range.start.clone(),
-                        range.length.clone(),
-                        truncate_text_value(&error.error, ICRC_CAPABILITY_DETAIL_TEXT_LIMIT),
+                        canister_id,
+                        method,
+                        start,
+                        length,
+                        truncate_text_value(&error.error, ICRC_DETAIL_TEXT_LIMIT),
                     ]
                 })
             })
@@ -322,18 +298,16 @@ pub(in crate::icrc) fn icrc_block_types_report_text(report: &IcrcBlockTypesRepor
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
     ];
-    if !report.block_types.is_empty() {
-        lines.push(String::new());
-        lines.push(render_table(
+    push_table_section(&mut lines, &report.block_types, |rows| {
+        render_table(
             &["BLOCK_TYPE", "URL"],
-            &report
-                .block_types
+            &rows
                 .iter()
                 .map(|block_type| [block_type.block_type.clone(), block_type.url.clone()])
                 .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Left],
-        ));
-    }
+            &LEFT_2_ALIGNMENTS,
+        )
+    });
     lines.join("\n")
 }
 
@@ -349,12 +323,10 @@ pub(in crate::icrc) fn icrc_archives_report_text(report: &IcrcArchivesReport) ->
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
     ];
-    if !report.archives.is_empty() {
-        lines.push(String::new());
-        lines.push(render_table(
+    push_table_section(&mut lines, &report.archives, |rows| {
+        render_table(
             &["ARCHIVE_CANISTER", "START", "END"],
-            &report
-                .archives
+            &rows
                 .iter()
                 .map(|archive| {
                     [
@@ -365,8 +337,8 @@ pub(in crate::icrc) fn icrc_archives_report_text(report: &IcrcArchivesReport) ->
                 })
                 .collect::<Vec<_>>(),
             &[ColumnAlign::Left, ColumnAlign::Right, ColumnAlign::Right],
-        ));
-    }
+        )
+    });
     lines.join("\n")
 }
 
@@ -414,43 +386,128 @@ pub(in crate::icrc) fn icrc_capabilities_report_text(report: &IcrcCapabilitiesRe
         format!("fetched_at: {}", report.fetched_at),
         format!("source_endpoint: {}", report.source_endpoint),
     ];
-    if !report.supported_standards.is_empty() {
-        lines.push(String::new());
-        lines.push(render_table(
-            &["STANDARD", "URL"],
-            &report
-                .supported_standards
-                .iter()
-                .map(|standard| [standard.name.clone(), standard.url.clone()])
-                .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Left],
-        ));
-    }
-    if !report.capabilities.is_empty() {
-        lines.push(String::new());
-        lines.push(render_table(
-            &["CAPABILITY", "METHOD", "STATUS", "DETAIL"],
-            &report
-                .capabilities
-                .iter()
-                .map(|capability| {
-                    [
-                        capability.capability.clone(),
-                        capability.method.clone(),
-                        capability.status.clone(),
-                        capability_detail_text(capability),
-                    ]
-                })
-                .collect::<Vec<_>>(),
-            &[
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-            ],
-        ));
-    }
+    push_table_section(
+        &mut lines,
+        &report.supported_standards,
+        render_standard_rows_table,
+    );
+    push_table_section(
+        &mut lines,
+        &report.capabilities,
+        render_capability_rows_table,
+    );
     lines.join("\n")
+}
+
+fn push_table_section<T>(lines: &mut Vec<String>, rows: &[T], render: impl FnOnce(&[T]) -> String) {
+    if rows.is_empty() {
+        return;
+    }
+    lines.push(String::new());
+    lines.push(render(rows));
+}
+
+fn render_standard_rows_table(standards: &[IcrcTokenStandardRow]) -> String {
+    render_table(
+        &STANDARD_TABLE_HEADERS,
+        &standards
+            .iter()
+            .map(|standard| [standard.name.clone(), standard.url.clone()])
+            .collect::<Vec<_>>(),
+        &LEFT_2_ALIGNMENTS,
+    )
+}
+
+fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> String {
+    render_table(
+        &["METADATA", "TYPE", "VALUE"],
+        &rows
+            .iter()
+            .map(|row| {
+                [
+                    row.key.clone(),
+                    row.value_type.clone(),
+                    truncate_text_value(
+                        &metadata_value_text(&row.key, &row.value, decimals),
+                        ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT,
+                    ),
+                ]
+            })
+            .collect::<Vec<_>>(),
+        &[ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left],
+    )
+}
+
+fn transaction_block_cells(block: &IcrcTransactionBlockRow) -> [String; 5] {
+    block_summary_cells(
+        &block.index,
+        block.block_type.as_ref(),
+        block.transaction_kind.as_ref(),
+        block.timestamp_unix_nanos.as_ref(),
+        block.amount_base_units.as_ref(),
+    )
+}
+
+fn followed_archive_block_cells(block: &IcrcFollowedArchiveBlockRow) -> [String; 5] {
+    block_summary_cells(
+        &block.index,
+        block.block_type.as_ref(),
+        block.transaction_kind.as_ref(),
+        block.timestamp_unix_nanos.as_ref(),
+        block.amount_base_units.as_ref(),
+    )
+}
+
+fn block_summary_cells(
+    index: &str,
+    block_type: Option<&String>,
+    transaction_kind: Option<&String>,
+    timestamp_unix_nanos: Option<&String>,
+    amount_base_units: Option<&String>,
+) -> [String; 5] {
+    [
+        index.to_string(),
+        optional_text(block_type).to_string(),
+        optional_text(transaction_kind).to_string(),
+        optional_text(timestamp_unix_nanos).to_string(),
+        optional_text(amount_base_units).to_string(),
+    ]
+}
+
+fn archive_range_cells(
+    canister_id: &str,
+    method: &str,
+    range: &IcrcArchivedRangeRow,
+) -> [String; 4] {
+    [
+        canister_id.to_string(),
+        method.to_string(),
+        range.start.clone(),
+        range.length.clone(),
+    ]
+}
+
+fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
+    render_table(
+        &["CAPABILITY", "METHOD", "STATUS", "DETAIL"],
+        &rows
+            .iter()
+            .map(|capability| {
+                [
+                    capability.capability.clone(),
+                    capability.method.clone(),
+                    capability.status.clone(),
+                    capability_detail_text(capability),
+                ]
+            })
+            .collect::<Vec<_>>(),
+        &[
+            ColumnAlign::Left,
+            ColumnAlign::Left,
+            ColumnAlign::Left,
+            ColumnAlign::Left,
+        ],
+    )
 }
 
 fn optional_usize_text(value: Option<usize>) -> String {
@@ -466,5 +523,5 @@ fn optional_truncated_text(value: Option<&String>, limit: usize) -> String {
 
 fn capability_detail_text(row: &IcrcCapabilityRow) -> String {
     let detail = row.details.as_ref().or(row.error.as_ref());
-    optional_truncated_text(detail, ICRC_CAPABILITY_DETAIL_TEXT_LIMIT)
+    optional_truncated_text(detail, ICRC_DETAIL_TEXT_LIMIT)
 }

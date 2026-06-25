@@ -61,6 +61,7 @@ const FOLLOW_ARCHIVES_ARG: &str = "follow-archives";
 const FROM_CANISTER_ID_ARG: &str = "from";
 const FORMAT_ARG: &str = "format";
 const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
+const ICRC_SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for ICRC ledger queries";
 
 pub fn run<I>(args: I) -> Result<(), IcrcError>
 where
@@ -304,39 +305,31 @@ fn icrc_command() -> ClapCommand {
 }
 
 fn icrc_token_command() -> ClapCommand {
-    ClapCommand::new("token")
+    let command = ClapCommand::new("token")
         .bin_name("icq icrc token")
         .about("Show generic ICRC token metadata by ledger canister id")
         .after_help(
             "Examples:\n  icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
         )
         .disable_help_flag(true)
-        .arg(ledger_canister_id_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        .arg(ledger_canister_id_arg());
+    with_common_icrc_options(command)
 }
 
 fn icrc_capabilities_command() -> ClapCommand {
-    ClapCommand::new("capabilities")
+    let command = ClapCommand::new("capabilities")
         .bin_name("icq icrc capabilities")
         .about("Probe generic ICRC ledger endpoint capabilities")
         .after_help(
             "Examples:\n  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai --format json",
         )
         .disable_help_flag(true)
-        .arg(ledger_canister_id_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        .arg(ledger_canister_id_arg());
+    with_common_icrc_options(command)
 }
 
 fn icrc_balance_command() -> ClapCommand {
-    ClapCommand::new("balance")
+    let command = ClapCommand::new("balance")
         .bin_name("icq icrc balance")
         .about("Show a generic ICRC account balance")
         .after_help(
@@ -348,16 +341,12 @@ fn icrc_balance_command() -> ClapCommand {
         .arg(subaccount_arg(
             SUBACCOUNT_ARG,
             "Optional 32-byte ICRC subaccount as hex",
-        ))
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        ));
+    with_common_icrc_options(command)
 }
 
 fn icrc_allowance_command() -> ClapCommand {
-    ClapCommand::new("allowance")
+    let command = ClapCommand::new("allowance")
         .bin_name("icq icrc allowance")
         .about("Show a generic ICRC account allowance")
         .after_help(
@@ -380,32 +369,24 @@ fn icrc_allowance_command() -> ClapCommand {
         .arg(subaccount_arg(
             SPENDER_SUBACCOUNT_ARG,
             "Optional 32-byte spender account subaccount as hex",
-        ))
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        ));
+    with_common_icrc_options(command)
 }
 
 fn icrc_index_command() -> ClapCommand {
-    ClapCommand::new("index")
+    let command = ClapCommand::new("index")
         .bin_name("icq icrc index")
         .about("Show a generic ICRC ledger index canister")
         .after_help(
             "Examples:\n  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
         )
         .disable_help_flag(true)
-        .arg(ledger_canister_id_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        .arg(ledger_canister_id_arg());
+    with_common_icrc_options(command)
 }
 
 fn icrc_transactions_command() -> ClapCommand {
-    ClapCommand::new("transactions")
+    let command = ClapCommand::new("transactions")
         .bin_name("icq icrc transactions")
         .about("Show a generic ICRC ledger transaction history page")
         .after_help(
@@ -430,37 +411,29 @@ fn icrc_transactions_command() -> ClapCommand {
                     RangedU64ValueParser::<u32>::new().range(1..=MAX_ICRC_TRANSACTIONS_LIMIT),
                 )
                 .help("Maximum ICRC-3 blocks to request from the ledger"),
-        )
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(
-            flag_arg(FOLLOW_ARCHIVES_ARG)
-                .long(FOLLOW_ARCHIVES_ARG)
-                .help("Follow returned ICRC-3 archive callbacks for the requested block page"),
-        )
-        .arg(format_arg())
+        );
+    let command = with_icrc_source_endpoint_option(command).arg(
+        flag_arg(FOLLOW_ARCHIVES_ARG)
+            .long(FOLLOW_ARCHIVES_ARG)
+            .help("Follow returned ICRC-3 archive callbacks for the requested block page"),
+    );
+    with_icrc_format_option(command)
 }
 
 fn icrc_block_types_command() -> ClapCommand {
-    ClapCommand::new("block-types")
+    let command = ClapCommand::new("block-types")
         .bin_name("icq icrc block-types")
         .about("Show generic ICRC-3 ledger supported block types")
         .after_help(
             "Examples:\n  icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
         )
         .disable_help_flag(true)
-        .arg(ledger_canister_id_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        .arg(ledger_canister_id_arg());
+    with_common_icrc_options(command)
 }
 
 fn icrc_archives_command() -> ClapCommand {
-    ClapCommand::new("archives")
+    let command = ClapCommand::new("archives")
         .bin_name("icq icrc archives")
         .about("Show generic ICRC-3 ledger archive ranges")
         .after_help(
@@ -474,28 +447,20 @@ fn icrc_archives_command() -> ClapCommand {
                 .value_name("canister-id")
                 .value_parser(principal_text_value_parser())
                 .help("Last archive canister already seen; returns later archives"),
-        )
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        );
+    with_common_icrc_options(command)
 }
 
 fn icrc_tip_certificate_command() -> ClapCommand {
-    ClapCommand::new("tip-certificate")
+    let command = ClapCommand::new("tip-certificate")
         .bin_name("icq icrc tip-certificate")
         .about("Show a generic ICRC-3 ledger tip certificate")
         .after_help(
             "Examples:\n  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai --format json",
         )
         .disable_help_flag(true)
-        .arg(ledger_canister_id_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for ICRC ledger queries"),
-        )
-        .arg(format_arg())
+        .arg(ledger_canister_id_arg());
+    with_common_icrc_options(command)
 }
 
 fn usage() -> String {
@@ -810,6 +775,22 @@ impl IcrcTipCertificateOptions {
 
 fn ledger_canister_id_arg() -> clap::Arg {
     principal_arg(LEDGER_CANISTER_ID_ARG, "ICRC ledger canister principal")
+}
+
+fn with_common_icrc_options(command: ClapCommand) -> ClapCommand {
+    with_icrc_format_option(with_icrc_source_endpoint_option(command))
+}
+
+fn with_icrc_source_endpoint_option(command: ClapCommand) -> ClapCommand {
+    command.arg(icrc_source_endpoint_arg())
+}
+
+fn with_icrc_format_option(command: ClapCommand) -> ClapCommand {
+    command.arg(format_arg())
+}
+
+fn icrc_source_endpoint_arg() -> clap::Arg {
+    source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT).help(ICRC_SOURCE_ENDPOINT_HELP)
 }
 
 fn principal_arg(id: &'static str, help: &'static str) -> clap::Arg {

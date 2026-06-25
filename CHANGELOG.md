@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.10` cleans up the generic ICRC implementation by deduplicating common
+  command option wiring, ICRC-3 block/range row conversion, and text table
+  rendering helpers without changing CLI behavior, report schemas, or output
+  semantics.
+
 - `0.3.9` adds `--follow-archives` to `icq icrc transactions`, allowing the
   bounded live transaction query to follow returned ICRC-3 archive callbacks.
   Followed archive blocks and archive follow errors are reported separately so
