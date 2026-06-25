@@ -2,35 +2,36 @@ use super::{
     commands::test_support::{
         allowance_usage, archives_usage, balance_usage, block_types_usage, index_usage,
         parse_allowance_options, parse_archives_options, parse_balance_options,
-        parse_block_types_options, parse_index_options, parse_token_options,
-        parse_transactions_options, root_usage, token_usage, transactions_usage,
-        try_parse_allowance_options, try_parse_archives_options, try_parse_balance_options,
-        try_parse_block_types_options, try_parse_index_options, try_parse_token_options,
-        try_parse_transactions_options,
+        parse_block_types_options, parse_index_options, parse_tip_certificate_options,
+        parse_token_options, parse_transactions_options, root_usage, tip_certificate_usage,
+        token_usage, transactions_usage, try_parse_allowance_options, try_parse_archives_options,
+        try_parse_balance_options, try_parse_block_types_options, try_parse_index_options,
+        try_parse_tip_certificate_options, try_parse_token_options, try_parse_transactions_options,
     },
     ledger::{
         Icrc3ArchiveCallback, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
-        Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, Icrc3GetBlocksResult, Icrc3SupportedBlockType,
-        Icrc3Value,
+        Icrc3DataCertificate, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, Icrc3GetBlocksResult,
+        Icrc3SupportedBlockType, Icrc3Value,
     },
     live::{
         IcrcSource, build_icrc_allowance_report_with_source,
         build_icrc_archives_report_with_source, build_icrc_balance_report_with_source,
         build_icrc_block_types_report_with_source, build_icrc_index_report_with_source,
-        build_icrc_token_report_with_source, build_icrc_transactions_report_with_source,
+        build_icrc_tip_certificate_report_with_source, build_icrc_token_report_with_source,
+        build_icrc_transactions_report_with_source,
     },
     model::{
         IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchiveRow, IcrcArchivedBlocksRow,
         IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
         IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest, IcrcError,
-        IcrcIndexData, IcrcIndexRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest,
-        IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
-        IcrcTransactionsRequest,
+        IcrcIndexData, IcrcIndexRequest, IcrcTipCertificateData, IcrcTipCertificateRequest,
+        IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest, IcrcTokenStandardRow,
+        IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsRequest,
     },
     text::{
         icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-        icrc_block_types_report_text, icrc_index_report_text, icrc_token_report_text,
-        icrc_transactions_report_text,
+        icrc_block_types_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
+        icrc_token_report_text, icrc_transactions_report_text,
     },
 };
 use crate::cli::common::OutputFormat;
@@ -240,6 +241,21 @@ impl IcrcSource for FixtureIcrcSource {
             }],
         })
     }
+
+    fn fetch_tip_certificate(
+        &self,
+        request: &IcrcTipCertificateRequest,
+    ) -> Result<IcrcTipCertificateData, IcrcError> {
+        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+
+        Ok(IcrcTipCertificateData {
+            certificate_hex: Some("010203".to_string()),
+            certificate_bytes: Some(3),
+            hash_tree_hex: Some("aabb".to_string()),
+            hash_tree_bytes: Some(2),
+        })
+    }
 }
 
 struct PanickingIcrcSource;
@@ -283,6 +299,13 @@ impl IcrcSource for PanickingIcrcSource {
         _request: &IcrcArchivesRequest,
     ) -> Result<IcrcArchivesData, IcrcError> {
         panic!("archives source should not be called")
+    }
+
+    fn fetch_tip_certificate(
+        &self,
+        _request: &IcrcTipCertificateRequest,
+    ) -> Result<IcrcTipCertificateData, IcrcError> {
+        panic!("tip certificate source should not be called")
     }
 }
 
@@ -458,6 +481,22 @@ fn archives_options_parse_through_clap() {
 }
 
 #[test]
+fn tip_certificate_options_parse_through_clap() {
+    let options = parse_tip_certificate_options(&[
+        LEDGER_CANISTER_ID,
+        "--format",
+        "json",
+        "--source-endpoint",
+        SOURCE_ENDPOINT,
+    ]);
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+    assert!(try_parse_tip_certificate_options(&["not-a-principal"]).is_err());
+}
+
+#[test]
 fn icrc3_blocks_result_round_trips_through_candid() {
     let mut tx = BTreeMap::new();
     tx.insert("op".to_string(), Icrc3Value::Text("mint".to_string()));
@@ -528,6 +567,27 @@ fn icrc3_archive_and_block_type_shapes_round_trip_through_candid() {
     assert_eq!(decoded_archives_args, archives_args);
     assert_eq!(decoded_archives, archives);
     assert_eq!(decoded_block_types, block_types);
+}
+
+#[test]
+fn icrc3_tip_certificate_shape_round_trips_through_candid() {
+    let certificate = Some(Icrc3DataCertificate {
+        certificate: vec![1, 2, 3],
+        hash_tree: vec![0xaa, 0xbb],
+    });
+
+    let bytes = candid::encode_one(&certificate).expect("encode ICRC-3 data certificate");
+    let decoded: Option<Icrc3DataCertificate> =
+        candid::decode_one(&bytes).expect("decode ICRC-3 data certificate");
+
+    assert_eq!(decoded, certificate);
+
+    let bytes = candid::encode_one(None::<Icrc3DataCertificate>)
+        .expect("encode absent ICRC-3 data certificate");
+    let decoded: Option<Icrc3DataCertificate> =
+        candid::decode_one(&bytes).expect("decode absent ICRC-3 data certificate");
+
+    assert_eq!(decoded, None);
 }
 
 #[test]
@@ -766,6 +826,40 @@ fn archives_report_builds_text_and_json_friendly_fields() {
 }
 
 #[test]
+fn tip_certificate_report_builds_text_and_json_friendly_fields() {
+    let request = IcrcTipCertificateRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+    };
+
+    let report = build_icrc_tip_certificate_report_with_source(&request, &FixtureIcrcSource)
+        .expect("build ICRC tip certificate report");
+
+    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert!(report.certificate_present);
+    assert_eq!(report.certificate_hex.as_deref(), Some("010203"));
+    assert_eq!(report.certificate_bytes, Some(3));
+    assert_eq!(report.hash_tree_hex.as_deref(), Some("aabb"));
+    assert_eq!(report.hash_tree_bytes, Some(2));
+
+    let text = icrc_tip_certificate_report_text(&report);
+    assert!(text.contains("certificate_present: true"));
+    assert!(text.contains("certificate_bytes: 3"));
+    assert!(text.contains("hash_tree_bytes: 2"));
+    assert!(text.contains("certificate_hex: 010203"));
+    assert!(text.contains("hash_tree_hex: aabb"));
+
+    let json = serde_json::to_value(&report).expect("serialize ICRC tip certificate report");
+    assert_eq!(json["certificate_present"], json!(true));
+    assert_eq!(json["certificate_hex"], json!("010203"));
+    assert_eq!(json["certificate_bytes"], json!(3));
+    assert_eq!(json["hash_tree_hex"], json!("aabb"));
+    assert_eq!(json["hash_tree_bytes"], json!(2));
+}
+
+#[test]
 fn index_report_renders_index_error_when_not_set() {
     struct MissingIndexSource;
 
@@ -818,6 +912,13 @@ fn index_report_renders_index_error_when_not_set() {
             _request: &IcrcArchivesRequest,
         ) -> Result<IcrcArchivesData, IcrcError> {
             panic!("archives source should not be called")
+        }
+
+        fn fetch_tip_certificate(
+            &self,
+            _request: &IcrcTipCertificateRequest,
+        ) -> Result<IcrcTipCertificateData, IcrcError> {
+            panic!("tip certificate source should not be called")
         }
     }
 
@@ -884,6 +985,7 @@ fn usage_mentions_icrc_command_surface() {
     assert!(root.contains("transactions"));
     assert!(root.contains("block-types"));
     assert!(root.contains("archives"));
+    assert!(root.contains("tip-certificate"));
 
     let token = token_usage();
     assert!(token.contains("Usage: icq icrc token [OPTIONS] <ledger-canister-id>"));
@@ -923,4 +1025,11 @@ fn usage_mentions_icrc_command_surface() {
     assert!(archives.contains("--from <canister-id>"));
     assert!(archives.contains("--source-endpoint <url>"));
     assert!(archives.contains("--format <text|json>"));
+
+    let tip_certificate = tip_certificate_usage();
+    assert!(
+        tip_certificate.contains("Usage: icq icrc tip-certificate [OPTIONS] <ledger-canister-id>")
+    );
+    assert!(tip_certificate.contains("--source-endpoint <url>"));
+    assert!(tip_certificate.contains("--format <text|json>"));
 }

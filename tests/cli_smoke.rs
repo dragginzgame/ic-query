@@ -130,6 +130,17 @@ fn binary_icrc_archives_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_tip_certificate_help_smoke() {
+    let output = run_icq(&["icrc", "tip-certificate", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq icrc tip-certificate [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--format <text|json>"));
+}
+
+#[test]
 fn binary_sns_list_help_smoke() {
     let output = run_icq(&["sns", "list", "help"]);
 

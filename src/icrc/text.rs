@@ -7,7 +7,7 @@
 use crate::{
     icrc::model::{
         IcrcAllowanceReport, IcrcArchivesReport, IcrcBalanceReport, IcrcBlockTypesReport,
-        IcrcIndexReport, IcrcTokenReport, IcrcTransactionsReport,
+        IcrcIndexReport, IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionsReport,
     },
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
@@ -17,6 +17,7 @@ use crate::{
 };
 
 const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
+const ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT: usize = 160;
 
 #[must_use]
 pub(in crate::icrc) fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
@@ -273,4 +274,50 @@ pub(in crate::icrc) fn icrc_archives_report_text(report: &IcrcArchivesReport) ->
         ));
     }
     lines.join("\n")
+}
+
+#[must_use]
+pub(in crate::icrc) fn icrc_tip_certificate_report_text(
+    report: &IcrcTipCertificateReport,
+) -> String {
+    [
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!("certificate_present: {}", report.certificate_present),
+        format!(
+            "certificate_bytes: {}",
+            optional_usize_text(report.certificate_bytes)
+        ),
+        format!(
+            "hash_tree_bytes: {}",
+            optional_usize_text(report.hash_tree_bytes)
+        ),
+        format!(
+            "certificate_hex: {}",
+            optional_truncated_text(
+                report.certificate_hex.as_ref(),
+                ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
+            )
+        ),
+        format!(
+            "hash_tree_hex: {}",
+            optional_truncated_text(
+                report.hash_tree_hex.as_ref(),
+                ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
+            )
+        ),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ]
+    .join("\n")
+}
+
+fn optional_usize_text(value: Option<usize>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+fn optional_truncated_text(value: Option<&String>, limit: usize) -> String {
+    value.map_or_else(
+        || "-".to_string(),
+        |value| truncate_text_value(value, limit),
+    )
 }

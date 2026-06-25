@@ -19,18 +19,19 @@ use crate::{
     icrc::{
         live::{
             build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
-            build_icrc_block_types_report, build_icrc_index_report, build_icrc_token_report,
+            build_icrc_block_types_report, build_icrc_index_report,
+            build_icrc_tip_certificate_report, build_icrc_token_report,
             build_icrc_transactions_report,
         },
         model::{
             IcrcAllowanceRequest, IcrcArchivesRequest, IcrcBalanceRequest, IcrcBlockTypesRequest,
-            IcrcError, IcrcIndexRequest, IcrcTokenRequest, IcrcTransactionsRequest,
-            normalize_subaccount_hex,
+            IcrcError, IcrcIndexRequest, IcrcTipCertificateRequest, IcrcTokenRequest,
+            IcrcTransactionsRequest, normalize_subaccount_hex,
         },
         text::{
             icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-            icrc_block_types_report_text, icrc_index_report_text, icrc_token_report_text,
-            icrc_transactions_report_text,
+            icrc_block_types_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
+            icrc_token_report_text, icrc_transactions_report_text,
         },
     },
     version_text,
@@ -75,6 +76,7 @@ where
         "transactions" => run_icrc_transactions(args),
         "block-types" => run_icrc_block_types(args),
         "archives" => run_icrc_archives(args),
+        "tip-certificate" => run_icrc_tip_certificate(args),
         _ => unreachable!("ICRC command only defines known subcommands"),
     }
 }
@@ -219,6 +221,25 @@ where
     write_text_or_json(options.format, &report, icrc_archives_report_text)
 }
 
+fn run_icrc_tip_certificate<I>(args: I) -> Result<(), IcrcError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) =
+        collect_args_or_print_help_or_version(args, icrc_tip_certificate_usage, version_text())
+    else {
+        return Ok(());
+    };
+    let options = IcrcTipCertificateOptions::parse(args)?;
+    let request = IcrcTipCertificateRequest {
+        source_endpoint: options.source_endpoint,
+        now_unix_secs: current_unix_secs()?,
+        ledger_canister_id: options.ledger_canister_id,
+    };
+    let report = build_icrc_tip_certificate_report(&request)?;
+    write_text_or_json(options.format, &report, icrc_tip_certificate_report_text)
+}
+
 fn icrc_command() -> ClapCommand {
     ClapCommand::new("icrc")
         .bin_name("icq icrc")
@@ -247,6 +268,10 @@ fn icrc_command() -> ClapCommand {
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("archives").about("Show generic ICRC-3 ledger archive ranges"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("tip-certificate")
+                .about("Show a generic ICRC-3 ledger tip certificate"),
         ))
 }
 
@@ -408,6 +433,22 @@ fn icrc_archives_command() -> ClapCommand {
         .arg(format_arg())
 }
 
+fn icrc_tip_certificate_command() -> ClapCommand {
+    ClapCommand::new("tip-certificate")
+        .bin_name("icq icrc tip-certificate")
+        .about("Show a generic ICRC-3 ledger tip certificate")
+        .after_help(
+            "Examples:\n  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai --format json",
+        )
+        .disable_help_flag(true)
+        .arg(ledger_canister_id_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for ICRC ledger queries"),
+        )
+        .arg(format_arg())
+}
+
 fn usage() -> String {
     render_help(icrc_command())
 }
@@ -438,6 +479,10 @@ fn icrc_block_types_usage() -> String {
 
 fn icrc_archives_usage() -> String {
     render_help(icrc_archives_command())
+}
+
+fn icrc_tip_certificate_usage() -> String {
+    render_help(icrc_tip_certificate_command())
 }
 
 ///
@@ -649,6 +694,37 @@ impl IcrcArchivesOptions {
     }
 }
 
+///
+/// IcrcTipCertificateOptions
+///
+/// Clap-parsed options for generic ICRC-3 tip certificate queries.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcTipCertificateOptions {
+    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) format: OutputFormat,
+    pub(in crate::icrc) source_endpoint: String,
+}
+
+impl IcrcTipCertificateOptions {
+    fn parse<I>(args: I) -> Result<Self, IcrcError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches_or_usage(
+            icrc_tip_certificate_command(),
+            args,
+            icrc_tip_certificate_usage,
+        )
+        .map_err(IcrcError::Usage)?;
+        Ok(Self {
+            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
+            format: format_from_matches(&matches),
+            source_endpoint: source_endpoint_from_matches(&matches),
+        })
+    }
+}
+
 fn ledger_canister_id_arg() -> clap::Arg {
     principal_arg(LEDGER_CANISTER_ID_ARG, "ICRC ledger canister principal")
 }
@@ -695,9 +771,10 @@ fn subaccount_hex_value_parser() -> ValueParser {
 pub(in crate::icrc) mod test_support {
     use super::{
         IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcBlockTypesOptions,
-        IcrcIndexOptions, IcrcTokenOptions, IcrcTransactionsOptions, icrc_allowance_usage,
-        icrc_archives_usage, icrc_balance_usage, icrc_block_types_usage, icrc_index_usage,
-        icrc_token_usage, icrc_transactions_usage, usage,
+        IcrcIndexOptions, IcrcTipCertificateOptions, IcrcTokenOptions, IcrcTransactionsOptions,
+        icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage, icrc_block_types_usage,
+        icrc_index_usage, icrc_tip_certificate_usage, icrc_token_usage, icrc_transactions_usage,
+        usage,
     };
 
     pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcTokenOptions {
@@ -770,6 +847,18 @@ pub(in crate::icrc) mod test_support {
         IcrcArchivesOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
     }
 
+    pub(in crate::icrc) fn parse_tip_certificate_options(
+        args: &[&str],
+    ) -> IcrcTipCertificateOptions {
+        try_parse_tip_certificate_options(args).expect("parse ICRC tip certificate options")
+    }
+
+    pub(in crate::icrc) fn try_parse_tip_certificate_options(
+        args: &[&str],
+    ) -> Result<IcrcTipCertificateOptions, crate::icrc::model::IcrcError> {
+        IcrcTipCertificateOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+    }
+
     pub(in crate::icrc) fn root_usage() -> String {
         usage()
     }
@@ -800,5 +889,9 @@ pub(in crate::icrc) mod test_support {
 
     pub(in crate::icrc) fn archives_usage() -> String {
         icrc_archives_usage()
+    }
+
+    pub(in crate::icrc) fn tip_certificate_usage() -> String {
+        icrc_tip_certificate_usage()
     }
 }

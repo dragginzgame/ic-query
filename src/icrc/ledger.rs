@@ -265,6 +265,17 @@ pub(in crate::icrc) struct Icrc3SupportedBlockType {
     pub(in crate::icrc) url: String,
 }
 
+///
+/// Icrc3DataCertificate
+///
+/// Candid ICRC-3 data certificate for the certified ledger tip.
+///
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::icrc) struct Icrc3DataCertificate {
+    pub(in crate::icrc) certificate: Vec<u8>,
+    pub(in crate::icrc) hash_tree: Vec<u8>,
+}
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcSupportedStandard {
     name: String,

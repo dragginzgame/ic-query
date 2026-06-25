@@ -9,18 +9,19 @@ use crate::{
     icrc::{
         ledger::{
             GetIndexPrincipalResult, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
-            Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, Icrc3GetBlocksResult,
-            Icrc3SupportedBlockType, Icrc3Value, IcrcAccount, IcrcAllowance, IcrcAllowanceArgs,
-            IcrcLedgerError, IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
-            fetch_icrc1_token_metadata, ic_agent, index_principal_error_text, principal_from_text,
-            query_ledger, query_ledger_arg,
+            Icrc3DataCertificate, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest,
+            Icrc3GetBlocksResult, Icrc3SupportedBlockType, Icrc3Value, IcrcAccount, IcrcAllowance,
+            IcrcAllowanceArgs, IcrcLedgerError, IcrcLedgerMetadataRow, IcrcLedgerStandardRow,
+            IcrcLedgerTokenMetadata, fetch_icrc1_token_metadata, ic_agent,
+            index_principal_error_text, principal_from_text, query_ledger, query_ledger_arg,
         },
         model::{
             IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveRow,
             IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesReport,
             IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest,
             IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesReport, IcrcBlockTypesRequest,
-            IcrcError, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest, IcrcTokenData,
+            IcrcError, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateData,
+            IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenData,
             IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest, IcrcTokenStandardRow,
             IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
             IcrcTransactionsRequest, normalize_subaccount_hex, subaccount_bytes_from_hex,
@@ -40,6 +41,7 @@ pub(in crate::icrc) const ICRC_INDEX_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_ARCHIVES_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
 
 impl IcrcLedgerError for IcrcError {
@@ -70,7 +72,7 @@ impl IcrcLedgerError for IcrcError {
 ///
 /// IcrcSource
 ///
-/// Source contract for fetching generic ICRC ledger metadata, balances, allowances, indexes, and transactions.
+/// Source contract for fetching generic ICRC ledger metadata, balances, allowances, indexes, and ICRC-3 rows.
 ///
 pub(in crate::icrc) trait IcrcSource {
     fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError>;
@@ -95,6 +97,11 @@ pub(in crate::icrc) trait IcrcSource {
     ) -> Result<IcrcBlockTypesData, IcrcError>;
 
     fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError>;
+
+    fn fetch_tip_certificate(
+        &self,
+        request: &IcrcTipCertificateRequest,
+    ) -> Result<IcrcTipCertificateData, IcrcError>;
 }
 
 ///
@@ -141,6 +148,13 @@ impl IcrcSource for LiveIcrcSource {
     fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError> {
         block_on_current_thread(fetch_archives_async(request))?
     }
+
+    fn fetch_tip_certificate(
+        &self,
+        request: &IcrcTipCertificateRequest,
+    ) -> Result<IcrcTipCertificateData, IcrcError> {
+        block_on_current_thread(fetch_tip_certificate_async(request))?
+    }
 }
 
 pub(in crate::icrc) fn build_icrc_token_report(
@@ -183,6 +197,12 @@ pub(in crate::icrc) fn build_icrc_archives_report(
     request: &IcrcArchivesRequest,
 ) -> Result<IcrcArchivesReport, IcrcError> {
     build_icrc_archives_report_with_source(request, &LiveIcrcSource)
+}
+
+pub(in crate::icrc) fn build_icrc_tip_certificate_report(
+    request: &IcrcTipCertificateRequest,
+) -> Result<IcrcTipCertificateReport, IcrcError> {
+    build_icrc_tip_certificate_report_with_source(request, &LiveIcrcSource)
 }
 
 pub(in crate::icrc) fn build_icrc_token_report_with_source(
@@ -347,6 +367,25 @@ pub(in crate::icrc) fn build_icrc_archives_report_with_source(
     })
 }
 
+pub(in crate::icrc) fn build_icrc_tip_certificate_report_with_source(
+    request: &IcrcTipCertificateRequest,
+    source: &dyn IcrcSource,
+) -> Result<IcrcTipCertificateReport, IcrcError> {
+    let certificate = source.fetch_tip_certificate(request)?;
+    Ok(IcrcTipCertificateReport {
+        schema_version: ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
+        ledger_canister_id: request.ledger_canister_id.clone(),
+        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
+        source_endpoint: request.source_endpoint.clone(),
+        fetched_by: ICRC_FETCHED_BY.to_string(),
+        certificate_present: certificate.certificate_hex.is_some(),
+        certificate_hex: certificate.certificate_hex,
+        certificate_bytes: certificate.certificate_bytes,
+        hash_tree_hex: certificate.hash_tree_hex,
+        hash_tree_bytes: certificate.hash_tree_bytes,
+    })
+}
+
 async fn fetch_token_async(request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
@@ -502,6 +541,21 @@ async fn fetch_archives_async(
     })
 }
 
+async fn fetch_tip_certificate_async(
+    request: &IcrcTipCertificateRequest,
+) -> Result<IcrcTipCertificateData, IcrcError> {
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let certificate = query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
+        &agent,
+        &ledger_canister,
+        "icrc3_get_tip_certificate",
+    )
+    .await?;
+
+    Ok(tip_certificate_data_from_wire(certificate))
+}
+
 fn live_query_context(
     source_endpoint: &str,
     ledger_canister_id: &str,
@@ -628,6 +682,25 @@ fn archive_row_from_wire(archive: Icrc3ArchiveInfo) -> IcrcArchiveRow {
         start: archive.start.to_string(),
         end: archive.end.to_string(),
     }
+}
+
+fn tip_certificate_data_from_wire(
+    certificate: Option<Icrc3DataCertificate>,
+) -> IcrcTipCertificateData {
+    certificate.map_or(
+        IcrcTipCertificateData {
+            certificate_hex: None,
+            certificate_bytes: None,
+            hash_tree_hex: None,
+            hash_tree_bytes: None,
+        },
+        |certificate| IcrcTipCertificateData {
+            certificate_hex: Some(hex_bytes(&certificate.certificate)),
+            certificate_bytes: Some(certificate.certificate.len()),
+            hash_tree_hex: Some(hex_bytes(&certificate.hash_tree)),
+            hash_tree_bytes: Some(certificate.hash_tree.len()),
+        },
+    )
 }
 
 fn icrc3_text_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {

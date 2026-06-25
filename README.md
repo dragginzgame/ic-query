@@ -39,7 +39,7 @@ icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq icrc [token|balance|allowance|index|transactions|block-types|archives]
+icq icrc [token|balance|allowance|index|transactions|block-types|archives|tip-certificate]
 icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns proposals [cache|refresh]
 icq sns neurons [cache|refresh]
@@ -72,6 +72,7 @@ icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai --start 100 --limit 50 --format json
 icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json
+icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 ```
 
 ## Cache

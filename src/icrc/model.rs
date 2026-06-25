@@ -157,6 +157,18 @@ pub(in crate::icrc) struct IcrcArchivesRequest {
 }
 
 ///
+/// IcrcTipCertificateRequest
+///
+/// Request accepted by the generic ICRC-3 tip certificate report builder.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcTipCertificateRequest {
+    pub(in crate::icrc) source_endpoint: String,
+    pub(in crate::icrc) now_unix_secs: u64,
+    pub(in crate::icrc) ledger_canister_id: String,
+}
+
+///
 /// IcrcTokenReport
 ///
 /// Serializable report for generic ICRC ledger token metadata.
@@ -284,6 +296,25 @@ pub struct IcrcArchivesReport {
     pub source_endpoint: String,
     pub fetched_by: String,
     pub archives: Vec<IcrcArchiveRow>,
+}
+
+///
+/// IcrcTipCertificateReport
+///
+/// Serializable report for a generic ICRC-3 ledger tip certificate.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcTipCertificateReport {
+    pub schema_version: u32,
+    pub ledger_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub certificate_present: bool,
+    pub certificate_hex: Option<String>,
+    pub certificate_bytes: Option<usize>,
+    pub hash_tree_hex: Option<String>,
+    pub hash_tree_bytes: Option<usize>,
 }
 
 ///
@@ -454,6 +485,19 @@ pub(in crate::icrc) struct IcrcBlockTypesData {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcArchivesData {
     pub(in crate::icrc) archives: Vec<IcrcArchiveRow>,
+}
+
+///
+/// IcrcTipCertificateData
+///
+/// Source-layer ICRC-3 tip certificate result.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcTipCertificateData {
+    pub(in crate::icrc) certificate_hex: Option<String>,
+    pub(in crate::icrc) certificate_bytes: Option<usize>,
+    pub(in crate::icrc) hash_tree_hex: Option<String>,
+    pub(in crate::icrc) hash_tree_bytes: Option<usize>,
 }
 
 pub(in crate::icrc) fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {

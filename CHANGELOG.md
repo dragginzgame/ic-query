@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.7` adds live generic ICRC-3 tip certificate inspection through
+  `icrc3_get_tip_certificate`. Text output shows certificate and hash tree byte
+  counts plus truncated hex previews when present; JSON keeps
+  `certificate_present` plus optional full certificate and hash tree hex
+  strings and byte counts.
+
+  ```bash
+  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
+  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai --format json
+  ```
+
 - `0.3.6` adds live generic ICRC-3 ledger discovery for supported block types
   and archive ranges. Both reports are live-only, include the queried source
   endpoint, and keep archive range bounds as string fields in JSON.
