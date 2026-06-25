@@ -14,25 +14,42 @@ case "${bump}" in
         ;;
 esac
 
-if ! cargo set-version --help >/dev/null 2>&1; then
-    echo "error: cargo set-version is required; install cargo-edit first" >&2
-    echo "hint: cargo install cargo-edit" >&2
-    exit 1
-fi
-
 previous_version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
 if [[ -z "${previous_version}" ]]; then
     echo "error: failed to read package version from Cargo.toml" >&2
     exit 1
 fi
 
-cargo set-version --bump "${bump}" >/dev/null
+IFS=. read -r major minor patch_extra <<< "${previous_version}"
+patch="${patch_extra%%[-+]*}"
+if [[ ! "${major}" =~ ^[0-9]+$ || ! "${minor}" =~ ^[0-9]+$ || ! "${patch}" =~ ^[0-9]+$ ]]; then
+    echo "error: unsupported version format ${previous_version}" >&2
+    exit 1
+fi
 
-new_version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
+case "${bump}" in
+    patch)
+        patch=$((patch + 1))
+        ;;
+    minor)
+        minor=$((minor + 1))
+        patch=0
+        ;;
+    major)
+        major=$((major + 1))
+        minor=0
+        patch=0
+        ;;
+esac
+
+new_version="${major}.${minor}.${patch}"
+
 if [[ "${previous_version}" == "${new_version}" ]]; then
     echo "Version unchanged (${new_version})"
     exit 0
 fi
+
+perl -0pi -e "s/version = \"\\Q${previous_version}\\E\"/version = \"${new_version}\"/g" Cargo.toml
 
 if [[ -f Cargo.lock ]]; then
     cargo generate-lockfile >/dev/null

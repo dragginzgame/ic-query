@@ -6,7 +6,7 @@ mod node;
 mod node_operator;
 mod node_provider;
 mod proposals;
-mod registry;
+pub mod registry;
 pub mod render;
 mod subnet;
 mod topology;
@@ -79,7 +79,7 @@ pub enum NnsCommandError {
     Json(#[from] serde_json::Error),
 }
 
-pub fn run<I>(args: I) -> Result<(), NnsCommandError>
+pub(crate) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {

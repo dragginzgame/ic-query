@@ -1175,6 +1175,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-query-cli"
+version = "0.3.9"
+dependencies = [
+ "ic-query",
+ "serde_json",
+]
+
+[[package]]
 name = "ic-transport-types"
 version = "0.47.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

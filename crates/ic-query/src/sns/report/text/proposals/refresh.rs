@@ -6,6 +6,7 @@
 
 use crate::{nns::render::yes_no, sns::report::SnsProposalsRefreshReport};
 
+#[must_use]
 pub fn sns_proposals_refresh_report_text(report: &SnsProposalsRefreshReport) -> String {
     [
         format!("network: {}", report.network),

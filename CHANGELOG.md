@@ -7,20 +7,37 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.4.x] - 2026-06-25 - Library and CLI package split
+
+Detailed patch breakdown: [docs/changelog/0.4.md](docs/changelog/0.4.md)
+
+- `0.4.0` splits the project into a virtual workspace with
+  `crates/ic-query` as the reusable library package and `crates/ic-query-cli`
+  as the package that installs the existing `icq` binary. This slice adds
+  public report facades for generic ICRC reports, NNS registry version reports,
+  and deployed SNS list reports so downstream crates can start using typed
+  request/report APIs without invoking CLI argument parsing. The library also
+  gates CLI and live host-call dependencies behind features so
+  `ic-query --no-default-features` compiles for native and
+  `wasm32-unknown-unknown` targets without pulling `clap`, `ic-agent`, Tokio,
+  or `futures`.
+
+  ```bash
+  cargo install ic-query-cli
+  ```
+
 ## [0.3.x] - 2026-06-24 - Generic ICRC ledger queries
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
-
-- `0.3.10` cleans up the generic ICRC implementation by deduplicating common
-  command option wiring, ICRC-3 block/range row conversion, and text table
-  rendering helpers without changing CLI behavior, report schemas, or output
-  semantics.
 
 - `0.3.9` adds `--follow-archives` to `icq icrc transactions`, allowing the
   bounded live transaction query to follow returned ICRC-3 archive callbacks.
   Followed archive blocks and archive follow errors are reported separately so
   ledger-returned blocks, callback ranges, and archive fetch results remain
-  script-friendly.
+  script-friendly. This slice also cleans up the generic ICRC implementation by
+  deduplicating common command option wiring, ICRC-3 block/range row
+  conversion, and text table rendering helpers without changing CLI behavior,
+  report schemas, or output semantics.
 
   ```bash
   icq icrc transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives

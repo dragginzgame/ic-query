@@ -49,7 +49,7 @@ fmt-check:
 	cargo fmt --all -- --check
 
 check:
-	cargo check --all-targets --all-features --locked
+	cargo check --workspace --all-targets --all-features --locked
 
 actions-check:
 	bash scripts/ci/check-github-actions-pinned.sh
@@ -61,26 +61,27 @@ package-contents-check:
 	bash scripts/ci/check-package-contents.sh
 
 clippy:
-	cargo clippy --all-targets --all-features --locked -- -D warnings
+	cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
 test:
-	cargo test --all-targets --all-features --locked
+	cargo test --workspace --all-targets --all-features --locked
 
 msrv:
-	cargo +$(MSRV) check --all-targets --all-features --locked
+	cargo +$(MSRV) check --workspace --all-targets --all-features --locked
 
 package: ensure-clean
-	cargo package --locked
+	cargo package --workspace --locked
 
 ci: changelog-check actions-check package-contents-check fmt-check check clippy test package
 
 test-bump: clippy test
 
 install:
-	cargo install --locked --path . --bin icq
+	cargo install --locked --path crates/ic-query-cli --bin icq
 
 publish: ensure-clean
-	cargo publish --locked
+	cargo publish --locked -p ic-query
+	cargo publish --locked -p ic-query-cli
 
 patch: ensure-clean fmt test-bump
 	bash scripts/release/bump-version.sh patch
@@ -98,7 +99,7 @@ release-minor: minor release-stage release-commit release-push
 release-major: major release-stage release-commit release-push
 
 release-stage:
-	git add Cargo.toml Cargo.lock
+	git add Cargo.toml Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-cli/Cargo.toml
 
 release-commit:
 	@version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \
@@ -117,7 +118,7 @@ release-push:
 	git push --follow-tags
 
 build:
-	cargo build --all-targets --all-features --locked
+	cargo build --workspace --all-targets --all-features --locked
 
 clean:
 	cargo clean

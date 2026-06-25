@@ -9,6 +9,7 @@ use crate::{
     table::{ColumnAlign, render_table},
 };
 
+#[must_use]
 pub fn sns_proposals_cache_list_report_text(report: &SnsProposalsCacheListReport) -> String {
     let mut lines = vec![
         format!("network: {}", report.network),

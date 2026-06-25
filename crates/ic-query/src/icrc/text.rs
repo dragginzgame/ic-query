@@ -41,7 +41,7 @@ const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [ColumnAlign; 4] = [
 ];
 
 #[must_use]
-pub(in crate::icrc) fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
+pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("token_name: {}", report.token_name),
@@ -78,7 +78,7 @@ pub(in crate::icrc) fn icrc_token_report_text(report: &IcrcTokenReport) -> Strin
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
+pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
     [
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("account_owner: {}", report.account_owner),
@@ -101,7 +101,7 @@ pub(in crate::icrc) fn icrc_balance_report_text(report: &IcrcBalanceReport) -> S
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
+pub fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
     [
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("account_owner: {}", report.account_owner),
@@ -133,7 +133,7 @@ pub(in crate::icrc) fn icrc_allowance_report_text(report: &IcrcAllowanceReport) 
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
+pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!(
@@ -150,7 +150,7 @@ pub(in crate::icrc) fn icrc_index_report_text(report: &IcrcIndexReport) -> Strin
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String {
+pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("requested_start: {}", report.requested_start),
@@ -291,7 +291,7 @@ fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> S
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
+pub fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("block_type_count: {}", report.block_types.len()),
@@ -312,7 +312,7 @@ pub(in crate::icrc) fn icrc_block_types_report_text(report: &IcrcBlockTypesRepor
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
+pub fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!(
@@ -343,9 +343,7 @@ pub(in crate::icrc) fn icrc_archives_report_text(report: &IcrcArchivesReport) ->
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_tip_certificate_report_text(
-    report: &IcrcTipCertificateReport,
-) -> String {
+pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> String {
     [
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("certificate_present: {}", report.certificate_present),
@@ -378,7 +376,7 @@ pub(in crate::icrc) fn icrc_tip_certificate_report_text(
 }
 
 #[must_use]
-pub(in crate::icrc) fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String {
+pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("standard_count: {}", report.supported_standards.len()),

@@ -5,8 +5,8 @@
 [![License](https://img.shields.io/crates/l/ic-query.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue.svg)](Cargo.toml)
 
-`ic-query` provides the `icq` executable for read-only Internet Computer
-metadata queries.
+`ic-query` provides read-only Internet Computer metadata query code, and
+`ic-query-cli` provides the `icq` executable wrapper.
 
 `icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
 version, subnet catalog lookup, node/provider/operator/data-center inventory,
@@ -25,7 +25,7 @@ make install
 From crates.io after publication:
 
 ```bash
-cargo install ic-query
+cargo install ic-query-cli
 ```
 
 ## Commands

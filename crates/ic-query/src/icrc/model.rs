@@ -4,7 +4,11 @@
 //! Does not own: clap parsing, live transport, or text rendering.
 //! Boundary: preserves raw ICRC fields for stable JSON output.
 
-use crate::{cli::common::CurrentUnixSecsError, hex::hex_bytes, runtime::RuntimeError};
+#[cfg(feature = "cli")]
+use crate::cli::common::CurrentUnixSecsError;
+use crate::hex::hex_bytes;
+#[cfg(feature = "host")]
+use crate::runtime::RuntimeError;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 use std::io;
@@ -20,9 +24,11 @@ pub enum IcrcError {
     #[error("{0}")]
     Usage(String),
 
+    #[cfg(feature = "cli")]
     #[error(transparent)]
     Clock(#[from] CurrentUnixSecsError),
 
+    #[cfg(feature = "host")]
     #[error("failed to create Tokio runtime for ICRC query: {0}")]
     Runtime(#[from] RuntimeError),
 
@@ -69,10 +75,10 @@ pub enum IcrcError {
 /// Request accepted by the generic ICRC token metadata report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTokenRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
+pub struct IcrcTokenRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
 }
 
 ///
@@ -81,12 +87,12 @@ pub(in crate::icrc) struct IcrcTokenRequest {
 /// Request accepted by the generic ICRC account balance report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcBalanceRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) account_owner: String,
-    pub(in crate::icrc) subaccount_hex: Option<String>,
+pub struct IcrcBalanceRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
+    pub account_owner: String,
+    pub subaccount_hex: Option<String>,
 }
 
 ///
@@ -95,14 +101,14 @@ pub(in crate::icrc) struct IcrcBalanceRequest {
 /// Request accepted by the generic ICRC allowance report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAllowanceRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) account_owner: String,
-    pub(in crate::icrc) account_subaccount_hex: Option<String>,
-    pub(in crate::icrc) spender_owner: String,
-    pub(in crate::icrc) spender_subaccount_hex: Option<String>,
+pub struct IcrcAllowanceRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
+    pub account_owner: String,
+    pub account_subaccount_hex: Option<String>,
+    pub spender_owner: String,
+    pub spender_subaccount_hex: Option<String>,
 }
 
 ///
@@ -111,10 +117,10 @@ pub(in crate::icrc) struct IcrcAllowanceRequest {
 /// Request accepted by the generic ICRC index discovery report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcIndexRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
+pub struct IcrcIndexRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
 }
 
 ///
@@ -123,13 +129,13 @@ pub(in crate::icrc) struct IcrcIndexRequest {
 /// Request accepted by the generic ICRC transaction history report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTransactionsRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) start: u64,
-    pub(in crate::icrc) limit: u32,
-    pub(in crate::icrc) follow_archives: bool,
+pub struct IcrcTransactionsRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
+    pub start: u64,
+    pub limit: u32,
+    pub follow_archives: bool,
 }
 
 ///
@@ -138,10 +144,10 @@ pub(in crate::icrc) struct IcrcTransactionsRequest {
 /// Request accepted by the generic ICRC supported block types report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcBlockTypesRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
+pub struct IcrcBlockTypesRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
 }
 
 ///
@@ -150,11 +156,11 @@ pub(in crate::icrc) struct IcrcBlockTypesRequest {
 /// Request accepted by the generic ICRC archives report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcArchivesRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) from_canister_id: Option<String>,
+pub struct IcrcArchivesRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
+    pub from_canister_id: Option<String>,
 }
 
 ///
@@ -163,10 +169,10 @@ pub(in crate::icrc) struct IcrcArchivesRequest {
 /// Request accepted by the generic ICRC-3 tip certificate report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTipCertificateRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
+pub struct IcrcTipCertificateRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
 }
 
 ///
@@ -175,10 +181,10 @@ pub(in crate::icrc) struct IcrcTipCertificateRequest {
 /// Request accepted by the generic ICRC ledger capabilities report builder.
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcCapabilitiesRequest {
-    pub(in crate::icrc) source_endpoint: String,
-    pub(in crate::icrc) now_unix_secs: u64,
-    pub(in crate::icrc) ledger_canister_id: String,
+pub struct IcrcCapabilitiesRequest {
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub ledger_canister_id: String,
 }
 
 ///

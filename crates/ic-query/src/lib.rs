@@ -1,16 +1,27 @@
+#[cfg(feature = "host")]
 mod cache_file;
+#[cfg(feature = "cli")]
 mod cli;
 mod duration;
 mod hex;
+#[cfg(feature = "host")]
 mod ic_registry;
-mod icrc;
-mod nns;
+pub mod icrc;
+#[cfg(feature = "host")]
+pub mod nns;
+#[cfg(feature = "host")]
 mod output;
+#[cfg(feature = "host")]
 mod progress;
+#[cfg(feature = "host")]
 mod project;
+#[cfg(feature = "host")]
 mod runtime;
+#[cfg(feature = "host")]
 pub(crate) mod snapshot_cache;
-mod sns;
+#[cfg(feature = "host")]
+pub mod sns;
+#[cfg(feature = "host")]
 pub mod subnet_catalog;
 mod table;
 mod text_search;
@@ -20,12 +31,15 @@ mod token_metadata_text;
 #[cfg(test)]
 mod test_support;
 
+#[cfg(feature = "cli")]
 use crate::cli::{
     clap::{parse_matches_or_usage, passthrough_args, string_option},
     globals::{apply_global_network, command_local_global_option, top_level_dispatch_command},
     help::{collect_args_or_print_help, usage},
 };
+#[cfg(feature = "cli")]
 use std::ffi::OsString;
+#[cfg(feature = "cli")]
 use thiserror::Error as ThisError;
 
 const VERSION_TEXT: &str = concat!("icq ", env!("CARGO_PKG_VERSION"));
@@ -34,6 +48,7 @@ const VERSION_TEXT: &str = concat!("icq ", env!("CARGO_PKG_VERSION"));
 /// IcQueryError
 ///
 #[derive(Debug, ThisError)]
+#[cfg(feature = "cli")]
 pub enum IcQueryError {
     #[error("{0}")]
     Usage(String),
@@ -49,11 +64,13 @@ pub enum IcQueryError {
 }
 
 /// Run the CLI from process arguments.
+#[cfg(feature = "cli")]
 pub fn run_from_env() -> Result<(), IcQueryError> {
     run(std::env::args_os().skip(1))
 }
 
 /// Run the CLI from an argument iterator.
+#[cfg(feature = "cli")]
 pub fn run<I>(args: I) -> Result<(), IcQueryError>
 where
     I: IntoIterator<Item = OsString>,

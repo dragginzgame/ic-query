@@ -1,0 +1,26 @@
+[package]
+name = "ic-query-cli"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Command-line wrapper for read-only Internet Computer metadata queries"
+readme = "../../README.md"
+homepage.workspace = true
+repository.workspace = true
+keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "icq"
+path = "src/main.rs"
+
+[dependencies]
+ic-query = { workspace = true, features = ["cli"] }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+[lints]
+workspace = true

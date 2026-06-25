@@ -6,7 +6,7 @@ mod text;
 
 pub use build::build_nns_registry_version_report;
 pub use error::NnsRegistryHostError;
-pub use model::NnsRegistryVersionRequest;
+pub use model::{NnsRegistryVersionReport, NnsRegistryVersionRequest};
 pub use text::nns_registry_version_report_text;
 
 use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
@@ -15,8 +15,6 @@ use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
 use crate::ic_registry::{MainnetRegistryFetchRequest, MainnetRegistryVersion};
 #[cfg(test)]
 use build::build_nns_registry_version_report_with_source;
-#[cfg(test)]
-use model::NnsRegistryVersionReport;
 #[cfg(test)]
 use source::NnsRegistrySource;
 

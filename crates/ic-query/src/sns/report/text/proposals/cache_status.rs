@@ -12,6 +12,7 @@ use crate::{
     },
 };
 
+#[must_use]
 pub fn sns_proposals_cache_status_report_text(report: &SnsProposalsCacheStatusReport) -> String {
     let mut lines = vec![
         format!("network: {}", report.network),

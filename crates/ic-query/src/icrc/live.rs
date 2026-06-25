@@ -184,55 +184,51 @@ impl IcrcSource for LiveIcrcSource {
     }
 }
 
-pub(in crate::icrc) fn build_icrc_token_report(
-    request: &IcrcTokenRequest,
-) -> Result<IcrcTokenReport, IcrcError> {
+pub fn build_icrc_token_report(request: &IcrcTokenRequest) -> Result<IcrcTokenReport, IcrcError> {
     build_icrc_token_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_balance_report(
+pub fn build_icrc_balance_report(
     request: &IcrcBalanceRequest,
 ) -> Result<IcrcBalanceReport, IcrcError> {
     build_icrc_balance_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_allowance_report(
+pub fn build_icrc_allowance_report(
     request: &IcrcAllowanceRequest,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
     build_icrc_allowance_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_index_report(
-    request: &IcrcIndexRequest,
-) -> Result<IcrcIndexReport, IcrcError> {
+pub fn build_icrc_index_report(request: &IcrcIndexRequest) -> Result<IcrcIndexReport, IcrcError> {
     build_icrc_index_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_transactions_report(
+pub fn build_icrc_transactions_report(
     request: &IcrcTransactionsRequest,
 ) -> Result<IcrcTransactionsReport, IcrcError> {
     build_icrc_transactions_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_block_types_report(
+pub fn build_icrc_block_types_report(
     request: &IcrcBlockTypesRequest,
 ) -> Result<IcrcBlockTypesReport, IcrcError> {
     build_icrc_block_types_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_archives_report(
+pub fn build_icrc_archives_report(
     request: &IcrcArchivesRequest,
 ) -> Result<IcrcArchivesReport, IcrcError> {
     build_icrc_archives_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_tip_certificate_report(
+pub fn build_icrc_tip_certificate_report(
     request: &IcrcTipCertificateRequest,
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
     build_icrc_tip_certificate_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_capabilities_report(
+pub fn build_icrc_capabilities_report(
     request: &IcrcCapabilitiesRequest,
 ) -> Result<IcrcCapabilitiesReport, IcrcError> {
     build_icrc_capabilities_report_with_source(request, &LiveIcrcSource)
