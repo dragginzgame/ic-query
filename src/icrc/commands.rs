@@ -19,19 +19,20 @@ use crate::{
     icrc::{
         live::{
             build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
-            build_icrc_block_types_report, build_icrc_index_report,
+            build_icrc_block_types_report, build_icrc_capabilities_report, build_icrc_index_report,
             build_icrc_tip_certificate_report, build_icrc_token_report,
             build_icrc_transactions_report,
         },
         model::{
             IcrcAllowanceRequest, IcrcArchivesRequest, IcrcBalanceRequest, IcrcBlockTypesRequest,
-            IcrcError, IcrcIndexRequest, IcrcTipCertificateRequest, IcrcTokenRequest,
-            IcrcTransactionsRequest, normalize_subaccount_hex,
+            IcrcCapabilitiesRequest, IcrcError, IcrcIndexRequest, IcrcTipCertificateRequest,
+            IcrcTokenRequest, IcrcTransactionsRequest, normalize_subaccount_hex,
         },
         text::{
             icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-            icrc_block_types_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
-            icrc_token_report_text, icrc_transactions_report_text,
+            icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
+            icrc_tip_certificate_report_text, icrc_token_report_text,
+            icrc_transactions_report_text,
         },
     },
     version_text,
@@ -77,6 +78,7 @@ where
         "block-types" => run_icrc_block_types(args),
         "archives" => run_icrc_archives(args),
         "tip-certificate" => run_icrc_tip_certificate(args),
+        "capabilities" => run_icrc_capabilities(args),
         _ => unreachable!("ICRC command only defines known subcommands"),
     }
 }
@@ -240,11 +242,34 @@ where
     write_text_or_json(options.format, &report, icrc_tip_certificate_report_text)
 }
 
+fn run_icrc_capabilities<I>(args: I) -> Result<(), IcrcError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) =
+        collect_args_or_print_help_or_version(args, icrc_capabilities_usage, version_text())
+    else {
+        return Ok(());
+    };
+    let options = IcrcCapabilitiesOptions::parse(args)?;
+    let request = IcrcCapabilitiesRequest {
+        source_endpoint: options.source_endpoint,
+        now_unix_secs: current_unix_secs()?,
+        ledger_canister_id: options.ledger_canister_id,
+    };
+    let report = build_icrc_capabilities_report(&request)?;
+    write_text_or_json(options.format, &report, icrc_capabilities_report_text)
+}
+
 fn icrc_command() -> ClapCommand {
     ClapCommand::new("icrc")
         .bin_name("icq icrc")
         .about("Inspect generic ICRC ledgers")
         .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("capabilities")
+                .about("Probe generic ICRC ledger endpoint capabilities"),
+        ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("token")
                 .about("Show generic ICRC token metadata by ledger canister id"),
@@ -281,6 +306,22 @@ fn icrc_token_command() -> ClapCommand {
         .about("Show generic ICRC token metadata by ledger canister id")
         .after_help(
             "Examples:\n  icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        )
+        .disable_help_flag(true)
+        .arg(ledger_canister_id_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for ICRC ledger queries"),
+        )
+        .arg(format_arg())
+}
+
+fn icrc_capabilities_command() -> ClapCommand {
+    ClapCommand::new("capabilities")
+        .bin_name("icq icrc capabilities")
+        .about("Probe generic ICRC ledger endpoint capabilities")
+        .after_help(
+            "Examples:\n  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai --format json",
         )
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -457,6 +498,10 @@ fn icrc_token_usage() -> String {
     render_help(icrc_token_command())
 }
 
+fn icrc_capabilities_usage() -> String {
+    render_help(icrc_capabilities_command())
+}
+
 fn icrc_balance_usage() -> String {
     render_help(icrc_balance_command())
 }
@@ -483,6 +528,34 @@ fn icrc_archives_usage() -> String {
 
 fn icrc_tip_certificate_usage() -> String {
     render_help(icrc_tip_certificate_command())
+}
+
+///
+/// IcrcCapabilitiesOptions
+///
+/// Clap-parsed options for generic ICRC capability probes.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcCapabilitiesOptions {
+    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) format: OutputFormat,
+    pub(in crate::icrc) source_endpoint: String,
+}
+
+impl IcrcCapabilitiesOptions {
+    fn parse<I>(args: I) -> Result<Self, IcrcError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches =
+            parse_matches_or_usage(icrc_capabilities_command(), args, icrc_capabilities_usage)
+                .map_err(IcrcError::Usage)?;
+        Ok(Self {
+            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
+            format: format_from_matches(&matches),
+            source_endpoint: source_endpoint_from_matches(&matches),
+        })
+    }
 }
 
 ///
@@ -771,10 +844,10 @@ fn subaccount_hex_value_parser() -> ValueParser {
 pub(in crate::icrc) mod test_support {
     use super::{
         IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcBlockTypesOptions,
-        IcrcIndexOptions, IcrcTipCertificateOptions, IcrcTokenOptions, IcrcTransactionsOptions,
-        icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage, icrc_block_types_usage,
-        icrc_index_usage, icrc_tip_certificate_usage, icrc_token_usage, icrc_transactions_usage,
-        usage,
+        IcrcCapabilitiesOptions, IcrcIndexOptions, IcrcTipCertificateOptions, IcrcTokenOptions,
+        IcrcTransactionsOptions, icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage,
+        icrc_block_types_usage, icrc_capabilities_usage, icrc_index_usage,
+        icrc_tip_certificate_usage, icrc_token_usage, icrc_transactions_usage, usage,
     };
 
     pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcTokenOptions {
@@ -785,6 +858,16 @@ pub(in crate::icrc) mod test_support {
         args: &[&str],
     ) -> Result<IcrcTokenOptions, crate::icrc::model::IcrcError> {
         IcrcTokenOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+    }
+
+    pub(in crate::icrc) fn parse_capabilities_options(args: &[&str]) -> IcrcCapabilitiesOptions {
+        try_parse_capabilities_options(args).expect("parse ICRC capabilities options")
+    }
+
+    pub(in crate::icrc) fn try_parse_capabilities_options(
+        args: &[&str],
+    ) -> Result<IcrcCapabilitiesOptions, crate::icrc::model::IcrcError> {
+        IcrcCapabilitiesOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
     }
 
     pub(in crate::icrc) fn parse_balance_options(args: &[&str]) -> IcrcBalanceOptions {
@@ -865,6 +948,10 @@ pub(in crate::icrc) mod test_support {
 
     pub(in crate::icrc) fn token_usage() -> String {
         icrc_token_usage()
+    }
+
+    pub(in crate::icrc) fn capabilities_usage() -> String {
+        icrc_capabilities_usage()
     }
 
     pub(in crate::icrc) fn balance_usage() -> String {

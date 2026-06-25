@@ -69,6 +69,17 @@ fn binary_icrc_balance_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_capabilities_help_smoke() {
+    let output = run_icq(&["icrc", "capabilities", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq icrc capabilities [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--format <text|json>"));
+}
+
+#[test]
 fn binary_icrc_allowance_help_smoke() {
     let output = run_icq(&["icrc", "allowance", "help"]);
 

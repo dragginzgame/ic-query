@@ -12,19 +12,22 @@ use crate::{
             Icrc3DataCertificate, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest,
             Icrc3GetBlocksResult, Icrc3SupportedBlockType, Icrc3Value, IcrcAccount, IcrcAllowance,
             IcrcAllowanceArgs, IcrcLedgerError, IcrcLedgerMetadataRow, IcrcLedgerStandardRow,
-            IcrcLedgerTokenMetadata, fetch_icrc1_token_metadata, ic_agent,
-            index_principal_error_text, principal_from_text, query_ledger, query_ledger_arg,
+            IcrcLedgerTokenMetadata, fetch_icrc_supported_standards, fetch_icrc1_token_metadata,
+            ic_agent, index_principal_error_text, principal_from_text, query_ledger,
+            query_ledger_arg,
         },
         model::{
             IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveRow,
             IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesReport,
             IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest,
             IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesReport, IcrcBlockTypesRequest,
-            IcrcError, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateData,
-            IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenData,
-            IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest, IcrcTokenStandardRow,
-            IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
-            IcrcTransactionsRequest, normalize_subaccount_hex, subaccount_bytes_from_hex,
+            IcrcCapabilitiesData, IcrcCapabilitiesReport, IcrcCapabilitiesRequest,
+            IcrcCapabilityRow, IcrcError, IcrcIndexData, IcrcIndexReport, IcrcIndexRequest,
+            IcrcTipCertificateData, IcrcTipCertificateReport, IcrcTipCertificateRequest,
+            IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
+            IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
+            IcrcTransactionsReport, IcrcTransactionsRequest, normalize_subaccount_hex,
+            subaccount_bytes_from_hex,
         },
     },
     runtime::block_on_current_thread,
@@ -42,7 +45,14 @@ pub(in crate::icrc) const ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_ARCHIVES_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
+const ICRC1_SUPPORTED_STANDARDS_METHOD: &str = "icrc1_supported_standards";
+const ICRC106_GET_INDEX_PRINCIPAL_METHOD: &str = "icrc106_get_index_principal";
+const ICRC3_GET_BLOCKS_METHOD: &str = "icrc3_get_blocks";
+const ICRC3_SUPPORTED_BLOCK_TYPES_METHOD: &str = "icrc3_supported_block_types";
+const ICRC3_GET_ARCHIVES_METHOD: &str = "icrc3_get_archives";
+const ICRC3_GET_TIP_CERTIFICATE_METHOD: &str = "icrc3_get_tip_certificate";
 
 impl IcrcLedgerError for IcrcError {
     fn agent_build(endpoint: &str, reason: String) -> Self {
@@ -102,6 +112,11 @@ pub(in crate::icrc) trait IcrcSource {
         &self,
         request: &IcrcTipCertificateRequest,
     ) -> Result<IcrcTipCertificateData, IcrcError>;
+
+    fn fetch_capabilities(
+        &self,
+        request: &IcrcCapabilitiesRequest,
+    ) -> Result<IcrcCapabilitiesData, IcrcError>;
 }
 
 ///
@@ -155,6 +170,13 @@ impl IcrcSource for LiveIcrcSource {
     ) -> Result<IcrcTipCertificateData, IcrcError> {
         block_on_current_thread(fetch_tip_certificate_async(request))?
     }
+
+    fn fetch_capabilities(
+        &self,
+        request: &IcrcCapabilitiesRequest,
+    ) -> Result<IcrcCapabilitiesData, IcrcError> {
+        block_on_current_thread(fetch_capabilities_async(request))?
+    }
 }
 
 pub(in crate::icrc) fn build_icrc_token_report(
@@ -203,6 +225,12 @@ pub(in crate::icrc) fn build_icrc_tip_certificate_report(
     request: &IcrcTipCertificateRequest,
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
     build_icrc_tip_certificate_report_with_source(request, &LiveIcrcSource)
+}
+
+pub(in crate::icrc) fn build_icrc_capabilities_report(
+    request: &IcrcCapabilitiesRequest,
+) -> Result<IcrcCapabilitiesReport, IcrcError> {
+    build_icrc_capabilities_report_with_source(request, &LiveIcrcSource)
 }
 
 pub(in crate::icrc) fn build_icrc_token_report_with_source(
@@ -386,6 +414,22 @@ pub(in crate::icrc) fn build_icrc_tip_certificate_report_with_source(
     })
 }
 
+pub(in crate::icrc) fn build_icrc_capabilities_report_with_source(
+    request: &IcrcCapabilitiesRequest,
+    source: &dyn IcrcSource,
+) -> Result<IcrcCapabilitiesReport, IcrcError> {
+    let capabilities = source.fetch_capabilities(request)?;
+    Ok(IcrcCapabilitiesReport {
+        schema_version: ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
+        ledger_canister_id: request.ledger_canister_id.clone(),
+        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
+        source_endpoint: request.source_endpoint.clone(),
+        fetched_by: ICRC_FETCHED_BY.to_string(),
+        supported_standards: capabilities.supported_standards,
+        capabilities: capabilities.capabilities,
+    })
+}
+
 async fn fetch_token_async(request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
@@ -556,6 +600,187 @@ async fn fetch_tip_certificate_async(
     Ok(tip_certificate_data_from_wire(certificate))
 }
 
+async fn fetch_capabilities_async(
+    request: &IcrcCapabilitiesRequest,
+) -> Result<IcrcCapabilitiesData, IcrcError> {
+    let (agent, ledger_canister) =
+        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let mut capabilities = Vec::new();
+
+    let supported_standards =
+        match fetch_icrc_supported_standards::<IcrcError>(&agent, &ledger_canister).await {
+            Ok(standards) => {
+                capabilities.push(available_capability_row(
+                    "ICRC-1 supported standards",
+                    ICRC1_SUPPORTED_STANDARDS_METHOD,
+                    format!("{} standard(s)", standards.len()),
+                ));
+                standards
+                    .into_iter()
+                    .map(token_standard_row_from_ledger)
+                    .collect()
+            }
+            Err(err) => {
+                capabilities.push(error_capability_row(
+                    "ICRC-1 supported standards",
+                    ICRC1_SUPPORTED_STANDARDS_METHOD,
+                    err,
+                ));
+                Vec::new()
+            }
+        };
+
+    capabilities.push(fetch_index_capability(&agent, &ledger_canister).await);
+    capabilities.push(fetch_blocks_capability(&agent, &ledger_canister).await);
+    capabilities.push(fetch_block_types_capability(&agent, &ledger_canister).await);
+    capabilities.push(fetch_archives_capability(&agent, &ledger_canister).await);
+    capabilities.push(fetch_tip_certificate_capability(&agent, &ledger_canister).await);
+
+    Ok(IcrcCapabilitiesData {
+        supported_standards,
+        capabilities,
+    })
+}
+
+async fn fetch_index_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
+    match query_ledger::<GetIndexPrincipalResult, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC106_GET_INDEX_PRINCIPAL_METHOD,
+    )
+    .await
+    {
+        Ok(GetIndexPrincipalResult::Ok(principal)) => available_capability_row(
+            "ICRC-106 index discovery",
+            ICRC106_GET_INDEX_PRINCIPAL_METHOD,
+            format!("index canister {}", principal.to_text()),
+        ),
+        Ok(GetIndexPrincipalResult::Err(error)) => available_capability_row(
+            "ICRC-106 index discovery",
+            ICRC106_GET_INDEX_PRINCIPAL_METHOD,
+            index_principal_error_text(error),
+        ),
+        Err(err) => error_capability_row(
+            "ICRC-106 index discovery",
+            ICRC106_GET_INDEX_PRINCIPAL_METHOD,
+            err,
+        ),
+    }
+}
+
+async fn fetch_blocks_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
+    let block_args = vec![Icrc3GetBlocksRequest {
+        start: Nat::from(0_u64),
+        length: Nat::from(1_u64),
+    }];
+    match query_ledger_arg::<Vec<Icrc3GetBlocksRequest>, Icrc3GetBlocksResult, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC3_GET_BLOCKS_METHOD,
+        &block_args,
+    )
+    .await
+    {
+        Ok(result) => available_capability_row(
+            "ICRC-3 block history",
+            ICRC3_GET_BLOCKS_METHOD,
+            format!(
+                "log_length {}, returned_blocks {}, archive_callbacks {}",
+                result.log_length,
+                result.blocks.len(),
+                result.archived_blocks.len()
+            ),
+        ),
+        Err(err) => error_capability_row("ICRC-3 block history", ICRC3_GET_BLOCKS_METHOD, err),
+    }
+}
+
+async fn fetch_block_types_capability(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> IcrcCapabilityRow {
+    match query_ledger::<Vec<Icrc3SupportedBlockType>, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
+    )
+    .await
+    {
+        Ok(block_types) => available_capability_row(
+            "ICRC-3 supported block types",
+            ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
+            named_count_detail(
+                "block type",
+                block_types
+                    .iter()
+                    .map(|block_type| block_type.block_type.as_str()),
+            ),
+        ),
+        Err(err) => error_capability_row(
+            "ICRC-3 supported block types",
+            ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
+            err,
+        ),
+    }
+}
+
+async fn fetch_archives_capability(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> IcrcCapabilityRow {
+    let args = Icrc3GetArchivesArgs { from: None };
+    match query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC3_GET_ARCHIVES_METHOD,
+        &args,
+    )
+    .await
+    {
+        Ok(archives) => available_capability_row(
+            "ICRC-3 archive discovery",
+            ICRC3_GET_ARCHIVES_METHOD,
+            format!("{} archive range(s)", archives.len()),
+        ),
+        Err(err) => {
+            error_capability_row("ICRC-3 archive discovery", ICRC3_GET_ARCHIVES_METHOD, err)
+        }
+    }
+}
+
+async fn fetch_tip_certificate_capability(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> IcrcCapabilityRow {
+    match query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC3_GET_TIP_CERTIFICATE_METHOD,
+    )
+    .await
+    {
+        Ok(Some(certificate)) => available_capability_row(
+            "ICRC-3 tip certificate",
+            ICRC3_GET_TIP_CERTIFICATE_METHOD,
+            format!(
+                "certificate {} bytes, hash tree {} bytes",
+                certificate.certificate.len(),
+                certificate.hash_tree.len()
+            ),
+        ),
+        Ok(None) => available_capability_row(
+            "ICRC-3 tip certificate",
+            ICRC3_GET_TIP_CERTIFICATE_METHOD,
+            "certificate absent",
+        ),
+        Err(err) => error_capability_row(
+            "ICRC-3 tip certificate",
+            ICRC3_GET_TIP_CERTIFICATE_METHOD,
+            err,
+        ),
+    }
+}
+
 fn live_query_context(
     source_endpoint: &str,
     ledger_canister_id: &str,
@@ -701,6 +926,71 @@ fn tip_certificate_data_from_wire(
             hash_tree_bytes: Some(certificate.hash_tree.len()),
         },
     )
+}
+
+fn available_capability_row(
+    capability: &str,
+    method: &'static str,
+    details: impl Into<String>,
+) -> IcrcCapabilityRow {
+    IcrcCapabilityRow {
+        capability: capability.to_string(),
+        method: method.to_string(),
+        status: "available".to_string(),
+        details: Some(details.into()),
+        error: None,
+    }
+}
+
+fn error_capability_row(
+    capability: &str,
+    method: &'static str,
+    error: IcrcError,
+) -> IcrcCapabilityRow {
+    let error = error.to_string();
+    let status = capability_error_status(&error);
+    IcrcCapabilityRow {
+        capability: capability.to_string(),
+        method: method.to_string(),
+        status: status.to_string(),
+        details: Some(capability_error_details(status).to_string()),
+        error: Some(error),
+    }
+}
+
+fn capability_error_status(error: &str) -> &'static str {
+    if method_not_exported(error) {
+        "unsupported"
+    } else {
+        "error"
+    }
+}
+
+fn capability_error_details(status: &str) -> &'static str {
+    if status == "unsupported" {
+        "method not exported by target canister"
+    } else {
+        "query failed"
+    }
+}
+
+fn method_not_exported(error: &str) -> bool {
+    let error = error.to_ascii_lowercase();
+    error.contains("has no query method")
+        || error.contains("method not found")
+        || error.contains("ic0536")
+}
+
+fn named_count_detail<'a, I>(singular: &str, names: I) -> String
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let names = names.into_iter().collect::<Vec<_>>();
+    if names.is_empty() {
+        format!("0 {singular}(s)")
+    } else {
+        format!("{} {singular}(s): {}", names.len(), names.join(", "))
+    }
 }
 
 fn icrc3_text_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {

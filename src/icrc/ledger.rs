@@ -313,8 +313,7 @@ where
     let total_supply: Nat = query_ledger(agent, ledger_canister, "icrc1_total_supply").await?;
     let minting_account: Option<IcrcAccount> =
         query_ledger(agent, ledger_canister, "icrc1_minting_account").await?;
-    let supported_standards: Vec<IcrcSupportedStandard> =
-        query_ledger(agent, ledger_canister, "icrc1_supported_standards").await?;
+    let supported_standards = fetch_icrc_supported_standards(agent, ledger_canister).await?;
     let metadata: Vec<(String, IcrcMetadataValue)> =
         query_ledger(agent, ledger_canister, "icrc1_metadata").await?;
 
@@ -331,18 +330,30 @@ where
             .as_ref()
             .and_then(|account| account.subaccount.as_deref())
             .map(hex_bytes),
-        supported_standards: supported_standards
-            .into_iter()
-            .map(|standard| IcrcLedgerStandardRow {
-                name: standard.name,
-                url: standard.url,
-            })
-            .collect(),
+        supported_standards,
         metadata: metadata
             .into_iter()
             .map(|(key, value)| metadata_row(key, value))
             .collect(),
     })
+}
+
+pub async fn fetch_icrc_supported_standards<E>(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> Result<Vec<IcrcLedgerStandardRow>, E>
+where
+    E: IcrcLedgerError,
+{
+    let supported_standards: Vec<IcrcSupportedStandard> =
+        query_ledger(agent, ledger_canister, "icrc1_supported_standards").await?;
+    Ok(supported_standards
+        .into_iter()
+        .map(|standard| IcrcLedgerStandardRow {
+            name: standard.name,
+            url: standard.url,
+        })
+        .collect())
 }
 
 pub async fn query_ledger<T, E>(

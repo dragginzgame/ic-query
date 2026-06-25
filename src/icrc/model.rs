@@ -169,6 +169,18 @@ pub(in crate::icrc) struct IcrcTipCertificateRequest {
 }
 
 ///
+/// IcrcCapabilitiesRequest
+///
+/// Request accepted by the generic ICRC ledger capabilities report builder.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcCapabilitiesRequest {
+    pub(in crate::icrc) source_endpoint: String,
+    pub(in crate::icrc) now_unix_secs: u64,
+    pub(in crate::icrc) ledger_canister_id: String,
+}
+
+///
 /// IcrcTokenReport
 ///
 /// Serializable report for generic ICRC ledger token metadata.
@@ -315,6 +327,36 @@ pub struct IcrcTipCertificateReport {
     pub certificate_bytes: Option<usize>,
     pub hash_tree_hex: Option<String>,
     pub hash_tree_bytes: Option<usize>,
+}
+
+///
+/// IcrcCapabilitiesReport
+///
+/// Serializable report for generic ICRC ledger endpoint capabilities.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcCapabilitiesReport {
+    pub schema_version: u32,
+    pub ledger_canister_id: String,
+    pub fetched_at: String,
+    pub source_endpoint: String,
+    pub fetched_by: String,
+    pub supported_standards: Vec<IcrcTokenStandardRow>,
+    pub capabilities: Vec<IcrcCapabilityRow>,
+}
+
+///
+/// IcrcCapabilityRow
+///
+/// Serializable row for one probed generic ICRC ledger capability.
+///
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcCapabilityRow {
+    pub capability: String,
+    pub method: String,
+    pub status: String,
+    pub details: Option<String>,
+    pub error: Option<String>,
 }
 
 ///
@@ -498,6 +540,17 @@ pub(in crate::icrc) struct IcrcTipCertificateData {
     pub(in crate::icrc) certificate_bytes: Option<usize>,
     pub(in crate::icrc) hash_tree_hex: Option<String>,
     pub(in crate::icrc) hash_tree_bytes: Option<usize>,
+}
+
+///
+/// IcrcCapabilitiesData
+///
+/// Source-layer generic ICRC ledger capability probe result.
+///
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcCapabilitiesData {
+    pub(in crate::icrc) supported_standards: Vec<IcrcTokenStandardRow>,
+    pub(in crate::icrc) capabilities: Vec<IcrcCapabilityRow>,
 }
 
 pub(in crate::icrc) fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {

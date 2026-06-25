@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.3.md](docs/changelog/0.3.md)
 
+- `0.3.8` adds `icq icrc capabilities <ledger-canister-id>` for live generic
+  ICRC endpoint probing. The report keeps each probed method independent so
+  unsupported optional endpoints appear as `unsupported` rows instead of
+  failing the whole command.
+
+  ```bash
+  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai
+  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai --format json
+  ```
+
 - `0.3.7` adds live generic ICRC-3 tip certificate inspection through
   `icrc3_get_tip_certificate`. Text output shows certificate and hash tree byte
   counts plus truncated hex previews when present; JSON keeps

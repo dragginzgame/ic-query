@@ -10,8 +10,9 @@ metadata queries.
 
 `icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
 version, subnet catalog lookup, node/provider/operator/data-center inventory,
-topology reports, deployed SNS reports, and ICRC ledger token, balance, and
-allowance, index, transaction history, block type, and archive reports.
+topology reports, deployed SNS reports, and ICRC ledger capabilities, token,
+balance, allowance, index, transaction history, block type, archive, and tip
+certificate reports.
 
 ## Install
 
@@ -39,7 +40,7 @@ icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq icrc [token|balance|allowance|index|transactions|block-types|archives|tip-certificate]
+icq icrc [capabilities|token|balance|allowance|index|transactions|block-types|archives|tip-certificate]
 icq sns [list|info|token|params|proposal|proposals|neurons]
 icq sns proposals [cache|refresh]
 icq sns neurons [cache|refresh]
@@ -60,6 +61,7 @@ commands are live-only, include the queried source endpoint in text and JSON
 reports, and support endpoint overrides with `--source-endpoint`:
 
 ```bash
+icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa

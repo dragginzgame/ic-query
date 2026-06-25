@@ -1,12 +1,13 @@
 use super::{
     commands::test_support::{
-        allowance_usage, archives_usage, balance_usage, block_types_usage, index_usage,
-        parse_allowance_options, parse_archives_options, parse_balance_options,
-        parse_block_types_options, parse_index_options, parse_tip_certificate_options,
-        parse_token_options, parse_transactions_options, root_usage, tip_certificate_usage,
-        token_usage, transactions_usage, try_parse_allowance_options, try_parse_archives_options,
-        try_parse_balance_options, try_parse_block_types_options, try_parse_index_options,
-        try_parse_tip_certificate_options, try_parse_token_options, try_parse_transactions_options,
+        allowance_usage, archives_usage, balance_usage, block_types_usage, capabilities_usage,
+        index_usage, parse_allowance_options, parse_archives_options, parse_balance_options,
+        parse_block_types_options, parse_capabilities_options, parse_index_options,
+        parse_tip_certificate_options, parse_token_options, parse_transactions_options, root_usage,
+        tip_certificate_usage, token_usage, transactions_usage, try_parse_allowance_options,
+        try_parse_archives_options, try_parse_balance_options, try_parse_block_types_options,
+        try_parse_capabilities_options, try_parse_index_options, try_parse_tip_certificate_options,
+        try_parse_token_options, try_parse_transactions_options,
     },
     ledger::{
         Icrc3ArchiveCallback, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
@@ -16,22 +17,23 @@ use super::{
     live::{
         IcrcSource, build_icrc_allowance_report_with_source,
         build_icrc_archives_report_with_source, build_icrc_balance_report_with_source,
-        build_icrc_block_types_report_with_source, build_icrc_index_report_with_source,
-        build_icrc_tip_certificate_report_with_source, build_icrc_token_report_with_source,
-        build_icrc_transactions_report_with_source,
+        build_icrc_block_types_report_with_source, build_icrc_capabilities_report_with_source,
+        build_icrc_index_report_with_source, build_icrc_tip_certificate_report_with_source,
+        build_icrc_token_report_with_source, build_icrc_transactions_report_with_source,
     },
     model::{
         IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchiveRow, IcrcArchivedBlocksRow,
         IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
-        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest, IcrcError,
-        IcrcIndexData, IcrcIndexRequest, IcrcTipCertificateData, IcrcTipCertificateRequest,
-        IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest, IcrcTokenStandardRow,
-        IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsRequest,
+        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest,
+        IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcError, IcrcIndexData,
+        IcrcIndexRequest, IcrcTipCertificateData, IcrcTipCertificateRequest, IcrcTokenData,
+        IcrcTokenMetadataRow, IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+        IcrcTransactionsData, IcrcTransactionsRequest,
     },
     text::{
         icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-        icrc_block_types_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
-        icrc_token_report_text, icrc_transactions_report_text,
+        icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
+        icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
     },
 };
 use crate::cli::common::OutputFormat;
@@ -256,6 +258,43 @@ impl IcrcSource for FixtureIcrcSource {
             hash_tree_bytes: Some(2),
         })
     }
+
+    fn fetch_capabilities(
+        &self,
+        request: &IcrcCapabilitiesRequest,
+    ) -> Result<IcrcCapabilitiesData, IcrcError> {
+        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+
+        Ok(IcrcCapabilitiesData {
+            supported_standards: vec![
+                IcrcTokenStandardRow {
+                    name: "ICRC-1".to_string(),
+                    url: "https://github.com/dfinity/ICRC-1".to_string(),
+                },
+                IcrcTokenStandardRow {
+                    name: "ICRC-3".to_string(),
+                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
+                },
+            ],
+            capabilities: vec![
+                IcrcCapabilityRow {
+                    capability: "ICRC-1 supported standards".to_string(),
+                    method: "icrc1_supported_standards".to_string(),
+                    status: "available".to_string(),
+                    details: Some("2 standard(s)".to_string()),
+                    error: None,
+                },
+                IcrcCapabilityRow {
+                    capability: "ICRC-3 tip certificate".to_string(),
+                    method: "icrc3_get_tip_certificate".to_string(),
+                    status: "unsupported".to_string(),
+                    details: Some("method not exported by target canister".to_string()),
+                    error: Some("Canister has no query method".to_string()),
+                },
+            ],
+        })
+    }
 }
 
 struct PanickingIcrcSource;
@@ -307,6 +346,13 @@ impl IcrcSource for PanickingIcrcSource {
     ) -> Result<IcrcTipCertificateData, IcrcError> {
         panic!("tip certificate source should not be called")
     }
+
+    fn fetch_capabilities(
+        &self,
+        _request: &IcrcCapabilitiesRequest,
+    ) -> Result<IcrcCapabilitiesData, IcrcError> {
+        panic!("capabilities source should not be called")
+    }
 }
 
 #[test]
@@ -323,6 +369,22 @@ fn token_options_parse_through_clap() {
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
     assert!(try_parse_token_options(&["not-a-principal"]).is_err());
+}
+
+#[test]
+fn capabilities_options_parse_through_clap() {
+    let options = parse_capabilities_options(&[
+        LEDGER_CANISTER_ID,
+        "--format",
+        "json",
+        "--source-endpoint",
+        SOURCE_ENDPOINT,
+    ]);
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+    assert!(try_parse_capabilities_options(&["not-a-principal"]).is_err());
 }
 
 #[test]
@@ -860,6 +922,44 @@ fn tip_certificate_report_builds_text_and_json_friendly_fields() {
 }
 
 #[test]
+fn capabilities_report_builds_text_and_json_friendly_fields() {
+    let request = IcrcCapabilitiesRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+    };
+
+    let report = build_icrc_capabilities_report_with_source(&request, &FixtureIcrcSource)
+        .expect("build ICRC capabilities report");
+
+    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.supported_standards.len(), 2);
+    assert_eq!(report.capabilities.len(), 2);
+    assert_eq!(report.capabilities[0].status, "available");
+    assert_eq!(report.capabilities[1].status, "unsupported");
+
+    let text = icrc_capabilities_report_text(&report);
+    assert!(text.contains("standard_count: 2"));
+    assert!(text.contains("capability_count: 2"));
+    assert!(text.contains("ICRC-1 supported standards"));
+    assert!(text.contains("icrc3_get_tip_certificate"));
+    assert!(text.contains("unsupported"));
+
+    let json = serde_json::to_value(&report).expect("serialize ICRC capabilities report");
+    assert_eq!(json["supported_standards"][0]["name"], json!("ICRC-1"));
+    assert_eq!(json["capabilities"][0]["status"], json!("available"));
+    assert_eq!(
+        json["capabilities"][1]["details"],
+        json!("method not exported by target canister")
+    );
+    assert_eq!(
+        json["capabilities"][1]["error"],
+        json!("Canister has no query method")
+    );
+}
+
+#[test]
 fn index_report_renders_index_error_when_not_set() {
     struct MissingIndexSource;
 
@@ -920,6 +1020,13 @@ fn index_report_renders_index_error_when_not_set() {
         ) -> Result<IcrcTipCertificateData, IcrcError> {
             panic!("tip certificate source should not be called")
         }
+
+        fn fetch_capabilities(
+            &self,
+            _request: &IcrcCapabilitiesRequest,
+        ) -> Result<IcrcCapabilitiesData, IcrcError> {
+            panic!("capabilities source should not be called")
+        }
     }
 
     let request = IcrcIndexRequest {
@@ -978,6 +1085,7 @@ fn invalid_allowance_subaccount_is_rejected_before_source_fetch() {
 fn usage_mentions_icrc_command_surface() {
     let root = root_usage();
     assert!(root.contains("Usage: icq icrc [COMMAND]"));
+    assert!(root.contains("capabilities"));
     assert!(root.contains("token"));
     assert!(root.contains("balance"));
     assert!(root.contains("allowance"));
@@ -991,6 +1099,11 @@ fn usage_mentions_icrc_command_surface() {
     assert!(token.contains("Usage: icq icrc token [OPTIONS] <ledger-canister-id>"));
     assert!(token.contains("--source-endpoint <url>"));
     assert!(token.contains("--format <text|json>"));
+
+    let capabilities = capabilities_usage();
+    assert!(capabilities.contains("Usage: icq icrc capabilities [OPTIONS] <ledger-canister-id>"));
+    assert!(capabilities.contains("--source-endpoint <url>"));
+    assert!(capabilities.contains("--format <text|json>"));
 
     let balance = balance_usage();
     assert!(balance.contains("Usage: icq icrc balance [OPTIONS] <ledger-canister-id> <principal>"));

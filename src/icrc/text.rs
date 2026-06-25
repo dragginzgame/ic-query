@@ -7,7 +7,8 @@
 use crate::{
     icrc::model::{
         IcrcAllowanceReport, IcrcArchivesReport, IcrcBalanceReport, IcrcBlockTypesReport,
-        IcrcIndexReport, IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionsReport,
+        IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcIndexReport, IcrcTipCertificateReport,
+        IcrcTokenReport, IcrcTransactionsReport,
     },
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
@@ -18,6 +19,7 @@ use crate::{
 
 const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 const ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT: usize = 160;
+const ICRC_CAPABILITY_DETAIL_TEXT_LIMIT: usize = 160;
 
 #[must_use]
 pub(in crate::icrc) fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
@@ -311,6 +313,54 @@ pub(in crate::icrc) fn icrc_tip_certificate_report_text(
     .join("\n")
 }
 
+#[must_use]
+pub(in crate::icrc) fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String {
+    let mut lines = vec![
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!("standard_count: {}", report.supported_standards.len()),
+        format!("capability_count: {}", report.capabilities.len()),
+        format!("fetched_at: {}", report.fetched_at),
+        format!("source_endpoint: {}", report.source_endpoint),
+    ];
+    if !report.supported_standards.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["STANDARD", "URL"],
+            &report
+                .supported_standards
+                .iter()
+                .map(|standard| [standard.name.clone(), standard.url.clone()])
+                .collect::<Vec<_>>(),
+            &[ColumnAlign::Left, ColumnAlign::Left],
+        ));
+    }
+    if !report.capabilities.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["CAPABILITY", "METHOD", "STATUS", "DETAIL"],
+            &report
+                .capabilities
+                .iter()
+                .map(|capability| {
+                    [
+                        capability.capability.clone(),
+                        capability.method.clone(),
+                        capability.status.clone(),
+                        capability_detail_text(capability),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+            ],
+        ));
+    }
+    lines.join("\n")
+}
+
 fn optional_usize_text(value: Option<usize>) -> String {
     value.map_or_else(|| "-".to_string(), |value| value.to_string())
 }
@@ -320,4 +370,9 @@ fn optional_truncated_text(value: Option<&String>, limit: usize) -> String {
         || "-".to_string(),
         |value| truncate_text_value(value, limit),
     )
+}
+
+fn capability_detail_text(row: &IcrcCapabilityRow) -> String {
+    let detail = row.details.as_ref().or(row.error.as_ref());
+    optional_truncated_text(detail, ICRC_CAPABILITY_DETAIL_TEXT_LIMIT)
 }
