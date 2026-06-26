@@ -1,3 +1,19 @@
+//! Reusable report models and helpers for Internet Computer metadata queries.
+//!
+//! The default feature set is empty. A dependency using
+//! `default-features = false` gets the pure report DTOs, renderers, and local
+//! parsing/resolution helpers that are intended to stay free of native
+//! live-call and CLI dependencies.
+//!
+//! This is a host/CLI dependency boundary, not a `no_std` promise. No-default
+//! builds are expected to compile for `wasm32-unknown-unknown` without
+//! `ic-agent`, Tokio, `futures`, or `clap`, but they may still use ordinary
+//! `std` types such as `String` and `Vec`.
+//!
+//! Enable `host` for native live-call adapters and runtime helpers. Enable
+//! `cli` for the family-level command adapters used by `ic-query-cli`; `cli`
+//! implies `host`.
+
 #[cfg(feature = "host")]
 mod cache_file;
 #[cfg(feature = "cli")]

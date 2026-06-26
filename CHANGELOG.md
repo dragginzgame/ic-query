@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.4` tightens the feature-boundary guard after the no-default library
+  surfaces were opened. The CI script now separately asserts that pure
+  no-default builds avoid CLI/live-call dependencies and that `host` without
+  `cli` still avoids `clap`; the README and crate docs also clarify that
+  no-default is a host/CLI dependency boundary, not a `no_std` promise.
+
 - `0.5.3` opens the pure subnet-catalog model, JSON, and resolver API under
   `--no-default-features` so downstream crates can validate catalog snapshots
   and resolve subnet/canister principals without host cache refresh or CLI
