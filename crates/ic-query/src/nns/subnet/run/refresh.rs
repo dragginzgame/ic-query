@@ -17,14 +17,16 @@ pub(super) fn run_catalog_refresh(args: Vec<OsString>) -> Result<(), NnsCommandE
     };
     let options = CatalogRefreshOptions::parse(args)?;
     let format = options.format;
-    let request = SubnetCatalogRefreshRequest {
-        cache: cache_request(&options.network)?,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        lock_stale_after_seconds: options.lock_stale_after_seconds,
-        dry_run: options.dry_run,
-        output_path: options.output_path,
-    };
+    let mut request = SubnetCatalogRefreshRequest::new(
+        cache_request(&options.network)?,
+        options.source_endpoint,
+        now_unix_secs()?,
+        options.lock_stale_after_seconds,
+    )
+    .with_dry_run(options.dry_run);
+    if let Some(output_path) = options.output_path {
+        request = request.with_output_path(output_path);
+    }
     let report = refresh_subnet_catalog(&request)?;
     write_text_or_json(format, &report, subnet_catalog_refresh_report_text)
 }

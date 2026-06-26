@@ -130,10 +130,7 @@ fn write_fixture_catalog(root: &Path) -> PathBuf {
 #[cfg(feature = "host")]
 #[must_use]
 fn host_cache_request(root: &Path) -> SubnetCatalogCacheRequest {
-    SubnetCatalogCacheRequest {
-        icp_root: root.to_path_buf(),
-        network: MAINNET_NETWORK.to_string(),
-    }
+    SubnetCatalogCacheRequest::new(root, MAINNET_NETWORK)
 }
 
 #[cfg(feature = "host")]
@@ -142,14 +139,14 @@ fn host_info_request(
     cache: &SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> SubnetCatalogInfoRequest {
-    SubnetCatalogInfoRequest {
-        cache: cache.clone(),
-        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
-        input: CANISTER_A.to_string(),
-        forced: Some(ResolveAs::Canister),
+    SubnetCatalogInfoRequest::new(
+        cache.clone(),
+        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+        CANISTER_A,
         now_unix_secs,
-        stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
-    }
+        DEFAULT_STALE_AFTER_SECONDS,
+    )
+    .with_forced(ResolveAs::Canister)
 }
 
 #[cfg(feature = "host")]
@@ -158,16 +155,15 @@ fn host_list_request(
     cache: &SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> SubnetCatalogListRequest {
-    SubnetCatalogListRequest {
-        cache: cache.clone(),
-        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+    SubnetCatalogListRequest::new(
+        cache.clone(),
+        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
         now_unix_secs,
-        stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
-        filters: SubnetCatalogFilters::default(),
-        show_ranges: true,
-        range_limit: 10,
-        range_offset: 0,
-    }
+        DEFAULT_STALE_AFTER_SECONDS,
+    )
+    .with_filters(SubnetCatalogFilters::default())
+    .with_show_ranges(true)
+    .with_range_limit(10)
 }
 
 #[cfg(feature = "host")]
@@ -176,14 +172,13 @@ fn host_refresh_request(
     cache: &SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> SubnetCatalogRefreshRequest {
-    SubnetCatalogRefreshRequest {
-        cache: cache.clone(),
-        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+    SubnetCatalogRefreshRequest::new(
+        cache.clone(),
+        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
         now_unix_secs,
-        lock_stale_after_seconds: DEFAULT_REFRESH_LOCK_STALE_SECONDS,
-        dry_run: true,
-        output_path: None,
-    }
+        DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+    )
+    .with_dry_run(true)
 }
 
 #[cfg(feature = "host")]

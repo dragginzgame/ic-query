@@ -27,9 +27,5 @@ where
 }
 
 fn cache_request(network: &str) -> Result<SubnetCatalogCacheRequest, NnsCommandError> {
-    let icp_root = command_icp_root()?;
-    Ok(SubnetCatalogCacheRequest {
-        icp_root,
-        network: network.to_string(),
-    })
+    Ok(SubnetCatalogCacheRequest::new(command_icp_root()?, network))
 }

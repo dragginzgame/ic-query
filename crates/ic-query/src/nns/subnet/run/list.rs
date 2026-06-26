@@ -19,16 +19,16 @@ pub(super) fn run_catalog_list(args: Vec<OsString>) -> Result<(), NnsCommandErro
     let options = CatalogListOptions::parse(args)?;
     let format = options.format;
     let verbose = options.verbose;
-    let request = SubnetCatalogListRequest {
-        cache: cache_request(&options.network)?,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
-        filters: options.filters,
-        show_ranges: options.show_ranges,
-        range_limit: options.range_limit,
-        range_offset: options.range_offset,
-    };
+    let request = SubnetCatalogListRequest::new(
+        cache_request(&options.network)?,
+        options.source_endpoint,
+        now_unix_secs()?,
+        DEFAULT_STALE_AFTER_SECONDS,
+    )
+    .with_filters(options.filters)
+    .with_show_ranges(options.show_ranges)
+    .with_range_limit(options.range_limit)
+    .with_range_offset(options.range_offset);
     let report = build_subnet_catalog_list_report(&request)?;
     write_text_or_json_verbose(
         format,

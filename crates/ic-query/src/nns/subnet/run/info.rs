@@ -18,14 +18,16 @@ pub(super) fn run_catalog_info(args: Vec<OsString>) -> Result<(), NnsCommandErro
     };
     let options = CatalogInfoOptions::parse(args)?;
     let format = options.format;
-    let request = SubnetCatalogInfoRequest {
-        cache: cache_request(&options.network)?,
-        source_endpoint: options.source_endpoint,
-        input: options.input,
-        forced: options.forced,
-        now_unix_secs: now_unix_secs()?,
-        stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
-    };
+    let mut request = SubnetCatalogInfoRequest::new(
+        cache_request(&options.network)?,
+        options.source_endpoint,
+        options.input,
+        now_unix_secs()?,
+        DEFAULT_STALE_AFTER_SECONDS,
+    );
+    if let Some(forced) = options.forced {
+        request = request.with_forced(forced);
+    }
     let report = build_subnet_catalog_info_report(&request)?;
     write_text_or_json(format, &report, subnet_catalog_info_report_text)
 }

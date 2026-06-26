@@ -16,27 +16,25 @@ use crate::{
 pub(in crate::nns::topology::report) fn subnet_catalog_refresh_request(
     request: &impl TopologyRefreshParts,
 ) -> SubnetCatalogRefreshRequest {
-    SubnetCatalogRefreshRequest {
-        cache: subnet_catalog_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        lock_stale_after_seconds: request.lock_stale_after_seconds(),
-        dry_run: request.dry_run(),
-        output_path: None,
-    }
+    SubnetCatalogRefreshRequest::new(
+        subnet_catalog_cache_request(request),
+        request.source_endpoint(),
+        request.now_unix_secs(),
+        request.lock_stale_after_seconds(),
+    )
+    .with_dry_run(request.dry_run())
 }
 
 pub(in crate::nns::topology::report) fn node_refresh_request(
     request: &impl TopologyRefreshParts,
 ) -> NnsNodeRefreshRequest {
-    NnsNodeRefreshRequest {
-        cache: node_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        lock_stale_after_seconds: request.lock_stale_after_seconds(),
-        dry_run: request.dry_run(),
-        output_path: None,
-    }
+    NnsNodeRefreshRequest::new(
+        node_cache_request(request),
+        request.source_endpoint(),
+        request.now_unix_secs(),
+        request.lock_stale_after_seconds(),
+    )
+    .with_dry_run(request.dry_run())
 }
 
 macro_rules! component_refresh_request {
@@ -44,14 +42,13 @@ macro_rules! component_refresh_request {
         pub(in crate::nns::topology::report) fn $name(
             request: &impl TopologyRefreshParts,
         ) -> $request {
-            $request {
-                cache: $cache_request(request),
-                source_endpoint: request.source_endpoint().to_string(),
-                now_unix_secs: request.now_unix_secs(),
-                lock_stale_after_seconds: request.lock_stale_after_seconds(),
-                dry_run: request.dry_run(),
-                output_path: None,
-            }
+            <$request>::new(
+                $cache_request(request),
+                request.source_endpoint(),
+                request.now_unix_secs(),
+                request.lock_stale_after_seconds(),
+            )
+            .with_dry_run(request.dry_run())
         }
     };
 }

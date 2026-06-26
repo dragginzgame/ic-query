@@ -7,36 +7,32 @@ use super::{
 };
 use crate::{
     nns::data_center::report::NnsDataCenterListRequest,
-    nns::node::report::{NnsNodeListFilters, NnsNodeListRequest},
+    nns::node::report::NnsNodeListRequest,
     nns::node_operator::report::NnsNodeOperatorListRequest,
     nns::node_provider::report::NnsNodeProviderListRequest,
-    subnet_catalog::{DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogFilters, SubnetCatalogListRequest},
+    subnet_catalog::{DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogListRequest},
 };
 
 pub(in crate::nns::topology::report) fn subnet_catalog_list_request(
     request: &impl TopologyRequestParts,
 ) -> SubnetCatalogListRequest {
-    SubnetCatalogListRequest {
-        cache: subnet_catalog_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
-        filters: SubnetCatalogFilters::default(),
-        show_ranges: false,
-        range_limit: 1,
-        range_offset: 0,
-    }
+    SubnetCatalogListRequest::new(
+        subnet_catalog_cache_request(request),
+        request.source_endpoint(),
+        request.now_unix_secs(),
+        DEFAULT_STALE_AFTER_SECONDS,
+    )
+    .with_range_limit(1)
 }
 
 pub(in crate::nns::topology::report) fn node_list_request(
     request: &impl TopologyRequestParts,
 ) -> NnsNodeListRequest {
-    NnsNodeListRequest {
-        cache: node_cache_request(request),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-        filters: NnsNodeListFilters::default(),
-    }
+    NnsNodeListRequest::new(
+        node_cache_request(request),
+        request.source_endpoint(),
+        request.now_unix_secs(),
+    )
 }
 
 macro_rules! component_list_request {
@@ -44,11 +40,11 @@ macro_rules! component_list_request {
         pub(in crate::nns::topology::report) fn $name(
             request: &impl TopologyRequestParts,
         ) -> $request {
-            $request {
-                cache: $cache_request(request),
-                source_endpoint: request.source_endpoint().to_string(),
-                now_unix_secs: request.now_unix_secs(),
-            }
+            <$request>::new(
+                $cache_request(request),
+                request.source_endpoint(),
+                request.now_unix_secs(),
+            )
         }
     };
 }

@@ -21,6 +21,16 @@ pub struct SubnetCatalogCacheRequest {
     pub network: String,
 }
 
+impl SubnetCatalogCacheRequest {
+    #[must_use]
+    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+        Self {
+            icp_root: icp_root.into(),
+            network: network.into(),
+        }
+    }
+}
+
 ///
 /// CachedSubnetCatalog
 ///
@@ -81,14 +91,12 @@ pub fn load_or_refresh_subnet_catalog_with_source(
         source_endpoint,
         || load_cached_subnet_catalog(request),
         || {
-            let refresh_request = SubnetCatalogRefreshRequest {
-                cache: request.clone(),
-                source_endpoint: source_endpoint.to_string(),
+            let refresh_request = SubnetCatalogRefreshRequest::new(
+                request.clone(),
+                source_endpoint,
                 now_unix_secs,
-                lock_stale_after_seconds: DEFAULT_REFRESH_LOCK_STALE_SECONDS,
-                dry_run: false,
-                output_path: None,
-            };
+                DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+            );
             refresh_subnet_catalog_with_source(&refresh_request, source).map(|_| ())
         },
         |err| match err {

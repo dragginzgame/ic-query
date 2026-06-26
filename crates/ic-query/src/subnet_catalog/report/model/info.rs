@@ -29,6 +29,32 @@ pub struct SubnetCatalogInfoRequest {
     pub stale_after_seconds: u64,
 }
 
+impl SubnetCatalogInfoRequest {
+    #[must_use]
+    pub fn new(
+        cache: SubnetCatalogCacheRequest,
+        source_endpoint: impl Into<String>,
+        input: impl Into<String>,
+        now_unix_secs: u64,
+        stale_after_seconds: u64,
+    ) -> Self {
+        Self {
+            cache,
+            source_endpoint: source_endpoint.into(),
+            input: input.into(),
+            forced: None,
+            now_unix_secs,
+            stale_after_seconds,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_forced(mut self, forced: ResolveAs) -> Self {
+        self.forced = Some(forced);
+        self
+    }
+}
+
 ///
 /// SubnetCatalogInfoReport
 ///

@@ -56,12 +56,13 @@ Native tools that want the same subnet catalog cache/load behavior as
 ic-query = { version = "0.5", default-features = false, features = ["host"] }
 ```
 
-The `ic_query::subnet_catalog` host API exposes cache requests,
-`load_cached_subnet_catalog`, `load_or_refresh_subnet_catalog`, cache path
-helpers, the default mainnet endpoint, subnet catalog list/info/refresh report
-DTOs, report builders, and text renderers. Callers can then use the same
-cache-backed report path as `icq nns subnet list`, `icq nns subnet info`, and
-`icq nns subnet refresh` without spawning the `icq` executable.
+The `ic_query::subnet_catalog` host API exposes cache/list/info/refresh
+request constructors, `load_cached_subnet_catalog`,
+`load_or_refresh_subnet_catalog`, cache path helpers, the default mainnet
+endpoint, subnet catalog report DTOs, report builders, and text renderers.
+Callers can then use the same cache-backed report path as
+`icq nns subnet list`, `icq nns subnet info`, and `icq nns subnet refresh`
+without spawning the `icq` executable.
 
 The `ic_query::nns::{node,data_center,node_provider,node_operator}` host APIs
 also expose list/info/cache/refresh request constructors, cache and

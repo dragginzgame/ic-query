@@ -24,10 +24,7 @@ macro_rules! nns_leaf_cache_request {
 pub(in crate::nns::topology::report) fn subnet_catalog_cache_request(
     request: &impl TopologyRequestParts,
 ) -> SubnetCatalogCacheRequest {
-    SubnetCatalogCacheRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-    }
+    SubnetCatalogCacheRequest::new(request.icp_root(), request.network())
 }
 
 nns_leaf_cache_request!(node_cache_request, NnsNodeCacheRequest);

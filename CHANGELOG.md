@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.20` improves subnet catalog request ergonomics for downstream library
+  users. Cache, list, info, and refresh requests now have public constructors
+  and builder-style setters for filters, range display, forced resolution,
+  dry-run, and output controls; subnet CLI and topology adapters use the same
+  constructors.
+
 - `0.5.19` improves NNS inventory request ergonomics for downstream library
   users. Node, data-center, node-provider, and node-operator list/info/refresh
   requests now have public constructors; node list requests also have
