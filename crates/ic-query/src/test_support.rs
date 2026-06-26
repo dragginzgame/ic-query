@@ -15,6 +15,7 @@ pub fn temp_dir(prefix: &str) -> PathBuf {
     std::env::temp_dir().join(format!("{prefix}-{}-{unique}-{count}", std::process::id()))
 }
 
+#[cfg(feature = "cli")]
 pub fn assert_snapshot(name: &str, actual: &str, expected: &str) {
     assert_eq!(actual, expected, "{name} snapshot changed");
 }

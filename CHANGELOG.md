@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.23` tightens the final library-boundary cleanup for the 0.5 line.
+  CLI-only stdout/project-root helpers now compile only with `cli`, CLI
+  duration parsing is no longer included in host-only downstream builds, and
+  the generic NNS leaf refresh constructor is limited to CLI dispatch paths
+  while host refresh accessors remain available.
+
 - `0.5.22` refreshes downstream library documentation. The README now keeps a
   shorter feature-boundary summary and links to a dedicated library usage guide
   with canic-style migration notes, host/no-default dependency guidance, and

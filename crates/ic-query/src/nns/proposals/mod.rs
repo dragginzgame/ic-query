@@ -48,7 +48,7 @@ pub(in crate::nns) use commands::{
 pub(in crate::nns) use options::{
     NnsProposalCacheOptions, NnsProposalListOptions, NnsProposalOptions, NnsProposalRefreshOptions,
 };
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "cli"))]
 pub(in crate::nns) use report::{
     NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
     NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,

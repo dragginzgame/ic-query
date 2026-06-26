@@ -6,6 +6,6 @@ mod network;
 #[macro_use]
 mod reports;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "cli"))]
 #[macro_use]
 mod test_helpers;

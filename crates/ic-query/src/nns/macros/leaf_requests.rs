@@ -20,6 +20,7 @@ macro_rules! impl_nns_leaf_cache_and_refresh_requests {
         impl crate::nns::leaf::NnsLeafRefreshRequest for $refresh {
             type Cache = $cache;
 
+            #[cfg(feature = "cli")]
             fn from_leaf_parts(
                 cache: Self::Cache,
                 source_endpoint: String,

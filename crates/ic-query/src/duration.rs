@@ -7,7 +7,7 @@
 //! Boundary: keeps human duration syntax centralized so commands and reports do not
 //! each invent their own parsing or display conventions.
 
-#[cfg(feature = "host")]
+#[cfg(any(feature = "cli", test))]
 use thiserror::Error as ThisError;
 
 ///
@@ -16,7 +16,7 @@ use thiserror::Error as ThisError;
 /// Error returned when a CLI duration value cannot be parsed into seconds.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(any(feature = "cli", test))]
 #[derive(Debug, ThisError)]
 pub enum DurationParseError {
     #[error("invalid duration {value:?}; use positive seconds or a value ending in s, m, h, or d")]
@@ -26,7 +26,7 @@ pub enum DurationParseError {
 /// Parses a positive duration string into seconds.
 ///
 /// Accepts bare seconds or integer values ending in `s`, `m`, `h`, or `d`.
-#[cfg(feature = "host")]
+#[cfg(any(feature = "cli", test))]
 pub fn parse_duration_seconds(value: &str) -> Result<u64, DurationParseError> {
     let (number, multiplier) = match value.as_bytes().last().copied() {
         Some(b's') => (&value[..value.len() - 1], 1),

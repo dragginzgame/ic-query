@@ -44,6 +44,14 @@ pub(in crate::nns) use model::{
     NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL,
     NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL,
 };
+#[cfg(all(test, feature = "cli"))]
+pub(in crate::nns) use model::{
+    NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
+    NNS_PROPOSAL_SORT_NONE_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
+    NNS_PROPOSAL_SORT_TALLY_TIME_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
+    NNS_PROPOSAL_SORT_VOTING_POWER_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+    NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+};
 pub use model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow,
@@ -57,15 +65,6 @@ pub use text::{
     nns_proposal_refresh_report_text,
 };
 pub use text::{nns_proposal_list_report_text, nns_proposal_report_text};
-
-#[cfg(all(test, feature = "host"))]
-pub(in crate::nns) use model::{
-    NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
-    NNS_PROPOSAL_SORT_NONE_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
-    NNS_PROPOSAL_SORT_TALLY_TIME_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
-    NNS_PROPOSAL_SORT_VOTING_POWER_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-    NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-};
 
 #[cfg(all(test, feature = "host"))]
 mod tests;

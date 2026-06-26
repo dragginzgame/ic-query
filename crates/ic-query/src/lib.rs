@@ -25,11 +25,11 @@ mod hex;
 mod ic_registry;
 pub mod icrc;
 pub mod nns;
-#[cfg(feature = "host")]
+#[cfg(feature = "cli")]
 mod output;
 #[cfg(feature = "host")]
 mod progress;
-#[cfg(feature = "host")]
+#[cfg(feature = "cli")]
 mod project;
 #[cfg(feature = "host")]
 mod runtime;

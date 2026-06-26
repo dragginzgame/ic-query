@@ -4,7 +4,9 @@
 //! Does not own: clap construction, report rendering, or cache file IO.
 //! Boundary: defines the traits used by data-center, node, operator, and provider commands.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(feature = "cli")]
+use std::path::PathBuf;
 
 ///
 /// NnsLeafCommandSpec
@@ -86,6 +88,7 @@ pub(in crate::nns) trait NnsLeafInfoRequest {
 pub(in crate::nns) trait NnsLeafRefreshRequest {
     type Cache: NnsLeafCacheRequest;
 
+    #[cfg(feature = "cli")]
     fn from_leaf_parts(
         cache: Self::Cache,
         source_endpoint: String,

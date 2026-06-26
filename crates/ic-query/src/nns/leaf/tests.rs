@@ -1,4 +1,4 @@
-use super::{NnsLeafCacheRequest, NnsLeafRefreshRequest, write_nns_leaf_json_refresh_cache};
+use super::{NnsLeafCacheRequest, write_nns_leaf_json_refresh_cache};
 use crate::test_support::temp_dir;
 use serde::Serialize;
 use std::{fs, path::PathBuf};
@@ -112,12 +112,12 @@ fn fixture_refresh_request(
     dry_run: bool,
     output_path: Option<PathBuf>,
 ) -> FixtureRefreshRequest {
-    FixtureRefreshRequest::from_leaf_parts(
-        FixtureCacheRequest::from_root_network(root, "ic"),
-        "https://icp-api.io".to_string(),
-        1,
-        60,
+    FixtureRefreshRequest {
+        cache: FixtureCacheRequest::from_root_network(root, "ic"),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1,
+        lock_stale_after_seconds: 60,
         dry_run,
         output_path,
-    )
+    }
 }
