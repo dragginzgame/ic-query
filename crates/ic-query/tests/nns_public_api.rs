@@ -395,21 +395,16 @@ fn public_nns_inventory_host_api_reads_cached_reports_without_cli() {
 
 #[test]
 fn public_nns_proposal_api_is_constructible_and_renderable() {
-    let request = NnsProposalListRequest {
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-        limit: 25,
-        before_proposal_id: Some(132_500),
-        status: NnsProposalStatusFilter::Executed,
-        reward_status: NnsProposalRewardStatusFilter::Settled,
-        topic: NnsProposalTopicFilter::Governance,
-        proposer_neuron_id: Some(12_345),
-        query: Some("subnet".to_string()),
-        sort: NnsProposalListSort::TallyTime,
-        sort_direction: NnsProposalSortDirection::Desc,
-        verbose: true,
-    };
+    let request = NnsProposalListRequest::new("ic", "https://icp-api.io", 1_700_000_000, 25)
+        .with_before_proposal_id(132_500)
+        .with_status(NnsProposalStatusFilter::Executed)
+        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
+        .with_topic(NnsProposalTopicFilter::Governance)
+        .with_proposer_neuron_id(12_345)
+        .with_query("subnet")
+        .with_sort(NnsProposalListSort::TallyTime)
+        .with_sort_direction(NnsProposalSortDirection::Desc)
+        .with_verbose(true);
 
     assert_eq!(request.status.as_str(), "executed");
     assert_eq!(request.reward_status.as_str(), "settled");
@@ -452,14 +447,9 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     assert!(list_text.contains("proposal_details:"));
     assert!(list_text.contains("title: Upgrade subnet"));
 
-    let detail_request = NnsProposalRequest {
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-        proposal_id: 132_411,
-        show_ballots: true,
-        verbose: false,
-    };
+    let detail_request =
+        NnsProposalRequest::new("ic", "https://icp-api.io", 1_700_000_000, 132_411)
+            .with_show_ballots(true);
     let detail_report = NnsProposalReport {
         schema_version: 1,
         network: detail_request.network,
@@ -732,29 +722,26 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
 
     let cache_list_request = NnsProposalCacheListRequest::new(&root, "ic");
     let cache_status_request = NnsProposalCacheStatusRequest::new(&root, "ic");
-    let list_request = NnsProposalListRequest {
-        network: "ic".to_string(),
-        source_endpoint: DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_000_000,
-        limit: 25,
-        before_proposal_id: None,
-        status: NnsProposalStatusFilter::Executed,
-        reward_status: NnsProposalRewardStatusFilter::Settled,
-        topic: NnsProposalTopicFilter::Governance,
-        proposer_neuron_id: Some(12_345),
-        query: Some("subnet".to_string()),
-        sort: NnsProposalListSort::TallyTime,
-        sort_direction: NnsProposalSortDirection::Desc,
-        verbose: false,
-    };
-    let detail_request = NnsProposalRequest {
-        network: "ic".to_string(),
-        source_endpoint: DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_000_000,
-        proposal_id: 132_411,
-        show_ballots: true,
-        verbose: false,
-    };
+    let list_request = NnsProposalListRequest::new(
+        "ic",
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        1_700_000_000,
+        25,
+    )
+    .with_status(NnsProposalStatusFilter::Executed)
+    .with_reward_status(NnsProposalRewardStatusFilter::Settled)
+    .with_topic(NnsProposalTopicFilter::Governance)
+    .with_proposer_neuron_id(12_345)
+    .with_query("subnet")
+    .with_sort(NnsProposalListSort::TallyTime)
+    .with_sort_direction(NnsProposalSortDirection::Desc);
+    let detail_request = NnsProposalRequest::new(
+        "ic",
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        1_700_000_000,
+        132_411,
+    )
+    .with_show_ballots(true);
     let refresh_request = NnsProposalRefreshRequest::new(
         &root,
         "ic",

@@ -56,21 +56,29 @@ where
 fn run_nns_proposal_list_with_options(
     options: NnsProposalListOptions,
 ) -> Result<(), NnsCommandError> {
-    let request = NnsProposalListRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        limit: options.limit,
-        before_proposal_id: options.before_proposal_id,
-        status: options.status,
-        reward_status: options.reward_status,
-        topic: options.topic,
-        proposer_neuron_id: options.proposer_neuron_id,
-        query: options.query,
-        sort: options.sort,
-        sort_direction: options.sort_direction,
-        verbose: options.verbose,
-    };
+    let mut request = NnsProposalListRequest::new(
+        options.network,
+        options.source_endpoint,
+        now_unix_secs()?,
+        options.limit,
+    )
+    .with_status(options.status)
+    .with_reward_status(options.reward_status)
+    .with_topic(options.topic)
+    .with_sort(options.sort)
+    .with_sort_direction(options.sort_direction)
+    .with_verbose(options.verbose);
+
+    if let Some(before_proposal_id) = options.before_proposal_id {
+        request = request.with_before_proposal_id(before_proposal_id);
+    }
+    if let Some(proposer_neuron_id) = options.proposer_neuron_id {
+        request = request.with_proposer_neuron_id(proposer_neuron_id);
+    }
+    if let Some(query) = options.query {
+        request = request.with_query(query);
+    }
+
     let report = build_nns_proposal_list_report_from_cache(&request, &command_icp_root()?)?
         .map_or_else(|| build_nns_proposal_list_report(&request), Ok)?;
     write_text_or_json(options.format, &report, nns_proposal_list_report_text)
@@ -109,14 +117,14 @@ where
 }
 
 fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
-    let request = NnsProposalRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        proposal_id: options.proposal_id,
-        show_ballots: options.show_ballots,
-        verbose: options.verbose,
-    };
+    let request = NnsProposalRequest::new(
+        options.network,
+        options.source_endpoint,
+        now_unix_secs()?,
+        options.proposal_id,
+    )
+    .with_show_ballots(options.show_ballots)
+    .with_verbose(options.verbose);
     let report = build_nns_proposal_report_from_cache(&request, &command_icp_root()?)?
         .map_or_else(|| build_nns_proposal_report(&request), Ok)?;
     write_text_or_json(options.format, &report, nns_proposal_report_text)
@@ -131,14 +139,14 @@ where
         return Ok(());
     };
     let options = NnsProposalRefreshOptions::parse(args)?;
-    let request = NnsProposalRefreshRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        icp_root: command_icp_root()?,
-        page_size: options.page_size,
-        max_pages: options.max_pages,
-    };
+    let request = NnsProposalRefreshRequest::new(
+        command_icp_root()?,
+        options.network,
+        options.source_endpoint,
+        now_unix_secs()?,
+        options.page_size,
+    )
+    .with_max_pages(options.max_pages);
     let report = refresh_nns_proposal_cache(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_refresh_report_text)
 }
@@ -173,10 +181,7 @@ where
         return Ok(());
     };
     let options = NnsProposalCacheOptions::parse_list(args)?;
-    let request = NnsProposalCacheListRequest {
-        network: options.network,
-        icp_root: command_icp_root()?,
-    };
+    let request = NnsProposalCacheListRequest::new(command_icp_root()?, options.network);
     let report = build_nns_proposal_cache_list_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
 }
@@ -192,10 +197,7 @@ where
         return Ok(());
     };
     let options = NnsProposalCacheOptions::parse_status(args)?;
-    let request = NnsProposalCacheStatusRequest {
-        network: options.network,
-        icp_root: command_icp_root()?,
-    };
+    let request = NnsProposalCacheStatusRequest::new(command_icp_root()?, options.network);
     let report = build_nns_proposal_cache_status_report(&request)?;
     write_text_or_json(
         options.format,
