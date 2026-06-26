@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.19` improves NNS inventory request ergonomics for downstream library
+  users. Node, data-center, node-provider, and node-operator list/info/refresh
+  requests now have public constructors; node list requests also have
+  builder-style filter setters, and the CLI construction paths use the public
+  constructors.
+
 - `0.5.18` improves NNS proposal request ergonomics for downstream library
   users. NNS proposal list/detail requests now have public constructors and
   builder-style setters for filters, sort controls, verbosity, and ballot

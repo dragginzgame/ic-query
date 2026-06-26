@@ -29,6 +29,21 @@ pub struct NnsNodeOperatorListRequest {
     pub now_unix_secs: u64,
 }
 
+impl NnsNodeOperatorListRequest {
+    #[must_use]
+    pub fn new(
+        cache: NnsNodeOperatorCacheRequest,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            cache,
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+        }
+    }
+}
+
 ///
 /// NnsNodeOperatorInfoRequest
 ///
@@ -38,6 +53,23 @@ pub struct NnsNodeOperatorInfoRequest {
     pub source_endpoint: String,
     pub input: String,
     pub now_unix_secs: u64,
+}
+
+impl NnsNodeOperatorInfoRequest {
+    #[must_use]
+    pub fn new(
+        cache: NnsNodeOperatorCacheRequest,
+        source_endpoint: impl Into<String>,
+        input: impl Into<String>,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            cache,
+            source_endpoint: source_endpoint.into(),
+            input: input.into(),
+            now_unix_secs,
+        }
+    }
 }
 
 ///
@@ -52,6 +84,38 @@ pub struct NnsNodeOperatorRefreshRequest {
     pub lock_stale_after_seconds: u64,
     pub dry_run: bool,
     pub output_path: Option<PathBuf>,
+}
+
+#[cfg(feature = "host")]
+impl NnsNodeOperatorRefreshRequest {
+    #[must_use]
+    pub fn new(
+        cache: NnsNodeOperatorCacheRequest,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        lock_stale_after_seconds: u64,
+    ) -> Self {
+        Self {
+            cache,
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            lock_stale_after_seconds,
+            dry_run: false,
+            output_path: None,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
+        self.dry_run = dry_run;
+        self
+    }
+
+    #[must_use]
+    pub fn with_output_path(mut self, output_path: impl Into<PathBuf>) -> Self {
+        self.output_path = Some(output_path.into());
+        self
+    }
 }
 
 #[cfg(feature = "host")]

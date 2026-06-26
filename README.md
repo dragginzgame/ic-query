@@ -64,9 +64,9 @@ cache-backed report path as `icq nns subnet list`, `icq nns subnet info`, and
 `icq nns subnet refresh` without spawning the `icq` executable.
 
 The `ic_query::nns::{node,data_center,node_provider,node_operator}` host APIs
-also expose cache request constructors, cache and refresh-lock path helpers,
-cache-backed list/info builders, refresh-lock defaults, refresh requests,
-refresh execution, and text renderers without requiring `cli`.
+also expose list/info/cache/refresh request constructors, cache and
+refresh-lock path helpers, cache-backed list/info builders, refresh-lock
+defaults, refresh execution, and text renderers without requiring `cli`.
 
 The `ic_query::nns::proposals` API exposes NNS proposal list/detail request
 constructors, report DTOs, and text renderers without requiring `host`. With

@@ -21,12 +21,12 @@ pub(super) fn run_node_list(args: Vec<OsString>) -> Result<(), NnsCommandError> 
         return Ok(());
     };
     let options = node_list_options(args)?;
-    let request = NnsNodeListRequest {
-        cache: cache_request(&options.network)?,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        filters: options.filters,
-    };
+    let request = NnsNodeListRequest::new(
+        cache_request(&options.network)?,
+        options.source_endpoint,
+        now_unix_secs()?,
+    )
+    .with_filters(options.filters);
     let report = build_nns_node_list_report(&request)?;
     write_text_or_json_verbose(
         options.format,

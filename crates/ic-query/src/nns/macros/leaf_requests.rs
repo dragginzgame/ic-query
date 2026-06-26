@@ -72,11 +72,7 @@ macro_rules! impl_cached_leaf_cli_requests {
                 source_endpoint: String,
                 now_unix_secs: u64,
             ) -> Self {
-                Self {
-                    cache,
-                    source_endpoint,
-                    now_unix_secs,
-                }
+                Self::new(cache, source_endpoint, now_unix_secs)
             }
         }
 
@@ -89,12 +85,7 @@ macro_rules! impl_cached_leaf_cli_requests {
                 input: String,
                 now_unix_secs: u64,
             ) -> Self {
-                Self {
-                    cache,
-                    source_endpoint,
-                    input,
-                    now_unix_secs,
-                }
+                Self::new(cache, source_endpoint, input, now_unix_secs)
             }
         }
     };

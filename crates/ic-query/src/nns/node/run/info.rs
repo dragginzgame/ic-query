@@ -15,12 +15,12 @@ pub(super) fn run_node_info(args: Vec<OsString>) -> Result<(), NnsCommandError> 
         return Ok(());
     };
     let options = node_info_options(args)?;
-    let request = NnsNodeInfoRequest {
-        cache: cache_request(&options.network)?,
-        source_endpoint: options.source_endpoint,
-        input: options.input,
-        now_unix_secs: now_unix_secs()?,
-    };
+    let request = NnsNodeInfoRequest::new(
+        cache_request(&options.network)?,
+        options.source_endpoint,
+        options.input,
+        now_unix_secs()?,
+    );
     let report = build_nns_node_info_report(&request)?;
     write_text_or_json(options.format, &report, nns_node_info_report_text)
 }

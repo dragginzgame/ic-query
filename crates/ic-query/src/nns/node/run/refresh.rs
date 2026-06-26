@@ -16,14 +16,16 @@ pub(super) fn run_node_refresh(args: Vec<OsString>) -> Result<(), NnsCommandErro
     };
     let options = node_refresh_options(args)?;
     let format = options.format;
-    let request = NnsNodeRefreshRequest {
-        cache: cache_request(&options.network)?,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        lock_stale_after_seconds: options.lock_stale_after_seconds,
-        dry_run: options.dry_run,
-        output_path: options.output_path,
-    };
+    let mut request = NnsNodeRefreshRequest::new(
+        cache_request(&options.network)?,
+        options.source_endpoint,
+        now_unix_secs()?,
+        options.lock_stale_after_seconds,
+    )
+    .with_dry_run(options.dry_run);
+    if let Some(output_path) = options.output_path {
+        request = request.with_output_path(output_path);
+    }
     let report = refresh_nns_node_report(&request)?;
     write_text_or_json(format, &report, nns_node_refresh_report_text)
 }

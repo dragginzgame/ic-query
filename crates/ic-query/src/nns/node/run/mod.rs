@@ -3,11 +3,7 @@ mod list;
 mod refresh;
 
 use super::commands::NODE_SPEC;
-use crate::nns::{
-    NnsCommandError, command_icp_root,
-    leaf::{self, NnsLeafCacheRequest},
-    node::report::NnsNodeCacheRequest,
-};
+use crate::nns::{NnsCommandError, command_icp_root, leaf, node::report::NnsNodeCacheRequest};
 use std::ffi::OsString;
 
 pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
@@ -24,6 +20,5 @@ where
 }
 
 fn cache_request(network: &str) -> Result<NnsNodeCacheRequest, NnsCommandError> {
-    let icp_root = command_icp_root()?;
-    Ok(NnsNodeCacheRequest::from_root_network(&icp_root, network))
+    Ok(NnsNodeCacheRequest::new(command_icp_root()?, network))
 }

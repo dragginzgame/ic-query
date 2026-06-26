@@ -30,6 +30,58 @@ pub struct NnsNodeListRequest {
     pub filters: NnsNodeListFilters,
 }
 
+impl NnsNodeListRequest {
+    #[must_use]
+    pub fn new(
+        cache: NnsNodeCacheRequest,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            cache,
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            filters: NnsNodeListFilters::default(),
+        }
+    }
+
+    #[must_use]
+    pub fn with_filters(mut self, filters: NnsNodeListFilters) -> Self {
+        self.filters = filters;
+        self
+    }
+
+    #[must_use]
+    pub fn with_subnet(mut self, subnet: impl Into<String>) -> Self {
+        self.filters.subnet = Some(subnet.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_subnet_kind(mut self, subnet_kind: impl Into<String>) -> Self {
+        self.filters.subnet_kind = Some(subnet_kind.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_data_center(mut self, data_center: impl Into<String>) -> Self {
+        self.filters.data_center = Some(data_center.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_node_provider(mut self, node_provider: impl Into<String>) -> Self {
+        self.filters.node_provider = Some(node_provider.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_node_operator(mut self, node_operator: impl Into<String>) -> Self {
+        self.filters.node_operator = Some(node_operator.into());
+        self
+    }
+}
+
 ///
 /// NnsNodeInfoRequest
 ///
@@ -39,6 +91,23 @@ pub struct NnsNodeInfoRequest {
     pub source_endpoint: String,
     pub input: String,
     pub now_unix_secs: u64,
+}
+
+impl NnsNodeInfoRequest {
+    #[must_use]
+    pub fn new(
+        cache: NnsNodeCacheRequest,
+        source_endpoint: impl Into<String>,
+        input: impl Into<String>,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            cache,
+            source_endpoint: source_endpoint.into(),
+            input: input.into(),
+            now_unix_secs,
+        }
+    }
 }
 
 ///
@@ -53,6 +122,38 @@ pub struct NnsNodeRefreshRequest {
     pub lock_stale_after_seconds: u64,
     pub dry_run: bool,
     pub output_path: Option<PathBuf>,
+}
+
+#[cfg(feature = "host")]
+impl NnsNodeRefreshRequest {
+    #[must_use]
+    pub fn new(
+        cache: NnsNodeCacheRequest,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        lock_stale_after_seconds: u64,
+    ) -> Self {
+        Self {
+            cache,
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            lock_stale_after_seconds,
+            dry_run: false,
+            output_path: None,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
+        self.dry_run = dry_run;
+        self
+    }
+
+    #[must_use]
+    pub fn with_output_path(mut self, output_path: impl Into<PathBuf>) -> Self {
+        self.output_path = Some(output_path.into());
+        self
+    }
 }
 
 #[cfg(feature = "host")]
