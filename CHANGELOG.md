@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.17` improves SNS request ergonomics for downstream library users. SNS
+  list, lookup, proposal list/detail, and neuron list requests now have public
+  constructors and builder-style setters for optional view and cache controls.
+
 - `0.5.16` improves the generic ICRC native library path. Downstream crates
   now get public constructors for every generic ICRC request DTO, a public
   default ICRC source endpoint constant, and host-without-CLI smoke coverage

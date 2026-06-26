@@ -20,3 +20,32 @@ pub struct SnsListRequest {
     pub verbose: bool,
     pub sort: SnsListSort,
 }
+
+impl SnsListRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            verbose: false,
+            sort: SnsListSort::default(),
+        }
+    }
+
+    #[must_use]
+    pub const fn with_verbose(mut self, verbose: bool) -> Self {
+        self.verbose = verbose;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_sort(mut self, sort: SnsListSort) -> Self {
+        self.sort = sort;
+        self
+    }
+}

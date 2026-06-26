@@ -19,14 +19,14 @@ use ic_query::sns::{
 };
 use ic_query::sns::{
     SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsInfoRequest,
-    SnsListReport, SnsListRequest, SnsListSort, SnsNeuronPermissionList, SnsParamsReport,
-    SnsParamsRequest, SnsProposalBallotRow, SnsProposalEligibilityFilter, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
-    SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest,
-    SnsTokenStandardRow, SnsVotingRewardsParameters, sns_info_report_text, sns_list_report_text,
-    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
-    sns_token_report_text,
+    SnsListReport, SnsListRequest, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList,
+    SnsParamsReport, SnsParamsRequest, SnsProposalBallotRow, SnsProposalEligibilityFilter,
+    SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest, SnsProposalRow,
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
+    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
+    SnsTokenRequest, SnsTokenStandardRow, SnsVotingRewardsParameters, sns_info_report_text,
+    sns_list_report_text, sns_params_report_text, sns_proposal_report_text,
+    sns_proposals_report_text, sns_token_report_text,
 };
 use serde_json::json;
 #[cfg(feature = "host")]
@@ -59,6 +59,55 @@ type SnsNeuronsRefreshBuilder =
 #[cfg(feature = "host")]
 type SnsProposalsRefreshBuilder =
     fn(&SnsProposalsRefreshRequest) -> Result<SnsProposalsRefreshReport, SnsHostError>;
+
+#[test]
+fn public_sns_request_constructors_set_expected_fields() {
+    let list = SnsListRequest::new("ic", "https://icp-api.io", 1_700_000_000)
+        .with_verbose(true)
+        .with_sort(SnsListSort::Name);
+    assert_eq!(list.network, "ic");
+    assert_eq!(list.sort, SnsListSort::Name);
+    assert!(list.verbose);
+
+    let lookup = SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1");
+    assert_eq!(lookup.input, "1");
+    let token = SnsTokenRequest::new(
+        "ic",
+        "https://icp-api.io",
+        1_700_000_000,
+        "be2us-64aaa-aaaaa-qaabq-cai",
+    );
+    assert_eq!(token.source_endpoint, "https://icp-api.io");
+
+    let proposal = SnsProposalRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1", 42)
+        .with_verbose(true)
+        .with_show_ballots(true);
+    assert_eq!(proposal.proposal_id, 42);
+    assert!(proposal.verbose);
+    assert!(proposal.show_ballots);
+    assert!(proposal.icp_root.is_none());
+
+    let proposals = SnsProposalsRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1", 25)
+        .with_before_proposal_id(100)
+        .with_status(SnsProposalStatusFilter::Open)
+        .with_topic(SnsProposalTopicFilter::Governance)
+        .with_eligibility(SnsProposalEligibilityFilter::Yes)
+        .with_proposer_neuron_id("010203")
+        .with_query("upgrade")
+        .with_sort(SnsProposalsSort::Created)
+        .with_sort_direction(SnsProposalSortDirection::Asc)
+        .with_verbose(true);
+    assert_eq!(proposals.limit, 25);
+    assert_eq!(proposals.before_proposal_id, Some(100));
+    assert_eq!(proposals.status, SnsProposalStatusFilter::Open);
+    assert_eq!(proposals.topic, SnsProposalTopicFilter::Governance);
+    assert_eq!(proposals.eligibility, SnsProposalEligibilityFilter::Yes);
+    assert_eq!(proposals.proposer_neuron_id.as_deref(), Some("010203"));
+    assert_eq!(proposals.query.as_deref(), Some("upgrade"));
+    assert_eq!(proposals.sort, SnsProposalsSort::Created);
+    assert_eq!(proposals.sort_direction, SnsProposalSortDirection::Asc);
+    assert!(proposals.verbose);
+}
 
 #[test]
 fn public_sns_list_api_is_constructible_and_renderable() {
@@ -362,6 +411,30 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsProposalsRefreshBuilder>(refresh_sns_proposals_cache);
     assert_eq!(DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
     assert_eq!(DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_sns_host_api_exposes_neuron_request_constructor() {
+    let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
+    let request = SnsNeuronsRequest::new(
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        SAMPLE_SNS_ROOT_CANISTER_ID,
+        50,
+    )
+    .with_owner_principal_id("aaaaa-aa")
+    .with_sort(SnsNeuronsSort::Stake)
+    .with_icp_root(cache_root.clone())
+    .with_verbose(true);
+
+    assert_eq!(request.input, SAMPLE_SNS_ROOT_CANISTER_ID);
+    assert_eq!(request.limit, 50);
+    assert_eq!(request.owner_principal_id.as_deref(), Some("aaaaa-aa"));
+    assert_eq!(request.sort, SnsNeuronsSort::Stake);
+    assert_eq!(request.icp_root.as_deref(), Some(cache_root.as_path()));
+    assert!(request.verbose);
 }
 
 #[cfg(feature = "host")]

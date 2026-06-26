@@ -18,6 +18,23 @@ pub struct SnsLookupRequest {
     pub input: String,
 }
 
+impl SnsLookupRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        input: impl Into<String>,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            input: input.into(),
+        }
+    }
+}
+
 /// Request accepted by the SNS info report builder.
 pub type SnsInfoRequest = SnsLookupRequest;
 

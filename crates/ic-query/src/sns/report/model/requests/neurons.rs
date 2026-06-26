@@ -86,6 +86,53 @@ pub struct SnsNeuronsRequest {
     pub verbose: bool,
 }
 
+impl SnsNeuronsRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        input: impl Into<String>,
+        limit: u32,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            input: input.into(),
+            limit,
+            owner_principal_id: None,
+            sort: SnsNeuronsSort::default(),
+            icp_root: None,
+            verbose: false,
+        }
+    }
+
+    #[must_use]
+    pub fn with_owner_principal_id(mut self, owner_principal_id: impl Into<String>) -> Self {
+        self.owner_principal_id = Some(owner_principal_id.into());
+        self
+    }
+
+    #[must_use]
+    pub const fn with_sort(mut self, sort: SnsNeuronsSort) -> Self {
+        self.sort = sort;
+        self
+    }
+
+    #[must_use]
+    pub fn with_icp_root(mut self, icp_root: impl Into<PathBuf>) -> Self {
+        self.icp_root = Some(icp_root.into());
+        self
+    }
+
+    #[must_use]
+    pub const fn with_verbose(mut self, verbose: bool) -> Self {
+        self.verbose = verbose;
+        self
+    }
+}
+
 ///
 /// SnsNeuronsRefreshRequest
 ///
