@@ -1,19 +1,30 @@
+#[cfg(feature = "host")]
 #[macro_use]
 mod macros;
+#[cfg(feature = "cli")]
 mod data_center;
+#[cfg(feature = "cli")]
 mod leaf;
+#[cfg(feature = "cli")]
 mod node;
+#[cfg(feature = "cli")]
 mod node_operator;
+#[cfg(feature = "cli")]
 mod node_provider;
+#[cfg(feature = "cli")]
 mod proposals;
 pub mod registry;
+#[cfg(feature = "host")]
 pub mod render;
+#[cfg(feature = "cli")]
 mod subnet;
+#[cfg(feature = "cli")]
 mod topology;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "cli"))]
 mod tests;
 
+#[cfg(feature = "cli")]
 use crate::{
     cli::{
         clap::{
@@ -33,13 +44,17 @@ use crate::{
     subnet_catalog::SubnetCatalogHostError,
     version_text,
 };
+#[cfg(feature = "cli")]
 use clap::{ArgMatches, Command as ClapCommand};
+#[cfg(feature = "cli")]
 use std::{ffi::OsString, io, path::PathBuf};
+#[cfg(feature = "cli")]
 use thiserror::Error as ThisError;
 
 ///
 /// NnsCommandError
 ///
+#[cfg(feature = "cli")]
 #[derive(Debug, ThisError)]
 pub enum NnsCommandError {
     #[error("{0}")]
@@ -79,6 +94,7 @@ pub enum NnsCommandError {
     Json(#[from] serde_json::Error),
 }
 
+#[cfg(feature = "cli")]
 pub fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
@@ -101,6 +117,7 @@ where
     }
 }
 
+#[cfg(feature = "cli")]
 pub(in crate::nns) fn command_args<I>(
     args: I,
     usage: impl FnOnce() -> String,
@@ -111,6 +128,7 @@ where
     collect_args_or_print_help_or_version(args, usage, version_text())
 }
 
+#[cfg(feature = "cli")]
 pub(in crate::nns) fn command_flag_args<I>(
     args: I,
     usage: impl FnOnce() -> String,
@@ -121,6 +139,7 @@ where
     collect_args_or_print_help_or_version_flag(args, usage, version_text())
 }
 
+#[cfg(feature = "cli")]
 pub(in crate::nns) fn parse_nns_matches<I>(
     command: ClapCommand,
     args: I,
@@ -132,6 +151,7 @@ where
     parse_matches_or_usage(command, args, usage).map_err(NnsCommandError::Usage)
 }
 
+#[cfg(feature = "cli")]
 pub(in crate::nns) fn parse_nns_required_subcommand<I>(
     command: ClapCommand,
     args: I,
@@ -143,14 +163,17 @@ where
     parse_required_subcommand_or_usage(command, args, usage).map_err(NnsCommandError::Usage)
 }
 
+#[cfg(feature = "cli")]
 fn now_unix_secs() -> Result<u64, NnsCommandError> {
     Ok(current_unix_secs()?)
 }
 
+#[cfg(feature = "cli")]
 fn command_icp_root() -> Result<PathBuf, NnsCommandError> {
     project_icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))
 }
 
+#[cfg(feature = "cli")]
 fn nns_command() -> ClapCommand {
     ClapCommand::new("nns")
         .bin_name("icq nns")
@@ -182,6 +205,7 @@ fn nns_command() -> ClapCommand {
         ))
 }
 
+#[cfg(feature = "cli")]
 fn usage() -> String {
     render_help(nns_command())
 }

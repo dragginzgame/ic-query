@@ -40,7 +40,9 @@ ic-query = { version = "0.5", default-features = false }
 
 The library default feature set is empty. Enable `host` for native live-call
 adapters, or `cli` for the family-level command adapters used by
-`ic-query-cli`.
+`ic-query-cli`. No-default builds expose pure report DTOs and text renderers
+for generic ICRC reports, NNS registry-version reports, and deployed SNS list
+reports without native live-call dependencies.
 
 ## Commands
 

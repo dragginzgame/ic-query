@@ -9,7 +9,6 @@ mod hex;
 #[cfg(feature = "host")]
 mod ic_registry;
 pub mod icrc;
-#[cfg(feature = "host")]
 pub mod nns;
 #[cfg(feature = "host")]
 mod output;
@@ -21,7 +20,6 @@ mod project;
 mod runtime;
 #[cfg(feature = "host")]
 pub(crate) mod snapshot_cache;
-#[cfg(feature = "host")]
 pub mod sns;
 #[cfg(feature = "host")]
 pub mod subnet_catalog;

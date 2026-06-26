@@ -33,11 +33,9 @@ host = ["dep:futures", "dep:ic-agent", "dep:tokio"]
 
 [[test]]
 name = "nns_public_api"
-required-features = ["host"]
 
 [[test]]
 name = "sns_public_api"
-required-features = ["host"]
 
 [lints]
 workspace = true

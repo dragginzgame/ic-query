@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.2` opens the first pure no-default NNS and SNS library surfaces after
+  the crate split. `ic_query::nns::registry` now exposes registry-version
+  request/report/text DTOs without `host`, and `ic_query::sns` now exposes SNS
+  list request/report/text DTOs without `host`; live builders, cache IO, and
+  CLI dispatch remain behind host/CLI features. This slice also makes
+  `ic-query --features host --no-default-features` compile without the CLI
+  feature, and the feature-boundary CI check now covers that host-only build
+  plus the no-default public API smoke tests.
+
 - `0.5.1` corrects release documentation after the library-boundary cleanup
   was published as `0.5.0`. The detailed changelog now has a `0.5.x` ledger,
   the `0.5.0` notes live in the matching release line, and the README library
