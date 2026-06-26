@@ -9,17 +9,19 @@ mod spec;
 #[cfg(all(test, feature = "cli"))]
 mod test_helpers;
 
+#[cfg(feature = "host")]
+pub use report::{
+    DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, NnsDataCenterHostError,
+    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, build_nns_data_center_info_report,
+    build_nns_data_center_list_report, nns_data_center_cache_path,
+    nns_data_center_refresh_lock_path, nns_data_center_refresh_report_text,
+    refresh_nns_data_center_report,
+};
 pub use report::{
     DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, NnsDataCenterCacheRequest, NnsDataCenterInfoReport,
     NnsDataCenterInfoRequest, NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRow,
     nns_data_center_info_report_text, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text,
-};
-#[cfg(feature = "host")]
-pub use report::{
-    NnsDataCenterHostError, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest,
-    build_nns_data_center_info_report, build_nns_data_center_list_report,
-    nns_data_center_refresh_report_text, refresh_nns_data_center_report,
 };
 
 #[cfg(feature = "cli")]

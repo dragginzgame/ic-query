@@ -16,6 +16,8 @@ use build::build_nns_node_operator_list_report_with_source;
 #[cfg(feature = "host")]
 pub use build::{build_nns_node_operator_info_report, build_nns_node_operator_list_report};
 #[cfg(feature = "host")]
+pub use cache::{nns_node_operator_cache_path, nns_node_operator_refresh_lock_path};
+#[cfg(feature = "host")]
 pub use refresh::refresh_nns_node_operator_report;
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_node_operator;

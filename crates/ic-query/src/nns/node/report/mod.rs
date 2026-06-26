@@ -17,6 +17,8 @@ mod text;
 use build::build_nns_node_list_report_with_source;
 #[cfg(feature = "host")]
 pub use build::{build_nns_node_info_report, build_nns_node_list_report};
+#[cfg(feature = "host")]
+pub use cache::{nns_node_cache_path, nns_node_refresh_lock_path};
 #[cfg(all(test, feature = "host"))]
 use filters::filter_node_list_report;
 #[cfg(feature = "host")]

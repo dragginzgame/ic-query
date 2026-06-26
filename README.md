@@ -63,6 +63,11 @@ DTOs, report builders, and text renderers. Callers can then use the same
 cache-backed report path as `icq nns subnet list`, `icq nns subnet info`, and
 `icq nns subnet refresh` without spawning the `icq` executable.
 
+The `ic_query::nns::{node,data_center,node_provider,node_operator}` host APIs
+also expose cache request constructors, cache and refresh-lock path helpers,
+cache-backed list/info builders, refresh-lock defaults, refresh requests,
+refresh execution, and text renderers without requiring `cli`.
+
 ## Commands
 
 ```bash

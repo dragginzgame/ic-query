@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.13` improves the native NNS inventory library path for downstream
+  crates. Node, data-center, node-provider, and node-operator cache request
+  types now have public constructors, and their host APIs expose cache and
+  refresh-lock path helpers plus refresh-lock defaults without requiring
+  `cli`. The public API smoke tests now seed cached inventory reports and
+  exercise the same cache-backed list/info builders that the CLI uses.
+
 - `0.5.12` opens subnet catalog list/info/refresh request, report, row,
   builder, refresh, and text-rendering APIs under `features = ["host"]`
   without requiring `cli`. Native downstream crates can now build and render

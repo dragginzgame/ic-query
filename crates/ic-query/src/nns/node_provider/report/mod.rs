@@ -19,6 +19,8 @@ use build::{
     build_nns_node_provider_list_report_with_source,
 };
 #[cfg(feature = "host")]
+pub use cache::{nns_node_provider_cache_path, nns_node_provider_refresh_lock_path};
+#[cfg(feature = "host")]
 pub use refresh::refresh_nns_node_provider_report;
 #[cfg(all(test, feature = "host"))]
 use refresh::refresh_nns_node_provider_report_with_source;

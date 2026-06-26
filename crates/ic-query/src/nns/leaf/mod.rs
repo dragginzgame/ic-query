@@ -36,6 +36,8 @@ pub(super) use model::{
 pub(super) use options::NnsLeafListOptions;
 #[cfg(feature = "cli")]
 pub(super) use options::{NnsCommonOptions, NnsLeafInfoOptions, NnsLeafRefreshOptions};
+#[cfg(feature = "host")]
+pub(in crate::nns) use paths::NnsLeafCachePaths;
 #[cfg(feature = "cli")]
 pub(super) use run::{run_cached_leaf, run_leaf};
 

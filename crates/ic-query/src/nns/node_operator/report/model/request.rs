@@ -9,6 +9,16 @@ pub struct NnsNodeOperatorCacheRequest {
     pub network: String,
 }
 
+impl NnsNodeOperatorCacheRequest {
+    #[must_use]
+    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+        Self {
+            icp_root: icp_root.into(),
+            network: network.into(),
+        }
+    }
+}
+
 ///
 /// NnsNodeOperatorListRequest
 ///

@@ -17,8 +17,10 @@ pub use report::{
 };
 #[cfg(feature = "host")]
 pub use report::{
-    NnsNodeProviderHostError, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
+    DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS, NnsNodeProviderHostError,
+    NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
     build_nns_node_provider_info_report, build_nns_node_provider_list_report,
+    nns_node_provider_cache_path, nns_node_provider_refresh_lock_path,
     nns_node_provider_refresh_report_text, refresh_nns_node_provider_report,
 };
 

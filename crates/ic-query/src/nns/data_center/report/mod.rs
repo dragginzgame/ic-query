@@ -16,6 +16,8 @@ use build::build_nns_data_center_list_report_with_source;
 #[cfg(feature = "host")]
 pub use build::{build_nns_data_center_info_report, build_nns_data_center_list_report};
 #[cfg(feature = "host")]
+pub use cache::{nns_data_center_cache_path, nns_data_center_refresh_lock_path};
+#[cfg(feature = "host")]
 pub use refresh::refresh_nns_data_center_report;
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_data_center;
