@@ -13,7 +13,12 @@ use crate::subnet_catalog::{
 };
 use serde::{Deserialize, Serialize};
 
+///
+/// SubnetCatalogFilters
+///
 /// Optional classification filters applied to subnet catalog list reports.
+///
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct SubnetCatalogFilters {
     pub kind: Option<SubnetKind>,
@@ -21,7 +26,12 @@ pub struct SubnetCatalogFilters {
     pub geographic_scope: Option<GeographicScope>,
 }
 
+///
+/// SubnetCatalogListRequest
+///
 /// Inputs needed to build a subnet catalog list report.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogListRequest {
     pub cache: SubnetCatalogCacheRequest,
@@ -34,7 +44,12 @@ pub struct SubnetCatalogListRequest {
     pub range_offset: usize,
 }
 
+///
+/// SubnetCatalogListReport
+///
 /// Serializable subnet catalog list report.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalogListReport {
     pub schema_version: u32,
@@ -50,7 +65,12 @@ pub struct SubnetCatalogListReport {
     pub subnets: Vec<SubnetCatalogSubnetRow>,
 }
 
+///
+/// SubnetCatalogSubnetRow
+///
 /// One subnet row in a list report, including optional routing-range excerpts.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalogSubnetRow {
     pub subnet_principal: String,

@@ -13,7 +13,12 @@ use crate::subnet_catalog::{
 };
 use serde::{Deserialize, Serialize};
 
+///
+/// SubnetCatalogInfoRequest
+///
 /// Inputs needed to resolve one subnet catalog subject and build an info report.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogInfoRequest {
     pub cache: SubnetCatalogCacheRequest,
@@ -24,7 +29,12 @@ pub struct SubnetCatalogInfoRequest {
     pub stale_after_seconds: u64,
 }
 
+///
+/// SubnetCatalogInfoReport
+///
 /// Serializable detail report for a subnet or canister subject.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalogInfoReport {
     pub schema_version: u32,

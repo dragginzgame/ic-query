@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.12` opens subnet catalog list/info/refresh request, report, row,
+  builder, refresh, and text-rendering APIs under `features = ["host"]`
+  without requiring `cli`. Native downstream crates can now build and render
+  the same cache-backed subnet catalog reports used by `icq nns subnet`
+  without spawning the `icq` executable.
+
 - `0.5.11` opens NNS topology request/report/row DTOs and text renderers
   under `--no-default-features`, and exposes topology cache-backed builders
   and refresh execution to `host` users without requiring `cli`. Command

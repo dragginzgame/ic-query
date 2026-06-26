@@ -58,9 +58,10 @@ ic-query = { version = "0.5", default-features = false, features = ["host"] }
 
 The `ic_query::subnet_catalog` host API exposes cache requests,
 `load_cached_subnet_catalog`, `load_or_refresh_subnet_catalog`, cache path
-helpers, and the default mainnet endpoint. Callers can then use the
-no-default resolver methods on `SubnetCatalog` to resolve subnet or canister
-principals without spawning the `icq` executable.
+helpers, the default mainnet endpoint, subnet catalog list/info/refresh report
+DTOs, report builders, and text renderers. Callers can then use the same
+cache-backed report path as `icq nns subnet list`, `icq nns subnet info`, and
+`icq nns subnet refresh` without spawning the `icq` executable.
 
 ## Commands
 

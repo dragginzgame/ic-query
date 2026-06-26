@@ -8,7 +8,12 @@
 
 use serde::{Deserialize, Serialize};
 
+///
+/// SubnetCatalogRefreshReport
+///
 /// Serializable report describing one subnet catalog refresh attempt.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalogRefreshReport {
     pub schema_version: u32,

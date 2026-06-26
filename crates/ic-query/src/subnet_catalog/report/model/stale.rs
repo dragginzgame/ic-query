@@ -9,7 +9,12 @@
 
 use serde::{Deserialize, Serialize};
 
+///
+/// CatalogStaleStatus
+///
 /// Derived freshness status for a cached subnet catalog snapshot.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CatalogStaleStatus {
     pub catalog_stale: bool,

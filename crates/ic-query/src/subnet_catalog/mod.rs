@@ -18,13 +18,13 @@ pub(crate) use host::refresh_subnet_catalog_with_source;
 #[cfg(feature = "host")]
 pub use host::{
     CachedSubnetCatalog, SubnetCatalogCacheRequest, SubnetCatalogHostError,
-    load_cached_subnet_catalog, load_or_refresh_subnet_catalog, subnet_catalog_path,
-    subnet_catalog_refresh_lock_path,
+    SubnetCatalogRefreshRequest, load_cached_subnet_catalog, load_or_refresh_subnet_catalog,
+    refresh_subnet_catalog, subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
 #[cfg(feature = "host")]
 pub(crate) use host::{
-    LiveNnsRegistryRefreshSource, SubnetCatalogRefreshRequest, SubnetCatalogRefreshSource,
-    load_or_refresh_subnet_catalog_with_source, refresh_subnet_catalog,
+    LiveNnsRegistryRefreshSource, SubnetCatalogRefreshSource,
+    load_or_refresh_subnet_catalog_with_source,
 };
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 pub use model::{
@@ -34,18 +34,20 @@ pub use model::{
 pub use principal::canonical_principal_text;
 pub(crate) use principal::{parse_principal, principal_bytes};
 #[cfg(feature = "host")]
-pub(crate) use report::{
-    CatalogStaleStatus, SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
-    SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
-    build_subnet_catalog_info_report, build_subnet_catalog_list_report,
-};
+pub(crate) use report::CatalogStaleStatus;
 #[cfg(all(test, feature = "host"))]
-pub(crate) use report::{SubnetCatalogSubnetRow, build_subnet_catalog_list_report_with_source};
+pub(crate) use report::build_subnet_catalog_list_report_with_source;
+#[cfg(feature = "host")]
+pub use report::{
+    SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
+    SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
+    SubnetCatalogSubnetRow, build_subnet_catalog_info_report, build_subnet_catalog_list_report,
+};
 pub use resolver::{ResolveAs, ResolvedSubnet, ResolvedSubnetSubject};
 #[cfg(all(test, feature = "host"))]
 pub(crate) use text::compact_principal;
 #[cfg(feature = "host")]
-pub(crate) use text::{
+pub use text::{
     subnet_catalog_info_report_text, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text, subnet_catalog_refresh_report_text,
 };
@@ -58,9 +60,9 @@ pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 pub const MAINNET_NETWORK: &str = "ic";
 pub const MAINNET_REGISTRY_CANISTER_ID: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 #[cfg(feature = "host")]
-pub(crate) const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
+pub const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
 #[cfg(feature = "host")]
-pub(crate) const DEFAULT_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
+pub const DEFAULT_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 #[cfg(feature = "host")]
 pub const DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "host")]

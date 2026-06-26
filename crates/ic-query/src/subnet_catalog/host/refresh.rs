@@ -20,6 +20,9 @@ use std::path::PathBuf;
 ///
 /// SubnetCatalogRefreshRequest
 ///
+/// Host cache refresh inputs for replacing or previewing a subnet catalog snapshot.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogRefreshRequest {
     pub cache: SubnetCatalogCacheRequest,
