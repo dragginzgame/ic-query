@@ -11,11 +11,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.7` tightens the generic ICRC no-default library boundary. The public
+  API smoke test now constructs and renders token, balance, allowance, index,
+  transaction, block-type, archive, tip-certificate, and capability reports
+  without enabling native live-call or CLI dependencies.
+
 - `0.5.6` opens SNS governance-parameter report DTOs and text rendering under
   `--no-default-features`, along with SNS proposal list/detail request,
   report, row, filter, sort, and text-rendering DTOs. Downstream crates can
   now construct and render SNS params and proposal reports without enabling
-  native live-call, cache, or CLI dependencies.
+  native live-call, cache, or CLI dependencies. The make-driven Cargo checks
+  also disable HTTP multiplexing, use a higher network retry count, and retry
+  package verification to make CI less sensitive to transient crates.io HTTP/2
+  failures.
 
 - `0.5.5` opens more pure SNS library surface under `--no-default-features`.
   Downstream crates can now construct and render SNS info and token report

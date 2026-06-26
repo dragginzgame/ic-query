@@ -1,6 +1,13 @@
 .PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push test-bump actions-check build changelog-check check ci clean clippy ensure-clean feature-boundary-check fmt fmt-check install msrv package package-contents-check publish test
 
 MSRV ?= 1.91.0
+CARGO_HTTP_MULTIPLEXING ?= false
+CARGO_NET_RETRY ?= 10
+CARGO_PACKAGE_RETRIES ?= 3
+
+export CARGO_HTTP_MULTIPLEXING
+export CARGO_NET_RETRY
+export CARGO_PACKAGE_RETRIES
 
 help:
 	@echo "Available commands:"
@@ -74,7 +81,7 @@ msrv:
 	cargo +$(MSRV) check --workspace --all-targets --all-features --locked
 
 package: ensure-clean
-	cargo package --workspace --locked
+	bash scripts/ci/cargo-package-retry.sh --workspace --locked
 
 ci: changelog-check actions-check package-contents-check feature-boundary-check fmt-check check clippy test package
 
