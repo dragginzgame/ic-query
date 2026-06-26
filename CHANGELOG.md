@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.8` opens NNS proposal list/detail request, report, row, filter, sort,
+  tally, ballot, and text-rendering DTOs under `--no-default-features`.
+  Downstream crates can now construct and render NNS proposal reports without
+  enabling native live-call, cache, or CLI dependencies.
+
 - `0.5.7` tightens the generic ICRC no-default library boundary. The public
   API smoke test now constructs and renders token, balance, allowance, index,
   transaction, block-type, archive, tip-certificate, and capability reports

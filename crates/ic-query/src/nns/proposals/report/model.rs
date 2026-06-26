@@ -37,11 +37,17 @@ pub(in crate::nns) const NNS_PROPOSAL_STATUS_REJECTED_LABEL: &str = "rejected";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_ADOPTED_LABEL: &str = "adopted";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_EXECUTED_LABEL: &str = "executed";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_FAILED_LABEL: &str = "failed";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL: &str = "unspecified";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_OPEN_CODE: i32 = 1;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_REJECTED_CODE: i32 = 2;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_ADOPTED_CODE: i32 = 3;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_EXECUTED_CODE: i32 = 4;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_FAILED_CODE: i32 = 5;
 
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL: &str = "accept-votes";
@@ -49,16 +55,26 @@ pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL: &str 
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL: &str = "settled";
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL: &str = "ineligible";
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL: &str = "any";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_UNSPECIFIED_LABEL: &str = "unspecified";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE: i32 = 1;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE: i32 = 2;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE: i32 = 3;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE: i32 = 4;
 
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_VOTE_UNSPECIFIED_LABEL: &str = "unspecified";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_VOTE_YES_LABEL: &str = "yes";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_VOTE_NO_LABEL: &str = "no";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_VOTE_YES_CODE: i32 = 1;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_VOTE_NO_CODE: i32 = 2;
 
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_ANY_LABEL: &str = "any";
@@ -88,23 +104,41 @@ pub(in crate::nns) const NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_LABE
     "application-canister-management";
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL: &str =
     "protocol-canister-management";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_UNSPECIFIED_LABEL: &str = "unspecified";
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_CODE: i32 = 1;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_CODE: i32 = 2;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_CODE: i32 = 3;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE: i32 = 4;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_ADMIN_CODE: i32 = 5;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_CODE: i32 = 6;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE: i32 = 7;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_CODE: i32 = 8;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_KYC_CODE: i32 = 9;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_CODE: i32 = 10;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_CODE: i32 = 12;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_CODE: i32 = 13;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_CODE: i32 = 14;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_CODE: i32 = 15;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_CODE: i32 = 16;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE: i32 = 17;
+#[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE: i32 = 18;
 
 ///
@@ -114,20 +148,20 @@ pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE: i
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalListRequest {
-    pub(in crate::nns::proposals) network: String,
-    pub(in crate::nns::proposals) source_endpoint: String,
-    pub(in crate::nns::proposals) now_unix_secs: u64,
-    pub(in crate::nns::proposals) limit: u32,
-    pub(in crate::nns::proposals) before_proposal_id: Option<u64>,
-    pub(in crate::nns::proposals) status: NnsProposalStatusFilter,
-    pub(in crate::nns::proposals) reward_status: NnsProposalRewardStatusFilter,
-    pub(in crate::nns::proposals) topic: NnsProposalTopicFilter,
-    pub(in crate::nns::proposals) proposer_neuron_id: Option<u64>,
-    pub(in crate::nns::proposals) query: Option<String>,
-    pub(in crate::nns::proposals) sort: NnsProposalListSort,
-    pub(in crate::nns::proposals) sort_direction: NnsProposalSortDirection,
-    pub(in crate::nns::proposals) verbose: bool,
+pub struct NnsProposalListRequest {
+    pub network: String,
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub limit: u32,
+    pub before_proposal_id: Option<u64>,
+    pub status: NnsProposalStatusFilter,
+    pub reward_status: NnsProposalRewardStatusFilter,
+    pub topic: NnsProposalTopicFilter,
+    pub proposer_neuron_id: Option<u64>,
+    pub query: Option<String>,
+    pub sort: NnsProposalListSort,
+    pub sort_direction: NnsProposalSortDirection,
+    pub verbose: bool,
 }
 
 ///
@@ -137,13 +171,13 @@ pub(in crate::nns) struct NnsProposalListRequest {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalRequest {
-    pub(in crate::nns::proposals) network: String,
-    pub(in crate::nns::proposals) source_endpoint: String,
-    pub(in crate::nns::proposals) now_unix_secs: u64,
-    pub(in crate::nns::proposals) proposal_id: u64,
-    pub(in crate::nns::proposals) show_ballots: bool,
-    pub(in crate::nns::proposals) verbose: bool,
+pub struct NnsProposalRequest {
+    pub network: String,
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub proposal_id: u64,
+    pub show_ballots: bool,
+    pub verbose: bool,
 }
 
 ///
@@ -153,7 +187,7 @@ pub(in crate::nns) struct NnsProposalRequest {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalListReport {
+pub struct NnsProposalListReport {
     pub schema_version: u32,
     pub network: String,
     pub governance_canister_id: String,
@@ -185,7 +219,7 @@ pub(in crate::nns) struct NnsProposalListReport {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalReport {
+pub struct NnsProposalReport {
     pub schema_version: u32,
     pub network: String,
     pub governance_canister_id: String,
@@ -208,7 +242,7 @@ pub(in crate::nns) struct NnsProposalReport {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalRow {
+pub struct NnsProposalRow {
     pub proposal_id: Option<u64>,
     pub proposer_neuron_id: Option<u64>,
     pub topic: i32,
@@ -246,7 +280,7 @@ pub(in crate::nns) struct NnsProposalRow {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalBallotRow {
+pub struct NnsProposalBallotRow {
     pub neuron_id: u64,
     pub vote: i32,
     pub vote_text: String,
@@ -260,7 +294,7 @@ pub(in crate::nns) struct NnsProposalBallotRow {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalTally {
+pub struct NnsProposalTally {
     pub timestamp_seconds: u64,
     pub yes: u64,
     pub no: u64,
@@ -274,7 +308,7 @@ pub(in crate::nns) struct NnsProposalTally {
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(in crate::nns) enum NnsProposalListSort {
+pub enum NnsProposalListSort {
     #[default]
     Api,
     Id,
@@ -300,7 +334,8 @@ pub(in crate::nns) enum NnsProposalListSort {
 }
 
 impl NnsProposalListSort {
-    pub(in crate::nns) const fn as_str(self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Api => NNS_PROPOSAL_SORT_API_LABEL,
             Self::Id => NNS_PROPOSAL_SORT_ID_LABEL,
@@ -326,7 +361,8 @@ impl NnsProposalListSort {
         }
     }
 
-    pub(in crate::nns) const fn default_direction(self) -> NnsProposalSortDirection {
+    #[must_use]
+    pub const fn default_direction(self) -> NnsProposalSortDirection {
         match self {
             Self::Status
             | Self::RewardStatus
@@ -338,14 +374,13 @@ impl NnsProposalListSort {
         }
     }
 
-    pub(in crate::nns) const fn uses_local_direction(self) -> bool {
+    #[must_use]
+    pub const fn uses_local_direction(self) -> bool {
         !matches!(self, Self::Api)
     }
 
-    pub(in crate::nns) const fn direction_label(
-        self,
-        direction: NnsProposalSortDirection,
-    ) -> &'static str {
+    #[must_use]
+    pub const fn direction_label(self, direction: NnsProposalSortDirection) -> &'static str {
         match self {
             Self::Api => NNS_PROPOSAL_SORT_NONE_LABEL,
             _ => direction.as_str(),
@@ -360,14 +395,15 @@ impl NnsProposalListSort {
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(in crate::nns) enum NnsProposalSortDirection {
+pub enum NnsProposalSortDirection {
     Asc,
     #[default]
     Desc,
 }
 
 impl NnsProposalSortDirection {
-    pub(in crate::nns) const fn as_str(self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Asc => NNS_PROPOSAL_SORT_ASC_LABEL,
             Self::Desc => NNS_PROPOSAL_SORT_DESC_LABEL,
@@ -382,7 +418,7 @@ impl NnsProposalSortDirection {
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(in crate::nns) enum NnsProposalStatusFilter {
+pub enum NnsProposalStatusFilter {
     #[default]
     Any,
     Open,
@@ -399,7 +435,7 @@ pub(in crate::nns) enum NnsProposalStatusFilter {
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(in crate::nns) enum NnsProposalRewardStatusFilter {
+pub enum NnsProposalRewardStatusFilter {
     #[default]
     Any,
     AcceptVotes,
@@ -409,7 +445,8 @@ pub(in crate::nns) enum NnsProposalRewardStatusFilter {
 }
 
 impl NnsProposalRewardStatusFilter {
-    pub(in crate::nns) const fn as_str(self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Any => NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
             Self::AcceptVotes => NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL,
@@ -419,6 +456,7 @@ impl NnsProposalRewardStatusFilter {
         }
     }
 
+    #[cfg(feature = "host")]
     pub(in crate::nns) const fn governance_reward_status_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
@@ -431,7 +469,8 @@ impl NnsProposalRewardStatusFilter {
 }
 
 impl NnsProposalStatusFilter {
-    pub(in crate::nns) const fn as_str(self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Any => NNS_PROPOSAL_STATUS_ANY_LABEL,
             Self::Open => NNS_PROPOSAL_STATUS_OPEN_LABEL,
@@ -442,6 +481,7 @@ impl NnsProposalStatusFilter {
         }
     }
 
+    #[cfg(feature = "host")]
     pub(in crate::nns) const fn governance_status_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
@@ -461,7 +501,7 @@ impl NnsProposalStatusFilter {
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(in crate::nns) enum NnsProposalTopicFilter {
+pub enum NnsProposalTopicFilter {
     #[default]
     Any,
     NeuronManagement,
@@ -484,7 +524,8 @@ pub(in crate::nns) enum NnsProposalTopicFilter {
 }
 
 impl NnsProposalTopicFilter {
-    pub(in crate::nns) const fn as_str(self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Any => NNS_PROPOSAL_TOPIC_ANY_LABEL,
             Self::NeuronManagement => NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL,
@@ -513,6 +554,7 @@ impl NnsProposalTopicFilter {
         }
     }
 
+    #[cfg(feature = "host")]
     pub(in crate::nns) const fn topic_code(self) -> Option<i32> {
         match self {
             Self::Any => None,

@@ -4,15 +4,15 @@
 //! Does not own: live governance calls, JSON output, or report assembly.
 //! Boundary: formats NNS proposal rows for human CLI output.
 
-use super::{
-    cache::{
-        NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshAttemptStatus,
-        NnsProposalRefreshReport,
-    },
-    model::{NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow},
+#[cfg(feature = "host")]
+use super::cache::{
+    NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshAttemptStatus,
+    NnsProposalRefreshReport,
+};
+use super::model::{
+    NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow,
 };
 use crate::{
-    nns::render::yes_no,
     table::{ColumnAlign, render_table},
     token_amount::e8s_decimal_text,
 };
@@ -20,9 +20,7 @@ use crate::{
 const NNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;
 
 #[must_use]
-pub(in crate::nns::proposals) fn nns_proposal_list_report_text(
-    report: &NnsProposalListReport,
-) -> String {
+pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
     let mut lines = vec![
         format!("network: {}", report.network),
         format!("governance_canister_id: {}", report.governance_canister_id),
@@ -95,7 +93,7 @@ pub(in crate::nns::proposals) fn nns_proposal_list_report_text(
 }
 
 #[must_use]
-pub(in crate::nns::proposals) fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
+pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
     let proposal = &report.proposal;
     let mut lines = vec![
         format!("network: {}", report.network),
@@ -134,6 +132,7 @@ pub(in crate::nns::proposals) fn nns_proposal_report_text(report: &NnsProposalRe
 }
 
 #[must_use]
+#[cfg(feature = "host")]
 pub(in crate::nns::proposals) fn nns_proposal_refresh_report_text(
     report: &NnsProposalRefreshReport,
 ) -> String {
@@ -160,6 +159,7 @@ pub(in crate::nns::proposals) fn nns_proposal_refresh_report_text(
 }
 
 #[must_use]
+#[cfg(feature = "host")]
 pub(in crate::nns::proposals) fn nns_proposal_cache_list_report_text(
     report: &NnsProposalCacheListReport,
 ) -> String {
@@ -203,6 +203,7 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_list_report_text(
 }
 
 #[must_use]
+#[cfg(feature = "host")]
 pub(in crate::nns::proposals) fn nns_proposal_cache_status_report_text(
     report: &NnsProposalCacheStatusReport,
 ) -> String {
@@ -352,6 +353,7 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
     ))
 }
 
+#[cfg(feature = "host")]
 fn attempt_lines(attempt: &NnsProposalRefreshAttemptStatus) -> [String; 9] {
     [
         "latest_attempt:".to_string(),
@@ -370,4 +372,8 @@ fn attempt_lines(attempt: &NnsProposalRefreshAttemptStatus) -> [String; 9] {
             attempt.last_error.as_deref().unwrap_or("-")
         ),
     ]
+}
+
+const fn yes_no(value: bool) -> &'static str {
+    if value { "yes" } else { "no" }
 }

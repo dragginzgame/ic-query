@@ -4,47 +4,63 @@
 //! Does not own: CLI parsing, SNS proposal reports, cache files, or topology reports.
 //! Boundary: maps live NNS governance proposal rows into text and JSON reports.
 
+#[cfg(feature = "host")]
 mod assemble;
+#[cfg(feature = "host")]
 mod cache;
+#[cfg(feature = "host")]
 mod labels;
 mod model;
+#[cfg(feature = "host")]
 mod source;
 mod text;
+#[cfg(feature = "host")]
 mod view;
+#[cfg(feature = "host")]
 mod wire;
 
+#[cfg(feature = "host")]
 use crate::{
-    cache_file::CacheFileError,
-    ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
-    runtime::RuntimeError,
+    cache_file::CacheFileError, ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, runtime::RuntimeError,
     subnet_catalog::MAINNET_NETWORK,
 };
+#[cfg(feature = "host")]
 use std::{io, path::PathBuf};
+#[cfg(feature = "host")]
 use thiserror::Error as ThisError;
 
+#[cfg(feature = "host")]
 pub(in crate::nns) use cache::{
     NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalRefreshRequest,
 };
+#[cfg(feature = "host")]
 pub(in crate::nns::proposals) use cache::{
     build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
     build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
     refresh_nns_proposal_cache,
 };
+#[cfg(feature = "cli")]
 pub(in crate::nns) use model::{
     NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL,
     NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL,
-    NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest, NnsProposalRewardStatusFilter,
-    NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
+pub use model::{
+    NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
+    NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow,
+    NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopicFilter,
+};
+#[cfg(feature = "host")]
 pub(in crate::nns::proposals) use source::{
     build_nns_proposal_list_report, build_nns_proposal_report,
 };
+#[cfg(feature = "host")]
 pub(in crate::nns::proposals) use text::{
     nns_proposal_cache_list_report_text, nns_proposal_cache_status_report_text,
-    nns_proposal_list_report_text, nns_proposal_refresh_report_text, nns_proposal_report_text,
+    nns_proposal_refresh_report_text,
 };
+pub use text::{nns_proposal_list_report_text, nns_proposal_report_text};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 pub(in crate::nns) use model::{
     NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
     NNS_PROPOSAL_SORT_NONE_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
@@ -53,13 +69,16 @@ pub(in crate::nns) use model::{
     NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 mod tests;
 
-pub(in crate::nns) const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
+pub const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
+#[cfg(feature = "host")]
 const NNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
 const NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
+#[cfg(feature = "host")]
 pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-query";
 
 ///
@@ -69,6 +88,7 @@ pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-
 ///
 
 #[derive(Debug, ThisError)]
+#[cfg(feature = "host")]
 pub enum NnsProposalHostError {
     #[error(
         "`icq nns proposal` supports only the mainnet `ic` network\n\nThe NNS proposal list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not implemented yet.\n\nTry:\n  icq --network ic nns proposal list"
@@ -155,6 +175,7 @@ pub enum NnsProposalHostError {
     UnsupportedCacheSchemaVersion { version: u32, expected: u32 },
 }
 
+#[cfg(feature = "host")]
 fn enforce_mainnet_network(network: &str) -> Result<(), NnsProposalHostError> {
     if network == MAINNET_NETWORK {
         Ok(())

@@ -11,8 +11,7 @@ mod node;
 mod node_operator;
 #[cfg(feature = "cli")]
 mod node_provider;
-#[cfg(feature = "cli")]
-mod proposals;
+pub mod proposals;
 pub mod registry;
 #[cfg(feature = "host")]
 pub mod render;
