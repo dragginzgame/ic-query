@@ -82,6 +82,21 @@ pub struct IcrcTokenRequest {
     pub ledger_canister_id: String,
 }
 
+impl IcrcTokenRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+        }
+    }
+}
+
 ///
 /// IcrcBalanceRequest
 ///
@@ -94,6 +109,30 @@ pub struct IcrcBalanceRequest {
     pub ledger_canister_id: String,
     pub account_owner: String,
     pub subaccount_hex: Option<String>,
+}
+
+impl IcrcBalanceRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+        account_owner: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+            account_owner: account_owner.into(),
+            subaccount_hex: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_subaccount_hex(mut self, subaccount_hex: impl Into<String>) -> Self {
+        self.subaccount_hex = Some(subaccount_hex.into());
+        self
+    }
 }
 
 ///
@@ -112,6 +151,45 @@ pub struct IcrcAllowanceRequest {
     pub spender_subaccount_hex: Option<String>,
 }
 
+impl IcrcAllowanceRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+        account_owner: impl Into<String>,
+        spender_owner: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+            account_owner: account_owner.into(),
+            account_subaccount_hex: None,
+            spender_owner: spender_owner.into(),
+            spender_subaccount_hex: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_account_subaccount_hex(
+        mut self,
+        account_subaccount_hex: impl Into<String>,
+    ) -> Self {
+        self.account_subaccount_hex = Some(account_subaccount_hex.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_spender_subaccount_hex(
+        mut self,
+        spender_subaccount_hex: impl Into<String>,
+    ) -> Self {
+        self.spender_subaccount_hex = Some(spender_subaccount_hex.into());
+        self
+    }
+}
+
 ///
 /// IcrcIndexRequest
 ///
@@ -122,6 +200,21 @@ pub struct IcrcIndexRequest {
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub ledger_canister_id: String,
+}
+
+impl IcrcIndexRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+        }
+    }
 }
 
 ///
@@ -139,6 +232,32 @@ pub struct IcrcTransactionsRequest {
     pub follow_archives: bool,
 }
 
+impl IcrcTransactionsRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+        start: u64,
+        limit: u32,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+            start,
+            limit,
+            follow_archives: false,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_follow_archives(mut self, follow_archives: bool) -> Self {
+        self.follow_archives = follow_archives;
+        self
+    }
+}
+
 ///
 /// IcrcBlockTypesRequest
 ///
@@ -149,6 +268,21 @@ pub struct IcrcBlockTypesRequest {
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub ledger_canister_id: String,
+}
+
+impl IcrcBlockTypesRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+        }
+    }
 }
 
 ///
@@ -164,6 +298,28 @@ pub struct IcrcArchivesRequest {
     pub from_canister_id: Option<String>,
 }
 
+impl IcrcArchivesRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+            from_canister_id: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_from_canister_id(mut self, from_canister_id: impl Into<String>) -> Self {
+        self.from_canister_id = Some(from_canister_id.into());
+        self
+    }
+}
+
 ///
 /// IcrcTipCertificateRequest
 ///
@@ -176,6 +332,21 @@ pub struct IcrcTipCertificateRequest {
     pub ledger_canister_id: String,
 }
 
+impl IcrcTipCertificateRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+        }
+    }
+}
+
 ///
 /// IcrcCapabilitiesRequest
 ///
@@ -186,6 +357,21 @@ pub struct IcrcCapabilitiesRequest {
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub ledger_canister_id: String,
+}
+
+impl IcrcCapabilitiesRequest {
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+        }
+    }
 }
 
 ///

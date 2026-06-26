@@ -73,6 +73,12 @@ requests and builders, complete-cache list/detail builders, proposal cache path
 helpers, refresh requests, refresh execution, refresh-lock defaults, live
 report builders, and text renderers without requiring `cli`.
 
+The `ic_query::icrc` API exposes generic ICRC request constructors, report
+DTOs, and text renderers without requiring `host`. With `features = ["host"]`,
+native tools can call the live generic ICRC token, balance, allowance, index,
+transactions, block-types, archives, tip-certificate, and capabilities report
+builders directly without requiring `cli`.
+
 The `ic_query::sns` host API exposes SNS list/info/token/params, proposal
 list/detail, and neuron report builders, SNS proposal and neuron cache
 list/status builders, cache and refresh-sidecar path helpers, refresh

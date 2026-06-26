@@ -14,6 +14,8 @@ mod live;
 mod model;
 mod text;
 
+pub const DEFAULT_ICRC_SOURCE_ENDPOINT: &str = "https://icp-api.io";
+
 #[cfg(feature = "host")]
 pub use live::{
     build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,

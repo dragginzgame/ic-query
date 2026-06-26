@@ -16,8 +16,8 @@ use crate::{
         },
         help::collect_args_or_print_help_or_version,
     },
-    ic_registry::DEFAULT_MAINNET_ENDPOINT,
     icrc::{
+        DEFAULT_ICRC_SOURCE_ENDPOINT,
         live::{
             build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
             build_icrc_block_types_report, build_icrc_capabilities_report, build_icrc_index_report,
@@ -45,7 +45,6 @@ use clap::{
 };
 use std::ffi::OsString;
 
-pub(in crate::icrc) const DEFAULT_ICRC_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
 const DEFAULT_ICRC_TRANSACTIONS_LIMIT: &str = "25";
 const MAX_ICRC_TRANSACTIONS_LIMIT: u64 = 100;
 const LEDGER_CANISTER_ID_ARG: &str = "ledger-canister-id";

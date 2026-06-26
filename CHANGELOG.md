@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.16` improves the generic ICRC native library path. Downstream crates
+  now get public constructors for every generic ICRC request DTO, a public
+  default ICRC source endpoint constant, and host-without-CLI smoke coverage
+  for the live ICRC report builder exports.
+
 - `0.5.15` opens the SNS native host API without requiring `cli`.
   Downstream crates can now call SNS list/info/token/params, proposal
   list/detail, and neuron report builders directly, inspect SNS proposal and

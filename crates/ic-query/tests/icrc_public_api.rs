@@ -1,14 +1,21 @@
 use ic_query::icrc::{
-    IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
-    IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
-    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
-    IcrcBlockTypesRequest, IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
-    IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateReport,
-    IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
-    icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-    icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
-    icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
+    DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcAllowanceReport, IcrcAllowanceRequest,
+    IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
+    IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
+    IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcBlockTypesRequest, IcrcCapabilitiesReport,
+    IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
+    IcrcIndexRequest, IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenMetadataRow,
+    IcrcTokenReport, IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+    IcrcTransactionsReport, IcrcTransactionsRequest, icrc_allowance_report_text,
+    icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
+    icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
+    icrc_token_report_text, icrc_transactions_report_text,
+};
+#[cfg(feature = "host")]
+use ic_query::icrc::{
+    IcrcError, build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
+    build_icrc_block_types_report, build_icrc_capabilities_report, build_icrc_index_report,
+    build_icrc_tip_certificate_report, build_icrc_token_report, build_icrc_transactions_report,
 };
 use serde_json::json;
 
@@ -19,6 +26,121 @@ const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 const FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 const FETCHED_AT_UNIX_SECS: u64 = 1_700_000_000;
 const FETCHED_BY: &str = "ic-query";
+const SUBACCOUNT_HEX: &str = "0000000000000000000000000000000000000000000000000000000000000001";
+
+#[cfg(feature = "host")]
+type IcrcTokenBuilder = fn(&IcrcTokenRequest) -> Result<IcrcTokenReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcBalanceBuilder = fn(&IcrcBalanceRequest) -> Result<IcrcBalanceReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcAllowanceBuilder = fn(&IcrcAllowanceRequest) -> Result<IcrcAllowanceReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcIndexBuilder = fn(&IcrcIndexRequest) -> Result<IcrcIndexReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcTransactionsBuilder =
+    fn(&IcrcTransactionsRequest) -> Result<IcrcTransactionsReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcBlockTypesBuilder = fn(&IcrcBlockTypesRequest) -> Result<IcrcBlockTypesReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcArchivesBuilder = fn(&IcrcArchivesRequest) -> Result<IcrcArchivesReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcTipCertificateBuilder =
+    fn(&IcrcTipCertificateRequest) -> Result<IcrcTipCertificateReport, IcrcError>;
+#[cfg(feature = "host")]
+type IcrcCapabilitiesBuilder =
+    fn(&IcrcCapabilitiesRequest) -> Result<IcrcCapabilitiesReport, IcrcError>;
+
+#[test]
+fn public_icrc_request_constructors_set_expected_fields() {
+    assert_eq!(DEFAULT_ICRC_SOURCE_ENDPOINT, SOURCE_ENDPOINT);
+
+    let token = IcrcTokenRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+    assert_eq!(token.source_endpoint, SOURCE_ENDPOINT);
+    assert_eq!(token.now_unix_secs, FETCHED_AT_UNIX_SECS);
+    assert_eq!(token.ledger_canister_id, LEDGER_CANISTER_ID);
+
+    let balance = IcrcBalanceRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+    )
+    .with_subaccount_hex(SUBACCOUNT_HEX);
+    assert_eq!(balance.account_owner, ACCOUNT_OWNER);
+    assert_eq!(balance.subaccount_hex.as_deref(), Some(SUBACCOUNT_HEX));
+
+    let allowance = IcrcAllowanceRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        ARCHIVE_CANISTER_ID,
+    )
+    .with_account_subaccount_hex(SUBACCOUNT_HEX)
+    .with_spender_subaccount_hex(SUBACCOUNT_HEX);
+    assert_eq!(allowance.account_owner, ACCOUNT_OWNER);
+    assert_eq!(allowance.spender_owner, ARCHIVE_CANISTER_ID);
+    assert_eq!(
+        allowance.account_subaccount_hex.as_deref(),
+        Some(SUBACCOUNT_HEX)
+    );
+    assert_eq!(
+        allowance.spender_subaccount_hex.as_deref(),
+        Some(SUBACCOUNT_HEX)
+    );
+
+    let index = IcrcIndexRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+    assert_eq!(index.ledger_canister_id, LEDGER_CANISTER_ID);
+
+    let transactions = IcrcTransactionsRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        100,
+        25,
+    )
+    .with_follow_archives(true);
+    assert_eq!(transactions.start, 100);
+    assert_eq!(transactions.limit, 25);
+    assert!(transactions.follow_archives);
+
+    let block_types =
+        IcrcBlockTypesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+    assert_eq!(block_types.ledger_canister_id, LEDGER_CANISTER_ID);
+
+    let archives =
+        IcrcArchivesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID)
+            .with_from_canister_id(ARCHIVE_CANISTER_ID);
+    assert_eq!(
+        archives.from_canister_id.as_deref(),
+        Some(ARCHIVE_CANISTER_ID)
+    );
+
+    let tip_certificate =
+        IcrcTipCertificateRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+    assert_eq!(tip_certificate.source_endpoint, SOURCE_ENDPOINT);
+
+    let capabilities =
+        IcrcCapabilitiesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+    assert_eq!(capabilities.now_unix_secs, FETCHED_AT_UNIX_SECS);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_icrc_host_api_exposes_live_builder_entry_points() {
+    accepts_public_function::<IcrcTokenBuilder>(build_icrc_token_report);
+    accepts_public_function::<IcrcBalanceBuilder>(build_icrc_balance_report);
+    accepts_public_function::<IcrcAllowanceBuilder>(build_icrc_allowance_report);
+    accepts_public_function::<IcrcIndexBuilder>(build_icrc_index_report);
+    accepts_public_function::<IcrcTransactionsBuilder>(build_icrc_transactions_report);
+    accepts_public_function::<IcrcBlockTypesBuilder>(build_icrc_block_types_report);
+    accepts_public_function::<IcrcArchivesBuilder>(build_icrc_archives_report);
+    accepts_public_function::<IcrcTipCertificateBuilder>(build_icrc_tip_certificate_report);
+    accepts_public_function::<IcrcCapabilitiesBuilder>(build_icrc_capabilities_report);
+}
+
+#[cfg(feature = "host")]
+fn accepts_public_function<T>(_function: T) {}
 
 #[test]
 fn public_icrc_token_api_is_constructible_and_renderable_without_host() {
