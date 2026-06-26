@@ -5,7 +5,6 @@
 //! Boundary: re-exports request contracts accepted by SNS report builders.
 
 mod list;
-#[cfg(feature = "host")]
 mod lookup;
 #[cfg(feature = "host")]
 mod neurons;
@@ -14,7 +13,8 @@ mod proposals;
 
 pub use list::SnsListRequest;
 #[cfg(feature = "host")]
-pub use lookup::{SnsInfoRequest, SnsLookupRequest, SnsParamsRequest, SnsTokenRequest};
+pub use lookup::SnsParamsRequest;
+pub use lookup::{SnsInfoRequest, SnsLookupRequest, SnsTokenRequest};
 #[cfg(feature = "host")]
 pub use neurons::{
     SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,

@@ -21,24 +21,23 @@ pub(in crate::sns::report) use reports::{
 pub use reports::{SnsCustomProposalCriticality, SnsVotingRewardsParameters};
 #[cfg(feature = "host")]
 pub use reports::{
-    SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRow, SnsNeuronPermissionList,
-    SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
-    SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsReport, SnsParamsReport,
-    SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
-    SnsProposalTally, SnsProposalsCacheListReport, SnsProposalsCacheStatusReport,
-    SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
-    SnsProposalsReport, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
+    SnsGovernanceParameters, SnsNeuronPermissionList, SnsNeuronRow, SnsNeuronsCacheListReport,
+    SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary, SnsNeuronsRefreshAttemptStatus,
+    SnsNeuronsRefreshReport, SnsNeuronsReport, SnsParamsReport, SnsProposalBallotRow,
+    SnsProposalFailureReason, SnsProposalReport, SnsProposalRow, SnsProposalTally,
+    SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
+    SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport, SnsProposalsReport,
 };
-#[cfg(not(feature = "host"))]
-pub use reports::{SnsListReport, SnsListRow};
-#[cfg(not(feature = "host"))]
-pub use requests::SnsListRequest;
+pub use reports::{
+    SnsInfoReport, SnsListReport, SnsListRow, SnsTokenMetadataRow, SnsTokenReport,
+    SnsTokenStandardRow,
+};
+pub use requests::{SnsInfoRequest, SnsListRequest, SnsLookupRequest, SnsTokenRequest};
 #[cfg(feature = "host")]
 pub use requests::{
-    SnsInfoRequest, SnsListRequest, SnsLookupRequest, SnsNeuronsCacheListRequest,
-    SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsParamsRequest,
-    SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
-    SnsProposalsRefreshRequest, SnsProposalsRequest, SnsTokenRequest,
+    SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,
+    SnsNeuronsRequest, SnsParamsRequest, SnsProposalRequest, SnsProposalsCacheListRequest,
+    SnsProposalsCacheStatusRequest, SnsProposalsRefreshRequest, SnsProposalsRequest,
 };
 #[cfg(not(feature = "host"))]
 pub use sorts::SnsListSort;

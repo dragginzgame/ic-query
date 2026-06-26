@@ -7,9 +7,8 @@
 use crate::{
     duration::display_duration_seconds,
     nns::render::yes_no,
-    sns::report::{SnsCacheSummarySortKey, SnsNeuronPermissionList, SnsTokenMetadataRow},
+    sns::report::{SnsCacheSummarySortKey, SnsNeuronPermissionList},
     token_amount::e8s_decimal_text,
-    token_metadata_text::token_metadata_value_text as shared_token_metadata_value_text,
 };
 
 const COMPACT_NEURON_ID_CHARS: usize = 8;
@@ -109,13 +108,6 @@ where
             .cache_error()
             .map(|error| format!("cache_error: {}: {error}", cache.cache_path()))
     }));
-}
-
-pub(in crate::sns::report::text) fn token_metadata_value_text(
-    row: &SnsTokenMetadataRow,
-    decimals: u8,
-) -> String {
-    shared_token_metadata_value_text(&row.key, &row.value, decimals)
 }
 
 fn basis_points_text(value: u64) -> String {

@@ -4,8 +4,7 @@
 //! Does not own: report construction, SNS lookup, source reads, or JSON output.
 //! Boundary: formats one SNS info DTO into stable human-readable lines.
 
-use super::common::optional_text;
-use crate::sns::report::SnsInfoReport;
+use crate::{sns::report::SnsInfoReport, token_metadata_text::optional_text};
 
 #[must_use]
 pub fn sns_info_report_text(report: &SnsInfoReport) -> String {

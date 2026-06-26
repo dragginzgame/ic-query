@@ -4,8 +4,10 @@ pub mod report;
 mod commands;
 
 pub use report::{
-    DEFAULT_SNS_SOURCE_ENDPOINT, MAINNET_SNS_WASM_CANISTER_ID, SnsListReport, SnsListRequest,
-    SnsListRow, SnsListSort, sns_list_report_text,
+    DEFAULT_SNS_SOURCE_ENDPOINT, MAINNET_SNS_WASM_CANISTER_ID, SnsInfoReport, SnsInfoRequest,
+    SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsTokenMetadataRow,
+    SnsTokenReport, SnsTokenRequest, SnsTokenStandardRow, sns_info_report_text,
+    sns_list_report_text, sns_token_report_text,
 };
 
 #[cfg(feature = "host")]

@@ -15,17 +15,13 @@ mod neurons;
 mod params;
 #[cfg(feature = "host")]
 mod proposals;
-#[cfg(feature = "host")]
 mod token;
 
 #[cfg(all(test, feature = "host"))]
 pub use governance::{SnsCustomProposalCriticality, SnsVotingRewardsParameters};
 #[cfg(feature = "host")]
 pub use governance::{SnsGovernanceParameters, SnsNeuronPermissionList};
-#[cfg(feature = "host")]
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
-#[cfg(not(feature = "host"))]
-pub use list::{SnsListReport, SnsListRow};
 #[cfg(feature = "host")]
 pub use neurons::{
     SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
@@ -45,5 +41,4 @@ pub use proposals::{
     SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
     SnsProposalsReport,
 };
-#[cfg(feature = "host")]
 pub use token::{SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow};

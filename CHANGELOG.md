@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.5` opens more pure SNS library surface under `--no-default-features`.
+  Downstream crates can now construct and render SNS info and token report
+  DTOs without enabling native live-call, cache, or CLI dependencies. The SNS
+  no-default public API smoke test now covers list, info, and token reports.
+
 - `0.5.4` tightens the feature-boundary guard after the no-default library
   surfaces were opened. The CI script now separately asserts that pure
   no-default builds avoid CLI/live-call dependencies and that `host` without

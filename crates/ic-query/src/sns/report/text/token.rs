@@ -4,11 +4,11 @@
 //! Does not own: token source reads, report construction, or JSON output.
 //! Boundary: formats token metadata and base-unit amounts for humans.
 
-use super::common::{optional_text, token_metadata_value_text, truncate_text_value};
 use crate::{
     sns::report::SnsTokenReport,
     table::{ColumnAlign, render_table},
     token_amount::base_units_decimal_text,
+    token_metadata_text::{optional_text, token_metadata_value_text, truncate_text_value},
 };
 
 const SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
@@ -76,7 +76,7 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
                         row.key.clone(),
                         row.value_type.clone(),
                         truncate_text_value(
-                            &token_metadata_value_text(row, report.decimals),
+                            &token_metadata_value_text(&row.key, &row.value, report.decimals),
                             SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT,
                         ),
                     ]

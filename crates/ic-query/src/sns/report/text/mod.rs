@@ -6,7 +6,6 @@
 
 #[cfg(feature = "host")]
 mod common;
-#[cfg(feature = "host")]
 mod info;
 mod list;
 #[cfg(feature = "host")]
@@ -15,12 +14,10 @@ mod neurons;
 mod params;
 #[cfg(feature = "host")]
 mod proposals;
-#[cfg(feature = "host")]
 mod token;
 
 #[cfg(all(test, feature = "host"))]
 pub(super) use common::optional_e8s_decimal_text;
-#[cfg(feature = "host")]
 pub use info::sns_info_report_text;
 pub use list::sns_list_report_text;
 #[cfg(feature = "host")]
@@ -36,5 +33,4 @@ pub use proposals::{
     sns_proposals_cache_status_report_text, sns_proposals_refresh_report_text,
     sns_proposals_report_text,
 };
-#[cfg(feature = "host")]
 pub use token::sns_token_report_text;

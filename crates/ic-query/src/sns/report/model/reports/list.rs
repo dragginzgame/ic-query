@@ -51,7 +51,6 @@ pub struct SnsListRow {
 /// Serializable report for one deployed SNS resolved by id or root principal.
 ///
 
-#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsInfoReport {
     pub schema_version: u32,

@@ -22,6 +22,7 @@ pub struct SnsLookupRequest {
 pub type SnsInfoRequest = SnsLookupRequest;
 
 /// Request accepted by the SNS governance-parameters report builder.
+#[cfg(feature = "host")]
 pub type SnsParamsRequest = SnsLookupRequest;
 
 /// Request accepted by the SNS token report builder.
