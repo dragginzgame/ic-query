@@ -18,7 +18,6 @@
 mod cache_file;
 #[cfg(feature = "cli")]
 mod cli;
-#[cfg(feature = "host")]
 mod duration;
 #[cfg(feature = "host")]
 mod hex;

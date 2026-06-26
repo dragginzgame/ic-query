@@ -4,10 +4,10 @@
 //! Does not own: report DTOs, tables, cache behavior, or source reads.
 //! Boundary: exposes small formatting helpers used by text report leaves.
 
+#[cfg(feature = "host")]
+use crate::sns::report::SnsCacheSummarySortKey;
 use crate::{
-    duration::display_duration_seconds,
-    nns::render::yes_no,
-    sns::report::{SnsCacheSummarySortKey, SnsNeuronPermissionList},
+    duration::display_duration_seconds, sns::report::SnsNeuronPermissionList,
     token_amount::e8s_decimal_text,
 };
 
@@ -21,6 +21,7 @@ pub(in crate::sns::report::text) fn optional_e8s_text(value: Option<u64>) -> Str
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
 }
 
+#[cfg(feature = "host")]
 pub(in crate::sns::report) fn optional_e8s_decimal_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
 }
@@ -99,6 +100,7 @@ pub(in crate::sns::report::text) fn push_report_provenance_lines(
     }
 }
 
+#[cfg(feature = "host")]
 pub(in crate::sns::report::text) fn push_cache_error_lines<T>(lines: &mut Vec<String>, caches: &[T])
 where
     T: SnsCacheSummarySortKey,
@@ -108,6 +110,10 @@ where
             .cache_error()
             .map(|error| format!("cache_error: {}: {error}", cache.cache_path()))
     }));
+}
+
+pub(in crate::sns::report::text) const fn yes_no(value: bool) -> &'static str {
+    if value { "yes" } else { "no" }
 }
 
 fn basis_points_text(value: u64) -> String {

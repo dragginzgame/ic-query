@@ -17,30 +17,32 @@ pub(in crate::sns::report) use reports::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
     SNS_PROPOSAL_DECISION_OPEN,
 };
-#[cfg(all(test, feature = "host"))]
-pub use reports::{SnsCustomProposalCriticality, SnsVotingRewardsParameters};
+pub use reports::{
+    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
+    SnsListRow, SnsNeuronPermissionList, SnsParamsReport, SnsProposalBallotRow,
+    SnsProposalFailureReason, SnsProposalReport, SnsProposalRow, SnsProposalTally,
+    SnsProposalsReport, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
+    SnsVotingRewardsParameters,
+};
 #[cfg(feature = "host")]
 pub use reports::{
-    SnsGovernanceParameters, SnsNeuronPermissionList, SnsNeuronRow, SnsNeuronsCacheListReport,
-    SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary, SnsNeuronsRefreshAttemptStatus,
-    SnsNeuronsRefreshReport, SnsNeuronsReport, SnsParamsReport, SnsProposalBallotRow,
-    SnsProposalFailureReason, SnsProposalReport, SnsProposalRow, SnsProposalTally,
+    SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
+    SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsReport,
     SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
-    SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport, SnsProposalsReport,
+    SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
 };
-pub use reports::{
-    SnsInfoReport, SnsListReport, SnsListRow, SnsTokenMetadataRow, SnsTokenReport,
-    SnsTokenStandardRow,
+pub use requests::{
+    SnsInfoRequest, SnsListRequest, SnsLookupRequest, SnsParamsRequest, SnsProposalRequest,
+    SnsProposalsRequest, SnsTokenRequest,
 };
-pub use requests::{SnsInfoRequest, SnsListRequest, SnsLookupRequest, SnsTokenRequest};
 #[cfg(feature = "host")]
 pub use requests::{
     SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,
-    SnsNeuronsRequest, SnsParamsRequest, SnsProposalRequest, SnsProposalsCacheListRequest,
-    SnsProposalsCacheStatusRequest, SnsProposalsRefreshRequest, SnsProposalsRequest,
+    SnsNeuronsRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
+    SnsProposalsRefreshRequest,
 };
-#[cfg(not(feature = "host"))]
-pub use sorts::SnsListSort;
+#[cfg(feature = "host")]
+pub use sorts::SnsNeuronsSort;
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use sorts::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
@@ -49,8 +51,7 @@ pub(in crate::sns::report) use sorts::{
 pub(in crate::sns::report) use sorts::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
-#[cfg(feature = "host")]
 pub use sorts::{
-    SnsListSort, SnsNeuronsSort, SnsProposalEligibilityFilter, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+    SnsListSort, SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
+    SnsProposalTopicFilter, SnsProposalsSort,
 };

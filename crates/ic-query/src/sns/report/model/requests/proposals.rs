@@ -16,6 +16,7 @@ use std::path::PathBuf;
 /// Request accepted by the local SNS proposal cache list report builder.
 ///
 
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsProposalsCacheListRequest {
     pub network: String,
@@ -28,6 +29,7 @@ pub struct SnsProposalsCacheListRequest {
 /// Request accepted by the local SNS proposal cache status report builder.
 ///
 
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsProposalsCacheStatusRequest {
     pub network: String,
@@ -84,6 +86,7 @@ pub struct SnsProposalsRequest {
 /// Request accepted by the complete SNS proposal snapshot refresh builder.
 ///
 
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsProposalsRefreshRequest {
     pub network: String,

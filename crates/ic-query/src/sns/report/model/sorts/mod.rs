@@ -7,7 +7,6 @@
 mod list;
 #[cfg(feature = "host")]
 mod neurons;
-#[cfg(feature = "host")]
 mod proposals;
 
 pub use list::SnsListSort;
@@ -21,7 +20,6 @@ pub(in crate::sns::report) use proposals::{
 pub(in crate::sns::report) use proposals::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
-#[cfg(feature = "host")]
 pub use proposals::{
     SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
     SnsProposalTopicFilter, SnsProposalsSort,

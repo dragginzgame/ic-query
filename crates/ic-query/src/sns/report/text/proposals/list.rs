@@ -9,10 +9,9 @@ use super::{
     detail::{proposal_detail_lines, proposal_title_for_list},
 };
 use crate::{
-    nns::render::yes_no,
     sns::report::{
         SnsProposalsReport,
-        text::common::{optional_u64_text, push_report_provenance_lines},
+        text::common::{optional_u64_text, push_report_provenance_lines, yes_no},
     },
     table::{ColumnAlign, render_table},
 };

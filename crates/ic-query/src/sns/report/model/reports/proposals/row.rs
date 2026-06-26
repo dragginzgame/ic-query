@@ -6,9 +6,13 @@
 
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
+#[cfg(feature = "host")]
 pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_DECIDED: &str = "decided";
+#[cfg(feature = "host")]
 pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_EXECUTED: &str = "executed";
+#[cfg(feature = "host")]
 pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_FAILED: &str = "failed";
+#[cfg(feature = "host")]
 pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_OPEN: &str = "open";
 
 ///

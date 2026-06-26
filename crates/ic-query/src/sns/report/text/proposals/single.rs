@@ -8,9 +8,9 @@ use super::{
     SNS_PROPOSAL_DETAIL_TEXT_LIMIT,
     detail::{proposal_ballot_table, proposal_detail_lines},
 };
-use crate::{
-    nns::render::yes_no,
-    sns::report::{SnsProposalReport, text::common::push_report_provenance_lines},
+use crate::sns::report::{
+    SnsProposalReport,
+    text::common::{push_report_provenance_lines, yes_no},
 };
 
 #[must_use]

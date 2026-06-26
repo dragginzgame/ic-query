@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.6` opens SNS governance-parameter report DTOs and text rendering under
+  `--no-default-features`, along with SNS proposal list/detail request,
+  report, row, filter, sort, and text-rendering DTOs. Downstream crates can
+  now construct and render SNS params and proposal reports without enabling
+  native live-call, cache, or CLI dependencies.
+
 - `0.5.5` opens more pure SNS library surface under `--no-default-features`.
   Downstream crates can now construct and render SNS info and token report
   DTOs without enabling native live-call, cache, or CLI dependencies. The SNS

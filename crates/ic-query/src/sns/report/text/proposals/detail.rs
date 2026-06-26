@@ -6,10 +6,11 @@
 
 use super::SNS_PROPOSAL_TITLE_TEXT_LIMIT;
 use crate::{
-    nns::render::yes_no,
     sns::report::{
         SnsProposalBallotRow, SnsProposalRow,
-        text::common::{neuron_id_text, optional_text, optional_u64_text, truncate_text_value},
+        text::common::{
+            neuron_id_text, optional_text, optional_u64_text, truncate_text_value, yes_no,
+        },
     },
     table::{ColumnAlign, render_table},
     token_amount::e8s_decimal_text,

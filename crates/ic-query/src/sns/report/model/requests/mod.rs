@@ -8,20 +8,17 @@ mod list;
 mod lookup;
 #[cfg(feature = "host")]
 mod neurons;
-#[cfg(feature = "host")]
 mod proposals;
 
 pub use list::SnsListRequest;
-#[cfg(feature = "host")]
-pub use lookup::SnsParamsRequest;
-pub use lookup::{SnsInfoRequest, SnsLookupRequest, SnsTokenRequest};
+pub use lookup::{SnsInfoRequest, SnsLookupRequest, SnsParamsRequest, SnsTokenRequest};
 #[cfg(feature = "host")]
 pub use neurons::{
     SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,
     SnsNeuronsRequest,
 };
+pub use proposals::{SnsProposalRequest, SnsProposalsRequest};
 #[cfg(feature = "host")]
 pub use proposals::{
-    SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
-    SnsProposalsRefreshRequest, SnsProposalsRequest,
+    SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest, SnsProposalsRefreshRequest,
 };
