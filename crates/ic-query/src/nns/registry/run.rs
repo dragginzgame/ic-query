@@ -36,11 +36,8 @@ where
         return Ok(());
     };
     let options = RegistryVersionOptions::parse(args)?;
-    let request = NnsRegistryVersionRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-    };
+    let request =
+        NnsRegistryVersionRequest::new(options.network, options.source_endpoint, now_unix_secs()?);
     let report = build_nns_registry_version_report(&request)?;
     write_text_or_json(options.format, &report, nns_registry_version_report_text)
 }

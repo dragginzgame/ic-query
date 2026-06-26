@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.21` completes the remaining small NNS request constructor pass.
+  Registry-version and topology read/refresh requests now have public
+  constructors, topology refresh has a dry-run setter, and registry/topology CLI
+  dispatch uses those constructors.
+
 - `0.5.20` improves subnet catalog request ergonomics for downstream library
   users. Cache, list, info, and refresh requests now have public constructors
   and builder-style setters for filters, range display, forced resolution,

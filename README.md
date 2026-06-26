@@ -43,10 +43,10 @@ adapters, or `cli` for the family-level command adapters used by
 `ic-query-cli`. No-default builds expose pure report DTOs and text renderers
 for generic ICRC reports, NNS registry-version, node, data-center,
 node-provider, node-operator, proposal list/detail, and topology reports,
-deployed SNS list, info, token, governance-parameter, and proposal list/detail
-reports, plus subnet catalog JSON/model/resolver helpers, without native
-live-call dependencies. This is a host/CLI dependency boundary, not a `no_std`
-promise.
+including their public request constructors, deployed SNS list, info, token,
+governance-parameter, and proposal list/detail reports, plus subnet catalog
+JSON/model/resolver helpers, without native live-call dependencies. This is a
+host/CLI dependency boundary, not a `no_std` promise.
 
 Native tools that want the same subnet catalog cache/load behavior as
 `icq nns subnet info` can enable `host` without enabling `cli`:

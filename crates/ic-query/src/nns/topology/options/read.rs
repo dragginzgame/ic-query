@@ -43,12 +43,7 @@ macro_rules! topology_read_options {
             }
 
             fn into_request(self, icp_root: PathBuf, now_unix_secs: u64) -> $request {
-                $request {
-                    icp_root,
-                    network: self.network,
-                    source_endpoint: self.source_endpoint,
-                    now_unix_secs,
-                }
+                <$request>::new(icp_root, self.network, self.source_endpoint, now_unix_secs)
             }
         }
     };

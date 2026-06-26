@@ -95,11 +95,7 @@ use std::{
 
 #[test]
 fn public_nns_registry_api_is_constructible_and_renderable() {
-    let request = NnsRegistryVersionRequest {
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-    };
+    let request = NnsRegistryVersionRequest::new("ic", "https://icp-api.io", 1_700_000_000);
 
     assert_eq!(request.network, "ic");
 
@@ -446,12 +442,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_nns_topology_summary_and_versions_api_is_constructible_and_renderable() {
-    let request = NnsTopologySummaryRequest {
-        icp_root: ".".into(),
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-    };
+    let request = NnsTopologySummaryRequest::new(".", "ic", "https://icp-api.io", 1_700_000_000);
     assert_eq!(request.network, "ic");
 
     let registry_version = sample_topology_registry_version_row();
@@ -644,14 +635,9 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
     };
     assert!(nns_topology_providers_report_text(&providers).contains("over"));
 
-    let refresh_request = NnsTopologyRefreshRequest {
-        icp_root: ".".into(),
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-        lock_stale_after_seconds: 1_800,
-        dry_run: true,
-    };
+    let refresh_request =
+        NnsTopologyRefreshRequest::new(".", "ic", "https://icp-api.io", 1_700_000_000, 1_800)
+            .with_dry_run(true);
     let refresh = NnsTopologyRefreshReport {
         schema_version: 1,
         network: refresh_request.network,

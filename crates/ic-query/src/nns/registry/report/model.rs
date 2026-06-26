@@ -13,6 +13,21 @@ pub struct NnsRegistryVersionRequest {
     pub now_unix_secs: u64,
 }
 
+impl NnsRegistryVersionRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+        }
+    }
+}
+
 ///
 /// NnsRegistryVersionReport
 ///

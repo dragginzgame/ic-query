@@ -22,14 +22,14 @@ where
     let options = TopologyRefreshOptions::parse(args)?;
     let format = options.format;
     let icp_root = command_icp_root()?;
-    let request = NnsTopologyRefreshRequest {
+    let request = NnsTopologyRefreshRequest::new(
         icp_root,
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: now_unix_secs()?,
-        lock_stale_after_seconds: options.lock_stale_after_seconds,
-        dry_run: options.dry_run,
-    };
+        options.network,
+        options.source_endpoint,
+        now_unix_secs()?,
+        options.lock_stale_after_seconds,
+    )
+    .with_dry_run(options.dry_run);
     let report = refresh_nns_topology_report(&request)?;
     write_text_or_json(format, &report, nns_topology_refresh_report_text)
 }

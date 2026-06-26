@@ -26,6 +26,23 @@ pub struct NnsTopologyReadRequest {
     pub now_unix_secs: u64,
 }
 
+impl NnsTopologyReadRequest {
+    #[must_use]
+    pub fn new(
+        icp_root: impl Into<PathBuf>,
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            icp_root: icp_root.into(),
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+        }
+    }
+}
+
 pub type NnsTopologySummaryRequest = NnsTopologyReadRequest;
 pub type NnsTopologyCoverageRequest = NnsTopologyReadRequest;
 pub type NnsTopologyVersionsRequest = NnsTopologyReadRequest;
@@ -64,6 +81,32 @@ pub struct NnsTopologyRefreshRequest {
     pub dry_run: bool,
 }
 
+impl NnsTopologyRefreshRequest {
+    #[must_use]
+    pub fn new(
+        icp_root: impl Into<PathBuf>,
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        lock_stale_after_seconds: u64,
+    ) -> Self {
+        Self {
+            icp_root: icp_root.into(),
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            lock_stale_after_seconds,
+            dry_run: false,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
+        self.dry_run = dry_run;
+        self
+    }
+}
+
 #[cfg(feature = "host")]
 impl TopologyRequestParts for NnsTopologyRefreshRequest {
     fn icp_root(&self) -> &Path {
@@ -98,10 +141,10 @@ impl TopologyRefreshParts for NnsTopologyRefreshRequest {
 pub(in crate::nns::topology::report) fn summary_request_from(
     request: &impl TopologyRequestParts,
 ) -> NnsTopologySummaryRequest {
-    NnsTopologySummaryRequest {
-        icp_root: request.icp_root().to_path_buf(),
-        network: request.network().to_string(),
-        source_endpoint: request.source_endpoint().to_string(),
-        now_unix_secs: request.now_unix_secs(),
-    }
+    NnsTopologySummaryRequest::new(
+        request.icp_root(),
+        request.network(),
+        request.source_endpoint(),
+        request.now_unix_secs(),
+    )
 }
