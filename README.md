@@ -31,22 +31,23 @@ cargo install ic-query-cli
 ## Library
 
 Use `ic-query` for typed report models and renderers without the `icq` process
-wrapper:
+wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
 ic-query = { version = "0.5", default-features = false }
 ```
 
-The library default feature set is empty. Enable `host` for native live-call
-adapters, or `cli` for the family-level command adapters used by
-`ic-query-cli`. No-default builds expose pure report DTOs and text renderers
-for generic ICRC reports, NNS registry-version, node, data-center,
-node-provider, node-operator, proposal list/detail, and topology reports,
-including their public request constructors, deployed SNS list, info, token,
-governance-parameter, and proposal list/detail reports, plus subnet catalog
-JSON/model/resolver helpers, without native live-call dependencies. This is a
-host/CLI dependency boundary, not a `no_std` promise.
+Feature boundary:
+
+| Feature | Intended use |
+| --- | --- |
+| none / `default-features = false` | Pure request/report DTOs, text renderers, and local parsing/resolution helpers. CI checks this path for `wasm32-unknown-unknown` without host-only dependencies. |
+| `host` | Native cache, refresh, live-call, and filesystem-backed report builders. Pulls in the native runtime/live-call dependencies. |
+| `cli` | Family-level command adapters used by `ic-query-cli`. Implies `host` and adds `clap`. |
+
+This is a host/CLI dependency boundary, not a `no_std` promise. No-default
+builds may still use ordinary `std` types such as `String` and `Vec`.
 
 Native tools that want the same subnet catalog cache/load behavior as
 `icq nns subnet info` can enable `host` without enabling `cli`:
@@ -56,39 +57,15 @@ Native tools that want the same subnet catalog cache/load behavior as
 ic-query = { version = "0.5", default-features = false, features = ["host"] }
 ```
 
-The `ic_query::subnet_catalog` host API exposes cache/list/info/refresh
-request constructors, `load_cached_subnet_catalog`,
-`load_or_refresh_subnet_catalog`, cache path helpers, the default mainnet
-endpoint, subnet catalog report DTOs, report builders, and text renderers.
-Callers can then use the same cache-backed report path as
-`icq nns subnet list`, `icq nns subnet info`, and `icq nns subnet refresh`
-without spawning the `icq` executable.
+Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
+`ic_query::subnet_catalog` for the public report-family APIs. Native tools
+should normally depend on `features = ["host"]`; `cli` is only for crates that
+want to reuse `icq` command parsing and dispatch.
 
-The `ic_query::nns::{node,data_center,node_provider,node_operator}` host APIs
-also expose list/info/cache/refresh request constructors, cache and
-refresh-lock path helpers, cache-backed list/info builders, refresh-lock
-defaults, refresh execution, and text renderers without requiring `cli`.
-
-The `ic_query::nns::proposals` API exposes NNS proposal list/detail request
-constructors, report DTOs, and text renderers without requiring `host`. With
-`features = ["host"]`, native tools also get proposal cache list/status
-requests and builders, complete-cache list/detail builders, proposal cache path
-helpers, refresh requests, refresh execution, refresh-lock defaults, and live
-report builders without requiring `cli`.
-
-The `ic_query::icrc` API exposes generic ICRC request constructors, report
-DTOs, and text renderers without requiring `host`. With `features = ["host"]`,
-native tools can call the live generic ICRC token, balance, allowance, index,
-transactions, block-types, archives, tip-certificate, and capabilities report
-builders directly without requiring `cli`.
-
-The `ic_query::sns` API exposes SNS request constructors, report DTOs, and
-text renderers without requiring `host`. With `features = ["host"]`, native
-tools can call SNS list/info/token/params, proposal list/detail, and neuron
-report builders, SNS proposal and neuron cache list/status builders, cache and
-refresh-sidecar path helpers, refresh requests, refresh execution,
-refresh-lock defaults, and cache/refresh text renderers without requiring
-`cli`.
+See
+[Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
+for downstream migration notes, feature guidance, and examples for replacing
+`icq` process shell-outs with request constructors and report builders.
 
 ## Commands
 

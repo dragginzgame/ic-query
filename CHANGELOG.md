@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.22` refreshes downstream library documentation. The README now keeps a
+  shorter feature-boundary summary and links to a dedicated library usage guide
+  with canic-style migration notes, host/no-default dependency guidance, and
+  examples for replacing `icq` process shell-outs with public request
+  constructors and report builders. A downstream-usage integration test now
+  keeps those example patterns compiling under no-default and host-only builds.
+
 - `0.5.21` completes the remaining small NNS request constructor pass.
   Registry-version and topology read/refresh requests now have public
   constructors, topology refresh has a dry-run setter, and registry/topology CLI
