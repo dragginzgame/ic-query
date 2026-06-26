@@ -28,13 +28,13 @@ use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 
 pub(in crate::nns::proposals::report) use live::LiveNnsProposalSource;
 
-pub(in crate::nns::proposals) fn build_nns_proposal_list_report(
+pub fn build_nns_proposal_list_report(
     request: &NnsProposalListRequest,
 ) -> Result<NnsProposalListReport, NnsProposalHostError> {
     build_nns_proposal_list_report_with_source(request, &LiveNnsProposalSource)
 }
 
-pub(in crate::nns::proposals) fn build_nns_proposal_report(
+pub fn build_nns_proposal_report(
     request: &NnsProposalRequest,
 ) -> Result<NnsProposalReport, NnsProposalHostError> {
     build_nns_proposal_report_with_source(request, &LiveNnsProposalSource)

@@ -68,6 +68,11 @@ also expose cache request constructors, cache and refresh-lock path helpers,
 cache-backed list/info builders, refresh-lock defaults, refresh requests,
 refresh execution, and text renderers without requiring `cli`.
 
+The `ic_query::nns::proposals` host API exposes NNS proposal cache list/status
+requests and builders, complete-cache list/detail builders, proposal cache path
+helpers, refresh requests, refresh execution, refresh-lock defaults, live
+report builders, and text renderers without requiring `cli`.
+
 ## Commands
 
 ```bash

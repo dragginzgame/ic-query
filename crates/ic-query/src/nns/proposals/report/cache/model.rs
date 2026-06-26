@@ -9,7 +9,7 @@ use crate::{
     snapshot_cache::{SnapshotEnvelope, SnapshotRefreshAttempt},
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub(super) type NnsProposalCache = SnapshotEnvelope<NnsProposalCacheMetadata, NnsProposalCacheRows>;
 
@@ -23,13 +23,39 @@ pub(super) type NnsProposalRefreshAttempt =
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalRefreshRequest {
-    pub(in crate::nns::proposals) network: String,
-    pub(in crate::nns::proposals) source_endpoint: String,
-    pub(in crate::nns::proposals) now_unix_secs: u64,
-    pub(in crate::nns::proposals) icp_root: PathBuf,
-    pub(in crate::nns::proposals) page_size: u32,
-    pub(in crate::nns::proposals) max_pages: Option<u32>,
+pub struct NnsProposalRefreshRequest {
+    pub network: String,
+    pub source_endpoint: String,
+    pub now_unix_secs: u64,
+    pub icp_root: PathBuf,
+    pub page_size: u32,
+    pub max_pages: Option<u32>,
+}
+
+impl NnsProposalRefreshRequest {
+    #[must_use]
+    pub fn new(
+        icp_root: impl Into<PathBuf>,
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        page_size: u32,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            icp_root: icp_root.into(),
+            page_size,
+            max_pages: None,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
+        self.max_pages = max_pages;
+        self
+    }
 }
 
 ///
@@ -39,9 +65,24 @@ pub(in crate::nns) struct NnsProposalRefreshRequest {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalCacheListRequest {
-    pub(in crate::nns::proposals) network: String,
-    pub(in crate::nns::proposals) icp_root: PathBuf,
+pub struct NnsProposalCacheListRequest {
+    pub network: String,
+    pub icp_root: PathBuf,
+}
+
+impl NnsProposalCacheListRequest {
+    #[must_use]
+    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+        Self {
+            network: network.into(),
+            icp_root: icp_root.into(),
+        }
+    }
+
+    #[must_use]
+    pub fn icp_root(&self) -> &Path {
+        &self.icp_root
+    }
 }
 
 ///
@@ -51,9 +92,24 @@ pub(in crate::nns) struct NnsProposalCacheListRequest {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalCacheStatusRequest {
-    pub(in crate::nns::proposals) network: String,
-    pub(in crate::nns::proposals) icp_root: PathBuf,
+pub struct NnsProposalCacheStatusRequest {
+    pub network: String,
+    pub icp_root: PathBuf,
+}
+
+impl NnsProposalCacheStatusRequest {
+    #[must_use]
+    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+        Self {
+            network: network.into(),
+            icp_root: icp_root.into(),
+        }
+    }
+
+    #[must_use]
+    pub fn icp_root(&self) -> &Path {
+        &self.icp_root
+    }
 }
 
 ///
@@ -63,7 +119,7 @@ pub(in crate::nns) struct NnsProposalCacheStatusRequest {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalRefreshReport {
+pub struct NnsProposalRefreshReport {
     pub schema_version: u32,
     pub network: String,
     pub governance_canister_id: String,
@@ -88,7 +144,7 @@ pub(in crate::nns) struct NnsProposalRefreshReport {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalCacheListReport {
+pub struct NnsProposalCacheListReport {
     pub schema_version: u32,
     pub network: String,
     pub cache_root: String,
@@ -103,7 +159,7 @@ pub(in crate::nns) struct NnsProposalCacheListReport {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalCacheStatusReport {
+pub struct NnsProposalCacheStatusReport {
     pub schema_version: u32,
     pub network: String,
     pub cache_root: String,
@@ -121,7 +177,7 @@ pub(in crate::nns) struct NnsProposalCacheStatusReport {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalCacheSummary {
+pub struct NnsProposalCacheSummary {
     pub governance_canister_id: String,
     pub cache_status: String,
     pub cache_error: Option<String>,
@@ -143,7 +199,7 @@ pub(in crate::nns) struct NnsProposalCacheSummary {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub(in crate::nns) struct NnsProposalRefreshAttemptStatus {
+pub struct NnsProposalRefreshAttemptStatus {
     pub status: String,
     pub started_at: String,
     pub updated_at: String,

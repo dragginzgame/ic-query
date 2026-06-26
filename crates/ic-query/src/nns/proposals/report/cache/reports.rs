@@ -44,7 +44,7 @@ use std::{
 };
 
 /// Build a local NNS proposal cache list report.
-pub(in crate::nns::proposals) fn build_nns_proposal_cache_list_report(
+pub fn build_nns_proposal_cache_list_report(
     request: &NnsProposalCacheListRequest,
 ) -> Result<NnsProposalCacheListReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
@@ -70,7 +70,7 @@ pub(in crate::nns::proposals) fn build_nns_proposal_cache_list_report(
 }
 
 /// Build a local NNS proposal cache status report.
-pub(in crate::nns::proposals) fn build_nns_proposal_cache_status_report(
+pub fn build_nns_proposal_cache_status_report(
     request: &NnsProposalCacheStatusRequest,
 ) -> Result<NnsProposalCacheStatusReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
@@ -102,7 +102,7 @@ pub(in crate::nns::proposals) fn build_nns_proposal_cache_status_report(
 }
 
 /// Build an NNS proposal list report from a complete local proposal snapshot.
-pub(in crate::nns::proposals) fn build_nns_proposal_list_report_from_cache(
+pub fn build_nns_proposal_list_report_from_cache(
     request: &NnsProposalListRequest,
     icp_root: &Path,
 ) -> Result<Option<NnsProposalListReport>, NnsProposalHostError> {
@@ -120,7 +120,7 @@ pub(in crate::nns::proposals) fn build_nns_proposal_list_report_from_cache(
 }
 
 /// Build an NNS proposal detail report from a complete local proposal snapshot.
-pub(in crate::nns::proposals) fn build_nns_proposal_report_from_cache(
+pub fn build_nns_proposal_report_from_cache(
     request: &NnsProposalRequest,
     icp_root: &Path,
 ) -> Result<Option<NnsProposalReport>, NnsProposalHostError> {

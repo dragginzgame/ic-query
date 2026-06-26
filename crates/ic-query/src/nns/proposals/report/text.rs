@@ -133,9 +133,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
 
 #[must_use]
 #[cfg(feature = "host")]
-pub(in crate::nns::proposals) fn nns_proposal_refresh_report_text(
-    report: &NnsProposalRefreshReport,
-) -> String {
+pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> String {
     [
         format!("network: {}", report.network),
         format!("governance_canister_id: {}", report.governance_canister_id),
@@ -160,9 +158,7 @@ pub(in crate::nns::proposals) fn nns_proposal_refresh_report_text(
 
 #[must_use]
 #[cfg(feature = "host")]
-pub(in crate::nns::proposals) fn nns_proposal_cache_list_report_text(
-    report: &NnsProposalCacheListReport,
-) -> String {
+pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) -> String {
     let mut lines = vec![
         format!("network: {}", report.network),
         format!("cache_root: {}", report.cache_root),
@@ -204,9 +200,7 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_list_report_text(
 
 #[must_use]
 #[cfg(feature = "host")]
-pub(in crate::nns::proposals) fn nns_proposal_cache_status_report_text(
-    report: &NnsProposalCacheStatusReport,
-) -> String {
+pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusReport) -> String {
     let mut lines = vec![
         format!("network: {}", report.network),
         format!("cache_root: {}", report.cache_root),

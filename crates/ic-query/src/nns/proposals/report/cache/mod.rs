@@ -12,13 +12,17 @@ mod publish;
 mod refresh;
 mod reports;
 
-pub(in crate::nns) use model::{
+pub use model::{
     NnsProposalCacheListReport, NnsProposalCacheListRequest, NnsProposalCacheStatusReport,
-    NnsProposalCacheStatusRequest, NnsProposalRefreshAttemptStatus, NnsProposalRefreshReport,
-    NnsProposalRefreshRequest,
+    NnsProposalCacheStatusRequest, NnsProposalCacheSummary, NnsProposalRefreshAttemptStatus,
+    NnsProposalRefreshReport, NnsProposalRefreshRequest,
 };
-pub(in crate::nns::proposals) use refresh::refresh_nns_proposal_cache;
-pub(in crate::nns::proposals) use reports::{
+pub use paths::{
+    nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_refresh_attempt_path,
+    nns_proposal_refresh_lock_path,
+};
+pub use refresh::{DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, refresh_nns_proposal_cache};
+pub use reports::{
     build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
     build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
 };

@@ -15,7 +15,23 @@ pub(super) fn nns_proposal_cache_paths(icp_root: &Path, network: &str) -> Snapsh
     SnapshotJsonPaths::for_key(icp_root, &nns_proposal_cache_key(network))
 }
 
-pub(super) fn nns_proposal_cache_root(icp_root: &Path, network: &str) -> PathBuf {
+#[must_use]
+pub fn nns_proposal_cache_path(icp_root: &Path, network: &str) -> PathBuf {
+    nns_proposal_cache_paths(icp_root, network).snapshot_path
+}
+
+#[must_use]
+pub fn nns_proposal_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
+    nns_proposal_cache_paths(icp_root, network).refresh_lock_path
+}
+
+#[must_use]
+pub fn nns_proposal_refresh_attempt_path(icp_root: &Path, network: &str) -> PathBuf {
+    nns_proposal_cache_paths(icp_root, network).refresh_attempt_path
+}
+
+#[must_use]
+pub fn nns_proposal_cache_root(icp_root: &Path, network: &str) -> PathBuf {
     snapshot_network_dir(icp_root, NNS_PROPOSAL_CACHE_DOMAIN, network)
         .join(NNS_PROPOSAL_CACHE_ENTITY)
         .join(NNS_PROPOSAL_CACHE_COLLECTION)

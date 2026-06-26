@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.14` opens the NNS proposal native host API without requiring `cli`.
+  Downstream crates can now inspect complete NNS proposal caches, build
+  list/detail reports from a complete cache, call the live NNS proposal report
+  builders explicitly, refresh the complete proposal cache, resolve proposal
+  cache paths, and render cache/refresh reports directly from the library.
+
 - `0.5.13` improves the native NNS inventory library path for downstream
   crates. Node, data-center, node-provider, and node-operator cache request
   types now have public constructors, and their host APIs expose cache and

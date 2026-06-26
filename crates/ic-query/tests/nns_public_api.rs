@@ -52,6 +52,18 @@ use ic_query::nns::node_provider::{
     nns_node_provider_info_report_text, nns_node_provider_list_report_text,
     nns_node_provider_list_report_verbose_text,
 };
+#[cfg(feature = "host")]
+use ic_query::nns::proposals::{
+    DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+    NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalRefreshReport,
+    NnsProposalRefreshRequest, build_nns_proposal_cache_list_report,
+    build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
+    build_nns_proposal_list_report_from_cache, build_nns_proposal_report,
+    build_nns_proposal_report_from_cache, nns_proposal_cache_list_report_text,
+    nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_cache_status_report_text,
+    nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path,
+    nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
+};
 use ic_query::nns::proposals::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow,
@@ -710,6 +722,93 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
 type RefreshFn<Request, Report, Error> = fn(&Request) -> Result<Report, Error>;
 
 #[cfg(feature = "host")]
+type RequestReportFn<Request, Report, Error> = fn(&Request) -> Result<Report, Error>;
+
+#[cfg(feature = "host")]
+#[test]
+fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
+    let root = temp_root("nns-proposal-host-public-api");
+    write_nns_proposal_fixture_cache(&root);
+
+    let cache_list_request = NnsProposalCacheListRequest::new(&root, "ic");
+    let cache_status_request = NnsProposalCacheStatusRequest::new(&root, "ic");
+    let list_request = NnsProposalListRequest {
+        network: "ic".to_string(),
+        source_endpoint: DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_700_000_000,
+        limit: 25,
+        before_proposal_id: None,
+        status: NnsProposalStatusFilter::Executed,
+        reward_status: NnsProposalRewardStatusFilter::Settled,
+        topic: NnsProposalTopicFilter::Governance,
+        proposer_neuron_id: Some(12_345),
+        query: Some("subnet".to_string()),
+        sort: NnsProposalListSort::TallyTime,
+        sort_direction: NnsProposalSortDirection::Desc,
+        verbose: false,
+    };
+    let detail_request = NnsProposalRequest {
+        network: "ic".to_string(),
+        source_endpoint: DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_700_000_000,
+        proposal_id: 132_411,
+        show_ballots: true,
+        verbose: false,
+    };
+    let refresh_request = NnsProposalRefreshRequest::new(
+        &root,
+        "ic",
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        1_700_000_000,
+        100,
+    )
+    .with_max_pages(Some(1));
+
+    let cache_list =
+        build_nns_proposal_cache_list_report(&cache_list_request).expect("cache list report");
+    let cache_status =
+        build_nns_proposal_cache_status_report(&cache_status_request).expect("cache status report");
+    let proposal_list = build_nns_proposal_list_report_from_cache(&list_request, &root)
+        .expect("cached list lookup")
+        .expect("cached list report");
+    let cached_detail = build_nns_proposal_report_from_cache(&detail_request, &root)
+        .expect("cached detail lookup")
+        .expect("cached detail report");
+    let refresh_report = sample_nns_proposal_refresh_report(&root);
+
+    assert_eq!(cache_list_request.icp_root(), root.as_path());
+    assert_eq!(cache_status_request.icp_root(), root.as_path());
+    assert_eq!(cache_list.cache_count, 1);
+    assert!(cache_status.found);
+    assert_eq!(proposal_list.data_source, "cache");
+    assert_eq!(proposal_list.proposal_count, 1);
+    assert_eq!(cached_detail.data_source, "cache");
+    assert_eq!(cached_detail.proposal_id, 132_411);
+    assert!(nns_proposal_cache_path(&root, "ic").is_file());
+    assert!(nns_proposal_cache_root(&root, "ic").ends_with("proposals"));
+    assert!(nns_proposal_refresh_lock_path(&root, "ic").ends_with("full.refresh.lock"));
+    assert!(nns_proposal_refresh_attempt_path(&root, "ic").ends_with("full.refresh-attempt.json"));
+    assert_eq!(DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, 1_800);
+    assert!(nns_proposal_cache_list_report_text(&cache_list).contains("cache_count: 1"));
+    assert!(nns_proposal_cache_status_report_text(&cache_status).contains("found: yes"));
+    assert!(nns_proposal_refresh_report_text(&refresh_report).contains("proposal_count: 1"));
+    assert!(request_report_api_accepts_public_types(
+        build_nns_proposal_list_report,
+        &list_request
+    ));
+    assert!(request_report_api_accepts_public_types(
+        build_nns_proposal_report,
+        &detail_request
+    ));
+    assert!(request_report_api_accepts_public_types(
+        refresh_nns_proposal_cache,
+        &refresh_request
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "host")]
 fn write_nns_inventory_fixture_caches(root: &Path) {
     write_json_cache(
         &nns_node_cache_path(root, "ic"),
@@ -726,6 +825,33 @@ fn write_nns_inventory_fixture_caches(root: &Path) {
     write_json_cache(
         &nns_node_operator_cache_path(root, "ic"),
         &sample_nns_node_operator_list_report(),
+    );
+}
+
+#[cfg(feature = "host")]
+fn write_nns_proposal_fixture_cache(root: &Path) {
+    write_json_cache(
+        &nns_proposal_cache_path(root, "ic"),
+        &serde_json::json!({
+            "schema_version": 1,
+            "network": "ic",
+            "source_endpoint": DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+            "fetched_at": "2023-11-14T22:13:20Z",
+            "fetched_by": "ic-query",
+            "domain": "nns",
+            "entity": "governance",
+            "collection": "proposals",
+            "scope": "full",
+            "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+            "completeness": {
+                "status": "api_exhausted",
+                "page_size": 100,
+                "page_count": 1,
+                "row_count": 1,
+                "point_in_time_guaranteed": false
+            },
+            "proposals": [sample_nns_proposal_row()]
+        }),
     );
 }
 
@@ -914,6 +1040,15 @@ fn refresh_api_accepts_public_types<Request, Report, Error>(
 
 #[cfg(feature = "host")]
 #[must_use]
+fn request_report_api_accepts_public_types<Request, Report, Error>(
+    _build: RequestReportFn<Request, Report, Error>,
+    request: &Request,
+) -> bool {
+    std::mem::size_of_val(request) > 0
+}
+
+#[cfg(feature = "host")]
+#[must_use]
 fn temp_root(name: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
     path.push(format!("ic-query-{name}-{}", std::process::id()));
@@ -1074,6 +1209,31 @@ fn sample_nns_node_operator_refresh_report(root: &Path) -> NnsNodeOperatorRefres
         wrote_cache: false,
         replaced_existing_cache: true,
         node_operator_count: 1,
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_nns_proposal_refresh_report(root: &Path) -> NnsProposalRefreshReport {
+    NnsProposalRefreshReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        proposal_count: 1,
+        page_size: 100,
+        page_count: 1,
+        complete: true,
+        replaced_existing_cache: false,
+        wrote_cache: false,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT.to_string(),
+        fetched_by: "ic-query".to_string(),
+        cache_path: nns_proposal_cache_path(root, "ic").display().to_string(),
+        refresh_attempt_path: nns_proposal_refresh_attempt_path(root, "ic")
+            .display()
+            .to_string(),
+        refresh_lock_path: nns_proposal_refresh_lock_path(root, "ic")
+            .display()
+            .to_string(),
     }
 }
 

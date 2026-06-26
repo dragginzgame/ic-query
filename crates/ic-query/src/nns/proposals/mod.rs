@@ -15,7 +15,18 @@ mod run;
 mod values;
 
 #[cfg(feature = "host")]
-pub use report::NnsProposalHostError;
+pub use report::{
+    DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalCacheListReport,
+    NnsProposalCacheListRequest, NnsProposalCacheStatusReport, NnsProposalCacheStatusRequest,
+    NnsProposalCacheSummary, NnsProposalHostError, NnsProposalRefreshAttemptStatus,
+    NnsProposalRefreshReport, NnsProposalRefreshRequest, build_nns_proposal_cache_list_report,
+    build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
+    build_nns_proposal_list_report_from_cache, build_nns_proposal_report,
+    build_nns_proposal_report_from_cache, nns_proposal_cache_list_report_text,
+    nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_cache_status_report_text,
+    nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path,
+    nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
+};
 pub use report::{
     DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalBallotRow, NnsProposalListReport,
     NnsProposalListRequest, NnsProposalListSort, NnsProposalReport, NnsProposalRequest,

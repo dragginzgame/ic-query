@@ -22,10 +22,10 @@ use crate::{
     },
 };
 
-const NNS_PROPOSAL_REFRESH_LOCK_STALE_AFTER_SECONDS: u64 = 30 * 60;
+pub const DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
-pub(in crate::nns::proposals) fn refresh_nns_proposal_cache(
+pub fn refresh_nns_proposal_cache(
     request: &NnsProposalRefreshRequest,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
     refresh_nns_proposal_cache_with_source(request, &LiveNnsProposalSource)
@@ -43,7 +43,7 @@ pub(in crate::nns::proposals::report) fn refresh_nns_proposal_cache_with_source(
             refresh_lock_path: &paths.refresh_lock_path,
             network: &request.network,
             now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: NNS_PROPOSAL_REFRESH_LOCK_STALE_AFTER_SECONDS,
+            lock_stale_after_seconds: DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS,
         },
         NnsProposalHostError::Cache,
         |refresh_state| {
