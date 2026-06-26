@@ -30,6 +30,18 @@ use ic_query::nns::proposals::{
 use ic_query::nns::registry::{
     NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
+use ic_query::nns::topology::report::{
+    NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
+    NnsTopologyGapRow, NnsTopologyGapsReport, NnsTopologyHealthCheckRow, NnsTopologyHealthReport,
+    NnsTopologyProviderRow, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
+    NnsTopologyRefreshRequest, NnsTopologyRefreshRow, NnsTopologyRegionRow,
+    NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow, NnsTopologySummaryReport,
+    NnsTopologySummaryRequest, NnsTopologyVersionsReport, nns_topology_capacity_report_text,
+    nns_topology_coverage_report_text, nns_topology_gaps_report_text,
+    nns_topology_health_report_text, nns_topology_providers_report_text,
+    nns_topology_refresh_report_text, nns_topology_regions_report_text,
+    nns_topology_summary_report_text, nns_topology_versions_report_text,
+};
 
 #[test]
 fn public_nns_registry_api_is_constructible_and_renderable() {
@@ -409,6 +421,239 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     assert!(detail_text.contains("yes"));
 }
 
+#[test]
+fn public_nns_topology_summary_and_versions_api_is_constructible_and_renderable() {
+    let request = NnsTopologySummaryRequest {
+        icp_root: ".".into(),
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_700_000_000,
+    };
+    assert_eq!(request.network, "ic");
+
+    let registry_version = sample_topology_registry_version_row();
+    let summary = NnsTopologySummaryReport {
+        schema_version: 3,
+        network: request.network,
+        source_endpoint: request.source_endpoint,
+        subnet_count: 2,
+        application_subnet_count: 1,
+        cloud_engine_subnet_count: 0,
+        system_subnet_count: 1,
+        unknown_subnet_count: 0,
+        routing_range_count: 4,
+        node_count: 3,
+        application_node_count: 2,
+        cloud_engine_node_count: 0,
+        system_node_count: 1,
+        unknown_node_count: 0,
+        node_provider_count: 1,
+        node_operator_count: 1,
+        data_center_count: 1,
+        nodes_with_known_node_provider_count: 3,
+        nodes_with_unknown_node_provider_count: 0,
+        nodes_with_known_node_operator_count: 3,
+        nodes_with_unknown_node_operator_count: 0,
+        nodes_with_known_data_center_count: 3,
+        nodes_with_unknown_data_center_count: 0,
+        node_operators_with_known_node_provider_count: 1,
+        node_operators_with_unknown_node_provider_count: 0,
+        node_operators_with_known_data_center_count: 1,
+        node_operators_with_unknown_data_center_count: 0,
+        subnet_catalog_stale: false,
+        subnet_catalog_stale_reason: "fresh".to_string(),
+        registry_versions: vec![registry_version.clone()],
+    };
+    let summary_text = nns_topology_summary_report_text(&summary);
+    assert!(summary_text.contains("topology: ic subnets 2 nodes 3"));
+    assert!(summary_text.contains("subnet_catalog"));
+
+    let versions = NnsTopologyVersionsReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        source_count: 1,
+        registry_versions: vec![registry_version],
+    };
+    assert!(nns_topology_versions_report_text(&versions).contains("subnet_catalog"));
+}
+
+#[test]
+fn public_nns_topology_coverage_and_health_api_is_constructible_and_renderable() {
+    let health = NnsTopologyHealthReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        status: "ok".to_string(),
+        registry_source_count: 1,
+        registry_version_min: Some(42),
+        registry_version_max: Some(42),
+        registry_versions_aligned: true,
+        stale_source_count: 0,
+        subnet_catalog_stale: false,
+        subnet_catalog_stale_reason: "fresh".to_string(),
+        known_join_count: 11,
+        unknown_join_count: 0,
+        join_coverage: "100.0%".to_string(),
+        checks: vec![NnsTopologyHealthCheckRow {
+            check: "registry_versions".to_string(),
+            status: "ok".to_string(),
+            detail: "1 source at registry version 42".to_string(),
+        }],
+    };
+    assert!(nns_topology_health_report_text(&health).contains("registry_versions"));
+
+    let coverage = NnsTopologyCoverageReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        node_count: 3,
+        node_provider_count: 1,
+        node_operator_count: 1,
+        data_center_count: 1,
+        nodes_with_known_node_provider_count: 3,
+        nodes_with_unknown_node_provider_count: 0,
+        nodes_with_known_node_operator_count: 3,
+        nodes_with_unknown_node_operator_count: 0,
+        nodes_with_known_data_center_count: 3,
+        nodes_with_unknown_data_center_count: 0,
+        node_operators_with_known_node_provider_count: 1,
+        node_operators_with_unknown_node_provider_count: 0,
+        node_operators_with_known_data_center_count: 1,
+        node_operators_with_unknown_data_center_count: 0,
+    };
+    assert!(nns_topology_coverage_report_text(&coverage).contains("nodes"));
+}
+
+#[test]
+fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
+    let gaps = NnsTopologyGapsReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        status: "attention".to_string(),
+        gap_count: 1,
+        gaps: vec![NnsTopologyGapRow {
+            subject_kind: "node".to_string(),
+            subject: "zh3jp-xqaaa-aaaar-qaada-cai".to_string(),
+            missing_relation: "node_operator".to_string(),
+            referenced_id: "qoctq-giaaa-aaaar-qaada-cai".to_string(),
+        }],
+    };
+    assert!(nns_topology_gaps_report_text(&gaps).contains("node_operator"));
+
+    let capacity = NnsTopologyCapacityReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        status: "attention".to_string(),
+        node_operator_count: 1,
+        total_node_allowance: 2,
+        assigned_node_count: 3,
+        unknown_node_count_operator_count: 0,
+        available_node_slots: 0,
+        over_assigned_operator_count: 1,
+        over_assigned_node_count: 1,
+        capacity: vec![NnsTopologyCapacityRow {
+            node_operator_principal: "qoctq-giaaa-aaaar-qaada-cai".to_string(),
+            node_provider_principal: "w6gnz-6qaaa-aaaar-qaada-cai".to_string(),
+            data_center_id: "zh1".to_string(),
+            node_allowance: 2,
+            assigned_node_count: Some(3),
+            available_node_slots: Some(0),
+            over_assigned_node_count: Some(1),
+            utilization: "150.0%".to_string(),
+            status: "over".to_string(),
+        }],
+    };
+    assert!(nns_topology_capacity_report_text(&capacity).contains("over"));
+}
+
+#[test]
+fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_renderable() {
+    let regions = NnsTopologyRegionsReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        region_count: 1,
+        data_center_count: 1,
+        node_operator_count: 1,
+        node_provider_count: 1,
+        node_count: 3,
+        regions: vec![NnsTopologyRegionRow {
+            region: "Zurich".to_string(),
+            data_center_count: 1,
+            node_operator_count: 1,
+            node_provider_count: 1,
+            node_count: 3,
+        }],
+    };
+    assert!(nns_topology_regions_report_text(&regions).contains("Zurich"));
+
+    let providers = NnsTopologyProvidersReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        registered_node_provider_count: 1,
+        referenced_node_provider_count: 1,
+        provider_with_nodes_count: 1,
+        provider_with_node_operators_count: 1,
+        total_node_count: 3,
+        total_node_operator_count: 1,
+        total_node_allowance: 2,
+        over_assigned_provider_count: 1,
+        unknown_provider_count: 0,
+        providers: vec![NnsTopologyProviderRow {
+            node_provider_principal: "w6gnz-6qaaa-aaaar-qaada-cai".to_string(),
+            registered: true,
+            name: Some("Example Provider".to_string()),
+            governance_node_count: Some(3),
+            topology_node_count: 3,
+            node_operator_count: 1,
+            data_center_count: 1,
+            region_count: 1,
+            total_node_allowance: 2,
+            assigned_node_count: 3,
+            available_node_slots: 0,
+            over_assigned_node_count: 1,
+            status: "over".to_string(),
+        }],
+    };
+    assert!(nns_topology_providers_report_text(&providers).contains("over"));
+
+    let refresh_request = NnsTopologyRefreshRequest {
+        icp_root: ".".into(),
+        network: "ic".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_700_000_000,
+        lock_stale_after_seconds: 1_800,
+        dry_run: true,
+    };
+    let refresh = NnsTopologyRefreshReport {
+        schema_version: 1,
+        network: refresh_request.network,
+        source_endpoint: refresh_request.source_endpoint,
+        dry_run: refresh_request.dry_run,
+        component_count: 1,
+        wrote_cache_count: 0,
+        replaced_existing_cache_count: 0,
+        components: vec![NnsTopologyRefreshRow {
+            source: "subnet_catalog".to_string(),
+            cache_path: ".icq/subnet-catalog/ic/catalog.json".to_string(),
+            refresh_lock_path: ".icq/subnet-catalog/ic/refresh.lock".to_string(),
+            registry_version: 42,
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "ic-query".to_string(),
+            dry_run: true,
+            wrote_cache: false,
+            replaced_existing_cache: false,
+            item_count: 2,
+        }],
+    };
+    assert!(nns_topology_refresh_report_text(&refresh).contains("topology_refresh: ic"));
+}
+
 fn sample_nns_node_row() -> NnsNodeRow {
     NnsNodeRow {
         node_principal: "zh3jp-xqaaa-aaaar-qaada-cai".to_string(),
@@ -492,5 +737,15 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
             vote_text: "yes".to_string(),
             voting_power: 100_000_000,
         }],
+    }
+}
+
+fn sample_topology_registry_version_row() -> NnsTopologyRegistryVersionRow {
+    NnsTopologyRegistryVersionRow {
+        source: "subnet_catalog".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        stale: Some(false),
     }
 }

@@ -9,12 +9,10 @@ pub mod node_operator;
 pub mod node_provider;
 pub mod proposals;
 pub mod registry;
-#[cfg(feature = "host")]
 pub mod render;
 #[cfg(feature = "cli")]
 mod subnet;
-#[cfg(feature = "cli")]
-mod topology;
+pub mod topology;
 
 #[cfg(all(test, feature = "cli"))]
 mod tests;

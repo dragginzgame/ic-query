@@ -1,5 +1,8 @@
-use std::path::{Path, PathBuf};
+#[cfg(feature = "host")]
+use std::path::Path;
+use std::path::PathBuf;
 
+#[cfg(feature = "host")]
 pub(in crate::nns::topology::report) trait TopologyRequestParts {
     fn icp_root(&self) -> &Path;
     fn network(&self) -> &str;
@@ -7,6 +10,7 @@ pub(in crate::nns::topology::report) trait TopologyRequestParts {
     fn now_unix_secs(&self) -> u64;
 }
 
+#[cfg(feature = "host")]
 pub(in crate::nns::topology::report) trait TopologyRefreshParts:
     TopologyRequestParts
 {
@@ -31,6 +35,7 @@ pub type NnsTopologyCapacityRequest = NnsTopologyReadRequest;
 pub type NnsTopologyRegionsRequest = NnsTopologyReadRequest;
 pub type NnsTopologyProvidersRequest = NnsTopologyReadRequest;
 
+#[cfg(feature = "host")]
 impl TopologyRequestParts for NnsTopologyReadRequest {
     fn icp_root(&self) -> &Path {
         &self.icp_root
@@ -59,6 +64,7 @@ pub struct NnsTopologyRefreshRequest {
     pub dry_run: bool,
 }
 
+#[cfg(feature = "host")]
 impl TopologyRequestParts for NnsTopologyRefreshRequest {
     fn icp_root(&self) -> &Path {
         &self.icp_root
@@ -77,6 +83,7 @@ impl TopologyRequestParts for NnsTopologyRefreshRequest {
     }
 }
 
+#[cfg(feature = "host")]
 impl TopologyRefreshParts for NnsTopologyRefreshRequest {
     fn lock_stale_after_seconds(&self) -> u64 {
         self.lock_stale_after_seconds
@@ -87,6 +94,7 @@ impl TopologyRefreshParts for NnsTopologyRefreshRequest {
     }
 }
 
+#[cfg(feature = "host")]
 pub(in crate::nns::topology::report) fn summary_request_from(
     request: &impl TopologyRequestParts,
 ) -> NnsTopologySummaryRequest {

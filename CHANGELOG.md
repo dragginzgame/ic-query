@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.11` opens NNS topology request/report/row DTOs and text renderers
+  under `--no-default-features`, and exposes topology cache-backed builders
+  and refresh execution to `host` users without requiring `cli`. Command
+  parsing and dispatch remain behind `cli`. Downstream crates can now build,
+  construct, deserialize, and render topology summary, coverage, versions,
+  health, gaps, capacity, regions, providers, and refresh reports without
+  spawning `icq`.
+
 - `0.5.10` opens NNS data-center, node-provider, and node-operator list/info
   request, report, row, and text-rendering DTOs under `--no-default-features`.
   Downstream crates can now construct and render the cached NNS inventory leaf
