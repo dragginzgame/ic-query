@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.3` opens the pure subnet-catalog model, JSON, and resolver API under
+  `--no-default-features` so downstream crates can validate catalog snapshots
+  and resolve subnet/canister principals without host cache refresh or CLI
+  dependencies. The feature-boundary check now runs the ICRC, NNS, SNS, and
+  subnet-catalog public API smoke tests under no-default builds.
+
 - `0.5.2` opens the first pure no-default NNS and SNS library surfaces after
   the crate split. `ic_query::nns::registry` now exposes registry-version
   request/report/text DTOs without `host`, and `ic_query::sns` now exposes SNS

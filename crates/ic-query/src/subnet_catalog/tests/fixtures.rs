@@ -87,14 +87,14 @@ pub(super) struct FixtureRefreshSource {
 }
 
 impl FixtureRefreshSource {
-    pub(super) fn ok(catalog: SubnetCatalog) -> Self {
+    pub(super) const fn ok(catalog: SubnetCatalog) -> Self {
         Self {
             catalog: Some(catalog),
             fail: false,
         }
     }
 
-    pub(super) fn err() -> Self {
+    pub(super) const fn err() -> Self {
         Self {
             catalog: None,
             fail: true,

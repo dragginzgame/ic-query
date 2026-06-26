@@ -21,7 +21,6 @@ mod runtime;
 #[cfg(feature = "host")]
 pub(crate) mod snapshot_cache;
 pub mod sns;
-#[cfg(feature = "host")]
 pub mod subnet_catalog;
 mod table;
 #[cfg(feature = "host")]
