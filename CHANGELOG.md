@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.10` opens NNS data-center, node-provider, and node-operator list/info
+  request, report, row, and text-rendering DTOs under `--no-default-features`.
+  Downstream crates can now construct and render the cached NNS inventory leaf
+  reports without enabling native live-call, cache, refresh, or CLI
+  dependencies. This slice also exposes the subnet-catalog host cache request,
+  cached load, load-or-refresh, cache path helpers, and default mainnet
+  endpoint under `features = ["host"]` so native tools can replace
+  `icq nns subnet info` shell-outs with direct library calls.
+
 - `0.5.9` opens NNS node list/info request, report, row, filter, constant,
   and text-rendering DTOs under `--no-default-features`. Downstream crates can
   now construct and render NNS node reports without enabling native live-call,

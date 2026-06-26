@@ -33,6 +33,7 @@ pub struct NnsDataCenterInfoRequest {
 ///
 /// NnsDataCenterRefreshRequest
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsDataCenterRefreshRequest {
     pub cache: NnsDataCenterCacheRequest,
@@ -42,3 +43,6 @@ pub struct NnsDataCenterRefreshRequest {
     pub dry_run: bool,
     pub output_path: Option<PathBuf>,
 }
+
+#[cfg(feature = "host")]
+impl_nns_leaf_cache_and_refresh_requests!(NnsDataCenterCacheRequest, NnsDataCenterRefreshRequest);

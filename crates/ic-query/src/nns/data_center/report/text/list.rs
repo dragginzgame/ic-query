@@ -1,8 +1,5 @@
 use crate::{
-    nns::{
-        data_center::report::NnsDataCenterListReport,
-        render::{optional_f32_text, text_or_dash},
-    },
+    nns::data_center::report::NnsDataCenterListReport,
     table::{ColumnAlign, render_table},
 };
 
@@ -42,6 +39,17 @@ pub fn nns_data_center_list_report_text(report: &NnsDataCenterListReport) -> Str
     ];
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
+}
+
+fn optional_f32_text(value: Option<f32>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+const fn text_or_dash(value: Option<&str>) -> &str {
+    match value {
+        Some(text) if !text.is_empty() => text,
+        _ => "-",
+    }
 }
 
 #[must_use]

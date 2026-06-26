@@ -1,3 +1,4 @@
+#[cfg(feature = "host")]
 use crate::cache_file::JsonCacheReport;
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +18,7 @@ pub struct NnsNodeOperatorListReport {
     pub node_operators: Vec<NnsNodeOperatorRow>,
 }
 
+#[cfg(feature = "host")]
 impl JsonCacheReport for NnsNodeOperatorListReport {
     fn schema_version(&self) -> u32 {
         self.schema_version
@@ -63,6 +65,7 @@ pub struct NnsNodeOperatorInfoReport {
 ///
 /// NnsNodeOperatorRefreshReport
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeOperatorRefreshReport {
     pub schema_version: u32,

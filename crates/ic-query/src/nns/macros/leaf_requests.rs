@@ -61,10 +61,9 @@ macro_rules! impl_nns_leaf_cache_and_refresh_requests {
     };
 }
 
-macro_rules! impl_cached_leaf_requests {
-    ($cache:ty, $list:ty, $info:ty, $refresh:ty) => {
-        impl_nns_leaf_cache_and_refresh_requests!($cache, $refresh);
-
+#[cfg(feature = "cli")]
+macro_rules! impl_cached_leaf_cli_requests {
+    ($cache:ty, $list:ty, $info:ty) => {
         impl leaf::NnsLeafListRequest for $list {
             type Cache = $cache;
 

@@ -13,16 +13,18 @@ mod text;
 mod time;
 
 pub use error::CatalogError;
+#[cfg(all(test, feature = "host"))]
+pub(crate) use host::refresh_subnet_catalog_with_source;
+#[cfg(feature = "host")]
+pub use host::{
+    CachedSubnetCatalog, SubnetCatalogCacheRequest, SubnetCatalogHostError,
+    load_cached_subnet_catalog, load_or_refresh_subnet_catalog, subnet_catalog_path,
+    subnet_catalog_refresh_lock_path,
+};
 #[cfg(feature = "host")]
 pub(crate) use host::{
-    LiveNnsRegistryRefreshSource, SubnetCatalogCacheRequest, SubnetCatalogHostError,
-    SubnetCatalogRefreshRequest, SubnetCatalogRefreshSource, load_or_refresh_subnet_catalog,
-    refresh_subnet_catalog,
-};
-#[cfg(all(test, feature = "host"))]
-pub(crate) use host::{
-    load_cached_subnet_catalog, refresh_subnet_catalog_with_source, subnet_catalog_path,
-    subnet_catalog_refresh_lock_path,
+    LiveNnsRegistryRefreshSource, SubnetCatalogRefreshRequest, SubnetCatalogRefreshSource,
+    load_or_refresh_subnet_catalog_with_source, refresh_subnet_catalog,
 };
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 pub use model::{
@@ -60,7 +62,7 @@ pub(crate) const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
 #[cfg(feature = "host")]
 pub(crate) const DEFAULT_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 #[cfg(feature = "host")]
-pub(crate) const DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT: &str = "https://icp-api.io";
+pub const DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "host")]
 pub(crate) const SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]

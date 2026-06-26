@@ -41,11 +41,25 @@ ic-query = { version = "0.5", default-features = false }
 The library default feature set is empty. Enable `host` for native live-call
 adapters, or `cli` for the family-level command adapters used by
 `ic-query-cli`. No-default builds expose pure report DTOs and text renderers
-for generic ICRC reports, NNS registry-version, node list/info, and proposal
-list/detail reports, deployed SNS list, info, token, governance-parameter, and
-proposal list/detail reports, plus subnet catalog JSON/model/resolver helpers,
-without native live-call dependencies. This is a host/CLI dependency boundary,
-not a `no_std` promise.
+for generic ICRC reports, NNS registry-version, node, data-center,
+node-provider, node-operator, and proposal list/detail reports, deployed SNS
+list, info, token, governance-parameter, and proposal list/detail reports,
+plus subnet catalog JSON/model/resolver helpers, without native live-call
+dependencies. This is a host/CLI dependency boundary, not a `no_std` promise.
+
+Native tools that want the same subnet catalog cache/load behavior as
+`icq nns subnet info` can enable `host` without enabling `cli`:
+
+```toml
+[dependencies]
+ic-query = { version = "0.5", default-features = false, features = ["host"] }
+```
+
+The `ic_query::subnet_catalog` host API exposes cache requests,
+`load_cached_subnet_catalog`, `load_or_refresh_subnet_catalog`, cache path
+helpers, and the default mainnet endpoint. Callers can then use the
+no-default resolver methods on `SubnetCatalog` to resolve subnet or canister
+principals without spawning the `icq` executable.
 
 ## Commands
 

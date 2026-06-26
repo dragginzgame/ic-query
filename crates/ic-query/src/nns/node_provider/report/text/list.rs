@@ -1,8 +1,5 @@
 use crate::{
-    nns::{
-        node_provider::report::NnsNodeProviderListReport,
-        render::{compact_text, optional_node_count_text, text_or_dash},
-    },
+    nns::node_provider::report::NnsNodeProviderListReport,
     table::{ColumnAlign, render_table},
 };
 
@@ -34,6 +31,21 @@ pub fn nns_node_provider_list_report_text(report: &NnsNodeProviderListReport) ->
     let alignments = [ColumnAlign::Left, ColumnAlign::Right];
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
+}
+
+fn compact_text(value: &str, chars: usize) -> String {
+    value.chars().take(chars).collect()
+}
+
+fn optional_node_count_text(value: Option<u32>) -> String {
+    value.map_or_else(|| "unknown".to_string(), |count| count.to_string())
+}
+
+const fn text_or_dash(value: Option<&str>) -> &str {
+    match value {
+        Some(text) if !text.is_empty() => text,
+        _ => "-",
+    }
 }
 
 #[must_use]

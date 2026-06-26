@@ -1,7 +1,25 @@
+use ic_query::nns::data_center::{
+    NnsDataCenterCacheRequest, NnsDataCenterInfoReport, NnsDataCenterInfoRequest,
+    NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRow,
+    nns_data_center_info_report_text, nns_data_center_list_report_text,
+    nns_data_center_list_report_verbose_text,
+};
 use ic_query::nns::node::{
     NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeCacheRequest, NnsNodeInfoReport, NnsNodeInfoRequest,
     NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
     nns_node_info_report_text, nns_node_list_report_text, nns_node_list_report_verbose_text,
+};
+use ic_query::nns::node_operator::{
+    NnsNodeOperatorCacheRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,
+    NnsNodeOperatorListReport, NnsNodeOperatorListRequest, NnsNodeOperatorRow,
+    nns_node_operator_info_report_text, nns_node_operator_list_report_text,
+    nns_node_operator_list_report_verbose_text,
+};
+use ic_query::nns::node_provider::{
+    NnsNodeProviderCacheRequest, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,
+    NnsNodeProviderListReport, NnsNodeProviderListRequest, NnsNodeProviderRow,
+    nns_node_provider_info_report_text, nns_node_provider_list_report_text,
+    nns_node_provider_list_report_verbose_text,
 };
 use ic_query::nns::proposals::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
@@ -116,6 +134,190 @@ fn public_nns_node_api_is_constructible_and_renderable() {
 }
 
 #[test]
+fn public_nns_data_center_api_is_constructible_and_renderable() {
+    let cache = NnsDataCenterCacheRequest {
+        icp_root: ".".into(),
+        network: "ic".to_string(),
+    };
+    let request = NnsDataCenterListRequest {
+        cache: cache.clone(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_700_000_000,
+    };
+    let data_center = sample_nns_data_center_row();
+    let list = NnsDataCenterListReport {
+        schema_version: 1,
+        network: request.cache.network,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        data_center_count: 1,
+        data_centers: vec![data_center.clone()],
+    };
+
+    let text = nns_data_center_list_report_text(&list);
+    let verbose_text = nns_data_center_list_report_verbose_text(&list);
+
+    assert!(text.contains("data_centers: ic count 1"));
+    assert!(text.contains("Zurich"));
+    assert!(verbose_text.contains("REGISTRY_VERSION"));
+
+    let info_request = NnsDataCenterInfoRequest {
+        cache,
+        source_endpoint: "https://icp-api.io".to_string(),
+        input: data_center.data_center_id.clone(),
+        now_unix_secs: 1_700_000_000,
+    };
+    let info = NnsDataCenterInfoReport {
+        schema_version: 1,
+        input: info_request.input,
+        resolved_from: "data_center_id".to_string(),
+        network: info_request.cache.network,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: info_request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        data_center_id: data_center.data_center_id,
+        region: data_center.region,
+        owner: data_center.owner,
+        latitude: data_center.latitude,
+        longitude: data_center.longitude,
+        node_operator_count: data_center.node_operator_count,
+        node_provider_count: data_center.node_provider_count,
+        node_count: data_center.node_count,
+    };
+
+    let info_text = nns_data_center_info_report_text(&info);
+
+    assert!(info_text.contains("resolved_from: data_center_id"));
+    assert!(info_text.contains("node_count: 12"));
+}
+
+#[test]
+fn public_nns_node_provider_api_is_constructible_and_renderable() {
+    let cache = NnsNodeProviderCacheRequest {
+        icp_root: ".".into(),
+        network: "ic".to_string(),
+    };
+    let request = NnsNodeProviderListRequest {
+        cache: cache.clone(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_700_000_000,
+    };
+    let provider = sample_nns_node_provider_row();
+    let list = NnsNodeProviderListReport {
+        schema_version: 1,
+        network: request.cache.network,
+        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        node_provider_count: 1,
+        node_providers: vec![provider.clone()],
+    };
+
+    let text = nns_node_provider_list_report_text(&list);
+    let verbose_text = nns_node_provider_list_report_verbose_text(&list);
+
+    assert!(text.contains("node_providers: ic count 1"));
+    assert!(text.contains("12"));
+    assert!(verbose_text.contains("deadbeef"));
+
+    let info_request = NnsNodeProviderInfoRequest {
+        cache,
+        source_endpoint: "https://icp-api.io".to_string(),
+        input: provider.node_provider_principal.clone(),
+        now_unix_secs: 1_700_000_000,
+    };
+    let info = NnsNodeProviderInfoReport {
+        schema_version: 1,
+        input: info_request.input,
+        resolved_from: "node_provider_principal".to_string(),
+        network: info_request.cache.network,
+        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: info_request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        node_provider_principal: provider.node_provider_principal,
+        name: provider.name,
+        node_count: provider.node_count,
+        reward_account_hex: provider.reward_account_hex,
+    };
+
+    let info_text = nns_node_provider_info_report_text(&info);
+
+    assert!(info_text.contains("resolved_from: node_provider_principal"));
+    assert!(info_text.contains("reward_account_hex: deadbeef"));
+}
+
+#[test]
+fn public_nns_node_operator_api_is_constructible_and_renderable() {
+    let cache = NnsNodeOperatorCacheRequest {
+        icp_root: ".".into(),
+        network: "ic".to_string(),
+    };
+    let request = NnsNodeOperatorListRequest {
+        cache: cache.clone(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_700_000_000,
+    };
+    let operator = sample_nns_node_operator_row();
+    let list = NnsNodeOperatorListReport {
+        schema_version: 1,
+        network: request.cache.network,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        node_operator_count: 1,
+        node_operators: vec![operator.clone()],
+    };
+
+    let text = nns_node_operator_list_report_text(&list);
+    let verbose_text = nns_node_operator_list_report_verbose_text(&list);
+
+    assert!(text.contains("node_operators: ic count 1"));
+    assert!(text.contains("zh1"));
+    assert!(verbose_text.contains("tdb26-jop6g-7sc54-foywl"));
+
+    let info_request = NnsNodeOperatorInfoRequest {
+        cache,
+        source_endpoint: "https://icp-api.io".to_string(),
+        input: operator.node_operator_principal.clone(),
+        now_unix_secs: 1_700_000_000,
+    };
+    let info = NnsNodeOperatorInfoReport {
+        schema_version: 1,
+        input: info_request.input,
+        resolved_from: "node_operator_principal".to_string(),
+        network: info_request.cache.network,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: info_request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        node_operator_principal: operator.node_operator_principal,
+        node_provider_principal: operator.node_provider_principal,
+        node_allowance: operator.node_allowance,
+        data_center_id: operator.data_center_id,
+        node_count: operator.node_count,
+    };
+
+    let info_text = nns_node_operator_info_report_text(&info);
+
+    assert!(info_text.contains("resolved_from: node_operator_principal"));
+    assert!(info_text.contains("node_allowance: 28"));
+}
+
+#[test]
 fn public_nns_proposal_api_is_constructible_and_renderable() {
     let request = NnsProposalListRequest {
         network: "ic".to_string(),
@@ -215,6 +417,38 @@ fn sample_nns_node_row() -> NnsNodeRow {
         subnet_principal: "tdb26-jop6g-7sc54-foywl".to_string(),
         subnet_kind: NNS_NODE_SUBNET_KIND_APPLICATION.to_string(),
         data_center_id: "zh1".to_string(),
+    }
+}
+
+fn sample_nns_data_center_row() -> NnsDataCenterRow {
+    NnsDataCenterRow {
+        data_center_id: "zh1".to_string(),
+        region: "Zurich".to_string(),
+        owner: "Example DC Owner".to_string(),
+        latitude: Some(47.37),
+        longitude: Some(8.54),
+        node_operator_count: 2,
+        node_provider_count: 3,
+        node_count: 12,
+    }
+}
+
+fn sample_nns_node_provider_row() -> NnsNodeProviderRow {
+    NnsNodeProviderRow {
+        node_provider_principal: "w6gnz-6qaaa-aaaar-qaada-cai".to_string(),
+        name: Some("Example Provider".to_string()),
+        node_count: Some(12),
+        reward_account_hex: Some("deadbeef".to_string()),
+    }
+}
+
+fn sample_nns_node_operator_row() -> NnsNodeOperatorRow {
+    NnsNodeOperatorRow {
+        node_operator_principal: "tdb26-jop6g-7sc54-foywl".to_string(),
+        node_provider_principal: "w6gnz-6qaaa-aaaar-qaada-cai".to_string(),
+        node_allowance: 28,
+        data_center_id: "zh1".to_string(),
+        node_count: Some(12),
     }
 }
 

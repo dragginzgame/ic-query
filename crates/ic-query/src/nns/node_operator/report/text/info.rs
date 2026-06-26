@@ -1,7 +1,4 @@
-use crate::nns::{
-    node_operator::report::NnsNodeOperatorInfoReport,
-    render::{optional_node_count_text, text_or_dash},
-};
+use crate::nns::node_operator::report::NnsNodeOperatorInfoReport;
 
 #[must_use]
 pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) -> String {
@@ -33,4 +30,15 @@ pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) ->
         format!("fetched_by: {}", report.fetched_by),
     ]
     .join("\n")
+}
+
+fn optional_node_count_text(value: Option<u32>) -> String {
+    value.map_or_else(|| "unknown".to_string(), |count| count.to_string())
+}
+
+const fn text_or_dash(value: Option<&str>) -> &str {
+    match value {
+        Some(text) if !text.is_empty() => text,
+        _ => "-",
+    }
 }

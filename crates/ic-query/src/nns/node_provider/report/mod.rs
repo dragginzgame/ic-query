@@ -1,49 +1,66 @@
-use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
-
+#[cfg(feature = "host")]
 mod build;
+#[cfg(feature = "host")]
 mod cache;
 mod model;
+#[cfg(feature = "host")]
 mod refresh;
+#[cfg(feature = "host")]
 mod resolve;
+#[cfg(feature = "host")]
 mod source;
 mod text;
 
+#[cfg(feature = "host")]
 pub use build::{build_nns_node_provider_info_report, build_nns_node_provider_list_report};
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use build::{
     build_nns_node_provider_info_report_with_source,
     build_nns_node_provider_list_report_with_source,
 };
+#[cfg(feature = "host")]
 pub use refresh::refresh_nns_node_provider_report;
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use refresh::refresh_nns_node_provider_report_with_source;
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use resolve::resolve_node_provider;
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use source::NnsNodeProviderSource;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use crate::ic_registry::{MainnetNodeProviderList, MainnetRegistryFetchRequest};
 
 pub use model::{
-    NnsNodeProviderCacheRequest, NnsNodeProviderHostError, NnsNodeProviderInfoReport,
-    NnsNodeProviderInfoRequest, NnsNodeProviderListReport, NnsNodeProviderListRequest,
-    NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest, NnsNodeProviderRow,
+    NnsNodeProviderCacheRequest, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,
+    NnsNodeProviderListReport, NnsNodeProviderListRequest, NnsNodeProviderRow,
 };
+#[cfg(feature = "host")]
+pub use model::{
+    NnsNodeProviderHostError, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
+};
+#[cfg(feature = "host")]
+pub use text::nns_node_provider_refresh_report_text;
 pub use text::{
     nns_node_provider_info_report_text, nns_node_provider_list_report_text,
-    nns_node_provider_list_report_verbose_text, nns_node_provider_refresh_report_text,
+    nns_node_provider_list_report_verbose_text,
 };
 
-pub const DEFAULT_NNS_SOURCE_ENDPOINT: &str = DEFAULT_MAINNET_ENDPOINT;
+pub const DEFAULT_NNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";
+#[cfg(feature = "host")]
 pub const DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
+#[cfg(feature = "host")]
 pub const NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
 pub const NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
 pub const NNS_NODE_PROVIDER_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
 const NNS_NODE_PROVIDER_CACHE_DIR: &str = "node-provider";
+#[cfg(feature = "host")]
 const NNS_NODE_PROVIDER_CACHE_FILE: &str = "providers.json";
 
+#[cfg(feature = "host")]
 impl_nns_mainnet_network_enforcer!(NnsNodeProviderHostError);
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 mod tests;

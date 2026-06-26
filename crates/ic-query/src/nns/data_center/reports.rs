@@ -29,9 +29,8 @@ impl_nns_leaf_reports!(
     refresh_text = nns_data_center_refresh_report_text,
 );
 
-impl_cached_leaf_requests!(
+impl_cached_leaf_cli_requests!(
     NnsDataCenterCacheRequest,
     NnsDataCenterListRequest,
-    NnsDataCenterInfoRequest,
-    NnsDataCenterRefreshRequest
+    NnsDataCenterInfoRequest
 );

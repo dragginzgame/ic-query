@@ -33,6 +33,7 @@ pub struct NnsNodeOperatorInfoRequest {
 ///
 /// NnsNodeOperatorRefreshRequest
 ///
+#[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeOperatorRefreshRequest {
     pub cache: NnsNodeOperatorCacheRequest,
@@ -42,3 +43,9 @@ pub struct NnsNodeOperatorRefreshRequest {
     pub dry_run: bool,
     pub output_path: Option<PathBuf>,
 }
+
+#[cfg(feature = "host")]
+impl_nns_leaf_cache_and_refresh_requests!(
+    NnsNodeOperatorCacheRequest,
+    NnsNodeOperatorRefreshRequest
+);

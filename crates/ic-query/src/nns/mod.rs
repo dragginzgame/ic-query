@@ -1,15 +1,12 @@
 #[cfg(feature = "host")]
 #[macro_use]
 mod macros;
-#[cfg(feature = "cli")]
-mod data_center;
+pub mod data_center;
 #[cfg(feature = "host")]
 mod leaf;
 pub mod node;
-#[cfg(feature = "cli")]
-mod node_operator;
-#[cfg(feature = "cli")]
-mod node_provider;
+pub mod node_operator;
+pub mod node_provider;
 pub mod proposals;
 pub mod registry;
 #[cfg(feature = "host")]

@@ -1,7 +1,4 @@
-use crate::nns::{
-    data_center::report::NnsDataCenterInfoReport,
-    render::{optional_f32_text, text_or_dash},
-};
+use crate::nns::data_center::report::NnsDataCenterInfoReport;
 
 #[must_use]
 pub fn nns_data_center_info_report_text(report: &NnsDataCenterInfoReport) -> String {
@@ -24,4 +21,15 @@ pub fn nns_data_center_info_report_text(report: &NnsDataCenterInfoReport) -> Str
         format!("fetched_by: {}", report.fetched_by),
     ]
     .join("\n")
+}
+
+fn optional_f32_text(value: Option<f32>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+const fn text_or_dash(value: Option<&str>) -> &str {
+    match value {
+        Some(text) if !text.is_empty() => text,
+        _ => "-",
+    }
 }

@@ -30,9 +30,8 @@ impl_nns_leaf_reports!(
     refresh_text = nns_node_operator_refresh_report_text,
 );
 
-impl_cached_leaf_requests!(
+impl_cached_leaf_cli_requests!(
     NnsNodeOperatorCacheRequest,
     NnsNodeOperatorListRequest,
-    NnsNodeOperatorInfoRequest,
-    NnsNodeOperatorRefreshRequest
+    NnsNodeOperatorInfoRequest
 );

@@ -1,7 +1,4 @@
-use crate::nns::{
-    node_provider::report::NnsNodeProviderInfoReport,
-    render::{optional_node_count_text, text_or_dash},
-};
+use crate::nns::node_provider::report::NnsNodeProviderInfoReport;
 
 #[must_use]
 pub fn nns_node_provider_info_report_text(report: &NnsNodeProviderInfoReport) -> String {
@@ -34,4 +31,15 @@ pub fn nns_node_provider_info_report_text(report: &NnsNodeProviderInfoReport) ->
     lines.push(format!("source_endpoint: {}", report.source_endpoint));
     lines.push(format!("fetched_by: {}", report.fetched_by));
     lines.join("\n")
+}
+
+fn optional_node_count_text(value: Option<u32>) -> String {
+    value.map_or_else(|| "unknown".to_string(), |count| count.to_string())
+}
+
+const fn text_or_dash(value: Option<&str>) -> &str {
+    match value {
+        Some(text) if !text.is_empty() => text,
+        _ => "-",
+    }
 }

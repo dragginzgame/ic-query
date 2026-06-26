@@ -2,6 +2,7 @@
 mod leaf_requests;
 #[macro_use]
 mod network;
+#[cfg(feature = "cli")]
 #[macro_use]
 mod reports;
 

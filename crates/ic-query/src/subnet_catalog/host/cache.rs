@@ -1,6 +1,7 @@
 use super::{
-    SubnetCatalogHostError, SubnetCatalogRefreshRequest, SubnetCatalogRefreshSource,
-    error::enforce_mainnet_network, refresh_subnet_catalog_with_source, subnet_catalog_path,
+    LiveNnsRegistryRefreshSource, SubnetCatalogHostError, SubnetCatalogRefreshRequest,
+    SubnetCatalogRefreshSource, error::enforce_mainnet_network, refresh_subnet_catalog_with_source,
+    subnet_catalog_path,
 };
 use crate::{
     cache_file::load_or_refresh_missing_cache,
@@ -11,6 +12,9 @@ use std::{fs, path::PathBuf};
 ///
 /// SubnetCatalogCacheRequest
 ///
+/// Cache root and network identity used to load a subnet catalog snapshot.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogCacheRequest {
     pub icp_root: PathBuf,
@@ -20,12 +24,16 @@ pub struct SubnetCatalogCacheRequest {
 ///
 /// CachedSubnetCatalog
 ///
+/// Subnet catalog loaded from the host cache, including the path that supplied it.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CachedSubnetCatalog {
     pub path: PathBuf,
     pub catalog: SubnetCatalog,
 }
 
+/// Load a subnet catalog from the host cache without making live network calls.
 pub fn load_cached_subnet_catalog(
     request: &SubnetCatalogCacheRequest,
 ) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
@@ -48,7 +56,21 @@ pub fn load_cached_subnet_catalog(
     Ok(CachedSubnetCatalog { path, catalog })
 }
 
+/// Load a subnet catalog from the host cache, refreshing it from mainnet if it is missing.
 pub fn load_or_refresh_subnet_catalog(
+    request: &SubnetCatalogCacheRequest,
+    source_endpoint: &str,
+    now_unix_secs: u64,
+) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
+    load_or_refresh_subnet_catalog_with_source(
+        request,
+        source_endpoint,
+        now_unix_secs,
+        &LiveNnsRegistryRefreshSource,
+    )
+}
+
+pub fn load_or_refresh_subnet_catalog_with_source(
     request: &SubnetCatalogCacheRequest,
     source_endpoint: &str,
     now_unix_secs: u64,
