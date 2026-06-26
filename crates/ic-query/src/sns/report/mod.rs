@@ -81,23 +81,24 @@ pub(in crate::sns::report) use cache_summary::{
     find_valid_sns_cache_summary_by_id, invalid_sns_cache_summary_fields,
     parse_sns_root_canister_input,
 };
+#[cfg(feature = "host")]
+pub use neurons_cache::{
+    DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, build_sns_neurons_cache_list_report,
+    build_sns_neurons_cache_status_report, refresh_sns_neurons_cache, sns_neurons_cache_path,
+    sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
+};
 #[cfg(all(test, feature = "host"))]
 use neurons_cache::{
     SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_SCHEMA_VERSION,
     SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION, refresh_sns_neurons_cache_with_source,
-    sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
-};
-#[cfg(feature = "host")]
-pub use neurons_cache::{
-    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
-    refresh_sns_neurons_cache,
 };
 #[cfg(all(test, feature = "host"))]
 use proposals_cache::refresh_sns_proposals_cache_with_source;
 #[cfg(feature = "host")]
 pub use proposals_cache::{
-    build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
-    refresh_sns_proposals_cache,
+    DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, build_sns_proposals_cache_list_report,
+    build_sns_proposals_cache_status_report, refresh_sns_proposals_cache, sns_proposals_cache_path,
+    sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };
 pub use text::{
     sns_info_report_text, sns_list_report_text, sns_params_report_text, sns_proposal_report_text,

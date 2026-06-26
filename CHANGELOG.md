@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.15` opens the SNS native host API without requiring `cli`.
+  Downstream crates can now call SNS list/info/token/params, proposal
+  list/detail, and neuron report builders directly, inspect SNS proposal and
+  neuron caches, resolve their cache/refresh sidecar paths, refresh complete
+  SNS proposal and neuron snapshots, and render SNS neuron/proposal cache and
+  refresh reports from the library.
+
 - `0.5.14` opens the NNS proposal native host API without requiring `cli`.
   Downstream crates can now inspect complete NNS proposal caches, build
   list/detail reports from a complete cache, call the live NNS proposal report

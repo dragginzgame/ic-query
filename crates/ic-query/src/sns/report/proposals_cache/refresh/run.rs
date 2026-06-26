@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-const SNS_PROPOSALS_REFRESH_LOCK_STALE_AFTER_SECONDS: u64 = 30 * 60;
+pub const DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 /// Refresh a complete SNS proposal snapshot using the live SNS source.
 pub fn refresh_sns_proposals_cache(
@@ -61,7 +61,7 @@ pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source(
             refresh_lock_path: &paths.lock_path,
             network: &request.network,
             now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: SNS_PROPOSALS_REFRESH_LOCK_STALE_AFTER_SECONDS,
+            lock_stale_after_seconds: DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS,
         },
         SnsHostError::Cache,
         |refresh_state| {

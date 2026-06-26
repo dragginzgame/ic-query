@@ -20,11 +20,8 @@ impl SnsCacheCollection for SnsNeuronsCacheCollection {
     const COLLECTION: &'static str = "neurons";
 }
 
-pub(in crate::sns::report) fn sns_neurons_cache_path(
-    icp_root: &Path,
-    network: &str,
-    root_canister_id: &str,
-) -> PathBuf {
+#[must_use]
+pub fn sns_neurons_cache_path(icp_root: &Path, network: &str, root_canister_id: &str) -> PathBuf {
     SnsNeuronsCachePaths::for_root(icp_root, network, root_canister_id).cache_path
 }
 
@@ -32,8 +29,8 @@ pub(super) fn sns_network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
     sns_snapshot_network_cache_dir(icp_root, network)
 }
 
-#[cfg(test)]
-pub(in crate::sns::report) fn sns_neurons_refresh_lock_path(
+#[must_use]
+pub fn sns_neurons_refresh_lock_path(
     icp_root: &Path,
     network: &str,
     root_canister_id: &str,
@@ -41,8 +38,8 @@ pub(in crate::sns::report) fn sns_neurons_refresh_lock_path(
     SnsNeuronsCachePaths::for_root(icp_root, network, root_canister_id).lock_path
 }
 
-#[cfg(test)]
-pub(in crate::sns::report) fn sns_neurons_refresh_attempt_path(
+#[must_use]
+pub fn sns_neurons_refresh_attempt_path(
     icp_root: &Path,
     network: &str,
     root_canister_id: &str,

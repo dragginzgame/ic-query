@@ -73,6 +73,12 @@ requests and builders, complete-cache list/detail builders, proposal cache path
 helpers, refresh requests, refresh execution, refresh-lock defaults, live
 report builders, and text renderers without requiring `cli`.
 
+The `ic_query::sns` host API exposes SNS list/info/token/params, proposal
+list/detail, and neuron report builders, SNS proposal and neuron cache
+list/status builders, cache and refresh-sidecar path helpers, refresh
+requests, refresh execution, refresh-lock defaults, and cache/refresh text
+renderers without requiring `cli`.
+
 ## Commands
 
 ```bash

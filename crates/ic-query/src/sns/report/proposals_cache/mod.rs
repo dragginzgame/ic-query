@@ -13,8 +13,11 @@ mod refresh;
 mod reports;
 mod storage;
 
-pub use refresh::refresh_sns_proposals_cache;
+pub use paths::{
+    sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
+};
 pub(in crate::sns::report) use refresh::refresh_sns_proposals_cache_with_source;
+pub use refresh::{DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, refresh_sns_proposals_cache};
 pub(in crate::sns::report) use reports::{
     build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
 };

@@ -20,6 +20,29 @@ impl SnsCacheCollection for SnsProposalsCacheCollection {
     const COLLECTION: &'static str = "proposals";
 }
 
+#[must_use]
+pub fn sns_proposals_cache_path(icp_root: &Path, network: &str, root_canister_id: &str) -> PathBuf {
+    SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id).cache_path
+}
+
+#[must_use]
+pub fn sns_proposals_refresh_lock_path(
+    icp_root: &Path,
+    network: &str,
+    root_canister_id: &str,
+) -> PathBuf {
+    SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id).lock_path
+}
+
+#[must_use]
+pub fn sns_proposals_refresh_attempt_path(
+    icp_root: &Path,
+    network: &str,
+    root_canister_id: &str,
+) -> PathBuf {
+    SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id).attempt_path
+}
+
 /// Return the network-level SNS cache directory.
 pub(super) fn sns_network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
     sns_snapshot_network_cache_dir(icp_root, network)
