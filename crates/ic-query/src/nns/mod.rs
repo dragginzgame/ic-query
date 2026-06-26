@@ -3,10 +3,9 @@
 mod macros;
 #[cfg(feature = "cli")]
 mod data_center;
-#[cfg(feature = "cli")]
+#[cfg(feature = "host")]
 mod leaf;
-#[cfg(feature = "cli")]
-mod node;
+pub mod node;
 #[cfg(feature = "cli")]
 mod node_operator;
 #[cfg(feature = "cli")]

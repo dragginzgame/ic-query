@@ -1,3 +1,8 @@
+use ic_query::nns::node::{
+    NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeCacheRequest, NnsNodeInfoReport, NnsNodeInfoRequest,
+    NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
+    nns_node_info_report_text, nns_node_list_report_text, nns_node_list_report_verbose_text,
+};
 use ic_query::nns::proposals::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow,
@@ -32,6 +37,82 @@ fn public_nns_registry_api_is_constructible_and_renderable() {
 
     assert!(text.contains("network: ic"));
     assert!(text.contains("registry_version: 42"));
+}
+
+#[test]
+fn public_nns_node_api_is_constructible_and_renderable() {
+    let cache = NnsNodeCacheRequest {
+        icp_root: ".".into(),
+        network: "ic".to_string(),
+    };
+    let filters = NnsNodeListFilters {
+        subnet: Some("tdb26-jop6g".to_string()),
+        subnet_kind: Some(NNS_NODE_SUBNET_KIND_APPLICATION.to_string()),
+        data_center: Some("zh1".to_string()),
+        node_provider: None,
+        node_operator: None,
+    };
+    let list_request = NnsNodeListRequest {
+        cache: cache.clone(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_700_000_000,
+        filters,
+    };
+
+    assert_eq!(
+        list_request.filters.subnet_kind.as_deref(),
+        Some(NNS_NODE_SUBNET_KIND_APPLICATION)
+    );
+
+    let node = sample_nns_node_row();
+    let list_report = NnsNodeListReport {
+        schema_version: 1,
+        network: list_request.cache.network,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: list_request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        node_count: 1,
+        nodes: vec![node.clone()],
+    };
+
+    let list_text = nns_node_list_report_text(&list_report);
+    let verbose_text = nns_node_list_report_verbose_text(&list_report);
+
+    assert!(list_text.contains("nodes: ic count 1"));
+    assert!(list_text.contains(NNS_NODE_SUBNET_KIND_APPLICATION));
+    assert!(verbose_text.contains("source_endpoint: https://icp-api.io"));
+    assert!(verbose_text.contains("tdb26-jop6g-7sc54-foywl"));
+
+    let info_request = NnsNodeInfoRequest {
+        cache,
+        source_endpoint: "https://icp-api.io".to_string(),
+        input: node.node_principal.clone(),
+        now_unix_secs: 1_700_000_000,
+    };
+    let info_report = NnsNodeInfoReport {
+        schema_version: 1,
+        input: info_request.input,
+        resolved_from: "node_principal".to_string(),
+        network: info_request.cache.network,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: info_request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        node_principal: node.node_principal,
+        node_operator_principal: node.node_operator_principal,
+        node_provider_principal: node.node_provider_principal,
+        subnet_principal: node.subnet_principal,
+        subnet_kind: node.subnet_kind,
+        data_center_id: node.data_center_id,
+    };
+
+    let info_text = nns_node_info_report_text(&info_report);
+
+    assert!(info_text.contains("resolved_from: node_principal"));
+    assert!(info_text.contains("data_center_id: zh1"));
 }
 
 #[test]
@@ -124,6 +205,17 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     assert!(detail_text.contains("reject_cost: 1.00"));
     assert!(detail_text.contains("ballots:"));
     assert!(detail_text.contains("yes"));
+}
+
+fn sample_nns_node_row() -> NnsNodeRow {
+    NnsNodeRow {
+        node_principal: "zh3jp-xqaaa-aaaar-qaada-cai".to_string(),
+        node_operator_principal: "qoctq-giaaa-aaaar-qaada-cai".to_string(),
+        node_provider_principal: "w6gnz-6qaaa-aaaar-qaada-cai".to_string(),
+        subnet_principal: "tdb26-jop6g-7sc54-foywl".to_string(),
+        subnet_kind: NNS_NODE_SUBNET_KIND_APPLICATION.to_string(),
+        data_center_id: "zh1".to_string(),
+    }
 }
 
 fn sample_nns_proposal_row() -> NnsProposalRow {

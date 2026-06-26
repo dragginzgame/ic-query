@@ -1,5 +1,5 @@
 use crate::{
-    nns::{node::report::NnsNodeListReport, render::compact_text, render::text_or_dash},
+    nns::node::report::NnsNodeListReport,
     table::{ColumnAlign, render_table},
 };
 
@@ -90,4 +90,15 @@ pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
     ];
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
+}
+
+fn compact_text(value: &str, chars: usize) -> String {
+    value.chars().take(chars).collect()
+}
+
+const fn text_or_dash(value: Option<&str>) -> &str {
+    match value {
+        Some(text) if !text.is_empty() => text,
+        _ => "-",
+    }
 }

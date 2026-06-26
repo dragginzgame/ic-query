@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 ///
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(feature = "cli")]
 pub(in crate::nns) struct NnsLeafCommandSpec {
     pub(in crate::nns) command_name: &'static str,
     pub(in crate::nns) bin_name: &'static str,
@@ -51,6 +52,7 @@ pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
 /// Report-builder request contract for generic NNS leaf list commands.
 ///
 
+#[cfg(feature = "cli")]
 pub(in crate::nns) trait NnsLeafListRequest {
     type Cache: NnsLeafCacheRequest;
 
@@ -63,6 +65,7 @@ pub(in crate::nns) trait NnsLeafListRequest {
 /// Report-builder request contract for generic NNS leaf info commands.
 ///
 
+#[cfg(feature = "cli")]
 pub(in crate::nns) trait NnsLeafInfoRequest {
     type Cache: NnsLeafCacheRequest;
 
@@ -105,6 +108,7 @@ pub(in crate::nns) trait NnsLeafRefreshRequest {
 /// Report construction and rendering callbacks for generic NNS leaf command runners.
 ///
 
+#[cfg(feature = "cli")]
 pub(in crate::nns) trait NnsLeafReports {
     type Cache: NnsLeafCacheRequest;
     type ListRequest: NnsLeafListRequest<Cache = Self::Cache>;

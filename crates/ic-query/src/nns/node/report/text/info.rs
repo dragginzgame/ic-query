@@ -1,4 +1,4 @@
-use crate::nns::{node::report::NnsNodeInfoReport, render::text_or_dash};
+use crate::nns::node::report::NnsNodeInfoReport;
 
 #[must_use]
 pub fn nns_node_info_report_text(report: &NnsNodeInfoReport) -> String {
@@ -28,4 +28,11 @@ pub fn nns_node_info_report_text(report: &NnsNodeInfoReport) -> String {
         format!("fetched_by: {}", report.fetched_by),
     ]
     .join("\n")
+}
+
+const fn text_or_dash(value: Option<&str>) -> &str {
+    match value {
+        Some(text) if !text.is_empty() => text,
+        _ => "-",
+    }
 }
