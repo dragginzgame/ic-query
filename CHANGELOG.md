@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)
 
+- `0.5.24` closes the 0.5 downstream-library documentation pass. The library
+  usage guide now includes compile-tested SNS proposal, neuron, and
+  cache-status examples for host users that do not enable `cli`, and it
+  clarifies that custom source traits remain internal until a later public
+  source-adapter design.
+
 - `0.5.23` tightens the final library-boundary cleanup for the 0.5 line.
   CLI-only stdout/project-root helpers now compile only with `cli`, CLI
   duration parsing is no longer included in host-only downstream builds, and

@@ -38,6 +38,15 @@ mod host {
             NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListRequest, build_nns_node_list_report,
             nns_node_list_report_text,
         },
+        sns::{
+            DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsCacheStatusRequest,
+            SnsNeuronsRequest, SnsNeuronsSort, SnsProposalSortDirection,
+            SnsProposalsCacheStatusRequest, SnsProposalsRequest, SnsProposalsSort,
+            build_sns_neurons_cache_status_report, build_sns_neurons_report,
+            build_sns_proposals_cache_status_report, build_sns_proposals_report,
+            sns_neurons_cache_status_report_text, sns_neurons_report_text,
+            sns_proposals_cache_status_report_text, sns_proposals_report_text,
+        },
         subnet_catalog::{
             DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, ResolveAs,
             SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogInfoRequest,
@@ -51,6 +60,9 @@ mod host {
         accepts_subnet_example(render_subnet_info);
         accepts_nns_node_example(render_application_nodes);
         accepts_icrc_example(render_token);
+        accepts_sns_proposals_example(render_recent_sns_proposals);
+        accepts_sns_neurons_example(render_cached_sns_neurons);
+        accepts_sns_cache_status_example(render_sns_cache_status);
     }
 
     fn render_subnet_info(
@@ -95,6 +107,62 @@ mod host {
         Ok(icrc_token_report_text(&report))
     }
 
+    fn render_recent_sns_proposals(
+        project_root: &Path,
+        sns_input: &str,
+        now_unix_secs: u64,
+    ) -> Result<String, SnsHostError> {
+        let request = SnsProposalsRequest::new(
+            "ic",
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            now_unix_secs,
+            sns_input,
+            25,
+        )
+        .with_icp_root(project_root)
+        .with_sort(SnsProposalsSort::Created)
+        .with_sort_direction(SnsProposalSortDirection::Desc);
+
+        let report = build_sns_proposals_report(&request)?;
+        Ok(sns_proposals_report_text(&report))
+    }
+
+    fn render_cached_sns_neurons(
+        project_root: &Path,
+        sns_input: &str,
+        now_unix_secs: u64,
+    ) -> Result<String, SnsHostError> {
+        let request = SnsNeuronsRequest::new(
+            "ic",
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            now_unix_secs,
+            sns_input,
+            500,
+        )
+        .with_icp_root(project_root)
+        .with_sort(SnsNeuronsSort::Stake);
+
+        let report = build_sns_neurons_report(&request)?;
+        Ok(sns_neurons_report_text(&report))
+    }
+
+    fn render_sns_cache_status(
+        project_root: &Path,
+        sns_input: &str,
+    ) -> Result<String, SnsHostError> {
+        let proposals = SnsProposalsCacheStatusRequest::new(project_root, "ic", sns_input);
+        let proposals_report = build_sns_proposals_cache_status_report(&proposals)?;
+
+        let neurons = SnsNeuronsCacheStatusRequest::new(project_root, "ic", sns_input);
+        let neurons_report = build_sns_neurons_cache_status_report(&neurons)?;
+
+        Ok(format!(
+            "{}\n{}",
+            sns_proposals_cache_status_report_text(&proposals_report),
+            sns_neurons_cache_status_report_text(&neurons_report)
+        ))
+    }
+
     fn accepts_subnet_example(
         _example: fn(&Path, &str, u64) -> Result<String, SubnetCatalogHostError>,
     ) {
@@ -103,4 +171,15 @@ mod host {
     fn accepts_nns_node_example(_example: fn(&Path, u64) -> Result<String, NnsNodeHostError>) {}
 
     fn accepts_icrc_example(_example: fn(&str, u64) -> Result<String, IcrcError>) {}
+
+    fn accepts_sns_proposals_example(
+        _example: fn(&Path, &str, u64) -> Result<String, SnsHostError>,
+    ) {
+    }
+
+    fn accepts_sns_neurons_example(_example: fn(&Path, &str, u64) -> Result<String, SnsHostError>) {
+    }
+
+    fn accepts_sns_cache_status_example(_example: fn(&Path, &str) -> Result<String, SnsHostError>) {
+    }
 }

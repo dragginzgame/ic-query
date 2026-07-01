@@ -54,6 +54,15 @@ The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
 The examples below are covered by the `downstream_usage` integration test.
 
+## 0.5 Source Boundary
+
+The 0.5 public API uses the built-in host source adapters behind public report
+builders. Source traits used by the report internals and fixture tests are not
+public or stable in this release line. Downstream crates that need custom
+canister or fixture sources should use public request/report DTOs at their own
+boundary for now; a public source-trait adapter design belongs in a later
+minor release.
+
 ## Pure Rendering Example
 
 No-default consumers can use report DTOs and text renderers without native
@@ -146,6 +155,89 @@ fn render_application_nodes(
 
     let report = build_nns_node_list_report(&request)?;
     Ok(nns_node_list_report_text(&report))
+}
+```
+
+## SNS Snapshot Example
+
+Native tools can use SNS proposal and neuron snapshot APIs without enabling
+`cli`. Proposal list reports can create a missing complete proposal snapshot
+through the public builder; whole-collection neuron sorts expect a prior
+explicit refresh, matching the CLI cache policy.
+
+```rust
+use std::path::Path;
+
+use ic_query::sns::{
+    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsRequest, SnsNeuronsSort,
+    SnsProposalSortDirection, SnsProposalsRequest, SnsProposalsSort,
+    build_sns_neurons_report, build_sns_proposals_report, sns_neurons_report_text,
+    sns_proposals_report_text,
+};
+
+fn render_recent_sns_proposals(
+    project_root: &Path,
+    sns_input: &str,
+    now_unix_secs: u64,
+) -> Result<String, SnsHostError> {
+    let request = SnsProposalsRequest::new(
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        sns_input,
+        25,
+    )
+    .with_icp_root(project_root)
+    .with_sort(SnsProposalsSort::Created)
+    .with_sort_direction(SnsProposalSortDirection::Desc);
+
+    let report = build_sns_proposals_report(&request)?;
+    Ok(sns_proposals_report_text(&report))
+}
+
+fn render_cached_sns_neurons(
+    project_root: &Path,
+    sns_input: &str,
+    now_unix_secs: u64,
+) -> Result<String, SnsHostError> {
+    let request = SnsNeuronsRequest::new(
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        sns_input,
+        500,
+    )
+    .with_icp_root(project_root)
+    .with_sort(SnsNeuronsSort::Stake);
+
+    let report = build_sns_neurons_report(&request)?;
+    Ok(sns_neurons_report_text(&report))
+}
+```
+
+Local cache inspection remains available without making live calls:
+
+```rust
+use std::path::Path;
+
+use ic_query::sns::{
+    SnsHostError, SnsNeuronsCacheStatusRequest, SnsProposalsCacheStatusRequest,
+    build_sns_neurons_cache_status_report, build_sns_proposals_cache_status_report,
+    sns_neurons_cache_status_report_text, sns_proposals_cache_status_report_text,
+};
+
+fn render_sns_cache_status(project_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {
+    let proposals = SnsProposalsCacheStatusRequest::new(project_root, "ic", sns_input);
+    let proposals_report = build_sns_proposals_cache_status_report(&proposals)?;
+
+    let neurons = SnsNeuronsCacheStatusRequest::new(project_root, "ic", sns_input);
+    let neurons_report = build_sns_neurons_cache_status_report(&neurons)?;
+
+    Ok(format!(
+        "{}\n{}",
+        sns_proposals_cache_status_report_text(&proposals_report),
+        sns_neurons_cache_status_report_text(&neurons_report)
+    ))
 }
 ```
 
