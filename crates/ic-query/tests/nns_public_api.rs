@@ -412,6 +412,16 @@ fn public_nns_inventory_host_api_reads_cached_reports_without_cli() {
 fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
     let root = temp_root("nns-inventory-source-public-api");
 
+    assert_public_nns_node_custom_source_api(&root);
+    assert_public_nns_data_center_custom_source_api(&root);
+    assert_public_nns_node_provider_custom_source_api(&root);
+    assert_public_nns_node_operator_custom_source_api(&root);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "host")]
+fn assert_public_nns_node_custom_source_api(root: &Path) {
     let node_cache = NnsNodeCacheRequest::new(root.join("node"), "ic");
     let node_list_request = NnsNodeListRequest::new(
         node_cache.clone(),
@@ -441,6 +451,16 @@ fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
         refresh_nns_node_report_with_source(&node_refresh_request, &FixtureNnsNodeSource)
             .expect("node refresh report");
 
+    assert_eq!(node_list.node_count, 1);
+    assert_eq!(
+        node_info.node_principal,
+        sample_nns_node_row().node_principal
+    );
+    assert_eq!(node_refresh.node_count, 1);
+}
+
+#[cfg(feature = "host")]
+fn assert_public_nns_data_center_custom_source_api(root: &Path) {
     let data_center_cache = NnsDataCenterCacheRequest::new(root.join("data-center"), "ic");
     let data_center_list_request = NnsDataCenterListRequest::new(
         data_center_cache.clone(),
@@ -476,6 +496,16 @@ fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
     )
     .expect("data-center refresh report");
 
+    assert_eq!(data_center_list.data_center_count, 1);
+    assert_eq!(
+        data_center_info.data_center_id,
+        sample_nns_data_center_row().data_center_id
+    );
+    assert_eq!(data_center_refresh.data_center_count, 1);
+}
+
+#[cfg(feature = "host")]
+fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
     let node_provider_cache = NnsNodeProviderCacheRequest::new(root.join("node-provider"), "ic");
     let node_provider_list_request = NnsNodeProviderListRequest::new(
         node_provider_cache.clone(),
@@ -511,6 +541,16 @@ fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
     )
     .expect("node-provider refresh report");
 
+    assert_eq!(node_provider_list.node_provider_count, 1);
+    assert_eq!(
+        node_provider_info.node_provider_principal,
+        sample_nns_node_provider_row().node_provider_principal
+    );
+    assert_eq!(node_provider_refresh.node_provider_count, 1);
+}
+
+#[cfg(feature = "host")]
+fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
     let node_operator_cache = NnsNodeOperatorCacheRequest::new(root.join("node-operator"), "ic");
     let node_operator_list_request = NnsNodeOperatorListRequest::new(
         node_operator_cache.clone(),
@@ -546,32 +586,12 @@ fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
     )
     .expect("node-operator refresh report");
 
-    assert_eq!(node_list.node_count, 1);
-    assert_eq!(
-        node_info.node_principal,
-        sample_nns_node_row().node_principal
-    );
-    assert_eq!(node_refresh.node_count, 1);
-    assert_eq!(data_center_list.data_center_count, 1);
-    assert_eq!(
-        data_center_info.data_center_id,
-        sample_nns_data_center_row().data_center_id
-    );
-    assert_eq!(data_center_refresh.data_center_count, 1);
-    assert_eq!(node_provider_list.node_provider_count, 1);
-    assert_eq!(
-        node_provider_info.node_provider_principal,
-        sample_nns_node_provider_row().node_provider_principal
-    );
-    assert_eq!(node_provider_refresh.node_provider_count, 1);
     assert_eq!(node_operator_list.node_operator_count, 1);
     assert_eq!(
         node_operator_info.node_operator_principal,
         sample_nns_node_operator_row().node_operator_principal
     );
     assert_eq!(node_operator_refresh.node_operator_count, 1);
-
-    let _ = fs::remove_dir_all(root);
 }
 
 #[cfg(feature = "host")]
