@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
 
+- `0.6.5` completes the SNS source-adapter path for neuron reports. Host users
+  can now implement `SnsNeuronsSource` and pass it to SNS neuron list builders
+  and complete neuron-cache refresh without routing through the built-in live
+  SNS adapter.
+
 - `0.6.4` extends the SNS source-adapter path to governance proposals. Host
   users can now implement `SnsProposalSource` and `SnsProposalsSource` and
   pass them to SNS proposal detail/list builders and complete proposal-cache

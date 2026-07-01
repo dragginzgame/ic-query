@@ -30,7 +30,7 @@ pub trait SnsListSource {
 /// Source contract for fetching bounded and paged SNS neuron data.
 ///
 
-pub(in crate::sns::report) trait SnsNeuronsSource: SnsListSource {
+pub trait SnsNeuronsSource: SnsListSource {
     /// Fetch a bounded SNS neuron listing for one resolved SNS.
     fn fetch_sns_neurons(
         &self,

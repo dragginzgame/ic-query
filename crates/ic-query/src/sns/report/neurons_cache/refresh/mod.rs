@@ -8,6 +8,7 @@ mod context;
 mod publish;
 mod run;
 
-#[cfg(test)]
-pub(in crate::sns::report) use run::refresh_sns_neurons_cache_with_source;
-pub use run::{DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, refresh_sns_neurons_cache};
+pub use run::{
+    DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, refresh_sns_neurons_cache,
+    refresh_sns_neurons_cache_with_source,
+};

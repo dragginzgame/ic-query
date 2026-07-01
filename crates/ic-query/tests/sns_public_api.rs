@@ -2,20 +2,23 @@
 use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
-    MainnetSns, MainnetSnsList, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-    MainnetSnsToken, SnsHostError, SnsListSource, SnsNeuronRow, SnsNeuronsCacheListRequest,
-    SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
-    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsSource, SnsProposalSource,
+    MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
+    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsHostError, SnsListSource,
+    SnsNeuronId, SnsNeuronRow, SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest,
+    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
+    SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
     SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest, SnsProposalsRefreshReport,
     SnsProposalsRefreshRequest, SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
     build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
     build_sns_list_report_with_source, build_sns_neurons_cache_list_report,
-    build_sns_neurons_cache_status_report, build_sns_neurons_report, build_sns_params_report,
+    build_sns_neurons_cache_status_report, build_sns_neurons_report,
+    build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, build_sns_proposals_report,
     build_sns_proposals_report_with_source, build_sns_token_report,
-    build_sns_token_report_with_source, refresh_sns_neurons_cache, refresh_sns_proposals_cache,
+    build_sns_token_report_with_source, refresh_sns_neurons_cache,
+    refresh_sns_neurons_cache_with_source, refresh_sns_proposals_cache,
     refresh_sns_proposals_cache_with_source, sns_neurons_cache_list_report_text,
     sns_neurons_cache_path, sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
     sns_neurons_refresh_lock_path, sns_neurons_refresh_report_text, sns_neurons_report_text,
@@ -480,6 +483,37 @@ fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), S
 
 #[cfg(feature = "host")]
 #[test]
+fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), SnsHostError> {
+    let source = FixtureSnsSource;
+    let report = build_sns_neurons_report_with_source(
+        &SnsNeuronsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1", 50)
+            .with_owner_principal_id(SAMPLE_SNS_GOVERNANCE_CANISTER_ID),
+        &source,
+    )?;
+    assert_eq!(report.neuron_count, 1);
+    assert_eq!(report.neurons[0].neuron_id, "0102030405060708");
+
+    let cache_root = neuron_source_cache_root();
+    let _ = fs::remove_dir_all(&cache_root);
+    let refresh_request = SnsNeuronsRefreshRequest::new(
+        cache_root.clone(),
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        "1",
+        100,
+    )
+    .with_max_pages(Some(1));
+    let refresh = refresh_sns_neurons_cache_with_source(&refresh_request, &source)?;
+    assert_eq!(refresh.neuron_count, 1);
+    assert!(refresh.complete);
+    let _ = fs::remove_dir_all(cache_root);
+
+    Ok(())
+}
+
+#[cfg(feature = "host")]
+#[test]
 fn public_sns_host_api_exposes_neuron_request_constructor() {
     let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
     let request = SnsNeuronsRequest::new(
@@ -743,9 +777,59 @@ impl SnsProposalsSource for FixtureSnsSource {
 }
 
 #[cfg(feature = "host")]
+impl SnsNeuronsSource for FixtureSnsSource {
+    fn fetch_sns_neurons(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeurons, SnsHostError> {
+        assert_eq!(
+            sns.governance_canister_id,
+            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+        );
+        assert_eq!(limit, 50);
+        assert_eq!(owner_principal_id, Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID));
+        Ok(MainnetSnsNeurons {
+            neurons: vec![sample_sns_neuron_row()],
+        })
+    }
+
+    fn fetch_sns_neuron_page(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        start_page_at: Option<&SnsNeuronId>,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
+        assert_eq!(
+            sns.governance_canister_id,
+            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+        );
+        assert_eq!(limit, 100);
+        assert!(start_page_at.is_none());
+        assert_eq!(owner_principal_id, None);
+        Ok(MainnetSnsNeuronPage {
+            neurons: vec![sample_sns_neuron_row()],
+            last_cursor: Some(SnsNeuronId { id: vec![1, 2, 3] }),
+        })
+    }
+}
+
+#[cfg(feature = "host")]
 fn proposal_source_cache_root() -> PathBuf {
     PathBuf::from(format!(
         "target/ic-query-sns-public-api-proposal-source-{}",
+        std::process::id()
+    ))
+}
+
+#[cfg(feature = "host")]
+fn neuron_source_cache_root() -> PathBuf {
+    PathBuf::from(format!(
+        "target/ic-query-sns-public-api-neuron-source-{}",
         std::process::id()
     ))
 }
@@ -799,6 +883,18 @@ fn sample_mainnet_sns_token() -> MainnetSnsToken {
             value_type: "Text".to_string(),
             value: json!("EXT"),
         }],
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_sns_neuron_row() -> SnsNeuronRow {
+    SnsNeuronRow {
+        neuron_id: "0102030405060708".to_string(),
+        cached_neuron_stake_e8s: 100_000_000,
+        maturity_e8s_equivalent: 10_000_000,
+        staked_maturity_e8s_equivalent: Some(5_000_000),
+        created_timestamp_seconds: 1_700_000_000,
+        created_at: SAMPLE_SNS_FETCHED_AT.to_string(),
     }
 }
 

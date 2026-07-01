@@ -14,8 +14,8 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct MainnetSnsNeurons {
-    pub(in crate::sns::report) neurons: Vec<SnsNeuronRow>,
+pub struct MainnetSnsNeurons {
+    pub neurons: Vec<SnsNeuronRow>,
 }
 
 ///
@@ -25,9 +25,9 @@ pub(in crate::sns::report) struct MainnetSnsNeurons {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct MainnetSnsNeuronPage {
-    pub(in crate::sns::report) neurons: Vec<SnsNeuronRow>,
-    pub(in crate::sns::report) last_cursor: Option<SnsNeuronId>,
+pub struct MainnetSnsNeuronPage {
+    pub neurons: Vec<SnsNeuronRow>,
+    pub last_cursor: Option<SnsNeuronId>,
 }
 
 ///
@@ -37,6 +37,6 @@ pub(in crate::sns::report) struct MainnetSnsNeuronPage {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub(in crate::sns::report) struct SnsNeuronId {
-    pub(in crate::sns::report) id: Vec<u8>,
+pub struct SnsNeuronId {
+    pub id: Vec<u8>,
 }

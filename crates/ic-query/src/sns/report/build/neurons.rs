@@ -19,7 +19,7 @@ pub fn build_sns_neurons_report(
     build_sns_neurons_report_with_source(request, &LiveSnsSource)
 }
 
-pub(in crate::sns::report) fn build_sns_neurons_report_with_source(
+pub fn build_sns_neurons_report_with_source(
     request: &SnsNeuronsRequest,
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsReport, SnsHostError> {

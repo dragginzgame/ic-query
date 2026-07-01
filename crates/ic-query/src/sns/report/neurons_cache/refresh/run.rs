@@ -31,7 +31,7 @@ pub fn refresh_sns_neurons_cache(
     refresh_sns_neurons_cache_with_source(request, &LiveSnsSource)
 }
 
-pub(in crate::sns::report) fn refresh_sns_neurons_cache_with_source(
+pub fn refresh_sns_neurons_cache_with_source(
     request: &SnsNeuronsRefreshRequest,
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {

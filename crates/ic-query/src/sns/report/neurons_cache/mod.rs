@@ -15,8 +15,7 @@ mod storage;
 pub use paths::{
     sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
 };
-#[cfg(test)]
-pub(in crate::sns::report) use refresh::refresh_sns_neurons_cache_with_source;
+pub use refresh::refresh_sns_neurons_cache_with_source;
 pub use refresh::{DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, refresh_sns_neurons_cache};
 pub(in crate::sns::report) use reports::build_sns_neurons_report_from_cache;
 pub use reports::{build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report};

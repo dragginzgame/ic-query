@@ -13,9 +13,7 @@ mod token;
 
 pub use info::{build_sns_info_report, build_sns_info_report_with_source};
 pub use list::{build_sns_list_report, build_sns_list_report_with_source};
-pub use neurons::build_sns_neurons_report;
-#[cfg(test)]
-pub(in crate::sns::report) use neurons::build_sns_neurons_report_with_source;
+pub use neurons::{build_sns_neurons_report, build_sns_neurons_report_with_source};
 pub use params::{build_sns_params_report, build_sns_params_report_with_source};
 pub use proposals::{
     build_sns_proposal_report, build_sns_proposal_report_with_source, build_sns_proposals_report,
