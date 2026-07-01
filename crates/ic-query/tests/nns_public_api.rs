@@ -88,6 +88,17 @@ use ic_query::nns::registry::{
 use ic_query::nns::registry::{
     NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
+#[cfg(feature = "host")]
+use ic_query::nns::topology::report::{
+    DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyCapacityRequest, NnsTopologyCoverageRequest,
+    NnsTopologyGapsRequest, NnsTopologyHealthRequest, NnsTopologyHostError,
+    NnsTopologyProvidersRequest, NnsTopologyRegionsRequest, NnsTopologySource,
+    NnsTopologySourceRequest, NnsTopologyVersionsRequest,
+    build_nns_topology_capacity_report_with_source, build_nns_topology_coverage_report_with_source,
+    build_nns_topology_gaps_report_with_source, build_nns_topology_health_report_with_source,
+    build_nns_topology_providers_report_with_source, build_nns_topology_regions_report_with_source,
+    build_nns_topology_summary_report_with_source, build_nns_topology_versions_report_with_source,
+};
 use ic_query::nns::topology::report::{
     NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
     NnsTopologyGapRow, NnsTopologyGapsReport, NnsTopologyHealthCheckRow, NnsTopologyHealthReport,
@@ -99,6 +110,11 @@ use ic_query::nns::topology::report::{
     nns_topology_health_report_text, nns_topology_providers_report_text,
     nns_topology_refresh_report_text, nns_topology_regions_report_text,
     nns_topology_summary_report_text, nns_topology_versions_report_text,
+};
+#[cfg(feature = "host")]
+use ic_query::subnet_catalog::{
+    ClassificationSource, GeographicScope, SubnetCatalogListReport, SubnetCatalogSubnetRow,
+    SubnetKind, SubnetSpecialization,
 };
 #[cfg(feature = "host")]
 use serde::Serialize;
@@ -1012,6 +1028,181 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
 }
 
 #[cfg(feature = "host")]
+#[test]
+fn public_nns_topology_host_api_accepts_custom_source_adapter() {
+    let source = FixtureNnsTopologySource;
+    let request = NnsTopologySummaryRequest::new(
+        ".",
+        "ic",
+        DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+
+    let summary = build_nns_topology_summary_report_with_source(&request, &source)
+        .expect("topology summary report");
+    let coverage = build_nns_topology_coverage_report_with_source(
+        &NnsTopologyCoverageRequest::new(
+            ".",
+            "ic",
+            DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
+        &source,
+    )
+    .expect("topology coverage report");
+    let health = build_nns_topology_health_report_with_source(
+        &NnsTopologyHealthRequest::new(
+            ".",
+            "ic",
+            DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
+        &source,
+    )
+    .expect("topology health report");
+    let versions = topology_versions_report_with_source(&source);
+
+    assert_eq!(summary.network, "ic");
+    assert_eq!(summary.subnet_count, 1);
+    assert_eq!(coverage.node_count, 1);
+    assert_eq!(health.network, "ic");
+    assert_eq!(versions.source_count, 5);
+    assert_topology_direct_reports_with_source(&source);
+}
+
+#[cfg(feature = "host")]
+fn topology_versions_report_with_source(
+    source: &dyn NnsTopologySource,
+) -> NnsTopologyVersionsReport {
+    build_nns_topology_versions_report_with_source(
+        &NnsTopologyVersionsRequest::new(
+            ".",
+            "ic",
+            DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
+        source,
+    )
+    .expect("topology versions report")
+}
+
+#[cfg(feature = "host")]
+fn assert_topology_direct_reports_with_source(source: &dyn NnsTopologySource) {
+    let gaps_request: NnsTopologyGapsRequest = topology_read_request();
+    let capacity_request: NnsTopologyCapacityRequest = topology_read_request();
+    let regions_request: NnsTopologyRegionsRequest = topology_read_request();
+    let providers_request: NnsTopologyProvidersRequest = topology_read_request();
+    let gaps =
+        build_nns_topology_gaps_report_with_source(&gaps_request, source).expect("gaps report");
+    let capacity = build_nns_topology_capacity_report_with_source(&capacity_request, source)
+        .expect("capacity report");
+    let regions = build_nns_topology_regions_report_with_source(&regions_request, source)
+        .expect("regions report");
+    let providers = build_nns_topology_providers_report_with_source(&providers_request, source)
+        .expect("providers report");
+
+    assert_eq!(gaps.network, "ic");
+    assert_eq!(capacity.node_operator_count, 1);
+    assert_eq!(regions.region_count, 1);
+    assert_eq!(providers.registered_node_provider_count, 1);
+}
+
+#[cfg(feature = "host")]
+fn topology_read_request() -> NnsTopologySummaryRequest {
+    NnsTopologySummaryRequest::new(
+        ".",
+        "ic",
+        DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
+        1_700_000_000,
+    )
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsTopologySource;
+
+#[cfg(feature = "host")]
+impl NnsTopologySource for FixtureNnsTopologySource {
+    fn fetch_subnet_catalog_list_report(
+        &self,
+        request: &NnsTopologySourceRequest,
+    ) -> Result<SubnetCatalogListReport, NnsTopologyHostError> {
+        assert_topology_source_request(request);
+        let mut report = sample_subnet_catalog_list_report();
+        report.network.clone_from(&request.network);
+        report.fetched_at.clone_from(&request.fetched_at);
+        Ok(report)
+    }
+
+    fn fetch_node_list_report(
+        &self,
+        request: &NnsTopologySourceRequest,
+    ) -> Result<NnsNodeListReport, NnsTopologyHostError> {
+        assert_topology_source_request(request);
+        let mut report = sample_nns_node_list_report();
+        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+
+    fn fetch_node_provider_list_report(
+        &self,
+        request: &NnsTopologySourceRequest,
+    ) -> Result<NnsNodeProviderListReport, NnsTopologyHostError> {
+        assert_topology_source_request(request);
+        let mut report = sample_nns_node_provider_list_report();
+        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+
+    fn fetch_node_operator_list_report(
+        &self,
+        request: &NnsTopologySourceRequest,
+    ) -> Result<NnsNodeOperatorListReport, NnsTopologyHostError> {
+        assert_topology_source_request(request);
+        let mut report = sample_nns_node_operator_list_report();
+        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+
+    fn fetch_data_center_list_report(
+        &self,
+        request: &NnsTopologySourceRequest,
+    ) -> Result<NnsDataCenterListReport, NnsTopologyHostError> {
+        assert_topology_source_request(request);
+        let mut report = sample_nns_data_center_list_report();
+        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+}
+
+#[cfg(feature = "host")]
+fn stamp_topology_component_report(
+    request: &NnsTopologySourceRequest,
+    network: &mut String,
+    source_endpoint: &mut String,
+) {
+    network.clone_from(&request.network);
+    source_endpoint.clone_from(&request.endpoint);
+}
+
+#[cfg(feature = "host")]
+fn assert_topology_source_request(request: &NnsTopologySourceRequest) {
+    assert_eq!(request.icp_root, PathBuf::from("."));
+    assert_eq!(request.network, "ic");
+    assert_eq!(request.endpoint, DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT);
+    assert_eq!(request.now_unix_secs, 1_700_000_000);
+    assert!(!request.fetched_at.is_empty());
+    assert_eq!(request.fetched_by, "ic-query");
+}
+
+#[cfg(feature = "host")]
 type RefreshFn<Request, Report, Error> = fn(&Request) -> Result<Report, Error>;
 
 #[cfg(feature = "host")]
@@ -1429,6 +1620,46 @@ fn temp_root(name: &str) -> PathBuf {
     path.push(format!("ic-query-{name}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&path);
     path
+}
+
+#[cfg(feature = "host")]
+fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
+    SubnetCatalogListReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        catalog_path: ".icq/subnet-catalog/ic/catalog.json".to_string(),
+        catalog_schema_version: 1,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        catalog_stale: false,
+        stale_reason: "fresh".to_string(),
+        resolver_backend: "local-nns-subnet-catalog".to_string(),
+        subnets: vec![sample_subnet_catalog_row()],
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_subnet_catalog_row() -> SubnetCatalogSubnetRow {
+    let subnet_kind = SubnetKind::Application;
+    SubnetCatalogSubnetRow {
+        subnet_principal: "tdb26-jop6g-7sc54-foywl".to_string(),
+        subnet_kind,
+        subnet_kind_source: ClassificationSource::Registry,
+        subnet_specialization: SubnetSpecialization::None,
+        subnet_specialization_source: ClassificationSource::Computed,
+        geographic_scope: GeographicScope::Global,
+        geographic_scope_source: ClassificationSource::Computed,
+        subnet_label: subnet_kind.as_str().to_string(),
+        subnet_label_source: ClassificationSource::Computed,
+        node_count: Some(1),
+        charges_apply_by_default: subnet_kind.charges_apply_by_default(),
+        range_count: 1,
+        ranges_shown: 0,
+        range_offset: 0,
+        range_limit: 1,
+        ranges: Vec::new(),
+    }
 }
 
 #[cfg(feature = "host")]

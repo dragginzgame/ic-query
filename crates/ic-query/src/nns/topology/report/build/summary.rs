@@ -1,35 +1,27 @@
-use crate::{
-    nns::{
-        data_center::report::build_nns_data_center_list_report,
-        node::report::build_nns_node_list_report,
-        node_operator::report::build_nns_node_operator_list_report,
-        node_provider::report::build_nns_node_provider_list_report,
-        topology::report::{
-            NnsTopologyHostError, NnsTopologySummaryReport, NnsTopologySummaryRequest,
-            enforce_mainnet_network,
-            request::{
-                TopologyRequestParts, data_center_list_request, node_list_request,
-                node_operator_list_request, node_provider_list_request,
-                subnet_catalog_list_request,
-            },
-            summary::topology_summary_report_from_reports,
-        },
-    },
-    subnet_catalog::build_subnet_catalog_list_report,
+use crate::nns::topology::report::{
+    LiveNnsTopologySource, NnsTopologyHostError, NnsTopologySource, NnsTopologySummaryReport,
+    NnsTopologySummaryRequest, enforce_mainnet_network, request::TopologyRequestParts,
+    source::topology_source_request_from, summary::topology_summary_report_from_reports,
 };
 
 pub fn build_nns_topology_summary_report(
     request: &NnsTopologySummaryRequest,
 ) -> Result<NnsTopologySummaryReport, NnsTopologyHostError> {
+    build_nns_topology_summary_report_with_source(request, &LiveNnsTopologySource)
+}
+
+pub fn build_nns_topology_summary_report_with_source(
+    request: &NnsTopologySummaryRequest,
+    source: &dyn NnsTopologySource,
+) -> Result<NnsTopologySummaryReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
-    let subnet_report = build_subnet_catalog_list_report(&subnet_catalog_list_request(request))?;
-    let node_report = build_nns_node_list_report(&node_list_request(request))?;
-    let node_provider_report =
-        build_nns_node_provider_list_report(&node_provider_list_request(request))?;
-    let node_operator_report =
-        build_nns_node_operator_list_report(&node_operator_list_request(request))?;
-    let data_center_report = build_nns_data_center_list_report(&data_center_list_request(request))?;
+    let source_request = topology_source_request_from(request);
+    let subnet_report = source.fetch_subnet_catalog_list_report(&source_request)?;
+    let node_report = source.fetch_node_list_report(&source_request)?;
+    let node_provider_report = source.fetch_node_provider_list_report(&source_request)?;
+    let node_operator_report = source.fetch_node_operator_list_report(&source_request)?;
+    let data_center_report = source.fetch_data_center_list_report(&source_request)?;
 
     Ok(topology_summary_report_from_reports(
         request.network().to_string(),
