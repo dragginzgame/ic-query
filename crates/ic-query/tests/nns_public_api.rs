@@ -1,10 +1,12 @@
 #[cfg(feature = "host")]
 use ic_query::nns::data_center::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, build_nns_data_center_info_report,
-    build_nns_data_center_list_report, nns_data_center_cache_path,
+    NnsDataCenterHostError, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest,
+    NnsDataCenterSource, NnsDataCenterSourceRequest, build_nns_data_center_info_report,
+    build_nns_data_center_info_report_with_source, build_nns_data_center_list_report,
+    build_nns_data_center_list_report_with_source, nns_data_center_cache_path,
     nns_data_center_refresh_lock_path, nns_data_center_refresh_report_text,
-    refresh_nns_data_center_report,
+    refresh_nns_data_center_report, refresh_nns_data_center_report_with_source,
 };
 use ic_query::nns::data_center::{
     NnsDataCenterCacheRequest, NnsDataCenterInfoReport, NnsDataCenterInfoRequest,
@@ -14,10 +16,11 @@ use ic_query::nns::data_center::{
 };
 #[cfg(feature = "host")]
 use ic_query::nns::node::{
-    DEFAULT_NNS_NODE_SOURCE_ENDPOINT, DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
-    NnsNodeRefreshReport, NnsNodeRefreshRequest, build_nns_node_info_report,
-    build_nns_node_list_report, nns_node_cache_path, nns_node_refresh_lock_path,
-    nns_node_refresh_report_text, refresh_nns_node_report,
+    DEFAULT_NNS_NODE_SOURCE_ENDPOINT, DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NnsNodeHostError,
+    NnsNodeRefreshReport, NnsNodeRefreshRequest, NnsNodeSource, NnsNodeSourceRequest,
+    build_nns_node_info_report, build_nns_node_info_report_with_source, build_nns_node_list_report,
+    build_nns_node_list_report_with_source, nns_node_cache_path, nns_node_refresh_lock_path,
+    nns_node_refresh_report_text, refresh_nns_node_report, refresh_nns_node_report_with_source,
 };
 use ic_query::nns::node::{
     NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeCacheRequest, NnsNodeInfoReport, NnsNodeInfoRequest,
@@ -27,10 +30,12 @@ use ic_query::nns::node::{
 #[cfg(feature = "host")]
 use ic_query::nns::node_operator::{
     DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT, DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS,
-    NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
-    build_nns_node_operator_info_report, build_nns_node_operator_list_report,
-    nns_node_operator_cache_path, nns_node_operator_refresh_lock_path,
-    nns_node_operator_refresh_report_text, refresh_nns_node_operator_report,
+    NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
+    NnsNodeOperatorSource, NnsNodeOperatorSourceRequest, build_nns_node_operator_info_report,
+    build_nns_node_operator_info_report_with_source, build_nns_node_operator_list_report,
+    build_nns_node_operator_list_report_with_source, nns_node_operator_cache_path,
+    nns_node_operator_refresh_lock_path, nns_node_operator_refresh_report_text,
+    refresh_nns_node_operator_report, refresh_nns_node_operator_report_with_source,
 };
 use ic_query::nns::node_operator::{
     NnsNodeOperatorCacheRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,
@@ -41,10 +46,12 @@ use ic_query::nns::node_operator::{
 #[cfg(feature = "host")]
 use ic_query::nns::node_provider::{
     DEFAULT_NNS_SOURCE_ENDPOINT, DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
-    NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
-    build_nns_node_provider_info_report, build_nns_node_provider_list_report,
-    nns_node_provider_cache_path, nns_node_provider_refresh_lock_path,
-    nns_node_provider_refresh_report_text, refresh_nns_node_provider_report,
+    NnsNodeProviderHostError, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
+    NnsNodeProviderSource, NnsNodeProviderSourceRequest, build_nns_node_provider_info_report,
+    build_nns_node_provider_info_report_with_source, build_nns_node_provider_list_report,
+    build_nns_node_provider_list_report_with_source, nns_node_provider_cache_path,
+    nns_node_provider_refresh_lock_path, nns_node_provider_refresh_report_text,
+    refresh_nns_node_provider_report, refresh_nns_node_provider_report_with_source,
 };
 use ic_query::nns::node_provider::{
     NnsNodeProviderCacheRequest, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,
@@ -398,6 +405,282 @@ fn public_nns_inventory_host_api_reads_cached_reports_without_cli() {
     assert_public_nns_node_operator_host_api(&root);
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
+    let root = temp_root("nns-inventory-source-public-api");
+
+    let node_cache = NnsNodeCacheRequest::new(root.join("node"), "ic");
+    let node_list_request = NnsNodeListRequest::new(
+        node_cache.clone(),
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let node_info_request = NnsNodeInfoRequest::new(
+        node_cache.clone(),
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
+        sample_nns_node_row().node_principal,
+        1_700_000_000,
+    );
+    let node_refresh_request = NnsNodeRefreshRequest::new(
+        node_cache,
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
+        1_700_000_000,
+        DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
+    )
+    .with_dry_run(true);
+    let node_list =
+        build_nns_node_list_report_with_source(&node_list_request, &FixtureNnsNodeSource)
+            .expect("node list report");
+    let node_info =
+        build_nns_node_info_report_with_source(&node_info_request, &FixtureNnsNodeSource)
+            .expect("node info report");
+    let node_refresh =
+        refresh_nns_node_report_with_source(&node_refresh_request, &FixtureNnsNodeSource)
+            .expect("node refresh report");
+
+    let data_center_cache = NnsDataCenterCacheRequest::new(root.join("data-center"), "ic");
+    let data_center_list_request = NnsDataCenterListRequest::new(
+        data_center_cache.clone(),
+        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let data_center_info_request = NnsDataCenterInfoRequest::new(
+        data_center_cache.clone(),
+        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+        sample_nns_data_center_row().data_center_id,
+        1_700_000_000,
+    );
+    let data_center_refresh_request = NnsDataCenterRefreshRequest::new(
+        data_center_cache,
+        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+        1_700_000_000,
+        DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS,
+    )
+    .with_dry_run(true);
+    let data_center_list = build_nns_data_center_list_report_with_source(
+        &data_center_list_request,
+        &FixtureNnsDataCenterSource,
+    )
+    .expect("data-center list report");
+    let data_center_info = build_nns_data_center_info_report_with_source(
+        &data_center_info_request,
+        &FixtureNnsDataCenterSource,
+    )
+    .expect("data-center info report");
+    let data_center_refresh = refresh_nns_data_center_report_with_source(
+        &data_center_refresh_request,
+        &FixtureNnsDataCenterSource,
+    )
+    .expect("data-center refresh report");
+
+    let node_provider_cache = NnsNodeProviderCacheRequest::new(root.join("node-provider"), "ic");
+    let node_provider_list_request = NnsNodeProviderListRequest::new(
+        node_provider_cache.clone(),
+        DEFAULT_NNS_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let node_provider_info_request = NnsNodeProviderInfoRequest::new(
+        node_provider_cache.clone(),
+        DEFAULT_NNS_SOURCE_ENDPOINT,
+        sample_nns_node_provider_row().node_provider_principal,
+        1_700_000_000,
+    );
+    let node_provider_refresh_request = NnsNodeProviderRefreshRequest::new(
+        node_provider_cache,
+        DEFAULT_NNS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
+    )
+    .with_dry_run(true);
+    let node_provider_list = build_nns_node_provider_list_report_with_source(
+        &node_provider_list_request,
+        &FixtureNnsNodeProviderSource,
+    )
+    .expect("node-provider list report");
+    let node_provider_info = build_nns_node_provider_info_report_with_source(
+        &node_provider_info_request,
+        &FixtureNnsNodeProviderSource,
+    )
+    .expect("node-provider info report");
+    let node_provider_refresh = refresh_nns_node_provider_report_with_source(
+        &node_provider_refresh_request,
+        &FixtureNnsNodeProviderSource,
+    )
+    .expect("node-provider refresh report");
+
+    let node_operator_cache = NnsNodeOperatorCacheRequest::new(root.join("node-operator"), "ic");
+    let node_operator_list_request = NnsNodeOperatorListRequest::new(
+        node_operator_cache.clone(),
+        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let node_operator_info_request = NnsNodeOperatorInfoRequest::new(
+        node_operator_cache.clone(),
+        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
+        sample_nns_node_operator_row().node_operator_principal,
+        1_700_000_000,
+    );
+    let node_operator_refresh_request = NnsNodeOperatorRefreshRequest::new(
+        node_operator_cache,
+        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
+        1_700_000_000,
+        DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS,
+    )
+    .with_dry_run(true);
+    let node_operator_list = build_nns_node_operator_list_report_with_source(
+        &node_operator_list_request,
+        &FixtureNnsNodeOperatorSource,
+    )
+    .expect("node-operator list report");
+    let node_operator_info = build_nns_node_operator_info_report_with_source(
+        &node_operator_info_request,
+        &FixtureNnsNodeOperatorSource,
+    )
+    .expect("node-operator info report");
+    let node_operator_refresh = refresh_nns_node_operator_report_with_source(
+        &node_operator_refresh_request,
+        &FixtureNnsNodeOperatorSource,
+    )
+    .expect("node-operator refresh report");
+
+    assert_eq!(node_list.node_count, 1);
+    assert_eq!(
+        node_info.node_principal,
+        sample_nns_node_row().node_principal
+    );
+    assert_eq!(node_refresh.node_count, 1);
+    assert_eq!(data_center_list.data_center_count, 1);
+    assert_eq!(
+        data_center_info.data_center_id,
+        sample_nns_data_center_row().data_center_id
+    );
+    assert_eq!(data_center_refresh.data_center_count, 1);
+    assert_eq!(node_provider_list.node_provider_count, 1);
+    assert_eq!(
+        node_provider_info.node_provider_principal,
+        sample_nns_node_provider_row().node_provider_principal
+    );
+    assert_eq!(node_provider_refresh.node_provider_count, 1);
+    assert_eq!(node_operator_list.node_operator_count, 1);
+    assert_eq!(
+        node_operator_info.node_operator_principal,
+        sample_nns_node_operator_row().node_operator_principal
+    );
+    assert_eq!(node_operator_refresh.node_operator_count, 1);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsNodeSource;
+
+#[cfg(feature = "host")]
+impl NnsNodeSource for FixtureNnsNodeSource {
+    fn fetch_node_list_report(
+        &self,
+        request: &NnsNodeSourceRequest,
+    ) -> Result<NnsNodeListReport, NnsNodeHostError> {
+        assert_inventory_source_request(
+            &request.network,
+            &request.endpoint,
+            &request.fetched_at,
+            &request.fetched_by,
+        );
+        let mut report = sample_nns_node_list_report();
+        report.network.clone_from(&request.network);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.source_endpoint.clone_from(&request.endpoint);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsDataCenterSource;
+
+#[cfg(feature = "host")]
+impl NnsDataCenterSource for FixtureNnsDataCenterSource {
+    fn fetch_data_center_list_report(
+        &self,
+        request: &NnsDataCenterSourceRequest,
+    ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
+        assert_inventory_source_request(
+            &request.network,
+            &request.endpoint,
+            &request.fetched_at,
+            &request.fetched_by,
+        );
+        let mut report = sample_nns_data_center_list_report();
+        report.network.clone_from(&request.network);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.source_endpoint.clone_from(&request.endpoint);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsNodeProviderSource;
+
+#[cfg(feature = "host")]
+impl NnsNodeProviderSource for FixtureNnsNodeProviderSource {
+    fn fetch_node_provider_list_report(
+        &self,
+        request: &NnsNodeProviderSourceRequest,
+    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
+        assert_inventory_source_request(
+            &request.network,
+            &request.endpoint,
+            &request.fetched_at,
+            &request.fetched_by,
+        );
+        let mut report = sample_nns_node_provider_list_report();
+        report.network.clone_from(&request.network);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.source_endpoint.clone_from(&request.endpoint);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsNodeOperatorSource;
+
+#[cfg(feature = "host")]
+impl NnsNodeOperatorSource for FixtureNnsNodeOperatorSource {
+    fn fetch_node_operator_list_report(
+        &self,
+        request: &NnsNodeOperatorSourceRequest,
+    ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
+        assert_inventory_source_request(
+            &request.network,
+            &request.endpoint,
+            &request.fetched_at,
+            &request.fetched_by,
+        );
+        let mut report = sample_nns_node_operator_list_report();
+        report.network.clone_from(&request.network);
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.source_endpoint.clone_from(&request.endpoint);
+        report.fetched_by.clone_from(&request.fetched_by);
+        Ok(report)
+    }
+}
+
+#[cfg(feature = "host")]
+fn assert_inventory_source_request(
+    network: &str,
+    endpoint: &str,
+    fetched_at: &str,
+    fetched_by: &str,
+) {
+    assert_eq!(network, "ic");
+    assert_eq!(endpoint, "https://icp-api.io");
+    assert!(!fetched_at.is_empty());
+    assert_eq!(fetched_by, "ic-query");
 }
 
 #[test]

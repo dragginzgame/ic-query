@@ -35,7 +35,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.5", default-features = false }
+ic-query = { version = "0.6", default-features = false }
 ```
 
 Feature boundary:
@@ -54,7 +54,7 @@ Native tools that want the same subnet catalog cache/load behavior as
 
 ```toml
 [dependencies]
-ic-query = { version = "0.5", default-features = false, features = ["host"] }
+ic-query = { version = "0.6", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and

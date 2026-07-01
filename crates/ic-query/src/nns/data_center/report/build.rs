@@ -21,7 +21,7 @@ pub fn build_nns_data_center_info_report(
     build_nns_data_center_info_report_with_source(request, &LiveNnsDataCenterSource)
 }
 
-pub(super) fn build_nns_data_center_list_report_with_source(
+pub fn build_nns_data_center_list_report_with_source(
     request: &NnsDataCenterListRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
@@ -49,7 +49,7 @@ pub(super) fn build_nns_data_center_list_report_with_source(
     )
 }
 
-fn build_nns_data_center_info_report_with_source(
+pub fn build_nns_data_center_info_report_with_source(
     request: &NnsDataCenterInfoRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterInfoReport, NnsDataCenterHostError> {

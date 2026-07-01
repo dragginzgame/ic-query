@@ -12,7 +12,7 @@ pub fn refresh_nns_node_report(
     refresh_nns_node_report_with_source(request, &LiveNnsNodeSource)
 }
 
-pub(super) fn refresh_nns_node_report_with_source(
+pub fn refresh_nns_node_report_with_source(
     request: &NnsNodeRefreshRequest,
     source: &dyn NnsNodeSource,
 ) -> Result<NnsNodeRefreshReport, NnsNodeHostError> {

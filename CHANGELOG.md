@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
 
+- `0.6.1` extends the public source-adapter line to NNS inventory reports.
+  Host users can now implement custom node, data-center, node-provider, and
+  node-operator sources and pass them to the matching list/info builders and
+  refresh wrappers without routing through the built-in live NNS registry
+  adapters.
+
 - `0.6.0` starts the public source-adapter line. Generic ICRC host users can
   now implement `IcrcSource` and call `build_icrc_*_report_with_source`
   builders directly, and subnet catalog host users can implement

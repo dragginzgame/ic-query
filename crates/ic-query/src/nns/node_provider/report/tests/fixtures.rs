@@ -34,11 +34,22 @@ pub(super) struct FixtureNodeProviderSource {
 }
 
 impl NnsNodeProviderSource for FixtureNodeProviderSource {
-    fn fetch_node_providers(
+    fn fetch_node_provider_list_report(
         &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeProviderList, NnsNodeProviderHostError> {
-        Ok(MainnetNodeProviderList {
+        request: &NnsNodeProviderSourceRequest,
+    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
+        let node_providers = self
+            .node_providers
+            .iter()
+            .map(|provider| NnsNodeProviderRow {
+                node_provider_principal: provider.principal.clone(),
+                name: None,
+                node_count: provider.node_count,
+                reward_account_hex: provider.reward_account_hex.clone(),
+            })
+            .collect::<Vec<_>>();
+        Ok(NnsNodeProviderListReport {
+            schema_version: 1,
             network: MAINNET_NETWORK.to_string(),
             governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
             registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
@@ -46,7 +57,8 @@ impl NnsNodeProviderSource for FixtureNodeProviderSource {
             fetched_at: request.fetched_at.clone(),
             fetched_by: "test".to_string(),
             source_endpoint: request.endpoint.clone(),
-            node_providers: self.node_providers.clone(),
+            node_provider_count: node_providers.len(),
+            node_providers,
         })
     }
 }
@@ -54,10 +66,10 @@ impl NnsNodeProviderSource for FixtureNodeProviderSource {
 pub(super) struct FailingNodeProviderSource;
 
 impl NnsNodeProviderSource for FailingNodeProviderSource {
-    fn fetch_node_providers(
+    fn fetch_node_provider_list_report(
         &self,
-        _request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeProviderList, NnsNodeProviderHostError> {
+        _request: &NnsNodeProviderSourceRequest,
+    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
         Err(NnsNodeProviderHostError::NodeProviderNotFound {
             input: "unexpected-live-fetch".to_string(),
         })

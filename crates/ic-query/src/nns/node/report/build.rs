@@ -22,7 +22,7 @@ pub fn build_nns_node_info_report(
     build_nns_node_info_report_with_source(request, &LiveNnsNodeSource)
 }
 
-pub(super) fn build_nns_node_list_report_with_source(
+pub fn build_nns_node_list_report_with_source(
     request: &NnsNodeListRequest,
     source: &dyn NnsNodeSource,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
@@ -49,7 +49,7 @@ pub(super) fn build_nns_node_list_report_with_source(
     Ok(filter_node_list_report(report, &request.filters))
 }
 
-fn build_nns_node_info_report_with_source(
+pub fn build_nns_node_info_report_with_source(
     request: &NnsNodeInfoRequest,
     source: &dyn NnsNodeSource,
 ) -> Result<NnsNodeInfoReport, NnsNodeHostError> {

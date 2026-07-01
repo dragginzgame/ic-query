@@ -9,21 +9,69 @@ use crate::{
     subnet_catalog::format_utc_timestamp_secs,
 };
 
-pub(super) trait NnsDataCenterSource {
-    fn fetch_data_centers(
-        &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetDataCenterList, NnsDataCenterHostError>;
+///
+/// NnsDataCenterSourceRequest
+///
+/// Source request settings for fetching one complete NNS data-center snapshot.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NnsDataCenterSourceRequest {
+    pub network: String,
+    pub endpoint: String,
+    pub fetched_at: String,
+    pub fetched_by: String,
 }
 
-pub(super) struct LiveNnsDataCenterSource;
+impl NnsDataCenterSourceRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        endpoint: impl Into<String>,
+        fetched_at: impl Into<String>,
+        fetched_by: impl Into<String>,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            endpoint: endpoint.into(),
+            fetched_at: fetched_at.into(),
+            fetched_by: fetched_by.into(),
+        }
+    }
+}
+
+///
+/// NnsDataCenterSource
+///
+/// Source contract for fetching complete NNS data-center list reports.
+///
+
+pub trait NnsDataCenterSource {
+    fn fetch_data_center_list_report(
+        &self,
+        request: &NnsDataCenterSourceRequest,
+    ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError>;
+}
+
+///
+/// LiveNnsDataCenterSource
+///
+/// Source implementation backed by live NNS registry data-center calls.
+///
+
+pub struct LiveNnsDataCenterSource;
 
 impl NnsDataCenterSource for LiveNnsDataCenterSource {
-    fn fetch_data_centers(
+    fn fetch_data_center_list_report(
         &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetDataCenterList, NnsDataCenterHostError> {
-        Ok(fetch_mainnet_data_center_list(request)?)
+        request: &NnsDataCenterSourceRequest,
+    ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
+        let mut fetch_request = MainnetRegistryFetchRequest::new(request.fetched_at.clone());
+        fetch_request.endpoint.clone_from(&request.endpoint);
+        fetch_request.fetched_by.clone_from(&request.fetched_by);
+        Ok(data_center_report_from_list(
+            fetch_mainnet_data_center_list(&fetch_request)?,
+        ))
     }
 }
 
@@ -35,10 +83,9 @@ pub(super) fn fetch_nns_data_center_list_report_with_source(
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
     super::enforce_mainnet_network(network)?;
     let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let mut fetch_request = MainnetRegistryFetchRequest::new(fetched_at);
-    fetch_request.endpoint = source_endpoint.to_string();
-    let list = source.fetch_data_centers(&fetch_request)?;
-    Ok(data_center_report_from_list(list))
+    let fetch_request =
+        NnsDataCenterSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
+    source.fetch_data_center_list_report(&fetch_request)
 }
 
 fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterListReport {

@@ -13,23 +13,21 @@ mod resolve;
 mod source;
 mod text;
 
-#[cfg(all(test, feature = "host"))]
-use build::build_nns_node_list_report_with_source;
 #[cfg(feature = "host")]
-pub use build::{build_nns_node_info_report, build_nns_node_list_report};
+pub use build::{
+    build_nns_node_info_report, build_nns_node_info_report_with_source, build_nns_node_list_report,
+    build_nns_node_list_report_with_source,
+};
 #[cfg(feature = "host")]
 pub use cache::{nns_node_cache_path, nns_node_refresh_lock_path};
 #[cfg(all(test, feature = "host"))]
 use filters::filter_node_list_report;
 #[cfg(feature = "host")]
-pub use refresh::refresh_nns_node_report;
+pub use refresh::{refresh_nns_node_report, refresh_nns_node_report_with_source};
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_node;
-#[cfg(all(test, feature = "host"))]
-use source::NnsNodeSource;
-
-#[cfg(all(test, feature = "host"))]
-use crate::ic_registry::{MainnetNodeList, MainnetRegistryFetchRequest};
+#[cfg(feature = "host")]
+pub use source::{LiveNnsNodeSource, NnsNodeSource, NnsNodeSourceRequest};
 
 pub use model::{
     NnsNodeCacheRequest, NnsNodeInfoReport, NnsNodeInfoRequest, NnsNodeListFilters,

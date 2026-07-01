@@ -58,11 +58,9 @@ impl SubnetCatalogSource for LiveNnsRegistryRefreshSource {
         &self,
         request: &SubnetCatalogSourceRequest,
     ) -> Result<SubnetCatalog, SubnetCatalogHostError> {
-        let request = MainnetRegistryFetchRequest {
-            endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-        };
-        Ok(fetch_mainnet_subnet_catalog(&request)?)
+        let mut fetch_request = MainnetRegistryFetchRequest::new(request.fetched_at.clone());
+        fetch_request.endpoint.clone_from(&request.endpoint);
+        fetch_request.fetched_by.clone_from(&request.fetched_by);
+        Ok(fetch_mainnet_subnet_catalog(&fetch_request)?)
     }
 }

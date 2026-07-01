@@ -9,21 +9,69 @@ use crate::{
     subnet_catalog::format_utc_timestamp_secs,
 };
 
-pub(super) trait NnsNodeProviderSource {
-    fn fetch_node_providers(
-        &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeProviderList, NnsNodeProviderHostError>;
+///
+/// NnsNodeProviderSourceRequest
+///
+/// Source request settings for fetching one complete NNS node-provider snapshot.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NnsNodeProviderSourceRequest {
+    pub network: String,
+    pub endpoint: String,
+    pub fetched_at: String,
+    pub fetched_by: String,
 }
 
-pub(super) struct LiveNnsNodeProviderSource;
+impl NnsNodeProviderSourceRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        endpoint: impl Into<String>,
+        fetched_at: impl Into<String>,
+        fetched_by: impl Into<String>,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            endpoint: endpoint.into(),
+            fetched_at: fetched_at.into(),
+            fetched_by: fetched_by.into(),
+        }
+    }
+}
+
+///
+/// NnsNodeProviderSource
+///
+/// Source contract for fetching complete NNS node-provider list reports.
+///
+
+pub trait NnsNodeProviderSource {
+    fn fetch_node_provider_list_report(
+        &self,
+        request: &NnsNodeProviderSourceRequest,
+    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError>;
+}
+
+///
+/// LiveNnsNodeProviderSource
+///
+/// Source implementation backed by live NNS governance and registry calls.
+///
+
+pub struct LiveNnsNodeProviderSource;
 
 impl NnsNodeProviderSource for LiveNnsNodeProviderSource {
-    fn fetch_node_providers(
+    fn fetch_node_provider_list_report(
         &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeProviderList, NnsNodeProviderHostError> {
-        Ok(fetch_mainnet_node_provider_list(request)?)
+        request: &NnsNodeProviderSourceRequest,
+    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
+        let mut fetch_request = MainnetRegistryFetchRequest::new(request.fetched_at.clone());
+        fetch_request.endpoint.clone_from(&request.endpoint);
+        fetch_request.fetched_by.clone_from(&request.fetched_by);
+        Ok(node_provider_report_from_list(
+            fetch_mainnet_node_provider_list(&fetch_request)?,
+        ))
     }
 }
 
@@ -35,10 +83,9 @@ pub(super) fn fetch_nns_node_provider_list_report_with_source(
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
     super::enforce_mainnet_network(network)?;
     let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let mut fetch_request = MainnetRegistryFetchRequest::new(fetched_at);
-    fetch_request.endpoint = source_endpoint.to_string();
-    let list = source.fetch_node_providers(&fetch_request)?;
-    Ok(node_provider_report_from_list(list))
+    let fetch_request =
+        NnsNodeProviderSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
+    source.fetch_node_provider_list_report(&fetch_request)
 }
 
 fn node_provider_report_from_list(list: MainnetNodeProviderList) -> NnsNodeProviderListReport {

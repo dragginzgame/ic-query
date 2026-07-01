@@ -21,7 +21,7 @@ pub fn build_nns_node_provider_info_report(
     build_nns_node_provider_info_report_with_source(request, &LiveNnsNodeProviderSource)
 }
 
-pub(super) fn build_nns_node_provider_list_report_with_source(
+pub fn build_nns_node_provider_list_report_with_source(
     request: &NnsNodeProviderListRequest,
     source: &dyn NnsNodeProviderSource,
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
@@ -49,7 +49,7 @@ pub(super) fn build_nns_node_provider_list_report_with_source(
     )
 }
 
-pub(super) fn build_nns_node_provider_info_report_with_source(
+pub fn build_nns_node_provider_info_report_with_source(
     request: &NnsNodeProviderInfoRequest,
     source: &dyn NnsNodeProviderSource,
 ) -> Result<NnsNodeProviderInfoReport, NnsNodeProviderHostError> {

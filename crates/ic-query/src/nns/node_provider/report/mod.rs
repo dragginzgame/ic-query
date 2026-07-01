@@ -12,25 +12,18 @@ mod source;
 mod text;
 
 #[cfg(feature = "host")]
-pub use build::{build_nns_node_provider_info_report, build_nns_node_provider_list_report};
-#[cfg(all(test, feature = "host"))]
-use build::{
-    build_nns_node_provider_info_report_with_source,
-    build_nns_node_provider_list_report_with_source,
+pub use build::{
+    build_nns_node_provider_info_report, build_nns_node_provider_info_report_with_source,
+    build_nns_node_provider_list_report, build_nns_node_provider_list_report_with_source,
 };
 #[cfg(feature = "host")]
 pub use cache::{nns_node_provider_cache_path, nns_node_provider_refresh_lock_path};
 #[cfg(feature = "host")]
-pub use refresh::refresh_nns_node_provider_report;
-#[cfg(all(test, feature = "host"))]
-use refresh::refresh_nns_node_provider_report_with_source;
+pub use refresh::{refresh_nns_node_provider_report, refresh_nns_node_provider_report_with_source};
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_node_provider;
-#[cfg(all(test, feature = "host"))]
-use source::NnsNodeProviderSource;
-
-#[cfg(all(test, feature = "host"))]
-use crate::ic_registry::{MainnetNodeProviderList, MainnetRegistryFetchRequest};
+#[cfg(feature = "host")]
+pub use source::{LiveNnsNodeProviderSource, NnsNodeProviderSource, NnsNodeProviderSourceRequest};
 
 pub use model::{
     NnsNodeProviderCacheRequest, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,

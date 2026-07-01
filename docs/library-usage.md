@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.5", default-features = false, features = ["host"] }
+ic-query = { version = "0.6", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.5", default-features = false }
+ic-query = { version = "0.6", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -63,12 +63,14 @@ canister or fixture sources should use public request/report DTOs at their own
 boundary for now; a public source-trait adapter design belongs in a later
 minor release.
 
-In 0.6, the generic ICRC, subnet catalog, and NNS registry host APIs start
-that public source-adapter work with `IcrcSource`,
+In 0.6, the generic ICRC, subnet catalog, NNS registry, and NNS inventory host
+APIs start that public source-adapter work with `IcrcSource`,
 `build_icrc_*_report_with_source`, `SubnetCatalogSource`, subnet catalog
-`*_with_source` builders, and `NnsRegistrySource`. Other NNS and SNS source
-traits remain internal until their family-specific source DTOs are reviewed as
-public contracts.
+`*_with_source` builders, `NnsRegistrySource`, and the NNS node,
+data-center, node-provider, and node-operator source traits and
+`*_with_source` builders. NNS proposal/topology and SNS source traits remain
+internal until their family-specific source DTOs are reviewed as public
+contracts.
 
 ## Pure Rendering Example
 

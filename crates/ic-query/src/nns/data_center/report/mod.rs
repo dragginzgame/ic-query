@@ -11,21 +11,19 @@ mod resolve;
 mod source;
 mod text;
 
-#[cfg(all(test, feature = "host"))]
-use build::build_nns_data_center_list_report_with_source;
 #[cfg(feature = "host")]
-pub use build::{build_nns_data_center_info_report, build_nns_data_center_list_report};
+pub use build::{
+    build_nns_data_center_info_report, build_nns_data_center_info_report_with_source,
+    build_nns_data_center_list_report, build_nns_data_center_list_report_with_source,
+};
 #[cfg(feature = "host")]
 pub use cache::{nns_data_center_cache_path, nns_data_center_refresh_lock_path};
 #[cfg(feature = "host")]
-pub use refresh::refresh_nns_data_center_report;
+pub use refresh::{refresh_nns_data_center_report, refresh_nns_data_center_report_with_source};
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_data_center;
-#[cfg(all(test, feature = "host"))]
-use source::NnsDataCenterSource;
-
-#[cfg(all(test, feature = "host"))]
-use crate::ic_registry::{MainnetDataCenterList, MainnetRegistryFetchRequest};
+#[cfg(feature = "host")]
+pub use source::{LiveNnsDataCenterSource, NnsDataCenterSource, NnsDataCenterSourceRequest};
 
 pub use model::{
     NnsDataCenterCacheRequest, NnsDataCenterInfoReport, NnsDataCenterInfoRequest,

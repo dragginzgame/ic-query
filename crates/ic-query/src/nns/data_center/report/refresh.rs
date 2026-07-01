@@ -14,7 +14,7 @@ pub fn refresh_nns_data_center_report(
     refresh_nns_data_center_report_with_source(request, &LiveNnsDataCenterSource)
 }
 
-pub(super) fn refresh_nns_data_center_report_with_source(
+pub fn refresh_nns_data_center_report_with_source(
     request: &NnsDataCenterRefreshRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterRefreshReport, NnsDataCenterHostError> {

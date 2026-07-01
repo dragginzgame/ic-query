@@ -11,21 +11,19 @@ mod resolve;
 mod source;
 mod text;
 
-#[cfg(all(test, feature = "host"))]
-use build::build_nns_node_operator_list_report_with_source;
 #[cfg(feature = "host")]
-pub use build::{build_nns_node_operator_info_report, build_nns_node_operator_list_report};
+pub use build::{
+    build_nns_node_operator_info_report, build_nns_node_operator_info_report_with_source,
+    build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_source,
+};
 #[cfg(feature = "host")]
 pub use cache::{nns_node_operator_cache_path, nns_node_operator_refresh_lock_path};
 #[cfg(feature = "host")]
-pub use refresh::refresh_nns_node_operator_report;
+pub use refresh::{refresh_nns_node_operator_report, refresh_nns_node_operator_report_with_source};
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_node_operator;
-#[cfg(all(test, feature = "host"))]
-use source::NnsNodeOperatorSource;
-
-#[cfg(all(test, feature = "host"))]
-use crate::ic_registry::{MainnetNodeOperatorList, MainnetRegistryFetchRequest};
+#[cfg(feature = "host")]
+pub use source::{LiveNnsNodeOperatorSource, NnsNodeOperatorSource, NnsNodeOperatorSourceRequest};
 
 pub use model::{
     NnsNodeOperatorCacheRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,

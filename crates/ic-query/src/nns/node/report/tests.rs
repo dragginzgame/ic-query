@@ -1,6 +1,6 @@
 use super::{
-    MainnetNodeList, MainnetRegistryFetchRequest, NnsNodeCacheRequest, NnsNodeHostError,
-    NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow, NnsNodeSource,
+    NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
+    NnsNodeListRequest, NnsNodeRow, NnsNodeSource, NnsNodeSourceRequest,
     build_nns_node_list_report_with_source, filter_node_list_report, nns_node_list_report_text,
     resolve_node,
 };
@@ -136,18 +136,32 @@ struct FixtureNodeSource {
 }
 
 impl NnsNodeSource for FixtureNodeSource {
-    fn fetch_nodes(
+    fn fetch_node_list_report(
         &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeList, NnsNodeHostError> {
-        Ok(MainnetNodeList {
+        request: &NnsNodeSourceRequest,
+    ) -> Result<NnsNodeListReport, NnsNodeHostError> {
+        let nodes = self
+            .nodes
+            .iter()
+            .map(|node| NnsNodeRow {
+                node_principal: node.principal.clone(),
+                node_operator_principal: node.node_operator_principal.clone(),
+                node_provider_principal: node.node_provider_principal.clone(),
+                subnet_principal: node.subnet_principal.clone(),
+                subnet_kind: node.subnet_kind.clone(),
+                data_center_id: node.data_center_id.clone(),
+            })
+            .collect::<Vec<_>>();
+        Ok(NnsNodeListReport {
+            schema_version: 1,
             network: MAINNET_NETWORK.to_string(),
             registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
             registry_version: 42,
             fetched_at: request.fetched_at.clone(),
             fetched_by: request.fetched_by.clone(),
             source_endpoint: request.endpoint.clone(),
-            nodes: self.nodes.clone(),
+            node_count: nodes.len(),
+            nodes,
         })
     }
 }

@@ -4,21 +4,69 @@ use crate::{
     subnet_catalog::format_utc_timestamp_secs,
 };
 
-pub(super) trait NnsNodeSource {
-    fn fetch_nodes(
-        &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeList, NnsNodeHostError>;
+///
+/// NnsNodeSourceRequest
+///
+/// Source request settings for fetching one complete NNS node inventory snapshot.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NnsNodeSourceRequest {
+    pub network: String,
+    pub endpoint: String,
+    pub fetched_at: String,
+    pub fetched_by: String,
 }
 
-pub(super) struct LiveNnsNodeSource;
+impl NnsNodeSourceRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        endpoint: impl Into<String>,
+        fetched_at: impl Into<String>,
+        fetched_by: impl Into<String>,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            endpoint: endpoint.into(),
+            fetched_at: fetched_at.into(),
+            fetched_by: fetched_by.into(),
+        }
+    }
+}
+
+///
+/// NnsNodeSource
+///
+/// Source contract for fetching complete NNS node list reports.
+///
+
+pub trait NnsNodeSource {
+    fn fetch_node_list_report(
+        &self,
+        request: &NnsNodeSourceRequest,
+    ) -> Result<NnsNodeListReport, NnsNodeHostError>;
+}
+
+///
+/// LiveNnsNodeSource
+///
+/// Source implementation backed by live NNS registry node inventory calls.
+///
+
+pub struct LiveNnsNodeSource;
 
 impl NnsNodeSource for LiveNnsNodeSource {
-    fn fetch_nodes(
+    fn fetch_node_list_report(
         &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeList, NnsNodeHostError> {
-        Ok(fetch_mainnet_node_list(request)?)
+        request: &NnsNodeSourceRequest,
+    ) -> Result<NnsNodeListReport, NnsNodeHostError> {
+        let mut fetch_request = MainnetRegistryFetchRequest::new(request.fetched_at.clone());
+        fetch_request.endpoint.clone_from(&request.endpoint);
+        fetch_request.fetched_by.clone_from(&request.fetched_by);
+        Ok(node_report_from_list(fetch_mainnet_node_list(
+            &fetch_request,
+        )?))
     }
 }
 
@@ -30,10 +78,8 @@ pub(super) fn fetch_nns_node_list_report_with_source(
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
     super::enforce_mainnet_network(network)?;
     let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let mut fetch_request = MainnetRegistryFetchRequest::new(fetched_at);
-    fetch_request.endpoint = source_endpoint.to_string();
-    let list = source.fetch_nodes(&fetch_request)?;
-    Ok(node_report_from_list(list))
+    let fetch_request = NnsNodeSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
+    source.fetch_node_list_report(&fetch_request)
 }
 
 fn node_report_from_list(list: MainnetNodeList) -> NnsNodeListReport {

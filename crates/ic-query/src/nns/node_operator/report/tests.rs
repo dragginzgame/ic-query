@@ -1,7 +1,7 @@
 use super::{
-    MainnetNodeOperatorList, MainnetRegistryFetchRequest, NnsNodeOperatorCacheRequest,
-    NnsNodeOperatorHostError, NnsNodeOperatorListReport, NnsNodeOperatorListRequest,
-    NnsNodeOperatorRow, NnsNodeOperatorSource, build_nns_node_operator_list_report_with_source,
+    NnsNodeOperatorCacheRequest, NnsNodeOperatorHostError, NnsNodeOperatorListReport,
+    NnsNodeOperatorListRequest, NnsNodeOperatorRow, NnsNodeOperatorSource,
+    NnsNodeOperatorSourceRequest, build_nns_node_operator_list_report_with_source,
     nns_node_operator_list_report_text, resolve_node_operator,
 };
 use crate::ic_registry::MainnetNodeOperator;
@@ -105,18 +105,31 @@ struct FixtureNodeOperatorSource {
 }
 
 impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
-    fn fetch_node_operators(
+    fn fetch_node_operator_list_report(
         &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetNodeOperatorList, NnsNodeOperatorHostError> {
-        Ok(MainnetNodeOperatorList {
+        request: &NnsNodeOperatorSourceRequest,
+    ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
+        let node_operators = self
+            .node_operators
+            .iter()
+            .map(|operator| NnsNodeOperatorRow {
+                node_operator_principal: operator.principal.clone(),
+                node_provider_principal: operator.node_provider_principal.clone(),
+                node_allowance: operator.node_allowance,
+                data_center_id: operator.data_center_id.clone(),
+                node_count: operator.node_count,
+            })
+            .collect::<Vec<_>>();
+        Ok(NnsNodeOperatorListReport {
+            schema_version: 1,
             network: MAINNET_NETWORK.to_string(),
             registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
             registry_version: 42,
             fetched_at: request.fetched_at.clone(),
             fetched_by: request.fetched_by.clone(),
             source_endpoint: request.endpoint.clone(),
-            node_operators: self.node_operators.clone(),
+            node_operator_count: node_operators.len(),
+            node_operators,
         })
     }
 }
