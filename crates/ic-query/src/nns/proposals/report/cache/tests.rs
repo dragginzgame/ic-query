@@ -17,10 +17,10 @@ use crate::{
         model::{
             NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
             NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-            NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
-            NnsProposalStatusFilter, NnsProposalTopicFilter,
+            NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
+            NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
         },
-        source::{NnsProposalFetchRequest, NnsProposalSource},
+        source::{NnsProposalSource, NnsProposalSourceRequest, nns_proposal_row_from_info},
         text::{
             nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
             nns_proposal_refresh_report_text, nns_proposal_report_text,
@@ -41,28 +41,29 @@ struct FixtureSource;
 impl NnsProposalSource for FixtureSource {
     fn fetch_proposals(
         &self,
-        _request: &NnsProposalFetchRequest,
+        _request: &NnsProposalSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
-        include_status: &[i32],
-        include_reward_status: &[i32],
-    ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError> {
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
         assert_eq!(limit, 2);
-        assert!(include_status.is_empty());
-        assert!(include_reward_status.is_empty());
-        Ok(match before_proposal_id {
+        assert_eq!(status, NnsProposalStatusFilter::Any);
+        assert_eq!(reward_status, NnsProposalRewardStatusFilter::Any);
+        let rows = match before_proposal_id {
             None => vec![proposal_info(3), proposal_info(2)],
             Some(2) => vec![proposal_info(1)],
             other => panic!("unexpected before proposal id: {other:?}"),
-        })
+        };
+        Ok(rows.into_iter().map(nns_proposal_row_from_info).collect())
     }
 
     fn fetch_proposal(
         &self,
-        _request: &NnsProposalFetchRequest,
+        _request: &NnsProposalSourceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalInfo, NnsProposalHostError> {
-        Ok(proposal_info(proposal_id))
+    ) -> Result<NnsProposalRow, NnsProposalHostError> {
+        Ok(nns_proposal_row_from_info(proposal_info(proposal_id)))
     }
 }
 

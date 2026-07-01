@@ -38,6 +38,7 @@ pub use cache::{
     build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,
     build_nns_proposal_report_from_cache, nns_proposal_cache_path, nns_proposal_cache_root,
     nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
+    refresh_nns_proposal_cache_with_source,
 };
 #[cfg(feature = "cli")]
 pub(in crate::nns) use model::{
@@ -58,7 +59,11 @@ pub use model::{
     NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopicFilter,
 };
 #[cfg(feature = "host")]
-pub use source::{build_nns_proposal_list_report, build_nns_proposal_report};
+pub use source::{
+    LiveNnsProposalSource, NnsProposalSource, NnsProposalSourceRequest,
+    build_nns_proposal_list_report, build_nns_proposal_list_report_with_source,
+    build_nns_proposal_report, build_nns_proposal_report_with_source,
+};
 #[cfg(feature = "host")]
 pub use text::{
     nns_proposal_cache_list_report_text, nns_proposal_cache_status_report_text,

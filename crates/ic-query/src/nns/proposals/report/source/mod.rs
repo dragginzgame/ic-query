@@ -16,7 +16,8 @@ use super::{
     labels::{nns_proposal_status_text, nns_reward_status_text, nns_topic_text, nns_vote_text},
     model::{
         NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalReport,
-        NnsProposalRequest, NnsProposalRow, NnsProposalTally,
+        NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter,
+        NnsProposalTally,
     },
     view::{
         proposal_matches_proposer, proposal_matches_query, proposal_matches_topic,
@@ -26,7 +27,7 @@ use super::{
 };
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 
-pub(in crate::nns::proposals::report) use live::LiveNnsProposalSource;
+pub use live::LiveNnsProposalSource;
 
 pub fn build_nns_proposal_list_report(
     request: &NnsProposalListRequest,
@@ -40,33 +41,27 @@ pub fn build_nns_proposal_report(
     build_nns_proposal_report_with_source(request, &LiveNnsProposalSource)
 }
 
-pub(in crate::nns::proposals::report) fn build_nns_proposal_list_report_with_source(
+pub fn build_nns_proposal_list_report_with_source(
     request: &NnsProposalListRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<NnsProposalListReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request = NnsProposalFetchRequest::new(&request.source_endpoint);
-    let include_status = request
-        .status
-        .governance_status_code()
+    let fetch_request = NnsProposalSourceRequest::new(
+        MAINNET_NETWORK,
+        &request.source_endpoint,
+        &fetched_at,
+        NNS_PROPOSAL_FETCHED_BY,
+    );
+    let mut proposals = source
+        .fetch_proposals(
+            &fetch_request,
+            request.limit,
+            request.before_proposal_id,
+            request.status,
+            request.reward_status,
+        )?
         .into_iter()
-        .collect::<Vec<_>>();
-    let include_reward_status = request
-        .reward_status
-        .governance_reward_status_code()
-        .into_iter()
-        .collect::<Vec<_>>();
-    let proposal_infos = source.fetch_proposals(
-        &fetch_request,
-        request.limit,
-        request.before_proposal_id,
-        &include_status,
-        &include_reward_status,
-    )?;
-    let mut proposals = proposal_infos
-        .into_iter()
-        .map(nns_proposal_row_from_info)
         .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
         .filter(|proposal| proposal_matches_query(proposal, request.query.as_deref()))
@@ -95,14 +90,19 @@ pub(in crate::nns::proposals::report) fn build_nns_proposal_list_report_with_sou
     ))
 }
 
-pub(in crate::nns::proposals::report) fn build_nns_proposal_report_with_source(
+pub fn build_nns_proposal_report_with_source(
     request: &NnsProposalRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<NnsProposalReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request = NnsProposalFetchRequest::new(&request.source_endpoint);
-    let proposal_info = source.fetch_proposal(&fetch_request, request.proposal_id)?;
+    let fetch_request = NnsProposalSourceRequest::new(
+        MAINNET_NETWORK,
+        &request.source_endpoint,
+        &fetched_at,
+        NNS_PROPOSAL_FETCHED_BY,
+    );
+    let proposal = source.fetch_proposal(&fetch_request, request.proposal_id)?;
     Ok(nns_proposal_report_from_parts(NnsProposalReportParts {
         network: MAINNET_NETWORK.to_string(),
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
@@ -113,25 +113,37 @@ pub(in crate::nns::proposals::report) fn build_nns_proposal_report_with_source(
         proposal_id: request.proposal_id,
         show_ballots: request.show_ballots,
         verbose: request.verbose,
-        proposal: nns_proposal_row_from_info(proposal_info),
+        proposal,
     }))
 }
 
 ///
-/// NnsProposalFetchRequest
+/// NnsProposalSourceRequest
 ///
-/// Live source request settings for NNS governance proposal calls.
+/// Source request settings for fetching NNS governance proposal data.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns::proposals::report) struct NnsProposalFetchRequest {
-    pub(in crate::nns::proposals::report) endpoint: String,
+pub struct NnsProposalSourceRequest {
+    pub network: String,
+    pub endpoint: String,
+    pub fetched_at: String,
+    pub fetched_by: String,
 }
 
-impl NnsProposalFetchRequest {
-    pub(in crate::nns::proposals::report) fn new(endpoint: &str) -> Self {
+impl NnsProposalSourceRequest {
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        endpoint: impl Into<String>,
+        fetched_at: impl Into<String>,
+        fetched_by: impl Into<String>,
+    ) -> Self {
         Self {
-            endpoint: endpoint.to_string(),
+            network: network.into(),
+            endpoint: endpoint.into(),
+            fetched_at: fetched_at.into(),
+            fetched_by: fetched_by.into(),
         }
     }
 }
@@ -139,24 +151,24 @@ impl NnsProposalFetchRequest {
 ///
 /// NnsProposalSource
 ///
-/// Source trait for NNS governance proposal list and detail calls.
+/// Source contract for fetching NNS governance proposal rows.
 ///
 
-pub(in crate::nns::proposals::report) trait NnsProposalSource {
+pub trait NnsProposalSource {
     fn fetch_proposals(
         &self,
-        request: &NnsProposalFetchRequest,
+        request: &NnsProposalSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
-        include_status: &[i32],
-        include_reward_status: &[i32],
-    ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError>;
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError>;
 
     fn fetch_proposal(
         &self,
-        request: &NnsProposalFetchRequest,
+        request: &NnsProposalSourceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalInfo, NnsProposalHostError>;
+    ) -> Result<NnsProposalRow, NnsProposalHostError>;
 }
 
 pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(

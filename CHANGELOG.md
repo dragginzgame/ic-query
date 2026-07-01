@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
 
+- `0.6.2` opens the NNS proposal source-adapter path. Host users can now
+  implement `NnsProposalSource` and pass it to proposal list/detail builders
+  and complete-cache refresh without exposing private governance wire DTOs or
+  routing through the built-in live NNS governance adapter.
+
 - `0.6.1` extends the public source-adapter line to NNS inventory reports.
   Host users can now implement custom node, data-center, node-provider, and
   node-operator sources and pass them to the matching list/info builders and

@@ -15,11 +15,11 @@ use super::{
         NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL,
         NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE, NNS_PROPOSAL_VOTE_YES_LABEL,
         NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
-        NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
-        NnsProposalTopicFilter,
+        NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
+        NnsProposalStatusFilter, NnsProposalTopicFilter,
     },
     source::{
-        NnsProposalFetchRequest, NnsProposalSource, build_nns_proposal_list_report_with_source,
+        NnsProposalSource, NnsProposalSourceRequest, build_nns_proposal_list_report_with_source,
         build_nns_proposal_report_with_source, nns_proposal_row_from_info,
     },
     text::{nns_proposal_list_report_text, nns_proposal_report_text},
@@ -51,26 +51,39 @@ struct FixtureSource {
 impl NnsProposalSource for FixtureSource {
     fn fetch_proposals(
         &self,
-        _request: &NnsProposalFetchRequest,
+        _request: &NnsProposalSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
-        include_status: &[i32],
-        include_reward_status: &[i32],
-    ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError> {
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
         assert_eq!(limit, 50);
         assert_eq!(before_proposal_id, Some(200));
+        let include_status = status
+            .governance_status_code()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let include_reward_status = reward_status
+            .governance_reward_status_code()
+            .into_iter()
+            .collect::<Vec<_>>();
         assert_eq!(include_status, self.expected_status);
         assert_eq!(include_reward_status, self.expected_reward_status);
-        Ok(self.proposals.clone())
+        Ok(self
+            .proposals
+            .clone()
+            .into_iter()
+            .map(nns_proposal_row_from_info)
+            .collect())
     }
 
     fn fetch_proposal(
         &self,
-        _request: &NnsProposalFetchRequest,
+        _request: &NnsProposalSourceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalInfo, NnsProposalHostError> {
+    ) -> Result<NnsProposalRow, NnsProposalHostError> {
         assert_eq!(proposal_id, 101);
-        Ok(self.proposal.clone())
+        Ok(nns_proposal_row_from_info(self.proposal.clone()))
     }
 }
 

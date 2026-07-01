@@ -7,7 +7,8 @@
 use crate::{
     nns::proposals::report::{
         MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError,
-        source::{NnsProposalFetchRequest, NnsProposalSource},
+        model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
+        source::{NnsProposalSource, NnsProposalSourceRequest, nns_proposal_row_from_info},
         wire::{
             NnsListProposalInfoRequest, NnsListProposalInfoResponse, NnsProposalId, NnsProposalInfo,
         },
@@ -23,39 +24,53 @@ use ic_agent::Agent;
 /// Live source backed by the mainnet NNS governance canister.
 ///
 
-pub(in crate::nns::proposals::report) struct LiveNnsProposalSource;
+pub struct LiveNnsProposalSource;
 
 impl NnsProposalSource for LiveNnsProposalSource {
     fn fetch_proposals(
         &self,
-        request: &NnsProposalFetchRequest,
+        request: &NnsProposalSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
-        include_status: &[i32],
-        include_reward_status: &[i32],
-    ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError> {
-        block_on_current_thread(fetch_nns_proposal_list_async(
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
+        let include_status = status
+            .governance_status_code()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let include_reward_status = reward_status
+            .governance_reward_status_code()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let proposals = block_on_current_thread(fetch_nns_proposal_list_async(
             request,
             limit,
             before_proposal_id,
-            include_status,
-            include_reward_status,
+            &include_status,
+            &include_reward_status,
         ))
-        .map_err(NnsProposalHostError::Runtime)?
+        .map_err(NnsProposalHostError::Runtime)??;
+        Ok(proposals
+            .into_iter()
+            .map(nns_proposal_row_from_info)
+            .collect())
     }
 
     fn fetch_proposal(
         &self,
-        request: &NnsProposalFetchRequest,
+        request: &NnsProposalSourceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalInfo, NnsProposalHostError> {
-        block_on_current_thread(fetch_nns_proposal_async(request, proposal_id))
-            .map_err(NnsProposalHostError::Runtime)?
+    ) -> Result<NnsProposalRow, NnsProposalHostError> {
+        Ok(nns_proposal_row_from_info(
+            block_on_current_thread(fetch_nns_proposal_async(request, proposal_id))
+                .map_err(NnsProposalHostError::Runtime)??,
+        ))
     }
 }
 
 async fn fetch_nns_proposal_list_async(
-    request: &NnsProposalFetchRequest,
+    request: &NnsProposalSourceRequest,
     limit: u32,
     before_proposal_id: Option<u64>,
     include_status: &[i32],
@@ -85,7 +100,7 @@ async fn fetch_nns_proposal_list_async(
 }
 
 async fn fetch_nns_proposal_async(
-    request: &NnsProposalFetchRequest,
+    request: &NnsProposalSourceRequest,
     proposal_id: u64,
 ) -> Result<NnsProposalInfo, NnsProposalHostError> {
     let agent = nns_agent(&request.endpoint)?;

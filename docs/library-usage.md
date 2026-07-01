@@ -63,12 +63,11 @@ canister or fixture sources should use public request/report DTOs at their own
 boundary for now; a public source-trait adapter design belongs in a later
 minor release.
 
-In 0.6, the generic ICRC, subnet catalog, NNS registry, and NNS inventory host
-APIs start that public source-adapter work with `IcrcSource`,
+In 0.6, the generic ICRC, subnet catalog, NNS registry, NNS inventory, and NNS
+proposal host APIs start that public source-adapter work with `IcrcSource`,
 `build_icrc_*_report_with_source`, `SubnetCatalogSource`, subnet catalog
-`*_with_source` builders, `NnsRegistrySource`, and the NNS node,
-data-center, node-provider, and node-operator source traits and
-`*_with_source` builders. NNS proposal/topology and SNS source traits remain
+`*_with_source` builders, `NnsRegistrySource`, the NNS inventory source
+traits, and `NnsProposalSource`. NNS topology and SNS source traits remain
 internal until their family-specific source DTOs are reviewed as public
 contracts.
 

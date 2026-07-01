@@ -62,14 +62,17 @@ use ic_query::nns::node_provider::{
 #[cfg(feature = "host")]
 use ic_query::nns::proposals::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
-    NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalRefreshReport,
-    NnsProposalRefreshRequest, build_nns_proposal_cache_list_report,
+    NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalHostError,
+    NnsProposalRefreshReport, NnsProposalRefreshRequest, NnsProposalSource,
+    NnsProposalSourceRequest, build_nns_proposal_cache_list_report,
     build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
-    build_nns_proposal_list_report_from_cache, build_nns_proposal_report,
-    build_nns_proposal_report_from_cache, nns_proposal_cache_list_report_text,
+    build_nns_proposal_list_report_from_cache, build_nns_proposal_list_report_with_source,
+    build_nns_proposal_report, build_nns_proposal_report_from_cache,
+    build_nns_proposal_report_with_source, nns_proposal_cache_list_report_text,
     nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_cache_status_report_text,
     nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path,
     nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
+    refresh_nns_proposal_cache_with_source,
 };
 use ic_query::nns::proposals::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
@@ -1093,6 +1096,99 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
     ));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
+    let root = temp_root("nns-proposal-source-public-api");
+    let source = FixtureNnsProposalSource;
+    let list_request = NnsProposalListRequest::new(
+        "ic",
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        1_700_000_000,
+        25,
+    )
+    .with_status(NnsProposalStatusFilter::Executed)
+    .with_reward_status(NnsProposalRewardStatusFilter::Settled)
+    .with_topic(NnsProposalTopicFilter::Governance);
+    let detail_request = NnsProposalRequest::new(
+        "ic",
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        1_700_000_000,
+        132_411,
+    );
+    let refresh_request = NnsProposalRefreshRequest::new(
+        &root,
+        "ic",
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        1_700_000_000,
+        2,
+    );
+
+    let list = build_nns_proposal_list_report_with_source(&list_request, &source)
+        .expect("proposal list report");
+    let detail = build_nns_proposal_report_with_source(&detail_request, &source)
+        .expect("proposal detail report");
+    let refresh = refresh_nns_proposal_cache_with_source(&refresh_request, &source)
+        .expect("proposal refresh report");
+
+    assert_eq!(list.proposal_count, 1);
+    assert_eq!(list.data_source, "live");
+    assert_eq!(detail.proposal_id, 132_411);
+    assert_eq!(detail.proposal.title.as_deref(), Some("Upgrade subnet"));
+    assert_eq!(refresh.proposal_count, 1);
+    assert!(refresh.complete);
+    assert!(nns_proposal_cache_path(&root, "ic").is_file());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsProposalSource;
+
+#[cfg(feature = "host")]
+impl NnsProposalSource for FixtureNnsProposalSource {
+    fn fetch_proposals(
+        &self,
+        request: &NnsProposalSourceRequest,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
+        assert_proposal_source_request(request);
+        match (limit, before_proposal_id, status, reward_status) {
+            (
+                25,
+                None,
+                NnsProposalStatusFilter::Executed,
+                NnsProposalRewardStatusFilter::Settled,
+            )
+            | (2, None, NnsProposalStatusFilter::Any, NnsProposalRewardStatusFilter::Any) => {
+                Ok(vec![sample_nns_proposal_row()])
+            }
+            other => panic!("unexpected proposal source call: {other:?}"),
+        }
+    }
+
+    fn fetch_proposal(
+        &self,
+        request: &NnsProposalSourceRequest,
+        proposal_id: u64,
+    ) -> Result<NnsProposalRow, NnsProposalHostError> {
+        assert_proposal_source_request(request);
+        assert_eq!(proposal_id, 132_411);
+        Ok(sample_nns_proposal_row())
+    }
+}
+
+#[cfg(feature = "host")]
+fn assert_proposal_source_request(request: &NnsProposalSourceRequest) {
+    assert_eq!(request.network, "ic");
+    assert_eq!(request.endpoint, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT);
+    assert!(!request.fetched_at.is_empty());
+    assert_eq!(request.fetched_by, "ic-query");
 }
 
 #[cfg(feature = "host")]

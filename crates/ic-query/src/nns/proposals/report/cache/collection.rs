@@ -8,11 +8,12 @@ use super::{
     attempt::{NnsProposalAttemptProgress, write_running_attempt},
     model::{CompleteNnsProposalCollection, NnsProposalRefreshRequest},
 };
+use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 use crate::{
     nns::proposals::report::{
-        NnsProposalHostError,
-        model::NnsProposalRow,
-        source::{NnsProposalFetchRequest, NnsProposalSource, nns_proposal_row_from_info},
+        NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
+        model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
+        source::{NnsProposalSource, NnsProposalSourceRequest},
     },
     snapshot_cache::{
         PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh, run_paged_snapshot_refresh,
@@ -28,7 +29,12 @@ pub(super) fn fetch_complete_nns_proposal_collection(
 ) -> Result<CompleteNnsProposalCollection, NnsProposalHostError> {
     run_paged_snapshot_refresh(NnsProposalRefreshPages {
         request,
-        fetch_request: NnsProposalFetchRequest::new(&request.source_endpoint),
+        fetch_request: NnsProposalSourceRequest::new(
+            MAINNET_NETWORK,
+            &request.source_endpoint,
+            format_utc_timestamp_secs(request.now_unix_secs),
+            NNS_PROPOSAL_FETCHED_BY,
+        ),
         source,
         attempt_path,
         state: NnsProposalCollectionState::new(),
@@ -43,7 +49,7 @@ pub(super) fn fetch_complete_nns_proposal_collection(
 
 struct NnsProposalRefreshPages<'a> {
     request: &'a NnsProposalRefreshRequest,
-    fetch_request: NnsProposalFetchRequest,
+    fetch_request: NnsProposalSourceRequest,
     source: &'a dyn NnsProposalSource,
     attempt_path: &'a Path,
     state: NnsProposalCollectionState,
@@ -80,15 +86,10 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             &self.fetch_request,
             self.request.page_size,
             self.state.before_proposal_id(),
-            &[],
-            &[],
+            NnsProposalStatusFilter::Any,
+            NnsProposalRewardStatusFilter::Any,
         )?;
-        self.state.ingest_page(
-            proposal_infos
-                .into_iter()
-                .map(nns_proposal_row_from_info)
-                .collect(),
-        )
+        self.state.ingest_page(proposal_infos)
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

@@ -31,7 +31,7 @@ pub fn refresh_nns_proposal_cache(
     refresh_nns_proposal_cache_with_source(request, &LiveNnsProposalSource)
 }
 
-pub(in crate::nns::proposals::report) fn refresh_nns_proposal_cache_with_source(
+pub fn refresh_nns_proposal_cache_with_source(
     request: &NnsProposalRefreshRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
