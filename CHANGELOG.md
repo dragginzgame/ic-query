@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
 
+- `0.6.8` adds a compile-tested downstream source-adapter example to the
+  library guide. The example shows how host users can implement a custom
+  `NnsRegistrySource` for fixture, mirror, or proxy-backed report assembly
+  without enabling `cli` or routing through the built-in live adapter.
+
 - `0.6.7` completes the NNS topology source-adapter path. Host users can now
   implement `NnsTopologyRefreshSource` and pass it to topology refresh without
   routing through the built-in live topology adapter, while the default refresh

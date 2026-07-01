@@ -38,6 +38,11 @@ mod host {
             NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListRequest, build_nns_node_list_report,
             nns_node_list_report_text,
         },
+        nns::registry::{
+            NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest,
+            NnsRegistryVersionData, NnsRegistryVersionRequest,
+            build_nns_registry_version_report_with_source, nns_registry_version_report_text,
+        },
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsCacheStatusRequest,
             SnsNeuronsRequest, SnsNeuronsSort, SnsProposalSortDirection,
@@ -60,9 +65,14 @@ mod host {
         accepts_subnet_example(render_subnet_info);
         accepts_nns_node_example(render_application_nodes);
         accepts_icrc_example(render_token);
+        accepts_custom_source_example(render_registry_version_with_source);
         accepts_sns_proposals_example(render_recent_sns_proposals);
         accepts_sns_neurons_example(render_cached_sns_neurons);
         accepts_sns_cache_status_example(render_sns_cache_status);
+
+        let text = render_registry_version_with_source(&FixtureRegistrySource, 1_700_000_000)
+            .expect("custom registry source");
+        assert!(text.contains("registry_version: 42"));
     }
 
     fn render_subnet_info(
@@ -105,6 +115,15 @@ mod host {
         );
         let report = build_icrc_token_report(&request)?;
         Ok(icrc_token_report_text(&report))
+    }
+
+    fn render_registry_version_with_source(
+        source: &dyn NnsRegistrySource,
+        now_unix_secs: u64,
+    ) -> Result<String, NnsRegistryHostError> {
+        let request = NnsRegistryVersionRequest::new("ic", "https://mirror.example", now_unix_secs);
+        let report = build_nns_registry_version_report_with_source(&request, source)?;
+        Ok(nns_registry_version_report_text(&report))
     }
 
     fn render_recent_sns_proposals(
@@ -163,6 +182,24 @@ mod host {
         ))
     }
 
+    struct FixtureRegistrySource;
+
+    impl NnsRegistrySource for FixtureRegistrySource {
+        fn fetch_registry_version(
+            &self,
+            request: &NnsRegistrySourceRequest,
+        ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
+            Ok(NnsRegistryVersionData {
+                network: "ic".to_string(),
+                registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: request.endpoint.clone(),
+            })
+        }
+    }
+
     fn accepts_subnet_example(
         _example: fn(&Path, &str, u64) -> Result<String, SubnetCatalogHostError>,
     ) {
@@ -171,6 +208,11 @@ mod host {
     fn accepts_nns_node_example(_example: fn(&Path, u64) -> Result<String, NnsNodeHostError>) {}
 
     fn accepts_icrc_example(_example: fn(&str, u64) -> Result<String, IcrcError>) {}
+
+    fn accepts_custom_source_example(
+        _example: fn(&dyn NnsRegistrySource, u64) -> Result<String, NnsRegistryHostError>,
+    ) {
+    }
 
     fn accepts_sns_proposals_example(
         _example: fn(&Path, &str, u64) -> Result<String, SnsHostError>,

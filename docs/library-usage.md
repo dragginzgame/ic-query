@@ -54,7 +54,7 @@ The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
 The examples below are covered by the `downstream_usage` integration test.
 
-## 0.5 Source Boundary
+## Source Adapters
 
 The 0.5 public API uses the built-in host source adapters behind public report
 builders. Source traits used by the report internals and fixture tests are not
@@ -72,6 +72,49 @@ traits, `NnsProposalSource`, `NnsTopologySource`,
 `NnsTopologyRefreshSource`, `SnsListSource`, `SnsTokenSource`,
 `SnsParamsSource`, `SnsProposalSource`, `SnsProposalsSource`, and
 `SnsNeuronsSource`.
+
+Use a custom source when a downstream tool needs to read from a mirror,
+fixture, proxy, or pre-collected snapshot while still using `ic-query` report
+assembly and text rendering:
+
+```rust
+use ic_query::nns::registry::{
+    NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest,
+    NnsRegistryVersionData, NnsRegistryVersionRequest,
+    build_nns_registry_version_report_with_source, nns_registry_version_report_text,
+};
+
+struct FixtureRegistrySource;
+
+impl NnsRegistrySource for FixtureRegistrySource {
+    fn fetch_registry_version(
+        &self,
+        request: &NnsRegistrySourceRequest,
+    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
+        Ok(NnsRegistryVersionData {
+            network: "ic".to_string(),
+            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+            registry_version: 42,
+            fetched_at: request.fetched_at.clone(),
+            fetched_by: request.fetched_by.clone(),
+            source_endpoint: request.endpoint.clone(),
+        })
+    }
+}
+
+fn render_registry_version_with_source(
+    source: &dyn NnsRegistrySource,
+    now_unix_secs: u64,
+) -> Result<String, NnsRegistryHostError> {
+    let request = NnsRegistryVersionRequest::new(
+        "ic",
+        "https://mirror.example",
+        now_unix_secs,
+    );
+    let report = build_nns_registry_version_report_with_source(&request, source)?;
+    Ok(nns_registry_version_report_text(&report))
+}
+```
 
 ## Pure Rendering Example
 
