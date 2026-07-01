@@ -3,7 +3,7 @@ members = ["crates/ic-query", "crates/ic-query-cli"]
 resolver = "3"
 
 [workspace.package]
-version = "0.5.23"
+version = "0.5.24"
 edition = "2024"
 rust-version = "1.91.0"
 license = "MIT"
@@ -13,7 +13,7 @@ repository = "https://github.com/dragginzgame/ic-query"
 
 [workspace.dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
-ic-query = { path = "crates/ic-query", version = "0.5.23", default-features = false }
+ic-query = { path = "crates/ic-query", version = "0.5.24", default-features = false }
 thiserror = "2.0"
 
 [workspace.lints.clippy]
