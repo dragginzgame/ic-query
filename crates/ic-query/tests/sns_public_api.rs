@@ -2,19 +2,22 @@
 use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
-    MainnetSns, MainnetSnsList, MainnetSnsToken, SnsHostError, SnsListSource, SnsNeuronRow,
-    SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshReport,
-    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsSource,
+    MainnetSns, MainnetSnsList, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsToken, SnsHostError, SnsListSource, SnsNeuronRow, SnsNeuronsCacheListRequest,
+    SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
+    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsSource, SnsProposalSource,
     SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest, SnsProposalsRefreshReport,
-    SnsProposalsRefreshRequest, SnsSourceRequest, SnsTokenSource, build_sns_info_report,
-    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
-    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
-    build_sns_neurons_report, build_sns_params_report, build_sns_params_report_with_source,
-    build_sns_proposal_report, build_sns_proposals_cache_list_report,
-    build_sns_proposals_cache_status_report, build_sns_proposals_report, build_sns_token_report,
+    SnsProposalsRefreshRequest, SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
+    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
+    build_sns_list_report_with_source, build_sns_neurons_cache_list_report,
+    build_sns_neurons_cache_status_report, build_sns_neurons_report, build_sns_params_report,
+    build_sns_params_report_with_source, build_sns_proposal_report,
+    build_sns_proposal_report_with_source, build_sns_proposals_cache_list_report,
+    build_sns_proposals_cache_status_report, build_sns_proposals_report,
+    build_sns_proposals_report_with_source, build_sns_token_report,
     build_sns_token_report_with_source, refresh_sns_neurons_cache, refresh_sns_proposals_cache,
-    sns_neurons_cache_list_report_text, sns_neurons_cache_path,
-    sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
+    refresh_sns_proposals_cache_with_source, sns_neurons_cache_list_report_text,
+    sns_neurons_cache_path, sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
     sns_neurons_refresh_lock_path, sns_neurons_refresh_report_text, sns_neurons_report_text,
     sns_proposals_cache_list_report_text, sns_proposals_cache_path,
     sns_proposals_cache_status_report_text, sns_proposals_refresh_attempt_path,
@@ -33,7 +36,10 @@ use ic_query::sns::{
 };
 use serde_json::json;
 #[cfg(feature = "host")]
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[cfg(feature = "host")]
 const SAMPLE_SNS_ROOT_CANISTER_ID: &str = "be2us-64aaa-aaaaa-qaabq-cai";
@@ -435,6 +441,45 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
 
 #[cfg(feature = "host")]
 #[test]
+fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), SnsHostError> {
+    let source = FixtureSnsSource;
+    let detail_request =
+        SnsProposalRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1", 42)
+            .with_show_ballots(true);
+    let detail = build_sns_proposal_report_with_source(&detail_request, &source)?;
+    assert_eq!(detail.proposal.proposal_id, Some(42));
+    assert_eq!(detail.data_source, "live");
+
+    let list_request =
+        SnsProposalsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1", 10)
+            .with_before_proposal_id(99)
+            .with_status(SnsProposalStatusFilter::Open)
+            .with_topic(SnsProposalTopicFilter::Governance);
+    let list = build_sns_proposals_report_with_source(&list_request, &source)?;
+    assert_eq!(list.proposal_count, 1);
+    assert_eq!(list.proposals[0].title, "Upgrade SNS");
+
+    let cache_root = proposal_source_cache_root();
+    let _ = fs::remove_dir_all(&cache_root);
+    let refresh_request = SnsProposalsRefreshRequest::new(
+        cache_root.clone(),
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        "1",
+        100,
+    )
+    .with_max_pages(Some(1));
+    let refresh = refresh_sns_proposals_cache_with_source(&refresh_request, &source)?;
+    assert_eq!(refresh.proposal_count, 1);
+    assert!(refresh.complete);
+    let _ = fs::remove_dir_all(cache_root);
+
+    Ok(())
+}
+
+#[cfg(feature = "host")]
+#[test]
 fn public_sns_host_api_exposes_neuron_request_constructor() {
     let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
     let request = SnsNeuronsRequest::new(
@@ -632,6 +677,77 @@ impl SnsParamsSource for FixtureSnsSource {
         );
         Ok(sample_sns_governance_parameters())
     }
+}
+
+#[cfg(feature = "host")]
+impl SnsProposalSource for FixtureSnsSource {
+    fn fetch_sns_proposal(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        proposal_id: u64,
+    ) -> Result<MainnetSnsProposal, SnsHostError> {
+        assert_eq!(
+            sns.governance_canister_id,
+            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+        );
+        assert_eq!(proposal_id, 42);
+        Ok(MainnetSnsProposal {
+            proposal: sample_sns_proposal_row(),
+        })
+    }
+}
+
+#[cfg(feature = "host")]
+impl SnsProposalsSource for FixtureSnsSource {
+    fn fetch_sns_proposals(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+        include_status: &[i32],
+        topic: SnsProposalTopicFilter,
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        assert_eq!(
+            sns.governance_canister_id,
+            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+        );
+        assert_eq!(limit, 10);
+        assert_eq!(before_proposal_id, Some(99));
+        assert_eq!(include_status, &[1]);
+        assert_eq!(topic, SnsProposalTopicFilter::Governance);
+        Ok(MainnetSnsProposals {
+            proposals: vec![sample_sns_proposal_row()],
+        })
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        assert_eq!(
+            sns.governance_canister_id,
+            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+        );
+        assert_eq!(limit, 100);
+        assert_eq!(before_proposal_id, None);
+        Ok(MainnetSnsProposalPage {
+            proposals: vec![sample_sns_proposal_row()],
+            last_cursor: Some(42),
+        })
+    }
+}
+
+#[cfg(feature = "host")]
+fn proposal_source_cache_root() -> PathBuf {
+    PathBuf::from(format!(
+        "target/ic-query-sns-public-api-proposal-source-{}",
+        std::process::id()
+    ))
 }
 
 #[cfg(feature = "host")]

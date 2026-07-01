@@ -35,7 +35,7 @@ pub fn build_sns_proposals_report(
     build_sns_proposals_report_with_source(request, &LiveSnsSource)
 }
 
-pub(in crate::sns::report) fn build_sns_proposal_report_with_source(
+pub fn build_sns_proposal_report_with_source(
     request: &SnsProposalRequest,
     source: &dyn SnsProposalSource,
 ) -> Result<SnsProposalReport, SnsHostError> {
@@ -65,7 +65,7 @@ pub(in crate::sns::report) fn build_sns_proposal_report_with_source(
     }))
 }
 
-pub(in crate::sns::report) fn build_sns_proposals_report_with_source(
+pub fn build_sns_proposals_report_with_source(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {

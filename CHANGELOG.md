@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
 
+- `0.6.4` extends the SNS source-adapter path to governance proposals. Host
+  users can now implement `SnsProposalSource` and `SnsProposalsSource` and
+  pass them to SNS proposal detail/list builders and complete proposal-cache
+  refresh without routing through the built-in live SNS adapter.
+
 - `0.6.3` opens the first SNS source-adapter path. Host users can now
   implement `SnsListSource`, `SnsTokenSource`, and `SnsParamsSource` and pass
   them to SNS list, info, token, and governance-parameter builders without

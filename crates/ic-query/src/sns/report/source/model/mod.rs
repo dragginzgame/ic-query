@@ -15,7 +15,5 @@ pub use fetch::SnsSourceRequest;
 pub(in crate::sns::report) use list::MainnetSnsCanisters;
 pub use list::{MainnetSns, MainnetSnsList};
 pub(in crate::sns::report) use neurons::{MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
-pub(in crate::sns::report) use proposals::{
-    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-};
+pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
 pub use token::MainnetSnsToken;

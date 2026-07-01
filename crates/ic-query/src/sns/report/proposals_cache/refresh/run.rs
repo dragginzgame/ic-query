@@ -33,7 +33,7 @@ pub fn refresh_sns_proposals_cache(
 }
 
 /// Refresh a complete SNS proposal snapshot using an injected source.
-pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source(
+pub fn refresh_sns_proposals_cache_with_source(
     request: &SnsProposalsRefreshRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {

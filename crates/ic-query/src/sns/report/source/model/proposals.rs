@@ -13,8 +13,8 @@ use crate::sns::report::SnsProposalRow;
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct MainnetSnsProposals {
-    pub(in crate::sns::report) proposals: Vec<SnsProposalRow>,
+pub struct MainnetSnsProposals {
+    pub proposals: Vec<SnsProposalRow>,
 }
 
 ///
@@ -24,9 +24,9 @@ pub(in crate::sns::report) struct MainnetSnsProposals {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct MainnetSnsProposalPage {
-    pub(in crate::sns::report) proposals: Vec<SnsProposalRow>,
-    pub(in crate::sns::report) last_cursor: Option<u64>,
+pub struct MainnetSnsProposalPage {
+    pub proposals: Vec<SnsProposalRow>,
+    pub last_cursor: Option<u64>,
 }
 
 ///
@@ -36,6 +36,6 @@ pub(in crate::sns::report) struct MainnetSnsProposalPage {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct MainnetSnsProposal {
-    pub(in crate::sns::report) proposal: SnsProposalRow,
+pub struct MainnetSnsProposal {
+    pub proposal: SnsProposalRow,
 }

@@ -72,7 +72,7 @@ pub trait SnsParamsSource: SnsListSource {
 /// Source contract for fetching one SNS proposal by id.
 ///
 
-pub(in crate::sns::report) trait SnsProposalSource: SnsListSource {
+pub trait SnsProposalSource: SnsListSource {
     /// Fetch one SNS governance proposal for one resolved SNS.
     fn fetch_sns_proposal(
         &self,
@@ -88,7 +88,7 @@ pub(in crate::sns::report) trait SnsProposalSource: SnsListSource {
 /// Source contract for fetching bounded SNS proposal listings.
 ///
 
-pub(in crate::sns::report) trait SnsProposalsSource: SnsListSource {
+pub trait SnsProposalsSource: SnsListSource {
     /// Fetch a bounded SNS governance proposal page for one resolved SNS.
     fn fetch_sns_proposals(
         &self,

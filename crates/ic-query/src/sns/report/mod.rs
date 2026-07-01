@@ -34,14 +34,14 @@ pub use model::{
 };
 #[cfg(feature = "host")]
 pub use source::{
-    MainnetSns, MainnetSnsList, MainnetSnsToken, SnsListSource, SnsParamsSource, SnsSourceRequest,
-    SnsTokenSource,
+    MainnetSns, MainnetSnsList, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsToken, SnsListSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    SnsSourceRequest, SnsTokenSource,
 };
 #[cfg(feature = "host")]
 use source::{
-    MainnetSnsCanisters, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest, SnsNeuronId, SnsNeuronsSource,
-    SnsProposalSource, SnsProposalsSource,
+    MainnetSnsCanisters, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsFetchRequest, SnsNeuronId,
+    SnsNeuronsSource,
 };
 
 #[cfg(feature = "host")]
@@ -77,8 +77,10 @@ mod view;
 pub use build::{
     build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
     build_sns_list_report_with_source, build_sns_neurons_report, build_sns_params_report,
-    build_sns_params_report_with_source, build_sns_proposal_report, build_sns_proposals_report,
-    build_sns_token_report, build_sns_token_report_with_source,
+    build_sns_params_report_with_source, build_sns_proposal_report,
+    build_sns_proposal_report_with_source, build_sns_proposals_report,
+    build_sns_proposals_report_with_source, build_sns_token_report,
+    build_sns_token_report_with_source,
 };
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use cache_summary::{
@@ -99,12 +101,11 @@ use neurons_cache::{
     SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_SCHEMA_VERSION,
     SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION, refresh_sns_neurons_cache_with_source,
 };
-#[cfg(all(test, feature = "host"))]
-use proposals_cache::refresh_sns_proposals_cache_with_source;
 #[cfg(feature = "host")]
 pub use proposals_cache::{
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, build_sns_proposals_cache_list_report,
-    build_sns_proposals_cache_status_report, refresh_sns_proposals_cache, sns_proposals_cache_path,
+    build_sns_proposals_cache_status_report, refresh_sns_proposals_cache,
+    refresh_sns_proposals_cache_with_source, sns_proposals_cache_path,
     sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };
 pub use text::{
@@ -152,10 +153,7 @@ pub(super) fn short_principal(value: &str) -> String {
 }
 
 #[cfg(all(test, feature = "host"))]
-use build::{
-    build_sns_neurons_report_with_source, build_sns_proposal_report_with_source,
-    build_sns_proposals_report_with_source,
-};
+use build::build_sns_neurons_report_with_source;
 
 #[cfg(all(test, feature = "host"))]
 mod tests;

@@ -64,13 +64,14 @@ boundary for now; a public source-trait adapter design belongs in a later
 minor release.
 
 In 0.6, the generic ICRC, subnet catalog, NNS registry, NNS inventory, NNS
-proposal, and SNS list/info/token/params host APIs start that public
-source-adapter work with `IcrcSource`, `build_icrc_*_report_with_source`,
-`SubnetCatalogSource`, subnet catalog `*_with_source` builders,
-`NnsRegistrySource`, the NNS inventory source traits, `NnsProposalSource`,
-`SnsListSource`, `SnsTokenSource`, and `SnsParamsSource`. NNS topology and SNS
-proposal/neuron source traits remain internal until their family-specific
-source DTOs are reviewed as public contracts.
+proposal, SNS list/info/token/params, and SNS proposal host APIs start that
+public source-adapter work with `IcrcSource`,
+`build_icrc_*_report_with_source`, `SubnetCatalogSource`, subnet catalog
+`*_with_source` builders, `NnsRegistrySource`, the NNS inventory source
+traits, `NnsProposalSource`, `SnsListSource`, `SnsTokenSource`,
+`SnsParamsSource`, `SnsProposalSource`, and `SnsProposalsSource`. NNS topology
+and SNS neuron source traits remain internal until their family-specific source
+DTOs are reviewed as public contracts.
 
 ## Pure Rendering Example
 
