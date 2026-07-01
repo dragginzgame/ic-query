@@ -1,6 +1,6 @@
 use super::{
     LiveNnsRegistryRefreshSource, SubnetCatalogCacheRequest, SubnetCatalogHostError,
-    SubnetCatalogRefreshSource,
+    SubnetCatalogSource, SubnetCatalogSourceRequest,
     error::{enforce_mainnet_network, subnet_cache_error},
     subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
@@ -9,7 +9,6 @@ use crate::{
         RefreshLockRequest, create_parent_directory, with_refresh_lock, write_text_atomically,
         write_text_output,
     },
-    ic_registry::MainnetRegistryFetchRequest,
     subnet_catalog::{
         SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION, SubnetCatalogRefreshReport,
         catalog_to_pretty_json, format_utc_timestamp_secs,
@@ -72,7 +71,7 @@ pub fn refresh_subnet_catalog(
 
 pub fn refresh_subnet_catalog_with_source(
     request: &SubnetCatalogRefreshRequest,
-    source: &dyn SubnetCatalogRefreshSource,
+    source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
     enforce_mainnet_network(&request.cache.network)?;
     let catalog_path = subnet_catalog_path(&request.cache.icp_root, &request.cache.network);
@@ -91,8 +90,8 @@ pub fn refresh_subnet_catalog_with_source(
         || {
             let replaced_existing_catalog = catalog_path.is_file();
             let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-            let mut fetch_request = MainnetRegistryFetchRequest::new(fetched_at);
-            fetch_request.endpoint.clone_from(&request.source_endpoint);
+            let fetch_request =
+                SubnetCatalogSourceRequest::new(&request.source_endpoint, fetched_at, "ic-query");
             let catalog = source.fetch_catalog(&fetch_request)?;
             if catalog.network != request.cache.network {
                 return Err(SubnetCatalogHostError::RefreshNetworkMismatch {

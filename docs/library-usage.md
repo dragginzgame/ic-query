@@ -63,6 +63,13 @@ canister or fixture sources should use public request/report DTOs at their own
 boundary for now; a public source-trait adapter design belongs in a later
 minor release.
 
+In 0.6, the generic ICRC, subnet catalog, and NNS registry host APIs start
+that public source-adapter work with `IcrcSource`,
+`build_icrc_*_report_with_source`, `SubnetCatalogSource`, subnet catalog
+`*_with_source` builders, and `NnsRegistrySource`. Other NNS and SNS source
+traits remain internal until their family-specific source DTOs are reviewed as
+public contracts.
+
 ## Pure Rendering Example
 
 No-default consumers can use report DTOs and text renderers without native

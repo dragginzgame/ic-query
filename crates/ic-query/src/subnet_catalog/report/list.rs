@@ -3,7 +3,7 @@ use super::{
 };
 use crate::subnet_catalog::{
     LiveNnsRegistryRefreshSource, SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalog,
-    SubnetCatalogHostError, SubnetCatalogRefreshSource, SubnetInfo, catalog_stale_status,
+    SubnetCatalogHostError, SubnetCatalogSource, SubnetInfo, catalog_stale_status,
     load_or_refresh_subnet_catalog_with_source,
 };
 
@@ -15,7 +15,7 @@ pub fn build_subnet_catalog_list_report(
 
 pub fn build_subnet_catalog_list_report_with_source(
     request: &SubnetCatalogListRequest,
-    source: &dyn SubnetCatalogRefreshSource,
+    source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
     let cached = load_or_refresh_subnet_catalog_with_source(
         &request.cache,

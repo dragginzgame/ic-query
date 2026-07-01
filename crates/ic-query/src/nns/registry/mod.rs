@@ -12,7 +12,11 @@ pub use report::{
     nns_registry_version_report_text,
 };
 #[cfg(feature = "host")]
-pub use report::{NnsRegistryHostError, build_nns_registry_version_report};
+pub use report::{
+    LiveNnsRegistrySource, NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest,
+    NnsRegistryVersionData, build_nns_registry_version_report,
+    build_nns_registry_version_report_with_source,
+};
 
 #[cfg(all(test, feature = "cli"))]
 pub(super) use commands::{registry_usage, registry_version_usage};

@@ -89,7 +89,8 @@ impl IcrcLedgerError for IcrcError {
 ///
 /// Source contract for fetching generic ICRC ledger metadata, balances, allowances, indexes, and ICRC-3 rows.
 ///
-pub(in crate::icrc) trait IcrcSource {
+
+pub trait IcrcSource {
     fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError>;
 
     fn fetch_balance(&self, request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError>;
@@ -129,7 +130,8 @@ pub(in crate::icrc) trait IcrcSource {
 ///
 /// Source implementation backed by live ICRC ledger canister queries.
 ///
-pub(in crate::icrc) struct LiveIcrcSource;
+
+pub struct LiveIcrcSource;
 
 impl IcrcSource for LiveIcrcSource {
     fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
@@ -234,7 +236,7 @@ pub fn build_icrc_capabilities_report(
     build_icrc_capabilities_report_with_source(request, &LiveIcrcSource)
 }
 
-pub(in crate::icrc) fn build_icrc_token_report_with_source(
+pub fn build_icrc_token_report_with_source(
     request: &IcrcTokenRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcTokenReport, IcrcError> {
@@ -257,7 +259,7 @@ pub(in crate::icrc) fn build_icrc_token_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_balance_report_with_source(
+pub fn build_icrc_balance_report_with_source(
     request: &IcrcBalanceRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcBalanceReport, IcrcError> {
@@ -284,7 +286,7 @@ pub(in crate::icrc) fn build_icrc_balance_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_allowance_report_with_source(
+pub fn build_icrc_allowance_report_with_source(
     request: &IcrcAllowanceRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
@@ -319,7 +321,7 @@ pub(in crate::icrc) fn build_icrc_allowance_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_index_report_with_source(
+pub fn build_icrc_index_report_with_source(
     request: &IcrcIndexRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcIndexReport, IcrcError> {
@@ -335,7 +337,7 @@ pub(in crate::icrc) fn build_icrc_index_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_transactions_report_with_source(
+pub fn build_icrc_transactions_report_with_source(
     request: &IcrcTransactionsRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcTransactionsReport, IcrcError> {
@@ -357,7 +359,7 @@ pub(in crate::icrc) fn build_icrc_transactions_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_block_types_report_with_source(
+pub fn build_icrc_block_types_report_with_source(
     request: &IcrcBlockTypesRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcBlockTypesReport, IcrcError> {
@@ -372,7 +374,7 @@ pub(in crate::icrc) fn build_icrc_block_types_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_archives_report_with_source(
+pub fn build_icrc_archives_report_with_source(
     request: &IcrcArchivesRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcArchivesReport, IcrcError> {
@@ -399,7 +401,7 @@ pub(in crate::icrc) fn build_icrc_archives_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_tip_certificate_report_with_source(
+pub fn build_icrc_tip_certificate_report_with_source(
     request: &IcrcTipCertificateRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
@@ -418,7 +420,7 @@ pub(in crate::icrc) fn build_icrc_tip_certificate_report_with_source(
     })
 }
 
-pub(in crate::icrc) fn build_icrc_capabilities_report_with_source(
+pub fn build_icrc_capabilities_report_with_source(
     request: &IcrcCapabilitiesRequest,
     source: &dyn IcrcSource,
 ) -> Result<IcrcCapabilitiesReport, IcrcError> {

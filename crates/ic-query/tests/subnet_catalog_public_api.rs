@@ -9,9 +9,10 @@ use ic_query::subnet_catalog::{
     DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest, SubnetCatalogFilters,
     SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
-    SubnetCatalogRefreshRequest, SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
-    build_subnet_catalog_list_report, load_or_refresh_subnet_catalog, refresh_subnet_catalog,
-    subnet_catalog_info_report_text, subnet_catalog_list_report_text,
+    SubnetCatalogRefreshRequest, SubnetCatalogSource, SubnetCatalogSourceRequest,
+    SubnetCatalogSubnetRow, build_subnet_catalog_info_report, build_subnet_catalog_list_report,
+    build_subnet_catalog_list_report_with_source, load_or_refresh_subnet_catalog,
+    refresh_subnet_catalog, subnet_catalog_info_report_text, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text, subnet_catalog_path, subnet_catalog_refresh_lock_path,
     subnet_catalog_refresh_report_text,
 };
@@ -108,6 +109,45 @@ fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
         refresh_subnet_catalog,
         &refresh_request
     ));
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
+    let root = temp_root("subnet-catalog-host-custom-source-public-api");
+    let cache = host_cache_request(&root);
+    let now_unix_secs = unix_secs_for_test();
+    let request = host_list_request(&cache, now_unix_secs);
+
+    let report =
+        build_subnet_catalog_list_report_with_source(&request, &FixtureSubnetCatalogSource)
+            .expect("build list report from custom source");
+
+    let _ = fs::remove_dir_all(root);
+    assert_eq!(report.network, MAINNET_NETWORK);
+    assert_eq!(report.subnets.len(), 1);
+    assert_eq!(report.subnets[0].subnet_principal, SUBNET_A);
+}
+
+#[cfg(feature = "host")]
+struct FixtureSubnetCatalogSource;
+
+#[cfg(feature = "host")]
+impl SubnetCatalogSource for FixtureSubnetCatalogSource {
+    fn fetch_catalog(
+        &self,
+        request: &SubnetCatalogSourceRequest,
+    ) -> Result<SubnetCatalog, SubnetCatalogHostError> {
+        assert_eq!(request.endpoint, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
+        assert_eq!(request.fetched_by, "ic-query");
+        assert!(!request.fetched_at.is_empty());
+
+        let mut catalog = fixture_catalog();
+        catalog.source_endpoint.clone_from(&request.endpoint);
+        catalog.fetched_at.clone_from(&request.fetched_at);
+        catalog.fetched_by.clone_from(&request.fetched_by);
+        Ok(catalog)
+    }
 }
 
 #[cfg(feature = "host")]

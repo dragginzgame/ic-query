@@ -18,9 +18,21 @@ pub const DEFAULT_ICRC_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 #[cfg(feature = "host")]
 pub use live::{
-    build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
-    build_icrc_block_types_report, build_icrc_capabilities_report, build_icrc_index_report,
-    build_icrc_tip_certificate_report, build_icrc_token_report, build_icrc_transactions_report,
+    IcrcSource, LiveIcrcSource, build_icrc_allowance_report,
+    build_icrc_allowance_report_with_source, build_icrc_archives_report,
+    build_icrc_archives_report_with_source, build_icrc_balance_report,
+    build_icrc_balance_report_with_source, build_icrc_block_types_report,
+    build_icrc_block_types_report_with_source, build_icrc_capabilities_report,
+    build_icrc_capabilities_report_with_source, build_icrc_index_report,
+    build_icrc_index_report_with_source, build_icrc_tip_certificate_report,
+    build_icrc_tip_certificate_report_with_source, build_icrc_token_report,
+    build_icrc_token_report_with_source, build_icrc_transactions_report,
+    build_icrc_transactions_report_with_source,
+};
+#[cfg(feature = "host")]
+pub use model::{
+    IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData,
+    IcrcIndexData, IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData,
 };
 pub use model::{
     IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,

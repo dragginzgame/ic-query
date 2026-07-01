@@ -1,5 +1,5 @@
 use super::{
-    MainnetRegistryFetchRequest, MainnetRegistryVersion, NnsRegistryHostError, NnsRegistrySource,
+    NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest, NnsRegistryVersionData,
     NnsRegistryVersionReport, NnsRegistryVersionRequest,
     build_nns_registry_version_report_with_source, nns_registry_version_report_text,
 };
@@ -50,9 +50,9 @@ struct FixtureNnsRegistrySource;
 impl NnsRegistrySource for FixtureNnsRegistrySource {
     fn fetch_registry_version(
         &self,
-        request: &MainnetRegistryFetchRequest,
-    ) -> Result<MainnetRegistryVersion, NnsRegistryHostError> {
-        Ok(MainnetRegistryVersion {
+        request: &NnsRegistrySourceRequest,
+    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
+        Ok(NnsRegistryVersionData {
             network: MAINNET_NETWORK.to_string(),
             registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
             registry_version: 42,

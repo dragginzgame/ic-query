@@ -675,18 +675,19 @@ pub struct IcrcArchiveRow {
 ///
 /// Source-layer token metadata returned by an ICRC ledger.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTokenData {
-    pub(in crate::icrc) token_name: String,
-    pub(in crate::icrc) token_symbol: String,
-    pub(in crate::icrc) decimals: u8,
-    pub(in crate::icrc) transfer_fee: String,
-    pub(in crate::icrc) total_supply: String,
-    pub(in crate::icrc) minting_account_owner: Option<String>,
-    pub(in crate::icrc) minting_account_subaccount_hex: Option<String>,
-    pub(in crate::icrc) supported_standards: Vec<IcrcTokenStandardRow>,
-    pub(in crate::icrc) metadata: Vec<IcrcTokenMetadataRow>,
+pub struct IcrcTokenData {
+    pub token_name: String,
+    pub token_symbol: String,
+    pub decimals: u8,
+    pub transfer_fee: String,
+    pub total_supply: String,
+    pub minting_account_owner: Option<String>,
+    pub minting_account_subaccount_hex: Option<String>,
+    pub supported_standards: Vec<IcrcTokenStandardRow>,
+    pub metadata: Vec<IcrcTokenMetadataRow>,
 }
 
 ///
@@ -694,12 +695,13 @@ pub(in crate::icrc) struct IcrcTokenData {
 ///
 /// Source-layer balance result plus enough token metadata for display.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcBalanceData {
-    pub(in crate::icrc) token_symbol: String,
-    pub(in crate::icrc) decimals: u8,
-    pub(in crate::icrc) balance: String,
+pub struct IcrcBalanceData {
+    pub token_symbol: String,
+    pub decimals: u8,
+    pub balance: String,
 }
 
 ///
@@ -707,13 +709,14 @@ pub(in crate::icrc) struct IcrcBalanceData {
 ///
 /// Source-layer allowance result plus enough token metadata for display.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAllowanceData {
-    pub(in crate::icrc) token_symbol: String,
-    pub(in crate::icrc) decimals: u8,
-    pub(in crate::icrc) allowance: String,
-    pub(in crate::icrc) expires_at_unix_nanos: Option<String>,
+pub struct IcrcAllowanceData {
+    pub token_symbol: String,
+    pub decimals: u8,
+    pub allowance: String,
+    pub expires_at_unix_nanos: Option<String>,
 }
 
 ///
@@ -721,11 +724,12 @@ pub(in crate::icrc) struct IcrcAllowanceData {
 ///
 /// Source-layer ICRC-106 index discovery result.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcIndexData {
-    pub(in crate::icrc) index_canister_id: Option<String>,
-    pub(in crate::icrc) index_error: Option<String>,
+pub struct IcrcIndexData {
+    pub index_canister_id: Option<String>,
+    pub index_error: Option<String>,
 }
 
 ///
@@ -733,14 +737,15 @@ pub(in crate::icrc) struct IcrcIndexData {
 ///
 /// Source-layer ICRC-3 block history result from a ledger canister.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, PartialEq)]
-pub(in crate::icrc) struct IcrcTransactionsData {
-    pub(in crate::icrc) log_length: Option<String>,
-    pub(in crate::icrc) blocks: Vec<IcrcTransactionBlockRow>,
-    pub(in crate::icrc) archived_blocks: Vec<IcrcArchivedBlocksRow>,
-    pub(in crate::icrc) followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
-    pub(in crate::icrc) archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
+pub struct IcrcTransactionsData {
+    pub log_length: Option<String>,
+    pub blocks: Vec<IcrcTransactionBlockRow>,
+    pub archived_blocks: Vec<IcrcArchivedBlocksRow>,
+    pub followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
+    pub archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
 }
 
 ///
@@ -748,10 +753,11 @@ pub(in crate::icrc) struct IcrcTransactionsData {
 ///
 /// Source-layer ICRC-3 supported block types result.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcBlockTypesData {
-    pub(in crate::icrc) block_types: Vec<IcrcBlockTypeRow>,
+pub struct IcrcBlockTypesData {
+    pub block_types: Vec<IcrcBlockTypeRow>,
 }
 
 ///
@@ -759,10 +765,11 @@ pub(in crate::icrc) struct IcrcBlockTypesData {
 ///
 /// Source-layer ICRC-3 archive range discovery result.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcArchivesData {
-    pub(in crate::icrc) archives: Vec<IcrcArchiveRow>,
+pub struct IcrcArchivesData {
+    pub archives: Vec<IcrcArchiveRow>,
 }
 
 ///
@@ -770,13 +777,14 @@ pub(in crate::icrc) struct IcrcArchivesData {
 ///
 /// Source-layer ICRC-3 tip certificate result.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTipCertificateData {
-    pub(in crate::icrc) certificate_hex: Option<String>,
-    pub(in crate::icrc) certificate_bytes: Option<usize>,
-    pub(in crate::icrc) hash_tree_hex: Option<String>,
-    pub(in crate::icrc) hash_tree_bytes: Option<usize>,
+pub struct IcrcTipCertificateData {
+    pub certificate_hex: Option<String>,
+    pub certificate_bytes: Option<usize>,
+    pub hash_tree_hex: Option<String>,
+    pub hash_tree_bytes: Option<usize>,
 }
 
 ///
@@ -784,11 +792,12 @@ pub(in crate::icrc) struct IcrcTipCertificateData {
 ///
 /// Source-layer generic ICRC ledger capability probe result.
 ///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcCapabilitiesData {
-    pub(in crate::icrc) supported_standards: Vec<IcrcTokenStandardRow>,
-    pub(in crate::icrc) capabilities: Vec<IcrcCapabilityRow>,
+pub struct IcrcCapabilitiesData {
+    pub supported_standards: Vec<IcrcTokenStandardRow>,
+    pub capabilities: Vec<IcrcCapabilityRow>,
 }
 
 #[cfg(feature = "host")]

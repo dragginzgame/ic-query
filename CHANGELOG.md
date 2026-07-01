@@ -7,6 +7,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.6.x] - 2026-07-01 - Public source adapters
+
+Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
+
+- `0.6.0` starts the public source-adapter line. Generic ICRC host users can
+  now implement `IcrcSource` and call `build_icrc_*_report_with_source`
+  builders directly, and subnet catalog host users can implement
+  `SubnetCatalogSource` for cache refresh, load-or-refresh, and report
+  builders. NNS registry version host users can also implement
+  `NnsRegistrySource` and call `build_nns_registry_version_report_with_source`
+  without routing through the built-in live NNS registry adapter.
+
 ## [0.5.x] - 2026-06-25 - Library boundary cleanup
 
 Detailed patch breakdown: [docs/changelog/0.5.md](docs/changelog/0.5.md)

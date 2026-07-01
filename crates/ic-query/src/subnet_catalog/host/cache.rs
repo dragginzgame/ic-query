@@ -1,6 +1,6 @@
 use super::{
     LiveNnsRegistryRefreshSource, SubnetCatalogHostError, SubnetCatalogRefreshRequest,
-    SubnetCatalogRefreshSource, error::enforce_mainnet_network, refresh_subnet_catalog_with_source,
+    SubnetCatalogSource, error::enforce_mainnet_network, refresh_subnet_catalog_with_source,
     subnet_catalog_path,
 };
 use crate::{
@@ -84,7 +84,7 @@ pub fn load_or_refresh_subnet_catalog_with_source(
     request: &SubnetCatalogCacheRequest,
     source_endpoint: &str,
     now_unix_secs: u64,
-    source: &dyn SubnetCatalogRefreshSource,
+    source: &dyn SubnetCatalogSource,
 ) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
     load_or_refresh_missing_cache(
         "subnet catalog",

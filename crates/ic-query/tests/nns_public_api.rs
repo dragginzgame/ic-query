@@ -70,6 +70,11 @@ use ic_query::nns::proposals::{
     NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopicFilter,
     nns_proposal_list_report_text, nns_proposal_report_text,
 };
+#[cfg(feature = "host")]
+use ic_query::nns::registry::{
+    NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest, NnsRegistryVersionData,
+    build_nns_registry_version_report_with_source,
+};
 use ic_query::nns::registry::{
     NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
@@ -113,6 +118,43 @@ fn public_nns_registry_api_is_constructible_and_renderable() {
 
     assert!(text.contains("network: ic"));
     assert!(text.contains("registry_version: 42"));
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_nns_registry_host_api_accepts_custom_source_adapter() {
+    let request = NnsRegistryVersionRequest::new("ic", "https://icp-api.io", 1_700_000_000);
+    let report = build_nns_registry_version_report_with_source(&request, &FixtureNnsRegistrySource)
+        .expect("registry version report");
+
+    assert_eq!(report.network, "ic");
+    assert_eq!(report.registry_canister_id, "rwlgt-iiaaa-aaaaa-aaaaa-cai");
+    assert_eq!(report.registry_version, 42);
+    assert_eq!(report.source_endpoint, "https://icp-api.io");
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsRegistrySource;
+
+#[cfg(feature = "host")]
+impl NnsRegistrySource for FixtureNnsRegistrySource {
+    fn fetch_registry_version(
+        &self,
+        request: &NnsRegistrySourceRequest,
+    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
+        assert_eq!(request.endpoint, "https://icp-api.io");
+        assert_eq!(request.fetched_by, "ic-query");
+        assert!(!request.fetched_at.is_empty());
+
+        Ok(NnsRegistryVersionData {
+            network: "ic".to_string(),
+            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+            registry_version: 42,
+            fetched_at: request.fetched_at.clone(),
+            fetched_by: request.fetched_by.clone(),
+            source_endpoint: request.endpoint.clone(),
+        })
+    }
 }
 
 #[test]

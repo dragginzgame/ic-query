@@ -13,9 +13,12 @@ use ic_query::icrc::{
 };
 #[cfg(feature = "host")]
 use ic_query::icrc::{
-    IcrcError, build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
-    build_icrc_block_types_report, build_icrc_capabilities_report, build_icrc_index_report,
-    build_icrc_tip_certificate_report, build_icrc_token_report, build_icrc_transactions_report,
+    IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData,
+    IcrcError, IcrcIndexData, IcrcSource, IcrcTipCertificateData, IcrcTokenData,
+    IcrcTransactionsData, build_icrc_allowance_report, build_icrc_archives_report,
+    build_icrc_balance_report, build_icrc_block_types_report, build_icrc_capabilities_report,
+    build_icrc_index_report, build_icrc_tip_certificate_report, build_icrc_token_report,
+    build_icrc_token_report_with_source, build_icrc_transactions_report,
 };
 use serde_json::json;
 
@@ -141,6 +144,89 @@ fn public_icrc_host_api_exposes_live_builder_entry_points() {
 
 #[cfg(feature = "host")]
 fn accepts_public_function<T>(_function: T) {}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_icrc_host_api_accepts_custom_source_adapters() {
+    let request = IcrcTokenRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+    let report =
+        build_icrc_token_report_with_source(&request, &FixtureIcrcSource).expect("token report");
+
+    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.token_symbol, "FIX");
+    assert_eq!(report.supported_standards, vec![standard_row("ICRC-1")]);
+}
+
+#[cfg(feature = "host")]
+struct FixtureIcrcSource;
+
+#[cfg(feature = "host")]
+impl IcrcSource for FixtureIcrcSource {
+    fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
+        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+        Ok(IcrcTokenData {
+            token_name: "Fixture Token".to_string(),
+            token_symbol: "FIX".to_string(),
+            decimals: 8,
+            transfer_fee: "10000".to_string(),
+            total_supply: "100000000".to_string(),
+            minting_account_owner: None,
+            minting_account_subaccount_hex: None,
+            supported_standards: vec![standard_row("ICRC-1")],
+            metadata: Vec::new(),
+        })
+    }
+
+    fn fetch_balance(&self, _request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+
+    fn fetch_allowance(
+        &self,
+        _request: &IcrcAllowanceRequest,
+    ) -> Result<IcrcAllowanceData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+
+    fn fetch_index(&self, _request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+
+    fn fetch_transactions(
+        &self,
+        _request: &IcrcTransactionsRequest,
+    ) -> Result<IcrcTransactionsData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+
+    fn fetch_block_types(
+        &self,
+        _request: &IcrcBlockTypesRequest,
+    ) -> Result<IcrcBlockTypesData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+
+    fn fetch_archives(
+        &self,
+        _request: &IcrcArchivesRequest,
+    ) -> Result<IcrcArchivesData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+
+    fn fetch_tip_certificate(
+        &self,
+        _request: &IcrcTipCertificateRequest,
+    ) -> Result<IcrcTipCertificateData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+
+    fn fetch_capabilities(
+        &self,
+        _request: &IcrcCapabilitiesRequest,
+    ) -> Result<IcrcCapabilitiesData, IcrcError> {
+        unimplemented!("unused by this public API smoke test")
+    }
+}
 
 #[test]
 fn public_icrc_token_api_is_constructible_and_renderable_without_host() {

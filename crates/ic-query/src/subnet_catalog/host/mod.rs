@@ -14,4 +14,4 @@ pub use paths::{subnet_catalog_path, subnet_catalog_refresh_lock_path};
 pub use refresh::{
     SubnetCatalogRefreshRequest, refresh_subnet_catalog, refresh_subnet_catalog_with_source,
 };
-pub use source::{LiveNnsRegistryRefreshSource, SubnetCatalogRefreshSource};
+pub use source::{LiveNnsRegistryRefreshSource, SubnetCatalogSource, SubnetCatalogSourceRequest};

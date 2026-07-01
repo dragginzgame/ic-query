@@ -13,18 +13,13 @@ mod text;
 mod time;
 
 pub use error::CatalogError;
-#[cfg(all(test, feature = "host"))]
-pub(crate) use host::refresh_subnet_catalog_with_source;
 #[cfg(feature = "host")]
 pub use host::{
-    CachedSubnetCatalog, SubnetCatalogCacheRequest, SubnetCatalogHostError,
-    SubnetCatalogRefreshRequest, load_cached_subnet_catalog, load_or_refresh_subnet_catalog,
-    refresh_subnet_catalog, subnet_catalog_path, subnet_catalog_refresh_lock_path,
-};
-#[cfg(feature = "host")]
-pub(crate) use host::{
-    LiveNnsRegistryRefreshSource, SubnetCatalogRefreshSource,
-    load_or_refresh_subnet_catalog_with_source,
+    CachedSubnetCatalog, LiveNnsRegistryRefreshSource, SubnetCatalogCacheRequest,
+    SubnetCatalogHostError, SubnetCatalogRefreshRequest, SubnetCatalogSource,
+    SubnetCatalogSourceRequest, load_cached_subnet_catalog, load_or_refresh_subnet_catalog,
+    load_or_refresh_subnet_catalog_with_source, refresh_subnet_catalog,
+    refresh_subnet_catalog_with_source, subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 pub use model::{
@@ -35,13 +30,13 @@ pub use principal::canonical_principal_text;
 pub(crate) use principal::{parse_principal, principal_bytes};
 #[cfg(feature = "host")]
 pub(crate) use report::CatalogStaleStatus;
-#[cfg(all(test, feature = "host"))]
-pub(crate) use report::build_subnet_catalog_list_report_with_source;
 #[cfg(feature = "host")]
 pub use report::{
     SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
-    SubnetCatalogSubnetRow, build_subnet_catalog_info_report, build_subnet_catalog_list_report,
+    SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
+    build_subnet_catalog_info_report_with_source, build_subnet_catalog_list_report,
+    build_subnet_catalog_list_report_with_source,
 };
 pub use resolver::{ResolveAs, ResolvedSubnet, ResolvedSubnetSubject};
 #[cfg(all(test, feature = "host"))]

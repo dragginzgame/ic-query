@@ -8,18 +8,15 @@ mod source;
 mod text;
 
 #[cfg(feature = "host")]
-pub use build::build_nns_registry_version_report;
+pub use build::{build_nns_registry_version_report, build_nns_registry_version_report_with_source};
 #[cfg(feature = "host")]
 pub use error::NnsRegistryHostError;
 pub use model::{NnsRegistryVersionReport, NnsRegistryVersionRequest};
+#[cfg(feature = "host")]
+pub use source::{
+    LiveNnsRegistrySource, NnsRegistrySource, NnsRegistrySourceRequest, NnsRegistryVersionData,
+};
 pub use text::nns_registry_version_report_text;
-
-#[cfg(all(test, feature = "host"))]
-use crate::ic_registry::{MainnetRegistryFetchRequest, MainnetRegistryVersion};
-#[cfg(all(test, feature = "host"))]
-use build::build_nns_registry_version_report_with_source;
-#[cfg(all(test, feature = "host"))]
-use source::NnsRegistrySource;
 
 pub const DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
