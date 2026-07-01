@@ -56,22 +56,22 @@ The examples below are covered by the `downstream_usage` integration test.
 
 ## Source Adapters
 
-The 0.5 public API uses the built-in host source adapters behind public report
-builders. Source traits used by the report internals and fixture tests are not
-public or stable in this release line. Downstream crates that need custom
-canister or fixture sources should use public request/report DTOs at their own
-boundary for now; a public source-trait adapter design belongs in a later
-minor release.
+The 0.6 public API exposes source adapters for host-only downstream crates
+that need to reuse `ic-query` report assembly with data that does not come
+from the built-in live adapters. The generic ICRC, subnet catalog, NNS
+registry, NNS inventory, NNS proposal, NNS topology, SNS
+list/info/token/params, SNS proposal, and SNS neuron host APIs expose this
+pattern with `IcrcSource`, `build_icrc_*_report_with_source`,
+`SubnetCatalogSource`, subnet catalog `*_with_source` builders,
+`NnsRegistrySource`, the NNS inventory source traits, `NnsProposalSource`,
+`NnsTopologySource`, `NnsTopologyRefreshSource`, `SnsListSource`,
+`SnsTokenSource`, `SnsParamsSource`, `SnsProposalSource`,
+`SnsProposalsSource`, and `SnsNeuronsSource`.
 
-In 0.6, the generic ICRC, subnet catalog, NNS registry, NNS inventory, NNS
-proposal, NNS topology, SNS list/info/token/params, SNS proposal, and SNS
-neuron host APIs start that public source-adapter work with `IcrcSource`,
-`build_icrc_*_report_with_source`, `SubnetCatalogSource`, subnet catalog
-`*_with_source` builders, `NnsRegistrySource`, the NNS inventory source
-traits, `NnsProposalSource`, `NnsTopologySource`,
-`NnsTopologyRefreshSource`, `SnsListSource`, `SnsTokenSource`,
-`SnsParamsSource`, `SnsProposalSource`, `SnsProposalsSource`, and
-`SnsNeuronsSource`.
+In the 0.5 line these source traits were intentionally internal; downstream
+crates used public request/report DTOs at their own boundary. In 0.6,
+downstream crates can use `*_with_source` builders directly when they need
+fixture, mirror, proxy, or pre-collected data sources.
 
 Use a custom source when a downstream tool needs to read from a mirror,
 fixture, proxy, or pre-collected snapshot while still using `ic-query` report

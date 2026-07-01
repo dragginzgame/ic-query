@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
 
+- `0.6.9` fixes documentation drift after the source-adapter pass. The README
+  now describes `host` as the feature for live calls, cache-backed builders,
+  refresh helpers, and custom source adapters, and the library guide now leads
+  with the 0.6 public source-adapter model instead of old 0.5-era boundary
+  wording.
+
 - `0.6.8` adds a compile-tested downstream source-adapter example to the
   library guide. The example shows how host users can implement a custom
   `NnsRegistrySource` for fixture, mirror, or proxy-backed report assembly

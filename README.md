@@ -49,8 +49,8 @@ Feature boundary:
 This is a host/CLI dependency boundary, not a `no_std` promise. No-default
 builds may still use ordinary `std` types such as `String` and `Vec`.
 
-Native tools that want the same subnet catalog cache/load behavior as
-`icq nns subnet info` can enable `host` without enabling `cli`:
+Native tools that want live calls, cache-backed report builders, refresh
+helpers, or custom source adapters can enable `host` without enabling `cli`:
 
 ```toml
 [dependencies]
@@ -58,14 +58,17 @@ ic-query = { version = "0.6", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
-`ic_query::subnet_catalog` for the public report-family APIs. Native tools
-should normally depend on `features = ["host"]`; `cli` is only for crates that
-want to reuse `icq` command parsing and dispatch.
+`ic_query::subnet_catalog` for the public report-family APIs. The `host`
+feature also exposes source traits for fixture, mirror, proxy, or
+pre-collected data sources. Native tools should normally depend on
+`features = ["host"]`; `cli` is only for crates that want to reuse `icq`
+command parsing and dispatch.
 
 See
 [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
-for downstream migration notes, feature guidance, and examples for replacing
-`icq` process shell-outs with request constructors and report builders.
+for downstream migration notes, feature guidance, source-adapter examples, and
+patterns for replacing `icq` process shell-outs with request constructors and
+report builders.
 
 ## Commands
 
