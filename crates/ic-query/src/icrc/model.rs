@@ -739,7 +739,7 @@ pub struct IcrcIndexData {
 ///
 
 #[cfg(feature = "host")]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcTransactionsData {
     pub log_length: Option<String>,
     pub blocks: Vec<IcrcTransactionBlockRow>,
