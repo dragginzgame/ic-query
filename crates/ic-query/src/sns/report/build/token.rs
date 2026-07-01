@@ -13,7 +13,7 @@ pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenRepor
     build_sns_token_report_with_source(request, &LiveSnsSource)
 }
 
-pub(in crate::sns::report) fn build_sns_token_report_with_source(
+pub fn build_sns_token_report_with_source(
     request: &SnsTokenRequest,
     source: &dyn SnsTokenSource,
 ) -> Result<SnsTokenReport, SnsHostError> {

@@ -1,17 +1,20 @@
 #[cfg(feature = "host")]
 use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
-    DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError,
-    SnsNeuronRow, SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest,
-    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
-    SnsNeuronsSort, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
-    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, build_sns_info_report,
-    build_sns_list_report, build_sns_neurons_cache_list_report,
-    build_sns_neurons_cache_status_report, build_sns_neurons_report, build_sns_params_report,
+    DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
+    MainnetSns, MainnetSnsList, MainnetSnsToken, SnsHostError, SnsListSource, SnsNeuronRow,
+    SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshReport,
+    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsParamsSource,
+    SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest, SnsProposalsRefreshReport,
+    SnsProposalsRefreshRequest, SnsSourceRequest, SnsTokenSource, build_sns_info_report,
+    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
+    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
+    build_sns_neurons_report, build_sns_params_report, build_sns_params_report_with_source,
     build_sns_proposal_report, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, build_sns_proposals_report, build_sns_token_report,
-    refresh_sns_neurons_cache, refresh_sns_proposals_cache, sns_neurons_cache_list_report_text,
-    sns_neurons_cache_path, sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
+    build_sns_token_report_with_source, refresh_sns_neurons_cache, refresh_sns_proposals_cache,
+    sns_neurons_cache_list_report_text, sns_neurons_cache_path,
+    sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
     sns_neurons_refresh_lock_path, sns_neurons_refresh_report_text, sns_neurons_report_text,
     sns_proposals_cache_list_report_text, sns_proposals_cache_path,
     sns_proposals_cache_status_report_text, sns_proposals_refresh_attempt_path,
@@ -36,6 +39,12 @@ use std::path::{Path, PathBuf};
 const SAMPLE_SNS_ROOT_CANISTER_ID: &str = "be2us-64aaa-aaaaa-qaabq-cai";
 #[cfg(feature = "host")]
 const SAMPLE_SNS_GOVERNANCE_CANISTER_ID: &str = "csyra-haaaa-aaaaa-qaaeq-cai";
+#[cfg(feature = "host")]
+const SAMPLE_SNS_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
+#[cfg(feature = "host")]
+const SAMPLE_SNS_SWAP_CANISTER_ID: &str = "ca6gz-lqaaa-aaaaa-qaacu-cai";
+#[cfg(feature = "host")]
+const SAMPLE_SNS_INDEX_CANISTER_ID: &str = "qhbym-qaaaa-aaaaa-aaafq-cai";
 #[cfg(feature = "host")]
 const SAMPLE_SNS_FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 
@@ -247,38 +256,7 @@ fn public_sns_params_api_is_constructible_and_renderable() {
         name: "Example SNS".to_string(),
         root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
         governance_canister_id: "csyra-haaaa-aaaaa-qaaeq-cai".to_string(),
-        parameters: SnsGovernanceParameters {
-            max_dissolve_delay_seconds: Some(7_200),
-            max_dissolve_delay_bonus_percentage: Some(50),
-            max_followees_per_function: Some(15),
-            neuron_claimer_permissions: Some(SnsNeuronPermissionList {
-                permissions: vec![1, 2],
-            }),
-            neuron_minimum_stake_e8s: Some(100_000_000),
-            max_neuron_age_for_age_bonus: Some(86_400),
-            initial_voting_period_seconds: Some(3_600),
-            neuron_minimum_dissolve_delay_to_vote_seconds: Some(600),
-            reject_cost_e8s: Some(10_000_000),
-            max_proposals_to_keep_per_action: Some(100),
-            wait_for_quiet_deadline_increase_seconds: Some(300),
-            max_number_of_neurons: Some(10_000),
-            transaction_fee_e8s: Some(10_000),
-            max_number_of_proposals_with_ballots: Some(500),
-            max_age_bonus_percentage: Some(25),
-            neuron_grantable_permissions: None,
-            voting_rewards_parameters: Some(SnsVotingRewardsParameters {
-                final_reward_rate_basis_points: Some(125),
-                initial_reward_rate_basis_points: Some(250),
-                reward_rate_transition_duration_seconds: Some(31_536_000),
-                round_duration_seconds: Some(86_400),
-            }),
-            maturity_modulation_disabled: Some(false),
-            max_number_of_principals_per_neuron: Some(5),
-            automatically_advance_target_version: Some(true),
-            custom_proposal_criticality: Some(SnsCustomProposalCriticality {
-                additional_critical_native_action_ids: vec![7, 8],
-            }),
-        },
+        parameters: sample_sns_governance_parameters(),
     };
 
     let text = sns_params_report_text(&report);
@@ -409,8 +387,50 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsNeuronsBuilder>(build_sns_neurons_report);
     accepts_public_function::<SnsNeuronsRefreshBuilder>(refresh_sns_neurons_cache);
     accepts_public_function::<SnsProposalsRefreshBuilder>(refresh_sns_proposals_cache);
+    let live_source = LiveSnsSource;
+    accepts_public_function(live_source);
     assert_eq!(DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
     assert_eq!(DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostError> {
+    let source = FixtureSnsSource;
+    let source_request = SnsSourceRequest::new(
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        SAMPLE_SNS_FETCHED_AT,
+        "fixture",
+    );
+    assert_eq!(source_request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+
+    let list_request = SnsListRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000);
+    let list = build_sns_list_report_with_source(&list_request, &source)?;
+    assert_eq!(list.sns_count, 1);
+    assert_eq!(list.sns_instances[0].id, 1);
+
+    let info_request = SnsInfoRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
+    let info = build_sns_info_report_with_source(&info_request, &source)?;
+    assert_eq!(info.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
+
+    let token_request = SnsTokenRequest::new(
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        SAMPLE_SNS_ROOT_CANISTER_ID,
+    );
+    let token = build_sns_token_report_with_source(&token_request, &source)?;
+    assert_eq!(token.token_symbol, "EXT");
+
+    let params_request =
+        SnsParamsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
+    let params = build_sns_params_report_with_source(&params_request, &source)?;
+    assert_eq!(
+        params.parameters.neuron_minimum_stake_e8s,
+        Some(100_000_000)
+    );
+
+    Ok(())
 }
 
 #[cfg(feature = "host")]
@@ -572,6 +592,134 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
 
 #[cfg(feature = "host")]
 fn accepts_public_function<T>(_function: T) {}
+
+#[cfg(feature = "host")]
+struct FixtureSnsSource;
+
+#[cfg(feature = "host")]
+impl SnsListSource for FixtureSnsSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsSourceRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+        Ok(sample_mainnet_sns_list(request))
+    }
+}
+
+#[cfg(feature = "host")]
+impl SnsTokenSource for FixtureSnsSource {
+    fn fetch_sns_token(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsToken, SnsHostError> {
+        assert_eq!(sns.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
+        Ok(sample_mainnet_sns_token())
+    }
+}
+
+#[cfg(feature = "host")]
+impl SnsParamsSource for FixtureSnsSource {
+    fn fetch_sns_params(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<SnsGovernanceParameters, SnsHostError> {
+        assert_eq!(
+            sns.governance_canister_id,
+            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+        );
+        Ok(sample_sns_governance_parameters())
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_mainnet_sns_list(request: &SnsSourceRequest) -> MainnetSnsList {
+    MainnetSnsList {
+        network: "ic".to_string(),
+        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+        fetched_at: request.fetched_at.clone(),
+        fetched_by: request.fetched_by.clone(),
+        source_endpoint: request.endpoint.clone(),
+        sns_instances: vec![sample_mainnet_sns()],
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_mainnet_sns() -> MainnetSns {
+    MainnetSns {
+        id: 0,
+        name: "Example SNS".to_string(),
+        description: Some("Example description".to_string()),
+        url: Some("https://example.com/sns".to_string()),
+        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        ledger_canister_id: SAMPLE_SNS_LEDGER_CANISTER_ID.to_string(),
+        swap_canister_id: SAMPLE_SNS_SWAP_CANISTER_ID.to_string(),
+        index_canister_id: SAMPLE_SNS_INDEX_CANISTER_ID.to_string(),
+        metadata_error: None,
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_mainnet_sns_token() -> MainnetSnsToken {
+    MainnetSnsToken {
+        token_name: "Example Token".to_string(),
+        token_symbol: "EXT".to_string(),
+        decimals: 8,
+        transfer_fee: "100000000".to_string(),
+        total_supply: "1000000000".to_string(),
+        minting_account_owner: Some("aaaaa-aa".to_string()),
+        minting_account_subaccount_hex: None,
+        ledger_index_canister_id: Some(SAMPLE_SNS_INDEX_CANISTER_ID.to_string()),
+        ledger_index_error: None,
+        supported_standards: vec![SnsTokenStandardRow {
+            name: "ICRC-1".to_string(),
+            url: "https://github.com/dfinity/ICRC-1".to_string(),
+        }],
+        metadata: vec![SnsTokenMetadataRow {
+            key: "icrc1:symbol".to_string(),
+            value_type: "Text".to_string(),
+            value: json!("EXT"),
+        }],
+    }
+}
+
+fn sample_sns_governance_parameters() -> SnsGovernanceParameters {
+    SnsGovernanceParameters {
+        max_dissolve_delay_seconds: Some(7_200),
+        max_dissolve_delay_bonus_percentage: Some(50),
+        max_followees_per_function: Some(15),
+        neuron_claimer_permissions: Some(SnsNeuronPermissionList {
+            permissions: vec![1, 2],
+        }),
+        neuron_minimum_stake_e8s: Some(100_000_000),
+        max_neuron_age_for_age_bonus: Some(86_400),
+        initial_voting_period_seconds: Some(3_600),
+        neuron_minimum_dissolve_delay_to_vote_seconds: Some(600),
+        reject_cost_e8s: Some(10_000_000),
+        max_proposals_to_keep_per_action: Some(100),
+        wait_for_quiet_deadline_increase_seconds: Some(300),
+        max_number_of_neurons: Some(10_000),
+        transaction_fee_e8s: Some(10_000),
+        max_number_of_proposals_with_ballots: Some(500),
+        max_age_bonus_percentage: Some(25),
+        neuron_grantable_permissions: None,
+        voting_rewards_parameters: Some(SnsVotingRewardsParameters {
+            final_reward_rate_basis_points: Some(125),
+            initial_reward_rate_basis_points: Some(250),
+            reward_rate_transition_duration_seconds: Some(31_536_000),
+            round_duration_seconds: Some(86_400),
+        }),
+        maturity_modulation_disabled: Some(false),
+        max_number_of_principals_per_neuron: Some(5),
+        automatically_advance_target_version: Some(true),
+        custom_proposal_criticality: Some(SnsCustomProposalCriticality {
+            additional_critical_native_action_ids: vec![7, 8],
+        }),
+    }
+}
 
 #[cfg(feature = "host")]
 fn sample_sns_neurons_report() -> SnsNeuronsReport {

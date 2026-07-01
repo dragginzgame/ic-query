@@ -11,13 +11,13 @@
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct MainnetSnsList {
-    pub(in crate::sns::report) network: String,
-    pub(in crate::sns::report) sns_wasm_canister_id: String,
-    pub(in crate::sns::report) fetched_at: String,
-    pub(in crate::sns::report) fetched_by: String,
-    pub(in crate::sns::report) source_endpoint: String,
-    pub(in crate::sns::report) sns_instances: Vec<MainnetSns>,
+pub struct MainnetSnsList {
+    pub network: String,
+    pub sns_wasm_canister_id: String,
+    pub fetched_at: String,
+    pub fetched_by: String,
+    pub source_endpoint: String,
+    pub sns_instances: Vec<MainnetSns>,
 }
 
 ///
@@ -27,17 +27,17 @@ pub(in crate::sns::report) struct MainnetSnsList {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct MainnetSns {
-    pub(in crate::sns::report) id: usize,
-    pub(in crate::sns::report) name: String,
-    pub(in crate::sns::report) description: Option<String>,
-    pub(in crate::sns::report) url: Option<String>,
-    pub(in crate::sns::report) root_canister_id: String,
-    pub(in crate::sns::report) governance_canister_id: String,
-    pub(in crate::sns::report) ledger_canister_id: String,
-    pub(in crate::sns::report) swap_canister_id: String,
-    pub(in crate::sns::report) index_canister_id: String,
-    pub(in crate::sns::report) metadata_error: Option<String>,
+pub struct MainnetSns {
+    pub id: usize,
+    pub name: String,
+    pub description: Option<String>,
+    pub url: Option<String>,
+    pub root_canister_id: String,
+    pub governance_canister_id: String,
+    pub ledger_canister_id: String,
+    pub swap_canister_id: String,
+    pub index_canister_id: String,
+    pub metadata_error: Option<String>,
 }
 
 ///

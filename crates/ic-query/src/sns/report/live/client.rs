@@ -6,9 +6,9 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsFetchRequest,
-    SnsGovernanceParameters, SnsHostError, SnsListSource, SnsNeuronId, SnsNeuronsSource,
-    SnsParamsSource, SnsProposalSource, SnsProposalTopicFilter, SnsProposalsSource, SnsTokenSource,
+    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsGovernanceParameters,
+    SnsHostError, SnsListSource, SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalTopicFilter, SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
     live::fetch::{
         fetch_mainnet_sns_list, fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons,
         fetch_mainnet_sns_params, fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page,
@@ -22,12 +22,12 @@ use crate::sns::report::{
 /// Live mainnet SNS source used by report builders outside tests.
 ///
 
-pub(in crate::sns::report) struct LiveSnsSource;
+pub struct LiveSnsSource;
 
 impl SnsListSource for LiveSnsSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         fetch_mainnet_sns_list(request)
     }
@@ -36,7 +36,7 @@ impl SnsListSource for LiveSnsSource {
 impl SnsTokenSource for LiveSnsSource {
     fn fetch_sns_token(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
     ) -> Result<MainnetSnsToken, SnsHostError> {
         fetch_mainnet_sns_token(request, sns)
@@ -46,7 +46,7 @@ impl SnsTokenSource for LiveSnsSource {
 impl SnsParamsSource for LiveSnsSource {
     fn fetch_sns_params(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
     ) -> Result<SnsGovernanceParameters, SnsHostError> {
         fetch_mainnet_sns_params(request, sns)
@@ -56,7 +56,7 @@ impl SnsParamsSource for LiveSnsSource {
 impl SnsProposalSource for LiveSnsSource {
     fn fetch_sns_proposal(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         proposal_id: u64,
     ) -> Result<MainnetSnsProposal, SnsHostError> {
@@ -67,7 +67,7 @@ impl SnsProposalSource for LiveSnsSource {
 impl SnsProposalsSource for LiveSnsSource {
     fn fetch_sns_proposals(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -86,7 +86,7 @@ impl SnsProposalsSource for LiveSnsSource {
 
     fn fetch_sns_proposal_page(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -98,7 +98,7 @@ impl SnsProposalsSource for LiveSnsSource {
 impl SnsNeuronsSource for LiveSnsSource {
     fn fetch_sns_neurons(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         owner_principal_id: Option<&str>,
@@ -108,7 +108,7 @@ impl SnsNeuronsSource for LiveSnsSource {
 
     fn fetch_sns_neuron_page(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         start_page_at: Option<&SnsNeuronId>,

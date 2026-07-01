@@ -5,7 +5,10 @@
 //! Boundary: normalizes shared request fields before lookup/source calls.
 
 use crate::sns::report::lookup::network::enforce_mainnet_network;
-use crate::sns::report::{SnsHostError, SnsListRequest, SnsLookupRequest, source::SnsFetchRequest};
+use crate::sns::report::{
+    SnsHostError, SnsListRequest, SnsLookupRequest,
+    source::{SnsFetchRequest, SnsSourceRequest},
+};
 use crate::subnet_catalog::format_utc_timestamp_secs;
 
 /// Build a shared SNS lookup request from command runtime fields.
@@ -41,9 +44,9 @@ pub(super) fn fetch_request_from_parts(
     now_unix_secs: u64,
     fetched_by: String,
 ) -> SnsFetchRequest {
-    SnsFetchRequest {
-        endpoint: source_endpoint.to_string(),
-        fetched_at: format_utc_timestamp_secs(now_unix_secs),
+    SnsSourceRequest::new(
+        source_endpoint,
+        format_utc_timestamp_secs(now_unix_secs),
         fetched_by,
-    }
+    )
 }

@@ -11,9 +11,11 @@ mod proposals;
 mod token;
 
 pub(in crate::sns::report) use fetch::SnsFetchRequest;
-pub(in crate::sns::report) use list::{MainnetSns, MainnetSnsCanisters, MainnetSnsList};
+pub use fetch::SnsSourceRequest;
+pub(in crate::sns::report) use list::MainnetSnsCanisters;
+pub use list::{MainnetSns, MainnetSnsList};
 pub(in crate::sns::report) use neurons::{MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
 pub(in crate::sns::report) use proposals::{
     MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
 };
-pub(in crate::sns::report) use token::MainnetSnsToken;
+pub use token::MainnetSnsToken;

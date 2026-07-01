@@ -33,11 +33,15 @@ pub use model::{
     SnsProposalsRefreshRequest,
 };
 #[cfg(feature = "host")]
+pub use source::{
+    MainnetSns, MainnetSnsList, MainnetSnsToken, SnsListSource, SnsParamsSource, SnsSourceRequest,
+    SnsTokenSource,
+};
+#[cfg(feature = "host")]
 use source::{
-    MainnetSns, MainnetSnsCanisters, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons,
-    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken,
-    SnsFetchRequest, SnsListSource, SnsNeuronId, SnsNeuronsSource, SnsParamsSource,
-    SnsProposalSource, SnsProposalsSource, SnsTokenSource,
+    MainnetSnsCanisters, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
+    MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest, SnsNeuronId, SnsNeuronsSource,
+    SnsProposalSource, SnsProposalsSource,
 };
 
 #[cfg(feature = "host")]
@@ -71,9 +75,10 @@ mod view;
 
 #[cfg(feature = "host")]
 pub use build::{
-    build_sns_info_report, build_sns_list_report, build_sns_neurons_report,
-    build_sns_params_report, build_sns_proposal_report, build_sns_proposals_report,
-    build_sns_token_report,
+    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
+    build_sns_list_report_with_source, build_sns_neurons_report, build_sns_params_report,
+    build_sns_params_report_with_source, build_sns_proposal_report, build_sns_proposals_report,
+    build_sns_token_report, build_sns_token_report_with_source,
 };
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use cache_summary::{
@@ -81,6 +86,8 @@ pub(in crate::sns::report) use cache_summary::{
     find_valid_sns_cache_summary_by_id, invalid_sns_cache_summary_fields,
     parse_sns_root_canister_input,
 };
+#[cfg(feature = "host")]
+pub use live::LiveSnsSource;
 #[cfg(feature = "host")]
 pub use neurons_cache::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, build_sns_neurons_cache_list_report,
@@ -146,10 +153,8 @@ pub(super) fn short_principal(value: &str) -> String {
 
 #[cfg(all(test, feature = "host"))]
 use build::{
-    build_sns_info_report_with_source, build_sns_list_report_with_source,
-    build_sns_neurons_report_with_source, build_sns_params_report_with_source,
-    build_sns_proposal_report_with_source, build_sns_proposals_report_with_source,
-    build_sns_token_report_with_source,
+    build_sns_neurons_report_with_source, build_sns_proposal_report_with_source,
+    build_sns_proposals_report_with_source,
 };
 
 #[cfg(all(test, feature = "host"))]

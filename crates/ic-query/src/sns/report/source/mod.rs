@@ -7,12 +7,10 @@
 mod model;
 mod traits;
 
+pub use model::{MainnetSns, MainnetSnsList, MainnetSnsToken, SnsSourceRequest};
 pub(in crate::sns::report) use model::{
-    MainnetSns, MainnetSnsCanisters, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons,
-    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken,
-    SnsFetchRequest, SnsNeuronId,
+    MainnetSnsCanisters, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
+    MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest, SnsNeuronId,
 };
-pub(in crate::sns::report) use traits::{
-    SnsListSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
-    SnsTokenSource,
-};
+pub use traits::{SnsListSource, SnsParamsSource, SnsTokenSource};
+pub(in crate::sns::report) use traits::{SnsNeuronsSource, SnsProposalSource, SnsProposalsSource};

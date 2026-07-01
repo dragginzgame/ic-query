@@ -15,7 +15,7 @@ pub fn build_sns_params_report(
     build_sns_params_report_with_source(request, &LiveSnsSource)
 }
 
-pub(in crate::sns::report) fn build_sns_params_report_with_source(
+pub fn build_sns_params_report_with_source(
     request: &SnsParamsRequest,
     source: &dyn SnsParamsSource,
 ) -> Result<SnsParamsReport, SnsHostError> {

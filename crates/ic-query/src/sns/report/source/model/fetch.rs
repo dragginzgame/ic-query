@@ -5,14 +5,31 @@
 //! Boundary: carries source endpoint and provenance for source calls.
 
 ///
-/// SnsFetchRequest
+/// SnsSourceRequest
 ///
-/// Source-layer request shared by live SNS fetch helpers.
+/// Source request settings shared by SNS source-adapter calls.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct SnsFetchRequest {
-    pub(in crate::sns::report) endpoint: String,
-    pub(in crate::sns::report) fetched_at: String,
-    pub(in crate::sns::report) fetched_by: String,
+pub struct SnsSourceRequest {
+    pub endpoint: String,
+    pub fetched_at: String,
+    pub fetched_by: String,
 }
+
+impl SnsSourceRequest {
+    #[must_use]
+    pub fn new(
+        endpoint: impl Into<String>,
+        fetched_at: impl Into<String>,
+        fetched_by: impl Into<String>,
+    ) -> Self {
+        Self {
+            endpoint: endpoint.into(),
+            fetched_at: fetched_at.into(),
+            fetched_by: fetched_by.into(),
+        }
+    }
+}
+
+pub(in crate::sns::report) type SnsFetchRequest = SnsSourceRequest;

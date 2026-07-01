@@ -11,4 +11,4 @@ mod query;
 mod types;
 
 pub(super) use super::SnsHostError;
-pub(super) use client::LiveSnsSource;
+pub use client::LiveSnsSource;

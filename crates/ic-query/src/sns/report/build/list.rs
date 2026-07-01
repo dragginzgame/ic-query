@@ -17,7 +17,7 @@ pub fn build_sns_list_report(request: &SnsListRequest) -> Result<SnsListReport, 
     build_sns_list_report_with_source(request, &LiveSnsSource)
 }
 
-pub(in crate::sns::report) fn build_sns_list_report_with_source(
+pub fn build_sns_list_report_with_source(
     request: &SnsListRequest,
     source: &dyn SnsListSource,
 ) -> Result<SnsListReport, SnsHostError> {

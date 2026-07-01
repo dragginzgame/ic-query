@@ -6,8 +6,8 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsFetchRequest,
-    SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter,
+    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsGovernanceParameters,
+    SnsHostError, SnsNeuronId, SnsProposalTopicFilter, SnsSourceRequest,
 };
 
 ///
@@ -16,11 +16,11 @@ use crate::sns::report::{
 /// Source contract for fetching deployed SNS inventory.
 ///
 
-pub(in crate::sns::report) trait SnsListSource {
+pub trait SnsListSource {
     /// Fetch deployed SNS instances for one source endpoint and network.
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError>;
 }
 
@@ -34,7 +34,7 @@ pub(in crate::sns::report) trait SnsNeuronsSource: SnsListSource {
     /// Fetch a bounded SNS neuron listing for one resolved SNS.
     fn fetch_sns_neurons(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         owner_principal_id: Option<&str>,
@@ -43,7 +43,7 @@ pub(in crate::sns::report) trait SnsNeuronsSource: SnsListSource {
     /// Fetch one SNS neuron page for complete snapshot refresh.
     fn fetch_sns_neuron_page(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         start_page_at: Option<&SnsNeuronId>,
@@ -57,11 +57,11 @@ pub(in crate::sns::report) trait SnsNeuronsSource: SnsListSource {
 /// Source contract for fetching governance parameters for one deployed SNS.
 ///
 
-pub(in crate::sns::report) trait SnsParamsSource: SnsListSource {
+pub trait SnsParamsSource: SnsListSource {
     /// Fetch SNS governance parameters for one resolved SNS.
     fn fetch_sns_params(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
     ) -> Result<SnsGovernanceParameters, SnsHostError>;
 }
@@ -76,7 +76,7 @@ pub(in crate::sns::report) trait SnsProposalSource: SnsListSource {
     /// Fetch one SNS governance proposal for one resolved SNS.
     fn fetch_sns_proposal(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         proposal_id: u64,
     ) -> Result<MainnetSnsProposal, SnsHostError>;
@@ -92,7 +92,7 @@ pub(in crate::sns::report) trait SnsProposalsSource: SnsListSource {
     /// Fetch a bounded SNS governance proposal page for one resolved SNS.
     fn fetch_sns_proposals(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -103,7 +103,7 @@ pub(in crate::sns::report) trait SnsProposalsSource: SnsListSource {
     /// Fetch one unfiltered SNS governance proposal page for snapshot refresh.
     fn fetch_sns_proposal_page(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -116,11 +116,11 @@ pub(in crate::sns::report) trait SnsProposalsSource: SnsListSource {
 /// Source contract for fetching token metadata for one deployed SNS.
 ///
 
-pub(in crate::sns::report) trait SnsTokenSource: SnsListSource {
+pub trait SnsTokenSource: SnsListSource {
     /// Fetch SNS ledger token metadata for one resolved SNS.
     fn fetch_sns_token(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
         sns: &MainnetSns,
     ) -> Result<MainnetSnsToken, SnsHostError>;
 }
