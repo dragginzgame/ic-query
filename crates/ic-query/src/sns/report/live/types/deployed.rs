@@ -32,6 +32,10 @@ pub(in crate::sns::report::live) struct ListDeployedSnsesResponse {
 /// Candid SNS-W canister set for one deployed SNS.
 ///
 
+#[expect(
+    clippy::struct_field_names,
+    reason = "field names mirror SNS-W Candid canister id names"
+)]
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::sns::report::live) struct DeployedSns {
     pub(in crate::sns::report::live) root_canister_id: Option<Principal>,

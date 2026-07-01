@@ -1,35 +1,29 @@
-use crate::{
-    nns::{
-        data_center::report::refresh_nns_data_center_report,
-        node::report::refresh_nns_node_report,
-        node_operator::report::refresh_nns_node_operator_report,
-        node_provider::report::refresh_nns_node_provider_report,
-        topology::report::{
-            NnsTopologyHostError, NnsTopologyRefreshReport, NnsTopologyRefreshRequest,
-            enforce_mainnet_network,
-            refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports},
-            request::{
-                TopologyRefreshParts, TopologyRequestParts, data_center_refresh_request,
-                node_operator_refresh_request, node_provider_refresh_request, node_refresh_request,
-                subnet_catalog_refresh_request,
-            },
-        },
-    },
-    subnet_catalog::refresh_subnet_catalog,
+use crate::nns::topology::report::{
+    LiveNnsTopologySource, NnsTopologyHostError, NnsTopologyRefreshReport,
+    NnsTopologyRefreshRequest, NnsTopologyRefreshSource, enforce_mainnet_network,
+    refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports},
+    request::{TopologyRefreshParts, TopologyRequestParts},
+    source::topology_refresh_source_request_from,
 };
 
 pub fn refresh_nns_topology_report(
     request: &NnsTopologyRefreshRequest,
 ) -> Result<NnsTopologyRefreshReport, NnsTopologyHostError> {
+    refresh_nns_topology_report_with_source(request, &LiveNnsTopologySource)
+}
+
+pub fn refresh_nns_topology_report_with_source(
+    request: &NnsTopologyRefreshRequest,
+    source: &dyn NnsTopologyRefreshSource,
+) -> Result<NnsTopologyRefreshReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
-    let subnet_report = refresh_subnet_catalog(&subnet_catalog_refresh_request(request))?;
-    let node_report = refresh_nns_node_report(&node_refresh_request(request))?;
-    let node_provider_report =
-        refresh_nns_node_provider_report(&node_provider_refresh_request(request))?;
-    let node_operator_report =
-        refresh_nns_node_operator_report(&node_operator_refresh_request(request))?;
-    let data_center_report = refresh_nns_data_center_report(&data_center_refresh_request(request))?;
+    let source_request = topology_refresh_source_request_from(request);
+    let subnet_report = source.refresh_subnet_catalog_report(&source_request)?;
+    let node_report = source.refresh_node_report(&source_request)?;
+    let node_provider_report = source.refresh_node_provider_report(&source_request)?;
+    let node_operator_report = source.refresh_node_operator_report(&source_request)?;
+    let data_center_report = source.refresh_data_center_report(&source_request)?;
 
     Ok(topology_refresh_report_from_reports(
         request.network().to_string(),

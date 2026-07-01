@@ -46,6 +46,10 @@ pub struct MainnetSns {
 /// Source-layer canister ids for one deployed SNS.
 ///
 
+#[expect(
+    clippy::struct_field_names,
+    reason = "field names identify the SNS role for each canister id"
+)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::sns::report) struct MainnetSnsCanisters {
     pub(in crate::sns::report) root_canister_id: String,

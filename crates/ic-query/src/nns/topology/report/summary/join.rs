@@ -14,6 +14,12 @@ use crate::nns::{
 ///
 /// NnsTopologyJoinCoverageCounts
 ///
+/// Internal known-relation counters used by topology summary assembly.
+///
+#[expect(
+    clippy::struct_field_names,
+    reason = "fields mirror the public topology summary count names"
+)]
 pub(super) struct NnsTopologyJoinCoverageCounts {
     pub(super) nodes_with_known_node_provider_count: usize,
     pub(super) nodes_with_known_node_operator_count: usize,

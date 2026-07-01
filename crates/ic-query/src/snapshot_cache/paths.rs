@@ -16,6 +16,10 @@ use std::{
 /// Filesystem paths for one complete snapshot and its refresh sidecars.
 ///
 
+#[expect(
+    clippy::struct_field_names,
+    reason = "path suffix identifies filesystem path values in a public DTO"
+)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnapshotJsonPaths {
     pub snapshot_path: PathBuf,

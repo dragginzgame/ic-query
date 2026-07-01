@@ -92,12 +92,13 @@ use ic_query::nns::registry::{
 use ic_query::nns::topology::report::{
     DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyCapacityRequest, NnsTopologyCoverageRequest,
     NnsTopologyGapsRequest, NnsTopologyHealthRequest, NnsTopologyHostError,
-    NnsTopologyProvidersRequest, NnsTopologyRegionsRequest, NnsTopologySource,
-    NnsTopologySourceRequest, NnsTopologyVersionsRequest,
-    build_nns_topology_capacity_report_with_source, build_nns_topology_coverage_report_with_source,
-    build_nns_topology_gaps_report_with_source, build_nns_topology_health_report_with_source,
-    build_nns_topology_providers_report_with_source, build_nns_topology_regions_report_with_source,
-    build_nns_topology_summary_report_with_source, build_nns_topology_versions_report_with_source,
+    NnsTopologyProvidersRequest, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
+    NnsTopologyRegionsRequest, NnsTopologySource, NnsTopologySourceRequest,
+    NnsTopologyVersionsRequest, build_nns_topology_capacity_report_with_source,
+    build_nns_topology_coverage_report_with_source, build_nns_topology_gaps_report_with_source,
+    build_nns_topology_health_report_with_source, build_nns_topology_providers_report_with_source,
+    build_nns_topology_regions_report_with_source, build_nns_topology_summary_report_with_source,
+    build_nns_topology_versions_report_with_source, refresh_nns_topology_report_with_source,
 };
 use ic_query::nns::topology::report::{
     NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
@@ -113,8 +114,8 @@ use ic_query::nns::topology::report::{
 };
 #[cfg(feature = "host")]
 use ic_query::subnet_catalog::{
-    ClassificationSource, GeographicScope, SubnetCatalogListReport, SubnetCatalogSubnetRow,
-    SubnetKind, SubnetSpecialization,
+    ClassificationSource, GeographicScope, SubnetCatalogListReport, SubnetCatalogRefreshReport,
+    SubnetCatalogSubnetRow, SubnetKind, SubnetSpecialization,
 };
 #[cfg(feature = "host")]
 use serde::Serialize;
@@ -1061,12 +1062,15 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     )
     .expect("topology health report");
     let versions = topology_versions_report_with_source(&source);
+    let refresh = topology_refresh_report_with_source(&source);
 
     assert_eq!(summary.network, "ic");
     assert_eq!(summary.subnet_count, 1);
     assert_eq!(coverage.node_count, 1);
     assert_eq!(health.network, "ic");
     assert_eq!(versions.source_count, 5);
+    assert_eq!(refresh.component_count, 5);
+    assert!(refresh.dry_run);
     assert_topology_direct_reports_with_source(&source);
 }
 
@@ -1084,6 +1088,24 @@ fn topology_versions_report_with_source(
         source,
     )
     .expect("topology versions report")
+}
+
+#[cfg(feature = "host")]
+fn topology_refresh_report_with_source(
+    source: &dyn NnsTopologyRefreshSource,
+) -> NnsTopologyRefreshReport {
+    refresh_nns_topology_report_with_source(
+        &NnsTopologyRefreshRequest::new(
+            ".",
+            "ic",
+            DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
+            1_700_000_000,
+            1_800,
+        )
+        .with_dry_run(true),
+        source,
+    )
+    .expect("topology refresh report")
 }
 
 #[cfg(feature = "host")]
@@ -1183,6 +1205,49 @@ impl NnsTopologySource for FixtureNnsTopologySource {
 }
 
 #[cfg(feature = "host")]
+impl NnsTopologyRefreshSource for FixtureNnsTopologySource {
+    fn refresh_subnet_catalog_report(
+        &self,
+        request: &NnsTopologyRefreshSourceRequest,
+    ) -> Result<SubnetCatalogRefreshReport, NnsTopologyHostError> {
+        assert_topology_refresh_source_request(request);
+        Ok(sample_subnet_catalog_refresh_report())
+    }
+
+    fn refresh_node_report(
+        &self,
+        request: &NnsTopologyRefreshSourceRequest,
+    ) -> Result<NnsNodeRefreshReport, NnsTopologyHostError> {
+        assert_topology_refresh_source_request(request);
+        Ok(sample_nns_node_refresh_report(&request.icp_root))
+    }
+
+    fn refresh_node_provider_report(
+        &self,
+        request: &NnsTopologyRefreshSourceRequest,
+    ) -> Result<NnsNodeProviderRefreshReport, NnsTopologyHostError> {
+        assert_topology_refresh_source_request(request);
+        Ok(sample_nns_node_provider_refresh_report(&request.icp_root))
+    }
+
+    fn refresh_node_operator_report(
+        &self,
+        request: &NnsTopologyRefreshSourceRequest,
+    ) -> Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError> {
+        assert_topology_refresh_source_request(request);
+        Ok(sample_nns_node_operator_refresh_report(&request.icp_root))
+    }
+
+    fn refresh_data_center_report(
+        &self,
+        request: &NnsTopologyRefreshSourceRequest,
+    ) -> Result<NnsDataCenterRefreshReport, NnsTopologyHostError> {
+        assert_topology_refresh_source_request(request);
+        Ok(sample_nns_data_center_refresh_report(&request.icp_root))
+    }
+}
+
+#[cfg(feature = "host")]
 fn stamp_topology_component_report(
     request: &NnsTopologySourceRequest,
     network: &mut String,
@@ -1198,6 +1263,18 @@ fn assert_topology_source_request(request: &NnsTopologySourceRequest) {
     assert_eq!(request.network, "ic");
     assert_eq!(request.endpoint, DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT);
     assert_eq!(request.now_unix_secs, 1_700_000_000);
+    assert!(!request.fetched_at.is_empty());
+    assert_eq!(request.fetched_by, "ic-query");
+}
+
+#[cfg(feature = "host")]
+fn assert_topology_refresh_source_request(request: &NnsTopologyRefreshSourceRequest) {
+    assert_eq!(request.icp_root, PathBuf::from("."));
+    assert_eq!(request.network, "ic");
+    assert_eq!(request.endpoint, DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT);
+    assert_eq!(request.now_unix_secs, 1_700_000_000);
+    assert_eq!(request.lock_stale_after_seconds, 1_800);
+    assert!(request.dry_run);
     assert!(!request.fetched_at.is_empty());
     assert_eq!(request.fetched_by, "ic-query");
 }
@@ -1636,6 +1713,27 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
         stale_reason: "fresh".to_string(),
         resolver_backend: "local-nns-subnet-catalog".to_string(),
         subnets: vec![sample_subnet_catalog_row()],
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
+    SubnetCatalogRefreshReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        catalog_path: ".icq/subnet-catalog/ic/catalog.json".to_string(),
+        refresh_lock_path: ".icq/subnet-catalog/ic/refresh.lock".to_string(),
+        output_path: None,
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string(),
+        fetched_by: "ic-query".to_string(),
+        dry_run: true,
+        wrote_catalog: false,
+        replaced_existing_catalog: true,
+        subnet_count: 1,
+        routing_range_count: 1,
     }
 }
 

@@ -39,7 +39,7 @@ pub use build::{
     build_nns_topology_regions_report, build_nns_topology_regions_report_with_source,
     build_nns_topology_summary_report, build_nns_topology_summary_report_with_source,
     build_nns_topology_versions_report, build_nns_topology_versions_report_with_source,
-    refresh_nns_topology_report,
+    refresh_nns_topology_report, refresh_nns_topology_report_with_source,
 };
 #[cfg(feature = "host")]
 pub use error::NnsTopologyHostError;
@@ -56,7 +56,10 @@ pub use request::{
     NnsTopologyRegionsRequest, NnsTopologySummaryRequest, NnsTopologyVersionsRequest,
 };
 #[cfg(feature = "host")]
-pub use source::{LiveNnsTopologySource, NnsTopologySource, NnsTopologySourceRequest};
+pub use source::{
+    LiveNnsTopologySource, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
+    NnsTopologySource, NnsTopologySourceRequest,
+};
 pub use text::{
     nns_topology_capacity_report_text, nns_topology_coverage_report_text,
     nns_topology_gaps_report_text, nns_topology_health_report_text,

@@ -14,7 +14,7 @@ pub use direct::{
     build_nns_topology_providers_report, build_nns_topology_providers_report_with_source,
     build_nns_topology_regions_report, build_nns_topology_regions_report_with_source,
 };
-pub use refresh::refresh_nns_topology_report;
+pub use refresh::{refresh_nns_topology_report, refresh_nns_topology_report_with_source};
 pub use summary::{
     build_nns_topology_summary_report, build_nns_topology_summary_report_with_source,
 };

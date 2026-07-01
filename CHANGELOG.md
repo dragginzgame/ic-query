@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)
 
+- `0.6.7` completes the NNS topology source-adapter path. Host users can now
+  implement `NnsTopologyRefreshSource` and pass it to topology refresh without
+  routing through the built-in live topology adapter, while the default refresh
+  builder now uses the same source boundary internally.
+
 - `0.6.6` opens the NNS topology read-report source-adapter path. Host users
   can now implement `NnsTopologySource` and pass it to topology summary,
   coverage, versions, health, gaps, capacity, regions, and providers builders
