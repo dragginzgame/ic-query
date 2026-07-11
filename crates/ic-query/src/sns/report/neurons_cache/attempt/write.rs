@@ -43,7 +43,7 @@ pub(in crate::sns::report::neurons_cache) fn write_failed_sns_neurons_attempt(
     context: SnsNeuronsAttemptContext<'_>,
     err: &SnsHostError,
 ) -> Result<(), SnsHostError> {
-    let latest = read_sns_neurons_attempt(context.path);
+    let latest = read_sns_neurons_attempt(context.path, &context.request.network);
     let progress = SnsNeuronsAttemptProgress::new(
         latest.as_ref().map_or(0, |attempt| attempt.pages_fetched),
         latest.as_ref().map_or(0, |attempt| attempt.rows_fetched),

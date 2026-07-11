@@ -47,6 +47,25 @@ impl SnapshotCompleteness {
     }
 }
 
+pub fn validate_snapshot_completeness(
+    completeness: &SnapshotCompleteness,
+    actual_row_count: usize,
+) -> Result<(), String> {
+    if completeness.page_size == 0 {
+        return Err("completeness page_size must be greater than zero".to_string());
+    }
+    if completeness.page_count == 0 {
+        return Err("completeness page_count must be greater than zero".to_string());
+    }
+    if completeness.row_count != actual_row_count {
+        return Err(format!(
+            "completeness row_count is {}, actual row count is {actual_row_count}",
+            completeness.row_count
+        ));
+    }
+    Ok(())
+}
+
 ///
 /// SnapshotEnvelope
 ///

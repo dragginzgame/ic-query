@@ -46,11 +46,12 @@ impl SnsProposalsCollectionState {
     }
 
     pub(super) fn ingest_page(&mut self, page: MainnetSnsProposalPage) -> PagedCollectionPage {
+        let last_cursor = page.proposals.last().map(|proposal| proposal.proposal_id);
         self.pages.ingest_page(
             page.proposals,
-            page.last_cursor,
+            last_cursor,
             ToString::to_string,
-            proposal_row_id,
+            |proposal| proposal.proposal_id.to_string(),
         )
     }
 
@@ -62,16 +63,4 @@ impl SnsProposalsCollectionState {
             last_cursor: complete.last_cursor,
         }
     }
-}
-
-fn proposal_row_id(proposal: &SnsProposalRow) -> String {
-    proposal.proposal_id.map_or_else(
-        || {
-            format!(
-                "missing:{}:{}",
-                proposal.proposal_creation_timestamp_seconds, proposal.title
-            )
-        },
-        |proposal_id| proposal_id.to_string(),
-    )
 }

@@ -2,7 +2,7 @@
 //!
 //! Responsibility: build SNS proposal list and detail reports.
 //! Does not own: command parsing, cache file primitives, proposal row conversion, or rendering.
-//! Boundary: routes compatible requests through cache reports and live reads through sources.
+//! Boundary: routes cache-backed requests through cache reports and live reads through sources.
 
 use crate::sns::report::{
     SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,

@@ -11,6 +11,7 @@ use crate::subnet_catalog::{
     SubnetSpecialization,
 };
 use candid::Principal;
+use futures::future::try_join_all;
 use ic_agent::Agent;
 
 pub(super) async fn catalog_from_registry_records(
@@ -28,15 +29,20 @@ pub(super) async fn catalog_from_registry_records(
         return Err(RegistryFetchError::EmptyRoutingTable);
     }
 
-    let mut subnets = Vec::with_capacity(subnet_list.subnets.len());
-    for subnet_raw in subnet_list.subnets {
-        let subnet_principal = principal_text_from_raw(&subnet_raw, "subnet_list.subnets")?;
-        let key = subnet_record_key(&subnet_principal);
-        let record_bytes =
-            get_registry_value(agent, registry_canister, &key, registry_version).await?;
-        let record = decode_message::<SubnetRecord>("SubnetRecord", &record_bytes)?;
-        subnets.push(subnet_info_from_record(&subnet_principal, &record));
-    }
+    let mut subnets = try_join_all(
+        subnet_list
+            .subnets
+            .into_iter()
+            .map(|subnet_raw| async move {
+                let subnet_principal = principal_text_from_raw(&subnet_raw, "subnet_list.subnets")?;
+                let key = subnet_record_key(&subnet_principal);
+                let record_bytes =
+                    get_registry_value(agent, registry_canister, &key, registry_version).await?;
+                let record = decode_message::<SubnetRecord>("SubnetRecord", &record_bytes)?;
+                Ok::<_, RegistryFetchError>(subnet_info_from_record(&subnet_principal, &record))
+            }),
+    )
+    .await?;
 
     subnets.sort_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
 

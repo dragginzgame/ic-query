@@ -11,7 +11,7 @@ mod neurons;
 mod proposals;
 
 pub use list::SnsListRequest;
-pub use lookup::{SnsInfoRequest, SnsLookupRequest, SnsParamsRequest, SnsTokenRequest};
+pub use lookup::SnsLookupRequest;
 #[cfg(feature = "host")]
 pub use neurons::{
     SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,

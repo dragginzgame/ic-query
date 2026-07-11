@@ -1,20 +1,19 @@
 use super::summary::build_nns_topology_summary_report_with_source;
 use crate::nns::topology::report::{
-    LiveNnsTopologySource, NnsTopologyCoverageReport, NnsTopologyCoverageRequest,
-    NnsTopologyHealthReport, NnsTopologyHealthRequest, NnsTopologyHostError, NnsTopologySource,
-    NnsTopologyVersionsReport, NnsTopologyVersionsRequest,
+    LiveNnsTopologySource, NnsTopologyCoverageReport, NnsTopologyHealthReport,
+    NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource, NnsTopologyVersionsReport,
     coverage::topology_coverage_report_from_summary, health::topology_health_report_from_summary,
     request::summary_request_from, versions::topology_versions_report_from_summary,
 };
 
 pub fn build_nns_topology_versions_report(
-    request: &NnsTopologyVersionsRequest,
+    request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyVersionsReport, NnsTopologyHostError> {
     build_nns_topology_versions_report_with_source(request, &LiveNnsTopologySource)
 }
 
 pub fn build_nns_topology_versions_report_with_source(
-    request: &NnsTopologyVersionsRequest,
+    request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyVersionsReport, NnsTopologyHostError> {
     let summary =
@@ -24,13 +23,13 @@ pub fn build_nns_topology_versions_report_with_source(
 }
 
 pub fn build_nns_topology_coverage_report(
-    request: &NnsTopologyCoverageRequest,
+    request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyCoverageReport, NnsTopologyHostError> {
     build_nns_topology_coverage_report_with_source(request, &LiveNnsTopologySource)
 }
 
 pub fn build_nns_topology_coverage_report_with_source(
-    request: &NnsTopologyCoverageRequest,
+    request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCoverageReport, NnsTopologyHostError> {
     let summary =
@@ -40,13 +39,13 @@ pub fn build_nns_topology_coverage_report_with_source(
 }
 
 pub fn build_nns_topology_health_report(
-    request: &NnsTopologyHealthRequest,
+    request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyHealthReport, NnsTopologyHostError> {
     build_nns_topology_health_report_with_source(request, &LiveNnsTopologySource)
 }
 
 pub fn build_nns_topology_health_report_with_source(
-    request: &NnsTopologyHealthRequest,
+    request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyHealthReport, NnsTopologyHostError> {
     let summary =

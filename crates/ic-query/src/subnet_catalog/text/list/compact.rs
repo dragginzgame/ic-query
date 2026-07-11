@@ -1,8 +1,8 @@
 use super::ranges::append_compact_range_lines;
 use crate::{
-    nns::render::yes_no,
     subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal},
     table::{ColumnAlign, render_table},
+    text_value::{sanitize_text, yes_no},
 };
 
 #[must_use]
@@ -41,7 +41,7 @@ pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> Stri
     let mut lines = Vec::new();
     lines.push(format!(
         "catalog: {} version {} stale {}",
-        report.network,
+        sanitize_text(&report.network),
         report.registry_version,
         yes_no(report.catalog_stale)
     ));

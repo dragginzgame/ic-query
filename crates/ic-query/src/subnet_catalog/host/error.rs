@@ -69,6 +69,12 @@ pub enum SubnetCatalogHostError {
         source: serde_json::Error,
     },
 
+    #[error(
+        "invalid refresh lock at {}; remove the lock manually after verifying no refresh is running: {reason}",
+        path.display()
+    )]
+    InvalidRefreshLock { path: PathBuf, reason: String },
+
     #[error("failed to serialize refresh lock at {}: {source}", path.display())]
     SerializeRefreshLock {
         path: PathBuf,
@@ -135,6 +141,9 @@ pub(super) fn subnet_cache_error(err: CacheFileError) -> SubnetCatalogHostError 
         }
         CacheFileError::ParseRefreshLock { path, source } => {
             SubnetCatalogHostError::ParseRefreshLock { path, source }
+        }
+        CacheFileError::InvalidRefreshLock { path, reason } => {
+            SubnetCatalogHostError::InvalidRefreshLock { path, reason }
         }
         CacheFileError::SerializeRefreshLock { path, source } => {
             SubnetCatalogHostError::SerializeRefreshLock { path, source }

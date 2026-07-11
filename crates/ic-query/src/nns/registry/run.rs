@@ -3,7 +3,7 @@ use super::{
     options::RegistryVersionOptions,
 };
 use crate::nns::{
-    NnsCommandError, command_args, command_flag_args, now_unix_secs, parse_nns_required_subcommand,
+    NnsCommandError, command_args, now_unix_secs, parse_nns_required_subcommand,
     registry::report::{
         NnsRegistryVersionRequest, build_nns_registry_version_report,
         nns_registry_version_report_text,
@@ -16,7 +16,7 @@ pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_flag_args(args, registry_usage_for_error) else {
+    let Some(args) = command_args(args, registry_usage_for_error) else {
         return Ok(());
     };
     let (command, args) =

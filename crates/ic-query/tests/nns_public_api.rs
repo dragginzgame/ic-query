@@ -90,23 +90,21 @@ use ic_query::nns::registry::{
 };
 #[cfg(feature = "host")]
 use ic_query::nns::topology::report::{
-    DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyCapacityRequest, NnsTopologyCoverageRequest,
-    NnsTopologyGapsRequest, NnsTopologyHealthRequest, NnsTopologyHostError,
-    NnsTopologyProvidersRequest, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
-    NnsTopologyRegionsRequest, NnsTopologySource, NnsTopologySourceRequest,
-    NnsTopologyVersionsRequest, build_nns_topology_capacity_report_with_source,
-    build_nns_topology_coverage_report_with_source, build_nns_topology_gaps_report_with_source,
-    build_nns_topology_health_report_with_source, build_nns_topology_providers_report_with_source,
-    build_nns_topology_regions_report_with_source, build_nns_topology_summary_report_with_source,
-    build_nns_topology_versions_report_with_source, refresh_nns_topology_report_with_source,
+    DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyHostError, NnsTopologyRefreshSource,
+    NnsTopologyRefreshSourceRequest, NnsTopologySource, NnsTopologySourceRequest,
+    build_nns_topology_capacity_report_with_source, build_nns_topology_coverage_report_with_source,
+    build_nns_topology_gaps_report_with_source, build_nns_topology_health_report_with_source,
+    build_nns_topology_providers_report_with_source, build_nns_topology_regions_report_with_source,
+    build_nns_topology_summary_report_with_source, build_nns_topology_versions_report_with_source,
+    refresh_nns_topology_report_with_source,
 };
 use ic_query::nns::topology::report::{
     NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
     NnsTopologyGapRow, NnsTopologyGapsReport, NnsTopologyHealthCheckRow, NnsTopologyHealthReport,
-    NnsTopologyProviderRow, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
-    NnsTopologyRefreshRequest, NnsTopologyRefreshRow, NnsTopologyRegionRow,
-    NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow, NnsTopologySummaryReport,
-    NnsTopologySummaryRequest, NnsTopologyVersionsReport, nns_topology_capacity_report_text,
+    NnsTopologyProviderRow, NnsTopologyProvidersReport, NnsTopologyReadRequest,
+    NnsTopologyRefreshReport, NnsTopologyRefreshRequest, NnsTopologyRefreshRow,
+    NnsTopologyRegionRow, NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow,
+    NnsTopologySummaryReport, NnsTopologyVersionsReport, nns_topology_capacity_report_text,
     nns_topology_coverage_report_text, nns_topology_gaps_report_text,
     nns_topology_health_report_text, nns_topology_providers_report_text,
     nns_topology_refresh_report_text, nns_topology_regions_report_text,
@@ -743,7 +741,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
 
     let proposal = sample_nns_proposal_row();
     let list_report = NnsProposalListReport {
-        schema_version: 3,
+        schema_version: 1,
         network: request.network,
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -807,12 +805,12 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_nns_topology_summary_and_versions_api_is_constructible_and_renderable() {
-    let request = NnsTopologySummaryRequest::new(".", "ic", "https://icp-api.io", 1_700_000_000);
+    let request = NnsTopologyReadRequest::new(".", "ic", "https://icp-api.io", 1_700_000_000);
     assert_eq!(request.network, "ic");
 
     let registry_version = sample_topology_registry_version_row();
     let summary = NnsTopologySummaryReport {
-        schema_version: 3,
+        schema_version: 1,
         network: request.network,
         source_endpoint: request.source_endpoint,
         subnet_count: 2,
@@ -1032,7 +1030,7 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
 #[test]
 fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     let source = FixtureNnsTopologySource;
-    let request = NnsTopologySummaryRequest::new(
+    let request = NnsTopologyReadRequest::new(
         ".",
         "ic",
         DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
@@ -1042,7 +1040,7 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     let summary = build_nns_topology_summary_report_with_source(&request, &source)
         .expect("topology summary report");
     let coverage = build_nns_topology_coverage_report_with_source(
-        &NnsTopologyCoverageRequest::new(
+        &NnsTopologyReadRequest::new(
             ".",
             "ic",
             DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
@@ -1052,7 +1050,7 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     )
     .expect("topology coverage report");
     let health = build_nns_topology_health_report_with_source(
-        &NnsTopologyHealthRequest::new(
+        &NnsTopologyReadRequest::new(
             ".",
             "ic",
             DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
@@ -1079,7 +1077,7 @@ fn topology_versions_report_with_source(
     source: &dyn NnsTopologySource,
 ) -> NnsTopologyVersionsReport {
     build_nns_topology_versions_report_with_source(
-        &NnsTopologyVersionsRequest::new(
+        &NnsTopologyReadRequest::new(
             ".",
             "ic",
             DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
@@ -1110,10 +1108,10 @@ fn topology_refresh_report_with_source(
 
 #[cfg(feature = "host")]
 fn assert_topology_direct_reports_with_source(source: &dyn NnsTopologySource) {
-    let gaps_request: NnsTopologyGapsRequest = topology_read_request();
-    let capacity_request: NnsTopologyCapacityRequest = topology_read_request();
-    let regions_request: NnsTopologyRegionsRequest = topology_read_request();
-    let providers_request: NnsTopologyProvidersRequest = topology_read_request();
+    let gaps_request: NnsTopologyReadRequest = topology_read_request();
+    let capacity_request: NnsTopologyReadRequest = topology_read_request();
+    let regions_request: NnsTopologyReadRequest = topology_read_request();
+    let providers_request: NnsTopologyReadRequest = topology_read_request();
     let gaps =
         build_nns_topology_gaps_report_with_source(&gaps_request, source).expect("gaps report");
     let capacity = build_nns_topology_capacity_report_with_source(&capacity_request, source)
@@ -1130,8 +1128,8 @@ fn assert_topology_direct_reports_with_source(source: &dyn NnsTopologySource) {
 }
 
 #[cfg(feature = "host")]
-fn topology_read_request() -> NnsTopologySummaryRequest {
-    NnsTopologySummaryRequest::new(
+fn topology_read_request() -> NnsTopologyReadRequest {
+    NnsTopologyReadRequest::new(
         ".",
         "ic",
         DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
@@ -1928,6 +1926,7 @@ fn sample_nns_proposal_refresh_report(root: &Path) -> NnsProposalRefreshReport {
         complete: true,
         replaced_existing_cache: false,
         wrote_cache: false,
+        attempt_finalization_error: None,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT.to_string(),
         fetched_by: "ic-query".to_string(),

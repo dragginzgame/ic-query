@@ -41,7 +41,7 @@ fn sns_proposal_report_from_cache(
     let proposal = projection
         .proposals
         .into_iter()
-        .find(|proposal| proposal.proposal_id == Some(request.proposal_id))?;
+        .find(|proposal| proposal.proposal_id == request.proposal_id)?;
     Some(sns_proposal_report_from_parts(SnsProposalReportParts {
         list: projection.list,
         id: projection.id,

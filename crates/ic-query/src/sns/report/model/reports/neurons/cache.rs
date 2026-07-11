@@ -4,7 +4,7 @@
 //! Does not own: cache discovery, refresh-attempt reads, or rendering.
 //! Boundary: preserves cache summary fields for cache list/status output.
 
-use super::SnsNeuronsRefreshAttemptStatus;
+use super::super::attempt::SnsRefreshAttemptStatus;
 use crate::sns::report::SnsCacheSummarySortKey;
 use serde::Serialize;
 
@@ -39,7 +39,7 @@ pub struct SnsNeuronsCacheStatusReport {
     pub cache: Option<SnsNeuronsCacheSummary>,
     pub expected_cache_path: Option<String>,
     pub refresh_attempt_path: Option<String>,
-    pub latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
+    pub latest_attempt: Option<SnsRefreshAttemptStatus>,
 }
 
 ///
@@ -64,7 +64,7 @@ pub struct SnsNeuronsCacheSummary {
     pub source_endpoint: String,
     pub cache_path: String,
     pub refresh_attempt_path: String,
-    pub latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
+    pub latest_attempt: Option<SnsRefreshAttemptStatus>,
 }
 
 impl SnsCacheSummarySortKey for SnsNeuronsCacheSummary {

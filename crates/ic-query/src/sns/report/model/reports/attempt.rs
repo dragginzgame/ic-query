@@ -4,7 +4,9 @@
 //! Does not own: attempt sidecar loading, refresh lifecycle, or text rendering.
 //! Boundary: preserves the JSON fields used by neuron and proposal cache status reports.
 
-use crate::snapshot_cache::SnapshotRefreshAttempt;
+use crate::{
+    snapshot_cache::SnapshotRefreshAttempt, sns::report::cache_attempt::SnsRefreshAttemptMetadata,
+};
 use serde::Serialize;
 
 ///
@@ -15,6 +17,11 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsRefreshAttemptStatus {
+    pub id: usize,
+    pub network: String,
+    pub source_endpoint: String,
+    pub root_canister_id: String,
+    pub governance_canister_id: String,
     pub status: String,
     pub started_at: String,
     pub updated_at: String,
@@ -25,9 +32,14 @@ pub struct SnsRefreshAttemptStatus {
     pub last_error: Option<String>,
 }
 
-impl<Metadata> From<SnapshotRefreshAttempt<Metadata>> for SnsRefreshAttemptStatus {
-    fn from(attempt: SnapshotRefreshAttempt<Metadata>) -> Self {
+impl From<SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>> for SnsRefreshAttemptStatus {
+    fn from(attempt: SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>) -> Self {
         Self {
+            id: attempt.metadata.id,
+            network: attempt.network,
+            source_endpoint: attempt.source_endpoint,
+            root_canister_id: attempt.metadata.root_canister_id,
+            governance_canister_id: attempt.metadata.governance_canister_id,
             status: attempt.status,
             started_at: attempt.started_at,
             updated_at: attempt.updated_at,

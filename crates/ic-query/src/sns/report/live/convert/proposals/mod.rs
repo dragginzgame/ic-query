@@ -11,8 +11,8 @@ mod timestamp;
 use super::common::clean_optional_text;
 use crate::sns::report::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN, SnsProposalFailureReason, SnsProposalRow, SnsProposalTally,
-    hex_bytes, live::types::SnsGovernanceProposalData,
+    SNS_PROPOSAL_DECISION_OPEN, SnsHostError, SnsProposalFailureReason, SnsProposalRow,
+    SnsProposalTally, hex_bytes, live::types::SnsGovernanceProposalData,
 };
 use ballot::sns_proposal_ballot_row;
 use labels::{proposal_action_text, proposal_topic_text};
@@ -21,9 +21,13 @@ use timestamp::{nonzero_timestamp, optional_timestamp_text};
 /// Convert one SNS governance proposal wire row into a report row.
 pub(in crate::sns::report::live) fn sns_proposal_row(
     proposal: SnsGovernanceProposalData,
-) -> SnsProposalRow {
+) -> Result<SnsProposalRow, SnsHostError> {
     let decision_state = proposal_decision_state(&proposal);
-    let proposal_id = proposal.id.as_ref().map(|id| id.id);
+    let proposal_id = proposal
+        .id
+        .as_ref()
+        .ok_or(SnsHostError::MissingProposalId)?
+        .id;
     let proposal_fields = proposal.proposal.unwrap_or_default();
     let ballots = proposal
         .ballots
@@ -31,7 +35,7 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
         .map(sns_proposal_ballot_row)
         .collect::<Vec<_>>();
     let ballot_count = ballots.len();
-    SnsProposalRow {
+    Ok(SnsProposalRow {
         proposal_id,
         action_id: proposal.action,
         action: proposal_action_text(proposal.action),
@@ -75,7 +79,7 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
             .payload_text_rendering
             .and_then(|value| clean_optional_text(Some(value))),
         proposer_neuron_id: proposal.proposer.map(|id| hex_bytes(&id.id)),
-    }
+    })
 }
 
 fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> String {

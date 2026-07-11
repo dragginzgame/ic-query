@@ -23,7 +23,7 @@ pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_OPEN: &str = "open";
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct SnsProposalRow {
-    pub proposal_id: Option<u64>,
+    pub proposal_id: u64,
     pub action_id: u64,
     pub action: String,
     pub title: String,

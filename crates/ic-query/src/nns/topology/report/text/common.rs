@@ -5,11 +5,9 @@
 //! Boundary: centralizes repeated table formatting for topology renderers.
 
 use crate::{
-    nns::{
-        render::yes_no,
-        topology::report::{NnsTopologyRegistryVersionRow, percent::coverage_percent_text},
-    },
+    nns::topology::report::{NnsTopologyRegistryVersionRow, percent::coverage_percent_text},
     table::{ColumnAlign, render_table},
+    text_value::yes_no,
 };
 
 pub(super) fn render_join_coverage_table(rows: &[(&str, usize, usize)]) -> String {
@@ -32,10 +30,6 @@ pub(super) fn render_join_coverage_table(rows: &[(&str, usize, usize)]) -> Strin
         ColumnAlign::Right,
     ];
     render_table(&headers, &rows, &alignments)
-}
-
-pub(super) fn optional_u64_text(value: Option<u64>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| value.to_string())
 }
 
 pub(super) fn render_registry_version_table(rows: &[NnsTopologyRegistryVersionRow]) -> String {

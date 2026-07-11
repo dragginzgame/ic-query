@@ -51,7 +51,6 @@ impl SnsProposalsSource for PagedSnsProposalsSource {
         assert_eq!(before_proposal_id, None);
         Ok(MainnetSnsProposalPage {
             proposals: vec![fixture_proposal_row()],
-            last_cursor: Some(42),
         })
     }
 }
@@ -81,6 +80,22 @@ fn sns_proposals_failed_refresh_preserves_page_progress() {
     assert_eq!(attempt["pages_fetched"], 1);
     assert_eq!(attempt["rows_fetched"], 1);
     assert_eq!(attempt["last_cursor"], "42");
+
+    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+        input: "1".to_string(),
+    })
+    .expect("numeric failed-attempt status");
+    assert!(!status.found);
+    assert_eq!(
+        status
+            .latest_attempt
+            .as_ref()
+            .map(|attempt| attempt.status.as_str()),
+        Some("failed")
+    );
+    assert!(status.expected_cache_path.is_some());
     let _ = fs::remove_dir_all(root);
 }
 

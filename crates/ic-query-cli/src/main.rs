@@ -3,7 +3,10 @@ use ic_query_cli::run_from_env;
 // Run the IC query CLI and report errors in a shell-friendly form.
 fn main() {
     if let Err(err) = run_from_env() {
+        if err.is_broken_pipe() {
+            return;
+        }
         eprintln!("{err}");
-        std::process::exit(1);
+        std::process::exit(err.exit_code());
     }
 }

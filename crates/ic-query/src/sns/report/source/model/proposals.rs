@@ -26,7 +26,6 @@ pub struct MainnetSnsProposals {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MainnetSnsProposalPage {
     pub proposals: Vec<SnsProposalRow>,
-    pub last_cursor: Option<u64>,
 }
 
 ///

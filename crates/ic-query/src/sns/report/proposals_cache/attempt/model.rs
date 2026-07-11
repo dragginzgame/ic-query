@@ -55,6 +55,7 @@ pub(in crate::sns::report::proposals_cache::attempt) fn attempt_from_parts(
         started_at: parts.context.fetch_request.fetched_at.clone(),
         updated_at: current_attempt_timestamp(&parts.context.fetch_request.fetched_at),
         metadata: SnsRefreshAttemptMetadata {
+            id: parts.context.sns.id,
             root_canister_id: parts.context.sns.root_canister_id.clone(),
             governance_canister_id: parts.context.sns.governance_canister_id.clone(),
         },

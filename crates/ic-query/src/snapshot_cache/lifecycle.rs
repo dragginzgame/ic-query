@@ -7,7 +7,7 @@
 use crate::cache_file::{
     CacheFileError, RefreshLockRequest, create_parent_directory, with_refresh_lock,
 };
-use std::path::Path;
+use std::{fmt::Display, path::Path};
 
 ///
 /// LockedSnapshotRefreshRequest
@@ -70,4 +70,15 @@ pub fn run_snapshot_refresh_with_attempts<Output, Error>(
             Err(err)
         }
     }
+}
+
+pub fn publish_snapshot_with_attempt<Error>(
+    publish_snapshot: impl FnOnce() -> Result<(), Error>,
+    finalize_attempt: impl FnOnce() -> Result<(), Error>,
+) -> Result<Option<String>, Error>
+where
+    Error: Display,
+{
+    publish_snapshot()?;
+    Ok(finalize_attempt().err().map(|err| err.to_string()))
 }

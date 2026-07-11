@@ -10,23 +10,27 @@ use crate::{
         text::common::{
             comma_join_u64, optional_basis_points_text, optional_bool_text, optional_duration_text,
             optional_e8s_text, optional_percentage_text, optional_permissions_text,
-            optional_u32_text, optional_u64_text,
+            optional_u32_text,
         },
     },
     table::{ColumnAlign, render_table},
+    text_value::{optional_u64_text, sanitize_text},
 };
 
 #[must_use]
 pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", report.name),
+        format!("name: {}", sanitize_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     lines.push(String::new());
     lines.push(render_table(

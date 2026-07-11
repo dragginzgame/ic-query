@@ -11,8 +11,8 @@ pub(in crate::sns::report::tests) fn list_request(verbose: bool) -> SnsListReque
     }
 }
 
-pub(in crate::sns::report::tests) fn info_request(input: &str) -> SnsInfoRequest {
-    SnsInfoRequest {
+pub(in crate::sns::report::tests) fn info_request(input: &str) -> SnsLookupRequest {
+    SnsLookupRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
@@ -20,8 +20,8 @@ pub(in crate::sns::report::tests) fn info_request(input: &str) -> SnsInfoRequest
     }
 }
 
-pub(in crate::sns::report::tests) fn token_request(input: &str) -> SnsTokenRequest {
-    SnsTokenRequest {
+pub(in crate::sns::report::tests) fn token_request(input: &str) -> SnsLookupRequest {
+    SnsLookupRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
@@ -29,8 +29,8 @@ pub(in crate::sns::report::tests) fn token_request(input: &str) -> SnsTokenReque
     }
 }
 
-pub(in crate::sns::report::tests) fn params_request(input: &str) -> SnsParamsRequest {
-    SnsParamsRequest {
+pub(in crate::sns::report::tests) fn params_request(input: &str) -> SnsLookupRequest {
+    SnsLookupRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,

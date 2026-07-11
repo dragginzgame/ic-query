@@ -13,9 +13,9 @@ while true; do
   echo "cargo package attempt ${attempt}/${package_retries}: CARGO_HTTP_MULTIPLEXING=${CARGO_HTTP_MULTIPLEXING:-unset} CARGO_NET_RETRY=${CARGO_NET_RETRY:-unset} cargo package $*"
   if cargo package "$@"; then
     exit 0
+  else
+    status="$?"
   fi
-
-  status="$?"
   if [[ "${attempt}" -ge "${package_retries}" ]]; then
     exit "${status}"
   fi

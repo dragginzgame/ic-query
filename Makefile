@@ -1,4 +1,4 @@
-.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push test-bump actions-check build changelog-check check ci clean clippy ensure-clean feature-boundary-check fmt fmt-check install msrv package package-contents-check publish test
+.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy ensure-clean feature-boundary-check fmt fmt-check install msrv package package-contents-check publish release-guards-check test
 
 MSRV ?= 1.91.0
 CARGO_HTTP_MULTIPLEXING ?= false
@@ -18,6 +18,7 @@ help:
 	@echo "  changelog-check  Check changelog entries for the package version"
 	@echo "  package-contents-check  Check crate package excludes internal files"
 	@echo "  feature-boundary-check  Check library default/no-default feature boundaries"
+	@echo "  release-guards-check  Check release automation fails closed"
 	@echo "  check      Run cargo check with locked dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
@@ -39,7 +40,7 @@ help:
 	@echo "  clean      Remove build artifacts"
 
 ensure-clean:
-	@if ! git diff-index --quiet HEAD --; then \
+	@if ! git diff-index --quiet HEAD -- || test -n "$$(git ls-files --others --exclude-standard)"; then \
 		echo "error: working directory is not clean; commit or stash changes first" >&2; \
 		exit 1; \
 	fi
@@ -71,6 +72,9 @@ package-contents-check:
 feature-boundary-check:
 	bash scripts/ci/check-library-feature-boundaries.sh
 
+release-guards-check:
+	bash scripts/ci/check-release-guards.sh
+
 clippy:
 	cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
@@ -81,11 +85,9 @@ msrv:
 	cargo +$(MSRV) check --workspace --all-targets --all-features --locked
 
 package: ensure-clean
-	bash scripts/ci/cargo-package-retry.sh --workspace --locked
+	bash scripts/ci/package-workspace.sh
 
-ci: changelog-check actions-check package-contents-check feature-boundary-check fmt-check check clippy test package
-
-test-bump: clippy test
+ci: changelog-check actions-check package-contents-check feature-boundary-check release-guards-check fmt-check check clippy test package
 
 install:
 	cargo install --locked --path crates/ic-query-cli --bin icq
@@ -94,26 +96,39 @@ publish: ensure-clean
 	cargo publish --locked -p ic-query
 	cargo publish --locked -p ic-query-cli
 
-patch: ensure-clean fmt test-bump
+patch:
 	bash scripts/release/bump-version.sh patch
 
-minor: ensure-clean fmt test-bump
+minor:
 	bash scripts/release/bump-version.sh minor
 
-major: ensure-clean fmt test-bump
+major:
 	bash scripts/release/bump-version.sh major
 
-release-patch: patch release-stage release-commit release-push
+release-patch:
+	+$(MAKE) --no-print-directory patch
+	+$(MAKE) --no-print-directory release-stage
+	+$(MAKE) --no-print-directory release-commit
+	+$(MAKE) --no-print-directory release-push
 
-release-minor: minor release-stage release-commit release-push
+release-minor:
+	+$(MAKE) --no-print-directory minor
+	+$(MAKE) --no-print-directory release-stage
+	+$(MAKE) --no-print-directory release-commit
+	+$(MAKE) --no-print-directory release-push
 
-release-major: major release-stage release-commit release-push
+release-major:
+	+$(MAKE) --no-print-directory major
+	+$(MAKE) --no-print-directory release-stage
+	+$(MAKE) --no-print-directory release-commit
+	+$(MAKE) --no-print-directory release-push
 
 release-stage:
 	git add Cargo.toml Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-cli/Cargo.toml
 
 release-commit:
-	@version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \
+	@set -eu; \
+	version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \
 	if [ -z "$$version" ]; then \
 		echo "error: failed to read package version from Cargo.toml" >&2; \
 		exit 1; \

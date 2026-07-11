@@ -5,18 +5,18 @@
 //! Boundary: resolves SNS identity, fetches parameters, and delegates report assembly.
 
 use crate::sns::report::{
-    SnsHostError, SnsParamsReport, SnsParamsRequest, assemble::sns_params_report_from_parts,
+    SnsHostError, SnsLookupRequest, SnsParamsReport, assemble::sns_params_report_from_parts,
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsParamsSource,
 };
 
 pub fn build_sns_params_report(
-    request: &SnsParamsRequest,
+    request: &SnsLookupRequest,
 ) -> Result<SnsParamsReport, SnsHostError> {
     build_sns_params_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_params_report_with_source(
-    request: &SnsParamsRequest,
+    request: &SnsLookupRequest,
     source: &dyn SnsParamsSource,
 ) -> Result<SnsParamsReport, SnsHostError> {
     let lookup = resolve_sns_lookup(request, source)?;

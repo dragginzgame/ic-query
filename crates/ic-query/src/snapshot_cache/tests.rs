@@ -2,7 +2,8 @@ use super::{
     LockedSnapshotRefreshRequest, PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
     SnapshotCompleteness, SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotJsonPaths,
     SnapshotKey, SnapshotRefreshAttempt, collect_full_collection_snapshot_paths,
-    load_complete_snapshot_for_key, run_paged_snapshot_refresh, run_snapshot_refresh_with_attempts,
+    load_complete_snapshot_for_key, publish_snapshot_with_attempt, run_paged_snapshot_refresh,
+    run_snapshot_refresh_with_attempts, validate_snapshot_completeness,
     with_locked_snapshot_refresh,
 };
 use crate::{
@@ -95,6 +96,26 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
     assert_eq!(value["rows"][0], "row");
     assert!(value.get("metadata").is_none());
     assert!(value.get("data").is_none());
+}
+
+#[test]
+fn snapshot_completeness_requires_actual_row_count_and_page_metadata() {
+    assert!(
+        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(10, 1, 2, false), 2)
+            .is_ok()
+    );
+    assert!(
+        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(10, 1, 3, false), 2)
+            .is_err()
+    );
+    assert!(
+        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(0, 1, 2, false), 2)
+            .is_err()
+    );
+    assert!(
+        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(10, 0, 2, false), 2)
+            .is_err()
+    );
 }
 
 #[test]
@@ -285,6 +306,45 @@ fn snapshot_refresh_lifecycle_preserves_original_error_after_failed_attempt_writ
         events.into_inner(),
         vec!["running", "refresh", "source failed", "failed-attempt"]
     );
+}
+
+#[test]
+fn committed_snapshot_reports_attempt_finalization_failure_without_becoming_failed() {
+    let events = RefCell::new(Vec::new());
+
+    let result: Result<_, &str> = publish_snapshot_with_attempt(
+        || {
+            events.borrow_mut().push("snapshot");
+            Ok(())
+        },
+        || {
+            events.borrow_mut().push("attempt");
+            Err("attempt write failed")
+        },
+    );
+
+    let attempt_error = result.expect("the committed snapshot remains successful");
+    assert_eq!(attempt_error.as_deref(), Some("attempt write failed"));
+    assert_eq!(events.into_inner(), vec!["snapshot", "attempt"]);
+}
+
+#[test]
+fn failed_snapshot_publication_does_not_finalize_the_attempt() {
+    let events = RefCell::new(Vec::new());
+
+    let result: Result<_, &str> = publish_snapshot_with_attempt(
+        || {
+            events.borrow_mut().push("snapshot");
+            Err("snapshot write failed")
+        },
+        || {
+            events.borrow_mut().push("attempt");
+            Ok(())
+        },
+    );
+
+    assert_eq!(result, Err("snapshot write failed"));
+    assert_eq!(events.into_inner(), vec!["snapshot"]);
 }
 
 #[test]

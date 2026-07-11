@@ -6,10 +6,10 @@
 
 use super::{
     guard::RefreshLockGuard,
-    model::{RefreshLockFile, RefreshLockRequest},
+    model::{REFRESH_LOCK_SCHEMA_VERSION, RefreshLockFile, RefreshLockRequest},
 };
 use crate::cache_file::CacheFileError;
-use std::{fs, io, io::Write, path::Path};
+use std::{fs, io, io::Write};
 
 pub(super) fn acquire_refresh_lock(
     request: RefreshLockRequest<'_>,
@@ -28,7 +28,7 @@ pub(super) fn acquire_refresh_lock(
             Ok(RefreshLockGuard::new(request.lock_path.to_path_buf()))
         }
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
-            let existing = read_refresh_lock(request.lock_path)?;
+            let existing = read_refresh_lock(request)?;
             if lock_is_stale(
                 existing.started_at_unix_ms,
                 now_unix_ms,
@@ -75,14 +75,50 @@ fn write_refresh_lock_file(
         })
 }
 
-fn read_refresh_lock(lock_path: &Path) -> Result<RefreshLockFile, CacheFileError> {
-    let data = fs::read(lock_path).map_err(|source| CacheFileError::ReadRefreshLock {
-        path: lock_path.to_path_buf(),
+fn read_refresh_lock(request: RefreshLockRequest<'_>) -> Result<RefreshLockFile, CacheFileError> {
+    let data = fs::read(request.lock_path).map_err(|source| CacheFileError::ReadRefreshLock {
+        path: request.lock_path.to_path_buf(),
         source,
     })?;
-    serde_json::from_slice(&data).map_err(|source| CacheFileError::ParseRefreshLock {
-        path: lock_path.to_path_buf(),
-        source,
+    let lock: RefreshLockFile =
+        serde_json::from_slice(&data).map_err(|source| CacheFileError::ParseRefreshLock {
+            path: request.lock_path.to_path_buf(),
+            source,
+        })?;
+    validate_refresh_lock(request, &lock)?;
+    Ok(lock)
+}
+
+fn validate_refresh_lock(
+    request: RefreshLockRequest<'_>,
+    lock: &RefreshLockFile,
+) -> Result<(), CacheFileError> {
+    let reason = if lock.schema_version != REFRESH_LOCK_SCHEMA_VERSION {
+        Some(format!(
+            "schema_version is {}, expected {}",
+            lock.schema_version, REFRESH_LOCK_SCHEMA_VERSION
+        ))
+    } else if lock.network != request.network {
+        Some(format!(
+            "network is {}, expected {}",
+            lock.network, request.network
+        ))
+    } else if lock.pid == 0 {
+        Some("pid must be greater than zero".to_string())
+    } else if lock.target_path != request.target_path.display().to_string() {
+        Some(format!(
+            "target_path is {}, expected {}",
+            lock.target_path,
+            request.target_path.display()
+        ))
+    } else {
+        None
+    };
+    reason.map_or(Ok(()), |reason| {
+        Err(CacheFileError::InvalidRefreshLock {
+            path: request.lock_path.to_path_buf(),
+            reason,
+        })
     })
 }
 

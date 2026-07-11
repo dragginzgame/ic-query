@@ -6,18 +6,22 @@
 
 use crate::sns::report::{SnsListReport, short_principal};
 use crate::table::{ColumnAlign, render_table};
+use crate::text_value::sanitize_text;
 
 #[must_use]
 pub fn sns_list_report_text(report: &SnsListReport) -> String {
     let mut lines = Vec::new();
-    lines.push(format!("network: {}", report.network));
+    lines.push(format!("network: {}", sanitize_text(&report.network)));
     lines.push(format!(
         "sns_wasm_canister_id: {}",
         report.sns_wasm_canister_id
     ));
     lines.push(format!("sns_count: {}", report.sns_count));
-    lines.push(format!("fetched_at: {}", report.fetched_at));
-    lines.push(format!("source_endpoint: {}", report.source_endpoint));
+    lines.push(format!("fetched_at: {}", sanitize_text(&report.fetched_at)));
+    lines.push(format!(
+        "source_endpoint: {}",
+        sanitize_text(&report.source_endpoint)
+    ));
     lines.push(format!("sort: {}", report.sort));
     lines.push(format!("metadata_errors: {}", report.metadata_error_count));
     if !report.sns_instances.is_empty() {
@@ -66,7 +70,11 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                 .as_deref()
                 .map(|error| (&sns.governance_canister_id, error))
         }) {
-            lines.push(format!("- {governance_canister_id}: {error}"));
+            lines.push(format!(
+                "- {}: {}",
+                sanitize_text(governance_canister_id),
+                sanitize_text(error)
+            ));
         }
     }
     lines.join("\n")

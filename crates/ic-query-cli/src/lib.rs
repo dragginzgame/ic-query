@@ -20,13 +20,40 @@ pub enum IcqCliError {
     Usage(String),
 
     #[error("nns: {0}")]
-    Nns(String),
+    Nns(#[from] nns::NnsCommandError),
 
     #[error("icrc: {0}")]
-    Icrc(String),
+    Icrc(#[from] icrc::IcrcError),
 
     #[error("sns: {0}")]
-    Sns(String),
+    Sns(#[from] sns::SnsCommandError),
+}
+
+impl IcqCliError {
+    /// Whether stdout closed before the command finished writing its report.
+    #[must_use]
+    pub fn is_broken_pipe(&self) -> bool {
+        match self {
+            Self::Nns(nns::NnsCommandError::Io(err))
+            | Self::Icrc(icrc::IcrcError::Io(err))
+            | Self::Sns(sns::SnsCommandError::Io(err)) => {
+                err.kind() == std::io::ErrorKind::BrokenPipe
+            }
+            Self::Usage(_) | Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => false,
+        }
+    }
+
+    /// Process exit code for this command error.
+    #[must_use]
+    pub const fn exit_code(&self) -> i32 {
+        match self {
+            Self::Usage(_)
+            | Self::Nns(nns::NnsCommandError::Usage(_))
+            | Self::Icrc(icrc::IcrcError::Usage(_))
+            | Self::Sns(sns::SnsCommandError::Usage(_)) => 2,
+            Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => 1,
+        }
+    }
 }
 
 /// Run the CLI from process arguments.
@@ -65,9 +92,9 @@ where
     let tail = tail.into_iter();
 
     match command {
-        "icrc" => icrc::run(tail).map_err(|err| IcqCliError::Icrc(err.to_string())),
-        "nns" => nns::run(tail).map_err(|err| IcqCliError::Nns(err.to_string())),
-        "sns" => sns::run(tail).map_err(|err| IcqCliError::Sns(err.to_string())),
+        "icrc" => Ok(icrc::run(tail)?),
+        "nns" => Ok(nns::run(tail)?),
+        "sns" => Ok(sns::run(tail)?),
         _ => unreachable!("top-level dispatch command only defines known commands"),
     }
 }
@@ -435,6 +462,19 @@ Run `icq <command> help` for command-specific help.
                 OsString::from("ic")
             ]
         );
+    }
+
+    #[test]
+    fn typed_cli_errors_preserve_exit_and_broken_pipe_semantics() {
+        let usage = IcqCliError::Icrc(icrc::IcrcError::Usage("bad input".to_string()));
+        assert_eq!(usage.exit_code(), 2);
+        assert!(!usage.is_broken_pipe());
+
+        let broken_pipe = IcqCliError::Icrc(icrc::IcrcError::Io(std::io::Error::from(
+            std::io::ErrorKind::BrokenPipe,
+        )));
+        assert_eq!(broken_pipe.exit_code(), 1);
+        assert!(broken_pipe.is_broken_pipe());
     }
 
     #[test]

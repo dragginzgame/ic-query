@@ -2,14 +2,14 @@ mod read;
 mod refresh;
 
 use super::commands::{topology_command, topology_usage};
-use crate::nns::{NnsCommandError, command_flag_args, parse_nns_required_subcommand};
+use crate::nns::{NnsCommandError, command_args, parse_nns_required_subcommand};
 use std::ffi::OsString;
 
 pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_flag_args(args, topology_usage) else {
+    let Some(args) = command_args(args, topology_usage) else {
         return Ok(());
     };
     let (command, args) = parse_nns_required_subcommand(topology_command(), args, topology_usage)?;

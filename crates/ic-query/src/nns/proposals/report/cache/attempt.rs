@@ -12,12 +12,15 @@ use crate::{
     nns::proposals::report::{MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError},
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        SnapshotRefreshAttemptReadError, current_attempt_timestamp, read_snapshot_refresh_attempt,
-        read_snapshot_refresh_attempt_strict, write_snapshot_refresh_attempt,
+        SnapshotRefreshAttemptReadError, current_attempt_timestamp,
+        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+        write_snapshot_refresh_attempt,
     },
-    subnet_catalog::format_utc_timestamp_secs,
+    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
 use std::path::Path;
+
+const NNS_PROPOSAL_ATTEMPT_METADATA_FIELDS: &[&str] = &["governance_canister_id"];
 
 ///
 /// NnsProposalAttemptProgress
@@ -55,23 +58,36 @@ impl NnsProposalAttemptProgress {
 }
 
 pub(super) fn read_attempt_status(path: &Path) -> Option<NnsProposalRefreshAttemptStatus> {
-    let attempt = read_snapshot_refresh_attempt::<NnsProposalRefreshAttempt>(path)?;
+    let attempt =
+        read_snapshot_refresh_attempt_strict(path, NNS_PROPOSAL_ATTEMPT_METADATA_FIELDS).ok()??;
+    validate_nns_attempt(path, MAINNET_NETWORK, &attempt).ok()?;
     Some(NnsProposalRefreshAttemptStatus::from(attempt))
 }
 
 pub(super) fn read_attempt_status_strict(
     path: &Path,
+    expected_network: &str,
 ) -> Result<Option<NnsProposalRefreshAttemptStatus>, NnsProposalHostError> {
-    read_snapshot_refresh_attempt_strict::<NnsProposalRefreshAttempt>(path)
-        .map(|attempt| attempt.map(NnsProposalRefreshAttemptStatus::from))
-        .map_err(|err| match err {
-            SnapshotRefreshAttemptReadError::Read { path, source } => {
-                NnsProposalHostError::ReadCache { path, source }
-            }
-            SnapshotRefreshAttemptReadError::Parse { path, source } => {
-                NnsProposalHostError::ParseCache { path, source }
-            }
-        })
+    read_snapshot_refresh_attempt_strict::<NnsProposalRefreshAttempt>(
+        path,
+        NNS_PROPOSAL_ATTEMPT_METADATA_FIELDS,
+    )
+    .map_err(|err| match err {
+        SnapshotRefreshAttemptReadError::Read { path, source } => {
+            NnsProposalHostError::ReadCache { path, source }
+        }
+        SnapshotRefreshAttemptReadError::Parse { path, source } => {
+            NnsProposalHostError::ParseCache { path, source }
+        }
+        SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
+            NnsProposalHostError::InvalidRefreshAttempt { path, reason }
+        }
+    })?
+    .map(|attempt| {
+        validate_nns_attempt(path, expected_network, &attempt)?;
+        Ok(NnsProposalRefreshAttemptStatus::from(attempt))
+    })
+    .transpose()
 }
 
 pub(super) fn write_starting_attempt(
@@ -108,13 +124,36 @@ pub(super) fn write_failed_attempt(
     request: &NnsProposalRefreshRequest,
     err: &NnsProposalHostError,
 ) {
-    let latest = read_snapshot_refresh_attempt::<NnsProposalRefreshAttempt>(path);
+    let latest = read_snapshot_refresh_attempt_strict(path, NNS_PROPOSAL_ATTEMPT_METADATA_FIELDS)
+        .ok()
+        .flatten();
+    let latest =
+        latest.filter(|attempt| validate_nns_attempt(path, &request.network, attempt).is_ok());
     let progress = NnsProposalAttemptProgress::new(
         latest.as_ref().map_or(0, |attempt| attempt.pages_fetched),
         latest.as_ref().map_or(0, |attempt| attempt.rows_fetched),
         latest.and_then(|attempt| attempt.last_cursor),
     );
     let _ = write_attempt_status(path, request, "failed", progress, Some(err.to_string()));
+}
+
+fn validate_nns_attempt(
+    path: &Path,
+    expected_network: &str,
+    attempt: &NnsProposalRefreshAttempt,
+) -> Result<(), NnsProposalHostError> {
+    let invalid = |reason| NnsProposalHostError::InvalidRefreshAttempt {
+        path: path.to_path_buf(),
+        reason,
+    };
+    validate_snapshot_refresh_attempt(attempt, expected_network).map_err(invalid)?;
+    if attempt.metadata.governance_canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
+        return Err(invalid(format!(
+            "governance_canister_id is {}, expected {MAINNET_GOVERNANCE_CANISTER_ID}",
+            attempt.metadata.governance_canister_id
+        )));
+    }
+    Ok(())
 }
 
 fn write_attempt_status(

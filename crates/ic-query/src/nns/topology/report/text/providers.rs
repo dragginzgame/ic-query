@@ -4,7 +4,6 @@
 //! Does not own: provider aggregation, source reads, or JSON output.
 //! Boundary: formats provider distribution rows for human inspection.
 
-use super::common::optional_u64_text;
 use crate::{
     nns::{
         render::compact_text,
@@ -13,6 +12,7 @@ use crate::{
         },
     },
     table::{ColumnAlign, render_table},
+    text_value::optional_u64_text,
 };
 
 #[must_use]

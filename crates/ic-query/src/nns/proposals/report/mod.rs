@@ -81,7 +81,7 @@ pub(in crate::nns::proposals) const NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE: u32 = 10
 #[cfg(feature = "host")]
 const NNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
-const NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
+const NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-query";
 
@@ -165,6 +165,12 @@ pub enum NnsProposalHostError {
         path: PathBuf,
         source: serde_json::Error,
     },
+
+    #[error("invalid NNS proposal refresh attempt at {}: {reason}", path.display())]
+    InvalidRefreshAttempt { path: PathBuf, reason: String },
+
+    #[error("invalid NNS proposal cache at {}: {reason}", path.display())]
+    InvalidCache { path: PathBuf, reason: String },
 
     #[error("failed to read NNS proposal cache at {}: {source}", path.display())]
     ReadCache { path: PathBuf, source: io::Error },

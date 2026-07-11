@@ -20,7 +20,7 @@ fn sns_proposals_cached_sort_created_orders_before_limit() {
         first
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![20, 30]
     );
@@ -34,7 +34,7 @@ fn sns_proposals_cached_sort_created_orders_before_limit() {
         second
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![20, 30]
     );
@@ -66,7 +66,7 @@ fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
         first
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![10, 30]
     );
@@ -81,7 +81,7 @@ fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
         second
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![10, 30]
     );
@@ -112,7 +112,7 @@ fn sns_proposals_cached_sort_decided_orders_before_limit() {
         first
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![30, 10]
     );
@@ -126,7 +126,7 @@ fn sns_proposals_cached_sort_decided_orders_before_limit() {
         second
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![30, 10]
     );
@@ -156,7 +156,7 @@ fn sns_proposals_cached_sort_executed_orders_before_limit() {
         first
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![10, 30]
     );
@@ -170,7 +170,7 @@ fn sns_proposals_cached_sort_executed_orders_before_limit() {
         second
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![10, 30]
     );
@@ -200,7 +200,7 @@ fn sns_proposals_cached_sort_failed_orders_before_limit() {
         first
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![30, 10]
     );
@@ -214,7 +214,7 @@ fn sns_proposals_cached_sort_failed_orders_before_limit() {
         second
             .proposals
             .iter()
-            .filter_map(|proposal| proposal.proposal_id)
+            .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
         vec![30, 10]
     );

@@ -40,6 +40,7 @@ pub mod subnet_catalog;
 mod table;
 #[cfg(feature = "host")]
 mod text_search;
+mod text_value;
 mod token_amount;
 mod token_metadata_text;
 

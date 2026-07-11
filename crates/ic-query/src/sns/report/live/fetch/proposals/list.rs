@@ -44,13 +44,12 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
         },
     )
     .await?;
-    Ok(MainnetSnsProposals {
-        proposals: response
-            .proposals
-            .into_iter()
-            .map(sns_proposal_row)
-            .collect(),
-    })
+    let proposals = response
+        .proposals
+        .into_iter()
+        .map(sns_proposal_row)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MainnetSnsProposals { proposals })
 }
 
 /// Fetch one unfiltered proposal page for complete snapshot refresh.
@@ -70,14 +69,7 @@ pub(super) async fn fetch_mainnet_sns_proposal_page_async(
     )
     .await?
     .proposals;
-    let last_cursor = proposals
-        .iter()
-        .rev()
-        .find_map(|proposal| proposal.proposal_id);
-    Ok(MainnetSnsProposalPage {
-        proposals,
-        last_cursor,
-    })
+    Ok(MainnetSnsProposalPage { proposals })
 }
 
 /// Build Candid topic selectors for a concrete SNS proposal topic filter.

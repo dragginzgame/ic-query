@@ -27,14 +27,11 @@ pub use reports::{
 #[cfg(feature = "host")]
 pub use reports::{
     SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
-    SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsReport,
-    SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
-    SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
+    SnsNeuronsRefreshReport, SnsNeuronsReport, SnsProposalsCacheListReport,
+    SnsProposalsCacheStatusReport, SnsProposalsCacheSummary, SnsProposalsRefreshReport,
+    SnsRefreshAttemptStatus,
 };
-pub use requests::{
-    SnsInfoRequest, SnsListRequest, SnsLookupRequest, SnsParamsRequest, SnsProposalRequest,
-    SnsProposalsRequest, SnsTokenRequest,
-};
+pub use requests::{SnsListRequest, SnsLookupRequest, SnsProposalRequest, SnsProposalsRequest};
 #[cfg(feature = "host")]
 pub use requests::{
     SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, SnsNeuronsRefreshRequest,

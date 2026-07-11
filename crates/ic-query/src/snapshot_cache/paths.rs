@@ -63,6 +63,29 @@ pub fn collect_full_collection_snapshot_paths(
     Ok(snapshot_paths)
 }
 
+pub fn collect_full_collection_attempt_paths(
+    network_dir: &Path,
+    collection: &str,
+) -> std::io::Result<Vec<PathBuf>> {
+    let entries = match fs::read_dir(network_dir) {
+        Ok(entries) => entries,
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(source) => return Err(source),
+    };
+    let mut attempt_paths = Vec::new();
+    for entry in entries {
+        let path = entry?
+            .path()
+            .join(collection)
+            .join("full.refresh-attempt.json");
+        if path.is_file() {
+            attempt_paths.push(path);
+        }
+    }
+    attempt_paths.sort();
+    Ok(attempt_paths)
+}
+
 fn snapshot_collection_dir(icp_root: &Path, key: &SnapshotKey) -> PathBuf {
     snapshot_network_dir(icp_root, key.domain(), key.network())
         .join(key.entity())

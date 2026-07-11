@@ -1,6 +1,10 @@
 use crate::{
-    nns::node_operator::report::NnsNodeOperatorListReport,
+    nns::{
+        node_operator::report::NnsNodeOperatorListReport,
+        render::{compact_text, optional_node_count_text, text_or_dash},
+    },
     table::{ColumnAlign, render_table},
+    text_value::sanitize_text,
 };
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
@@ -10,7 +14,9 @@ pub fn nns_node_operator_list_report_text(report: &NnsNodeOperatorListReport) ->
     let mut lines = Vec::new();
     lines.push(format!(
         "node_operators: {} count {} fetched_at {}",
-        report.network, report.node_operator_count, report.fetched_at
+        sanitize_text(&report.network),
+        report.node_operator_count,
+        sanitize_text(&report.fetched_at)
     ));
     if report.node_operators.is_empty() {
         lines.push("node operators: none".to_string());
@@ -27,7 +33,7 @@ pub fn nns_node_operator_list_report_text(report: &NnsNodeOperatorListReport) ->
                 compact_text(&operator.node_provider_principal, COMPACT_PRINCIPAL_CHARS),
                 optional_node_count_text(operator.node_count),
                 operator.node_allowance.to_string(),
-                text_or_dash(Some(&operator.data_center_id)).to_string(),
+                text_or_dash(Some(&operator.data_center_id)),
             ]
         })
         .collect::<Vec<_>>();
@@ -42,26 +48,14 @@ pub fn nns_node_operator_list_report_text(report: &NnsNodeOperatorListReport) ->
     lines.join("\n")
 }
 
-fn compact_text(value: &str, chars: usize) -> String {
-    value.chars().take(chars).collect()
-}
-
-fn optional_node_count_text(value: Option<u32>) -> String {
-    value.map_or_else(|| "unknown".to_string(), |count| count.to_string())
-}
-
-const fn text_or_dash(value: Option<&str>) -> &str {
-    match value {
-        Some(text) if !text.is_empty() => text,
-        _ => "-",
-    }
-}
-
 #[must_use]
 pub fn nns_node_operator_list_report_verbose_text(report: &NnsNodeOperatorListReport) -> String {
     let mut lines = Vec::new();
-    lines.push(format!("source_endpoint: {}", report.source_endpoint));
-    lines.push(format!("fetched_by: {}", report.fetched_by));
+    lines.push(format!(
+        "source_endpoint: {}",
+        sanitize_text(&report.source_endpoint)
+    ));
+    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
     if report.node_operators.is_empty() {
         lines.push("node operators: none".to_string());
         return lines.join("\n");
@@ -85,7 +79,7 @@ pub fn nns_node_operator_list_report_verbose_text(report: &NnsNodeOperatorListRe
                 operator.node_provider_principal.clone(),
                 optional_node_count_text(operator.node_count),
                 operator.node_allowance.to_string(),
-                text_or_dash(Some(&operator.data_center_id)).to_string(),
+                text_or_dash(Some(&operator.data_center_id)),
                 report.registry_version.to_string(),
                 report.fetched_at.clone(),
             ]

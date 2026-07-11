@@ -6,37 +6,53 @@
 
 use super::model::SnsNeuronsRefreshAttempt;
 use crate::{
-    snapshot_cache::{
-        SnapshotRefreshAttemptReadError, read_snapshot_refresh_attempt,
-        read_snapshot_refresh_attempt_strict,
+    snapshot_cache::{SnapshotRefreshAttemptReadError, read_snapshot_refresh_attempt_strict},
+    sns::report::{
+        SnsHostError, SnsRefreshAttemptStatus,
+        cache_attempt::{SNS_REFRESH_ATTEMPT_METADATA_FIELDS, validate_sns_refresh_attempt},
     },
-    sns::report::{SnsHostError, SnsNeuronsRefreshAttemptStatus},
 };
 use std::path::Path;
 
 pub(in crate::sns::report::neurons_cache::attempt) fn read_sns_neurons_attempt(
     path: &Path,
+    expected_network: &str,
 ) -> Option<SnsNeuronsRefreshAttempt> {
-    read_snapshot_refresh_attempt(path)
+    let attempt =
+        read_snapshot_refresh_attempt_strict(path, SNS_REFRESH_ATTEMPT_METADATA_FIELDS).ok()??;
+    validate_sns_refresh_attempt(path, expected_network, &attempt).ok()?;
+    Some(attempt)
 }
 
 pub(in crate::sns::report::neurons_cache) fn read_sns_neurons_attempt_status(
     path: &Path,
-) -> Option<SnsNeuronsRefreshAttemptStatus> {
-    read_sns_neurons_attempt(path).map(SnsNeuronsRefreshAttemptStatus::from)
+    expected_network: &str,
+) -> Option<SnsRefreshAttemptStatus> {
+    read_sns_neurons_attempt(path, expected_network).map(SnsRefreshAttemptStatus::from)
 }
 
 pub(in crate::sns::report::neurons_cache) fn read_sns_neurons_attempt_status_strict(
     path: &Path,
-) -> Result<Option<SnsNeuronsRefreshAttemptStatus>, SnsHostError> {
-    read_snapshot_refresh_attempt_strict::<SnsNeuronsRefreshAttempt>(path)
-        .map(|attempt| attempt.map(SnsNeuronsRefreshAttemptStatus::from))
-        .map_err(|err| match err {
-            SnapshotRefreshAttemptReadError::Read { path, source } => {
-                SnsHostError::ReadCache { path, source }
-            }
-            SnapshotRefreshAttemptReadError::Parse { path, source } => {
-                SnsHostError::ParseCache { path, source }
-            }
-        })
+    expected_network: &str,
+) -> Result<Option<SnsRefreshAttemptStatus>, SnsHostError> {
+    read_snapshot_refresh_attempt_strict::<SnsNeuronsRefreshAttempt>(
+        path,
+        SNS_REFRESH_ATTEMPT_METADATA_FIELDS,
+    )
+    .map_err(|err| match err {
+        SnapshotRefreshAttemptReadError::Read { path, source } => {
+            SnsHostError::ReadCache { path, source }
+        }
+        SnapshotRefreshAttemptReadError::Parse { path, source } => {
+            SnsHostError::ParseCache { path, source }
+        }
+        SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
+            SnsHostError::InvalidRefreshAttempt { path, reason }
+        }
+    })?
+    .map(|attempt| {
+        validate_sns_refresh_attempt(path, expected_network, &attempt)?;
+        Ok(SnsRefreshAttemptStatus::from(attempt))
+    })
+    .transpose()
 }

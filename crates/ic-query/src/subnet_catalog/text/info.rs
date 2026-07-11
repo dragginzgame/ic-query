@@ -1,11 +1,15 @@
-use crate::{nns::render::yes_no, subnet_catalog::SubnetCatalogInfoReport};
+use crate::{
+    subnet_catalog::SubnetCatalogInfoReport,
+    text_value::{sanitize_text, yes_no},
+};
 
 #[must_use]
 pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> String {
+    let safe_line = |label: &str, value: &str| format!("{label}: {}", sanitize_text(value));
     let mut lines = Vec::new();
-    lines.push(format!("input_principal: {}", report.input_principal));
-    lines.push(format!("resolved_as: {}", report.resolved_as));
-    lines.push(format!("resolved_from: {}", report.resolved_from));
+    lines.push(safe_line("input_principal", &report.input_principal));
+    lines.push(safe_line("resolved_as", &report.resolved_as));
+    lines.push(safe_line("resolved_from", &report.resolved_from));
     lines.push(format!("subnet_principal: {}", report.subnet_principal));
     lines.push(format!("subnet_kind: {}", report.subnet_kind.as_str()));
     lines.push(format!(
@@ -28,7 +32,7 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
         "geographic_scope_source: {}",
         report.geographic_scope_source.as_str()
     ));
-    lines.push(format!("subnet_label: {}", report.subnet_label));
+    lines.push(safe_line("subnet_label", &report.subnet_label));
     lines.push(format!(
         "subnet_label_source: {}",
         report.subnet_label_source.as_str()
@@ -45,7 +49,7 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
     ));
     lines.push(format!(
         "charge_applicability_reason: {}",
-        report.charge_applicability_reason
+        sanitize_text(&report.charge_applicability_reason)
     ));
     lines.push(format!(
         "registry_canister_id: {}",
@@ -56,11 +60,11 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
         "catalog_schema_version: {}",
         report.catalog_schema_version
     ));
-    lines.push(format!("catalog_path: {}", report.catalog_path));
-    lines.push(format!("fetched_at: {}", report.fetched_at));
+    lines.push(safe_line("catalog_path", &report.catalog_path));
+    lines.push(safe_line("fetched_at", &report.fetched_at));
     lines.push(format!("catalog_stale: {}", yes_no(report.catalog_stale)));
-    lines.push(format!("stale_reason: {}", report.stale_reason));
-    lines.push(format!("resolver_backend: {}", report.resolver_backend));
+    lines.push(safe_line("stale_reason", &report.stale_reason));
+    lines.push(safe_line("resolver_backend", &report.resolver_backend));
     if let Some(canister) = &report.matched_canister_principal {
         lines.push(format!("matched_canister_principal: {canister}"));
     }
@@ -77,10 +81,10 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
             .map_or_else(|| "not_applicable".to_string(), |cycles| cycles.to_string())
     ));
     if let Some(rate_source) = &report.rate_source {
-        lines.push(format!("rate_source: {rate_source}"));
+        lines.push(safe_line("rate_source", rate_source));
     }
     if let Some(formula_version) = &report.formula_version {
-        lines.push(format!("formula_version: {formula_version}"));
+        lines.push(safe_line("formula_version", formula_version));
     }
     lines.join("\n")
 }

@@ -34,12 +34,3 @@ impl SnsLookupRequest {
         }
     }
 }
-
-/// Request accepted by the SNS info report builder.
-pub type SnsInfoRequest = SnsLookupRequest;
-
-/// Request accepted by the SNS governance-parameters report builder.
-pub type SnsParamsRequest = SnsLookupRequest;
-
-/// Request accepted by the SNS token report builder.
-pub type SnsTokenRequest = SnsLookupRequest;

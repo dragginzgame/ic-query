@@ -6,7 +6,7 @@
 
 use crate::sns::report::{
     SnsHostError, SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest,
-    SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus,
+    SnsProposalsCacheSummary, SnsRefreshAttemptStatus,
     cache_status::{
         SnsCacheStatusFamily, SnsCacheStatusPaths, SnsCacheStatusSummaryView,
         build_sns_cache_status_lookup,
@@ -46,7 +46,7 @@ fn cache_status_report(
     cache: Option<SnsProposalsCacheSummary>,
     expected_cache_path: Option<String>,
     refresh_attempt_path: Option<String>,
-    latest_attempt: Option<SnsProposalsRefreshAttemptStatus>,
+    latest_attempt: Option<SnsRefreshAttemptStatus>,
 ) -> SnsProposalsCacheStatusReport {
     SnsProposalsCacheStatusReport {
         schema_version: SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
@@ -64,8 +64,10 @@ fn cache_status_report(
 struct SnsProposalsCacheStatusFamily;
 
 impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
-    type Attempt = SnsProposalsRefreshAttemptStatus;
+    type Attempt = SnsRefreshAttemptStatus;
     type Summary = SnsProposalsCacheSummary;
+
+    const COLLECTION: &'static str = "proposals";
 
     fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
         sns_network_cache_dir(icp_root, network)
@@ -101,8 +103,11 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
         Ok(load_sns_proposals_cache_summary_at(cache_path, network))
     }
 
-    fn read_attempt_status(attempt_path: &Path) -> Result<Option<Self::Attempt>, SnsHostError> {
-        read_sns_proposals_attempt_status_strict(attempt_path)
+    fn read_attempt_status(
+        attempt_path: &Path,
+        network: &str,
+    ) -> Result<Option<Self::Attempt>, SnsHostError> {
+        read_sns_proposals_attempt_status_strict(attempt_path, network)
     }
 }
 

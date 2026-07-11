@@ -7,6 +7,7 @@
 //! Boundary: provides deterministic alignment and width calculation for report text
 //! modules that need compact tabular output.
 
+use crate::text_value::sanitize_text;
 use unicode_width::UnicodeWidthStr;
 
 const COLUMN_GAP: &str = "   ";
@@ -44,11 +45,11 @@ pub fn render_table<const N: usize>(
 /// Computes terminal display widths from header and row cells.
 #[must_use]
 pub fn table_widths<const N: usize>(headers: &[&str; N], rows: &[[String; N]]) -> [usize; N] {
-    let mut widths = headers.map(UnicodeWidthStr::width);
+    let mut widths = headers.map(|header| UnicodeWidthStr::width(sanitize_text(header).as_str()));
 
     for row in rows {
         for (index, cell) in row.iter().enumerate() {
-            widths[index] = widths[index].max(UnicodeWidthStr::width(cell.as_str()));
+            widths[index] = widths[index].max(UnicodeWidthStr::width(sanitize_text(cell).as_str()));
         }
     }
 
@@ -67,8 +68,8 @@ pub fn render_table_row<const N: usize>(
         .zip(alignments)
         .enumerate()
         .map(|(index, (width, alignment))| {
-            let value = row.get(index).map_or("", AsRef::as_ref);
-            pad_cell(value, *width, *alignment)
+            let value = sanitize_text(row.get(index).map_or("", AsRef::as_ref));
+            pad_cell(&value, *width, *alignment)
         })
         .collect::<Vec<_>>()
         .join(COLUMN_GAP)

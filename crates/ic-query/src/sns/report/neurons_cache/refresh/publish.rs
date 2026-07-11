@@ -6,7 +6,7 @@
 
 use super::context::SnsNeuronsRefreshContext;
 use crate::{
-    snapshot_cache::{SnapshotCompleteness, write_snapshot_json},
+    snapshot_cache::{SnapshotCompleteness, publish_snapshot_with_attempt, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
         neurons_cache::{
@@ -38,15 +38,21 @@ pub(super) fn publish_complete_sns_neurons_cache(
         neurons,
     );
     let neuron_count = cache.data.neurons.len();
-    write_snapshot_json(
-        &context.paths.cache_path,
-        &cache,
-        |path, source| SnsHostError::SerializeCache { path, source },
-        SnsHostError::Cache,
-    )?;
-    write_complete_sns_neurons_attempt(
-        context.attempt_context(),
-        SnsNeuronsAttemptProgress::new(page_count, neuron_count, last_cursor),
+    let attempt_finalization_error = publish_snapshot_with_attempt(
+        || {
+            write_snapshot_json(
+                &context.paths.cache_path,
+                &cache,
+                |path, source| SnsHostError::SerializeCache { path, source },
+                SnsHostError::Cache,
+            )
+        },
+        || {
+            write_complete_sns_neurons_attempt(
+                context.attempt_context(),
+                SnsNeuronsAttemptProgress::new(page_count, neuron_count, last_cursor),
+            )
+        },
     )?;
     Ok(SnsNeuronsRefreshReport {
         schema_version: SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
@@ -68,6 +74,7 @@ pub(super) fn publish_complete_sns_neurons_cache(
         complete: true,
         replaced_existing_cache: context.replaced_existing_cache,
         wrote_cache: true,
+        attempt_finalization_error,
     })
 }
 

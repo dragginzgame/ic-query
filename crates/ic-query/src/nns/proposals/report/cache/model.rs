@@ -129,6 +129,7 @@ pub struct NnsProposalRefreshReport {
     pub complete: bool,
     pub replaced_existing_cache: bool,
     pub wrote_cache: bool,
+    pub attempt_finalization_error: Option<String>,
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,

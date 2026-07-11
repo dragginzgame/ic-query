@@ -14,6 +14,8 @@ mod params;
 mod proposals;
 mod token;
 
+#[cfg(feature = "host")]
+pub use attempt::SnsRefreshAttemptStatus;
 pub use governance::{
     SnsCustomProposalCriticality, SnsGovernanceParameters, SnsNeuronPermissionList,
     SnsVotingRewardsParameters,
@@ -22,7 +24,7 @@ pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
 #[cfg(feature = "host")]
 pub use neurons::{
     SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
-    SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsReport,
+    SnsNeuronsRefreshReport, SnsNeuronsReport,
 };
 pub use params::SnsParamsReport;
 #[cfg(feature = "host")]
@@ -37,6 +39,6 @@ pub use proposals::{
 #[cfg(feature = "host")]
 pub use proposals::{
     SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
-    SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
+    SnsProposalsRefreshReport,
 };
 pub use token::{SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow};

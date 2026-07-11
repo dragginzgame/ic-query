@@ -12,8 +12,6 @@ mod report;
 mod row;
 
 #[cfg(feature = "host")]
-pub type SnsProposalsRefreshAttemptStatus = super::attempt::SnsRefreshAttemptStatus;
-#[cfg(feature = "host")]
 pub use cache::{
     SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
 };

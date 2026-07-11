@@ -9,7 +9,6 @@ mod refresh;
 mod report;
 mod row;
 
-pub type SnsNeuronsRefreshAttemptStatus = super::attempt::SnsRefreshAttemptStatus;
 pub use cache::{SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary};
 pub use refresh::SnsNeuronsRefreshReport;
 pub use report::SnsNeuronsReport;

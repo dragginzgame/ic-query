@@ -11,11 +11,7 @@ pub(super) use list::{
     data_center_list_request, node_list_request, node_operator_list_request,
     node_provider_list_request, subnet_catalog_list_request,
 };
-pub use model::{
-    NnsTopologyCapacityRequest, NnsTopologyCoverageRequest, NnsTopologyGapsRequest,
-    NnsTopologyHealthRequest, NnsTopologyProvidersRequest, NnsTopologyRefreshRequest,
-    NnsTopologyRegionsRequest, NnsTopologySummaryRequest, NnsTopologyVersionsRequest,
-};
+pub use model::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
 #[cfg(feature = "host")]
 pub(super) use model::{TopologyRefreshParts, TopologyRequestParts, summary_request_from};
 #[cfg(feature = "host")]

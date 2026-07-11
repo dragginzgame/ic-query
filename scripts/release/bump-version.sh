@@ -49,15 +49,21 @@ if [[ "${previous_version}" == "${new_version}" ]]; then
     exit 0
 fi
 
+if git rev-parse "v${new_version}" >/dev/null 2>&1; then
+    echo "error: tag v${new_version} already exists; aborting" >&2
+    exit 1
+fi
+
+echo "Checking committed changelog for target version ${new_version}..."
+bash scripts/ci/check-changelog-version.sh "${new_version}"
+
+echo "Running full CI gate before version bump..."
+make --no-print-directory ensure-clean ci
+
 perl -0pi -e "s/version = \"\\Q${previous_version}\\E\"/version = \"${new_version}\"/g" Cargo.toml
 
 if [[ -f Cargo.lock ]]; then
     cargo generate-lockfile >/dev/null
-fi
-
-if git rev-parse "v${new_version}" >/dev/null 2>&1; then
-    echo "error: tag v${new_version} already exists; aborting" >&2
-    exit 1
 fi
 
 echo "Bumped: ${previous_version} -> ${new_version}"

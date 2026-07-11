@@ -5,7 +5,9 @@ use crate::{
 };
 use crate::{
     table::{ColumnAlign, render_table},
+    text_value::{optional_u64_text, sanitize_text, truncate_text, yes_no},
     token_amount::base_units_decimal_text,
+    token_metadata_text::optional_text,
 };
 
 #[test]
@@ -86,6 +88,32 @@ fn render_table_aligns_wide_unicode_cells_by_terminal_width() {
     );
 
     assert_eq!(table, "CITY    ID\n-----   --\n東京     1\nParis    2");
+}
+
+#[test]
+fn render_table_escapes_control_characters_in_values() {
+    let rows = [["line one\nline two\u{1b}[31m".to_string()]];
+
+    let table = render_table(&["VALUE"], &rows, &[ColumnAlign::Left]);
+
+    assert!(table.contains("line one\\nline two\\u{1b}[31m"));
+    assert_eq!(table.lines().count(), 3);
+    assert!(!table.contains('\u{1b}'));
+}
+
+#[test]
+fn scalar_text_helpers_escape_controls_without_changing_raw_models() {
+    let optional = "line one\nline two\u{1b}[31m".to_string();
+
+    assert_eq!(sanitize_text(&optional), "line one\\nline two\\u{1b}[31m");
+    assert_eq!(optional_text(Some(&optional)), sanitize_text(&optional));
+    assert_eq!(truncate_text("abcdef", 3), "abc...");
+    assert_eq!(optional_u64_text(None), "-");
+    assert_eq!(optional_u64_text(Some(42)), "42");
+    assert_eq!(yes_no(true), "yes");
+    assert_eq!(yes_no(false), "no");
+    assert!(optional.contains('\n'));
+    assert!(optional.contains('\u{1b}'));
 }
 
 #[test]

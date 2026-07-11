@@ -33,4 +33,5 @@ pub struct SnsProposalsRefreshReport {
     pub complete: bool,
     pub replaced_existing_cache: bool,
     pub wrote_cache: bool,
+    pub attempt_finalization_error: Option<String>,
 }

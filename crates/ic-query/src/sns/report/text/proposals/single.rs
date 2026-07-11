@@ -8,17 +8,17 @@ use super::{
     SNS_PROPOSAL_DETAIL_TEXT_LIMIT,
     detail::{proposal_ballot_table, proposal_detail_lines},
 };
-use crate::sns::report::{
-    SnsProposalReport,
-    text::common::{push_report_provenance_lines, yes_no},
+use crate::{
+    sns::report::{SnsProposalReport, text::common::push_report_provenance_lines},
+    text_value::{sanitize_text, yes_no},
 };
 
 #[must_use]
 pub fn sns_proposal_report_text(report: &SnsProposalReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", report.name),
+        format!("name: {}", sanitize_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("proposal_id: {}", report.proposal_id),
@@ -33,8 +33,11 @@ pub fn sns_proposal_report_text(report: &SnsProposalReport) -> String {
     );
     lines.extend([
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ]);
     lines.push(String::new());
     lines.push("proposal:".to_string());

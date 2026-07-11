@@ -1,4 +1,4 @@
-use super::fixtures::{SUBNET_A, fixture_catalog, sorted_principals};
+use super::fixtures::{SUBNET_A, SUBNET_B, fixture_catalog, sorted_principals};
 use crate::subnet_catalog::{CatalogError, RoutingRange};
 
 #[test]
@@ -15,6 +15,33 @@ fn empty_subnets_and_empty_ranges_are_rejected() {
     assert!(matches!(
         empty_ranges.validate(),
         Err(CatalogError::EmptyRoutingRanges)
+    ));
+}
+
+#[test]
+fn validation_rejects_overlapping_routing_ranges() {
+    let ids = sorted_principals([
+        "ryjl3-tyaaa-aaaaa-aaaba-cai",
+        "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "r7inp-6aaaa-aaaaa-aaabq-cai",
+    ]);
+    let mut catalog = fixture_catalog();
+    catalog.routing_ranges = vec![
+        RoutingRange {
+            start_canister_id: ids[0].clone(),
+            end_canister_id: ids[2].clone(),
+            subnet_principal: SUBNET_A.to_string(),
+        },
+        RoutingRange {
+            start_canister_id: ids[1].clone(),
+            end_canister_id: ids[2].clone(),
+            subnet_principal: SUBNET_B.to_string(),
+        },
+    ];
+
+    assert!(matches!(
+        catalog.validate(),
+        Err(CatalogError::OverlappingRoutingRanges { .. })
     ));
 }
 

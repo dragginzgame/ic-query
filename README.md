@@ -35,7 +35,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.7", default-features = false }
+ic-query = { version = "0.8", default-features = false }
 ```
 
 Feature boundary:
@@ -54,7 +54,7 @@ helpers, or custom source adapters can enable `host` without enabling `cli`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.7", default-features = false, features = ["host"] }
+ic-query = { version = "0.8", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -66,9 +66,8 @@ command parsing and dispatch.
 
 See
 [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
-for downstream migration notes, feature guidance, source-adapter examples, and
-patterns for replacing `icq` process shell-outs with request constructors and
-report builders.
+for downstream feature guidance, source-adapter examples, and patterns for
+using request constructors and report builders instead of process shell-outs.
 
 ## Commands
 
@@ -90,6 +89,8 @@ icq sns neurons [cache|refresh]
 
 Use `icq nns <family> help`, `icq nns topology <report> help`, or
 `icq icrc <command> help`, or `icq sns <command> help` for command options.
+Use `icq -V` or `icq --version` for the executable version; command families do
+not expose positional version shortcuts.
 
 Most commands support text output by default and JSON output with
 `--format json`:
@@ -97,6 +98,10 @@ Most commands support text output by default and JSON output with
 ```bash
 icq --network ic nns subnet info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 ```
+
+All current report `schema_version` values are `1`. Before 1.0, a hard-cut
+shape replaces its predecessor instead of extending a historical schema
+number sequence.
 
 Generic ICRC ledgers can be queried directly by ledger canister id. These
 commands are live-only, include the queried source endpoint in text and JSON
@@ -135,13 +140,16 @@ List/info commands populate their component cache on first use and print the
 API endpoint they are calling before creating it. Refresh commands force a
 fresh fetch and replace the matching cache.
 
-Complete NNS and SNS proposal/neuron snapshots use cache schema version 1 and
-require `domain`, `entity`, `collection`, and `scope` identity fields. Snapshot
+Complete NNS and SNS proposal/neuron snapshots likewise use cache schema
+version 1 and require `domain`, `entity`, `collection`, and `scope` identity
+fields. Snapshot
 files that do not match the current shape are unsupported and must be
-refreshed; there is no version bridge or migration path. Refresh locks accept
-only the `target_path` field. Stale or malformed locks are reported but never
-deleted automatically; remove one manually only after verifying that no
-refresh is still running.
+refreshed; there is no version bridge or migration path. Snapshot row counts,
+required row ids, uniqueness, and embedded identity are validated when loaded.
+Refresh locks and attempt sidecars accept only their exact current fields and
+validate schema, network, identity, and lifecycle state. Stale or malformed
+locks are reported but never deleted automatically; remove one manually only
+after verifying that no refresh is still running.
 
 SNS neuron commands keep quick `--sort api` output on a bounded live query.
 Whole-collection neuron sorts use complete snapshots and require an explicit
@@ -156,7 +164,9 @@ Complete SNS neuron snapshots live under
 `.icq/sns/ic/<root-principal>/neurons/full.json`. Failed or capped refresh
 attempts are recorded separately and do not replace the last complete snapshot.
 Refresh shows a same-line stderr progress counter with pages and rows fetched
-when running in a terminal.
+when running in a terminal. If the complete snapshot is published but final
+attempt metadata cannot be written, the refresh remains successful and reports
+the sidecar finalization error explicitly.
 
 Inspect local SNS neuron snapshots and their latest refresh-attempt metadata
 without making live calls:
@@ -177,7 +187,8 @@ Neuron IDs are shortened to eight characters in text tables by default. Use
 `icq sns neurons 1 --verbose` to show full neuron IDs.
 Text output shows current SNS token amounts, including token fee, total supply,
 stake, maturity, and staked maturity, as token decimals with two places. JSON
-keeps the raw base-unit and e8s fields.
+keeps the raw base-unit and e8s fields. ICRC metadata values, including token
+logos, also remain raw in JSON; text reports show only logo presence.
 
 SNS governance nervous system parameters can be queried by list id or root
 principal:
@@ -292,7 +303,7 @@ Proposal list views support
 Local sort modes accept `--asc` or `--desc`; status, topic, proposer, title,
 and action default to ascending, while id, action id, tally values, tally time,
 ballot count, reward eligibility, reject cost, reward round, and timestamp
-sorts default to descending. Cache-compatible views filter and sort complete
+sorts default to descending. Cache-backed views filter and sort complete
 local snapshots before applying `--limit`.
 
 Complete SNS proposal snapshots can also be refreshed and inspected manually:
@@ -330,7 +341,7 @@ The command namespace is intentionally small:
   `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
   instances.
 - `sns proposals` auto-creates and reuses complete proposal snapshots for
-  cache-compatible list views.
+  cache-backed list views.
 - `sns proposals refresh` force-refreshes complete proposal snapshots.
 - `sns proposals cache list|status` inspects local complete proposal snapshots
   and refresh-attempt metadata without live calls.

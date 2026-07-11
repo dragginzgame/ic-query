@@ -151,7 +151,6 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     proposer_neuron_id: Some("aaaa"),
                 }),
             ],
-            last_cursor: None,
         })
     }
 }
@@ -160,7 +159,7 @@ fn proposal_ids(report: &SnsProposalsReport) -> Vec<u64> {
     report
         .proposals
         .iter()
-        .filter_map(|proposal| proposal.proposal_id)
+        .map(|proposal| proposal.proposal_id)
         .collect()
 }
 
@@ -345,7 +344,7 @@ struct ProposalRowFixture {
 
 fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(fixture.proposal_id),
+        proposal_id: fixture.proposal_id,
         decision_state: fixture.decision_state.to_string(),
         status: Some(fixture.status),
         topic: Some(fixture.topic.as_str().to_string()),

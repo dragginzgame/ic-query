@@ -25,7 +25,7 @@ use crate::{
             render_help,
         },
         common::{CurrentUnixSecsError, OutputFormat, current_unix_secs, write_text_or_json},
-        help::{collect_args_or_print_help_or_version, collect_args_or_print_help_or_version_flag},
+        help::collect_args_or_print_help_or_version,
     },
     nns::{
         data_center::report::NnsDataCenterHostError, node::report::NnsNodeHostError,
@@ -119,17 +119,6 @@ where
     I: IntoIterator<Item = OsString>,
 {
     collect_args_or_print_help_or_version(args, usage, version_text())
-}
-
-#[cfg(feature = "cli")]
-pub(in crate::nns) fn command_flag_args<I>(
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Option<Vec<OsString>>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    collect_args_or_print_help_or_version_flag(args, usage, version_text())
 }
 
 #[cfg(feature = "cli")]

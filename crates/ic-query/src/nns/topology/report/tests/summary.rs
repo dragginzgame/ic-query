@@ -13,7 +13,7 @@ fn topology_summary_counts_existing_reports() {
         data_center_report_fixture(),
     );
 
-    assert_eq!(report.schema_version, 3);
+    assert_eq!(report.schema_version, 1);
     assert_eq!(report.subnet_count, 2);
     assert_eq!(report.application_subnet_count, 1);
     assert_eq!(report.cloud_engine_subnet_count, 0);
@@ -66,7 +66,7 @@ fn topology_summary_text_renders_count_and_version_tables() {
 
 #[test]
 fn topology_summary_rejects_local_network_with_topology_hint() {
-    let request = NnsTopologySummaryRequest {
+    let request = NnsTopologyReadRequest {
         icp_root: temp_dir("ic-query-topology-local-network"),
         network: "local".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),

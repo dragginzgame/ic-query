@@ -9,11 +9,11 @@
 ## Summary
 
 SNS proposal listing now treats the complete local proposal snapshot as an
-implementation detail for normal list views. If a compatible complete snapshot
-exists, `icq sns proposals` reads it and applies view options locally. If the
-snapshot is missing, the command visibly refreshes the complete collection,
-publishes it only after governance pagination is exhausted, and then renders
-the requested view.
+implementation detail for normal list views. If a valid current complete
+snapshot exists, `icq sns proposals` reads it and applies view options locally.
+If the snapshot is missing, the command visibly refreshes the complete
+collection, publishes it only after governance pagination is exhausted, and
+then renders the requested view.
 
 Manual commands remain available:
 
@@ -67,9 +67,9 @@ cached proposal rows:
 - `--proposer <neuron-id-prefix>`
 - `--query <text>`
 
-Older complete proposal snapshots that predate cached raw proposal status
-codes or topic labels are refreshed before status or topic filters that depend
-on those fields are applied.
+Snapshots outside the current schema and required field set are rejected. The
+reader does not detect, upgrade, or reinterpret predecessor shapes; refresh the
+collection explicitly to create a current snapshot.
 
 ## Cache Contract
 

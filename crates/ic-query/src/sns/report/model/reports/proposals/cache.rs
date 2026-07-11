@@ -4,7 +4,7 @@
 //! Does not own: cache discovery, cache file reads, or text rendering.
 //! Boundary: preserves cache metadata fields for text and JSON reports.
 
-use super::SnsProposalsRefreshAttemptStatus;
+use super::super::attempt::SnsRefreshAttemptStatus;
 use crate::sns::report::SnsCacheSummarySortKey;
 
 use serde::Serialize;
@@ -40,7 +40,7 @@ pub struct SnsProposalsCacheStatusReport {
     pub cache: Option<SnsProposalsCacheSummary>,
     pub expected_cache_path: Option<String>,
     pub refresh_attempt_path: Option<String>,
-    pub latest_attempt: Option<SnsProposalsRefreshAttemptStatus>,
+    pub latest_attempt: Option<SnsRefreshAttemptStatus>,
 }
 
 ///
@@ -65,7 +65,7 @@ pub struct SnsProposalsCacheSummary {
     pub source_endpoint: String,
     pub cache_path: String,
     pub refresh_attempt_path: String,
-    pub latest_attempt: Option<SnsProposalsRefreshAttemptStatus>,
+    pub latest_attempt: Option<SnsRefreshAttemptStatus>,
 }
 
 impl SnsCacheSummarySortKey for SnsProposalsCacheSummary {

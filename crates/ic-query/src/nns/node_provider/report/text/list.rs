@@ -1,6 +1,10 @@
 use crate::{
-    nns::node_provider::report::NnsNodeProviderListReport,
+    nns::{
+        node_provider::report::NnsNodeProviderListReport,
+        render::{compact_text, optional_node_count_text, text_or_dash},
+    },
     table::{ColumnAlign, render_table},
+    text_value::sanitize_text,
 };
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
@@ -10,7 +14,9 @@ pub fn nns_node_provider_list_report_text(report: &NnsNodeProviderListReport) ->
     let mut lines = Vec::new();
     lines.push(format!(
         "node_providers: {} count {} fetched_at {}",
-        report.network, report.node_provider_count, report.fetched_at
+        sanitize_text(&report.network),
+        report.node_provider_count,
+        sanitize_text(&report.fetched_at)
     ));
     if report.node_providers.is_empty() {
         lines.push("node providers: none".to_string());
@@ -33,26 +39,14 @@ pub fn nns_node_provider_list_report_text(report: &NnsNodeProviderListReport) ->
     lines.join("\n")
 }
 
-fn compact_text(value: &str, chars: usize) -> String {
-    value.chars().take(chars).collect()
-}
-
-fn optional_node_count_text(value: Option<u32>) -> String {
-    value.map_or_else(|| "unknown".to_string(), |count| count.to_string())
-}
-
-const fn text_or_dash(value: Option<&str>) -> &str {
-    match value {
-        Some(text) if !text.is_empty() => text,
-        _ => "-",
-    }
-}
-
 #[must_use]
 pub fn nns_node_provider_list_report_verbose_text(report: &NnsNodeProviderListReport) -> String {
     let mut lines = Vec::new();
-    lines.push(format!("source_endpoint: {}", report.source_endpoint));
-    lines.push(format!("fetched_by: {}", report.fetched_by));
+    lines.push(format!(
+        "source_endpoint: {}",
+        sanitize_text(&report.source_endpoint)
+    ));
+    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
     if report.node_providers.is_empty() {
         lines.push("node providers: none".to_string());
         return lines.join("\n");
@@ -72,7 +66,7 @@ pub fn nns_node_provider_list_report_verbose_text(report: &NnsNodeProviderListRe
             [
                 provider.node_provider_principal.clone(),
                 optional_node_count_text(provider.node_count),
-                text_or_dash(provider.reward_account_hex.as_deref()).to_string(),
+                text_or_dash(provider.reward_account_hex.as_deref()),
                 report.registry_version.to_string(),
                 report.fetched_at.clone(),
             ]

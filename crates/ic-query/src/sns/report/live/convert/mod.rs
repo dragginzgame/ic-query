@@ -11,7 +11,7 @@ mod proposals;
 mod sns;
 
 pub(super) use metadata::metadata_error_summary;
-pub(super) use neurons::{sns_neuron_cursor, sns_neuron_row};
+pub(super) use neurons::sns_neuron_row;
 pub(super) use proposals::sns_proposal_row;
 pub(super) use sns::{
     mainnet_sns_canisters_from_deployed_sns, mainnet_sns_from_canisters_and_metadata,

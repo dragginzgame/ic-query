@@ -36,7 +36,7 @@ pub(super) async fn fetch_mainnet_sns_proposal_async(
     .await?;
     match response.result {
         Some(GetProposalResult::Proposal(proposal)) => Ok(MainnetSnsProposal {
-            proposal: sns_proposal_row(*proposal),
+            proposal: sns_proposal_row(*proposal)?,
         }),
         Some(GetProposalResult::Error(err)) => Err(SnsHostError::GovernanceError {
             method: "get_proposal",

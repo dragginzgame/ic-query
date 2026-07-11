@@ -5,8 +5,9 @@
 //! Boundary: formats component refresh outcomes for humans.
 
 use crate::{
-    nns::{render::yes_no, topology::report::NnsTopologyRefreshReport},
+    nns::topology::report::NnsTopologyRefreshReport,
     table::{ColumnAlign, render_table},
+    text_value::{sanitize_text, yes_no},
 };
 
 #[must_use]
@@ -14,13 +15,16 @@ pub fn nns_topology_refresh_report_text(report: &NnsTopologyRefreshReport) -> St
     let mut lines = Vec::new();
     lines.push(format!(
         "topology_refresh: {} components {} wrote {} replaced {} dry_run {}",
-        report.network,
+        sanitize_text(&report.network),
         report.component_count,
         report.wrote_cache_count,
         report.replaced_existing_cache_count,
         yes_no(report.dry_run)
     ));
-    lines.push(format!("source_endpoint: {}", report.source_endpoint));
+    lines.push(format!(
+        "source_endpoint: {}",
+        sanitize_text(&report.source_endpoint)
+    ));
     lines.push(render_refresh_table(report));
     lines.join("\n")
 }

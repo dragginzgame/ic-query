@@ -15,7 +15,7 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert_eq!(report.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.proposal_id, 42);
     assert!(report.show_ballots);
-    assert_eq!(report.proposal.proposal_id, Some(42));
+    assert_eq!(report.proposal.proposal_id, 42);
     assert_eq!(report.proposal.action, "motion");
     assert_eq!(report.proposal.decision_state, SNS_PROPOSAL_DECISION_OPEN);
     assert_eq!(report.proposal.ballot_count, 1);
@@ -58,7 +58,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.sort, "api");
     assert_eq!(report.sort_direction, "none");
     assert_eq!(report.proposal_count, 1);
-    assert_eq!(report.proposals[0].proposal_id, Some(42));
+    assert_eq!(report.proposals[0].proposal_id, 42);
     assert_eq!(report.proposals[0].action, "motion");
     assert_eq!(
         report.proposals[0].decision_state,
@@ -102,7 +102,7 @@ fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
     assert_eq!(report.data_source, "live");
     assert_eq!(report.proposer_filter.as_deref(), Some("000102"));
     assert_eq!(report.proposal_count, 1);
-    assert_eq!(report.proposals[0].proposal_id, Some(42));
+    assert_eq!(report.proposals[0].proposal_id, 42);
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     assert_eq!(report.data_source, "live");
     assert_eq!(report.query_filter.as_deref(), Some("fixture proposal"));
     assert_eq!(report.proposal_count, 1);
-    assert_eq!(report.proposals[0].proposal_id, Some(42));
+    assert_eq!(report.proposals[0].proposal_id, 42);
     assert_eq!(json["query_filter"], "fixture proposal");
     assert!(text.contains("query_filter: fixture proposal"));
 }

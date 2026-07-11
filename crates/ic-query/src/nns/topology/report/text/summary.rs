@@ -14,6 +14,7 @@ use crate::{
         topology::report::NnsTopologySummaryReport,
     },
     table::{ColumnAlign, render_table},
+    text_value::sanitize_text,
 };
 
 #[must_use]
@@ -21,7 +22,7 @@ pub fn nns_topology_summary_report_text(report: &NnsTopologySummaryReport) -> St
     let mut lines = Vec::new();
     lines.push(format!(
         "topology: {} subnets {} nodes {} node_operators {} node_providers {} data_centers {}",
-        report.network,
+        sanitize_text(&report.network),
         report.subnet_count,
         report.node_count,
         report.node_operator_count,

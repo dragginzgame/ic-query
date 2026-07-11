@@ -16,7 +16,9 @@ use crate::{
     nns::proposals::report::{
         MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
     },
-    snapshot_cache::{SnapshotCompleteness, SnapshotJsonPaths, write_snapshot_json},
+    snapshot_cache::{
+        SnapshotCompleteness, SnapshotJsonPaths, publish_snapshot_with_attempt, write_snapshot_json,
+    },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
 
@@ -54,16 +56,22 @@ pub(super) fn publish_complete_nns_proposal_cache(
         data: NnsProposalCacheRows { proposals },
     };
     let proposal_count = cache.data.proposals.len();
-    write_snapshot_json(
-        &paths.snapshot_path,
-        &cache,
-        |path, source| NnsProposalHostError::SerializeCache { path, source },
-        NnsProposalHostError::Cache,
-    )?;
-    write_complete_attempt(
-        &paths.refresh_attempt_path,
-        request,
-        NnsProposalAttemptProgress::new(page_count, proposal_count, last_cursor),
+    let attempt_finalization_error = publish_snapshot_with_attempt(
+        || {
+            write_snapshot_json(
+                &paths.snapshot_path,
+                &cache,
+                |path, source| NnsProposalHostError::SerializeCache { path, source },
+                NnsProposalHostError::Cache,
+            )
+        },
+        || {
+            write_complete_attempt(
+                &paths.refresh_attempt_path,
+                request,
+                NnsProposalAttemptProgress::new(page_count, proposal_count, last_cursor),
+            )
+        },
     )?;
     Ok(NnsProposalRefreshReport {
         schema_version: NNS_PROPOSAL_REFRESH_REPORT_SCHEMA_VERSION,
@@ -75,6 +83,7 @@ pub(super) fn publish_complete_nns_proposal_cache(
         complete: true,
         replaced_existing_cache,
         wrote_cache: true,
+        attempt_finalization_error,
         fetched_at,
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: NNS_PROPOSAL_FETCHED_BY.to_string(),

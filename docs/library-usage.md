@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.7", default-features = false, features = ["host"] }
+ic-query = { version = "0.8", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.7", default-features = false }
+ic-query = { version = "0.8", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -52,6 +52,10 @@ The CLI module layout is intentionally mirrored at the family level:
 
 The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
+SNS info, token, and parameter builders share `SnsLookupRequest`; all read-only
+NNS topology builders share `NnsTopologyReadRequest`; SNS cache status reports
+share `SnsRefreshAttemptStatus`. There are no per-report aliases for those
+canonical types.
 The examples below are covered by the `downstream_usage` integration test.
 
 ## Source Adapters

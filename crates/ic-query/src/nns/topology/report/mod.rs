@@ -50,11 +50,7 @@ pub use model::{
     NnsTopologyRefreshRow, NnsTopologyRegionRow, NnsTopologyRegionsReport,
     NnsTopologyRegistryVersionRow, NnsTopologySummaryReport, NnsTopologyVersionsReport,
 };
-pub use request::{
-    NnsTopologyCapacityRequest, NnsTopologyCoverageRequest, NnsTopologyGapsRequest,
-    NnsTopologyHealthRequest, NnsTopologyProvidersRequest, NnsTopologyRefreshRequest,
-    NnsTopologyRegionsRequest, NnsTopologySummaryRequest, NnsTopologyVersionsRequest,
-};
+pub use request::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
 #[cfg(feature = "host")]
 pub use source::{
     LiveNnsTopologySource, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
@@ -70,7 +66,7 @@ pub use text::{
 
 pub const DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT: &str =
     crate::nns::node::report::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
-pub const NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION: u32 = 3;
+pub const NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_COVERAGE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_HEALTH_REPORT_SCHEMA_VERSION: u32 = 1;

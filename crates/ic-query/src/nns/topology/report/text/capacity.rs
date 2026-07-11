@@ -7,11 +7,10 @@
 use crate::{
     nns::{
         render::compact_text,
-        topology::report::{
-            COMPACT_PRINCIPAL_CHARS, NnsTopologyCapacityReport, text::common::optional_u64_text,
-        },
+        topology::report::{COMPACT_PRINCIPAL_CHARS, NnsTopologyCapacityReport},
     },
     table::{ColumnAlign, render_table},
+    text_value::optional_u64_text,
 };
 
 #[must_use]

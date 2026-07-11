@@ -28,8 +28,8 @@ fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     assert_eq!(report.supported_standards[0].name, "ICRC-1");
     assert_eq!(report.metadata[0].key, "icrc1:name");
     assert!(report.metadata.iter().any(|row| row.key == "icrc1:logo"
-        && row.value_type == "bool"
-        && row.value == serde_json::json!(true)));
+        && row.value_type == "text"
+        && row.value == serde_json::json!("data:image/png;base64,fixture")));
     assert!(text.contains("token_symbol: FIX"));
     assert!(text.contains("transfer_fee: 0.00"));
     assert!(text.contains("total_supply: 10.00"));
@@ -40,29 +40,32 @@ fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     assert!(text.contains("icrc1:name"));
     assert!(text.contains("icrc1:fee"));
     assert!(text.contains("icrc1:logo"));
-    assert!(text.contains("true"));
+    assert!(text.contains("present"));
     assert!(!text.contains("data:image"));
 }
 
 #[test]
-fn sns_token_logo_metadata_is_presence_boolean() {
+fn sns_token_logo_metadata_preserves_raw_text() {
     let row = metadata_row(
-        SNS_TOKEN_LOGO_METADATA_KEY.to_string(),
+        "icrc1:logo".to_string(),
         IcrcMetadataValue::Text("data:image/png;base64,large-logo".to_string()),
     );
 
-    assert_eq!(row.key, SNS_TOKEN_LOGO_METADATA_KEY);
-    assert_eq!(row.value_type, "bool");
-    assert_eq!(row.value, serde_json::json!(true));
+    assert_eq!(row.key, "icrc1:logo");
+    assert_eq!(row.value_type, "text");
+    assert_eq!(
+        row.value,
+        serde_json::json!("data:image/png;base64,large-logo")
+    );
 }
 
 #[test]
-fn sns_token_empty_logo_metadata_is_false() {
+fn sns_token_empty_logo_metadata_remains_raw() {
     let row = metadata_row(
-        SNS_TOKEN_LOGO_METADATA_KEY.to_string(),
+        "icrc1:logo".to_string(),
         IcrcMetadataValue::Text(" ".to_string()),
     );
 
-    assert_eq!(row.value_type, "bool");
-    assert_eq!(row.value, serde_json::json!(false));
+    assert_eq!(row.value_type, "text");
+    assert_eq!(row.value, serde_json::json!(" "));
 }

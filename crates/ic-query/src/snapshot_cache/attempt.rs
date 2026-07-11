@@ -31,6 +31,10 @@ pub enum SnapshotRefreshAttemptReadError {
         path: PathBuf,
         source: serde_json::Error,
     },
+    Invalid {
+        path: PathBuf,
+        reason: String,
+    },
 }
 
 ///
@@ -56,17 +60,9 @@ pub struct SnapshotRefreshAttempt<Metadata> {
     pub last_error: Option<String>,
 }
 
-pub fn read_snapshot_refresh_attempt<T>(path: &Path) -> Option<T>
-where
-    T: DeserializeOwned,
-{
-    fs::read(path)
-        .ok()
-        .and_then(|data| serde_json::from_slice(&data).ok())
-}
-
 pub fn read_snapshot_refresh_attempt_strict<T>(
     path: &Path,
+    metadata_fields: &[&str],
 ) -> Result<Option<T>, SnapshotRefreshAttemptReadError>
 where
     T: DeserializeOwned,
@@ -81,12 +77,44 @@ where
             });
         }
     };
-    serde_json::from_slice(&data).map(Some).map_err(|source| {
+    let value: serde_json::Value =
+        serde_json::from_slice(&data).map_err(|source| SnapshotRefreshAttemptReadError::Parse {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    if let Some(object) = value.as_object()
+        && let Some(field) = object
+            .keys()
+            .find(|field| !attempt_field_is_supported(field, metadata_fields))
+    {
+        return Err(SnapshotRefreshAttemptReadError::Invalid {
+            path: path.to_path_buf(),
+            reason: format!("unknown field {field}"),
+        });
+    }
+    serde_json::from_value(value).map(Some).map_err(|source| {
         SnapshotRefreshAttemptReadError::Parse {
             path: path.to_path_buf(),
             source,
         }
     })
+}
+
+fn attempt_field_is_supported(field: &str, metadata_fields: &[&str]) -> bool {
+    matches!(
+        field,
+        "schema_version"
+            | "network"
+            | "source_endpoint"
+            | "started_at"
+            | "updated_at"
+            | "status"
+            | "page_size"
+            | "pages_fetched"
+            | "rows_fetched"
+            | "last_cursor"
+            | "last_error"
+    ) || metadata_fields.contains(&field)
 }
 
 pub fn write_snapshot_refresh_attempt<T, Error>(
@@ -106,4 +134,48 @@ pub fn current_attempt_timestamp(fallback: &str) -> String {
         |_| fallback.to_string(),
         |duration| crate::subnet_catalog::format_utc_timestamp_secs(duration.as_secs()),
     )
+}
+
+pub fn validate_snapshot_refresh_attempt<Metadata>(
+    attempt: &SnapshotRefreshAttempt<Metadata>,
+    expected_network: &str,
+) -> Result<(), String> {
+    if attempt.schema_version != SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION {
+        return Err(format!(
+            "schema_version is {}, expected {}",
+            attempt.schema_version, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION
+        ));
+    }
+    if attempt.network != expected_network {
+        return Err(format!(
+            "network is {}, expected {expected_network}",
+            attempt.network
+        ));
+    }
+    if attempt.source_endpoint.is_empty() {
+        return Err("source_endpoint must not be empty".to_string());
+    }
+    if attempt.started_at.is_empty() || attempt.updated_at.is_empty() {
+        return Err("attempt timestamps must not be empty".to_string());
+    }
+    if attempt.page_size == 0 {
+        return Err("page_size must be greater than zero".to_string());
+    }
+    if attempt.pages_fetched == 0 && (attempt.rows_fetched != 0 || attempt.last_cursor.is_some()) {
+        return Err("zero-page attempt contains row or cursor progress".to_string());
+    }
+    match attempt.status.as_str() {
+        "running" | "complete" if attempt.last_error.is_none() => Ok(()),
+        "failed"
+            if attempt
+                .last_error
+                .as_deref()
+                .is_some_and(|error| !error.trim().is_empty()) =>
+        {
+            Ok(())
+        }
+        "running" | "complete" => Err(format!("{} attempt contains last_error", attempt.status)),
+        "failed" => Err("failed attempt must contain last_error".to_string()),
+        _ => Err(format!("unsupported attempt status {}", attempt.status)),
+    }
 }

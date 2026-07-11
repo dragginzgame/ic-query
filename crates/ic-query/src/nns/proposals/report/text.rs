@@ -14,6 +14,7 @@ use super::model::{
 };
 use crate::{
     table::{ColumnAlign, render_table},
+    text_value::{optional_u64_text, sanitize_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
@@ -22,7 +23,7 @@ const NNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;
 #[must_use]
 pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("requested_limit: {}", report.requested_limit),
         format!(
@@ -38,20 +39,23 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
         ),
         format!(
             "query_filter: {}",
-            report.query_filter.as_deref().unwrap_or("-")
+            sanitize_text(report.query_filter.as_deref().unwrap_or("-"))
         ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
         format!("result_scope: {}", report.result_scope),
         format!("verbose: {}", yes_no(report.verbose)),
         format!("proposal_count: {}", report.proposal_count),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
-        format!("data_source: {}", report.data_source),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
+        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
+        format!("data_source: {}", sanitize_text(&report.data_source)),
     ];
     if let Some(cache_path) = report.cache_path.as_ref() {
-        lines.push(format!("cache_path: {cache_path}"));
+        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }
     if let Some(cache_complete) = report.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
@@ -96,18 +100,21 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
 pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
     let proposal = &report.proposal;
     let mut lines = vec![
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("proposal_id: {}", report.proposal_id),
         format!("show_ballots: {}", yes_no(report.show_ballots)),
         format!("verbose: {}", yes_no(report.verbose)),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
-        format!("data_source: {}", report.data_source),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
+        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
+        format!("data_source: {}", sanitize_text(&report.data_source)),
     ];
     if let Some(cache_path) = report.cache_path.as_ref() {
-        lines.push(format!("cache_path: {cache_path}"));
+        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }
     if let Some(cache_complete) = report.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
@@ -135,7 +142,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
 #[cfg(feature = "host")]
 pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> String {
     [
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("proposal_count: {}", report.proposal_count),
         format!("page_size: {}", report.page_size),
@@ -146,12 +153,29 @@ pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> St
             yes_no(report.replaced_existing_cache)
         ),
         format!("wrote_cache: {}", yes_no(report.wrote_cache)),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
-        format!("cache_path: {}", report.cache_path),
-        format!("refresh_attempt_path: {}", report.refresh_attempt_path),
-        format!("refresh_lock_path: {}", report.refresh_lock_path),
+        format!(
+            "attempt_finalized: {}",
+            yes_no(report.attempt_finalization_error.is_none())
+        ),
+        format!(
+            "attempt_finalization_error: {}",
+            sanitize_text(report.attempt_finalization_error.as_deref().unwrap_or("-"))
+        ),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
+        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
+        format!("cache_path: {}", sanitize_text(&report.cache_path)),
+        format!(
+            "refresh_attempt_path: {}",
+            sanitize_text(&report.refresh_attempt_path)
+        ),
+        format!(
+            "refresh_lock_path: {}",
+            sanitize_text(&report.refresh_lock_path)
+        ),
     ]
     .join("\n")
 }
@@ -160,8 +184,8 @@ pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> St
 #[cfg(feature = "host")]
 pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
-        format!("cache_root: {}", report.cache_root),
+        format!("network: {}", sanitize_text(&report.network)),
+        format!("cache_root: {}", sanitize_text(&report.cache_root)),
         format!("cache_count: {}", report.cache_count),
     ];
     if !report.caches.is_empty() {
@@ -191,7 +215,11 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
         ));
         for cache in &report.caches {
             if let Some(error) = cache.cache_error.as_ref() {
-                lines.push(format!("cache_error: {}: {error}", cache.cache_path));
+                lines.push(format!(
+                    "cache_error: {}: {}",
+                    sanitize_text(&cache.cache_path),
+                    sanitize_text(error)
+                ));
             }
         }
     }
@@ -202,11 +230,17 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
 #[cfg(feature = "host")]
 pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
-        format!("cache_root: {}", report.cache_root),
+        format!("network: {}", sanitize_text(&report.network)),
+        format!("cache_root: {}", sanitize_text(&report.cache_root)),
         format!("found: {}", yes_no(report.found)),
-        format!("expected_cache_path: {}", report.expected_cache_path),
-        format!("refresh_attempt_path: {}", report.refresh_attempt_path),
+        format!(
+            "expected_cache_path: {}",
+            sanitize_text(&report.expected_cache_path)
+        ),
+        format!(
+            "refresh_attempt_path: {}",
+            sanitize_text(&report.refresh_attempt_path)
+        ),
     ];
     if let Some(cache) = report.cache.as_ref() {
         lines.extend([
@@ -216,12 +250,12 @@ pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusRepo
             format!("row_count: {}", cache.row_count),
             format!("page_count: {}", cache.page_count),
             format!("page_size: {}", cache.page_size),
-            format!("fetched_at: {}", cache.fetched_at),
-            format!("source_endpoint: {}", cache.source_endpoint),
-            format!("cache_path: {}", cache.cache_path),
+            format!("fetched_at: {}", sanitize_text(&cache.fetched_at)),
+            format!("source_endpoint: {}", sanitize_text(&cache.source_endpoint)),
+            format!("cache_path: {}", sanitize_text(&cache.cache_path)),
         ]);
         if let Some(error) = cache.cache_error.as_ref() {
-            lines.push(format!("cache_error: {error}"));
+            lines.push(format!("cache_error: {}", sanitize_text(error)));
         }
     } else {
         lines.push("refresh_hint: icq nns proposal refresh".to_string());
@@ -240,35 +274,47 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
             "proposer_neuron_id: {}",
             optional_u64_text(proposal.proposer_neuron_id)
         ),
-        format!("topic: {} ({})", proposal.topic_text, proposal.topic),
-        format!("status: {} ({})", proposal.status_text, proposal.status),
+        format!(
+            "topic: {} ({})",
+            sanitize_text(&proposal.topic_text),
+            proposal.topic
+        ),
+        format!(
+            "status: {} ({})",
+            sanitize_text(&proposal.status_text),
+            proposal.status
+        ),
         format!(
             "reward_status: {} ({})",
-            proposal.reward_status_text, proposal.reward_status
+            sanitize_text(&proposal.reward_status_text),
+            proposal.reward_status
         ),
-        format!("action: {}", proposal.action_text.as_deref().unwrap_or("-")),
+        format!(
+            "action: {}",
+            sanitize_text(proposal.action_text.as_deref().unwrap_or("-"))
+        ),
         format!("title: {}", proposal_title(proposal)),
-        format!("url: {}", empty_text(&proposal.url)),
+        format!("url: {}", sanitize_text(empty_text(&proposal.url))),
         format!(
             "reject_cost: {}",
             e8s_decimal_text(proposal.reject_cost_e8s)
         ),
-        format!("proposed_at: {}", proposal.proposed_at),
+        format!("proposed_at: {}", sanitize_text(&proposal.proposed_at)),
         format!(
             "deadline_at: {}",
-            proposal.deadline_at.as_deref().unwrap_or("-")
+            sanitize_text(proposal.deadline_at.as_deref().unwrap_or("-"))
         ),
         format!(
             "decided_at: {}",
-            proposal.decided_at.as_deref().unwrap_or("-")
+            sanitize_text(proposal.decided_at.as_deref().unwrap_or("-"))
         ),
         format!(
             "executed_at: {}",
-            proposal.executed_at.as_deref().unwrap_or("-")
+            sanitize_text(proposal.executed_at.as_deref().unwrap_or("-"))
         ),
         format!(
             "failed_at: {}",
-            proposal.failed_at.as_deref().unwrap_or("-")
+            sanitize_text(proposal.failed_at.as_deref().unwrap_or("-"))
         ),
         format!("reward_event_round: {}", proposal.reward_event_round),
         format!(
@@ -292,12 +338,13 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
 }
 
 fn proposal_title(proposal: &NnsProposalRow) -> String {
-    proposal
+    let title = proposal
         .title
         .as_ref()
         .filter(|title| !title.trim().is_empty())
         .cloned()
-        .unwrap_or_else(|| "-".to_string())
+        .unwrap_or_else(|| "-".to_string());
+    sanitize_text(&title)
 }
 
 fn empty_text(value: &str) -> &str {
@@ -309,22 +356,7 @@ fn proposal_detail_text(value: &str, limit: Option<usize>) -> String {
     if value == "-" {
         return value.to_string();
     }
-    limit.map_or_else(
-        || value.to_string(),
-        |limit| truncate_text_value(value, limit),
-    )
-}
-
-fn truncate_text_value(value: &str, limit: usize) -> String {
-    if value.chars().count() <= limit {
-        return value.to_string();
-    }
-    let truncated = value.chars().take(limit).collect::<String>();
-    format!("{truncated}...")
-}
-
-fn optional_u64_text(value: Option<u64>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+    limit.map_or_else(|| sanitize_text(value), |limit| truncate_text(value, limit))
 }
 
 fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
@@ -352,22 +384,18 @@ fn attempt_lines(attempt: &NnsProposalRefreshAttemptStatus) -> [String; 9] {
     [
         "latest_attempt:".to_string(),
         format!("  status: {}", attempt.status),
-        format!("  started_at: {}", attempt.started_at),
-        format!("  updated_at: {}", attempt.updated_at),
+        format!("  started_at: {}", sanitize_text(&attempt.started_at)),
+        format!("  updated_at: {}", sanitize_text(&attempt.updated_at)),
         format!("  page_size: {}", attempt.page_size),
         format!("  pages_fetched: {}", attempt.pages_fetched),
         format!("  rows_fetched: {}", attempt.rows_fetched),
         format!(
             "  last_cursor: {}",
-            attempt.last_cursor.as_deref().unwrap_or("-")
+            sanitize_text(attempt.last_cursor.as_deref().unwrap_or("-"))
         ),
         format!(
             "  last_error: {}",
-            attempt.last_error.as_deref().unwrap_or("-")
+            sanitize_text(attempt.last_error.as_deref().unwrap_or("-"))
         ),
     ]
-}
-
-const fn yes_no(value: bool) -> &'static str {
-    if value { "yes" } else { "no" }
 }

@@ -318,11 +318,10 @@ fn neuron_stake_sort_orders_highest_stake_first_with_id_tiebreaker() {
 }
 
 #[test]
-fn proposal_before_filter_requires_lower_present_id() {
+fn proposal_before_filter_requires_a_lower_id() {
     assert!(proposal_matches_before(&proposal_row(9, 100), Some(10)));
     assert!(!proposal_matches_before(&proposal_row(10, 100), Some(10)));
-    assert!(proposal_matches_before(&proposal_without_id(), None));
-    assert!(!proposal_matches_before(&proposal_without_id(), Some(10)));
+    assert!(proposal_matches_before(&proposal_row(10, 100), None));
 }
 
 #[test]
@@ -429,7 +428,7 @@ fn proposal_query_filter_matches_searchable_text_fields() {
 fn proposal_ids(proposals: &[SnsProposalRow]) -> Vec<u64> {
     proposals
         .iter()
-        .filter_map(|proposal| proposal.proposal_id)
+        .map(|proposal| proposal.proposal_id)
         .collect()
 }
 
@@ -472,13 +471,6 @@ fn neuron_row(
         staked_maturity_e8s_equivalent: None,
         created_timestamp_seconds,
         created_at: created_timestamp_seconds.to_string(),
-    }
-}
-
-fn proposal_without_id() -> SnsProposalRow {
-    SnsProposalRow {
-        proposal_id: None,
-        ..proposal_row(1, 100)
     }
 }
 
@@ -537,7 +529,7 @@ fn proposal_row_with_topic(proposal_id: u64, topic: Option<&str>) -> SnsProposal
 
 fn proposal_with_decision_state_and_id(proposal_id: u64, decision_state: &str) -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(proposal_id),
+        proposal_id,
         decision_state: decision_state.to_string(),
         ..proposal_row(proposal_id, 100)
     }
@@ -608,7 +600,7 @@ fn proposal_row_with_decision(
     decided_timestamp_seconds: Option<u64>,
 ) -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(proposal_id),
+        proposal_id,
         decided_timestamp_seconds,
         decided_at: decided_timestamp_seconds.map(|value| value.to_string()),
         ..proposal_row(proposal_id, 100)
@@ -620,7 +612,7 @@ fn proposal_row_with_execution(
     executed_timestamp_seconds: Option<u64>,
 ) -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(proposal_id),
+        proposal_id,
         executed_timestamp_seconds,
         executed_at: executed_timestamp_seconds.map(|value| value.to_string()),
         ..proposal_row(proposal_id, 100)
@@ -632,7 +624,7 @@ fn proposal_row_with_failure(
     failed_timestamp_seconds: Option<u64>,
 ) -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(proposal_id),
+        proposal_id,
         failed_timestamp_seconds,
         failed_at: failed_timestamp_seconds.map(|value| value.to_string()),
         ..proposal_row(proposal_id, 100)
@@ -641,7 +633,7 @@ fn proposal_row_with_failure(
 
 fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(proposal_id),
+        proposal_id,
         action_id: 0,
         action: "motion".to_string(),
         title: String::new(),

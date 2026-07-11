@@ -27,15 +27,15 @@ use ic_query::sns::{
     sns_proposals_refresh_lock_path, sns_proposals_refresh_report_text,
 };
 use ic_query::sns::{
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsInfoRequest,
-    SnsListReport, SnsListRequest, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList,
-    SnsParamsReport, SnsParamsRequest, SnsProposalBallotRow, SnsProposalEligibilityFilter,
-    SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
-    SnsTokenRequest, SnsTokenStandardRow, SnsVotingRewardsParameters, sns_info_report_text,
-    sns_list_report_text, sns_params_report_text, sns_proposal_report_text,
-    sns_proposals_report_text, sns_token_report_text,
+    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
+    SnsListRequest, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList, SnsParamsReport,
+    SnsProposalBallotRow, SnsProposalEligibilityFilter, SnsProposalFailureReason,
+    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
+    SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
+    SnsTokenStandardRow, SnsVotingRewardsParameters, sns_info_report_text, sns_list_report_text,
+    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
+    sns_token_report_text,
 };
 use serde_json::json;
 #[cfg(feature = "host")]
@@ -60,11 +60,11 @@ const SAMPLE_SNS_FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 #[cfg(feature = "host")]
 type SnsListBuilder = fn(&SnsListRequest) -> Result<SnsListReport, SnsHostError>;
 #[cfg(feature = "host")]
-type SnsInfoBuilder = fn(&SnsInfoRequest) -> Result<SnsInfoReport, SnsHostError>;
+type SnsInfoBuilder = fn(&SnsLookupRequest) -> Result<SnsInfoReport, SnsHostError>;
 #[cfg(feature = "host")]
-type SnsTokenBuilder = fn(&SnsTokenRequest) -> Result<SnsTokenReport, SnsHostError>;
+type SnsTokenBuilder = fn(&SnsLookupRequest) -> Result<SnsTokenReport, SnsHostError>;
 #[cfg(feature = "host")]
-type SnsParamsBuilder = fn(&SnsParamsRequest) -> Result<SnsParamsReport, SnsHostError>;
+type SnsParamsBuilder = fn(&SnsLookupRequest) -> Result<SnsParamsReport, SnsHostError>;
 #[cfg(feature = "host")]
 type SnsProposalsBuilder = fn(&SnsProposalsRequest) -> Result<SnsProposalsReport, SnsHostError>;
 #[cfg(feature = "host")]
@@ -89,7 +89,7 @@ fn public_sns_request_constructors_set_expected_fields() {
 
     let lookup = SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1");
     assert_eq!(lookup.input, "1");
-    let token = SnsTokenRequest::new(
+    let token = SnsLookupRequest::new(
         "ic",
         "https://icp-api.io",
         1_700_000_000,
@@ -140,7 +140,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
     assert_eq!(request.sort.as_str(), "id");
 
     let report = SnsListReport {
-        schema_version: 3,
+        schema_version: 1,
         network: request.network,
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -161,7 +161,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_sns_info_api_is_constructible_and_renderable() {
-    let request = SnsInfoRequest {
+    let request = SnsLookupRequest {
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_700_000_000,
@@ -169,7 +169,7 @@ fn public_sns_info_api_is_constructible_and_renderable() {
     };
 
     let report = SnsInfoReport {
-        schema_version: 2,
+        schema_version: 1,
         network: request.network,
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -198,7 +198,7 @@ fn public_sns_info_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_sns_token_api_is_constructible_and_renderable() {
-    let request = SnsTokenRequest {
+    let request = SnsLookupRequest {
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_700_000_000,
@@ -247,7 +247,7 @@ fn public_sns_token_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_sns_params_api_is_constructible_and_renderable() {
-    let request = SnsParamsRequest {
+    let request = SnsLookupRequest {
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_700_000_000,
@@ -305,7 +305,7 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
     assert_eq!(request.topic.as_str(), "governance");
 
     let report = SnsProposalsReport {
-        schema_version: 10,
+        schema_version: 1,
         network: request.network,
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -357,7 +357,7 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
     };
 
     let report = SnsProposalReport {
-        schema_version: 5,
+        schema_version: 1,
         network: request.network,
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -418,11 +418,11 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
     assert_eq!(list.sns_count, 1);
     assert_eq!(list.sns_instances[0].id, 1);
 
-    let info_request = SnsInfoRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
+    let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
     let info = build_sns_info_report_with_source(&info_request, &source)?;
     assert_eq!(info.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
 
-    let token_request = SnsTokenRequest::new(
+    let token_request = SnsLookupRequest::new(
         "ic",
         DEFAULT_SNS_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -432,7 +432,7 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
     assert_eq!(token.token_symbol, "EXT");
 
     let params_request =
-        SnsParamsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
+        SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
     let params = build_sns_params_report_with_source(&params_request, &source)?;
     assert_eq!(
         params.parameters.neuron_minimum_stake_e8s,
@@ -450,7 +450,7 @@ fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), S
         SnsProposalRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1", 42)
             .with_show_ballots(true);
     let detail = build_sns_proposal_report_with_source(&detail_request, &source)?;
-    assert_eq!(detail.proposal.proposal_id, Some(42));
+    assert_eq!(detail.proposal.proposal_id, 42);
     assert_eq!(detail.data_source, "live");
 
     let list_request =
@@ -771,7 +771,6 @@ impl SnsProposalsSource for FixtureSnsSource {
         assert_eq!(before_proposal_id, None);
         Ok(MainnetSnsProposalPage {
             proposals: vec![sample_sns_proposal_row()],
-            last_cursor: Some(42),
         })
     }
 }
@@ -992,6 +991,7 @@ fn sample_sns_neurons_refresh_report(
         complete: true,
         replaced_existing_cache: false,
         wrote_cache: true,
+        attempt_finalization_error: None,
     }
 }
 
@@ -1021,12 +1021,13 @@ fn sample_sns_proposals_refresh_report(
         complete: true,
         replaced_existing_cache: false,
         wrote_cache: true,
+        attempt_finalization_error: None,
     }
 }
 
 fn sample_sns_proposal_row() -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(42),
+        proposal_id: 42,
         action_id: 7,
         action: "UpgradeSnsControlledCanister".to_string(),
         title: "Upgrade SNS".to_string(),

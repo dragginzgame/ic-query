@@ -1,22 +1,20 @@
 use crate::nns::topology::report::{
-    LiveNnsTopologySource, NnsTopologyCapacityReport, NnsTopologyCapacityRequest,
-    NnsTopologyGapsReport, NnsTopologyGapsRequest, NnsTopologyHostError,
-    NnsTopologyProvidersReport, NnsTopologyProvidersRequest, NnsTopologyRegionsReport,
-    NnsTopologyRegionsRequest, NnsTopologySource, capacity::topology_capacity_report_from_report,
-    enforce_mainnet_network, gaps::topology_gaps_report_from_reports,
-    providers::topology_providers_report_from_reports,
+    LiveNnsTopologySource, NnsTopologyCapacityReport, NnsTopologyGapsReport, NnsTopologyHostError,
+    NnsTopologyProvidersReport, NnsTopologyReadRequest, NnsTopologyRegionsReport,
+    NnsTopologySource, capacity::topology_capacity_report_from_report, enforce_mainnet_network,
+    gaps::topology_gaps_report_from_reports, providers::topology_providers_report_from_reports,
     regions::topology_regions_report_from_report, request::TopologyRequestParts,
     source::topology_source_request_from,
 };
 
 pub fn build_nns_topology_gaps_report(
-    request: &NnsTopologyGapsRequest,
+    request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyGapsReport, NnsTopologyHostError> {
     build_nns_topology_gaps_report_with_source(request, &LiveNnsTopologySource)
 }
 
 pub fn build_nns_topology_gaps_report_with_source(
-    request: &NnsTopologyGapsRequest,
+    request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyGapsReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
@@ -38,13 +36,13 @@ pub fn build_nns_topology_gaps_report_with_source(
 }
 
 pub fn build_nns_topology_capacity_report(
-    request: &NnsTopologyCapacityRequest,
+    request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyCapacityReport, NnsTopologyHostError> {
     build_nns_topology_capacity_report_with_source(request, &LiveNnsTopologySource)
 }
 
 pub fn build_nns_topology_capacity_report_with_source(
-    request: &NnsTopologyCapacityRequest,
+    request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCapacityReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
@@ -60,13 +58,13 @@ pub fn build_nns_topology_capacity_report_with_source(
 }
 
 pub fn build_nns_topology_regions_report(
-    request: &NnsTopologyRegionsRequest,
+    request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyRegionsReport, NnsTopologyHostError> {
     build_nns_topology_regions_report_with_source(request, &LiveNnsTopologySource)
 }
 
 pub fn build_nns_topology_regions_report_with_source(
-    request: &NnsTopologyRegionsRequest,
+    request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyRegionsReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
@@ -82,13 +80,13 @@ pub fn build_nns_topology_regions_report_with_source(
 }
 
 pub fn build_nns_topology_providers_report(
-    request: &NnsTopologyProvidersRequest,
+    request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyProvidersReport, NnsTopologyHostError> {
     build_nns_topology_providers_report_with_source(request, &LiveNnsTopologySource)
 }
 
 pub fn build_nns_topology_providers_report_with_source(
-    request: &NnsTopologyProvidersRequest,
+    request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyProvidersReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;

@@ -7,15 +7,15 @@
 #[cfg(feature = "host")]
 use crate::sns::report::SnsCacheSummarySortKey;
 use crate::{
-    duration::display_duration_seconds, sns::report::SnsNeuronPermissionList,
+    duration::display_duration_seconds,
+    sns::report::SnsNeuronPermissionList,
+    text_value::{sanitize_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 
-pub(in crate::sns::report::text) use crate::token_metadata_text::{
-    optional_text, truncate_text_value,
-};
+pub(in crate::sns::report::text) use crate::token_metadata_text::optional_text;
 
 pub(in crate::sns::report::text) fn optional_e8s_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
@@ -36,10 +36,6 @@ pub(in crate::sns::report::text) fn optional_percentage_text(value: Option<u64>)
 
 pub(in crate::sns::report::text) fn optional_basis_points_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), basis_points_text)
-}
-
-pub(in crate::sns::report::text) fn optional_u64_text(value: Option<u64>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| value.to_string())
 }
 
 pub(in crate::sns::report::text) fn optional_u32_text(value: Option<u32>) -> String {
@@ -91,9 +87,9 @@ pub(in crate::sns::report::text) fn push_report_provenance_lines(
     cache_path: Option<&str>,
     cache_complete: Option<bool>,
 ) {
-    lines.push(format!("data_source: {data_source}"));
+    lines.push(format!("data_source: {}", sanitize_text(data_source)));
     if let Some(cache_path) = cache_path {
-        lines.push(format!("cache_path: {cache_path}"));
+        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }
     if let Some(cache_complete) = cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
@@ -106,14 +102,14 @@ where
     T: SnsCacheSummarySortKey,
 {
     lines.extend(caches.iter().filter_map(|cache| {
-        cache
-            .cache_error()
-            .map(|error| format!("cache_error: {}: {error}", cache.cache_path()))
+        cache.cache_error().map(|error| {
+            format!(
+                "cache_error: {}: {}",
+                sanitize_text(cache.cache_path()),
+                sanitize_text(error)
+            )
+        })
     }));
-}
-
-pub(in crate::sns::report::text) const fn yes_no(value: bool) -> &'static str {
-    if value { "yes" } else { "no" }
 }
 
 fn basis_points_text(value: u64) -> String {

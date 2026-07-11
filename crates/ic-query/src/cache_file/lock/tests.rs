@@ -35,6 +35,34 @@ fn corrupted_stale_refresh_lock_requires_manual_cleanup() {
 }
 
 #[test]
+fn refresh_lock_rejects_unknown_fields() {
+    let fixture = LockFixture::new("ic-query-refresh-lock-unknown-field");
+    let mut lock = fixture.valid_lock_value(100_000);
+    lock["unexpected"] = json!(true);
+    fixture.write_lock_value(&lock);
+
+    let err = acquire_refresh_lock(fixture.request(120)).expect_err("unknown field is rejected");
+
+    assert_parse_refresh_lock_error(err, &fixture.lock_path);
+    assert!(fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
+#[test]
+fn refresh_lock_rejects_mismatched_identity() {
+    let fixture = LockFixture::new("ic-query-refresh-lock-wrong-network");
+    let mut lock = fixture.valid_lock_value(100_000);
+    lock["network"] = json!("local");
+    fixture.write_lock_value(&lock);
+
+    let err = acquire_refresh_lock(fixture.request(120)).expect_err("wrong network is rejected");
+
+    assert!(matches!(err, CacheFileError::InvalidRefreshLock { .. }));
+    assert!(fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
+#[test]
 fn stale_valid_refresh_lock_requires_manual_cleanup() {
     let fixture = LockFixture::new("ic-query-stale-valid-refresh-lock");
     fixture.write_valid_lock(1);
@@ -110,16 +138,23 @@ impl LockFixture {
     }
 
     fn write_valid_lock(&self, started_at_unix_ms: u64) {
+        self.write_lock_value(&self.valid_lock_value(started_at_unix_ms));
+    }
+
+    fn valid_lock_value(&self, started_at_unix_ms: u64) -> serde_json::Value {
+        json!({
+            "schema_version": 1,
+            "network": NETWORK,
+            "pid": 999_999,
+            "started_at_unix_ms": started_at_unix_ms,
+            "target_path": self.target_path.display().to_string(),
+        })
+    }
+
+    fn write_lock_value(&self, value: &serde_json::Value) {
         fs::write(
             &self.lock_path,
-            serde_json::to_vec_pretty(&json!({
-                "schema_version": 1,
-                "network": NETWORK,
-                "pid": 999_999,
-                "started_at_unix_ms": started_at_unix_ms,
-                "target_path": self.target_path.display().to_string(),
-            }))
-            .expect("serialize lock"),
+            serde_json::to_vec_pretty(value).expect("serialize lock"),
         )
         .expect("write lock");
     }

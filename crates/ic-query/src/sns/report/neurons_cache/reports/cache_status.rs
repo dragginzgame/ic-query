@@ -6,7 +6,7 @@
 
 use crate::sns::report::{
     SnsHostError, SnsNeuronsCacheStatusReport, SnsNeuronsCacheStatusRequest,
-    SnsNeuronsCacheSummary, SnsNeuronsRefreshAttemptStatus,
+    SnsNeuronsCacheSummary, SnsRefreshAttemptStatus,
     cache_status::{
         SnsCacheStatusFamily, SnsCacheStatusPaths, SnsCacheStatusSummaryView,
         build_sns_cache_status_lookup,
@@ -45,7 +45,7 @@ fn cache_status_report(
     cache: Option<SnsNeuronsCacheSummary>,
     expected_cache_path: Option<String>,
     refresh_attempt_path: Option<String>,
-    latest_attempt: Option<SnsNeuronsRefreshAttemptStatus>,
+    latest_attempt: Option<SnsRefreshAttemptStatus>,
 ) -> SnsNeuronsCacheStatusReport {
     SnsNeuronsCacheStatusReport {
         schema_version: SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
@@ -63,8 +63,10 @@ fn cache_status_report(
 struct SnsNeuronsCacheStatusFamily;
 
 impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
-    type Attempt = SnsNeuronsRefreshAttemptStatus;
+    type Attempt = SnsRefreshAttemptStatus;
     type Summary = SnsNeuronsCacheSummary;
+
+    const COLLECTION: &'static str = "neurons";
 
     fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
         sns_network_cache_dir(icp_root, network)
@@ -100,8 +102,11 @@ impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
         Ok(load_sns_neurons_cache_summary_at(cache_path, network))
     }
 
-    fn read_attempt_status(attempt_path: &Path) -> Result<Option<Self::Attempt>, SnsHostError> {
-        read_sns_neurons_attempt_status_strict(attempt_path)
+    fn read_attempt_status(
+        attempt_path: &Path,
+        network: &str,
+    ) -> Result<Option<Self::Attempt>, SnsHostError> {
+        read_sns_neurons_attempt_status_strict(attempt_path, network)
     }
 }
 

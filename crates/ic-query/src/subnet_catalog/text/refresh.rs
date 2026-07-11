@@ -1,16 +1,25 @@
-use crate::{nns::render::yes_no, subnet_catalog::SubnetCatalogRefreshReport};
+use crate::{
+    subnet_catalog::SubnetCatalogRefreshReport,
+    text_value::{sanitize_text, yes_no},
+};
 
 #[must_use]
 pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -> String {
     [
-        format!("network: {}", report.network),
-        format!("catalog_path: {}", report.catalog_path),
-        format!("refresh_lock_path: {}", report.refresh_lock_path),
+        format!("network: {}", sanitize_text(&report.network)),
+        format!("catalog_path: {}", sanitize_text(&report.catalog_path)),
+        format!(
+            "refresh_lock_path: {}",
+            sanitize_text(&report.refresh_lock_path)
+        ),
         format!("registry_canister_id: {}", report.registry_canister_id),
         format!("registry_version: {}", report.registry_version),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
-        format!("fetched_by: {}", report.fetched_by),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
+        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
         format!("dry_run: {}", yes_no(report.dry_run)),
         format!("wrote_catalog: {}", yes_no(report.wrote_catalog)),
         format!(

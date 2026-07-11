@@ -105,6 +105,16 @@ pub enum NnsLeafHostCacheError {
         source: serde_json::Error,
     },
 
+    #[error(
+        "invalid {component} refresh lock at {}; remove the lock manually after verifying no refresh is running: {reason}",
+        path.display()
+    )]
+    InvalidRefreshLock {
+        component: &'static str,
+        path: PathBuf,
+        reason: String,
+    },
+
     #[error("failed to serialize {component} refresh lock at {}: {source}", path.display())]
     SerializeRefreshLock {
         component: &'static str,
@@ -252,6 +262,11 @@ impl NnsLeafHostCacheError {
                 component,
                 path,
                 source,
+            },
+            CacheFileError::InvalidRefreshLock { path, reason } => Self::InvalidRefreshLock {
+                component,
+                path,
+                reason,
             },
             CacheFileError::SerializeRefreshLock { path, source } => Self::SerializeRefreshLock {
                 component,

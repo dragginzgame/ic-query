@@ -57,8 +57,8 @@ impl SnsTokenSource for FixtureSnsTokenSource {
                 },
                 SnsTokenMetadataRow {
                     key: "icrc1:logo".to_string(),
-                    value_type: "bool".to_string(),
-                    value: serde_json::json!(true),
+                    value_type: "text".to_string(),
+                    value: serde_json::json!("data:image/png;base64,fixture"),
                 },
             ],
         })

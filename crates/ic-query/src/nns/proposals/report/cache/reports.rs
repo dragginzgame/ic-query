@@ -36,9 +36,11 @@ use crate::{
     snapshot_cache::{
         SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotCompleteness,
         SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key,
+        validate_snapshot_completeness,
     },
 };
 use std::{
+    collections::HashSet,
     io,
     path::{Path, PathBuf},
 };
@@ -83,7 +85,7 @@ pub fn build_nns_proposal_cache_status_report(
     } else {
         None
     };
-    let latest_attempt = read_attempt_status_strict(&paths.refresh_attempt_path)?;
+    let latest_attempt = read_attempt_status_strict(&paths.refresh_attempt_path, &request.network)?;
     Ok(NnsProposalCacheStatusReport {
         schema_version: NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
@@ -146,7 +148,7 @@ fn load_nns_proposal_cache(
     network: &str,
 ) -> Result<NnsProposalCache, NnsProposalHostError> {
     let key = SnapshotKey::full("nns", network, "governance", "proposals");
-    load_complete_snapshot_for_key(
+    let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
             path: cache_path.clone(),
             network,
@@ -155,8 +157,38 @@ fn load_nns_proposal_cache(
         &key,
         NnsProposalCacheErrors,
         incomplete_snapshot_error,
-        |mismatch| nns_identity_mismatch_error(cache_path, mismatch),
-    )
+        |mismatch| nns_identity_mismatch_error(cache_path.clone(), mismatch),
+    )?;
+    validate_nns_proposal_cache(&cache_path, &cache)?;
+    Ok(cache)
+}
+
+fn validate_nns_proposal_cache(
+    path: &Path,
+    cache: &NnsProposalCache,
+) -> Result<(), NnsProposalHostError> {
+    let invalid = |reason| NnsProposalHostError::InvalidCache {
+        path: path.to_path_buf(),
+        reason,
+    };
+    validate_snapshot_completeness(&cache.completeness, cache.data.proposals.len())
+        .map_err(invalid)?;
+    if cache.metadata.governance_canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
+        return Err(invalid(format!(
+            "governance_canister_id is {}, expected {MAINNET_GOVERNANCE_CANISTER_ID}",
+            cache.metadata.governance_canister_id
+        )));
+    }
+    let mut proposal_ids = HashSet::new();
+    for proposal in &cache.data.proposals {
+        let proposal_id = proposal
+            .proposal_id
+            .ok_or_else(|| invalid("cache contains a proposal without an id".to_string()))?;
+        if !proposal_ids.insert(proposal_id) {
+            return Err(invalid(format!("duplicate proposal id {proposal_id}")));
+        }
+    }
+    Ok(())
 }
 
 fn nns_proposal_list_report_from_cache(

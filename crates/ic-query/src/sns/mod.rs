@@ -5,15 +5,14 @@ mod commands;
 
 pub use report::{
     DEFAULT_SNS_SOURCE_ENDPOINT, MAINNET_SNS_WASM_CANISTER_ID, SnsCustomProposalCriticality,
-    SnsGovernanceParameters, SnsInfoReport, SnsInfoRequest, SnsListReport, SnsListRequest,
-    SnsListRow, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList, SnsParamsReport,
-    SnsParamsRequest, SnsProposalBallotRow, SnsProposalEligibilityFilter, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
-    SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest,
-    SnsTokenStandardRow, SnsVotingRewardsParameters, sns_info_report_text, sns_list_report_text,
-    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
-    sns_token_report_text,
+    SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRequest, SnsListRow, SnsListSort,
+    SnsLookupRequest, SnsNeuronPermissionList, SnsParamsReport, SnsProposalBallotRow,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow, SnsVotingRewardsParameters,
+    sns_info_report_text, sns_list_report_text, sns_params_report_text, sns_proposal_report_text,
+    sns_proposals_report_text, sns_token_report_text,
 };
 
 #[cfg(feature = "host")]
@@ -23,14 +22,14 @@ pub use report::{
     MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
     MainnetSnsProposals, MainnetSnsToken, SnsHostError, SnsListSource, SnsNeuronId, SnsNeuronRow,
     SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusReport,
-    SnsNeuronsCacheStatusRequest, SnsNeuronsCacheSummary, SnsNeuronsRefreshAttemptStatus,
-    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
-    SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsCacheListReport, SnsProposalsCacheListRequest, SnsProposalsCacheStatusReport,
-    SnsProposalsCacheStatusRequest, SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus,
-    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsSource, SnsSourceRequest,
-    SnsTokenSource, build_sns_info_report, build_sns_info_report_with_source,
-    build_sns_list_report, build_sns_list_report_with_source, build_sns_neurons_cache_list_report,
+    SnsNeuronsCacheStatusRequest, SnsNeuronsCacheSummary, SnsNeuronsRefreshReport,
+    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
+    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsCacheListReport,
+    SnsProposalsCacheListRequest, SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest,
+    SnsProposalsCacheSummary, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
+    SnsProposalsSource, SnsRefreshAttemptStatus, SnsSourceRequest, SnsTokenSource,
+    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
+    build_sns_list_report_with_source, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, build_sns_neurons_report,
     build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
@@ -48,4 +47,4 @@ pub use report::{
 };
 
 #[cfg(feature = "cli")]
-pub use commands::run;
+pub use commands::{SnsCommandError, run};

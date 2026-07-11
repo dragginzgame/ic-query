@@ -7,7 +7,9 @@
 //! Boundary: keeps abbreviated principal display separate from canonical principal
 //! validation and storage.
 
+use crate::text_value::sanitize_text;
+
 /// Returns the compact prefix used for narrow principal columns.
 pub fn compact_principal(value: &str) -> String {
-    value.chars().take(5).collect()
+    sanitize_text(value).chars().take(5).collect()
 }

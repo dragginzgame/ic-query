@@ -81,7 +81,6 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
         assert_eq!(before_proposal_id, None);
         Ok(MainnetSnsProposalPage {
             proposals: vec![fixture_proposal_row()],
-            last_cursor: Some(42),
         })
     }
 }
@@ -130,7 +129,7 @@ fn no_live_error(method: &'static str) -> SnsHostError {
 
 pub(in crate::sns::report::tests) fn fixture_proposal_row() -> SnsProposalRow {
     SnsProposalRow {
-        proposal_id: Some(42),
+        proposal_id: 42,
         action_id: 1,
         action: "motion".to_string(),
         title: "Fixture proposal".to_string(),

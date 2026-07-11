@@ -91,8 +91,8 @@ impl IcrcSource for FixtureIcrcSource {
                 },
                 IcrcTokenMetadataRow {
                     key: "icrc1:logo".to_string(),
-                    value_type: "bool".to_string(),
-                    value: JsonValue::Bool(true),
+                    value_type: "text".to_string(),
+                    value: JsonValue::String("data:image/png;base64,fixture".to_string()),
                 },
             ],
         })
@@ -715,7 +715,10 @@ fn token_report_builds_text_and_json_friendly_fields() {
 
     let json = serde_json::to_value(&report).expect("serialize ICRC token report");
     assert_eq!(json["transfer_fee"], json!("123456789"));
-    assert_eq!(json["metadata"][2]["value"], json!(true));
+    assert_eq!(
+        json["metadata"][2]["value"],
+        json!("data:image/png;base64,fixture")
+    );
 }
 
 #[test]

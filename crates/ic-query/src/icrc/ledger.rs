@@ -10,8 +10,6 @@ use ic_agent::Agent;
 use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
 
-const ICRC_LOGO_METADATA_KEY: &str = "icrc1:logo";
-
 ///
 /// IcrcLedgerError
 ///
@@ -306,16 +304,29 @@ pub async fn fetch_icrc1_token_metadata<E>(
 where
     E: IcrcLedgerError,
 {
-    let token_name = query_ledger(agent, ledger_canister, "icrc1_name").await?;
-    let token_symbol = query_ledger(agent, ledger_canister, "icrc1_symbol").await?;
-    let decimals = query_ledger(agent, ledger_canister, "icrc1_decimals").await?;
-    let transfer_fee: Nat = query_ledger(agent, ledger_canister, "icrc1_fee").await?;
-    let total_supply: Nat = query_ledger(agent, ledger_canister, "icrc1_total_supply").await?;
-    let minting_account: Option<IcrcAccount> =
-        query_ledger(agent, ledger_canister, "icrc1_minting_account").await?;
-    let supported_standards = fetch_icrc_supported_standards(agent, ledger_canister).await?;
-    let metadata: Vec<(String, IcrcMetadataValue)> =
-        query_ledger(agent, ledger_canister, "icrc1_metadata").await?;
+    let (
+        token_name,
+        token_symbol,
+        decimals,
+        transfer_fee,
+        total_supply,
+        minting_account,
+        supported_standards,
+        metadata,
+    ) = futures::try_join!(
+        query_ledger::<String, E>(agent, ledger_canister, "icrc1_name"),
+        query_ledger::<String, E>(agent, ledger_canister, "icrc1_symbol"),
+        query_ledger::<u8, E>(agent, ledger_canister, "icrc1_decimals"),
+        query_ledger::<Nat, E>(agent, ledger_canister, "icrc1_fee"),
+        query_ledger::<Nat, E>(agent, ledger_canister, "icrc1_total_supply"),
+        query_ledger::<Option<IcrcAccount>, E>(agent, ledger_canister, "icrc1_minting_account"),
+        fetch_icrc_supported_standards::<E>(agent, ledger_canister),
+        query_ledger::<Vec<(String, IcrcMetadataValue)>, E>(
+            agent,
+            ledger_canister,
+            "icrc1_metadata"
+        ),
+    )?;
 
     Ok(IcrcLedgerTokenMetadata {
         token_name,
@@ -385,14 +396,6 @@ where
 }
 
 pub fn metadata_row(key: String, value: IcrcMetadataValue) -> IcrcLedgerMetadataRow {
-    if key == ICRC_LOGO_METADATA_KEY {
-        return IcrcLedgerMetadataRow {
-            key,
-            value_type: "bool".to_string(),
-            value: JsonValue::Bool(metadata_value_is_present(&value)),
-        };
-    }
-
     let (value_type, value) = match value {
         IcrcMetadataValue::Nat(value) => ("nat", value.to_string()),
         IcrcMetadataValue::Int(value) => ("int", value.to_string()),
@@ -434,12 +437,4 @@ where
         .await
         .map_err(|err| E::agent_call(method, err.to_string()))?;
     candid::decode_one(&bytes).map_err(|err| E::candid_decode(method, err.to_string()))
-}
-
-fn metadata_value_is_present(value: &IcrcMetadataValue) -> bool {
-    match value {
-        IcrcMetadataValue::Text(value) => !value.trim().is_empty(),
-        IcrcMetadataValue::Blob(value) => !value.is_empty(),
-        IcrcMetadataValue::Nat(_) | IcrcMetadataValue::Int(_) => true,
-    }
 }

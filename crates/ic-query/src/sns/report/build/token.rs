@@ -5,16 +5,16 @@
 //! Boundary: resolves SNS identity, fetches token data, and delegates report assembly.
 
 use crate::sns::report::{
-    SnsHostError, SnsTokenReport, SnsTokenRequest, assemble::sns_token_report_from_parts,
+    SnsHostError, SnsLookupRequest, SnsTokenReport, assemble::sns_token_report_from_parts,
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsTokenSource,
 };
 
-pub fn build_sns_token_report(request: &SnsTokenRequest) -> Result<SnsTokenReport, SnsHostError> {
+pub fn build_sns_token_report(request: &SnsLookupRequest) -> Result<SnsTokenReport, SnsHostError> {
     build_sns_token_report_with_source(request, &LiveSnsSource)
 }
 
 pub fn build_sns_token_report_with_source(
-    request: &SnsTokenRequest,
+    request: &SnsLookupRequest,
     source: &dyn SnsTokenSource,
 ) -> Result<SnsTokenReport, SnsHostError> {
     let lookup = resolve_sns_lookup(request, source)?;

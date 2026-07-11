@@ -7,8 +7,9 @@
 use crate::{
     sns::report::SnsTokenReport,
     table::{ColumnAlign, render_table},
+    text_value::{sanitize_text, truncate_text},
     token_amount::base_units_decimal_text,
-    token_metadata_text::{optional_text, token_metadata_value_text, truncate_text_value},
+    token_metadata_text::{optional_text, token_metadata_value_text},
 };
 
 const SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
@@ -16,9 +17,9 @@ const SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 #[must_use]
 pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", report.name),
+        format!("name: {}", sanitize_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("sns_index_canister_id: {}", report.sns_index_canister_id),
@@ -26,8 +27,8 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
             "ledger_index_canister_id: {}",
             optional_text(report.ledger_index_canister_id.as_ref())
         ),
-        format!("token_name: {}", report.token_name),
-        format!("token_symbol: {}", report.token_symbol),
+        format!("token_name: {}", sanitize_text(&report.token_name)),
+        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "transfer_fee: {}",
@@ -46,11 +47,14 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
             optional_text(report.minting_account_subaccount_hex.as_ref())
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     if let Some(error) = report.ledger_index_error.as_deref() {
-        lines.push(format!("ledger_index_error: {error}"));
+        lines.push(format!("ledger_index_error: {}", sanitize_text(error)));
     }
     if !report.supported_standards.is_empty() {
         lines.push(String::new());
@@ -75,7 +79,7 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
                     [
                         row.key.clone(),
                         row.value_type.clone(),
-                        truncate_text_value(
+                        truncate_text(
                             &token_metadata_value_text(&row.key, &row.value, report.decimals),
                             SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT,
                         ),

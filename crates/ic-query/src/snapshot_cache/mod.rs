@@ -15,20 +15,26 @@ mod refresh;
 
 pub use attempt::{
     SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-    SnapshotRefreshAttemptReadError, current_attempt_timestamp, read_snapshot_refresh_attempt,
-    read_snapshot_refresh_attempt_strict, write_snapshot_refresh_attempt,
+    SnapshotRefreshAttemptReadError, current_attempt_timestamp,
+    read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+    write_snapshot_refresh_attempt,
 };
 pub use json::{load_complete_snapshot_for_key, load_snapshot_header, write_snapshot_json};
 pub use key::SnapshotKey;
 pub use lifecycle::{
-    LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
+    LockedSnapshotRefreshRequest, publish_snapshot_with_attempt,
+    run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
 };
 pub use model::{
     SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotCompleteness,
     SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch, SnapshotReport,
+    validate_snapshot_completeness,
 };
 pub use paged::{PagedCollectionPage, PagedCollectionState};
-pub use paths::{SnapshotJsonPaths, collect_full_collection_snapshot_paths, snapshot_network_dir};
+pub use paths::{
+    SnapshotJsonPaths, collect_full_collection_attempt_paths,
+    collect_full_collection_snapshot_paths, snapshot_network_dir,
+};
 pub use refresh::{PagedSnapshotRefresh, run_paged_snapshot_refresh};
 
 #[cfg(test)]

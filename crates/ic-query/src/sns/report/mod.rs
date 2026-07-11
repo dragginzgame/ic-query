@@ -13,24 +13,22 @@ pub(in crate::sns::report) use model::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
 pub use model::{
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsInfoRequest,
-    SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
-    SnsNeuronPermissionList, SnsParamsReport, SnsParamsRequest, SnsProposalBallotRow,
-    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
-    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
-    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
-    SnsTokenMetadataRow, SnsTokenReport, SnsTokenRequest, SnsTokenStandardRow,
-    SnsVotingRewardsParameters,
+    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
+    SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList,
+    SnsParamsReport, SnsProposalBallotRow, SnsProposalEligibilityFilter, SnsProposalFailureReason,
+    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
+    SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
+    SnsTokenStandardRow, SnsVotingRewardsParameters,
 };
 #[cfg(feature = "host")]
 pub use model::{
     SnsHostError, SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest,
     SnsNeuronsCacheStatusReport, SnsNeuronsCacheStatusRequest, SnsNeuronsCacheSummary,
-    SnsNeuronsRefreshAttemptStatus, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
-    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsProposalsCacheListReport,
-    SnsProposalsCacheListRequest, SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest,
-    SnsProposalsCacheSummary, SnsProposalsRefreshAttemptStatus, SnsProposalsRefreshReport,
-    SnsProposalsRefreshRequest,
+    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
+    SnsNeuronsSort, SnsProposalsCacheListReport, SnsProposalsCacheListRequest,
+    SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest, SnsProposalsCacheSummary,
+    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
 };
 #[cfg(feature = "host")]
 pub use source::{
@@ -131,22 +129,20 @@ pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 pub(in crate::sns) const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
 #[cfg(feature = "host")]
-const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 3;
+const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
-const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
+const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
-const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 5;
+const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
-const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 10;
+const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
-#[cfg(all(test, feature = "host"))]
-const SNS_TOKEN_LOGO_METADATA_KEY: &str = "icrc1:logo";
 #[cfg(feature = "host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;
 

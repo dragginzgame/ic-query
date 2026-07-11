@@ -17,11 +17,7 @@ pub(in crate::sns::report) fn proposal_matches_before(
     proposal: &SnsProposalRow,
     before_proposal_id: Option<u64>,
 ) -> bool {
-    before_proposal_id.is_none_or(|before| {
-        proposal
-            .proposal_id
-            .is_some_and(|proposal_id| proposal_id < before)
-    })
+    before_proposal_id.is_none_or(|before| proposal.proposal_id < before)
 }
 
 pub(in crate::sns::report) fn proposal_matches_status(
@@ -102,7 +98,8 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
     match sort {
         SnsProposalsSort::Api => {}
         SnsProposalsSort::Id => {
-            sort_by_optional_u64(proposals, direction, |proposal| proposal.proposal_id);
+            proposals
+                .sort_by(|left, right| compare_ord(left.proposal_id, right.proposal_id, direction));
         }
         SnsProposalsSort::Status => {
             sort_by_status(proposals, direction);
@@ -176,7 +173,7 @@ fn sort_by_optional_u64(
 ) {
     proposals.sort_by(|left, right| {
         compare_optional_u64(key(left), key(right), direction)
-            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
     });
 }
 
@@ -187,7 +184,7 @@ fn sort_by_text(
 ) {
     proposals.sort_by(|left, right| {
         compare_text(key(left), key(right), direction)
-            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
     });
 }
 
@@ -198,7 +195,7 @@ fn sort_by_optional_text(
 ) {
     proposals.sort_by(|left, right| {
         compare_optional_text(key(left), key(right), direction)
-            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
     });
 }
 
@@ -209,7 +206,7 @@ fn sort_by_bool(
 ) {
     proposals.sort_by(|left, right| {
         compare_ord(key(left), key(right), direction)
-            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
     });
 }
 
@@ -220,7 +217,7 @@ fn sort_by_status(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDi
             status_sort_rank(&right.decision_state),
             direction,
         )
-        .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+        .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
     });
 }
 

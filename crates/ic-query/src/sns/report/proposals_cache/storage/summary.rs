@@ -30,7 +30,7 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_summary_
 ) -> SnsProposalsCacheSummary {
     match load_sns_proposals_cache_at(cache_path.clone(), network) {
         Ok(cache) => sns_proposals_cache_summary(cache_path, cache),
-        Err(error) => invalid_sns_proposals_cache_summary(cache_path, &error),
+        Err(error) => invalid_sns_proposals_cache_summary(cache_path, network, &error),
     }
 }
 
@@ -40,7 +40,7 @@ pub(in crate::sns::report::proposals_cache) fn sns_proposals_cache_summary(
     cache: SnsProposalsCache,
 ) -> SnsProposalsCacheSummary {
     let attempt_path = attempt_path_for_cache_path(&cache_path);
-    let latest_attempt = read_sns_proposals_attempt_status(&attempt_path);
+    let latest_attempt = read_sns_proposals_attempt_status(&attempt_path, &cache.network);
     SnsProposalsCacheSummary {
         id: cache.metadata.id,
         name: cache.metadata.name,
@@ -62,6 +62,7 @@ pub(in crate::sns::report::proposals_cache) fn sns_proposals_cache_summary(
 
 pub(in crate::sns::report::proposals_cache) fn invalid_sns_proposals_cache_summary(
     cache_path: PathBuf,
+    network: &str,
     error: &SnsHostError,
 ) -> SnsProposalsCacheSummary {
     let attempt_path = attempt_path_for_cache_path(&cache_path);
@@ -81,6 +82,6 @@ pub(in crate::sns::report::proposals_cache) fn invalid_sns_proposals_cache_summa
         source_endpoint: fields.source_endpoint,
         refresh_attempt_path: fields.refresh_attempt_path,
         cache_path: fields.cache_path,
-        latest_attempt: read_sns_proposals_attempt_status(&attempt_path),
+        latest_attempt: read_sns_proposals_attempt_status(&attempt_path, network),
     }
 }

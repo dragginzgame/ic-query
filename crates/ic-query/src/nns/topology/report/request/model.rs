@@ -18,6 +18,12 @@ pub(in crate::nns::topology::report) trait TopologyRefreshParts:
     fn dry_run(&self) -> bool;
 }
 
+///
+/// NnsTopologyReadRequest
+///
+/// Shared request accepted by every read-only NNS topology report builder.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologyReadRequest {
     pub icp_root: PathBuf,
@@ -42,15 +48,6 @@ impl NnsTopologyReadRequest {
         }
     }
 }
-
-pub type NnsTopologySummaryRequest = NnsTopologyReadRequest;
-pub type NnsTopologyCoverageRequest = NnsTopologyReadRequest;
-pub type NnsTopologyVersionsRequest = NnsTopologyReadRequest;
-pub type NnsTopologyHealthRequest = NnsTopologyReadRequest;
-pub type NnsTopologyGapsRequest = NnsTopologyReadRequest;
-pub type NnsTopologyCapacityRequest = NnsTopologyReadRequest;
-pub type NnsTopologyRegionsRequest = NnsTopologyReadRequest;
-pub type NnsTopologyProvidersRequest = NnsTopologyReadRequest;
 
 #[cfg(feature = "host")]
 impl TopologyRequestParts for NnsTopologyReadRequest {
@@ -140,8 +137,8 @@ impl TopologyRefreshParts for NnsTopologyRefreshRequest {
 #[cfg(feature = "host")]
 pub(in crate::nns::topology::report) fn summary_request_from(
     request: &impl TopologyRequestParts,
-) -> NnsTopologySummaryRequest {
-    NnsTopologySummaryRequest::new(
+) -> NnsTopologyReadRequest {
+    NnsTopologyReadRequest::new(
         request.icp_root(),
         request.network(),
         request.source_endpoint(),

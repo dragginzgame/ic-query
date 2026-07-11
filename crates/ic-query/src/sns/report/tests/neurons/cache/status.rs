@@ -22,6 +22,34 @@ fn sns_neurons_cache_status_surfaces_malformed_attempt_sidecar() {
 }
 
 #[test]
+fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
+    let root = temp_dir("ic-query-sns-neurons-unknown-attempt-field");
+    let request = sns_neurons_refresh_request(&root, None);
+    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect("refresh neurons");
+    let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    let mut attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(&attempt_path).expect("read attempt"))
+            .expect("parse attempt");
+    attempt["unexpected"] = serde_json::json!(true);
+    fs::write(
+        &attempt_path,
+        serde_json::to_vec_pretty(&attempt).expect("serialize attempt"),
+    )
+    .expect("write attempt");
+
+    let err = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        ROOT_A,
+    ))
+    .expect_err("unknown attempt field must remain visible");
+
+    assert!(matches!(err, SnsHostError::InvalidRefreshAttempt { .. }));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let root = temp_dir("ic-query-sns-neurons-cache-status");
     let request = sns_neurons_refresh_request(&root, None);
@@ -142,6 +170,47 @@ fn sns_neurons_cache_status_reports_malformed_json() {
 }
 
 #[test]
+fn sns_neurons_cache_status_reports_inconsistent_row_count() {
+    let root = temp_dir("ic-query-sns-neurons-status-row-count");
+    let cache_path = refresh_fixture_sns_neurons_cache(&root);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    cache["completeness"]["row_count"] = serde_json::json!(999);
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+    )
+    .expect("write cache");
+
+    assert_invalid_sns_neurons_cache_status(&root, "actual row count");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_neurons_cache_status_reports_duplicate_neuron_ids() {
+    let root = temp_dir("ic-query-sns-neurons-status-duplicate-id");
+    let cache_path = refresh_fixture_sns_neurons_cache(&root);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    let duplicate = cache["neurons"][0].clone();
+    cache["neurons"]
+        .as_array_mut()
+        .expect("neuron rows")
+        .push(duplicate);
+    cache["completeness"]["row_count"] = serde_json::json!(4);
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+    )
+    .expect("write cache");
+
+    assert_invalid_sns_neurons_cache_status(&root, "duplicate neuron id");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-cache-failed-status");
     let request = sns_neurons_refresh_request(&root, Some(1));
@@ -182,6 +251,22 @@ fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     assert!(status_text.contains("found: no"));
     assert!(status_text.contains("refresh_hint: icq sns neurons refresh"));
     assert!(status_text.contains("latest_attempt_status: failed"));
+
+    let numeric_status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        icp_root: root.clone(),
+        input: "1".to_string(),
+    })
+    .expect("numeric cache status");
+    assert!(!numeric_status.found);
+    assert_eq!(
+        numeric_status
+            .latest_attempt
+            .as_ref()
+            .map(|attempt| attempt.status.as_str()),
+        Some("failed")
+    );
+    assert!(numeric_status.expected_cache_path.is_some());
 
     let _ = fs::remove_dir_all(root);
 }

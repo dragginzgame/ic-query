@@ -8,7 +8,7 @@ use super::block_on_sns;
 use crate::sns::report::{
     SnsHostError,
     live::{
-        convert::{sns_neuron_cursor, sns_neuron_row},
+        convert::sns_neuron_row,
         fetch::governance_canister,
         query::{principal_from_text, query_canister, sns_agent},
         types::{ListNeuronsRequest, ListNeuronsResponse},
@@ -86,9 +86,14 @@ async fn fetch_mainnet_sns_neuron_page_async(
         },
     )
     .await?;
-    let last_cursor = response.neurons.iter().rev().find_map(sns_neuron_cursor);
+    let last_cursor = response.neurons.last().and_then(|neuron| neuron.id.clone());
+    let neurons = response
+        .neurons
+        .into_iter()
+        .map(sns_neuron_row)
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(MainnetSnsNeuronPage {
-        neurons: response.neurons.into_iter().map(sns_neuron_row).collect(),
+        neurons,
         last_cursor,
     })
 }

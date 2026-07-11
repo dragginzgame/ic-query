@@ -48,7 +48,7 @@ pub(in crate::sns::report::proposals_cache) fn write_failed_attempt(
     context: SnsProposalsAttemptContext<'_>,
     err: &SnsHostError,
 ) {
-    let latest = read_sns_proposals_attempt(context.path);
+    let latest = read_sns_proposals_attempt(context.path, &context.request.network);
     let progress = SnsProposalsAttemptProgress::new(
         latest.as_ref().map_or(0, |attempt| attempt.pages_fetched),
         latest.as_ref().map_or(0, |attempt| attempt.rows_fetched),

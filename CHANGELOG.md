@@ -7,11 +7,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.7.0] - 2026-07-11 - Hard cache and runtime cut
+## [0.8.x] - 2026-07-11 - Hard cache and runtime cut
 
-Detailed release notes: [docs/changelog/0.7.md](docs/changelog/0.7.md)
+Detailed release notes: [docs/changelog/0.8.md](docs/changelog/0.8.md)
 
-- Hardens live host execution, complete snapshot publication, and cache
+- `0.8.1` restores the detailed 0.8 release ledger omitted from the 0.8.0
+  commit and makes release automation fail closed: target-version notes and
+  the complete CI gate must pass before metadata changes, package failures are
+  preserved, untracked files fail the clean-tree check, and release steps stay
+  sequential. It also completes the hard cut by removing positional version
+  shortcuts and redundant public request/status aliases, requiring stable SNS
+  row identifiers, validating persisted lock, attempt, and snapshot invariants,
+  resetting every current report schema to version 1, preserving raw ICRC
+  metadata in JSON while escaping terminal controls in text, and rejecting
+  ambiguous routing catalogs.
+
+- `0.8.0` hardens live host execution, complete snapshot publication, and cache
   operations. Live builders no longer panic when called from an existing
   Tokio runtime; paged refreshes reject stalled pages and invalid page sizes;
   failed proposal refreshes preserve progress; stale locks require explicit

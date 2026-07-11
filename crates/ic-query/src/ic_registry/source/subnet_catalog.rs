@@ -15,20 +15,20 @@ pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_async(
     let agent = mainnet_agent(request)?;
     let registry_canister = mainnet_registry_canister()?;
     let registry_version = get_latest_version(&agent, &registry_canister).await?;
-    let subnet_list_bytes = get_registry_value(
-        &agent,
-        &registry_canister,
-        SUBNET_LIST_KEY,
-        registry_version,
-    )
-    .await?;
-    let routing_table_bytes = get_registry_value(
-        &agent,
-        &registry_canister,
-        ROUTING_TABLE_KEY,
-        registry_version,
-    )
-    .await?;
+    let (subnet_list_bytes, routing_table_bytes) = futures::try_join!(
+        get_registry_value(
+            &agent,
+            &registry_canister,
+            SUBNET_LIST_KEY,
+            registry_version,
+        ),
+        get_registry_value(
+            &agent,
+            &registry_canister,
+            ROUTING_TABLE_KEY,
+            registry_version,
+        ),
+    )?;
     let subnet_list = decode_message::<SubnetListRecord>("SubnetListRecord", &subnet_list_bytes)?;
     let routing_table = decode_message::<RoutingTable>("RoutingTable", &routing_table_bytes)?;
     catalog_from_registry_records(

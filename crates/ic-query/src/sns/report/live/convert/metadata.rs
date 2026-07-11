@@ -28,14 +28,20 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::Runtime(_)
         | SnsHostError::AgentBuild { .. }
         | SnsHostError::InvalidPrincipal { .. }
+        | SnsHostError::MissingProposalId
+        | SnsHostError::MissingNeuronId
+        | SnsHostError::InvalidNeuronId
         | SnsHostError::UnknownSnsId { .. }
         | SnsHostError::UnknownSnsRoot { .. }
         | SnsHostError::InvalidLookup { .. }
+        | SnsHostError::AmbiguousRefreshAttemptId { .. }
         | SnsHostError::MissingNeuronsCache { .. }
         | SnsHostError::MissingNeuronsCacheForId { .. }
         | SnsHostError::MissingProposalsCache { .. }
         | SnsHostError::ReadCache { .. }
         | SnsHostError::ParseCache { .. }
+        | SnsHostError::InvalidRefreshAttempt { .. }
+        | SnsHostError::InvalidCache { .. }
         | SnsHostError::SerializeCache { .. }
         | SnsHostError::UnsupportedCacheSchemaVersion { .. }
         | SnsHostError::CacheNetworkMismatch { .. }

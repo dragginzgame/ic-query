@@ -32,6 +32,7 @@ impl SubnetCatalog {
             }
         }
 
+        let mut validated_ranges = Vec::with_capacity(self.routing_ranges.len());
         for range in &self.routing_ranges {
             if !subnet_principals.contains(&range.subnet_principal) {
                 return Err(CatalogError::UnknownRoutingSubnet {
@@ -46,6 +47,19 @@ impl SubnetCatalog {
                     subnet_principal: range.subnet_principal.clone(),
                     start_canister_id: range.start_canister_id.clone(),
                     end_canister_id: range.end_canister_id.clone(),
+                });
+            }
+            validated_ranges.push((range, start, end));
+        }
+        validated_ranges
+            .sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.2.cmp(&right.2)));
+        for pair in validated_ranges.windows(2) {
+            let (first, _, first_end) = &pair[0];
+            let (second, second_start, _) = &pair[1];
+            if second_start <= first_end {
+                return Err(CatalogError::OverlappingRoutingRanges {
+                    first: Box::new((*first).clone()),
+                    second: Box::new((*second).clone()),
                 });
             }
         }

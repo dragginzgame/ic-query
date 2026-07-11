@@ -5,7 +5,6 @@
 //! Boundary: formats live or cache-backed neuron report rows for humans.
 
 use crate::{
-    nns::render::yes_no,
     sns::report::{
         SnsNeuronsReport,
         text::common::{
@@ -13,15 +12,16 @@ use crate::{
         },
     },
     table::{ColumnAlign, render_table},
+    text_value::{sanitize_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
 #[must_use]
 pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", report.name),
+        format!("name: {}", sanitize_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("requested_limit: {}", report.requested_limit),
@@ -42,8 +42,11 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
         format!("total_neuron_count: {}", report.total_neuron_count),
         format!("neuron_count: {}", report.neuron_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ]);
     if !report.neurons.is_empty() {
         lines.push(String::new());

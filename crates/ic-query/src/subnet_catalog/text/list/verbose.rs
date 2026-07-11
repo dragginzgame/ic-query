@@ -1,8 +1,8 @@
 use super::ranges::append_range_lines;
 use crate::{
-    nns::render::yes_no,
     subnet_catalog::SubnetCatalogListReport,
     table::{ColumnAlign, render_table},
+    text_value::{sanitize_text, yes_no},
 };
 
 #[must_use]
@@ -52,8 +52,14 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
         ColumnAlign::Left,
     ];
     let mut lines = Vec::new();
-    lines.push(format!("catalog_path: {}", report.catalog_path));
-    lines.push(format!("stale_reason: {}", report.stale_reason));
+    lines.push(format!(
+        "catalog_path: {}",
+        sanitize_text(&report.catalog_path)
+    ));
+    lines.push(format!(
+        "stale_reason: {}",
+        sanitize_text(&report.stale_reason)
+    ));
     if rows.is_empty() {
         lines.push("subnets: none".to_string());
         return lines.join("\n");

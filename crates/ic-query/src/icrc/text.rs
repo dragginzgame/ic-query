@@ -13,10 +13,9 @@ use crate::{
         IcrcTransactionBlockRow, IcrcTransactionsReport,
     },
     table::{ColumnAlign, render_table},
+    text_value::{sanitize_text, truncate_text},
     token_amount::base_units_decimal_text,
-    token_metadata_text::{
-        optional_text, token_metadata_value_text as metadata_value_text, truncate_text_value,
-    },
+    token_metadata_text::{optional_text, token_metadata_value_text as metadata_value_text},
 };
 
 const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
@@ -44,8 +43,8 @@ const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [ColumnAlign; 4] = [
 pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("token_name: {}", report.token_name),
-        format!("token_symbol: {}", report.token_symbol),
+        format!("token_name: {}", sanitize_text(&report.token_name)),
+        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "transfer_fee: {}",
@@ -63,8 +62,11 @@ pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
             "minting_account_subaccount_hex: {}",
             optional_text(report.minting_account_subaccount_hex.as_ref())
         ),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     push_table_section(
         &mut lines,
@@ -86,16 +88,19 @@ pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
             "subaccount_hex: {}",
             optional_text(report.subaccount_hex.as_ref())
         ),
-        format!("token_symbol: {}", report.token_symbol),
+        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "balance: {} {}",
             base_units_decimal_text(&report.balance, report.decimals),
-            report.token_symbol
+            sanitize_text(&report.token_symbol)
         ),
         format!("balance_base_units: {}", report.balance),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ]
     .join("\n")
 }
@@ -114,20 +119,23 @@ pub fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
             "spender_subaccount_hex: {}",
             optional_text(report.spender_subaccount_hex.as_ref())
         ),
-        format!("token_symbol: {}", report.token_symbol),
+        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "allowance: {} {}",
             base_units_decimal_text(&report.allowance, report.decimals),
-            report.token_symbol
+            sanitize_text(&report.token_symbol)
         ),
         format!("allowance_base_units: {}", report.allowance),
         format!(
             "expires_at_unix_nanos: {}",
             optional_text(report.expires_at_unix_nanos.as_ref())
         ),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ]
     .join("\n")
 }
@@ -140,11 +148,14 @@ pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
             "index_canister_id: {}",
             optional_text(report.index_canister_id.as_ref())
         ),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     if let Some(error) = report.index_error.as_deref() {
-        lines.push(format!("index_error: {error}"));
+        lines.push(format!("index_error: {}", sanitize_text(error)));
     }
     lines.join("\n")
 }
@@ -167,8 +178,11 @@ pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String 
             "archive_follow_errors: {}",
             report.archive_follow_errors.len()
         ),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     push_table_section(&mut lines, &report.blocks, render_transaction_blocks_table);
     push_table_section(
@@ -275,7 +289,7 @@ fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> S
                         method,
                         start,
                         length,
-                        truncate_text_value(&error.error, ICRC_DETAIL_TEXT_LIMIT),
+                        truncate_text(&error.error, ICRC_DETAIL_TEXT_LIMIT),
                     ]
                 })
             })
@@ -295,8 +309,11 @@ pub fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("block_type_count: {}", report.block_types.len()),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     push_table_section(&mut lines, &report.block_types, |rows| {
         render_table(
@@ -320,8 +337,11 @@ pub fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
             optional_text(report.from_canister_id.as_ref())
         ),
         format!("archive_count: {}", report.archives.len()),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     push_table_section(&mut lines, &report.archives, |rows| {
         render_table(
@@ -369,8 +389,11 @@ pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> St
                 ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
             )
         ),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ]
     .join("\n")
 }
@@ -381,8 +404,11 @@ pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String 
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("standard_count: {}", report.supported_standards.len()),
         format!("capability_count: {}", report.capabilities.len()),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ];
     push_table_section(
         &mut lines,
@@ -425,7 +451,7 @@ fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> St
                 [
                     row.key.clone(),
                     row.value_type.clone(),
-                    truncate_text_value(
+                    truncate_text(
                         &metadata_value_text(&row.key, &row.value, decimals),
                         ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT,
                     ),
@@ -465,10 +491,10 @@ fn block_summary_cells(
 ) -> [String; 5] {
     [
         index.to_string(),
-        optional_text(block_type).to_string(),
-        optional_text(transaction_kind).to_string(),
-        optional_text(timestamp_unix_nanos).to_string(),
-        optional_text(amount_base_units).to_string(),
+        optional_text(block_type),
+        optional_text(transaction_kind),
+        optional_text(timestamp_unix_nanos),
+        optional_text(amount_base_units),
     ]
 }
 
@@ -513,10 +539,7 @@ fn optional_usize_text(value: Option<usize>) -> String {
 }
 
 fn optional_truncated_text(value: Option<&String>, limit: usize) -> String {
-    value.map_or_else(
-        || "-".to_string(),
-        |value| truncate_text_value(value, limit),
-    )
+    value.map_or_else(|| "-".to_string(), |value| truncate_text(value, limit))
 }
 
 fn capability_detail_text(row: &IcrcCapabilityRow) -> String {

@@ -439,9 +439,12 @@ pub fn build_icrc_capabilities_report_with_source(
 async fn fetch_token_async(request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
-    fetch_icrc1_token_metadata::<IcrcError>(&agent, &ledger_canister)
-        .await
-        .map(token_data_from_ledger)
+    Box::pin(fetch_icrc1_token_metadata::<IcrcError>(
+        &agent,
+        &ledger_canister,
+    ))
+    .await
+    .map(token_data_from_ledger)
 }
 
 async fn fetch_balance_async(request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
@@ -661,36 +664,39 @@ async fn fetch_capabilities_async(
 ) -> Result<IcrcCapabilitiesData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
-    let mut capabilities = Vec::new();
+    let (standards_result, index, blocks, block_types, archives, tip_certificate) = futures::join!(
+        fetch_icrc_supported_standards::<IcrcError>(&agent, &ledger_canister),
+        fetch_index_capability(&agent, &ledger_canister),
+        fetch_blocks_capability(&agent, &ledger_canister),
+        fetch_block_types_capability(&agent, &ledger_canister),
+        fetch_archives_capability(&agent, &ledger_canister),
+        fetch_tip_certificate_capability(&agent, &ledger_canister),
+    );
+    let mut capabilities = Vec::with_capacity(6);
 
-    let supported_standards =
-        match fetch_icrc_supported_standards::<IcrcError>(&agent, &ledger_canister).await {
-            Ok(standards) => {
-                capabilities.push(available_capability_row(
-                    "ICRC-1 supported standards",
-                    ICRC1_SUPPORTED_STANDARDS_METHOD,
-                    format!("{} standard(s)", standards.len()),
-                ));
-                standards
-                    .into_iter()
-                    .map(token_standard_row_from_ledger)
-                    .collect()
-            }
-            Err(err) => {
-                capabilities.push(error_capability_row(
-                    "ICRC-1 supported standards",
-                    ICRC1_SUPPORTED_STANDARDS_METHOD,
-                    err,
-                ));
-                Vec::new()
-            }
-        };
+    let supported_standards = match standards_result {
+        Ok(standards) => {
+            capabilities.push(available_capability_row(
+                "ICRC-1 supported standards",
+                ICRC1_SUPPORTED_STANDARDS_METHOD,
+                format!("{} standard(s)", standards.len()),
+            ));
+            standards
+                .into_iter()
+                .map(token_standard_row_from_ledger)
+                .collect()
+        }
+        Err(err) => {
+            capabilities.push(error_capability_row(
+                "ICRC-1 supported standards",
+                ICRC1_SUPPORTED_STANDARDS_METHOD,
+                err,
+            ));
+            Vec::new()
+        }
+    };
 
-    capabilities.push(fetch_index_capability(&agent, &ledger_canister).await);
-    capabilities.push(fetch_blocks_capability(&agent, &ledger_canister).await);
-    capabilities.push(fetch_block_types_capability(&agent, &ledger_canister).await);
-    capabilities.push(fetch_archives_capability(&agent, &ledger_canister).await);
-    capabilities.push(fetch_tip_certificate_capability(&agent, &ledger_canister).await);
+    capabilities.extend([index, blocks, block_types, archives, tip_certificate]);
 
     Ok(IcrcCapabilitiesData {
         supported_standards,
@@ -851,10 +857,10 @@ async fn query_token_display_fields(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> Result<(String, u8), IcrcError> {
-    let token_symbol =
-        query_ledger::<String, IcrcError>(agent, ledger_canister, ICRC1_SYMBOL_METHOD).await?;
-    let decimals =
-        query_ledger::<u8, IcrcError>(agent, ledger_canister, ICRC1_DECIMALS_METHOD).await?;
+    let (token_symbol, decimals) = futures::try_join!(
+        query_ledger::<String, IcrcError>(agent, ledger_canister, ICRC1_SYMBOL_METHOD),
+        query_ledger::<u8, IcrcError>(agent, ledger_canister, ICRC1_DECIMALS_METHOD),
+    )?;
     Ok((token_symbol, decimals))
 }
 

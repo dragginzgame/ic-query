@@ -1,6 +1,10 @@
 use crate::{
-    nns::node::report::NnsNodeListReport,
+    nns::{
+        node::report::NnsNodeListReport,
+        render::{compact_text, text_or_dash},
+    },
     table::{ColumnAlign, render_table},
+    text_value::sanitize_text,
 };
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
@@ -10,7 +14,9 @@ pub fn nns_node_list_report_text(report: &NnsNodeListReport) -> String {
     let mut lines = Vec::new();
     lines.push(format!(
         "nodes: {} count {} fetched_at {}",
-        report.network, report.node_count, report.fetched_at
+        sanitize_text(&report.network),
+        report.node_count,
+        sanitize_text(&report.fetched_at)
     ));
     if report.nodes.is_empty() {
         lines.push("nodes: none".to_string());
@@ -27,7 +33,7 @@ pub fn nns_node_list_report_text(report: &NnsNodeListReport) -> String {
                 compact_text(&node.node_provider_principal, COMPACT_PRINCIPAL_CHARS),
                 compact_text(&node.subnet_principal, COMPACT_PRINCIPAL_CHARS),
                 node.subnet_kind.clone(),
-                text_or_dash(Some(&node.data_center_id)).to_string(),
+                text_or_dash(Some(&node.data_center_id)),
             ]
         })
         .collect::<Vec<_>>();
@@ -46,8 +52,11 @@ pub fn nns_node_list_report_text(report: &NnsNodeListReport) -> String {
 #[must_use]
 pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
     let mut lines = Vec::new();
-    lines.push(format!("source_endpoint: {}", report.source_endpoint));
-    lines.push(format!("fetched_by: {}", report.fetched_by));
+    lines.push(format!(
+        "source_endpoint: {}",
+        sanitize_text(&report.source_endpoint)
+    ));
+    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
     if report.nodes.is_empty() {
         lines.push("nodes: none".to_string());
         return lines.join("\n");
@@ -72,7 +81,7 @@ pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
                 node.node_provider_principal.clone(),
                 node.subnet_principal.clone(),
                 node.subnet_kind.clone(),
-                text_or_dash(Some(&node.data_center_id)).to_string(),
+                text_or_dash(Some(&node.data_center_id)),
                 report.registry_version.to_string(),
                 report.fetched_at.clone(),
             ]
@@ -90,15 +99,4 @@ pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
     ];
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
-}
-
-fn compact_text(value: &str, chars: usize) -> String {
-    value.chars().take(chars).collect()
-}
-
-const fn text_or_dash(value: Option<&str>) -> &str {
-    match value {
-        Some(text) if !text.is_empty() => text,
-        _ => "-",
-    }
 }

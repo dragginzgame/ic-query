@@ -9,19 +9,17 @@ use super::{
     detail::{proposal_detail_lines, proposal_title_for_list},
 };
 use crate::{
-    sns::report::{
-        SnsProposalsReport,
-        text::common::{optional_u64_text, push_report_provenance_lines, yes_no},
-    },
+    sns::report::{SnsProposalsReport, text::common::push_report_provenance_lines},
     table::{ColumnAlign, render_table},
+    text_value::{optional_u64_text, sanitize_text, yes_no},
 };
 
 #[must_use]
 pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", report.network),
+        format!("network: {}", sanitize_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", report.name),
+        format!("name: {}", sanitize_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("requested_limit: {}", report.requested_limit),
@@ -34,11 +32,11 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         format!("eligibility_filter: {}", report.eligibility_filter),
         format!(
             "proposer_filter: {}",
-            report.proposer_filter.as_deref().unwrap_or("-")
+            sanitize_text(report.proposer_filter.as_deref().unwrap_or("-"))
         ),
         format!(
             "query_filter: {}",
-            report.query_filter.as_deref().unwrap_or("-")
+            sanitize_text(report.query_filter.as_deref().unwrap_or("-"))
         ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
@@ -53,8 +51,11 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
     lines.extend([
         format!("proposal_count: {}", report.proposal_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", report.fetched_at),
-        format!("source_endpoint: {}", report.source_endpoint),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
     ]);
     if !report.proposals.is_empty() {
         lines.push(String::new());
@@ -65,7 +66,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
                 .iter()
                 .map(|proposal| {
                     [
-                        optional_u64_text(proposal.proposal_id),
+                        proposal.proposal_id.to_string(),
                         proposal.action.clone(),
                         proposal.decision_state.clone(),
                         proposal.created_at.clone(),

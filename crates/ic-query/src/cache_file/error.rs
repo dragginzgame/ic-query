@@ -33,6 +33,12 @@ pub enum CacheFileError {
         source: serde_json::Error,
     },
 
+    #[error(
+        "invalid refresh lock at {}; remove the lock manually after verifying no refresh is running: {reason}",
+        path.display()
+    )]
+    InvalidRefreshLock { path: PathBuf, reason: String },
+
     #[error("failed to serialize refresh lock at {}: {source}", path.display())]
     SerializeRefreshLock {
         path: PathBuf,

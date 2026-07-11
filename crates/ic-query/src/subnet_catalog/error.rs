@@ -1,3 +1,4 @@
+use crate::subnet_catalog::RoutingRange;
 use thiserror::Error as ThisError;
 
 ///
@@ -37,6 +38,12 @@ pub enum CatalogError {
         subnet_principal: String,
         start_canister_id: String,
         end_canister_id: String,
+    },
+
+    #[error("overlapping routing ranges: {first} overlaps {second}")]
+    OverlappingRoutingRanges {
+        first: Box<RoutingRange>,
+        second: Box<RoutingRange>,
     },
 
     #[error("subnet principal {subnet_principal} was not found in the cached catalog")]

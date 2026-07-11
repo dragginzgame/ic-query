@@ -52,6 +52,15 @@ pub enum SnsHostError {
     #[error("SNS governance method {method} returned no result")]
     MissingGovernanceResult { method: &'static str },
 
+    #[error("SNS governance returned a proposal without an id")]
+    MissingProposalId,
+
+    #[error("SNS governance returned a neuron without an id")]
+    MissingNeuronId,
+
+    #[error("SNS governance returned an invalid neuron id")]
+    InvalidNeuronId,
+
     #[error("failed to decode Candid response {message}: {reason}")]
     CandidDecode {
         message: &'static str,
@@ -66,6 +75,9 @@ pub enum SnsHostError {
 
     #[error("SNS lookup input must be a list id or root principal: {input}")]
     InvalidLookup { input: String },
+
+    #[error("multiple SNS refresh attempts claim list id {id}; use a root principal instead")]
+    AmbiguousRefreshAttemptId { id: usize },
 
     #[error(
         "SNS neurons cache is missing at {}\n\nRun `icq sns neurons refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting.",
@@ -93,6 +105,12 @@ pub enum SnsHostError {
         path: PathBuf,
         source: serde_json::Error,
     },
+
+    #[error("invalid SNS refresh attempt at {}: {reason}", path.display())]
+    InvalidRefreshAttempt { path: PathBuf, reason: String },
+
+    #[error("invalid SNS cache at {}: {reason}", path.display())]
+    InvalidCache { path: PathBuf, reason: String },
 
     #[error("failed to serialize SNS cache JSON for {}: {source}", path.display())]
     SerializeCache {

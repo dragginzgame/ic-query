@@ -7,6 +7,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+pub(super) const REFRESH_LOCK_SCHEMA_VERSION: u32 = 1;
+
 ///
 /// RefreshLockRequest
 ///
@@ -29,6 +31,7 @@ pub struct RefreshLockRequest<'a> {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RefreshLockFile {
     pub(super) schema_version: u32,
     pub(super) network: String,
@@ -40,7 +43,7 @@ pub(super) struct RefreshLockFile {
 impl RefreshLockFile {
     pub(super) fn new(request: RefreshLockRequest<'_>, started_at_unix_ms: u64) -> Self {
         Self {
-            schema_version: 1,
+            schema_version: REFRESH_LOCK_SCHEMA_VERSION,
             network: request.network.to_string(),
             pid: std::process::id(),
             started_at_unix_ms,

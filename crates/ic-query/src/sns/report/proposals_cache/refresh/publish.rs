@@ -6,7 +6,7 @@
 
 use super::context::SnsProposalsRefreshContext;
 use crate::{
-    snapshot_cache::{SnapshotCompleteness, write_snapshot_json},
+    snapshot_cache::{SnapshotCompleteness, publish_snapshot_with_attempt, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsProposalRow, SnsProposalsRefreshReport,
         proposals_cache::{
@@ -39,15 +39,21 @@ pub(super) fn publish_complete_sns_proposals_cache(
         proposals,
     );
     let proposal_count = cache.data.proposals.len();
-    write_snapshot_json(
-        &context.paths.cache_path,
-        &cache,
-        |path, source| SnsHostError::SerializeCache { path, source },
-        SnsHostError::Cache,
-    )?;
-    write_complete_attempt(
-        context.attempt_context(),
-        SnsProposalsAttemptProgress::new(page_count, proposal_count, last_cursor),
+    let attempt_finalization_error = publish_snapshot_with_attempt(
+        || {
+            write_snapshot_json(
+                &context.paths.cache_path,
+                &cache,
+                |path, source| SnsHostError::SerializeCache { path, source },
+                SnsHostError::Cache,
+            )
+        },
+        || {
+            write_complete_attempt(
+                context.attempt_context(),
+                SnsProposalsAttemptProgress::new(page_count, proposal_count, last_cursor),
+            )
+        },
     )?;
     Ok(SnsProposalsRefreshReport {
         schema_version: SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,
@@ -69,6 +75,7 @@ pub(super) fn publish_complete_sns_proposals_cache(
         complete: true,
         replaced_existing_cache: context.replaced_existing_cache,
         wrote_cache: true,
+        attempt_finalization_error,
     })
 }
 

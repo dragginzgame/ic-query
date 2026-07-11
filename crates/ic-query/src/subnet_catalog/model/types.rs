@@ -9,6 +9,7 @@
 
 use super::{ClassificationSource, GeographicScope, SubnetKind, SubnetSpecialization};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Persisted subnet catalog snapshot loaded from or written to the local cache.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -47,4 +48,14 @@ pub struct RoutingRange {
     pub start_canister_id: String,
     pub end_canister_id: String,
     pub subnet_principal: String,
+}
+
+impl fmt::Display for RoutingRange {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "{}..{} for {}",
+            self.start_canister_id, self.end_canister_id, self.subnet_principal
+        )
+    }
 }

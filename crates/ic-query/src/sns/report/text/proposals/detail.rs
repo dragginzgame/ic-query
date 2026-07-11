@@ -8,11 +8,10 @@ use super::SNS_PROPOSAL_TITLE_TEXT_LIMIT;
 use crate::{
     sns::report::{
         SnsProposalBallotRow, SnsProposalRow,
-        text::common::{
-            neuron_id_text, optional_text, optional_u64_text, truncate_text_value, yes_no,
-        },
+        text::common::{neuron_id_text, optional_text},
     },
     table::{ColumnAlign, render_table},
+    text_value::{sanitize_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
@@ -20,7 +19,7 @@ pub(super) fn proposal_title_for_list(proposal: &SnsProposalRow, verbose: bool) 
     if verbose {
         proposal.title.clone()
     } else {
-        truncate_text_value(&proposal.title, SNS_PROPOSAL_TITLE_TEXT_LIMIT)
+        truncate_text(&proposal.title, SNS_PROPOSAL_TITLE_TEXT_LIMIT)
     }
 }
 
@@ -29,33 +28,36 @@ pub(super) fn proposal_detail_lines(
     detail_limit: Option<usize>,
 ) -> Vec<String> {
     let mut lines = vec![
-        format!("- proposal_id: {}", optional_u64_text(proposal.proposal_id)),
+        format!("- proposal_id: {}", proposal.proposal_id),
         format!("  action_id: {}", proposal.action_id),
-        format!("  action: {}", proposal.action),
-        format!("  decision_state: {}", proposal.decision_state),
-        format!("  topic: {}", optional_text(proposal.topic.as_ref())),
-        format!("  title: {}", proposal.title),
-        format!("  url: {}", optional_text(proposal.url.as_ref())),
+        format!("  action: {}", sanitize_text(&proposal.action)),
+        format!(
+            "  decision_state: {}",
+            sanitize_text(&proposal.decision_state)
+        ),
+        format!("  topic: {}", safe_optional_text(proposal.topic.as_ref())),
+        format!("  title: {}", sanitize_text(&proposal.title)),
+        format!("  url: {}", safe_optional_text(proposal.url.as_ref())),
         format!(
             "  proposer_neuron_id: {}",
-            optional_text(proposal.proposer_neuron_id.as_ref())
+            safe_optional_text(proposal.proposer_neuron_id.as_ref())
         ),
         format!(
             "  reject_cost: {}",
             e8s_decimal_text(proposal.reject_cost_e8s)
         ),
-        format!("  created_at: {}", proposal.created_at),
+        format!("  created_at: {}", sanitize_text(&proposal.created_at)),
         format!(
             "  decided_at: {}",
-            optional_text(proposal.decided_at.as_ref())
+            safe_optional_text(proposal.decided_at.as_ref())
         ),
         format!(
             "  executed_at: {}",
-            optional_text(proposal.executed_at.as_ref())
+            safe_optional_text(proposal.executed_at.as_ref())
         ),
         format!(
             "  failed_at: {}",
-            optional_text(proposal.failed_at.as_ref())
+            safe_optional_text(proposal.failed_at.as_ref())
         ),
         format!("  reward_event_round: {}", proposal.reward_event_round),
         format!(
@@ -74,7 +76,10 @@ pub(super) fn proposal_detail_lines(
     if let Some(reason) = proposal.failure_reason.as_ref() {
         lines.extend([
             format!("  failure_error_type: {}", reason.error_type),
-            format!("  failure_error_message: {}", reason.error_message),
+            format!(
+                "  failure_error_message: {}",
+                sanitize_text(&reason.error_message)
+            ),
         ]);
     }
     if !proposal.summary.is_empty() {
@@ -108,7 +113,7 @@ pub(super) fn proposal_ballot_table(
                     neuron_id_text(&ballot.neuron_id, verbose),
                     ballot.vote_text.clone(),
                     e8s_decimal_text(ballot.voting_power),
-                    optional_text(ballot.cast_at.as_ref()).to_string(),
+                    optional_text(ballot.cast_at.as_ref()),
                 ]
             })
             .collect::<Vec<_>>(),
@@ -122,8 +127,9 @@ pub(super) fn proposal_ballot_table(
 }
 
 fn proposal_detail_text(value: &str, detail_limit: Option<usize>) -> String {
-    detail_limit.map_or_else(
-        || value.to_string(),
-        |limit| truncate_text_value(value, limit),
-    )
+    detail_limit.map_or_else(|| sanitize_text(value), |limit| truncate_text(value, limit))
+}
+
+fn safe_optional_text(value: Option<&String>) -> String {
+    optional_text(value)
 }
