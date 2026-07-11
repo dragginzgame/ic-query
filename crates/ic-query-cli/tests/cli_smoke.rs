@@ -58,6 +58,24 @@ fn binary_top_level_help_smoke() {
 }
 
 #[test]
+fn binary_top_level_help_after_global_options_succeeds() {
+    let output = run_icq(&["--network", "ic", "--help"]);
+
+    assert_success(&output);
+    assert!(stdout_text(&output).contains("Usage: icq [OPTIONS] [COMMAND]"));
+}
+
+#[test]
+fn binary_invalid_value_preserves_clap_diagnostic() {
+    let output = run_icq(&["nns", "proposal", "list", "--limit", "nope"]);
+
+    assert!(!output.status.success());
+    let stderr = stderr_text(&output);
+    assert!(stderr.contains("invalid value 'nope'"));
+    assert!(stderr.contains("--limit <count>"));
+}
+
+#[test]
 fn binary_icrc_balance_help_smoke() {
     let output = run_icq(&["icrc", "balance", "help"]);
 

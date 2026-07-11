@@ -14,8 +14,9 @@ mod paths;
 mod refresh;
 
 pub use attempt::{
-    SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt, read_snapshot_refresh_attempt,
-    write_snapshot_refresh_attempt,
+    SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
+    SnapshotRefreshAttemptReadError, current_attempt_timestamp, read_snapshot_refresh_attempt,
+    read_snapshot_refresh_attempt_strict, write_snapshot_refresh_attempt,
 };
 pub use json::{load_complete_snapshot_for_key, load_snapshot_header, write_snapshot_json};
 pub use key::SnapshotKey;

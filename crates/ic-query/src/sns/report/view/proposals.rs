@@ -10,7 +10,7 @@ use crate::sns::report::{
     SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalEligibilityFilter, SnsProposalRow,
     SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
-use crate::text_search::optional_text_contains_ascii_case_insensitive;
+use crate::text_search::optional_text_contains_case_insensitive;
 use std::cmp::Ordering;
 
 pub(in crate::sns::report) fn proposal_matches_before(
@@ -84,11 +84,11 @@ pub(in crate::sns::report) fn proposal_matches_query(
     let Some(query) = query else {
         return true;
     };
-    optional_text_contains_ascii_case_insensitive(Some(&proposal.title), query)
-        || optional_text_contains_ascii_case_insensitive(Some(&proposal.action), query)
-        || optional_text_contains_ascii_case_insensitive(Some(&proposal.summary), query)
-        || optional_text_contains_ascii_case_insensitive(proposal.url.as_deref(), query)
-        || optional_text_contains_ascii_case_insensitive(
+    optional_text_contains_case_insensitive(Some(&proposal.title), query)
+        || optional_text_contains_case_insensitive(Some(&proposal.action), query)
+        || optional_text_contains_case_insensitive(Some(&proposal.summary), query)
+        || optional_text_contains_case_insensitive(proposal.url.as_deref(), query)
+        || optional_text_contains_case_insensitive(
             proposal.payload_text_rendering.as_deref(),
             query,
         )

@@ -26,8 +26,8 @@ pub(super) use proposals::{
 pub(super) use token::fetch_mainnet_sns_token;
 
 /// Run one async SNS query flow on the current-thread runtime.
-fn block_on_sns<T>(
-    future: impl Future<Output = Result<T, SnsHostError>>,
+fn block_on_sns<T: Send>(
+    future: impl Future<Output = Result<T, SnsHostError>> + Send,
 ) -> Result<T, SnsHostError> {
     crate::runtime::block_on_current_thread(future).map_err(SnsHostError::Runtime)?
 }

@@ -73,6 +73,22 @@ fn render_table_right_aligns_cells() {
 }
 
 #[test]
+fn render_table_aligns_wide_unicode_cells_by_terminal_width() {
+    let rows = [
+        ["東京".to_string(), "1".to_string()],
+        ["Paris".to_string(), "2".to_string()],
+    ];
+
+    let table = render_table(
+        &["CITY", "ID"],
+        &rows,
+        &[ColumnAlign::Left, ColumnAlign::Right],
+    );
+
+    assert_eq!(table, "CITY    ID\n-----   --\n東京     1\nParis    2");
+}
+
+#[test]
 #[cfg(feature = "host")]
 fn duration_display_uses_largest_readable_unit() {
     assert_eq!(display_duration_seconds(0), "0s");

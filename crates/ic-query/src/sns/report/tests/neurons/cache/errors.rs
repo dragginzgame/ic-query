@@ -3,6 +3,22 @@ use crate::test_support::temp_dir;
 use std::fs;
 
 #[test]
+fn sns_neurons_refresh_rejects_invalid_public_page_size() {
+    let root = temp_dir("ic-query-sns-neurons-invalid-page-size");
+    let mut request = sns_neurons_refresh_request(&root, None);
+    request.page_size = 0;
+
+    let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect_err("zero page size is invalid");
+
+    assert!(matches!(
+        err,
+        SnsHostError::InvalidRefreshPageSize { page_size: 0, .. }
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_neurons_cached_sort_requires_existing_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-missing-cache");
     let mut request = neurons_request("1");

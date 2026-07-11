@@ -12,7 +12,8 @@ use crate::{
     nns::proposals::report::{MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError},
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        read_snapshot_refresh_attempt, write_snapshot_refresh_attempt,
+        SnapshotRefreshAttemptReadError, current_attempt_timestamp, read_snapshot_refresh_attempt,
+        read_snapshot_refresh_attempt_strict, write_snapshot_refresh_attempt,
     },
     subnet_catalog::format_utc_timestamp_secs,
 };
@@ -58,6 +59,21 @@ pub(super) fn read_attempt_status(path: &Path) -> Option<NnsProposalRefreshAttem
     Some(NnsProposalRefreshAttemptStatus::from(attempt))
 }
 
+pub(super) fn read_attempt_status_strict(
+    path: &Path,
+) -> Result<Option<NnsProposalRefreshAttemptStatus>, NnsProposalHostError> {
+    read_snapshot_refresh_attempt_strict::<NnsProposalRefreshAttempt>(path)
+        .map(|attempt| attempt.map(NnsProposalRefreshAttemptStatus::from))
+        .map_err(|err| match err {
+            SnapshotRefreshAttemptReadError::Read { path, source } => {
+                NnsProposalHostError::ReadCache { path, source }
+            }
+            SnapshotRefreshAttemptReadError::Parse { path, source } => {
+                NnsProposalHostError::ParseCache { path, source }
+            }
+        })
+}
+
 pub(super) fn write_starting_attempt(
     path: &Path,
     request: &NnsProposalRefreshRequest,
@@ -92,13 +108,13 @@ pub(super) fn write_failed_attempt(
     request: &NnsProposalRefreshRequest,
     err: &NnsProposalHostError,
 ) {
-    let _ = write_attempt_status(
-        path,
-        request,
-        "failed",
-        NnsProposalAttemptProgress::starting(),
-        Some(err.to_string()),
+    let latest = read_snapshot_refresh_attempt::<NnsProposalRefreshAttempt>(path);
+    let progress = NnsProposalAttemptProgress::new(
+        latest.as_ref().map_or(0, |attempt| attempt.pages_fetched),
+        latest.as_ref().map_or(0, |attempt| attempt.rows_fetched),
+        latest.and_then(|attempt| attempt.last_cursor),
     );
+    let _ = write_attempt_status(path, request, "failed", progress, Some(err.to_string()));
 }
 
 fn write_attempt_status(
@@ -115,7 +131,7 @@ fn write_attempt_status(
             network: request.network.clone(),
             source_endpoint: request.source_endpoint.clone(),
             started_at: timestamp.clone(),
-            updated_at: timestamp,
+            updated_at: current_attempt_timestamp(&timestamp),
             metadata: NnsProposalRefreshAttemptMetadata {
                 governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
             },

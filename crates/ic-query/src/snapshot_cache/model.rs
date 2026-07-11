@@ -60,14 +60,10 @@ pub struct SnapshotEnvelope<Metadata, Data> {
     pub source_endpoint: String,
     pub fetched_at: String,
     pub fetched_by: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub domain: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub entity: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub collection: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scope: Option<String>,
+    pub domain: String,
+    pub entity: String,
+    pub collection: String,
+    pub scope: String,
     #[serde(flatten)]
     pub metadata: Metadata,
     pub completeness: SnapshotCompleteness,
@@ -94,21 +90,13 @@ impl<Metadata, Data> JsonCacheReport for SnapshotEnvelope<Metadata, Data> {
 pub trait SnapshotReport: JsonCacheReport {
     fn completeness(&self) -> &SnapshotCompleteness;
 
-    fn snapshot_domain(&self) -> Option<&str> {
-        None
-    }
+    fn snapshot_domain(&self) -> &str;
 
-    fn snapshot_entity(&self) -> Option<&str> {
-        None
-    }
+    fn snapshot_entity(&self) -> &str;
 
-    fn snapshot_collection(&self) -> Option<&str> {
-        None
-    }
+    fn snapshot_collection(&self) -> &str;
 
-    fn snapshot_scope(&self) -> Option<&str> {
-        None
-    }
+    fn snapshot_scope(&self) -> &str;
 }
 
 impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
@@ -116,20 +104,20 @@ impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
         &self.completeness
     }
 
-    fn snapshot_domain(&self) -> Option<&str> {
-        self.domain.as_deref()
+    fn snapshot_domain(&self) -> &str {
+        &self.domain
     }
 
-    fn snapshot_entity(&self) -> Option<&str> {
-        self.entity.as_deref()
+    fn snapshot_entity(&self) -> &str {
+        &self.entity
     }
 
-    fn snapshot_collection(&self) -> Option<&str> {
-        self.collection.as_deref()
+    fn snapshot_collection(&self) -> &str {
+        &self.collection
     }
 
-    fn snapshot_scope(&self) -> Option<&str> {
-        self.scope.as_deref()
+    fn snapshot_scope(&self) -> &str {
+        &self.scope
     }
 }
 
@@ -156,14 +144,10 @@ pub struct SnapshotIdentityMismatch {
 pub struct SnapshotHeader<Metadata> {
     pub schema_version: u32,
     pub network: String,
-    #[serde(default)]
-    pub domain: Option<String>,
-    #[serde(default)]
-    pub entity: Option<String>,
-    #[serde(default)]
-    pub collection: Option<String>,
-    #[serde(default)]
-    pub scope: Option<String>,
+    pub domain: String,
+    pub entity: String,
+    pub collection: String,
+    pub scope: String,
     #[serde(flatten)]
     pub metadata: Metadata,
 }

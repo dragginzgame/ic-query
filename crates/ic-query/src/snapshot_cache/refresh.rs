@@ -19,7 +19,7 @@ pub trait PagedSnapshotRefresh {
 
     fn progress_text(&self) -> String;
     fn max_pages_reached(&self) -> bool;
-    fn incomplete_refresh_error(&self) -> Self::Error;
+    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error;
     fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error>;
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error>;
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool;
@@ -41,7 +41,7 @@ where
                 "{} stopped before completion",
                 refresh.progress_text()
             ));
-            return Err(refresh.incomplete_refresh_error());
+            return Err(refresh.incomplete_refresh_error("max pages reached before API exhaustion"));
         }
 
         let page = match refresh.fetch_next_page() {
@@ -59,6 +59,12 @@ where
 
         if refresh.page_exhausts_collection(&page) {
             break;
+        }
+        if page.has_no_new_rows() {
+            progress.finish(&format!("{} stalled", refresh.progress_text()));
+            return Err(refresh.incomplete_refresh_error(
+                "page returned no new rows while advertising another cursor",
+            ));
         }
     }
 

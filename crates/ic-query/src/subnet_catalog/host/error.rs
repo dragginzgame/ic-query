@@ -42,6 +42,15 @@ pub enum SubnetCatalogHostError {
         started_at_unix_ms: u64,
     },
 
+    #[error(
+        "stale subnet catalog refresh lock exists at {} since unix_ms={started_at_unix_ms}; remove it manually after verifying no refresh is running",
+        path.display()
+    )]
+    StaleRefreshLock {
+        path: PathBuf,
+        started_at_unix_ms: u64,
+    },
+
     #[error("failed to create subnet catalog directory at {}: {source}", path.display())]
     CreateCatalogDirectory { path: PathBuf, source: io::Error },
 
@@ -140,6 +149,13 @@ pub(super) fn subnet_cache_error(err: CacheFileError) -> SubnetCatalogHostError 
             path,
             started_at_unix_ms,
         } => SubnetCatalogHostError::RefreshAlreadyInProgress {
+            path,
+            started_at_unix_ms,
+        },
+        CacheFileError::StaleRefreshLock {
+            path,
+            started_at_unix_ms,
+        } => SubnetCatalogHostError::StaleRefreshLock {
             path,
             started_at_unix_ms,
         },

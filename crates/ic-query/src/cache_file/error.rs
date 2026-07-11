@@ -51,6 +51,15 @@ pub enum CacheFileError {
         started_at_unix_ms: u64,
     },
 
+    #[error(
+        "stale refresh lock exists at {} since unix_ms={started_at_unix_ms}; remove it manually after verifying no refresh is running",
+        path.display()
+    )]
+    StaleRefreshLock {
+        path: PathBuf,
+        started_at_unix_ms: u64,
+    },
+
     #[error("failed to write cache temp file at {}: {source}", path.display())]
     WriteTemp { path: PathBuf, source: io::Error },
 

@@ -68,6 +68,61 @@ impl NnsProposalSource for FixtureSource {
 }
 
 #[test]
+fn nns_proposal_refresh_rejects_invalid_public_page_size() {
+    let root = temp_dir("ic-query-nns-proposal-invalid-page-size");
+    let request = NnsProposalRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_MAINNET_ENDPOINT,
+        1_700_000_000,
+        0,
+    );
+
+    let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
+        .expect_err("zero page size is invalid");
+
+    assert!(matches!(
+        err,
+        NnsProposalHostError::InvalidRefreshPageSize { page_size: 0, .. }
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn nns_proposal_failed_refresh_preserves_page_progress() {
+    let root = temp_dir("ic-query-nns-proposal-failed-progress");
+    let request = NnsProposalRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_MAINNET_ENDPOINT,
+        1_700_000_000,
+        2,
+    )
+    .with_max_pages(Some(1));
+
+    let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
+        .expect_err("capped refresh is incomplete");
+
+    assert!(matches!(
+        err,
+        NnsProposalHostError::IncompleteRefresh {
+            pages_fetched: 1,
+            rows_fetched: 2,
+            ..
+        }
+    ));
+    let attempt_path = nns_proposal_cache_paths(&root, MAINNET_NETWORK).refresh_attempt_path;
+    let attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(attempt_path).expect("read failed attempt"))
+            .expect("parse failed attempt");
+    assert_eq!(attempt["status"], "failed");
+    assert_eq!(attempt["pages_fetched"], 1);
+    assert_eq!(attempt["rows_fetched"], 2);
+    assert_eq!(attempt["last_cursor"], "2");
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     let root = temp_dir("ic-query-nns-proposal-cache");
     let request = NnsProposalRefreshRequest {
@@ -164,6 +219,22 @@ fn nns_proposal_cache_status_reports_missing_cache() {
     assert_eq!(list.cache_count, 0);
     assert!(list.caches.is_empty());
 
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
+    let root = temp_dir("ic-query-nns-proposal-malformed-attempt");
+    let paths = nns_proposal_cache_paths(&root, MAINNET_NETWORK);
+    fs::create_dir_all(paths.refresh_attempt_path.parent().expect("attempt parent"))
+        .expect("create attempt parent");
+    fs::write(&paths.refresh_attempt_path, "{").expect("write malformed attempt");
+    let request = NnsProposalCacheStatusRequest::new(&root, MAINNET_NETWORK);
+
+    let err = build_nns_proposal_cache_status_report(&request)
+        .expect_err("malformed attempt must remain visible");
+
+    assert!(matches!(err, NnsProposalHostError::ParseCache { .. }));
     let _ = fs::remove_dir_all(root);
 }
 

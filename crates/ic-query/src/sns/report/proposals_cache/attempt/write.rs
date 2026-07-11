@@ -8,6 +8,7 @@ use super::model::{
     SnsProposalsAttemptContext, SnsProposalsAttemptParts, SnsProposalsAttemptProgress,
     attempt_from_parts,
 };
+use super::read::read_sns_proposals_attempt;
 use crate::{
     snapshot_cache::write_snapshot_refresh_attempt,
     sns::report::{SnsHostError, proposals_cache::model::SnsProposalsRefreshAttempt},
@@ -47,12 +48,13 @@ pub(in crate::sns::report::proposals_cache) fn write_failed_attempt(
     context: SnsProposalsAttemptContext<'_>,
     err: &SnsHostError,
 ) {
-    let _ = write_attempt_status(
-        context,
-        "failed",
-        SnsProposalsAttemptProgress::starting(),
-        Some(err.to_string()),
+    let latest = read_sns_proposals_attempt(context.path);
+    let progress = SnsProposalsAttemptProgress::new(
+        latest.as_ref().map_or(0, |attempt| attempt.pages_fetched),
+        latest.as_ref().map_or(0, |attempt| attempt.rows_fetched),
+        latest.and_then(|attempt| attempt.last_cursor),
     );
+    let _ = write_attempt_status(context, "failed", progress, Some(err.to_string()));
 }
 
 pub(in crate::sns::report::proposals_cache::attempt) fn write_attempt_status(

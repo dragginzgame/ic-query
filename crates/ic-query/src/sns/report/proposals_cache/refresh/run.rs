@@ -11,7 +11,8 @@ use crate::{
         with_locked_snapshot_refresh,
     },
     sns::report::{
-        SnsHostError, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
+        SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsProposalsRefreshReport,
+        SnsProposalsRefreshRequest,
         live::LiveSnsSource,
         lookup::{enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup},
         proposals_cache::{
@@ -37,6 +38,7 @@ pub fn refresh_sns_proposals_cache_with_source(
     request: &SnsProposalsRefreshRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
+    validate_refresh_page_size(request.page_size)?;
     enforce_mainnet_network(&request.network)?;
     let lookup_request = lookup_request_from_parts(
         &request.network,
@@ -79,6 +81,16 @@ pub fn refresh_sns_proposals_cache_with_source(
             )
         },
     )
+}
+
+fn validate_refresh_page_size(page_size: u32) -> Result<(), SnsHostError> {
+    if (1..=SNS_REFRESH_MAX_PAGE_SIZE).contains(&page_size) {
+        return Ok(());
+    }
+    Err(SnsHostError::InvalidRefreshPageSize {
+        page_size,
+        max_page_size: SNS_REFRESH_MAX_PAGE_SIZE,
+    })
 }
 
 fn refresh_sns_proposals_cache_locked(

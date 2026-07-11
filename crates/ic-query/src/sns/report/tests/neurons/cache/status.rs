@@ -3,6 +3,25 @@ use crate::test_support::temp_dir;
 use std::fs;
 
 #[test]
+fn sns_neurons_cache_status_surfaces_malformed_attempt_sidecar() {
+    let root = temp_dir("ic-query-sns-neurons-malformed-attempt");
+    let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    fs::create_dir_all(attempt_path.parent().expect("attempt parent"))
+        .expect("create attempt parent");
+    fs::write(&attempt_path, "{").expect("write malformed attempt");
+
+    let err = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        ROOT_A,
+    ))
+    .expect_err("malformed attempt must remain visible");
+
+    assert!(matches!(err, SnsHostError::ParseCache { .. }));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let root = temp_dir("ic-query-sns-neurons-cache-status");
     let request = sns_neurons_refresh_request(&root, None);

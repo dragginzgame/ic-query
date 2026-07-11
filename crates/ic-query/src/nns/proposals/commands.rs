@@ -10,10 +10,10 @@ use crate::{
         leaf,
         proposals::{
             report::{
-                DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
-                NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL,
-                NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_STATUS_ANY_LABEL,
-                NNS_PROPOSAL_TOPIC_ANY_LABEL,
+                DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE,
+                NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL,
+                NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
+                NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL,
             },
             values::{
                 NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG,
@@ -30,7 +30,6 @@ use clap::builder::{NonEmptyStringValueParser, RangedU64ValueParser};
 const NNS_PROPOSAL_LIST_DEFAULT_LIMIT: &str = "25";
 const NNS_PROPOSAL_LIST_MAX_LIMIT: u64 = 100;
 const NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
-const NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE: u64 = 100;
 
 const NNS_PROPOSAL_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -279,7 +278,7 @@ pub(in crate::nns::proposals) fn nns_proposal_refresh_command() -> ClapCommand {
                 .default_value(NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE)
                 .value_parser(
                     RangedU64ValueParser::<u32>::new()
-                        .range(1..=NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE),
+                        .range(1..=u64::from(NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE)),
                 )
                 .help("Maximum NNS proposals to request per governance page"),
         )

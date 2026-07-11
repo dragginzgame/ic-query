@@ -39,10 +39,7 @@ pub(in crate::sns::report) struct SnsCacheStatusLookup<Summary, Attempt> {
 ///
 
 pub(in crate::sns::report) trait SnsCacheStatusSummaryView {
-    type Attempt: Clone;
-
     fn refresh_attempt_path(&self) -> &str;
-    fn latest_attempt(&self) -> Option<Self::Attempt>;
 }
 
 ///
@@ -52,7 +49,7 @@ pub(in crate::sns::report) trait SnsCacheStatusSummaryView {
 ///
 
 pub(in crate::sns::report) trait SnsCacheStatusFamily {
-    type Summary: SnsCacheStatusSummaryView<Attempt = Self::Attempt>;
+    type Summary: SnsCacheStatusSummaryView;
     type Attempt: Clone;
 
     fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf;
@@ -70,7 +67,7 @@ pub(in crate::sns::report) trait SnsCacheStatusFamily {
         cache_path: PathBuf,
         network: &str,
     ) -> Result<Self::Summary, SnsHostError>;
-    fn read_attempt_status(attempt_path: &Path) -> Option<Self::Attempt>;
+    fn read_attempt_status(attempt_path: &Path) -> Result<Option<Self::Attempt>, SnsHostError>;
 }
 
 /// Build a cache-status lookup for an SNS cache family by list id or root principal.
@@ -105,9 +102,10 @@ where
     let refresh_attempt_path = cache
         .as_ref()
         .map(|cache| cache.refresh_attempt_path().to_string());
-    let latest_attempt = cache
-        .as_ref()
-        .and_then(SnsCacheStatusSummaryView::latest_attempt);
+    let latest_attempt = match refresh_attempt_path.as_deref() {
+        Some(path) => Family::read_attempt_status(Path::new(path))?,
+        None => None,
+    };
     Ok(SnsCacheStatusLookup {
         cache_root,
         cache,
@@ -136,10 +134,7 @@ where
     } else {
         None
     };
-    let latest_attempt = cache.as_ref().map_or_else(
-        || Family::read_attempt_status(&paths.attempt_path),
-        SnsCacheStatusSummaryView::latest_attempt,
-    );
+    let latest_attempt = Family::read_attempt_status(&paths.attempt_path)?;
     Ok(SnsCacheStatusLookup {
         cache_root,
         cache,

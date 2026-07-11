@@ -35,18 +35,14 @@ fn corrupted_stale_refresh_lock_requires_manual_cleanup() {
 }
 
 #[test]
-fn stale_valid_refresh_lock_is_replaced() {
+fn stale_valid_refresh_lock_requires_manual_cleanup() {
     let fixture = LockFixture::new("ic-query-stale-valid-refresh-lock");
     fixture.write_valid_lock(1);
 
-    let guard = acquire_refresh_lock(fixture.request(120)).expect("stale lock is replaced");
-    let lock: serde_json::Value =
-        serde_json::from_slice(&fs::read(&fixture.lock_path).expect("read replaced lock"))
-            .expect("parse replaced lock");
+    let err = acquire_refresh_lock(fixture.request(120)).expect_err("stale lock is rejected");
 
-    assert_eq!(lock["started_at_unix_ms"], 120_000);
-    drop(guard);
-    assert!(!fixture.lock_path.exists());
+    assert!(matches!(err, CacheFileError::StaleRefreshLock { .. }));
+    assert!(fixture.lock_path.exists());
     fixture.cleanup();
 }
 

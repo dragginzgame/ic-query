@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{
     nns::proposals::report::{
-        NnsProposalHostError, enforce_mainnet_network,
+        NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE, NnsProposalHostError, enforce_mainnet_network,
         source::{LiveNnsProposalSource, NnsProposalSource},
     },
     snapshot_cache::{
@@ -35,6 +35,12 @@ pub fn refresh_nns_proposal_cache_with_source(
     request: &NnsProposalRefreshRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
+    if !(1..=NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE).contains(&request.page_size) {
+        return Err(NnsProposalHostError::InvalidRefreshPageSize {
+            page_size: request.page_size,
+            max_page_size: NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE,
+        });
+    }
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.icp_root, &request.network);
     with_locked_snapshot_refresh(

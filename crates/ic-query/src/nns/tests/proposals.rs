@@ -302,23 +302,3 @@ fn nns_proposal_list_local_is_rejected_with_pinned_message() {
     assert!(message.contains("supports only the mainnet `ic` network"));
     assert!(message.contains("icq --network ic nns proposal list"));
 }
-
-#[test]
-fn nns_proposals_alias_is_rejected() {
-    let err = run([
-        OsString::from("proposals"),
-        OsString::from("--limit"),
-        OsString::from("10"),
-    ])
-    .expect_err("old proposals alias rejected");
-
-    assert!(err.to_string().contains("Usage: icq nns"));
-}
-
-#[test]
-fn nns_proposal_bare_id_alias_is_rejected() {
-    let err = run([OsString::from("proposal"), OsString::from("132411")])
-        .expect_err("bare proposal id alias rejected");
-
-    assert!(err.to_string().contains("Usage: icq nns proposal"));
-}

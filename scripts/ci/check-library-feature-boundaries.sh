@@ -8,6 +8,12 @@ forbidden_pure_library_dependencies=(
   tokio
 )
 
+forbidden_direct_pure_library_dependencies=(
+  prost
+  sha2
+  time
+)
+
 forbidden_host_without_cli_dependencies=(
   clap
 )
@@ -80,6 +86,14 @@ check_tree_absent "ic-query --no-default-features" \
   -- \
   -p ic-query \
   --no-default-features
+
+check_tree_absent "ic-query --no-default-features direct dependencies" \
+  "${forbidden_direct_pure_library_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  -e normal \
+  --depth 1
 
 check_tree_absent "ic-query default features" \
   "${forbidden_pure_library_dependencies[@]}" \

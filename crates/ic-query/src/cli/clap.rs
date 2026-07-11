@@ -37,7 +37,7 @@ pub fn parse_matches_or_usage<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_matches(command, args).map_err(|_| usage())
+    parse_matches(command, args).map_err(|error| format!("{error}\n{}", usage()))
 }
 
 pub fn passthrough_subcommand(command: Command) -> Command {
@@ -81,7 +81,7 @@ pub fn parse_required_subcommand_or_usage<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_required_subcommand(command, args).map_err(|_| usage())
+    parse_required_subcommand(command, args).map_err(|error| format!("{error}\n{}", usage()))
 }
 
 pub fn parse_optional_subcommand_or_usage<I>(

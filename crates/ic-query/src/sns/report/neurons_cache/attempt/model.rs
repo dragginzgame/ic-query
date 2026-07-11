@@ -5,18 +5,16 @@
 //! Boundary: maps refresh context and progress into the generic snapshot attempt envelope.
 
 use crate::{
-    snapshot_cache::{SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt},
+    snapshot_cache::{
+        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt, current_attempt_timestamp,
+    },
     sns::report::{
         SnsNeuronsRefreshRequest,
         cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
         source::{MainnetSns, SnsFetchRequest},
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
-use std::{
-    path::Path,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::path::Path;
 
 pub(in crate::sns::report::neurons_cache) type SnsNeuronsRefreshAttempt =
     SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
@@ -59,7 +57,7 @@ pub(in crate::sns::report::neurons_cache::attempt) fn attempt_from_parts(
         network: parts.context.request.network.clone(),
         source_endpoint: parts.context.request.source_endpoint.clone(),
         started_at: parts.context.fetch_request.fetched_at.clone(),
-        updated_at: current_timestamp_text(&parts.context.fetch_request.fetched_at),
+        updated_at: current_attempt_timestamp(&parts.context.fetch_request.fetched_at),
         metadata: SnsRefreshAttemptMetadata {
             root_canister_id: parts.context.sns.root_canister_id.clone(),
             governance_canister_id: parts.context.sns.governance_canister_id.clone(),
@@ -71,11 +69,4 @@ pub(in crate::sns::report::neurons_cache::attempt) fn attempt_from_parts(
         last_cursor: parts.progress.last_cursor,
         last_error: parts.last_error,
     }
-}
-
-fn current_timestamp_text(fallback: &str) -> String {
-    SystemTime::now().duration_since(UNIX_EPOCH).map_or_else(
-        |_| fallback.to_string(),
-        |duration| format_utc_timestamp_secs(duration.as_secs()),
-    )
 }

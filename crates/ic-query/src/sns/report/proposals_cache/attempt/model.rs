@@ -5,7 +5,7 @@
 //! Boundary: builds typed proposal refresh-attempt snapshots from refresh context.
 
 use crate::{
-    snapshot_cache::SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
+    snapshot_cache::{SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, current_attempt_timestamp},
     sns::report::{
         SnsProposalsRefreshRequest,
         cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
@@ -53,7 +53,7 @@ pub(in crate::sns::report::proposals_cache::attempt) fn attempt_from_parts(
         network: parts.context.request.network.clone(),
         source_endpoint: parts.context.request.source_endpoint.clone(),
         started_at: parts.context.fetch_request.fetched_at.clone(),
-        updated_at: parts.context.fetch_request.fetched_at.clone(),
+        updated_at: current_attempt_timestamp(&parts.context.fetch_request.fetched_at),
         metadata: SnsRefreshAttemptMetadata {
             root_canister_id: parts.context.sns.root_canister_id.clone(),
             governance_canister_id: parts.context.sns.governance_canister_id.clone(),

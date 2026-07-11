@@ -75,6 +75,8 @@ pub use text::{nns_proposal_list_report_text, nns_proposal_report_text};
 mod tests;
 
 pub const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = "https://icp-api.io";
+#[cfg(feature = "host")]
+pub(in crate::nns::proposals) const NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
 #[cfg(feature = "host")]
 const NNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -145,6 +147,9 @@ pub enum NnsProposalHostError {
         rows_fetched: usize,
         reason: String,
     },
+
+    #[error("invalid NNS proposal refresh page size {page_size}; expected 1..={max_page_size}")]
+    InvalidRefreshPageSize { page_size: u32, max_page_size: u32 },
 
     #[error("NNS proposal {proposal_id} was not found")]
     ProposalNotFound { proposal_id: u64 },

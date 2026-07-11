@@ -310,8 +310,9 @@ DTOs are passive boundary data only. Command and report request DTOs should not
 implement `Default` unless the default is truly neutral.
 
 Cache records and snapshot envelopes are persisted storage schema. Keep schema
-versions explicit, reject unknown future versions unless a migration exists,
-and preserve raw JSON fields that scripts may consume.
+versions explicit, reject unsupported versions, and do not add pre-1.0
+compatibility readers or migrations. Preserve raw JSON fields that scripts may
+consume in the current schema.
 
 Reports are read-only projections over live source data or complete local
 snapshots. Do not mix display-only text conversions into JSON report models.
@@ -344,7 +345,7 @@ During hygiene passes, remove:
 
 1. duplicate helpers
 2. dead code
-3. stale compatibility branches no longer needed
+3. compatibility branches and the redundant code they support
 4. outdated comments that describe old behavior
 5. duplicate cache, report, text-rendering, or CLI parsing logic after a
    shared local helper exists

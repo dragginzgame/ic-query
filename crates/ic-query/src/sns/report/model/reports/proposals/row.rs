@@ -4,7 +4,7 @@
 //! Does not own: source conversion, report-level metadata, or rendering.
 //! Boundary: preserves proposal detail fields for cache snapshots and JSON output.
 
-use serde::{Deserialize as SerdeDeserialize, Serialize};
+use serde::{Deserialize as SerdeDeserialize, Deserializer, Serialize};
 
 #[cfg(feature = "host")]
 pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_DECIDED: &str = "decided";
@@ -30,9 +30,9 @@ pub struct SnsProposalRow {
     pub summary: String,
     pub url: Option<String>,
     pub decision_state: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "deserialize_required_option")]
     pub status: Option<i32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "deserialize_required_option")]
     pub topic: Option<String>,
     pub reject_cost_e8s: u64,
     pub proposal_creation_timestamp_seconds: u64,
@@ -52,6 +52,14 @@ pub struct SnsProposalRow {
     pub ballots: Vec<SnsProposalBallotRow>,
     pub payload_text_rendering: Option<String>,
     pub proposer_neuron_id: Option<String>,
+}
+
+fn deserialize_required_option<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: SerdeDeserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer)
 }
 
 ///

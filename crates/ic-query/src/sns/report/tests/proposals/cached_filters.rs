@@ -67,36 +67,6 @@ fn sns_proposals_cached_query_filters_complete_snapshot() {
 }
 
 #[test]
-fn sns_proposals_status_filter_refreshes_legacy_cache_without_raw_status() {
-    let root = temp_dir("ic-query-sns-proposals-status-legacy");
-    let refresh = refresh_sns_proposals_cache_with_source(
-        &sns_proposals_refresh_request(&root, None),
-        &UnsortedSnsProposalsSource,
-    )
-    .expect("refresh proposals cache");
-    let cache_path = std::path::PathBuf::from(refresh.cache_path);
-    remove_cached_proposal_status_fields(&cache_path);
-
-    let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Adopted;
-    request.topic = SnsProposalTopicFilter::Any;
-    request.before_proposal_id = None;
-    request.sort = SnsProposalsSort::Id;
-    request.limit = 10;
-
-    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .expect("refresh legacy proposals cache before adopted filter");
-
-    assert_eq!(report.data_source, "cache");
-    assert_eq!(report.status_filter, "adopted");
-    assert_eq!(proposal_ids(&report), vec![30]);
-    assert_cached_proposal_status_fields_present(&cache_path);
-
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
 fn sns_proposals_cached_topic_filters_complete_snapshot() {
     let root = temp_dir("ic-query-sns-proposals-topic-governance");
     let mut request = proposals_request("1");
@@ -150,36 +120,6 @@ fn sns_proposals_cached_decided_status_combines_with_topic_filter() {
     assert_eq!(second.status_filter, "decided");
     assert_eq!(second.topic_filter, "governance");
     assert_eq!(proposal_ids(&second), vec![30]);
-
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
-fn sns_proposals_topic_filter_refreshes_legacy_cache_without_topic() {
-    let root = temp_dir("ic-query-sns-proposals-topic-legacy");
-    let refresh = refresh_sns_proposals_cache_with_source(
-        &sns_proposals_refresh_request(&root, None),
-        &UnsortedSnsProposalsSource,
-    )
-    .expect("refresh proposals cache");
-    let cache_path = std::path::PathBuf::from(refresh.cache_path);
-    remove_cached_proposal_field(&cache_path, "topic");
-
-    let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
-    request.topic = SnsProposalTopicFilter::Governance;
-    request.before_proposal_id = None;
-    request.sort = SnsProposalsSort::Id;
-    request.limit = 10;
-
-    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .expect("refresh legacy proposals cache before topic filter");
-
-    assert_eq!(report.data_source, "cache");
-    assert_eq!(report.topic_filter, "governance");
-    assert_eq!(proposal_ids(&report), vec![30, 10]);
-    assert_cached_proposal_field_present(&cache_path, "topic");
 
     let _ = fs::remove_dir_all(root);
 }

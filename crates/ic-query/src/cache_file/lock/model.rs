@@ -34,7 +34,6 @@ pub(super) struct RefreshLockFile {
     pub(super) network: String,
     pub(super) pid: u32,
     pub(super) started_at_unix_ms: u64,
-    #[serde(alias = "catalog_path", alias = "cache_path")]
     pub(super) target_path: String,
 }
 

@@ -64,6 +64,16 @@ pub enum NnsLeafHostCacheError {
         started_at_unix_ms: u64,
     },
 
+    #[error(
+        "stale {component} refresh lock exists at {} since unix_ms={started_at_unix_ms}; remove it manually after verifying no refresh is running",
+        path.display()
+    )]
+    StaleRefreshLock {
+        component: &'static str,
+        path: PathBuf,
+        started_at_unix_ms: u64,
+    },
+
     #[error("failed to create {component} cache directory at {}: {source}", path.display())]
     CreateCacheDirectory {
         component: &'static str,
@@ -262,6 +272,14 @@ impl NnsLeafHostCacheError {
                 path,
                 started_at_unix_ms,
             } => Self::RefreshAlreadyInProgress {
+                component,
+                path,
+                started_at_unix_ms,
+            },
+            CacheFileError::StaleRefreshLock {
+                path,
+                started_at_unix_ms,
+            } => Self::StaleRefreshLock {
                 component,
                 path,
                 started_at_unix_ms,

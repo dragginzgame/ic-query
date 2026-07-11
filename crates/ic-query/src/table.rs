@@ -7,6 +7,8 @@
 //! Boundary: provides deterministic alignment and width calculation for report text
 //! modules that need compact tabular output.
 
+use unicode_width::UnicodeWidthStr;
+
 const COLUMN_GAP: &str = "   ";
 
 ///
@@ -39,14 +41,14 @@ pub fn render_table<const N: usize>(
     lines.join("\n")
 }
 
-/// Computes display widths from header and row cell character counts.
+/// Computes terminal display widths from header and row cells.
 #[must_use]
 pub fn table_widths<const N: usize>(headers: &[&str; N], rows: &[[String; N]]) -> [usize; N] {
-    let mut widths = headers.map(str::chars).map(Iterator::count);
+    let mut widths = headers.map(UnicodeWidthStr::width);
 
     for row in rows {
         for (index, cell) in row.iter().enumerate() {
-            widths[index] = widths[index].max(cell.chars().count());
+            widths[index] = widths[index].max(UnicodeWidthStr::width(cell.as_str()));
         }
     }
 
@@ -85,7 +87,7 @@ pub fn render_separator<const N: usize>(widths: &[usize; N]) -> String {
 }
 
 fn pad_cell(value: &str, width: usize, alignment: ColumnAlign) -> String {
-    let padding = " ".repeat(width.saturating_sub(value.chars().count()));
+    let padding = " ".repeat(width.saturating_sub(UnicodeWidthStr::width(value)));
     match alignment {
         ColumnAlign::Left => format!("{value}{padding}"),
         ColumnAlign::Right => format!("{padding}{value}"),

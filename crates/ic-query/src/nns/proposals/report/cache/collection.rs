@@ -73,11 +73,11 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             .is_some_and(|max_pages| self.state.page_count() >= max_pages)
     }
 
-    fn incomplete_refresh_error(&self) -> Self::Error {
+    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
         NnsProposalHostError::IncompleteRefresh {
             pages_fetched: self.state.page_count(),
             rows_fetched: self.state.row_count(),
-            reason: "max pages reached before API exhaustion".to_string(),
+            reason: reason.to_string(),
         }
     }
 

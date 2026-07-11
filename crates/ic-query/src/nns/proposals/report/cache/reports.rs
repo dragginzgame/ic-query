@@ -7,7 +7,7 @@
 use super::{
     NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
     NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    attempt::read_attempt_status,
+    attempt::{read_attempt_status, read_attempt_status_strict},
     model::{
         NnsProposalCache, NnsProposalCacheListReport, NnsProposalCacheListRequest,
         NnsProposalCacheStatusReport, NnsProposalCacheStatusRequest, NnsProposalCacheSummary,
@@ -83,10 +83,7 @@ pub fn build_nns_proposal_cache_status_report(
     } else {
         None
     };
-    let latest_attempt = cache
-        .as_ref()
-        .and_then(|summary| summary.latest_attempt.clone())
-        .or_else(|| read_attempt_status(&paths.refresh_attempt_path));
+    let latest_attempt = read_attempt_status_strict(&paths.refresh_attempt_path)?;
     Ok(NnsProposalCacheStatusReport {
         schema_version: NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),

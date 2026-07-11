@@ -265,11 +265,8 @@ fn temp_root(name: &str) -> PathBuf {
 
 #[cfg(feature = "host")]
 #[must_use]
-fn unix_secs_for_test() -> u64 {
-    std::time::SystemTime::UNIX_EPOCH
-        .elapsed()
-        .expect("system time after unix epoch")
-        .as_secs()
+const fn unix_secs_for_test() -> u64 {
+    1_782_432_100
 }
 
 #[must_use]

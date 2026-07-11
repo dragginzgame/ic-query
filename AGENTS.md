@@ -20,6 +20,23 @@ If code or habit conflicts with this file, this file wins.
 - Prepare working-tree changes only; the maintainer handles commits, tags,
   version bumps, releases, and pushes.
 
+## Pre-1.0 Compatibility
+
+- Before `1.0.0`, every breaking change is a hard cut. Do not preserve old
+  behavior through compatibility shims, CLI or Serde aliases, deprecated
+  wrappers or re-exports, dual parsers, fallback readers, legacy schema
+  branches, or automatic migrations.
+- Delete replaced surfaces and the redundant implementation they supported in
+  the same change. Historical changelogs may describe removed behavior, but
+  they do not justify keeping compatibility code.
+- Do not add or retain anti-resurrection tests whose only purpose is proving
+  that a removed command, field, schema, alias, wrapper, or behavior remains
+  unavailable. Test the current supported contract and generic invalid input,
+  not historical forms.
+- Ordinary internal Rust type aliases that name a current shared type are not
+  compatibility aliases. They remain subject to the normal ownership and
+  redundancy rules in this file.
+
 ## Changelog
 
 - Use root `CHANGELOG.md` as the concise release ledger. Update it only for

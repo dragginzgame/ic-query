@@ -14,7 +14,7 @@ use crate::sns::report::{
     find_valid_sns_cache_summary_by_id,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-        attempt::read_sns_proposals_attempt_status,
+        attempt::read_sns_proposals_attempt_status_strict,
         paths::{SnsProposalsCachePaths, sns_network_cache_dir},
         storage::{list_sns_proposals_cache_summaries, load_sns_proposals_cache_summary_at},
     },
@@ -101,19 +101,13 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
         Ok(load_sns_proposals_cache_summary_at(cache_path, network))
     }
 
-    fn read_attempt_status(attempt_path: &Path) -> Option<Self::Attempt> {
-        read_sns_proposals_attempt_status(attempt_path)
+    fn read_attempt_status(attempt_path: &Path) -> Result<Option<Self::Attempt>, SnsHostError> {
+        read_sns_proposals_attempt_status_strict(attempt_path)
     }
 }
 
 impl SnsCacheStatusSummaryView for SnsProposalsCacheSummary {
-    type Attempt = SnsProposalsRefreshAttemptStatus;
-
     fn refresh_attempt_path(&self) -> &str {
         &self.refresh_attempt_path
-    }
-
-    fn latest_attempt(&self) -> Option<Self::Attempt> {
-        self.latest_attempt.clone()
     }
 }

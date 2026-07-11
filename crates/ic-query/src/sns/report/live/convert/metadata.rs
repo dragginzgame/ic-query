@@ -42,6 +42,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::CacheIdentityMismatch { .. }
         | SnsHostError::Cache(_)
         | SnsHostError::IncompleteRefresh { .. }
+        | SnsHostError::InvalidRefreshPageSize { .. }
         | SnsHostError::MissingCacheRoot
         | SnsHostError::UnsupportedProposalView { .. } => None,
     }

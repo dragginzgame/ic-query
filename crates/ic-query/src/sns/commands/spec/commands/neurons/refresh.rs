@@ -10,13 +10,13 @@ use crate::{
         globals::internal_network_arg,
     },
     sns::{
-        commands::spec::commands::args::sns_lookup_input_arg, report::DEFAULT_SNS_SOURCE_ENDPOINT,
+        commands::spec::commands::args::sns_lookup_input_arg,
+        report::{DEFAULT_SNS_SOURCE_ENDPOINT, SNS_REFRESH_MAX_PAGE_SIZE},
     },
 };
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
 const SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
-const SNS_NEURONS_REFRESH_MAX_PAGE_SIZE: u64 = 100;
 
 const SNS_NEURONS_REFRESH_HELP_AFTER: &str = "\
 Examples:
@@ -42,7 +42,8 @@ pub(in crate::sns::commands) fn sns_neurons_refresh_command() -> ClapCommand {
                 .value_name("count")
                 .default_value(SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE)
                 .value_parser(
-                    RangedU64ValueParser::<u32>::new().range(1..=SNS_NEURONS_REFRESH_MAX_PAGE_SIZE),
+                    RangedU64ValueParser::<u32>::new()
+                        .range(1..=u64::from(SNS_REFRESH_MAX_PAGE_SIZE)),
                 )
                 .help("Maximum neurons to request per SNS governance page"),
         )

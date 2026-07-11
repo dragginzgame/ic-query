@@ -7,6 +7,21 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.7.0] - 2026-07-11 - Hard cache and runtime cut
+
+Detailed release notes: [docs/changelog/0.7.md](docs/changelog/0.7.md)
+
+- Hardens live host execution, complete snapshot publication, and cache
+  operations. Live builders no longer panic when called from an existing
+  Tokio runtime; paged refreshes reject stalled pages and invalid page sizes;
+  failed proposal refreshes preserve progress; stale locks require explicit
+  operator cleanup; CLI parse errors retain their diagnostics; and malformed
+  attempt sidecars remain visible. This is an intentional breaking release:
+  NNS/SNS complete snapshot schema is reset to version 1 and requires logical
+  identity fields. Snapshot files outside the current shape and removed
+  refresh-lock field names are rejected, with no compatibility aliases or
+  automatic migrations.
+
 ## [0.6.x] - 2026-07-01 - Public source adapters
 
 Detailed patch breakdown: [docs/changelog/0.6.md](docs/changelog/0.6.md)

@@ -18,7 +18,7 @@ use crate::{
                 SnsProposalTopicArg, SnsProposalsSortArg,
             },
         },
-        report::DEFAULT_SNS_SOURCE_ENDPOINT,
+        report::{DEFAULT_SNS_SOURCE_ENDPOINT, SNS_REFRESH_MAX_PAGE_SIZE},
     },
 };
 use clap::builder::NonEmptyStringValueParser;
@@ -27,7 +27,6 @@ use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 const SNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
 const SNS_PROPOSALS_MAX_LIMIT: u64 = 100;
 const SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
-const SNS_PROPOSALS_REFRESH_MAX_PAGE_SIZE: u64 = 100;
 
 const SNS_PROPOSALS_HELP_AFTER: &str = "\
 Examples:
@@ -247,7 +246,7 @@ pub(in crate::sns::commands) fn sns_proposals_refresh_command() -> ClapCommand {
                 .default_value(SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE)
                 .value_parser(
                     RangedU64ValueParser::<u32>::new()
-                        .range(1..=SNS_PROPOSALS_REFRESH_MAX_PAGE_SIZE),
+                        .range(1..=u64::from(SNS_REFRESH_MAX_PAGE_SIZE)),
                 )
                 .help("Maximum proposals to request per SNS governance page"),
         )

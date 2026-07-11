@@ -88,7 +88,7 @@ fn parse_matches_or_usage<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_matches(command, args).map_err(|_| usage())
+    parse_matches(command, args).map_err(|error| format!("{error}\n{}", usage()))
 }
 
 fn passthrough_subcommand(command: Command) -> Command {
@@ -117,18 +117,28 @@ where
     I: IntoIterator<Item = OsString>,
 {
     let args = args.into_iter().collect::<Vec<_>>();
-    if first_arg_is_help(&args) {
+    if top_level_help_requested(&args) {
         println!("{}", usage());
         return None;
     }
     Some(args)
 }
 
-fn first_arg_is_help(args: &[OsString]) -> bool {
-    args.first().is_some_and(|arg| {
-        arg.to_str()
-            .is_some_and(|arg| matches!(arg, "help" | "--help" | "-h"))
-    })
+fn top_level_help_requested(args: &[OsString]) -> bool {
+    let mut index = 0;
+    while index < args.len() {
+        let Some(arg) = args[index].to_str() else {
+            return false;
+        };
+        if command_family(arg).is_some() {
+            return false;
+        }
+        if matches!(arg, "help" | "--help" | "-h") {
+            return true;
+        }
+        index += if arg == "--network" { 2 } else { 1 };
+    }
+    false
 }
 
 fn network_arg() -> Arg {

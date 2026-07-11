@@ -17,19 +17,19 @@ categories = ["command-line-utilities"]
 candid = { version = "0.10", default-features = false }
 clap = { workspace = true, optional = true }
 futures = { version = "0.3", optional = true }
-ic-agent = { version = "0.47.3", default-features = false, optional = true }
-prost = "0.14.3"
+ic-agent = { version = "0.48.1", default-features = false, optional = true }
+prost = { version = "0.14.3", optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = "1.0"
-sha2 = "0.10.9"
+sha2 = { version = "0.10.9", optional = true }
 thiserror.workspace = true
-time = { version = "=0.3.47", default-features = false }
 tokio = { version = "1.52.3", features = ["rt"], optional = true }
+unicode-width = "0.2"
 
 [features]
 default = []
 cli = ["host", "dep:clap"]
-host = ["dep:futures", "dep:ic-agent", "dep:tokio"]
+host = ["dep:futures", "dep:ic-agent", "dep:prost", "dep:sha2", "dep:tokio"]
 
 [[test]]
 name = "nns_public_api"

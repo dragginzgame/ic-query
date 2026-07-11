@@ -7,8 +7,7 @@
 use crate::{
     cache_file::load_or_refresh_missing_cache,
     sns::report::{
-        SnsHostError, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsRefreshRequest,
-        SnsProposalsReport, SnsProposalsRequest,
+        SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
         assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
@@ -41,7 +40,7 @@ fn load_or_refresh_sns_proposals_cache(
     icp_root: &Path,
     source: &dyn SnsProposalsSource,
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
-    let (cache_path, cache) = load_or_refresh_missing_cache(
+    load_or_refresh_missing_cache(
         "SNS proposals",
         &request.source_endpoint,
         || load_sns_proposals_cache_for_input_with_path(icp_root, &request.network, &request.input),
@@ -56,31 +55,7 @@ fn load_or_refresh_sns_proposals_cache(
             SnsHostError::MissingProposalsCache { path } => Ok(path),
             err => Err(err),
         },
-    )?;
-    if cache_lacks_fields_required_for_view(&cache, request) {
-        eprintln!(
-            "SNS proposals cache at {} lacks fields required for this proposal view; calling {} to refresh cache",
-            cache_path.display(),
-            request.source_endpoint
-        );
-        refresh_sns_proposals_cache_with_source(
-            &proposals_refresh_request_from_list_request(request, icp_root),
-            source,
-        )?;
-        let refreshed = load_sns_proposals_cache_for_input_with_path(
-            icp_root,
-            &request.network,
-            &request.input,
-        )?;
-        if cache_lacks_fields_required_for_view(&refreshed.1, request) {
-            return Err(SnsHostError::UnsupportedProposalView {
-                reason: "refreshed SNS proposal cache lacks fields required for this proposal view"
-                    .to_string(),
-            });
-        }
-        return Ok(refreshed);
-    }
-    Ok((cache_path, cache))
+    )
 }
 
 fn proposals_refresh_request_from_list_request(
@@ -96,41 +71,6 @@ fn proposals_refresh_request_from_list_request(
         page_size: SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE,
         max_pages: None,
     }
-}
-
-const fn proposal_status_requires_raw_status(status: SnsProposalStatusFilter) -> bool {
-    matches!(
-        status,
-        SnsProposalStatusFilter::Rejected | SnsProposalStatusFilter::Adopted
-    )
-}
-
-fn cache_lacks_raw_status(cache: &SnsProposalsCache) -> bool {
-    cache
-        .data
-        .proposals
-        .iter()
-        .any(|proposal| proposal.status.is_none())
-}
-
-const fn proposal_topic_requires_cached_topic(topic: SnsProposalTopicFilter) -> bool {
-    !matches!(topic, SnsProposalTopicFilter::Any)
-}
-
-fn cache_lacks_cached_topic(cache: &SnsProposalsCache) -> bool {
-    cache
-        .data
-        .proposals
-        .iter()
-        .any(|proposal| proposal.topic.is_none())
-}
-
-fn cache_lacks_fields_required_for_view(
-    cache: &SnsProposalsCache,
-    request: &SnsProposalsRequest,
-) -> bool {
-    (proposal_status_requires_raw_status(request.status) && cache_lacks_raw_status(cache))
-        || (proposal_topic_requires_cached_topic(request.topic) && cache_lacks_cached_topic(cache))
 }
 
 fn sns_proposals_report_from_cache(

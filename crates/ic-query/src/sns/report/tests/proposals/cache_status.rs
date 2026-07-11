@@ -1,6 +1,90 @@
 use super::*;
 
 #[test]
+fn sns_proposals_refresh_rejects_invalid_public_page_size() {
+    let root = temp_dir("ic-query-sns-proposals-invalid-page-size");
+    let mut request = sns_proposals_refresh_request(&root, None);
+    request.page_size = 0;
+
+    let err = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
+        .expect_err("zero page size is invalid");
+
+    assert!(matches!(
+        err,
+        SnsHostError::InvalidRefreshPageSize { page_size: 0, .. }
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+struct PagedSnsProposalsSource;
+
+impl SnsListSource for PagedSnsProposalsSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsFetchRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        FixtureSnsListSource.fetch_deployed_snses(request)
+    }
+}
+
+impl SnsProposalsSource for PagedSnsProposalsSource {
+    fn fetch_sns_proposals(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+        _include_status: &[i32],
+        _topic: SnsProposalTopicFilter,
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        unreachable!("refresh does not use bounded proposal fetch")
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsFetchRequest,
+        _sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        assert_eq!(limit, 1);
+        assert_eq!(before_proposal_id, None);
+        Ok(MainnetSnsProposalPage {
+            proposals: vec![fixture_proposal_row()],
+            last_cursor: Some(42),
+        })
+    }
+}
+
+#[test]
+fn sns_proposals_failed_refresh_preserves_page_progress() {
+    let root = temp_dir("ic-query-sns-proposals-failed-progress");
+    let mut request = sns_proposals_refresh_request(&root, Some(1));
+    request.page_size = 1;
+
+    let err = refresh_sns_proposals_cache_with_source(&request, &PagedSnsProposalsSource)
+        .expect_err("capped refresh is incomplete");
+
+    assert!(matches!(
+        err,
+        SnsHostError::IncompleteRefresh {
+            pages_fetched: 1,
+            rows_fetched: 1,
+            ..
+        }
+    ));
+    let attempt_path = sns_proposals_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    let attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(attempt_path).expect("read failed attempt"))
+            .expect("parse failed attempt");
+    assert_eq!(attempt["status"], "failed");
+    assert_eq!(attempt["pages_fetched"], 1);
+    assert_eq!(attempt["rows_fetched"], 1);
+    assert_eq!(attempt["last_cursor"], "42");
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     let root = temp_dir("ic-query-sns-proposals-refresh");
     let request = sns_proposals_refresh_request(&root, None);
@@ -100,6 +184,25 @@ fn sns_proposals_cache_status_reports_missing_cache() {
     assert_eq!(list.cache_count, 0);
     assert!(list.caches.is_empty());
 
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_proposals_cache_status_surfaces_malformed_attempt_sidecar() {
+    let root = temp_dir("ic-query-sns-proposals-malformed-attempt");
+    let attempt_path = sns_proposals_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    fs::create_dir_all(attempt_path.parent().expect("attempt parent"))
+        .expect("create attempt parent");
+    fs::write(&attempt_path, "{").expect("write malformed attempt");
+
+    let err = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        ROOT_A,
+    ))
+    .expect_err("malformed attempt must remain visible");
+
+    assert!(matches!(err, SnsHostError::ParseCache { .. }));
     let _ = fs::remove_dir_all(root);
 }
 

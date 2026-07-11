@@ -1,5 +1,8 @@
-use crate::sns::report::tests::{fixtures::*, *};
 use crate::test_support::temp_dir;
+use crate::{
+    cache_file::CacheFileError,
+    sns::report::tests::{fixtures::*, *},
+};
 use std::fs;
 
 #[test]
@@ -90,7 +93,7 @@ fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
 }
 
 #[test]
-fn sns_neurons_refresh_removes_stale_lock_and_publishes_cache() {
+fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
     let root = temp_dir("ic-query-sns-neurons-stale-lock");
     let request = sns_neurons_refresh_request(&root, None);
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
@@ -109,12 +112,15 @@ fn sns_neurons_refresh_removes_stale_lock_and_publishes_cache() {
     )
     .expect("write stale lock");
 
-    let refresh = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .expect("refresh with stale lock");
+    let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect_err("stale lock requires manual cleanup");
 
-    assert!(refresh.complete);
-    assert!(cache_path.is_file());
-    assert!(!lock_path.exists());
+    assert!(matches!(
+        err,
+        SnsHostError::Cache(CacheFileError::StaleRefreshLock { .. })
+    ));
+    assert!(!cache_path.is_file());
+    assert!(lock_path.exists());
 
     let _ = fs::remove_dir_all(root);
 }

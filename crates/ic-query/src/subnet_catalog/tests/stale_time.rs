@@ -11,6 +11,16 @@ fn stale_status_is_deterministic() {
 }
 
 #[test]
+fn future_catalog_timestamp_is_stale() {
+    let catalog = fixture_catalog();
+    let status = catalog_stale_status(&catalog, 1_780_531_100, 200);
+
+    assert!(status.catalog_stale);
+    assert_eq!(status.stale_reason, "fetched_at_in_future");
+    assert_eq!(status.age_seconds, None);
+}
+
+#[test]
 fn stale_duration_accepts_units() {
     assert_eq!(parse_stale_after_duration("7d").expect("days"), 604_800);
     assert_eq!(parse_stale_after_duration("2h").expect("hours"), 7_200);

@@ -35,7 +35,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.6", default-features = false }
+ic-query = { version = "0.7", default-features = false }
 ```
 
 Feature boundary:
@@ -54,7 +54,7 @@ helpers, or custom source adapters can enable `host` without enabling `cli`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.6", default-features = false, features = ["host"] }
+ic-query = { version = "0.7", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -134,6 +134,14 @@ icq nns topology refresh
 List/info commands populate their component cache on first use and print the
 API endpoint they are calling before creating it. Refresh commands force a
 fresh fetch and replace the matching cache.
+
+Complete NNS and SNS proposal/neuron snapshots use cache schema version 1 and
+require `domain`, `entity`, `collection`, and `scope` identity fields. Snapshot
+files that do not match the current shape are unsupported and must be
+refreshed; there is no version bridge or migration path. Refresh locks accept
+only the `target_path` field. Stale or malformed locks are reported but never
+deleted automatically; remove one manually only after verifying that no
+refresh is still running.
 
 SNS neuron commands keep quick `--sort api` output on a bounded live query.
 Whole-collection neuron sorts use complete snapshots and require an explicit

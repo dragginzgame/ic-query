@@ -95,9 +95,8 @@ fn snapshot_identity_mismatch(
 fn identity_field_mismatch(
     field: &'static str,
     expected: &str,
-    actual: Option<&str>,
+    actual: &str,
 ) -> Option<SnapshotIdentityMismatch> {
-    let actual = actual?;
     (actual != expected).then(|| SnapshotIdentityMismatch {
         field,
         expected: expected.to_string(),

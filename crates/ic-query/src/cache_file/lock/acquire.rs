@@ -2,7 +2,7 @@
 //!
 //! Responsibility: acquire refresh locks and reject active locks.
 //! Does not own: guarded refresh execution or lock cleanup policy.
-//! Boundary: creates, reads, validates, and replaces stale lock files.
+//! Boundary: creates, reads, validates, and reports stale lock files.
 
 use super::{
     guard::RefreshLockGuard,
@@ -15,44 +15,40 @@ pub(super) fn acquire_refresh_lock(
     request: RefreshLockRequest<'_>,
 ) -> Result<RefreshLockGuard, CacheFileError> {
     let now_unix_ms = request.now_unix_secs.saturating_mul(1_000);
-    for attempt in 0..2 {
-        match fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(request.lock_path)
-        {
-            Ok(file) => {
-                write_refresh_lock_file(file, request, now_unix_ms)?;
-                return Ok(RefreshLockGuard::new(request.lock_path.to_path_buf()));
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(request.lock_path)
+    {
+        Ok(file) => {
+            if let Err(err) = write_refresh_lock_file(file, request, now_unix_ms) {
+                let _ = fs::remove_file(request.lock_path);
+                return Err(err);
             }
-            Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
-                let existing = read_refresh_lock(request.lock_path)?;
-                if lock_is_stale(
-                    existing.started_at_unix_ms,
-                    now_unix_ms,
-                    request.lock_stale_after_seconds,
-                ) && attempt == 0
-                {
-                    remove_refresh_lock(request.lock_path)?;
-                    continue;
-                }
-                return Err(CacheFileError::RefreshAlreadyInProgress {
+            Ok(RefreshLockGuard::new(request.lock_path.to_path_buf()))
+        }
+        Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
+            let existing = read_refresh_lock(request.lock_path)?;
+            if lock_is_stale(
+                existing.started_at_unix_ms,
+                now_unix_ms,
+                request.lock_stale_after_seconds,
+            ) {
+                return Err(CacheFileError::StaleRefreshLock {
                     path: request.lock_path.to_path_buf(),
                     started_at_unix_ms: existing.started_at_unix_ms,
                 });
             }
-            Err(source) => {
-                return Err(CacheFileError::CreateRefreshLock {
-                    path: request.lock_path.to_path_buf(),
-                    source,
-                });
-            }
+            Err(CacheFileError::RefreshAlreadyInProgress {
+                path: request.lock_path.to_path_buf(),
+                started_at_unix_ms: existing.started_at_unix_ms,
+            })
         }
+        Err(source) => Err(CacheFileError::CreateRefreshLock {
+            path: request.lock_path.to_path_buf(),
+            source,
+        }),
     }
-    Err(CacheFileError::CreateRefreshLock {
-        path: request.lock_path.to_path_buf(),
-        source: io::Error::new(io::ErrorKind::AlreadyExists, "refresh lock retry exhausted"),
-    })
 }
 
 fn write_refresh_lock_file(
@@ -85,13 +81,6 @@ fn read_refresh_lock(lock_path: &Path) -> Result<RefreshLockFile, CacheFileError
         source,
     })?;
     serde_json::from_slice(&data).map_err(|source| CacheFileError::ParseRefreshLock {
-        path: lock_path.to_path_buf(),
-        source,
-    })
-}
-
-fn remove_refresh_lock(lock_path: &Path) -> Result<(), CacheFileError> {
-    fs::remove_file(lock_path).map_err(|source| CacheFileError::RemoveRefreshLock {
         path: lock_path.to_path_buf(),
         source,
     })

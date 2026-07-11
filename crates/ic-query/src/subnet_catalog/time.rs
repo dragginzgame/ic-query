@@ -32,7 +32,7 @@ pub fn catalog_stale_status(
     };
     let Some(age_seconds) = now_unix_secs.checked_sub(fetched_at_unix_secs) else {
         return CatalogStaleStatus {
-            catalog_stale: false,
+            catalog_stale: true,
             stale_reason: "fetched_at_in_future".to_string(),
             stale_after_seconds,
             fetched_at_unix_secs: Some(fetched_at_unix_secs),
@@ -81,6 +81,9 @@ fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
         return None;
     }
     let days = days_from_civil(year, month, day)?;
+    if civil_from_days(days) != (year, i64::from(month), i64::from(day)) {
+        return None;
+    }
     let seconds = days
         .checked_mul(86_400)?
         .checked_add(i64::from(hour) * 3_600)?
@@ -127,4 +130,16 @@ fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
     era.checked_mul(146_097)?
         .checked_add(day_of_era)?
         .checked_sub(719_468)
+}
+
+#[cfg(test)]
+mod timestamp_tests {
+    use super::parse_utc_timestamp_secs;
+
+    #[test]
+    fn timestamp_parser_rejects_impossible_calendar_dates() {
+        assert_eq!(parse_utc_timestamp_secs("2026-02-29T00:00:00Z"), None);
+        assert_eq!(parse_utc_timestamp_secs("2026-04-31T00:00:00Z"), None);
+        assert!(parse_utc_timestamp_secs("2028-02-29T00:00:00Z").is_some());
+    }
 }

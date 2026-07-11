@@ -80,7 +80,7 @@ fn refresh_existing_fresh_lock_fails_fast() {
 }
 
 #[test]
-fn refresh_removes_stale_lock_and_retries_once() {
+fn refresh_rejects_stale_lock_without_removing_it() {
     let root = temp_dir("ic-query-subnet-refresh-stale-lock");
     let mut catalog = fixture_catalog();
     catalog.fetched_at = "1970-01-01T00:00:00Z".to_string();
@@ -91,9 +91,13 @@ fn refresh_removes_stale_lock_and_retries_once() {
     let stale_started_at = (request.now_unix_secs - request.lock_stale_after_seconds - 1) * 1_000;
     write_refresh_lock_for_test(&lock_path, &request, stale_started_at);
 
-    let report = refresh_subnet_catalog_with_source(&request, &source).expect("stale lock removed");
+    let err = refresh_subnet_catalog_with_source(&request, &source)
+        .expect_err("stale lock requires manual cleanup");
 
-    assert!(report.wrote_catalog);
-    assert!(!lock_path.exists());
+    assert!(matches!(
+        err,
+        SubnetCatalogHostError::StaleRefreshLock { .. }
+    ));
+    assert!(lock_path.exists());
     let _ = fs::remove_dir_all(root);
 }

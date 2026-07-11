@@ -4,7 +4,8 @@ This note describes the shared cache behavior expected across `ic-query`.
 
 ## Goals
 
-- Cache reads should be invisible when a complete compatible snapshot exists.
+- Cache reads should be invisible when a complete current-schema snapshot
+  exists.
 - A missing cache should be created automatically only for read commands whose
   full refresh policy is fixed by the report layer.
 - Commands whose complete snapshots can be expensive or require user-controlled
@@ -44,12 +45,12 @@ missing-cache helper because the user has already requested refresh behavior.
 
 ## Refresh Locks
 
-Refresh locks are removed automatically only when they can be parsed and their
-recorded start time is older than the command's stale-lock threshold. Corrupted
-or malformed refresh locks are not removed automatically because the lock owner
-and start time cannot be trusted safely enough to avoid a removal race. Commands
-should report the parse failure, show the lock path, and require the operator to
-remove the lock manually after verifying that no refresh is still running.
+Refresh locks are never removed automatically. Parsed locks older than the
+command's stale-lock threshold are reported explicitly as stale; malformed
+locks are reported as invalid. Commands show the lock path and require the
+operator to remove it manually after verifying that no refresh is still
+running. This avoids deleting a newly acquired lock during concurrent stale
+lock recovery.
 
 ## Cache Discovery
 
@@ -57,9 +58,9 @@ Cache status and cache list commands should inspect local state only. They
 should discover complete full-collection snapshots through the shared
 snapshot-cache path scanner so cache listing and id lookup behavior stays
 deterministic across command families.
-Complete snapshot caches that carry logical identity fields should be validated
-against the expected cache key on load; older snapshots without identity fields
-remain readable for compatibility.
+Complete snapshot caches carry required logical identity fields and are
+validated against the expected cache key on load. Identity-less snapshots are
+unsupported and require an explicit refresh.
 Cache status and cache list commands should render malformed, unsupported, or
 identity-mismatched local snapshot files as invalid local cache rows instead of
 silently ignoring them or making live calls. Normal cache-backed report reads

@@ -322,42 +322,6 @@ fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) {
     let _ = fs::remove_dir_all(root);
 }
 
-fn remove_cached_proposal_status_fields(cache_path: &std::path::Path) {
-    remove_cached_proposal_field(cache_path, "status");
-}
-
-fn remove_cached_proposal_field(cache_path: &std::path::Path, field: &str) {
-    let mut cache: serde_json::Value =
-        serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
-    for proposal in cache["proposals"].as_array_mut().expect("cached proposals") {
-        proposal
-            .as_object_mut()
-            .expect("cached proposal object")
-            .remove(field);
-    }
-    fs::write(
-        cache_path,
-        serde_json::to_vec_pretty(&cache).expect("serialize legacy cache"),
-    )
-    .expect("write legacy cache");
-}
-
-fn assert_cached_proposal_status_fields_present(cache_path: &std::path::Path) {
-    assert_cached_proposal_field_present(cache_path, "status");
-}
-
-fn assert_cached_proposal_field_present(cache_path: &std::path::Path, field: &str) {
-    let cache: serde_json::Value =
-        serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
-    assert!(
-        cache["proposals"]
-            .as_array()
-            .expect("cached proposals")
-            .iter()
-            .all(|proposal| proposal.get(field).is_some())
-    );
-}
-
 struct ProposalRowFixture {
     proposal_id: u64,
     created_at_secs: u64,

@@ -115,8 +115,10 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
 
 impl PagedCollectionPage {
     pub fn exhausts_collection(&self, page_size: u32, has_next_cursor: bool) -> bool {
-        self.page_len < usize::try_from(page_size).unwrap_or(usize::MAX)
-            || !has_next_cursor
-            || self.new_rows == 0
+        self.page_len < usize::try_from(page_size).unwrap_or(usize::MAX) || !has_next_cursor
+    }
+
+    pub const fn has_no_new_rows(&self) -> bool {
+        self.new_rows == 0
     }
 }

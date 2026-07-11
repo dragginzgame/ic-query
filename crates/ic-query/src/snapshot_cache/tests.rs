@@ -75,10 +75,10 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
         source_endpoint: "https://icp-api.io".to_string(),
         fetched_at: "2026-06-15T00:00:00Z".to_string(),
         fetched_by: "ic-query".to_string(),
-        domain: Some("sns".to_string()),
-        entity: Some("root".to_string()),
-        collection: Some("neurons".to_string()),
-        scope: Some("full".to_string()),
+        domain: "sns".to_string(),
+        entity: "root".to_string(),
+        collection: "neurons".to_string(),
+        scope: "full".to_string(),
         metadata: Metadata { id: 7 },
         completeness: SnapshotCompleteness::api_exhausted(100, 2, 101, false),
         data: Data {
@@ -95,44 +95,6 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
     assert_eq!(value["rows"][0], "row");
     assert!(value.get("metadata").is_none());
     assert!(value.get("data").is_none());
-}
-
-#[test]
-fn snapshot_envelope_deserializes_legacy_cache_without_identity() {
-    #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-    struct Metadata {
-        id: usize,
-    }
-
-    #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-    struct Data {
-        rows: Vec<String>,
-    }
-
-    let envelope: SnapshotEnvelope<Metadata, Data> = serde_json::from_value(serde_json::json!({
-        "schema_version": 1,
-        "network": "ic",
-        "source_endpoint": "https://icp-api.io",
-        "fetched_at": "2026-06-15T00:00:00Z",
-        "fetched_by": "ic-query",
-        "id": 7,
-        "completeness": {
-            "status": "api_exhausted",
-            "page_size": 100,
-            "page_count": 2,
-            "row_count": 101,
-            "point_in_time_guaranteed": false
-        },
-        "rows": ["row"]
-    }))
-    .expect("legacy snapshot envelope deserializes");
-
-    assert_eq!(envelope.domain, None);
-    assert_eq!(envelope.entity, None);
-    assert_eq!(envelope.collection, None);
-    assert_eq!(envelope.scope, None);
-    assert_eq!(envelope.metadata.id, 7);
-    assert_eq!(envelope.data.rows, vec!["row".to_string()]);
 }
 
 #[test]
@@ -174,38 +136,6 @@ fn load_complete_snapshot_rejects_identity_mismatch() {
             actual: "wrong-root".to_string(),
         })
     );
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
-fn load_complete_snapshot_allows_legacy_snapshot_without_identity() {
-    let root = temp_dir("ic-query-snapshot-legacy-identity");
-    let path = root.join("full.json");
-    write_snapshot_fixture(
-        &path,
-        serde_json::json!({
-            "schema_version": 1,
-            "network": "ic",
-            "source_endpoint": "https://icp-api.io",
-            "fetched_at": "2026-06-15T00:00:00Z",
-            "fetched_by": "ic-query",
-            "id": 7,
-            "completeness": {
-                "status": "api_exhausted",
-                "page_size": 100,
-                "page_count": 2,
-                "row_count": 101,
-                "point_in_time_guaranteed": false
-            },
-            "rows": ["row"]
-        }),
-    );
-
-    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
-    let loaded = load_fixture_snapshot(&path, &key).expect("legacy snapshot loads");
-
-    assert_eq!(loaded.metadata.id, 7);
-    assert_eq!(loaded.data.rows, vec!["row".to_string()]);
     let _ = fs::remove_dir_all(root);
 }
 
@@ -305,7 +235,30 @@ fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
 
     let err = run_paged_snapshot_refresh(refresh).expect_err("max pages rejects incomplete scan");
 
-    assert_eq!(err, "max pages reached after 1 pages and 2 rows");
+    assert_eq!(
+        err,
+        "max pages reached before API exhaustion after 1 pages and 2 rows"
+    );
+}
+
+#[test]
+fn paged_snapshot_refresh_rejects_duplicate_only_page_with_cursor() {
+    let refresh = FixturePagedRefresh {
+        pages: vec![
+            (vec!["a", "b"], Some("next")),
+            (vec!["a", "b"], Some("still-next")),
+        ],
+        max_pages: None,
+        attempts: RefCell::new(Vec::new()),
+        state: PagedCollectionState::new(),
+    };
+
+    let err = run_paged_snapshot_refresh(refresh).expect_err("stalled page is incomplete");
+
+    assert_eq!(
+        err,
+        "page returned no new rows while advertising another cursor after 2 pages and 2 rows"
+    );
 }
 
 #[test]
@@ -496,9 +449,9 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
             .is_some_and(|max_pages| self.state.page_count() >= max_pages)
     }
 
-    fn incomplete_refresh_error(&self) -> Self::Error {
+    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
         format!(
-            "max pages reached after {} pages and {} rows",
+            "{reason} after {} pages and {} rows",
             self.state.page_count(),
             self.state.row_count()
         )

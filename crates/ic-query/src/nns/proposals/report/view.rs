@@ -8,7 +8,7 @@ use super::model::{
     NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
     NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
-use crate::text_search::optional_text_contains_ascii_case_insensitive;
+use crate::text_search::optional_text_contains_case_insensitive;
 use std::cmp::Ordering;
 
 pub(in crate::nns::proposals::report) fn proposal_matches_before(
@@ -63,10 +63,10 @@ pub(in crate::nns::proposals::report) fn proposal_matches_query(
     let Some(query) = query else {
         return true;
     };
-    optional_text_contains_ascii_case_insensitive(proposal.title.as_deref(), query)
-        || optional_text_contains_ascii_case_insensitive(proposal.action_text.as_deref(), query)
-        || optional_text_contains_ascii_case_insensitive(Some(&proposal.summary), query)
-        || optional_text_contains_ascii_case_insensitive(Some(&proposal.url), query)
+    optional_text_contains_case_insensitive(proposal.title.as_deref(), query)
+        || optional_text_contains_case_insensitive(proposal.action_text.as_deref(), query)
+        || optional_text_contains_case_insensitive(Some(&proposal.summary), query)
+        || optional_text_contains_case_insensitive(Some(&proposal.url), query)
 }
 
 pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
