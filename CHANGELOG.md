@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.8.md](docs/changelog/0.8.md)
 
+- `0.8.3` reorganizes the generic ICRC implementation around explicit command
+  dispatch, option parsing, report assembly, source adaptation, live fetching,
+  public contracts, source data, error, and subaccount-validation boundaries.
+  The cleanup preserves the existing CLI, public Rust API, JSON reports, and
+  schema versions, and removes the remaining production parser panic.
+
 - `0.8.2` makes numeric SNS proposal and neuron cache lookup read lightweight
   snapshot headers before loading only the matching complete snapshot, and
   rejects duplicate cache ids instead of selecting one by filesystem order.
