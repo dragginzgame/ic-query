@@ -12,14 +12,14 @@ use crate::sns::report::{
         SnsProposalsAttemptContext, SnsProposalsAttemptProgress,
         write_running_attempt as write_running_proposals_attempt,
     },
-    source::{MainnetSns, SnsFetchRequest},
+    source::{MainnetSns, SnsSourceRequest},
 };
 use std::path::Path;
 
 pub(super) fn write_running_attempt(
     attempt_path: &Path,
     request: &SnsProposalsRefreshRequest,
-    fetch_request: &SnsFetchRequest,
+    fetch_request: &SnsSourceRequest,
     sns: &MainnetSns,
     state: &SnsProposalsCollectionState,
     page: &PagedCollectionPage,

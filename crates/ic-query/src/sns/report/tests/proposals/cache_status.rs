@@ -21,7 +21,7 @@ struct PagedSnsProposalsSource;
 impl SnsListSource for PagedSnsProposalsSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         FixtureSnsListSource.fetch_deployed_snses(request)
     }
@@ -30,7 +30,7 @@ impl SnsListSource for PagedSnsProposalsSource {
 impl SnsProposalsSource for PagedSnsProposalsSource {
     fn fetch_sns_proposals(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -42,7 +42,7 @@ impl SnsProposalsSource for PagedSnsProposalsSource {
 
     fn fetch_sns_proposal_page(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,

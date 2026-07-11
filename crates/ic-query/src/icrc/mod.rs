@@ -1,12 +1,10 @@
 //! Module: icrc
 //!
-//! Responsibility: top-level generic ICRC ledger query commands.
+//! Responsibility: expose generic ICRC ledger request and report APIs.
 //! Does not own: SNS lookup, NNS registry cache behavior, or release flow.
 //! Boundary: exposes live read-only token metadata, account balance, allowance,
 //! index discovery, transaction history, block type, and archive reports.
 
-#[cfg(feature = "cli")]
-mod commands;
 #[cfg(feature = "host")]
 pub(crate) mod ledger;
 #[cfg(feature = "host")]
@@ -29,6 +27,7 @@ pub use live::{
     build_icrc_token_report_with_source, build_icrc_transactions_report,
     build_icrc_transactions_report_with_source,
 };
+pub use model::normalize_subaccount_hex;
 #[cfg(feature = "host")]
 pub use model::{
     IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData,
@@ -50,8 +49,5 @@ pub use text::{
     icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
 };
 
-#[cfg(feature = "cli")]
-pub use commands::run;
-
-#[cfg(all(test, feature = "cli", feature = "host"))]
+#[cfg(all(test, feature = "host"))]
 mod tests;

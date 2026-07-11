@@ -35,7 +35,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.8", default-features = false }
+ic-query = { version = "0.9", default-features = false }
 ```
 
 Feature boundary:
@@ -44,25 +44,25 @@ Feature boundary:
 | --- | --- |
 | none / `default-features = false` | Pure request/report DTOs, text renderers, and local parsing/resolution helpers. CI checks this path for `wasm32-unknown-unknown` without host-only dependencies. |
 | `host` | Native cache, refresh, live-call, and filesystem-backed report builders. Pulls in the native runtime/live-call dependencies. |
-| `cli` | Family-level command adapters used by `ic-query-cli`. Implies `host` and adds `clap`. |
 
-This is a host/CLI dependency boundary, not a `no_std` promise. No-default
+This is a host dependency boundary, not a `no_std` promise. No-default
 builds may still use ordinary `std` types such as `String` and `Vec`.
 
 Native tools that want live calls, cache-backed report builders, refresh
-helpers, or custom source adapters can enable `host` without enabling `cli`:
+helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.8", default-features = false, features = ["host"] }
+ic-query = { version = "0.9", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
 `ic_query::subnet_catalog` for the public report-family APIs. The `host`
 feature also exposes source traits for fixture, mirror, proxy, or
 pre-collected data sources. Native tools should normally depend on
-`features = ["host"]`; `cli` is only for crates that want to reuse `icq`
-command parsing and dispatch.
+`features = ["host"]`. Clap parsing, command dispatch, process output, and
+project-context discovery belong exclusively to `ic-query-cli` and are not a
+library feature.
 
 See
 [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)

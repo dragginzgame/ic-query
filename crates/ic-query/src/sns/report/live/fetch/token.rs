@@ -12,19 +12,19 @@ use crate::icrc::ledger::{
 use crate::sns::report::live::query::{principal_from_text, sns_agent};
 use crate::sns::report::{
     SnsHostError, SnsTokenMetadataRow, SnsTokenStandardRow,
-    source::{MainnetSns, MainnetSnsToken, SnsFetchRequest},
+    source::{MainnetSns, MainnetSnsToken, SnsSourceRequest},
 };
 
 /// Fetch token metadata for one resolved mainnet SNS ledger.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_token(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsToken, SnsHostError> {
     block_on_sns(fetch_mainnet_sns_token_async(request, sns))
 }
 
 async fn fetch_mainnet_sns_token_async(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsToken, SnsHostError> {
     let agent = sns_agent(&request.endpoint)?;

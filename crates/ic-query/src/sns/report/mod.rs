@@ -31,14 +31,14 @@ pub use model::{
     SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
 };
 #[cfg(feature = "host")]
+use source::MainnetSnsCanisters;
+#[cfg(feature = "host")]
 pub use source::{
     MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
     MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsListSource, SnsNeuronId,
     SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsSourceRequest,
     SnsTokenSource,
 };
-#[cfg(feature = "host")]
-use source::{MainnetSnsCanisters, SnsFetchRequest};
 
 #[cfg(feature = "host")]
 mod assemble;
@@ -125,7 +125,8 @@ use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 #[cfg(feature = "host")]
-pub(in crate::sns) const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
+/// Largest page size accepted by an SNS refresh request.
+pub const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
 #[cfg(feature = "host")]
 const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;

@@ -10,7 +10,7 @@ use crate::{
         SnsProposalsRefreshRequest,
         cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
         proposals_cache::model::SnsProposalsRefreshAttempt,
-        source::{MainnetSns, SnsFetchRequest},
+        source::{MainnetSns, SnsSourceRequest},
     },
 };
 use std::path::Path;
@@ -25,7 +25,7 @@ use std::path::Path;
 pub(in crate::sns::report::proposals_cache) struct SnsProposalsAttemptContext<'a> {
     pub(in crate::sns::report::proposals_cache) path: &'a Path,
     pub(in crate::sns::report::proposals_cache) request: &'a SnsProposalsRefreshRequest,
-    pub(in crate::sns::report::proposals_cache) fetch_request: &'a SnsFetchRequest,
+    pub(in crate::sns::report::proposals_cache) fetch_request: &'a SnsSourceRequest,
     pub(in crate::sns::report::proposals_cache) sns: &'a MainnetSns,
 }
 

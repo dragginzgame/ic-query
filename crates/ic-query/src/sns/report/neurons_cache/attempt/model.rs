@@ -11,7 +11,7 @@ use crate::{
     sns::report::{
         SnsNeuronsRefreshRequest,
         cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
-        source::{MainnetSns, SnsFetchRequest},
+        source::{MainnetSns, SnsSourceRequest},
     },
 };
 use std::path::Path;
@@ -29,7 +29,7 @@ pub(in crate::sns::report::neurons_cache) type SnsNeuronsRefreshAttempt =
 pub(in crate::sns::report::neurons_cache) struct SnsNeuronsAttemptContext<'a> {
     pub(in crate::sns::report::neurons_cache) path: &'a Path,
     pub(in crate::sns::report::neurons_cache) request: &'a SnsNeuronsRefreshRequest,
-    pub(in crate::sns::report::neurons_cache) fetch_request: &'a SnsFetchRequest,
+    pub(in crate::sns::report::neurons_cache) fetch_request: &'a SnsSourceRequest,
     pub(in crate::sns::report::neurons_cache) sns: &'a MainnetSns,
 }
 

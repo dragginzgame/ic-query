@@ -6,7 +6,7 @@ pub(in crate::sns::report::tests) struct FixtureSnsNeuronsSource;
 impl SnsListSource for FixtureSnsNeuronsSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         FixtureSnsListSource.fetch_deployed_snses(request)
     }
@@ -15,7 +15,7 @@ impl SnsListSource for FixtureSnsNeuronsSource {
 impl SnsNeuronsSource for FixtureSnsNeuronsSource {
     fn fetch_sns_neurons(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         owner_principal_id: Option<&str>,
@@ -37,7 +37,7 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
 
     fn fetch_sns_neuron_page(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         start_page_at: Option<&SnsNeuronId>,
@@ -68,7 +68,7 @@ pub(in crate::sns::report::tests) struct PagedFixtureSnsNeuronsSource;
 impl SnsListSource for PagedFixtureSnsNeuronsSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         FixtureSnsListSource.fetch_deployed_snses(request)
     }
@@ -77,7 +77,7 @@ impl SnsListSource for PagedFixtureSnsNeuronsSource {
 impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
     fn fetch_sns_neurons(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&str>,
@@ -87,7 +87,7 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
 
     fn fetch_sns_neuron_page(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         start_page_at: Option<&SnsNeuronId>,
@@ -121,7 +121,7 @@ pub(in crate::sns::report::tests) struct NoLiveSnsNeuronsSource;
 impl SnsListSource for NoLiveSnsNeuronsSource {
     fn fetch_deployed_snses(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         unreachable!("cache-backed neuron report should not fetch deployed SNS list")
     }
@@ -130,7 +130,7 @@ impl SnsListSource for NoLiveSnsNeuronsSource {
 impl SnsNeuronsSource for NoLiveSnsNeuronsSource {
     fn fetch_sns_neurons(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&str>,
@@ -140,7 +140,7 @@ impl SnsNeuronsSource for NoLiveSnsNeuronsSource {
 
     fn fetch_sns_neuron_page(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         _limit: u32,
         _start_page_at: Option<&SnsNeuronId>,

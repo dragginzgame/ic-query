@@ -12,7 +12,7 @@ use crate::{
     sns::report::{
         SnsHostError, SnsNeuronsRefreshRequest,
         neurons_cache::model::CompleteSnsNeurons,
-        source::{MainnetSns, SnsFetchRequest, SnsNeuronsSource},
+        source::{MainnetSns, SnsNeuronsSource, SnsSourceRequest},
     },
 };
 use state::SnsNeuronsCollectionState;
@@ -21,7 +21,7 @@ use std::path::Path;
 /// Fetch every neuron page required for a complete SNS neuron snapshot.
 pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
     request: &SnsNeuronsRefreshRequest,
-    fetch_request: &SnsFetchRequest,
+    fetch_request: &SnsSourceRequest,
     sns: &MainnetSns,
     source: &dyn SnsNeuronsSource,
     attempt_path: &Path,
@@ -44,7 +44,7 @@ pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
 
 struct SnsNeuronsRefreshPages<'a> {
     request: &'a SnsNeuronsRefreshRequest,
-    fetch_request: &'a SnsFetchRequest,
+    fetch_request: &'a SnsSourceRequest,
     sns: &'a MainnetSns,
     source: &'a dyn SnsNeuronsSource,
     attempt_path: &'a Path,

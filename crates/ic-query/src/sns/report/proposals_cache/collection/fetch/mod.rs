@@ -12,7 +12,7 @@ use crate::{
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest,
         proposals_cache::model::CompleteSnsProposals,
-        source::{MainnetSns, SnsFetchRequest, SnsProposalsSource},
+        source::{MainnetSns, SnsProposalsSource, SnsSourceRequest},
     },
 };
 use state::SnsProposalsCollectionState;
@@ -21,7 +21,7 @@ use std::path::Path;
 /// Fetch every proposal page required for a complete SNS proposal snapshot.
 pub(in crate::sns::report::proposals_cache) fn fetch_complete_sns_proposals(
     request: &SnsProposalsRefreshRequest,
-    fetch_request: &SnsFetchRequest,
+    fetch_request: &SnsSourceRequest,
     sns: &MainnetSns,
     source: &dyn SnsProposalsSource,
     attempt_path: &Path,
@@ -44,7 +44,7 @@ pub(in crate::sns::report::proposals_cache) fn fetch_complete_sns_proposals(
 
 struct SnsProposalsRefreshPages<'a> {
     request: &'a SnsProposalsRefreshRequest,
-    fetch_request: &'a SnsFetchRequest,
+    fetch_request: &'a SnsSourceRequest,
     sns: &'a MainnetSns,
     source: &'a dyn SnsProposalsSource,
     attempt_path: &'a Path,

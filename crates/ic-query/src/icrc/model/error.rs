@@ -2,30 +2,20 @@
 //!
 //! Responsibility: typed errors for generic ICRC parsing, reports, and live calls.
 //! Does not own: command dispatch, host calls, or output policy.
-//! Boundary: preserves one public error surface across CLI and host features.
+//! Boundary: preserves one public error surface for reusable ICRC query behavior.
 
-#[cfg(feature = "cli")]
-use crate::cli::common::CurrentUnixSecsError;
 #[cfg(feature = "host")]
 use crate::runtime::RuntimeError;
-use std::io;
 use thiserror::Error as ThisError;
 
 ///
 /// IcrcError
 ///
-/// Error surfaced by generic ICRC command parsing, report building, and live calls.
+/// Error surfaced by generic ICRC validation, report building, and live calls.
 ///
 
 #[derive(Debug, ThisError)]
 pub enum IcrcError {
-    #[error("{0}")]
-    Usage(String),
-
-    #[cfg(feature = "cli")]
-    #[error(transparent)]
-    Clock(#[from] CurrentUnixSecsError),
-
     #[cfg(feature = "host")]
     #[error("failed to create Tokio runtime for ICRC query: {0}")]
     Runtime(#[from] RuntimeError),
@@ -59,10 +49,4 @@ pub enum IcrcError {
         message: &'static str,
         reason: String,
     },
-
-    #[error(transparent)]
-    Io(#[from] io::Error),
-
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
 }

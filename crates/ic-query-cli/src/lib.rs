@@ -1,12 +1,27 @@
-use clap::{Arg, ArgAction, ArgMatches, Command};
-use ic_query::{icrc, nns, sns};
+use crate::cli::clap::{
+    parse_matches_or_usage, passthrough_args, passthrough_subcommand, string_option,
+};
+use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
 use thiserror::Error as ThisError;
 
-const PASSTHROUGH_ARGS: &str = "args";
+mod cli;
+mod icrc;
+mod nns;
+mod output;
+mod project;
+mod sns;
+
+#[cfg(test)]
+mod test_support;
+
 const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{usage-heading} {usage}\n\nCommands:\n{subcommands}\n\nOptions:\n{options}{after-help}\n";
 const VERSION_TEXT: &str = concat!("icq ", env!("CARGO_PKG_VERSION"));
 const INTERNAL_NETWORK_OPTION: &str = "--__icq-network";
+
+const fn version_text() -> &'static str {
+    VERSION_TEXT
+}
 
 ///
 /// IcqCliError
@@ -23,7 +38,7 @@ pub enum IcqCliError {
     Nns(#[from] nns::NnsCommandError),
 
     #[error("icrc: {0}")]
-    Icrc(#[from] icrc::IcrcError),
+    Icrc(#[from] icrc::IcrcCommandError),
 
     #[error("sns: {0}")]
     Sns(#[from] sns::SnsCommandError),
@@ -35,7 +50,7 @@ impl IcqCliError {
     pub fn is_broken_pipe(&self) -> bool {
         match self {
             Self::Nns(nns::NnsCommandError::Io(err))
-            | Self::Icrc(icrc::IcrcError::Io(err))
+            | Self::Icrc(icrc::IcrcCommandError::Io(err))
             | Self::Sns(sns::SnsCommandError::Io(err)) => {
                 err.kind() == std::io::ErrorKind::BrokenPipe
             }
@@ -49,7 +64,7 @@ impl IcqCliError {
         match self {
             Self::Usage(_)
             | Self::Nns(nns::NnsCommandError::Usage(_))
-            | Self::Icrc(icrc::IcrcError::Usage(_))
+            | Self::Icrc(icrc::IcrcCommandError::Usage(_))
             | Self::Sns(sns::SnsCommandError::Usage(_)) => 2,
             Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => 1,
         }
@@ -97,46 +112,6 @@ where
         "sns" => Ok(sns::run(tail)?),
         _ => unreachable!("top-level dispatch command only defines known commands"),
     }
-}
-
-fn parse_matches<I>(command: Command, args: I) -> Result<ArgMatches, clap::Error>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let name = command.get_name().to_string();
-    command.try_get_matches_from(std::iter::once(OsString::from(name)).chain(args))
-}
-
-fn parse_matches_or_usage<I>(
-    command: Command,
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Result<ArgMatches, String>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    parse_matches(command, args).map_err(|error| format!("{error}\n{}", usage()))
-}
-
-fn passthrough_subcommand(command: Command) -> Command {
-    command.arg(
-        Arg::new(PASSTHROUGH_ARGS)
-            .num_args(0..)
-            .allow_hyphen_values(true)
-            .trailing_var_arg(true)
-            .value_parser(clap::value_parser!(OsString)),
-    )
-}
-
-fn passthrough_args(matches: &ArgMatches) -> Vec<OsString> {
-    matches
-        .get_many::<OsString>(PASSTHROUGH_ARGS)
-        .map(|values| values.cloned().collect::<Vec<_>>())
-        .unwrap_or_default()
-}
-
-fn string_option(matches: &ArgMatches, id: &str) -> Option<String> {
-    matches.get_one::<String>(id).cloned()
 }
 
 fn collect_args_or_print_help<I>(args: I, usage: impl FnOnce() -> String) -> Option<Vec<OsString>>
@@ -466,11 +441,11 @@ Run `icq <command> help` for command-specific help.
 
     #[test]
     fn typed_cli_errors_preserve_exit_and_broken_pipe_semantics() {
-        let usage = IcqCliError::Icrc(icrc::IcrcError::Usage("bad input".to_string()));
+        let usage = IcqCliError::Icrc(icrc::IcrcCommandError::Usage("bad input".to_string()));
         assert_eq!(usage.exit_code(), 2);
         assert!(!usage.is_broken_pipe());
 
-        let broken_pipe = IcqCliError::Icrc(icrc::IcrcError::Io(std::io::Error::from(
+        let broken_pipe = IcqCliError::Icrc(icrc::IcrcCommandError::Io(std::io::Error::from(
             std::io::ErrorKind::BrokenPipe,
         )));
         assert_eq!(broken_pipe.exit_code(), 1);

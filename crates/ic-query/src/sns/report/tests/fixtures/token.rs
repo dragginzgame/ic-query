@@ -6,7 +6,7 @@ pub(in crate::sns::report::tests) struct FixtureSnsTokenSource;
 impl SnsListSource for FixtureSnsTokenSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         FixtureSnsListSource.fetch_deployed_snses(request)
     }
@@ -15,7 +15,7 @@ impl SnsListSource for FixtureSnsTokenSource {
 impl SnsTokenSource for FixtureSnsTokenSource {
     fn fetch_sns_token(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
     ) -> Result<MainnetSnsToken, SnsHostError> {
         assert_eq!(sns.ledger_canister_id, LEDGER_A);

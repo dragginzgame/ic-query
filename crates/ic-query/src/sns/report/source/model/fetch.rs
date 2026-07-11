@@ -31,5 +31,3 @@ impl SnsSourceRequest {
         }
     }
 }
-
-pub(in crate::sns::report) type SnsFetchRequest = SnsSourceRequest;

@@ -12,7 +12,7 @@ use crate::sns::report::{
     SnsHostError, SnsProposalTopicFilter,
     source::{
         MainnetSns, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-        SnsFetchRequest,
+        SnsSourceRequest,
     },
 };
 use list::{fetch_mainnet_sns_proposal_page_async, fetch_mainnet_sns_proposals_async};
@@ -20,7 +20,7 @@ use single::fetch_mainnet_sns_proposal_async;
 
 /// Fetch one SNS governance proposal by id.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposal(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     proposal_id: u64,
 ) -> Result<MainnetSnsProposal, SnsHostError> {
@@ -29,7 +29,7 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposal(
 
 /// Fetch a bounded SNS governance proposal listing.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposals(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
@@ -48,7 +48,7 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposals(
 
 /// Fetch one proposal page for complete proposal snapshot refresh.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposal_page(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,

@@ -17,12 +17,12 @@ name = "icq"
 path = "src/main.rs"
 
 [dependencies]
+candid.workspace = true
 clap.workspace = true
-ic-query = { workspace = true, features = ["cli"] }
+ic-query = { workspace = true, features = ["host"] }
+serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
-
-[dev-dependencies]
-serde_json = "1.0"
 
 [lints]
 workspace = true

@@ -7,18 +7,18 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.8", default-features = false, features = ["host"] }
+ic-query = { version = "0.9", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
-commands, or cache-backed report builders. Do not enable `cli` unless the crate
-really wants `icq` command parsing and dispatch.
+operations, or cache-backed report builders. The library has no CLI feature;
+`icq` parsing and dispatch are owned by `ic-query-cli`.
 
 For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.8", default-features = false }
+ic-query = { version = "0.9", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -37,8 +37,8 @@ A canic-style native crate should usually replace shell-outs in this order:
    renderer only at the display boundary.
 4. Keep source endpoints explicit in the request so live network use remains
    visible.
-5. Avoid the `cli` feature unless the downstream crate is intentionally
-   wrapping `icq` command parsing.
+5. Keep process arguments and output policy in the downstream executable;
+   `ic-query` exposes no Clap or command-dispatch surface.
 
 The CLI module layout is intentionally mirrored at the family level:
 
@@ -217,8 +217,8 @@ fn render_application_nodes(
 
 ## SNS Snapshot Example
 
-Native tools can use SNS proposal and neuron snapshot APIs without enabling
-`cli`. Proposal list reports can create a missing complete proposal snapshot
+Native tools can use SNS proposal and neuron snapshot APIs through `host`.
+Proposal list reports can create a missing complete proposal snapshot
 through the public builder; whole-collection neuron sorts expect a prior
 explicit refresh, matching the CLI cache policy.
 

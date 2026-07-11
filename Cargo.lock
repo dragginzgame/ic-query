@@ -1148,7 +1148,6 @@ name = "ic-query"
 version = "0.8.3"
 dependencies = [
  "candid",
- "clap",
  "futures",
  "ic-agent",
  "prost",
@@ -1164,8 +1163,10 @@ dependencies = [
 name = "ic-query-cli"
 version = "0.8.3"
 dependencies = [
+ "candid",
  "clap",
  "ic-query",
+ "serde",
  "serde_json",
  "thiserror 2.0.18",
 ]

@@ -6,8 +6,7 @@
 
 use crate::sns::report::lookup::network::enforce_mainnet_network;
 use crate::sns::report::{
-    SnsHostError, SnsListRequest, SnsLookupRequest,
-    source::{SnsFetchRequest, SnsSourceRequest},
+    SnsHostError, SnsListRequest, SnsLookupRequest, source::SnsSourceRequest,
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
 
@@ -29,7 +28,7 @@ pub(in crate::sns::report) fn lookup_request_from_parts(
 /// Build a live fetch request for an SNS list command.
 pub(in crate::sns::report) fn sns_list_fetch_request(
     request: &SnsListRequest,
-) -> Result<SnsFetchRequest, SnsHostError> {
+) -> Result<SnsSourceRequest, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     Ok(fetch_request_from_parts(
         &request.source_endpoint,
@@ -43,7 +42,7 @@ pub(super) fn fetch_request_from_parts(
     source_endpoint: &str,
     now_unix_secs: u64,
     fetched_by: String,
-) -> SnsFetchRequest {
+) -> SnsSourceRequest {
     SnsSourceRequest::new(
         source_endpoint,
         format_utc_timestamp_secs(now_unix_secs),

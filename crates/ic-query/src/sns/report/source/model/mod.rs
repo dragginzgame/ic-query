@@ -10,7 +10,6 @@ mod neurons;
 mod proposals;
 mod token;
 
-pub(in crate::sns::report) use fetch::SnsFetchRequest;
 pub use fetch::SnsSourceRequest;
 pub(in crate::sns::report) use list::MainnetSnsCanisters;
 pub use list::{MainnetSns, MainnetSnsList};

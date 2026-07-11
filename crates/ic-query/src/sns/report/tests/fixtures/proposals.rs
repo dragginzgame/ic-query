@@ -6,7 +6,7 @@ pub(in crate::sns::report::tests) struct FixtureSnsProposalSource;
 impl SnsListSource for FixtureSnsProposalSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         FixtureSnsListSource.fetch_deployed_snses(request)
     }
@@ -15,7 +15,7 @@ impl SnsListSource for FixtureSnsProposalSource {
 impl SnsProposalSource for FixtureSnsProposalSource {
     fn fetch_sns_proposal(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
         proposal_id: u64,
     ) -> Result<MainnetSnsProposal, SnsHostError> {
@@ -30,7 +30,7 @@ impl SnsProposalSource for FixtureSnsProposalSource {
 impl SnsProposalSource for NoLiveSnsProposalsSource {
     fn fetch_sns_proposal(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         _proposal_id: u64,
     ) -> Result<MainnetSnsProposal, SnsHostError> {
@@ -43,7 +43,7 @@ pub(in crate::sns::report::tests) struct FixtureSnsProposalsSource;
 impl SnsListSource for FixtureSnsProposalsSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         FixtureSnsListSource.fetch_deployed_snses(request)
     }
@@ -52,7 +52,7 @@ impl SnsListSource for FixtureSnsProposalsSource {
 impl SnsProposalsSource for FixtureSnsProposalsSource {
     fn fetch_sns_proposals(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -71,7 +71,7 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
 
     fn fetch_sns_proposal_page(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -90,7 +90,7 @@ pub(in crate::sns::report::tests) struct NoLiveSnsProposalsSource;
 impl SnsListSource for NoLiveSnsProposalsSource {
     fn fetch_deployed_snses(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         Err(no_live_error("fetch_deployed_snses"))
     }
@@ -99,7 +99,7 @@ impl SnsListSource for NoLiveSnsProposalsSource {
 impl SnsProposalsSource for NoLiveSnsProposalsSource {
     fn fetch_sns_proposals(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -111,7 +111,7 @@ impl SnsProposalsSource for NoLiveSnsProposalsSource {
 
     fn fetch_sns_proposal_page(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         _sns: &MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,

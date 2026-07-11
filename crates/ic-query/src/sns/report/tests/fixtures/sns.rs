@@ -16,7 +16,7 @@ pub(in crate::sns::report::tests) struct FixtureSnsListSource;
 impl SnsListSource for FixtureSnsListSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         Ok(MainnetSnsList {
             network: MAINNET_NETWORK.to_string(),
@@ -44,7 +44,7 @@ pub(in crate::sns::report::tests) struct UnsortedFixtureSnsListSource;
 impl SnsListSource for UnsortedFixtureSnsListSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         Ok(MainnetSnsList {
             network: MAINNET_NETWORK.to_string(),
@@ -85,7 +85,7 @@ pub(in crate::sns::report::tests) struct MetadataErrorFixtureSnsListSource;
 impl SnsListSource for MetadataErrorFixtureSnsListSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         Ok(MainnetSnsList {
             network: MAINNET_NETWORK.to_string(),

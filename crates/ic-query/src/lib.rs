@@ -3,34 +3,26 @@
 //! The default feature set is empty. A dependency using
 //! `default-features = false` gets the pure report DTOs, renderers, and local
 //! parsing/resolution helpers that are intended to stay free of native
-//! live-call and CLI dependencies.
+//! live-call dependencies.
 //!
-//! This is a host/CLI dependency boundary, not a `no_std` promise. No-default
+//! This is a host dependency boundary, not a `no_std` promise. No-default
 //! builds are expected to compile for `wasm32-unknown-unknown` without
-//! `ic-agent`, Tokio, `futures`, or `clap`, but they may still use ordinary
+//! `ic-agent`, Tokio, or `futures`, but they may still use ordinary
 //! `std` types such as `String` and `Vec`.
 //!
-//! Enable `host` for native live-call adapters and runtime helpers. Enable
-//! `cli` for the family-level command adapters used by `ic-query-cli`; `cli`
-//! implies `host`.
+//! Enable `host` for native live-call adapters and runtime helpers. CLI parsing
+//! and process IO belong to the separate `ic-query-cli` crate.
 
 #[cfg(feature = "host")]
 mod cache_file;
-#[cfg(feature = "cli")]
-mod cli;
-mod duration;
-#[cfg(feature = "host")]
+pub mod duration;
 mod hex;
 #[cfg(feature = "host")]
 mod ic_registry;
 pub mod icrc;
 pub mod nns;
-#[cfg(feature = "cli")]
-mod output;
 #[cfg(feature = "host")]
 mod progress;
-#[cfg(feature = "cli")]
-mod project;
 #[cfg(feature = "host")]
 mod runtime;
 #[cfg(feature = "host")]
@@ -46,13 +38,6 @@ mod token_metadata_text;
 
 #[cfg(all(test, feature = "host"))]
 mod test_support;
-
-const VERSION_TEXT: &str = concat!("icq ", env!("CARGO_PKG_VERSION"));
-
-#[must_use]
-pub const fn version_text() -> &'static str {
-    VERSION_TEXT
-}
 
 #[cfg(test)]
 mod tests;

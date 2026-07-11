@@ -1,14 +1,5 @@
 pub mod report;
 
-#[cfg(feature = "cli")]
-mod reports;
-#[cfg(feature = "cli")]
-mod run;
-#[cfg(feature = "cli")]
-mod spec;
-#[cfg(all(test, feature = "cli"))]
-mod test_helpers;
-
 #[cfg(feature = "host")]
 pub use report::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, LiveNnsDataCenterSource,
@@ -24,13 +15,4 @@ pub use report::{
     NnsDataCenterInfoRequest, NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRow,
     nns_data_center_info_report_text, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text,
-};
-
-#[cfg(feature = "cli")]
-pub(super) use run::run;
-#[cfg(all(test, feature = "cli"))]
-pub(super) use test_helpers::{
-    data_center_info_options, data_center_info_usage, data_center_list_options,
-    data_center_list_usage, data_center_refresh_options, data_center_refresh_usage,
-    data_center_usage,
 };

@@ -7,7 +7,8 @@
 use super::IcrcError;
 use crate::hex::hex_bytes;
 
-pub(in crate::icrc) fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {
+/// Validates and normalizes a 32-byte ICRC subaccount hex string.
+pub fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {
     let bytes = subaccount_bytes_from_hex(value)?;
     Ok(hex_bytes(&bytes))
 }

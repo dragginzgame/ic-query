@@ -6,7 +6,7 @@ pub(in crate::sns::report::tests) struct FixtureSnsParamsSource;
 impl SnsListSource for FixtureSnsParamsSource {
     fn fetch_deployed_snses(
         &self,
-        request: &SnsFetchRequest,
+        request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         FixtureSnsListSource.fetch_deployed_snses(request)
     }
@@ -15,7 +15,7 @@ impl SnsListSource for FixtureSnsParamsSource {
 impl SnsParamsSource for FixtureSnsParamsSource {
     fn fetch_sns_params(
         &self,
-        _request: &SnsFetchRequest,
+        _request: &SnsSourceRequest,
         sns: &MainnetSns,
     ) -> Result<SnsGovernanceParameters, SnsHostError> {
         assert_eq!(sns.governance_canister_id, GOVERNANCE_A);

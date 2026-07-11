@@ -17,7 +17,7 @@ use crate::sns::report::live::{
     },
 };
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, SNS_METADATA_CONCURRENCY, SnsFetchRequest, SnsHostError,
+    MAINNET_SNS_WASM_CANISTER_ID, SNS_METADATA_CONCURRENCY, SnsHostError, SnsSourceRequest,
     source::{MainnetSns, MainnetSnsCanisters, MainnetSnsList},
 };
 use crate::subnet_catalog::MAINNET_NETWORK;
@@ -27,13 +27,13 @@ use ic_agent::Agent;
 
 /// Fetch the current deployed SNS list from mainnet SNS-W.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_list(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
 ) -> Result<MainnetSnsList, SnsHostError> {
     block_on_sns(fetch_mainnet_sns_list_async(request))
 }
 
 async fn fetch_mainnet_sns_list_async(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
 ) -> Result<MainnetSnsList, SnsHostError> {
     let agent = sns_agent(&request.endpoint)?;
     let sns_wasm_canister =
@@ -52,7 +52,7 @@ async fn fetch_mainnet_sns_list_async(
 
 async fn mainnet_sns_list_from_response(
     agent: &Agent,
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     response: ListDeployedSnsesResponse,
 ) -> Result<MainnetSnsList, SnsHostError> {
     let sns_canisters = response

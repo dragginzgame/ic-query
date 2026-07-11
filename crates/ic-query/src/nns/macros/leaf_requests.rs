@@ -20,25 +20,6 @@ macro_rules! impl_nns_leaf_cache_and_refresh_requests {
         impl crate::nns::leaf::NnsLeafRefreshRequest for $refresh {
             type Cache = $cache;
 
-            #[cfg(feature = "cli")]
-            fn from_leaf_parts(
-                cache: Self::Cache,
-                source_endpoint: String,
-                now_unix_secs: u64,
-                lock_stale_after_seconds: u64,
-                dry_run: bool,
-                output_path: Option<std::path::PathBuf>,
-            ) -> Self {
-                Self {
-                    cache,
-                    source_endpoint,
-                    now_unix_secs,
-                    lock_stale_after_seconds,
-                    dry_run,
-                    output_path,
-                }
-            }
-
             fn cache(&self) -> &Self::Cache {
                 &self.cache
             }
@@ -57,36 +38,6 @@ macro_rules! impl_nns_leaf_cache_and_refresh_requests {
 
             fn output_path(&self) -> Option<&std::path::Path> {
                 self.output_path.as_deref()
-            }
-        }
-    };
-}
-
-#[cfg(feature = "cli")]
-macro_rules! impl_cached_leaf_cli_requests {
-    ($cache:ty, $list:ty, $info:ty) => {
-        impl leaf::NnsLeafListRequest for $list {
-            type Cache = $cache;
-
-            fn from_leaf_parts(
-                cache: Self::Cache,
-                source_endpoint: String,
-                now_unix_secs: u64,
-            ) -> Self {
-                Self::new(cache, source_endpoint, now_unix_secs)
-            }
-        }
-
-        impl leaf::NnsLeafInfoRequest for $info {
-            type Cache = $cache;
-
-            fn from_leaf_parts(
-                cache: Self::Cache,
-                source_endpoint: String,
-                input: String,
-                now_unix_secs: u64,
-            ) -> Self {
-                Self::new(cache, source_endpoint, input, now_unix_secs)
             }
         }
     };

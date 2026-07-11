@@ -14,12 +14,12 @@ use crate::sns::report::{
             ListProposalsRequest, ListProposalsResponse, SnsProposalId, SnsTopic, SnsTopicSelector,
         },
     },
-    source::{MainnetSns, MainnetSnsProposalPage, MainnetSnsProposals, SnsFetchRequest},
+    source::{MainnetSns, MainnetSnsProposalPage, MainnetSnsProposals, SnsSourceRequest},
 };
 
 /// Fetch a bounded SNS governance proposal listing from one resolved SNS.
 pub(super) async fn fetch_mainnet_sns_proposals_async(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
@@ -54,7 +54,7 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
 
 /// Fetch one unfiltered proposal page for complete snapshot refresh.
 pub(super) async fn fetch_mainnet_sns_proposal_page_async(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,

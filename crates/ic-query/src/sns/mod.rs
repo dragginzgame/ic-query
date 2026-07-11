@@ -1,8 +1,5 @@
 pub mod report;
 
-#[cfg(feature = "cli")]
-mod commands;
-
 pub use report::{
     DEFAULT_SNS_SOURCE_ENDPOINT, MAINNET_SNS_WASM_CANISTER_ID, SnsCustomProposalCriticality,
     SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRequest, SnsListRow, SnsListSort,
@@ -20,16 +17,16 @@ pub use report::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, LiveSnsSource, MainnetSns, MainnetSnsList,
     MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
-    MainnetSnsProposals, MainnetSnsToken, SnsHostError, SnsListSource, SnsNeuronId, SnsNeuronRow,
-    SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusReport,
-    SnsNeuronsCacheStatusRequest, SnsNeuronsCacheSummary, SnsNeuronsRefreshReport,
-    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
-    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsCacheListReport,
-    SnsProposalsCacheListRequest, SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest,
-    SnsProposalsCacheSummary, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
-    SnsProposalsSource, SnsRefreshAttemptStatus, SnsSourceRequest, SnsTokenSource,
-    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
-    build_sns_list_report_with_source, build_sns_neurons_cache_list_report,
+    MainnetSnsProposals, MainnetSnsToken, SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListSource,
+    SnsNeuronId, SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest,
+    SnsNeuronsCacheStatusReport, SnsNeuronsCacheStatusRequest, SnsNeuronsCacheSummary,
+    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
+    SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalsCacheListReport, SnsProposalsCacheListRequest, SnsProposalsCacheStatusReport,
+    SnsProposalsCacheStatusRequest, SnsProposalsCacheSummary, SnsProposalsRefreshReport,
+    SnsProposalsRefreshRequest, SnsProposalsSource, SnsRefreshAttemptStatus, SnsSourceRequest,
+    SnsTokenSource, build_sns_info_report, build_sns_info_report_with_source,
+    build_sns_list_report, build_sns_list_report_with_source, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, build_sns_neurons_report,
     build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
@@ -45,6 +42,3 @@ pub use report::{
     sns_proposals_cache_status_report_text, sns_proposals_refresh_attempt_path,
     sns_proposals_refresh_lock_path, sns_proposals_refresh_report_text,
 };
-
-#[cfg(feature = "cli")]
-pub use commands::{SnsCommandError, run};

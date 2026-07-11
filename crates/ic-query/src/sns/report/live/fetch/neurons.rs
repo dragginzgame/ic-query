@@ -13,12 +13,12 @@ use crate::sns::report::{
         query::{principal_from_text, query_canister, sns_agent},
         types::{ListNeuronsRequest, ListNeuronsResponse},
     },
-    source::{MainnetSns, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsFetchRequest, SnsNeuronId},
+    source::{MainnetSns, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId, SnsSourceRequest},
 };
 
 /// Fetch a bounded SNS neuron listing for one resolved mainnet SNS.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_neurons(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     owner_principal_id: Option<&str>,
@@ -33,7 +33,7 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_neurons(
 
 /// Fetch one SNS neuron page for complete snapshot refresh.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_neuron_page(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     start_page_at: Option<&SnsNeuronId>,
@@ -49,7 +49,7 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_neuron_page(
 }
 
 async fn fetch_mainnet_sns_neurons_async(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     owner_principal_id: Option<&str>,
@@ -62,7 +62,7 @@ async fn fetch_mainnet_sns_neurons_async(
 }
 
 async fn fetch_mainnet_sns_neuron_page_async(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     start_page_at: Option<&SnsNeuronId>,

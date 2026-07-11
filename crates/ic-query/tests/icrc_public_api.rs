@@ -9,7 +9,7 @@ use ic_query::icrc::{
     IcrcTransactionsReport, IcrcTransactionsRequest, icrc_allowance_report_text,
     icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
     icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
-    icrc_token_report_text, icrc_transactions_report_text,
+    icrc_token_report_text, icrc_transactions_report_text, normalize_subaccount_hex,
 };
 #[cfg(feature = "host")]
 use ic_query::icrc::{
@@ -52,6 +52,14 @@ type IcrcTipCertificateBuilder =
 #[cfg(feature = "host")]
 type IcrcCapabilitiesBuilder =
     fn(&IcrcCapabilitiesRequest) -> Result<IcrcCapabilitiesReport, IcrcError>;
+
+#[test]
+fn public_icrc_subaccount_normalization_is_available_without_host() {
+    assert_eq!(
+        normalize_subaccount_hex(&"AA".repeat(32)).expect("valid subaccount"),
+        "aa".repeat(32)
+    );
+}
 
 #[test]
 fn public_icrc_request_constructors_set_expected_fields() {

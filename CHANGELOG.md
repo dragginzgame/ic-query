@@ -7,6 +7,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.9.x] - 2026-07-11 - Library and CLI ownership cut
+
+Detailed release notes: [docs/changelog/0.9.md](docs/changelog/0.9.md)
+
+- `0.9.0` removes the library `cli` feature and moves all Clap definitions,
+  command parsing and dispatch, process output, project-context discovery, and
+  CLI-only errors into `ic-query-cli`. `ic-query` now exposes only reusable
+  duration helpers, requests, report models, source adapters, cache/refresh
+  mechanics, builders, and renderers through its default and `host` surfaces.
+  This is a hard cut: downstream crates must use the typed library API or the
+  `ic-query-cli` executable crate; no compatibility feature, command aliases,
+  re-export shims, or deprecated wrappers are retained.
+
 ## [0.8.x] - 2026-07-11 - Hard cache and runtime cut
 
 Detailed release notes: [docs/changelog/0.8.md](docs/changelog/0.8.md)

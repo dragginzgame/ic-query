@@ -14,7 +14,7 @@ forbidden_direct_pure_library_dependencies=(
   time
 )
 
-forbidden_host_without_cli_dependencies=(
+forbidden_host_dependencies=(
   clap
 )
 
@@ -108,7 +108,7 @@ check_tree_absent "ic-query wasm32-unknown-unknown --no-default-features" \
   --no-default-features
 
 check_tree_absent "ic-query --features host --no-default-features" \
-  "${forbidden_host_without_cli_dependencies[@]}" \
+  "${forbidden_host_dependencies[@]}" \
   -- \
   -p ic-query \
   --no-default-features \

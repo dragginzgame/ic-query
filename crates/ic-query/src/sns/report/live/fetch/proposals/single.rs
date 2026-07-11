@@ -12,12 +12,12 @@ use crate::sns::report::{
         query::{query_canister, sns_agent},
         types::{GetProposalRequest, GetProposalResponse, GetProposalResult, SnsProposalId},
     },
-    source::{MainnetSns, MainnetSnsProposal, SnsFetchRequest},
+    source::{MainnetSns, MainnetSnsProposal, SnsSourceRequest},
 };
 
 /// Fetch one SNS governance proposal by id from a resolved governance canister.
 pub(super) async fn fetch_mainnet_sns_proposal_async(
-    request: &SnsFetchRequest,
+    request: &SnsSourceRequest,
     sns: &MainnetSns,
     proposal_id: u64,
 ) -> Result<MainnetSnsProposal, SnsHostError> {

@@ -8,12 +8,12 @@ mod contracts;
 #[cfg(feature = "host")]
 mod data;
 mod error;
-#[cfg(feature = "host")]
 mod subaccount;
 
 pub use contracts::*;
 #[cfg(feature = "host")]
 pub use data::*;
 pub use error::IcrcError;
+pub use subaccount::normalize_subaccount_hex;
 #[cfg(feature = "host")]
-pub(in crate::icrc) use subaccount::{normalize_subaccount_hex, subaccount_bytes_from_hex};
+pub(in crate::icrc) use subaccount::subaccount_bytes_from_hex;

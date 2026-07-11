@@ -11,14 +11,14 @@ use crate::sns::report::{
     neurons_cache::attempt::{
         SnsNeuronsAttemptContext, SnsNeuronsAttemptProgress, write_running_sns_neurons_attempt,
     },
-    source::{MainnetSns, SnsFetchRequest},
+    source::{MainnetSns, SnsSourceRequest},
 };
 use std::path::Path;
 
 pub(super) fn write_running_attempt(
     attempt_path: &Path,
     request: &SnsNeuronsRefreshRequest,
-    fetch_request: &SnsFetchRequest,
+    fetch_request: &SnsSourceRequest,
     sns: &MainnetSns,
     state: &SnsNeuronsCollectionState,
     page: &PagedCollectionPage,

@@ -40,19 +40,6 @@ pub use cache::{
     nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
     refresh_nns_proposal_cache_with_source,
 };
-#[cfg(feature = "cli")]
-pub(in crate::nns) use model::{
-    NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL,
-    NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL,
-};
-#[cfg(all(test, feature = "cli"))]
-pub(in crate::nns) use model::{
-    NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
-    NNS_PROPOSAL_SORT_NONE_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
-    NNS_PROPOSAL_SORT_TALLY_TIME_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
-    NNS_PROPOSAL_SORT_VOTING_POWER_LABEL, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-    NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-};
 pub use model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow,
@@ -76,7 +63,8 @@ mod tests;
 
 pub const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "host")]
-pub(in crate::nns::proposals) const NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE: u32 = 100;
+/// Largest page size accepted by an NNS proposal refresh request.
+pub const NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
 #[cfg(feature = "host")]
 const NNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
