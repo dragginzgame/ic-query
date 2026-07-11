@@ -1,6 +1,15 @@
 use super::fixtures::{SUBNET_A, SUBNET_B, fixture_catalog, sorted_principals};
 use crate::subnet_catalog::{CatalogError, RoutingRange};
 
+const THREE_ITEM_ORDERS: [[usize; 3]; 6] = [
+    [0, 1, 2],
+    [0, 2, 1],
+    [1, 0, 2],
+    [1, 2, 0],
+    [2, 0, 1],
+    [2, 1, 0],
+];
+
 #[test]
 fn empty_subnets_and_empty_ranges_are_rejected() {
     let mut empty_subnets = fixture_catalog();
@@ -43,6 +52,52 @@ fn validation_rejects_overlapping_routing_ranges() {
         catalog.validate(),
         Err(CatalogError::OverlappingRoutingRanges { .. })
     ));
+}
+
+#[test]
+fn routing_range_validation_is_independent_of_input_order() {
+    let ids = sorted_principals([
+        "ryjl3-tyaaa-aaaaa-aaaba-cai",
+        "rrkah-fqaaa-aaaaa-aaaaq-cai",
+        "r7inp-6aaaa-aaaaa-aaabq-cai",
+    ]);
+    let disjoint = ids
+        .iter()
+        .enumerate()
+        .map(|(index, id)| RoutingRange {
+            start_canister_id: id.clone(),
+            end_canister_id: id.clone(),
+            subnet_principal: if index == 1 { SUBNET_B } else { SUBNET_A }.to_string(),
+        })
+        .collect::<Vec<_>>();
+    let overlapping = [
+        RoutingRange {
+            start_canister_id: ids[0].clone(),
+            end_canister_id: ids[2].clone(),
+            subnet_principal: SUBNET_A.to_string(),
+        },
+        RoutingRange {
+            start_canister_id: ids[1].clone(),
+            end_canister_id: ids[1].clone(),
+            subnet_principal: SUBNET_B.to_string(),
+        },
+        disjoint[2].clone(),
+    ];
+
+    for order in THREE_ITEM_ORDERS {
+        let mut valid = fixture_catalog();
+        valid.routing_ranges = order.map(|index| disjoint[index].clone()).to_vec();
+        valid
+            .validate()
+            .expect("disjoint ranges are valid in every order");
+
+        let mut invalid = fixture_catalog();
+        invalid.routing_ranges = order.map(|index| overlapping[index].clone()).to_vec();
+        assert!(matches!(
+            invalid.validate(),
+            Err(CatalogError::OverlappingRoutingRanges { .. })
+        ));
+    }
 }
 
 #[test]

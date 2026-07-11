@@ -14,14 +14,14 @@ use crate::sns::report::{
 };
 use std::path::{Path, PathBuf};
 
-pub(super) fn collect_sns_neurons_cache_paths(
+pub(in crate::sns::report) fn collect_sns_neurons_cache_paths(
     icp_root: &Path,
     network: &str,
 ) -> Result<Vec<PathBuf>, SnsHostError> {
     collect_sns_cache_paths::<SnsNeuronsCacheCollection>(icp_root, network)
 }
 
-pub(super) fn read_sns_neurons_cache_header(
+pub(in crate::sns::report) fn read_sns_neurons_cache_header(
     path: &Path,
     network: &str,
 ) -> Result<SnsNeuronsCacheHeader, SnsHostError> {

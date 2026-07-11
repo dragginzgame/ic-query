@@ -111,17 +111,33 @@ where
     });
 }
 
-/// Find a valid SNS cache summary by stable SNS list id.
-pub(in crate::sns::report) fn find_valid_sns_cache_summary_by_id<T>(
-    caches: impl IntoIterator<Item = T>,
+/// Find a valid SNS cache summary by id without loading unrelated snapshots.
+pub(in crate::sns::report) fn find_sns_cache_summary_by_id<T>(
+    paths: impl IntoIterator<Item = PathBuf>,
     id: usize,
-) -> Option<T>
+    mut read_id: impl FnMut(&Path) -> Result<usize, SnsHostError>,
+    mut load_summary: impl FnMut(PathBuf) -> T,
+) -> Result<Option<T>, SnsHostError>
 where
     T: SnsCacheSummarySortKey,
 {
-    caches
-        .into_iter()
-        .find(|cache| cache.id() == id && cache.cache_error().is_none())
+    let mut matching = None;
+    for path in paths {
+        let Ok(candidate_id) = read_id(&path) else {
+            continue;
+        };
+        if candidate_id != id {
+            continue;
+        }
+        let summary = load_summary(path);
+        if summary.id() != id || summary.cache_error().is_some() {
+            continue;
+        }
+        if matching.replace(summary).is_some() {
+            return Err(SnsHostError::AmbiguousCacheId { id });
+        }
+    }
+    Ok(matching)
 }
 
 /// Build shared invalid-cache summary fields from a failed local cache read.
@@ -154,4 +170,93 @@ fn root_from_cache_path(cache_path: &Path) -> String {
             || "-".to_string(),
             |name| name.to_string_lossy().into_owned(),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SnsCacheSummarySortKey, find_sns_cache_summary_by_id};
+    use crate::sns::report::SnsHostError;
+    use std::{cell::Cell, path::PathBuf};
+
+    struct Summary {
+        id: usize,
+        path: String,
+        error: Option<String>,
+    }
+
+    impl SnsCacheSummarySortKey for Summary {
+        fn id(&self) -> usize {
+            self.id
+        }
+
+        fn root_canister_id(&self) -> &str {
+            &self.path
+        }
+
+        fn cache_path(&self) -> &str {
+            &self.path
+        }
+
+        fn cache_error(&self) -> Option<&str> {
+            self.error.as_deref()
+        }
+    }
+
+    #[test]
+    fn id_lookup_loads_only_the_matching_snapshot() {
+        let paths = (1..=100)
+            .map(|id| PathBuf::from(id.to_string()))
+            .collect::<Vec<_>>();
+        let header_reads = Cell::new(0);
+        let snapshot_loads = Cell::new(0);
+
+        let summary = find_sns_cache_summary_by_id(
+            paths,
+            73,
+            |path| {
+                header_reads.set(header_reads.get() + 1);
+                path.to_string_lossy()
+                    .parse::<usize>()
+                    .map_err(|_| SnsHostError::InvalidLookup {
+                        input: path.display().to_string(),
+                    })
+            },
+            |path| {
+                snapshot_loads.set(snapshot_loads.get() + 1);
+                Summary {
+                    id: path
+                        .to_string_lossy()
+                        .parse()
+                        .expect("numeric fixture path"),
+                    path: path.display().to_string(),
+                    error: None,
+                }
+            },
+        )
+        .expect("lookup succeeds")
+        .expect("matching summary");
+
+        assert_eq!(summary.id, 73);
+        assert_eq!(header_reads.get(), 100);
+        assert_eq!(snapshot_loads.get(), 1);
+    }
+
+    #[test]
+    fn id_lookup_rejects_multiple_valid_matching_snapshots() {
+        let result = find_sns_cache_summary_by_id(
+            [PathBuf::from("a"), PathBuf::from("b")],
+            7,
+            |_| Ok(7),
+            |path| Summary {
+                id: 7,
+                path: path.display().to_string(),
+                error: None,
+            },
+        );
+
+        assert!(matches!(
+            result,
+            Err(SnsHostError::AmbiguousCacheId { id: 7 })
+        ));
+    }
 }

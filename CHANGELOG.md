@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.8.md](docs/changelog/0.8.md)
 
+- `0.8.2` makes numeric SNS proposal and neuron cache lookup read lightweight
+  snapshot headers before loading only the matching complete snapshot, and
+  rejects duplicate cache ids instead of selecting one by filesystem order.
+  It also adds exhaustive current-contract coverage for snapshot completeness,
+  routing-range order, terminal control escaping, and failed atomic-write
+  cleanup.
+
 - `0.8.1` restores the detailed 0.8 release ledger omitted from the 0.8.0
   commit and makes release automation fail closed: target-version notes and
   the complete CI gate must pass before metadata changes, package failures are

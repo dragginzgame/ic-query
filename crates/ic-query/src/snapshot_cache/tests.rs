@@ -100,22 +100,28 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
 
 #[test]
 fn snapshot_completeness_requires_actual_row_count_and_page_metadata() {
-    assert!(
-        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(10, 1, 2, false), 2)
-            .is_ok()
-    );
-    assert!(
-        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(10, 1, 3, false), 2)
-            .is_err()
-    );
-    assert!(
-        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(0, 1, 2, false), 2)
-            .is_err()
-    );
-    assert!(
-        validate_snapshot_completeness(&SnapshotCompleteness::api_exhausted(10, 0, 2, false), 2)
-            .is_err()
-    );
+    for page_size in 0..=2 {
+        for page_count in 0..=2 {
+            for declared_row_count in 0..=2 {
+                for actual_row_count in 0..=2 {
+                    let completeness = SnapshotCompleteness::api_exhausted(
+                        page_size,
+                        page_count,
+                        declared_row_count,
+                        false,
+                    );
+                    let expected_valid =
+                        page_size > 0 && page_count > 0 && declared_row_count == actual_row_count;
+
+                    assert_eq!(
+                        validate_snapshot_completeness(&completeness, actual_row_count).is_ok(),
+                        expected_valid,
+                        "page_size={page_size}, page_count={page_count}, declared_row_count={declared_row_count}, actual_row_count={actual_row_count}"
+                    );
+                }
+            }
+        }
+    }
 }
 
 #[test]

@@ -53,6 +53,24 @@ where
     )
 }
 
+/// Find the unique SNS snapshot path whose validated header claims an id.
+pub(in crate::sns::report) fn find_unique_sns_cache_path_by_id(
+    paths: impl IntoIterator<Item = PathBuf>,
+    id: usize,
+    mut read_id: impl FnMut(&Path) -> Result<usize, SnsHostError>,
+) -> Result<Option<PathBuf>, SnsHostError> {
+    let mut matching = None;
+    for path in paths {
+        if read_id(&path)? != id {
+            continue;
+        }
+        if matching.replace(path).is_some() {
+            return Err(SnsHostError::AmbiguousCacheId { id });
+        }
+    }
+    Ok(matching)
+}
+
 /// Load and validate one complete SNS snapshot cache.
 pub(in crate::sns::report) fn load_sns_complete_cache<Cache, Errors>(
     path: PathBuf,
@@ -85,5 +103,43 @@ fn sns_identity_mismatch_error(path: PathBuf, mismatch: SnapshotIdentityMismatch
         field: mismatch.field,
         expected: mismatch.expected,
         actual: mismatch.actual,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::find_unique_sns_cache_path_by_id;
+    use crate::sns::report::SnsHostError;
+    use std::path::PathBuf;
+
+    #[test]
+    fn cache_id_path_lookup_finds_the_unique_matching_header() {
+        let path = find_unique_sns_cache_path_by_id(
+            [PathBuf::from("1"), PathBuf::from("2"), PathBuf::from("3")],
+            2,
+            |path| {
+                path.to_string_lossy()
+                    .parse::<usize>()
+                    .map_err(|_| SnsHostError::InvalidLookup {
+                        input: path.display().to_string(),
+                    })
+            },
+        )
+        .expect("lookup succeeds");
+
+        assert_eq!(path, Some(PathBuf::from("2")));
+    }
+
+    #[test]
+    fn cache_id_path_lookup_rejects_duplicate_headers() {
+        let result =
+            find_unique_sns_cache_path_by_id([PathBuf::from("a"), PathBuf::from("b")], 7, |_| {
+                Ok(7)
+            });
+
+        assert!(matches!(
+            result,
+            Err(SnsHostError::AmbiguousCacheId { id: 7 })
+        ));
     }
 }

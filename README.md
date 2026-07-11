@@ -178,6 +178,9 @@ icq sns neurons cache status 1
 
 Cache list and status commands are local-only; malformed, unsupported, or
 identity-mismatched snapshot files are shown as invalid local cache rows.
+Numeric cache lookup scans snapshot headers and loads only the matching
+complete snapshot. If duplicate caches claim an id, use the root principal to
+select the intended cache explicitly.
 
 Live API neuron listings are capped at 100 rows per call. Cache-backed sorts
 can use larger `--limit` values because they read from the complete local
@@ -316,6 +319,9 @@ icq sns proposals cache status 1
 
 Cache list and status commands are local-only; malformed, unsupported, or
 identity-mismatched snapshot files are shown as invalid local cache rows.
+Numeric cache lookup scans snapshot headers and loads only the matching
+complete snapshot. If duplicate caches claim an id, use the root principal to
+select the intended cache explicitly.
 
 ## Integration
 

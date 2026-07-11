@@ -10,7 +10,9 @@ use super::{
     scan::{collect_sns_neurons_cache_paths, read_sns_neurons_cache_header},
 };
 use crate::sns::report::{
-    SnsHostError, enforce_mainnet_network,
+    SnsHostError,
+    cache_storage::find_unique_sns_cache_path_by_id,
+    enforce_mainnet_network,
     neurons_cache::{
         model::SnsNeuronsCache,
         paths::{sns_network_cache_dir, sns_neurons_cache_path},
@@ -42,12 +44,11 @@ pub(in crate::sns::report::neurons_cache) fn find_sns_neurons_cache_by_id(
     network: &str,
     id: usize,
 ) -> Result<Option<(PathBuf, SnsNeuronsCache)>, SnsHostError> {
-    for path in collect_sns_neurons_cache_paths(icp_root, network)? {
-        let header = read_sns_neurons_cache_header(&path, network)?;
-        if header.metadata.id == id {
-            let cache = load_sns_neurons_cache_at(path.clone(), network)?;
-            return Ok(Some((path, cache)));
-        }
-    }
-    Ok(None)
+    let path = find_unique_sns_cache_path_by_id(
+        collect_sns_neurons_cache_paths(icp_root, network)?,
+        id,
+        |path| read_sns_neurons_cache_header(path, network).map(|header| header.metadata.id),
+    )?;
+    path.map(|path| load_sns_neurons_cache_at(path.clone(), network).map(|cache| (path, cache)))
+        .transpose()
 }

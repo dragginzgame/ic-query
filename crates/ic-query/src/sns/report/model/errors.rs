@@ -79,6 +79,9 @@ pub enum SnsHostError {
     #[error("multiple SNS refresh attempts claim list id {id}; use a root principal instead")]
     AmbiguousRefreshAttemptId { id: usize },
 
+    #[error("multiple SNS caches claim list id {id}; use a root principal instead")]
+    AmbiguousCacheId { id: usize },
+
     #[error(
         "SNS neurons cache is missing at {}\n\nRun `icq sns neurons refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting.",
         path.display()

@@ -6,7 +6,9 @@
 
 use super::{load::load_sns_proposals_cache_at, scan::read_sns_proposals_cache_header};
 use crate::sns::report::{
-    SnsHostError, parse_sns_root_canister_input,
+    SnsHostError,
+    cache_storage::find_unique_sns_cache_path_by_id,
+    parse_sns_root_canister_input,
     proposals_cache::model::SnsProposalsCache,
     proposals_cache::paths::{SnsProposalsCachePaths, sns_network_cache_dir},
 };
@@ -41,12 +43,11 @@ pub(in crate::sns::report::proposals_cache) fn find_sns_proposals_cache_by_id(
     network: &str,
     id: usize,
 ) -> Result<Option<(PathBuf, SnsProposalsCache)>, SnsHostError> {
-    for path in collect_sns_proposals_cache_paths(icp_root, network)? {
-        let header = read_sns_proposals_cache_header(&path, network)?;
-        if header.metadata.id == id {
-            let cache = load_sns_proposals_cache_at(path.clone(), network)?;
-            return Ok(Some((path, cache)));
-        }
-    }
-    Ok(None)
+    let path = find_unique_sns_cache_path_by_id(
+        collect_sns_proposals_cache_paths(icp_root, network)?,
+        id,
+        |path| read_sns_proposals_cache_header(path, network).map(|header| header.metadata.id),
+    )?;
+    path.map(|path| load_sns_proposals_cache_at(path.clone(), network).map(|cache| (path, cache)))
+        .transpose()
 }

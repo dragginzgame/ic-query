@@ -117,6 +117,18 @@ fn scalar_text_helpers_escape_controls_without_changing_raw_models() {
 }
 
 #[test]
+fn scalar_text_sanitizing_is_control_free_and_idempotent() {
+    let ascii = (0..=127).filter_map(char::from_u32).collect::<String>();
+    let sanitized = sanitize_text(&ascii);
+
+    assert!(!sanitized.chars().any(char::is_control));
+    assert_eq!(sanitize_text(&sanitized), sanitized);
+    for limit in 0..=sanitized.chars().count() {
+        assert!(!truncate_text(&ascii, limit).chars().any(char::is_control));
+    }
+}
+
+#[test]
 #[cfg(feature = "host")]
 fn duration_display_uses_largest_readable_unit() {
     assert_eq!(display_duration_seconds(0), "0s");

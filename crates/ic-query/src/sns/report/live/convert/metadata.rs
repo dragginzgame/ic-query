@@ -34,6 +34,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::UnknownSnsId { .. }
         | SnsHostError::UnknownSnsRoot { .. }
         | SnsHostError::InvalidLookup { .. }
+        | SnsHostError::AmbiguousCacheId { .. }
         | SnsHostError::AmbiguousRefreshAttemptId { .. }
         | SnsHostError::MissingNeuronsCache { .. }
         | SnsHostError::MissingNeuronsCacheForId { .. }
