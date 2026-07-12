@@ -1,6 +1,9 @@
-.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy dependency-check ensure-clean feature-boundary-check fmt fmt-check install library-process-boundary-check msrv package package-contents-check public-docs-check publish release-guards-check test type-docs-check
+.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy dependency-check ensure-clean feature-boundary-check fmt fmt-check install install-dev library-process-boundary-check msrv package package-contents-check public-docs-check publish release-guards-check test type-docs-check
 
 MSRV ?= 1.91.0
+CARGO_AUDIT_VERSION ?= 0.22.2
+CARGO_MACHETE_VERSION ?= 0.9.2
+RIPGREP_VERSION ?= 15.1.0
 CARGO_HTTP_MULTIPLEXING ?= false
 CARGO_NET_RETRY ?= 10
 CARGO_PACKAGE_RETRIES ?= 3
@@ -30,6 +33,7 @@ help:
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
+	@echo "  install-dev  Install pinned tools required by the local CI gate"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
 	@echo "  patch      Run release gate, then bump patch version files"
@@ -114,6 +118,11 @@ ci: changelog-check actions-check package-contents-check feature-boundary-check 
 
 install:
 	cargo install --locked --path crates/ic-query-cli --bin icq
+
+install-dev:
+	cargo install --locked ripgrep --version $(RIPGREP_VERSION)
+	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
+	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
 
 publish: ensure-clean
 	cargo publish --locked -p ic-query
