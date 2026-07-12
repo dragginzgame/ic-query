@@ -2,6 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+make_bin="$(command -v make)"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "${work_dir}"' EXIT
 
@@ -119,6 +120,43 @@ mapfile -t bump_trace < "${bump_case}/trace"
 [[ "${bump_trace[1]:-}" == "make --no-print-directory ensure-clean ci" ]] \
   || fail "the bump script did not run the complete CI gate after the target changelog check"
 
+public_docs_case="${work_dir}/public-docs"
+mkdir -p "${public_docs_case}/bin"
+public_docs_warning_count="$(sed -n \
+  's/^readonly expected_missing_docs=\([0-9][0-9]*\)$/\1/p' \
+  "${repo_root}/scripts/ci/check-public-docs.sh")"
+[[ "${public_docs_warning_count}" =~ ^[0-9]+$ ]] \
+  || fail "the public documentation check has no numeric warning baseline"
+cat > "${public_docs_case}/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  clean)
+    exit 0
+    ;;
+  doc)
+    for ((warning = 0; warning < WARNING_COUNT; warning++)); do
+      if [[ "${CARGO_TERM_COLOR:-}" == "always" ]]; then
+        printf '\033[33mwarning: missing documentation for a struct\033[0m\n' >&2
+      else
+        printf 'warning: missing documentation for a struct\n' >&2
+      fi
+    done
+    ;;
+  *)
+    exit 2
+    ;;
+esac
+EOF
+chmod +x "${public_docs_case}/bin/cargo"
+(
+  cd "${public_docs_case}"
+  PATH="${public_docs_case}/bin:${PATH}" CARGO_TERM_COLOR=always \
+    WARNING_COUNT="${public_docs_warning_count}" \
+    bash "${repo_root}/scripts/ci/check-public-docs.sh"
+) >/dev/null 2>&1 \
+  || fail "the public documentation check is not stable under forced Cargo color"
+
 package_case="${work_dir}/package"
 mkdir -p "${package_case}/bin"
 cat > "${package_case}/bin/cargo" <<'EOF'
@@ -195,6 +233,37 @@ commit_status="$?"
 set -e
 [[ "${commit_status}" -ne 0 ]] || fail "release-commit hid a failed commit"
 [[ ! -e "${commit_case}/tagged" ]] || fail "release-commit tagged after a failed commit"
+
+push_case="${work_dir}/push"
+mkdir -p "${push_case}/bin"
+cat > "${push_case}/bin/make" <<'EOF'
+#!/usr/bin/env bash
+printf 'make %s\n' "$*" > "${TRACE_FILE}"
+exit 41
+EOF
+cat > "${push_case}/bin/git" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "push" ]]; then
+  : > "${PUSH_MARKER}"
+  exit 0
+fi
+exit 2
+EOF
+chmod +x "${push_case}/bin/make" "${push_case}/bin/git"
+set +e
+(
+  cd "${push_case}"
+  PATH="${push_case}/bin:${PATH}" TRACE_FILE="${push_case}/trace" \
+    PUSH_MARKER="${push_case}/pushed" \
+    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
+      MAKE="${push_case}/bin/make" release-push
+) >/dev/null 2>&1
+push_status="$?"
+set -e
+[[ "${push_status}" -ne 0 ]] || fail "release-push hid a failing CI gate"
+[[ ! -e "${push_case}/pushed" ]] || fail "release-push pushed after a failed CI gate"
+[[ "$(<"${push_case}/trace")" == "make --no-print-directory ci" ]] \
+  || fail "release-push did not run the complete CI gate before pushing"
 
 for release_kind in patch minor major; do
   release_block="$(awk -v target="release-${release_kind}:" '

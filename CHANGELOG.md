@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.10.md](docs/changelog/0.10.md)
 
+- `0.10.3` makes the public-rustdoc debt check independent of forced Cargo
+  color in hosted CI, covers that environment in the local release guards,
+  and reruns the complete CI gate on the release commit before pushing it.
+
 - `0.10.2` fixes CI setup by installing the pinned `ripgrep`, `cargo-audit`,
   and `cargo-machete` development tools through one shared target. The library
   process-boundary check now reports how to install its missing `rg`

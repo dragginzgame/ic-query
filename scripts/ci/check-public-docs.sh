@@ -7,8 +7,10 @@ trap 'rm -f "${log}"' EXIT
 
 # Remove generated documentation so rustdoc emits the complete warning set on
 # repeated local runs instead of reusing a fresh artifact without diagnostics.
+# GitHub Actions forces colored Cargo output, so disable color for the captured
+# diagnostics to keep the anchored warning count independent of the caller.
 cargo clean --doc >"${log}" 2>&1
-if ! RUSTDOCFLAGS='-W missing-docs' \
+if ! CARGO_TERM_COLOR=never RUSTDOCFLAGS='-W missing-docs' \
   cargo doc -p ic-query --all-features --no-deps --locked >>"${log}" 2>&1; then
   cat "${log}" >&2
   exit 1

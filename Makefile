@@ -173,6 +173,7 @@ release-commit:
 	git tag -a "v$$version" -m "Release $$version"
 
 release-push:
+	+$(MAKE) --no-print-directory ci
 	git push --follow-tags
 
 build:
