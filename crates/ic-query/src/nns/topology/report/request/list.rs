@@ -6,10 +6,10 @@ use super::{
     model::TopologyRequestParts,
 };
 use crate::{
-    nns::data_center::report::NnsDataCenterListRequest,
-    nns::node::report::NnsNodeListRequest,
-    nns::node_operator::report::NnsNodeOperatorListRequest,
-    nns::node_provider::report::NnsNodeProviderListRequest,
+    nns::data_center::NnsDataCenterListRequest,
+    nns::node::NnsNodeListRequest,
+    nns::node_operator::NnsNodeOperatorListRequest,
+    nns::node_provider::NnsNodeProviderListRequest,
     subnet_catalog::{DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogListRequest},
 };
 

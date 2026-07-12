@@ -5,9 +5,8 @@
 //! Boundary: summarizes relation coverage for topology summary reports.
 
 use crate::nns::{
-    data_center::report::NnsDataCenterListReport, node::report::NnsNodeListReport,
-    node_operator::report::NnsNodeOperatorListReport,
-    node_provider::report::NnsNodeProviderListReport,
+    data_center::NnsDataCenterListReport, node::NnsNodeListReport,
+    node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
     topology::report::relations::TopologyRelationIndex,
 };
 
@@ -16,6 +15,7 @@ use crate::nns::{
 ///
 /// Internal known-relation counters used by topology summary assembly.
 ///
+
 #[expect(
     clippy::struct_field_names,
     reason = "fields mirror the public topology summary count names"

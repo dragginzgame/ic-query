@@ -6,6 +6,12 @@
 
 use crate::nns::topology::report::{NnsTopologySummaryReport, percent::coverage_percent_text};
 
+///
+/// NnsTopologyHealthDerivedMetrics
+///
+/// Derived registry, staleness, and join metrics used by topology health checks.
+///
+
 pub(super) struct NnsTopologyHealthDerivedMetrics {
     pub(super) registry_source_count: usize,
     pub(super) registry_version_min: Option<u64>,

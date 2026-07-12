@@ -13,6 +13,12 @@ use std::path::{Path, PathBuf};
 
 pub(super) type SnsNeuronsCachePaths = SnsSnapshotCachePaths<SnsNeuronsCacheCollection>;
 
+///
+/// SnsNeuronsCacheCollection
+///
+/// Collection marker used to derive complete SNS neuron snapshot paths.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum SnsNeuronsCacheCollection {}
 

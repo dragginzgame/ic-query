@@ -1,4 +1,4 @@
-pub mod report;
+mod report;
 
 pub use report::{
     DEFAULT_SNS_SOURCE_ENDPOINT, MAINNET_SNS_WASM_CANISTER_ID, SnsCustomProposalCriticality,

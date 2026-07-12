@@ -6,6 +6,12 @@
 
 use crate::nns::topology::report::NnsTopologyCapacityRow;
 
+///
+/// CapacitySummary
+///
+/// Aggregate allowance, assignment, and availability totals for topology capacity.
+///
+
 pub(super) struct CapacitySummary {
     pub(super) status: String,
     pub(super) total_node_allowance: u64,

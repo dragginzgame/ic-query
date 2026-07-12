@@ -103,7 +103,7 @@ impl SnsNeuronsOptions {
         }
         if self.sort != SnsNeuronsSortArg::Api && self.owner_principal_id.is_some() {
             return Err(SnsCommandError::Usage(
-                "`icq sns neurons --sort <id|stake|maturity|created>` reads the complete full-neuron cache and does not support --owner yet; use --sort api for owner-filtered live queries".to_string(),
+                "`--owner` is supported only with `icq sns neurons --sort api`; cached `--sort <id|stake|maturity|created>` views read the complete full-neuron cache and do not accept owner filtering".to_string(),
             ));
         }
         Ok(())

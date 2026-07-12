@@ -6,9 +6,8 @@
 
 use crate::{
     nns::{
-        data_center::report::NnsDataCenterListReport, node::report::NnsNodeListReport,
-        node_operator::report::NnsNodeOperatorListReport,
-        node_provider::report::NnsNodeProviderListReport,
+        data_center::NnsDataCenterListReport, node::NnsNodeListReport,
+        node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
         topology::report::NnsTopologyRegistryVersionRow,
     },
     subnet_catalog::SubnetCatalogListReport,

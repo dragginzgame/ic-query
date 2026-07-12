@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologyProvidersReport
 ///
+/// NNS topology report summarizing node provider distribution.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyProvidersReport {
     pub schema_version: u32,
@@ -23,6 +26,9 @@ pub struct NnsTopologyProvidersReport {
 ///
 /// NnsTopologyProviderRow
 ///
+/// Capacity and assignment totals for one NNS node provider.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyProviderRow {
     pub node_provider_principal: String,

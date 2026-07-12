@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsDataCenterListReport
 ///
+/// Complete NNS data center inventory report with source metadata.
+///
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NnsDataCenterListReport {
     pub schema_version: u32,
@@ -32,6 +35,9 @@ impl JsonCacheReport for NnsDataCenterListReport {
 ///
 /// NnsDataCenterRow
 ///
+/// One data center row projected from the NNS registry inventory.
+///
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NnsDataCenterRow {
     pub data_center_id: String,
@@ -47,6 +53,9 @@ pub struct NnsDataCenterRow {
 ///
 /// NnsDataCenterInfoReport
 ///
+/// Detailed report for one resolved NNS data center.
+///
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NnsDataCenterInfoReport {
     pub schema_version: u32,
@@ -71,6 +80,9 @@ pub struct NnsDataCenterInfoReport {
 ///
 /// NnsDataCenterRefreshReport
 ///
+/// Outcome of refreshing the cached NNS data center inventory.
+///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsDataCenterRefreshReport {

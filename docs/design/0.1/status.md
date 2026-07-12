@@ -1,12 +1,12 @@
 # 0.1 Status: Snapshot Cache And Complete SNS Collections
 
-Last updated: 2026-06-16
+Last updated: 2026-07-12
 
 ## Purpose
 
-This file tracks implementation status for the 0.1 snapshot-cache design. The
-design document captures the intended contract; this file records what has
-landed, what remains open, and where the implementation differs from the plan.
+This is the completed historical implementation record for the 0.1
+snapshot-cache design. Current cache contracts live in the README and the 0.8
+hard-cut design.
 
 Design: [0.1-design.md](0.1-design.md)
 
@@ -155,21 +155,19 @@ The following already-landed work informs 0.1:
 - The SNS governance `list_neurons` API exposes `of_principal`, `limit`, and
   `start_page_at`, but no caller-selected ordering field.
 
-## Open Decisions
+## Resolved Scope Decisions
 
 1. Whether missing complete SNS neuron snapshots should auto-refresh on first
    complete-only sort or require an explicit `refresh` command.
    Current implementation requires an explicit `refresh` command.
 2. The default page size for complete SNS neuron refresh.
    Current implementation defaults to 100.
-3. Whether owner-scoped neuron snapshots are in scope for the first 0.1 slice
-   or deferred until full snapshots are stable.
-   Current implementation defers owner-scoped snapshots.
+3. Owner-scoped neuron snapshots are outside the current collection model.
+   Owner filtering is supported only by bounded live API queries.
 4. Whether refresh attempts should retain partial rows for debugging or only
    retain progress/error metadata.
    Current implementation retains progress/error metadata only.
-5. Whether a cross-SNS aggregate command belongs in 0.1 or a later release.
-   Current implementation defers cross-SNS aggregation.
+5. Cross-SNS aggregation is outside the current command scope.
 
 ## Known Risks
 

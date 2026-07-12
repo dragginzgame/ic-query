@@ -3,6 +3,9 @@ use serde::Serialize;
 ///
 /// MainnetNodeList
 ///
+/// Complete mainnet node inventory and registry metadata.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MainnetNodeList {
     pub network: String,
@@ -17,6 +20,9 @@ pub struct MainnetNodeList {
 ///
 /// MainnetNode
 ///
+/// One node decoded from the mainnet registry.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MainnetNode {
     pub principal: String,

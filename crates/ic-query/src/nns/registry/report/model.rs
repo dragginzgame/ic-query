@@ -6,6 +6,9 @@ pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 1;
 ///
 /// NnsRegistryVersionRequest
 ///
+/// Request for the current NNS registry version report.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsRegistryVersionRequest {
     pub network: String,
@@ -31,6 +34,9 @@ impl NnsRegistryVersionRequest {
 ///
 /// NnsRegistryVersionReport
 ///
+/// Current NNS registry version report with source metadata.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsRegistryVersionReport {
     pub schema_version: u32,

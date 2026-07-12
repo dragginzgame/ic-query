@@ -1,4 +1,4 @@
-pub mod report;
+mod report;
 
 pub use report::{
     DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT, NnsNodeOperatorCacheRequest,
@@ -9,8 +9,10 @@ pub use report::{
 #[cfg(feature = "host")]
 pub use report::{
     DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS, LiveNnsNodeOperatorSource,
-    NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
-    NnsNodeOperatorSource, NnsNodeOperatorSourceRequest, build_nns_node_operator_info_report,
+    NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
+    NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION, NnsNodeOperatorHostError,
+    NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest, NnsNodeOperatorSource,
+    NnsNodeOperatorSourceRequest, build_nns_node_operator_info_report,
     build_nns_node_operator_info_report_with_source, build_nns_node_operator_list_report,
     build_nns_node_operator_list_report_with_source, nns_node_operator_cache_path,
     nns_node_operator_refresh_lock_path, nns_node_operator_refresh_report_text,

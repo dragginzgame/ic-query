@@ -64,6 +64,10 @@ pre-collected data sources. Native tools should normally depend on
 project-context discovery belong exclusively to `ic-query-cli` and are not a
 library feature.
 
+Each NNS and SNS family root is its sole public path. For example, topology
+consumers use `ic_query::nns::topology::*`; internal `report` modules are not
+public API.
+
 See
 [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
 for downstream feature guidance, source-adapter examples, and patterns for

@@ -1,6 +1,12 @@
 use super::{FixtureSnsListSource, GOVERNANCE_A};
 use crate::sns::report::tests::*;
 
+///
+/// FixtureSnsParamsSource
+///
+/// Successful SNS governance parameter source used by report tests.
+///
+
 pub(in crate::sns::report::tests) struct FixtureSnsParamsSource;
 
 impl SnsListSource for FixtureSnsParamsSource {

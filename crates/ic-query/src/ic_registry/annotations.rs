@@ -45,6 +45,9 @@ fn mainnet_annotations() -> BTreeMap<&'static str, MainnetAnnotation> {
 ///
 /// MainnetAnnotation
 ///
+/// Registry annotation attached to a mainnet entity identifier.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct MainnetAnnotation {
     specialization: SubnetSpecialization,

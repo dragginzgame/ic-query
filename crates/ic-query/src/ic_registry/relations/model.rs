@@ -4,6 +4,9 @@ use std::collections::{BTreeMap, BTreeSet};
 ///
 /// RegistryRelationInventory
 ///
+/// Registry records required to join nodes with operators, subnets, and data centers.
+///
+
 pub(in crate::ic_registry) struct RegistryRelationInventory {
     pub(in crate::ic_registry) node_principals: BTreeSet<String>,
     pub(in crate::ic_registry) node_records: BTreeMap<String, NodeRecord>,
@@ -15,6 +18,9 @@ pub(in crate::ic_registry) struct RegistryRelationInventory {
 ///
 /// RegistryRelationInventoryScope
 ///
+/// Registry inventory rows collected for relation and topology joins.
+///
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::ic_registry) enum RegistryRelationInventoryScope {
     BaseRelations,

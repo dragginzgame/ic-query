@@ -10,6 +10,12 @@ use crate::sns::report::{
     source::{MainnetSns, MainnetSnsList},
 };
 
+///
+/// SnsProposalsCacheProjection
+///
+/// Report-building inputs projected from one complete SNS proposal snapshot.
+///
+
 pub(super) struct SnsProposalsCacheProjection {
     pub(super) list: MainnetSnsList,
     pub(super) id: usize,

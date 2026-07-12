@@ -1,6 +1,12 @@
 use super::{FixtureSnsListSource, GOVERNANCE_A};
 use crate::sns::report::tests::*;
 
+///
+/// FixtureSnsNeuronsSource
+///
+/// Successful bounded and paged SNS neuron source used by report tests.
+///
+
 pub(in crate::sns::report::tests) struct FixtureSnsNeuronsSource;
 
 impl SnsListSource for FixtureSnsNeuronsSource {
@@ -63,6 +69,12 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
     }
 }
 
+///
+/// PagedFixtureSnsNeuronsSource
+///
+/// Multi-page SNS neuron source used to exercise complete snapshot refreshes.
+///
+
 pub(in crate::sns::report::tests) struct PagedFixtureSnsNeuronsSource;
 
 impl SnsListSource for PagedFixtureSnsNeuronsSource {
@@ -115,6 +127,12 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
         })
     }
 }
+
+///
+/// NoLiveSnsNeuronsSource
+///
+/// SNS neuron source that rejects live calls in cache-backed report tests.
+///
 
 pub(in crate::sns::report::tests) struct NoLiveSnsNeuronsSource;
 

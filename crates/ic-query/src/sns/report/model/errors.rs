@@ -17,7 +17,7 @@ use thiserror::Error as ThisError;
 #[derive(Debug, ThisError)]
 pub enum SnsHostError {
     #[error(
-        "`icq sns` supports only the mainnet `ic` network\n\nThe SNS list is queried from the public Internet Computer mainnet SNS-W canister.\nLocal replica SNS discovery is not implemented yet.\n\nTry:\n  icq --network ic sns list"
+        "`icq sns` supports only the mainnet `ic` network\n\nThe SNS list is queried from the public Internet Computer mainnet SNS-W canister.\nLocal replica SNS discovery is not supported.\n\nTry:\n  icq --network ic sns list"
     )]
     UnsupportedNetwork { network: String },
 

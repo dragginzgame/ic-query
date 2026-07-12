@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologyCapacityReport
 ///
+/// NNS topology capacity report grouped by node operator.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyCapacityReport {
     pub schema_version: u32,
@@ -22,6 +25,9 @@ pub struct NnsTopologyCapacityReport {
 ///
 /// NnsTopologyCapacityRow
 ///
+/// Capacity and assignment totals for one NNS node operator.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyCapacityRow {
     pub node_operator_principal: String,

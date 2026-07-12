@@ -3,6 +3,9 @@ use serde::Serialize;
 ///
 /// MainnetNodeOperatorList
 ///
+/// Complete mainnet node operator inventory and registry metadata.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MainnetNodeOperatorList {
     pub network: String,
@@ -17,6 +20,9 @@ pub struct MainnetNodeOperatorList {
 ///
 /// MainnetNodeOperator
 ///
+/// One node operator decoded from the mainnet registry.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MainnetNodeOperator {
     pub principal: String,

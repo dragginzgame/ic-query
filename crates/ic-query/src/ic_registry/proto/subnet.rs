@@ -1,6 +1,9 @@
 ///
 /// SubnetListRecord
 ///
+/// Protobuf registry record containing the current subnet identifiers.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct SubnetListRecord {
     #[prost(bytes = "vec", repeated, tag = "2")]
@@ -10,6 +13,9 @@ pub struct SubnetListRecord {
 ///
 /// SubnetRecord
 ///
+/// Protobuf registry record describing one subnet.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct SubnetRecord {
     #[prost(bytes = "vec", repeated, tag = "3")]
@@ -23,6 +29,9 @@ pub struct SubnetRecord {
 ///
 /// SubnetType
 ///
+/// Protobuf classification assigned to a subnet record.
+///
+
 #[derive(Clone, Copy, Debug, prost::Enumeration, Eq, PartialEq)]
 #[repr(i32)]
 pub enum SubnetType {
@@ -36,6 +45,9 @@ pub enum SubnetType {
 ///
 /// CanisterCyclesCostSchedule
 ///
+/// Protobuf cycles cost schedule assigned to a subnet record.
+///
+
 #[derive(Clone, Copy, Debug, prost::Enumeration, Eq, PartialEq)]
 #[repr(i32)]
 pub enum CanisterCyclesCostSchedule {

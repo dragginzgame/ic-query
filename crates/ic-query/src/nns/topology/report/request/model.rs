@@ -2,6 +2,12 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+///
+/// TopologyRequestParts
+///
+/// Shared read settings required by host-backed topology source requests.
+///
+
 #[cfg(feature = "host")]
 pub(in crate::nns::topology::report) trait TopologyRequestParts {
     fn icp_root(&self) -> &Path;
@@ -9,6 +15,12 @@ pub(in crate::nns::topology::report) trait TopologyRequestParts {
     fn source_endpoint(&self) -> &str;
     fn now_unix_secs(&self) -> u64;
 }
+
+///
+/// TopologyRefreshParts
+///
+/// Refresh-specific settings added to a host-backed topology request.
+///
 
 #[cfg(feature = "host")]
 pub(in crate::nns::topology::report) trait TopologyRefreshParts:
@@ -67,6 +79,12 @@ impl TopologyRequestParts for NnsTopologyReadRequest {
         self.now_unix_secs
     }
 }
+
+///
+/// NnsTopologyRefreshRequest
+///
+/// Request accepted by the complete NNS topology refresh builder.
+///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologyRefreshRequest {

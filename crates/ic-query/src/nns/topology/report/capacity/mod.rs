@@ -9,7 +9,7 @@ mod sort;
 mod summary;
 
 use super::{NNS_TOPOLOGY_CAPACITY_REPORT_SCHEMA_VERSION, NnsTopologyCapacityReport};
-use crate::nns::node_operator::report::NnsNodeOperatorListReport;
+use crate::nns::node_operator::NnsNodeOperatorListReport;
 use row::capacity_row_from_operator;
 use sort::sort_capacity_rows;
 use summary::capacity_summary;

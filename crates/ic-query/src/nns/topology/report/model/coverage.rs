@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologyCoverageReport
 ///
+/// NNS topology report describing registry relation join coverage.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyCoverageReport {
     pub schema_version: u32,

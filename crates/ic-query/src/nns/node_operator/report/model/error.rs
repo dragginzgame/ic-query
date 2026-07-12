@@ -4,10 +4,13 @@ use thiserror::Error as ThisError;
 ///
 /// NnsNodeOperatorHostError
 ///
+/// Errors returned by host-backed NNS node operator report operations.
+///
+
 #[derive(Debug, ThisError)]
 pub enum NnsNodeOperatorHostError {
     #[error(
-        "`icq nns node-operator` supports only the mainnet `ic` network\n\nThe NNS node-operator list is derived from public Internet Computer mainnet registry records.\nLocal replica NNS registry discovery is not implemented yet.\n\nTry:\n  icq --network ic nns node-operator list"
+        "`icq nns node-operator` supports only the mainnet `ic` network\n\nThe NNS node-operator list is derived from public Internet Computer mainnet registry records.\nLocal replica NNS registry discovery is not supported.\n\nTry:\n  icq --network ic nns node-operator list"
     )]
     UnsupportedNetwork { network: String },
 

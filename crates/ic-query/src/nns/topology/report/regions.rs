@@ -1,7 +1,7 @@
 use super::{
     NNS_TOPOLOGY_REGIONS_REPORT_SCHEMA_VERSION, NnsTopologyRegionRow, NnsTopologyRegionsReport,
 };
-use crate::nns::data_center::report::NnsDataCenterListReport;
+use crate::nns::data_center::NnsDataCenterListReport;
 use std::collections::BTreeMap;
 
 pub(super) fn topology_regions_report_from_report(

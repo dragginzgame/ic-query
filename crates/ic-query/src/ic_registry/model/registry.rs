@@ -3,6 +3,9 @@ use serde::Serialize;
 ///
 /// MainnetRegistryVersion
 ///
+/// Current mainnet registry version and its source metadata.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MainnetRegistryVersion {
     pub network: String,

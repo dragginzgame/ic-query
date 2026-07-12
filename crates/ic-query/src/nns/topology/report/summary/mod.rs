@@ -10,13 +10,13 @@ mod registry_versions;
 use super::{NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION, NnsTopologySummaryReport};
 use crate::{
     nns::{
-        data_center::report::NnsDataCenterListReport,
-        node::report::{
+        data_center::NnsDataCenterListReport,
+        node::{
             NNS_NODE_SUBNET_KIND_APPLICATION, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
             NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN, NnsNodeListReport,
         },
-        node_operator::report::NnsNodeOperatorListReport,
-        node_provider::report::NnsNodeProviderListReport,
+        node_operator::NnsNodeOperatorListReport,
+        node_provider::NnsNodeProviderListReport,
     },
     subnet_catalog::{SubnetCatalogListReport, SubnetKind},
 };

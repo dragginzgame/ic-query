@@ -65,6 +65,7 @@ impl From<MainnetRegistryVersion> for NnsRegistryVersionData {
 ///
 /// Source contract for fetching NNS registry version data.
 ///
+
 pub trait NnsRegistrySource {
     fn fetch_registry_version(
         &self,

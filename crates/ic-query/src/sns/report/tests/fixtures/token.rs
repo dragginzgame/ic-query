@@ -1,6 +1,12 @@
 use super::{FixtureSnsListSource, GOVERNANCE_A, INDEX_A, LEDGER_A};
 use crate::sns::report::tests::*;
 
+///
+/// FixtureSnsTokenSource
+///
+/// Successful SNS ledger token source used by report tests.
+///
+
 pub(in crate::sns::report::tests) struct FixtureSnsTokenSource;
 
 impl SnsListSource for FixtureSnsTokenSource {

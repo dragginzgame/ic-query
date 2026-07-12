@@ -11,19 +11,19 @@ use super::{
 };
 use crate::{
     nns::{
-        data_center::report::{
+        data_center::{
             NnsDataCenterListReport, NnsDataCenterRefreshReport, build_nns_data_center_list_report,
             refresh_nns_data_center_report,
         },
-        node::report::{
+        node::{
             NnsNodeListReport, NnsNodeRefreshReport, build_nns_node_list_report,
             refresh_nns_node_report,
         },
-        node_operator::report::{
+        node_operator::{
             NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport,
             build_nns_node_operator_list_report, refresh_nns_node_operator_report,
         },
-        node_provider::report::{
+        node_provider::{
             NnsNodeProviderListReport, NnsNodeProviderRefreshReport,
             build_nns_node_provider_list_report, refresh_nns_node_provider_report,
         },

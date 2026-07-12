@@ -3,6 +3,9 @@ use std::path::PathBuf;
 ///
 /// NnsNodeCacheRequest
 ///
+/// Cache identity used by NNS node report reads.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeCacheRequest {
     pub icp_root: PathBuf,
@@ -22,6 +25,9 @@ impl NnsNodeCacheRequest {
 ///
 /// NnsNodeListRequest
 ///
+/// Request for an optionally filtered NNS node inventory report.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeListRequest {
     pub cache: NnsNodeCacheRequest,
@@ -85,6 +91,9 @@ impl NnsNodeListRequest {
 ///
 /// NnsNodeInfoRequest
 ///
+/// Request for one NNS node selected by principal or prefix.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeInfoRequest {
     pub cache: NnsNodeCacheRequest,
@@ -113,6 +122,9 @@ impl NnsNodeInfoRequest {
 ///
 /// NnsNodeRefreshRequest
 ///
+/// Host request for refreshing the cached NNS node inventory.
+///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeRefreshRequest {
@@ -162,6 +174,9 @@ impl_nns_leaf_cache_and_refresh_requests!(NnsNodeCacheRequest, NnsNodeRefreshReq
 ///
 /// NnsNodeListFilters
 ///
+/// Relation filters applied to an NNS node inventory view.
+///
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct NnsNodeListFilters {
     pub subnet: Option<String>,

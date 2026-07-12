@@ -81,6 +81,9 @@ pub(super) fn write_refresh_lock_for_test(
 ///
 /// FixtureRefreshSource
 ///
+/// Controllable subnet catalog refresh source used by host tests.
+///
+
 pub(super) struct FixtureRefreshSource {
     catalog: Option<SubnetCatalog>,
     fail: bool,

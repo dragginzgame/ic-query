@@ -1,4 +1,4 @@
-.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy ensure-clean feature-boundary-check fmt fmt-check install msrv package package-contents-check publish release-guards-check test
+.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy dependency-check ensure-clean feature-boundary-check fmt fmt-check install msrv package package-contents-check publish release-guards-check test type-docs-check
 
 MSRV ?= 1.91.0
 CARGO_HTTP_MULTIPLEXING ?= false
@@ -19,6 +19,8 @@ help:
 	@echo "  package-contents-check  Check crate package excludes internal files"
 	@echo "  feature-boundary-check  Check library default/no-default feature boundaries"
 	@echo "  release-guards-check  Check release automation fails closed"
+	@echo "  type-docs-check  Check cross-module type documentation blocks"
+	@echo "  dependency-check  Check advisories and unused direct dependencies"
 	@echo "  check      Run cargo check with locked dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
@@ -75,6 +77,19 @@ feature-boundary-check:
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
 
+type-docs-check:
+	perl scripts/ci/check-type-docs.pl
+
+dependency-check:
+	# These maintenance advisories are transitive through ic-agent/candid.
+	# Deny every warning that is not part of this reviewed baseline.
+	cargo audit --deny warnings \
+		--ignore RUSTSEC-2021-0127 \
+		--ignore RUSTSEC-2024-0384 \
+		--ignore RUSTSEC-2024-0436 \
+		--ignore RUSTSEC-2025-0012
+	cargo machete --with-metadata
+
 clippy:
 	cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
@@ -87,7 +102,7 @@ msrv:
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh
 
-ci: changelog-check actions-check package-contents-check feature-boundary-check release-guards-check fmt-check check clippy test package
+ci: changelog-check actions-check package-contents-check feature-boundary-check release-guards-check type-docs-check dependency-check fmt-check check clippy test package
 
 install:
 	cargo install --locked --path crates/ic-query-cli --bin icq

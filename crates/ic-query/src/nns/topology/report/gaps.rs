@@ -7,10 +7,10 @@
 use super::relations::TopologyRelationIndex;
 use super::{NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION, NnsTopologyGapsReport};
 use crate::nns::{
-    data_center::report::NnsDataCenterListReport,
-    node::report::{NnsNodeListReport, NnsNodeRow},
-    node_operator::report::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
-    node_provider::report::NnsNodeProviderListReport,
+    data_center::NnsDataCenterListReport,
+    node::{NnsNodeListReport, NnsNodeRow},
+    node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
+    node_provider::NnsNodeProviderListReport,
     topology::report::NnsTopologyGapRow,
 };
 

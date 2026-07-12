@@ -1,6 +1,9 @@
 ///
 /// NodeRecord
 ///
+/// Protobuf registry record describing one replica node.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct NodeRecord {
     #[prost(bytes = "vec", tag = "15")]
@@ -10,6 +13,9 @@ pub struct NodeRecord {
 ///
 /// NodeOperatorRecord
 ///
+/// Protobuf registry record describing one node operator.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct NodeOperatorRecord {
     #[prost(bytes = "vec", tag = "1")]
@@ -25,6 +31,9 @@ pub struct NodeOperatorRecord {
 ///
 /// DataCenterRecord
 ///
+/// Protobuf registry record describing one data center.
+///
+
 #[derive(Clone, prost::Message, PartialEq)]
 pub struct DataCenterRecord {
     #[prost(string, tag = "1")]
@@ -40,6 +49,9 @@ pub struct DataCenterRecord {
 ///
 /// Gps
 ///
+/// Protobuf geographic coordinates attached to a data center record.
+///
+
 #[derive(Clone, prost::Message, PartialEq)]
 pub struct Gps {
     #[prost(float, tag = "1")]

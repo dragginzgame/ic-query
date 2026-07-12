@@ -3,6 +3,9 @@ use serde::Serialize;
 ///
 /// MainnetNodeProviderList
 ///
+/// Complete mainnet node provider inventory and registry metadata.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MainnetNodeProviderList {
     pub network: String,
@@ -18,6 +21,9 @@ pub struct MainnetNodeProviderList {
 ///
 /// MainnetNodeProvider
 ///
+/// One node provider returned by mainnet governance and registry joins.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MainnetNodeProvider {
     pub principal: String,

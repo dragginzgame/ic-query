@@ -1,6 +1,6 @@
 use super::spec::NODE_PROVIDER_SPEC;
 use crate::nns::{NnsCommandError, leaf};
-use ic_query::nns::node_provider::DEFAULT_NNS_SOURCE_ENDPOINT;
+use ic_query::nns::node_provider::DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT;
 
 impl_leaf_test_helpers!(
     node_provider_list_options,
@@ -11,5 +11,5 @@ impl_leaf_test_helpers!(
     node_provider_info_usage,
     node_provider_refresh_usage,
     NODE_PROVIDER_SPEC,
-    DEFAULT_NNS_SOURCE_ENDPOINT
+    DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT
 );

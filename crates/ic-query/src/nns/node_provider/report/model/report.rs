@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsNodeProviderListReport
 ///
+/// Complete NNS node provider inventory report with source metadata.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeProviderListReport {
     pub schema_version: u32,
@@ -33,6 +36,9 @@ impl JsonCacheReport for NnsNodeProviderListReport {
 ///
 /// NnsNodeProviderRow
 ///
+/// One node provider row projected from governance and registry data.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeProviderRow {
     pub node_provider_principal: String,
@@ -44,6 +50,9 @@ pub struct NnsNodeProviderRow {
 ///
 /// NnsNodeProviderInfoReport
 ///
+/// Detailed report for one resolved NNS node provider.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeProviderInfoReport {
     pub schema_version: u32,
@@ -65,6 +74,9 @@ pub struct NnsNodeProviderInfoReport {
 ///
 /// NnsNodeProviderRefreshReport
 ///
+/// Outcome of refreshing the cached NNS node provider inventory.
+///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeProviderRefreshReport {

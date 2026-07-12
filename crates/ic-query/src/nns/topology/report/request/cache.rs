@@ -1,9 +1,9 @@
 use super::model::TopologyRequestParts;
 use crate::{
     nns::{
-        data_center::report::NnsDataCenterCacheRequest, leaf::NnsLeafCacheRequest,
-        node::report::NnsNodeCacheRequest, node_operator::report::NnsNodeOperatorCacheRequest,
-        node_provider::report::NnsNodeProviderCacheRequest,
+        data_center::NnsDataCenterCacheRequest, leaf::NnsLeafCacheRequest,
+        node::NnsNodeCacheRequest, node_operator::NnsNodeOperatorCacheRequest,
+        node_provider::NnsNodeProviderCacheRequest,
     },
     subnet_catalog::SubnetCatalogCacheRequest,
 };

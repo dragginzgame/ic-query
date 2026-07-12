@@ -45,7 +45,7 @@ use ic_query::nns::node_operator::{
 };
 #[cfg(feature = "host")]
 use ic_query::nns::node_provider::{
-    DEFAULT_NNS_SOURCE_ENDPOINT, DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
+    DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT, DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
     NnsNodeProviderHostError, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
     NnsNodeProviderSource, NnsNodeProviderSourceRequest, build_nns_node_provider_info_report,
     build_nns_node_provider_info_report_with_source, build_nns_node_provider_list_report,
@@ -89,7 +89,7 @@ use ic_query::nns::registry::{
     NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "host")]
-use ic_query::nns::topology::report::{
+use ic_query::nns::topology::{
     DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyHostError, NnsTopologyRefreshSource,
     NnsTopologyRefreshSourceRequest, NnsTopologySource, NnsTopologySourceRequest,
     build_nns_topology_capacity_report_with_source, build_nns_topology_coverage_report_with_source,
@@ -98,7 +98,7 @@ use ic_query::nns::topology::report::{
     build_nns_topology_summary_report_with_source, build_nns_topology_versions_report_with_source,
     refresh_nns_topology_report_with_source,
 };
-use ic_query::nns::topology::report::{
+use ic_query::nns::topology::{
     NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
     NnsTopologyGapRow, NnsTopologyGapsReport, NnsTopologyHealthCheckRow, NnsTopologyHealthReport,
     NnsTopologyProviderRow, NnsTopologyProvidersReport, NnsTopologyReadRequest,
@@ -527,18 +527,18 @@ fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
     let node_provider_cache = NnsNodeProviderCacheRequest::new(root.join("node-provider"), "ic");
     let node_provider_list_request = NnsNodeProviderListRequest::new(
         node_provider_cache.clone(),
-        DEFAULT_NNS_SOURCE_ENDPOINT,
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
     );
     let node_provider_info_request = NnsNodeProviderInfoRequest::new(
         node_provider_cache.clone(),
-        DEFAULT_NNS_SOURCE_ENDPOINT,
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         sample_nns_node_provider_row().node_provider_principal,
         1_700_000_000,
     );
     let node_provider_refresh_request = NnsNodeProviderRefreshRequest::new(
         node_provider_cache,
-        DEFAULT_NNS_SOURCE_ENDPOINT,
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
         DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
     )
@@ -1583,13 +1583,16 @@ fn assert_public_nns_data_center_host_api(root: &Path) {
 #[cfg(feature = "host")]
 fn assert_public_nns_node_provider_host_api(root: &Path) {
     let cache = NnsNodeProviderCacheRequest::new(root, "ic");
-    let request =
-        NnsNodeProviderListRequest::new(cache.clone(), DEFAULT_NNS_SOURCE_ENDPOINT, 1_700_000_000);
+    let request = NnsNodeProviderListRequest::new(
+        cache.clone(),
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
     let list =
         build_nns_node_provider_list_report(&request).expect("build node-provider list from cache");
     let info = build_nns_node_provider_info_report(&NnsNodeProviderInfoRequest::new(
         cache.clone(),
-        DEFAULT_NNS_SOURCE_ENDPOINT,
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         sample_nns_node_provider_row().node_provider_principal,
         1_700_000_000,
     ))
@@ -1597,7 +1600,7 @@ fn assert_public_nns_node_provider_host_api(root: &Path) {
     let refresh = sample_nns_node_provider_refresh_report(root);
     let refresh_request = NnsNodeProviderRefreshRequest::new(
         cache,
-        DEFAULT_NNS_SOURCE_ENDPOINT,
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
         DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
     )
@@ -1800,7 +1803,7 @@ fn sample_nns_node_provider_list_report() -> NnsNodeProviderListReport {
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: DEFAULT_NNS_SOURCE_ENDPOINT.to_string(),
+        source_endpoint: DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT.to_string(),
         fetched_by: "ic-query".to_string(),
         node_provider_count: 1,
         node_providers: vec![provider],
@@ -1881,7 +1884,7 @@ fn sample_nns_node_provider_refresh_report(root: &Path) -> NnsNodeProviderRefres
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: DEFAULT_NNS_SOURCE_ENDPOINT.to_string(),
+        source_endpoint: DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT.to_string(),
         fetched_by: "ic-query".to_string(),
         dry_run: true,
         wrote_cache: false,

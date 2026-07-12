@@ -50,6 +50,9 @@ The CLI module layout is intentionally mirrored at the family level:
 - `icq nns topology ...` maps to `ic_query::nns::topology`.
 - `icq sns ...` maps to `ic_query::sns`.
 
+These family roots are the only public paths. Internal `report` modules own
+implementation details but are not available to downstream crates.
+
 The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
 SNS info, token, and parameter builders share `SnsLookupRequest`; all read-only

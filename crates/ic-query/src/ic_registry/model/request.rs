@@ -3,6 +3,9 @@ use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
 ///
 /// MainnetRegistryFetchRequest
 ///
+/// Source settings for a mainnet registry fetch.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MainnetRegistryFetchRequest {
     pub endpoint: String,

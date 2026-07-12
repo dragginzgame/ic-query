@@ -1,8 +1,14 @@
 mod ingest;
 mod rows;
 
-use crate::nns::data_center::report::NnsDataCenterListReport;
+use crate::nns::data_center::NnsDataCenterListReport;
 use std::collections::{BTreeMap, BTreeSet};
+
+///
+/// NnsTopologyProviderAccumulator
+///
+/// Mutable join state used to aggregate topology rows by node provider.
+///
 
 pub(super) struct NnsTopologyProviderAccumulator {
     data_center_regions: BTreeMap<String, String>,

@@ -7,13 +7,18 @@
 use super::{NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION, NnsTopologyRefreshReport};
 use crate::{
     nns::{
-        data_center::report::NnsDataCenterRefreshReport, node::report::NnsNodeRefreshReport,
-        node_operator::report::NnsNodeOperatorRefreshReport,
-        node_provider::report::NnsNodeProviderRefreshReport,
+        data_center::NnsDataCenterRefreshReport, node::NnsNodeRefreshReport,
+        node_operator::NnsNodeOperatorRefreshReport, node_provider::NnsNodeProviderRefreshReport,
         topology::report::NnsTopologyRefreshRow,
     },
     subnet_catalog::SubnetCatalogRefreshReport,
 };
+
+///
+/// NnsTopologyRefreshComponentReports
+///
+/// Component refresh reports combined into one NNS topology refresh result.
+///
 
 pub(in crate::nns::topology::report) struct NnsTopologyRefreshComponentReports {
     pub(in crate::nns::topology::report) subnet: SubnetCatalogRefreshReport,

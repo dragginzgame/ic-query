@@ -4,7 +4,7 @@
 //! Does not own: SNS proposal queries, registry inventory, or topology reports.
 //! Boundary: groups reusable proposal models, builders, caches, sources, and renderers.
 
-pub mod report;
+mod report;
 
 #[cfg(feature = "host")]
 pub use report::{

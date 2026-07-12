@@ -11,6 +11,12 @@ const LEDGER_B: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
 const SWAP_B: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const INDEX_B: &str = "r7inp-6aaaa-aaaaa-aaabq-cai";
 
+///
+/// FixtureSnsListSource
+///
+/// Successful deployed-SNS list source used by report tests.
+///
+
 pub(in crate::sns::report::tests) struct FixtureSnsListSource;
 
 impl SnsListSource for FixtureSnsListSource {
@@ -38,6 +44,12 @@ impl SnsListSource for FixtureSnsListSource {
         })
     }
 }
+
+///
+/// UnsortedFixtureSnsListSource
+///
+/// Deployed-SNS source with deliberately unsorted rows for view tests.
+///
 
 pub(in crate::sns::report::tests) struct UnsortedFixtureSnsListSource;
 
@@ -79,6 +91,12 @@ impl SnsListSource for UnsortedFixtureSnsListSource {
         })
     }
 }
+
+///
+/// MetadataErrorFixtureSnsListSource
+///
+/// Deployed-SNS source carrying a metadata failure for fallback tests.
+///
 
 pub(in crate::sns::report::tests) struct MetadataErrorFixtureSnsListSource;
 

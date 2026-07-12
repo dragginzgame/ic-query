@@ -83,7 +83,7 @@ pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-
 #[cfg(feature = "host")]
 pub enum NnsProposalHostError {
     #[error(
-        "`icq nns proposal` supports only the mainnet `ic` network\n\nThe NNS proposal list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not implemented yet.\n\nTry:\n  icq --network ic nns proposal list"
+        "`icq nns proposal` supports only the mainnet `ic` network\n\nThe NNS proposal list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not supported.\n\nTry:\n  icq --network ic nns proposal list"
     )]
     LocalNetworkUnsupported,
 

@@ -6,11 +6,9 @@ use super::{
     model::TopologyRefreshParts,
 };
 use crate::{
-    nns::data_center::report::NnsDataCenterRefreshRequest,
-    nns::node::report::NnsNodeRefreshRequest,
-    nns::node_operator::report::NnsNodeOperatorRefreshRequest,
-    nns::node_provider::report::NnsNodeProviderRefreshRequest,
-    subnet_catalog::SubnetCatalogRefreshRequest,
+    nns::data_center::NnsDataCenterRefreshRequest, nns::node::NnsNodeRefreshRequest,
+    nns::node_operator::NnsNodeOperatorRefreshRequest,
+    nns::node_provider::NnsNodeProviderRefreshRequest, subnet_catalog::SubnetCatalogRefreshRequest,
 };
 
 pub(in crate::nns::topology::report) fn subnet_catalog_refresh_request(

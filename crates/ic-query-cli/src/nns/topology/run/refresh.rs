@@ -3,7 +3,7 @@ use crate::nns::{
     topology::{commands::topology_refresh_usage, options::TopologyRefreshOptions},
     write_text_or_json,
 };
-use ic_query::nns::topology::report::{
+use ic_query::nns::topology::{
     NnsTopologyRefreshRequest, nns_topology_refresh_report_text, refresh_nns_topology_report,
 };
 use std::ffi::OsString;

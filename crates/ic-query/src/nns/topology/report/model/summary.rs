@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologySummaryReport
 ///
+/// Joined summary of the complete NNS topology inventory.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologySummaryReport {
     pub schema_version: u32,
@@ -40,6 +43,9 @@ pub struct NnsTopologySummaryReport {
 ///
 /// NnsTopologyRegistryVersionRow
 ///
+/// Registry version metadata for one NNS topology input component.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyRegistryVersionRow {
     pub source: String,

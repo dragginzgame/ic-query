@@ -12,6 +12,7 @@ use serde_json::Value as JsonValue;
 ///
 /// Request accepted by the generic ICRC token metadata report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcTokenRequest {
     pub source_endpoint: String,
@@ -39,6 +40,7 @@ impl IcrcTokenRequest {
 ///
 /// Request accepted by the generic ICRC account balance report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcBalanceRequest {
     pub source_endpoint: String,
@@ -77,6 +79,7 @@ impl IcrcBalanceRequest {
 ///
 /// Request accepted by the generic ICRC allowance report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcAllowanceRequest {
     pub source_endpoint: String,
@@ -132,6 +135,7 @@ impl IcrcAllowanceRequest {
 ///
 /// Request accepted by the generic ICRC index discovery report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcIndexRequest {
     pub source_endpoint: String,
@@ -159,6 +163,7 @@ impl IcrcIndexRequest {
 ///
 /// Request accepted by the generic ICRC transaction history report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcTransactionsRequest {
     pub source_endpoint: String,
@@ -200,6 +205,7 @@ impl IcrcTransactionsRequest {
 ///
 /// Request accepted by the generic ICRC supported block types report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcBlockTypesRequest {
     pub source_endpoint: String,
@@ -227,6 +233,7 @@ impl IcrcBlockTypesRequest {
 ///
 /// Request accepted by the generic ICRC archives report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcArchivesRequest {
     pub source_endpoint: String,
@@ -262,6 +269,7 @@ impl IcrcArchivesRequest {
 ///
 /// Request accepted by the generic ICRC-3 tip certificate report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcTipCertificateRequest {
     pub source_endpoint: String,
@@ -289,6 +297,7 @@ impl IcrcTipCertificateRequest {
 ///
 /// Request accepted by the generic ICRC ledger capabilities report builder.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcCapabilitiesRequest {
     pub source_endpoint: String,
@@ -316,6 +325,7 @@ impl IcrcCapabilitiesRequest {
 ///
 /// Serializable report for generic ICRC ledger token metadata.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenReport {
     pub schema_version: u32,
@@ -339,6 +349,7 @@ pub struct IcrcTokenReport {
 ///
 /// Serializable report for one generic ICRC account balance lookup.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcBalanceReport {
     pub schema_version: u32,
@@ -358,6 +369,7 @@ pub struct IcrcBalanceReport {
 ///
 /// Serializable report for one generic ICRC allowance lookup.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcAllowanceReport {
     pub schema_version: u32,
@@ -380,6 +392,7 @@ pub struct IcrcAllowanceReport {
 ///
 /// Serializable report for one generic ICRC-106 index discovery lookup.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcIndexReport {
     pub schema_version: u32,
@@ -396,6 +409,7 @@ pub struct IcrcIndexReport {
 ///
 /// Serializable report for a generic ICRC ledger transaction/block history page.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTransactionsReport {
     pub schema_version: u32,
@@ -418,6 +432,7 @@ pub struct IcrcTransactionsReport {
 ///
 /// Serializable report for generic ICRC-3 supported block type discovery.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcBlockTypesReport {
     pub schema_version: u32,
@@ -433,6 +448,7 @@ pub struct IcrcBlockTypesReport {
 ///
 /// Serializable report for generic ICRC-3 archive range discovery.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcArchivesReport {
     pub schema_version: u32,
@@ -449,6 +465,7 @@ pub struct IcrcArchivesReport {
 ///
 /// Serializable report for a generic ICRC-3 ledger tip certificate.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTipCertificateReport {
     pub schema_version: u32,
@@ -468,6 +485,7 @@ pub struct IcrcTipCertificateReport {
 ///
 /// Serializable report for generic ICRC ledger endpoint capabilities.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcCapabilitiesReport {
     pub schema_version: u32,
@@ -484,6 +502,7 @@ pub struct IcrcCapabilitiesReport {
 ///
 /// Serializable row for one probed generic ICRC ledger capability.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcCapabilityRow {
     pub capability: String,
@@ -498,6 +517,7 @@ pub struct IcrcCapabilityRow {
 ///
 /// Serializable row for one ICRC standard supported by a ledger.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenStandardRow {
     pub name: String,
@@ -509,6 +529,7 @@ pub struct IcrcTokenStandardRow {
 ///
 /// Serializable row for one raw ICRC ledger metadata entry.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenMetadataRow {
     pub key: String,
@@ -521,6 +542,7 @@ pub struct IcrcTokenMetadataRow {
 ///
 /// Serializable row for one ICRC-3 block returned by a ledger canister.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTransactionBlockRow {
     pub index: String,
@@ -536,6 +558,7 @@ pub struct IcrcTransactionBlockRow {
 ///
 /// Serializable row for one ICRC-3 archive callback returned by a ledger canister.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcArchivedBlocksRow {
     pub callback_canister_id: String,
@@ -548,6 +571,7 @@ pub struct IcrcArchivedBlocksRow {
 ///
 /// Serializable row for one ICRC-3 archived block range.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcArchivedRangeRow {
     pub start: String,
@@ -559,6 +583,7 @@ pub struct IcrcArchivedRangeRow {
 ///
 /// Serializable row for one ICRC-3 block fetched from an archive callback.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcFollowedArchiveBlockRow {
     pub archive_canister_id: String,
@@ -576,6 +601,7 @@ pub struct IcrcFollowedArchiveBlockRow {
 ///
 /// Serializable row for one archive callback that could not be followed.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcArchiveFollowErrorRow {
     pub callback_canister_id: String,
@@ -589,6 +615,7 @@ pub struct IcrcArchiveFollowErrorRow {
 ///
 /// Serializable row for one supported ICRC-3 block type.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcBlockTypeRow {
     pub block_type: String,
@@ -600,6 +627,7 @@ pub struct IcrcBlockTypeRow {
 ///
 /// Serializable row for one ICRC-3 archive range.
 ///
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcArchiveRow {
     pub canister_id: String,

@@ -7,7 +7,7 @@
 use super::common::{render_join_coverage_table, render_registry_version_table};
 use crate::{
     nns::{
-        node::report::{
+        node::{
             NNS_NODE_SUBNET_KIND_APPLICATION, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
             NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN,
         },

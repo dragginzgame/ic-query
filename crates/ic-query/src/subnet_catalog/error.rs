@@ -4,6 +4,9 @@ use thiserror::Error as ThisError;
 ///
 /// CatalogError
 ///
+/// Errors returned while parsing, validating, or resolving a subnet catalog.
+///
+
 #[derive(Debug, ThisError)]
 pub enum CatalogError {
     #[error(transparent)]

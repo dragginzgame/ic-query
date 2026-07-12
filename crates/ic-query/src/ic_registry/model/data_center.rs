@@ -3,6 +3,9 @@ use serde::Serialize;
 ///
 /// MainnetDataCenterList
 ///
+/// Complete mainnet data center inventory and registry metadata.
+///
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct MainnetDataCenterList {
     pub network: String,
@@ -17,6 +20,9 @@ pub struct MainnetDataCenterList {
 ///
 /// MainnetDataCenter
 ///
+/// One data center decoded from the mainnet registry.
+///
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct MainnetDataCenter {
     pub id: String,

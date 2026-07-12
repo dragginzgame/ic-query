@@ -5,10 +5,10 @@ use super::{
     NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION, NnsTopologyProviderRow,
     NnsTopologyProvidersReport,
 };
-use crate::nns::data_center::report::NnsDataCenterListReport;
-use crate::nns::node::report::NnsNodeListReport;
-use crate::nns::node_operator::report::NnsNodeOperatorListReport;
-use crate::nns::node_provider::report::NnsNodeProviderListReport;
+use crate::nns::data_center::NnsDataCenterListReport;
+use crate::nns::node::NnsNodeListReport;
+use crate::nns::node_operator::NnsNodeOperatorListReport;
+use crate::nns::node_provider::NnsNodeProviderListReport;
 use accumulator::NnsTopologyProviderAccumulator;
 use status::sort_provider_rows;
 

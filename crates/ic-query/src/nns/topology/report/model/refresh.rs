@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologyRefreshReport
 ///
+/// Combined outcome of refreshing every NNS topology input cache.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyRefreshReport {
     pub schema_version: u32,
@@ -18,6 +21,9 @@ pub struct NnsTopologyRefreshReport {
 ///
 /// NnsTopologyRefreshRow
 ///
+/// Refresh outcome for one component of the NNS topology snapshot.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyRefreshRow {
     pub source: String,

@@ -7,6 +7,12 @@
 use crate::{cache_file::LoadJsonCacheErrorMapper, sns::report::SnsHostError};
 use std::path::PathBuf;
 
+///
+/// SnsNeuronsCacheErrors
+///
+/// Error mapper for generic JSON cache failures in the SNS neuron family.
+///
+
 pub(super) struct SnsNeuronsCacheErrors;
 
 impl LoadJsonCacheErrorMapper for SnsNeuronsCacheErrors {

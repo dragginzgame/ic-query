@@ -4,10 +4,13 @@ use thiserror::Error as ThisError;
 ///
 /// NnsDataCenterHostError
 ///
+/// Errors returned by host-backed NNS data center report operations.
+///
+
 #[derive(Debug, ThisError)]
 pub enum NnsDataCenterHostError {
     #[error(
-        "`icq nns data-center` supports only the mainnet `ic` network\n\nThe NNS data-center list is derived from public Internet Computer mainnet registry records.\nLocal replica NNS registry discovery is not implemented yet.\n\nTry:\n  icq --network ic nns data-center list"
+        "`icq nns data-center` supports only the mainnet `ic` network\n\nThe NNS data-center list is derived from public Internet Computer mainnet registry records.\nLocal replica NNS registry discovery is not supported.\n\nTry:\n  icq --network ic nns data-center list"
     )]
     UnsupportedNetwork { network: String },
 

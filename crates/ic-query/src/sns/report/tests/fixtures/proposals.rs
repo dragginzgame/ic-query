@@ -1,6 +1,12 @@
 use super::{FixtureSnsListSource, GOVERNANCE_A};
 use crate::sns::report::tests::*;
 
+///
+/// FixtureSnsProposalSource
+///
+/// Successful single-proposal SNS source used by report tests.
+///
+
 pub(in crate::sns::report::tests) struct FixtureSnsProposalSource;
 
 impl SnsListSource for FixtureSnsProposalSource {
@@ -37,6 +43,12 @@ impl SnsProposalSource for NoLiveSnsProposalsSource {
         Err(no_live_error("fetch_sns_proposal"))
     }
 }
+
+///
+/// FixtureSnsProposalsSource
+///
+/// Successful bounded and paged SNS proposal source used by report tests.
+///
 
 pub(in crate::sns::report::tests) struct FixtureSnsProposalsSource;
 
@@ -84,6 +96,12 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
         })
     }
 }
+
+///
+/// NoLiveSnsProposalsSource
+///
+/// SNS proposal source that rejects live calls in cache-backed report tests.
+///
 
 pub(in crate::sns::report::tests) struct NoLiveSnsProposalsSource;
 

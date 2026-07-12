@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologyRegionsReport
 ///
+/// NNS topology report summarizing nodes and data centers by region.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyRegionsReport {
     pub schema_version: u32,
@@ -19,6 +22,9 @@ pub struct NnsTopologyRegionsReport {
 ///
 /// NnsTopologyRegionRow
 ///
+/// Aggregated NNS topology totals for one geographic region.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyRegionRow {
     pub region: String,

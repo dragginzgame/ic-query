@@ -1,7 +1,5 @@
 use crate::{
-    nns::data_center::report::{
-        NnsDataCenterListReport, NnsDataCenterRefreshReport, NnsDataCenterRow,
-    },
+    nns::data_center::{NnsDataCenterListReport, NnsDataCenterRefreshReport, NnsDataCenterRow},
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 

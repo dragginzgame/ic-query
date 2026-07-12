@@ -40,7 +40,7 @@ pub use text::{
     nns_node_provider_list_report_verbose_text,
 };
 
-pub const DEFAULT_NNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";
+pub const DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "host")]
 pub const DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 #[cfg(feature = "host")]

@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsNodeOperatorListReport
 ///
+/// Complete NNS node operator inventory report with source metadata.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeOperatorListReport {
     pub schema_version: u32,
@@ -32,6 +35,9 @@ impl JsonCacheReport for NnsNodeOperatorListReport {
 ///
 /// NnsNodeOperatorRow
 ///
+/// One node operator row projected from the NNS registry inventory.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeOperatorRow {
     pub node_operator_principal: String,
@@ -44,6 +50,9 @@ pub struct NnsNodeOperatorRow {
 ///
 /// NnsNodeOperatorInfoReport
 ///
+/// Detailed report for one resolved NNS node operator.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeOperatorInfoReport {
     pub schema_version: u32,
@@ -65,6 +74,9 @@ pub struct NnsNodeOperatorInfoReport {
 ///
 /// NnsNodeOperatorRefreshReport
 ///
+/// Outcome of refreshing the cached NNS node operator inventory.
+///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeOperatorRefreshReport {

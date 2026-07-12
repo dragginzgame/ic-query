@@ -4,10 +4,13 @@ use thiserror::Error as ThisError;
 ///
 /// NnsNodeProviderHostError
 ///
+/// Errors returned by host-backed NNS node provider report operations.
+///
+
 #[derive(Debug, ThisError)]
 pub enum NnsNodeProviderHostError {
     #[error(
-        "`icq nns node-provider` supports only the mainnet `ic` network\n\nThe NNS node-provider list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not implemented yet.\n\nTry:\n  icq --network ic nns node-provider list"
+        "`icq nns node-provider` supports only the mainnet `ic` network\n\nThe NNS node-provider list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not supported.\n\nTry:\n  icq --network ic nns node-provider list"
     )]
     UnsupportedNetwork { network: String },
 

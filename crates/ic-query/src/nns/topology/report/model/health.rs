@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologyHealthReport
 ///
+/// NNS topology health report composed from consistency checks.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyHealthReport {
     pub schema_version: u32,
@@ -25,6 +28,9 @@ pub struct NnsTopologyHealthReport {
 ///
 /// NnsTopologyHealthCheckRow
 ///
+/// Result of one NNS topology consistency check.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyHealthCheckRow {
     pub check: String,

@@ -10,9 +10,20 @@ mod data;
 mod error;
 mod subaccount;
 
-pub use contracts::*;
+pub use contracts::{
+    IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
+    IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
+    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
+    IcrcBlockTypesRequest, IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
+    IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateReport,
+    IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
+    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+};
 #[cfg(feature = "host")]
-pub use data::*;
+pub use data::{
+    IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData,
+    IcrcIndexData, IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData,
+};
 pub use error::IcrcError;
 pub use subaccount::normalize_subaccount_hex;
 #[cfg(feature = "host")]

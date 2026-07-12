@@ -32,7 +32,7 @@ use ic_query::{
         data_center::NnsDataCenterHostError, node::NnsNodeHostError,
         node_operator::NnsNodeOperatorHostError, node_provider::NnsNodeProviderHostError,
         proposals::NnsProposalHostError, registry::NnsRegistryHostError,
-        topology::report::NnsTopologyHostError,
+        topology::NnsTopologyHostError,
     },
     subnet_catalog::SubnetCatalogHostError,
 };

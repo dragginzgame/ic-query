@@ -6,7 +6,10 @@ fn node_provider_list_parses_defaults_and_json_format() {
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
-    assert_eq!(defaults.source_endpoint, DEFAULT_NNS_SOURCE_ENDPOINT);
+    assert_eq!(
+        defaults.source_endpoint,
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT
+    );
     assert!(!defaults.verbose);
 
     let options = node_provider_list_options([
@@ -46,7 +49,10 @@ fn node_provider_refresh_parses_defaults_and_export_options() {
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
-    assert_eq!(defaults.source_endpoint, DEFAULT_NNS_SOURCE_ENDPOINT);
+    assert_eq!(
+        defaults.source_endpoint,
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT
+    );
     assert_eq!(
         defaults.lock_stale_after_seconds,
         DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS

@@ -5,7 +5,7 @@
 //! Boundary: calculates per-operator capacity fields.
 
 use crate::nns::{
-    node_operator::report::NnsNodeOperatorRow,
+    node_operator::NnsNodeOperatorRow,
     topology::report::{NnsTopologyCapacityRow, percent::ratio_percent_text},
 };
 

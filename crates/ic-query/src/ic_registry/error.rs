@@ -4,6 +4,9 @@ use thiserror::Error as ThisError;
 ///
 /// RegistryFetchError
 ///
+/// Errors returned while fetching and decoding mainnet registry records.
+///
+
 #[derive(Debug, ThisError)]
 pub enum RegistryFetchError {
     #[error("failed to build IC agent for {endpoint}: {reason}")]

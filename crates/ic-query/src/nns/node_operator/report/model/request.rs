@@ -3,6 +3,9 @@ use std::path::PathBuf;
 ///
 /// NnsNodeOperatorCacheRequest
 ///
+/// Cache identity used by NNS node operator report reads.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeOperatorCacheRequest {
     pub icp_root: PathBuf,
@@ -22,6 +25,9 @@ impl NnsNodeOperatorCacheRequest {
 ///
 /// NnsNodeOperatorListRequest
 ///
+/// Request for the complete NNS node operator inventory report.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeOperatorListRequest {
     pub cache: NnsNodeOperatorCacheRequest,
@@ -47,6 +53,9 @@ impl NnsNodeOperatorListRequest {
 ///
 /// NnsNodeOperatorInfoRequest
 ///
+/// Request for one NNS node operator selected by principal or prefix.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeOperatorInfoRequest {
     pub cache: NnsNodeOperatorCacheRequest,
@@ -75,6 +84,9 @@ impl NnsNodeOperatorInfoRequest {
 ///
 /// NnsNodeOperatorRefreshRequest
 ///
+/// Host request for refreshing the cached NNS node operator inventory.
+///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeOperatorRefreshRequest {

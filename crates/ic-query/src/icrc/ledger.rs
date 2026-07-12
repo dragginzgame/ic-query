@@ -154,6 +154,7 @@ pub enum GetIndexPrincipalError {
 ///
 /// Candid ICRC-3 generic block value.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) enum Icrc3Value {
     Blob(Vec<u8>),
@@ -169,6 +170,7 @@ pub(in crate::icrc) enum Icrc3Value {
 ///
 /// Candid ICRC-3 block range request.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3GetBlocksRequest {
     pub(in crate::icrc) start: Nat,
@@ -180,6 +182,7 @@ pub(in crate::icrc) struct Icrc3GetBlocksRequest {
 ///
 /// Candid ICRC-3 block paired with its block log id.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3BlockWithId {
     pub(in crate::icrc) id: Nat,
@@ -191,6 +194,7 @@ pub(in crate::icrc) struct Icrc3BlockWithId {
 ///
 /// Candid ICRC-3 archive callback function reference.
 ///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3ArchiveCallback(pub(in crate::icrc) Func);
 
@@ -212,6 +216,7 @@ impl CandidType for Icrc3ArchiveCallback {
 ///
 /// Candid ICRC-3 archive callback and ranges returned for non-local blocks.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3ArchivedBlocks {
     pub(in crate::icrc) args: Vec<Icrc3GetBlocksRequest>,
@@ -223,6 +228,7 @@ pub(in crate::icrc) struct Icrc3ArchivedBlocks {
 ///
 /// Candid ICRC-3 block range response.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3GetBlocksResult {
     pub(in crate::icrc) log_length: Nat,
@@ -235,6 +241,7 @@ pub(in crate::icrc) struct Icrc3GetBlocksResult {
 ///
 /// Candid ICRC-3 archive discovery request.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3GetArchivesArgs {
     pub(in crate::icrc) from: Option<Principal>,
@@ -245,6 +252,7 @@ pub(in crate::icrc) struct Icrc3GetArchivesArgs {
 ///
 /// Candid ICRC-3 archive range information.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3ArchiveInfo {
     pub(in crate::icrc) canister_id: Principal,
@@ -257,6 +265,7 @@ pub(in crate::icrc) struct Icrc3ArchiveInfo {
 ///
 /// Candid ICRC-3 supported block type row.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3SupportedBlockType {
     pub(in crate::icrc) block_type: String,
@@ -268,6 +277,7 @@ pub(in crate::icrc) struct Icrc3SupportedBlockType {
 ///
 /// Candid ICRC-3 data certificate for the certified ledger tip.
 ///
+
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub(in crate::icrc) struct Icrc3DataCertificate {
     pub(in crate::icrc) certificate: Vec<u8>,

@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsNodeListReport
 ///
+/// Filtered NNS node inventory report with source metadata.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeListReport {
     pub schema_version: u32,
@@ -32,6 +35,9 @@ impl JsonCacheReport for NnsNodeListReport {
 ///
 /// NnsNodeRow
 ///
+/// One node row projected from the NNS registry inventory.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeRow {
     pub node_principal: String,
@@ -45,6 +51,9 @@ pub struct NnsNodeRow {
 ///
 /// NnsNodeInfoReport
 ///
+/// Detailed report for one resolved NNS node.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeInfoReport {
     pub schema_version: u32,
@@ -67,6 +76,9 @@ pub struct NnsNodeInfoReport {
 ///
 /// NnsNodeRefreshReport
 ///
+/// Outcome of refreshing the cached NNS node inventory.
+///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeRefreshReport {

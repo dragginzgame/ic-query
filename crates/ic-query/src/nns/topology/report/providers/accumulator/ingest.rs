@@ -1,8 +1,8 @@
 use super::NnsTopologyProviderAccumulator;
 use crate::nns::{
-    node::report::NnsNodeListReport,
-    node_operator::report::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
-    node_provider::report::NnsNodeProviderListReport,
+    node::NnsNodeListReport,
+    node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
+    node_provider::NnsNodeProviderListReport,
 };
 
 impl NnsTopologyProviderAccumulator {

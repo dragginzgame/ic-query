@@ -3,6 +3,9 @@ use std::path::PathBuf;
 ///
 /// NnsDataCenterCacheRequest
 ///
+/// Cache identity used by NNS data center report reads.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsDataCenterCacheRequest {
     pub icp_root: PathBuf,
@@ -22,6 +25,9 @@ impl NnsDataCenterCacheRequest {
 ///
 /// NnsDataCenterListRequest
 ///
+/// Request for the complete NNS data center inventory report.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsDataCenterListRequest {
     pub cache: NnsDataCenterCacheRequest,
@@ -47,6 +53,9 @@ impl NnsDataCenterListRequest {
 ///
 /// NnsDataCenterInfoRequest
 ///
+/// Request for one NNS data center selected by identifier or prefix.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsDataCenterInfoRequest {
     pub cache: NnsDataCenterCacheRequest,
@@ -75,6 +84,9 @@ impl NnsDataCenterInfoRequest {
 ///
 /// NnsDataCenterRefreshRequest
 ///
+/// Host request for refreshing the cached NNS data center inventory.
+///
+
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsDataCenterRefreshRequest {

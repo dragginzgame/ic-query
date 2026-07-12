@@ -1,4 +1,4 @@
-pub mod report;
+mod report;
 
 pub use report::{
     DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsRegistryVersionReport, NnsRegistryVersionRequest,

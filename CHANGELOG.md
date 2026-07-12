@@ -7,6 +7,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.10.x] - Unreleased - Canonical library API paths
+
+Detailed release notes: [docs/changelog/0.10.md](docs/changelog/0.10.md)
+
+- `0.10.0` makes each NNS and SNS family root its only public library path.
+  Redundant nested `report` modules are private, topology requests, reports,
+  builders, sources, constants, and renderers now live at
+  `ic_query::nns::topology`, and the node-provider endpoint constant is named
+  `DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT`. This is a hard cut with no old
+  path re-exports, constant alias, deprecated wrapper, or compatibility shim.
+
 ## [0.9.x] - 2026-07-11 - Library and CLI ownership cut
 
 Detailed release notes: [docs/changelog/0.9.md](docs/changelog/0.9.md)

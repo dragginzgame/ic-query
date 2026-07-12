@@ -1,5 +1,5 @@
 use crate::nns::leaf;
-use ic_query::nns::topology::report::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
+use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
 const TOPOLOGY_SUMMARY_HELP_AFTER: &str = "\
 Examples:

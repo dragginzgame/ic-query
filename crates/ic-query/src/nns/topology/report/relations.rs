@@ -1,9 +1,14 @@
 use crate::nns::{
-    data_center::report::NnsDataCenterListReport, node::report::NnsNodeListReport,
-    node_operator::report::NnsNodeOperatorListReport,
-    node_provider::report::NnsNodeProviderListReport,
+    data_center::NnsDataCenterListReport, node::NnsNodeListReport,
+    node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
 };
 use std::collections::BTreeSet;
+
+///
+/// TopologyRelationIndex
+///
+/// Borrowed registry identifiers used to validate topology relation joins.
+///
 
 pub(in crate::nns::topology::report) struct TopologyRelationIndex<'a> {
     node_provider_principals: BTreeSet<&'a str>,

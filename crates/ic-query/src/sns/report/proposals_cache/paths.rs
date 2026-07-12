@@ -13,6 +13,12 @@ use std::path::{Path, PathBuf};
 
 pub(super) type SnsProposalsCachePaths = SnsSnapshotCachePaths<SnsProposalsCacheCollection>;
 
+///
+/// SnsProposalsCacheCollection
+///
+/// Collection marker used to derive complete SNS proposal snapshot paths.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum SnsProposalsCacheCollection {}
 

@@ -22,6 +22,12 @@ pub fn optional_node_count_text(value: Option<u32>) -> String {
     value.map_or_else(|| "unknown".to_string(), |count| count.to_string())
 }
 
+///
+/// NnsLeafRefreshText
+///
+/// Shared fields rendered for an NNS inventory refresh result.
+///
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NnsLeafRefreshText<'a> {
     pub network: &'a str,

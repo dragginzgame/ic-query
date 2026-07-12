@@ -1,5 +1,5 @@
 use crate::{
-    nns::node_operator::report::{
+    nns::node_operator::{
         NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport, NnsNodeOperatorRow,
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},

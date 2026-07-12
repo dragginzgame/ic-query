@@ -1,5 +1,5 @@
 use crate::{cli::clap::flag_arg, nns::leaf};
-use ic_query::nns::topology::report::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
+use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
 pub(in crate::nns::topology) const DRY_RUN_ARG: &str = "dry-run";
 pub(in crate::nns::topology) const LOCK_STALE_AFTER_ARG: &str = "lock-stale-after";

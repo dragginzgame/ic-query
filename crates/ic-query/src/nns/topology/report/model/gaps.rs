@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// NnsTopologyGapsReport
 ///
+/// NNS topology report listing unresolved registry relations.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyGapsReport {
     pub schema_version: u32,
@@ -16,6 +19,9 @@ pub struct NnsTopologyGapsReport {
 ///
 /// NnsTopologyGapRow
 ///
+/// One unresolved subject found while joining topology inputs.
+///
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyGapRow {
     pub subject_kind: String,

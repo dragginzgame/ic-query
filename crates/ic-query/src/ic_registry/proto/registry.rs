@@ -3,6 +3,9 @@ use prost::Oneof;
 ///
 /// RegistryError
 ///
+/// Protobuf error returned by a registry canister lookup.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct RegistryError {
     #[prost(enumeration = "RegistryErrorCode", tag = "1")]
@@ -16,6 +19,9 @@ pub struct RegistryError {
 ///
 /// RegistryErrorCode
 ///
+/// Protobuf error category returned by the registry canister.
+///
+
 #[derive(Clone, Copy, Debug, prost::Enumeration, Eq, PartialEq)]
 #[repr(i32)]
 pub enum RegistryErrorCode {
@@ -31,6 +37,9 @@ pub enum RegistryErrorCode {
 ///
 /// LargeValueChunkKeys
 ///
+/// Protobuf chunk keys used to retrieve a large registry value.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct LargeValueChunkKeys {
     #[prost(bytes = "vec", repeated, tag = "1")]
@@ -40,6 +49,9 @@ pub struct LargeValueChunkKeys {
 ///
 /// RegistryGetValueRequest
 ///
+/// Protobuf request for a registry key at an optional version.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct RegistryGetValueRequest {
     #[prost(message, optional, tag = "1")]
@@ -51,6 +63,9 @@ pub struct RegistryGetValueRequest {
 ///
 /// UInt64Value
 ///
+/// Protobuf wrapper for an unsigned 64-bit registry value.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct UInt64Value {
     #[prost(uint64, tag = "1")]
@@ -63,6 +78,8 @@ pub struct UInt64Value {
 /// This is the high-capacity `get_value` response wire shape. The upstream
 /// proto calls it `HighCapacityRegistryGetValueResponse`; this crate keeps the
 /// local name narrow because this adapter never exposes protobuf types.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct RegistryGetValueResponse {
     #[prost(message, optional, tag = "1")]
@@ -93,6 +110,9 @@ pub mod registry_get_value_response {
 ///
 /// RegistryGetLatestVersionResponse
 ///
+/// Protobuf response containing the latest registry version.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct RegistryGetLatestVersionResponse {
     #[prost(uint64, tag = "1")]

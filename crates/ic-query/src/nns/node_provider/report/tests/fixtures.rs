@@ -29,6 +29,12 @@ pub(super) fn node_provider_report_fixture() -> NnsNodeProviderListReport {
     }
 }
 
+///
+/// FixtureNodeProviderSource
+///
+/// Successful node provider source used by report tests.
+///
+
 pub(super) struct FixtureNodeProviderSource {
     pub(super) node_providers: Vec<MainnetNodeProvider>,
 }
@@ -62,6 +68,12 @@ impl NnsNodeProviderSource for FixtureNodeProviderSource {
         })
     }
 }
+
+///
+/// FailingNodeProviderSource
+///
+/// Node provider source that rejects unexpected live fetches in cache tests.
+///
 
 pub(super) struct FailingNodeProviderSource;
 

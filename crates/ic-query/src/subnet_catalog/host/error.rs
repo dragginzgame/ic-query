@@ -9,10 +9,13 @@ use thiserror::Error as ThisError;
 ///
 /// SubnetCatalogHostError
 ///
+/// Errors returned by host-backed subnet catalog loading and refresh operations.
+///
+
 #[derive(Debug, ThisError)]
 pub enum SubnetCatalogHostError {
     #[error(
-        "`icq nns subnet` supports only the mainnet `ic` network\n\nThe cached NNS subnet data describes the public Internet Computer mainnet.\nLocal replica subnet discovery is not implemented yet.\n\nTry:\n  icq --network ic nns subnet list"
+        "`icq nns subnet` supports only the mainnet `ic` network\n\nThe cached NNS subnet data describes the public Internet Computer mainnet.\nLocal replica subnet discovery is not supported.\n\nTry:\n  icq --network ic nns subnet list"
     )]
     UnsupportedNetwork { network: String },
 

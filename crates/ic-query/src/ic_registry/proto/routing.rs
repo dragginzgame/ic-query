@@ -3,6 +3,9 @@ use super::{CanisterId, SubnetId};
 ///
 /// CanisterIdRange
 ///
+/// Protobuf inclusive canister identifier range in the routing table.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct CanisterIdRange {
     #[prost(message, optional, tag = "3")]
@@ -14,6 +17,9 @@ pub struct CanisterIdRange {
 ///
 /// RoutingTable
 ///
+/// Protobuf registry routing table containing subnet range assignments.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct RoutingTable {
     #[prost(message, repeated, tag = "1")]
@@ -23,6 +29,9 @@ pub struct RoutingTable {
 ///
 /// RoutingTableEntry
 ///
+/// Protobuf routing table entry assigning a canister range to a subnet.
+///
+
 #[derive(Clone, Eq, prost::Message, PartialEq)]
 pub struct RoutingTableEntry {
     #[prost(message, optional, tag = "1")]

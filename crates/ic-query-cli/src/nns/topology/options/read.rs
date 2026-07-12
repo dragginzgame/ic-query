@@ -5,7 +5,7 @@ use crate::{
         topology::commands as topology_commands,
     },
 };
-use ic_query::nns::topology::report as topology_report;
+use ic_query::nns::topology::NnsTopologyReadRequest;
 use std::{ffi::OsString, path::PathBuf};
 
 macro_rules! topology_read_options {
@@ -46,12 +46,8 @@ macro_rules! topology_read_options {
                 self.format
             }
 
-            fn into_request(
-                self,
-                icp_root: PathBuf,
-                now_unix_secs: u64,
-            ) -> topology_report::NnsTopologyReadRequest {
-                topology_report::NnsTopologyReadRequest::new(
+            fn into_request(self, icp_root: PathBuf, now_unix_secs: u64) -> NnsTopologyReadRequest {
+                NnsTopologyReadRequest::new(
                     icp_root,
                     self.network,
                     self.source_endpoint,
@@ -71,11 +67,7 @@ macro_rules! topology_read_options {
 pub(in crate::nns::topology) trait TopologyReadOptions: Sized {
     fn parse_args(args: Vec<OsString>) -> Result<Self, NnsCommandError>;
     fn format(&self) -> OutputFormat;
-    fn into_request(
-        self,
-        icp_root: PathBuf,
-        now_unix_secs: u64,
-    ) -> topology_report::NnsTopologyReadRequest;
+    fn into_request(self, icp_root: PathBuf, now_unix_secs: u64) -> NnsTopologyReadRequest;
 }
 
 topology_read_options!(
