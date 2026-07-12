@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.10.md](docs/changelog/0.10.md)
 
+- `0.10.2` fixes CI setup by installing the pinned `ripgrep`, `cargo-audit`,
+  and `cargo-machete` development tools through one shared target. The library
+  process-boundary check now reports how to install its missing `rg`
+  prerequisite instead of failing opaquely.
+
+  ```bash
+  make install-dev
+  ```
+
 - `0.10.1` removes the remaining stdout/stderr ownership from `ic-query`.
   Paged refreshes expose structured `QueryProgressEvent` callbacks while the
   `ic-query-cli` crate owns terminal detection, same-line progress, and
