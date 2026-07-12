@@ -7,7 +7,7 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.10.x] - Unreleased - Canonical library and process boundaries
+## [0.10.x] - 2026-07-12 - Canonical library and process boundaries
 
 Detailed release notes: [docs/changelog/0.10.md](docs/changelog/0.10.md)
 
