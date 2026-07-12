@@ -173,6 +173,25 @@ set -e
 [[ "${package_status}" -eq 42 ]] \
   || fail "the package retry wrapper did not preserve cargo's failure status"
 
+package_workspace_case="${work_dir}/package-workspace"
+mkdir -p "${package_workspace_case}/bin"
+cat > "${package_workspace_case}/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+printf 'cargo %s\n' "$*" >> "${TRACE_FILE}"
+EOF
+chmod +x "${package_workspace_case}/bin/cargo"
+PATH="${package_workspace_case}/bin:${PATH}" \
+  TRACE_FILE="${package_workspace_case}/trace" CARGO_PACKAGE_RETRIES=1 \
+  bash "${repo_root}/scripts/ci/package-workspace.sh" >/dev/null
+mapfile -t package_workspace_trace < "${package_workspace_case}/trace"
+[[ "${package_workspace_trace[0]:-}" == "cargo package -p ic-query --locked" ]] \
+  || fail "the workspace package check did not package the library first"
+expected_cli_package='cargo package -p ic-query-cli --locked --config patch.crates-io.ic-query.path="crates/ic-query"'
+[[ "${package_workspace_trace[1]:-}" == "${expected_cli_package}" ]] \
+  || fail "the workspace package check did not verify the CLI against the unpublished local library"
+[[ "${#package_workspace_trace[@]}" -eq 2 ]] \
+  || fail "the workspace package check ran unexpected Cargo commands"
+
 clean_case="${work_dir}/clean"
 mkdir -p "${clean_case}/bin"
 cat > "${clean_case}/bin/git" <<'EOF'
@@ -236,6 +255,7 @@ set -e
 
 push_case="${work_dir}/push"
 mkdir -p "${push_case}/bin"
+printf 'version = "0.8.1"\n' > "${push_case}/Cargo.toml"
 cat > "${push_case}/bin/make" <<'EOF'
 #!/usr/bin/env bash
 printf 'make %s\n' "$*" > "${TRACE_FILE}"
@@ -243,18 +263,28 @@ exit 41
 EOF
 cat > "${push_case}/bin/git" <<'EOF'
 #!/usr/bin/env bash
-if [[ "${1:-}" == "push" ]]; then
-  : > "${PUSH_MARKER}"
-  exit 0
-fi
-exit 2
+case "${1:-}" in
+  rev-parse)
+    case "${2:-}" in
+      'v0.8.1^{}') printf '%s\n' "${TAG_COMMIT}" ;;
+      HEAD) printf '%s\n' "${HEAD_COMMIT}" ;;
+      *) exit 2 ;;
+    esac
+    ;;
+  push)
+    : > "${PUSH_MARKER}"
+    ;;
+  *)
+    exit 2
+    ;;
+esac
 EOF
 chmod +x "${push_case}/bin/make" "${push_case}/bin/git"
 set +e
 (
   cd "${push_case}"
   PATH="${push_case}/bin:${PATH}" TRACE_FILE="${push_case}/trace" \
-    PUSH_MARKER="${push_case}/pushed" \
+    PUSH_MARKER="${push_case}/pushed" TAG_COMMIT=release HEAD_COMMIT=release \
     "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
       MAKE="${push_case}/bin/make" release-push
 ) >/dev/null 2>&1
@@ -264,6 +294,21 @@ set -e
 [[ ! -e "${push_case}/pushed" ]] || fail "release-push pushed after a failed CI gate"
 [[ "$(<"${push_case}/trace")" == "make --no-print-directory ci" ]] \
   || fail "release-push did not run the complete CI gate before pushing"
+
+rm -f "${push_case}/trace" "${push_case}/pushed"
+set +e
+(
+  cd "${push_case}"
+  PATH="${push_case}/bin:${PATH}" TRACE_FILE="${push_case}/trace" \
+    PUSH_MARKER="${push_case}/pushed" TAG_COMMIT=stale HEAD_COMMIT=current \
+    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
+      MAKE="${push_case}/bin/make" release-push
+) >/dev/null 2>&1
+stale_tag_status="$?"
+set -e
+[[ "${stale_tag_status}" -ne 0 ]] || fail "release-push accepted a stale release tag"
+[[ ! -e "${push_case}/trace" ]] || fail "release-push ran CI with a stale release tag"
+[[ ! -e "${push_case}/pushed" ]] || fail "release-push pushed a stale release tag"
 
 for release_kind in patch minor major; do
   release_block="$(awk -v target="release-${release_kind}:" '
