@@ -1,19 +1,20 @@
+mod cli;
+mod icrc;
+mod nns;
+mod output;
+mod progress;
+mod project;
+mod sns;
+
+#[cfg(test)]
+mod test_support;
+
 use crate::cli::clap::{
     parse_matches_or_usage, passthrough_args, passthrough_subcommand, string_option,
 };
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
 use thiserror::Error as ThisError;
-
-mod cli;
-mod icrc;
-mod nns;
-mod output;
-mod project;
-mod sns;
-
-#[cfg(test)]
-mod test_support;
 
 const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{usage-heading} {usage}\n\nCommands:\n{subcommands}\n\nOptions:\n{options}{after-help}\n";
 const VERSION_TEXT: &str = concat!("icq ", env!("CARGO_PKG_VERSION"));

@@ -35,6 +35,8 @@ pub(in crate::nns) struct NnsLeafCommandSpec {
 
 pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
     fn from_root_network(icp_root: &Path, network: &str) -> Self;
+    fn cache_path(&self) -> PathBuf;
+    fn network(&self) -> &str;
 }
 
 ///

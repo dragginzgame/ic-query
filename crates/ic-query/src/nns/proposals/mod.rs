@@ -20,7 +20,7 @@ pub use report::{
     nns_proposal_cache_list_report_text, nns_proposal_cache_path, nns_proposal_cache_root,
     nns_proposal_cache_status_report_text, nns_proposal_refresh_attempt_path,
     nns_proposal_refresh_lock_path, nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
-    refresh_nns_proposal_cache_with_source,
+    refresh_nns_proposal_cache_with_progress, refresh_nns_proposal_cache_with_source,
 };
 pub use report::{
     DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalBallotRow, NnsProposalListReport,

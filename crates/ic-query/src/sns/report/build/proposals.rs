@@ -4,22 +4,26 @@
 //! Does not own: command parsing, cache file primitives, proposal row conversion, or rendering.
 //! Boundary: routes cache-backed requests through cache reports and live reads through sources.
 
-use crate::sns::report::{
-    SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
-    SnsProposalsReport, SnsProposalsRequest,
-    assemble::{
-        SnsProposalReportParts, SnsProposalsReportParts, SnsReportProvenance,
-        sns_proposal_report_from_parts, sns_proposals_report_from_parts,
-    },
-    live::LiveSnsSource,
-    lookup::{lookup_request_from_parts, resolve_sns_lookup},
-    proposals_cache::{
-        build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
-    },
-    source::{SnsProposalSource, SnsProposalsSource},
-    view::{
-        proposal_matches_eligibility, proposal_matches_proposer, proposal_matches_query,
-        sort_sns_proposal_rows,
+use crate::{
+    QueryProgress,
+    progress::IgnoreQueryProgress,
+    sns::report::{
+        SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
+        SnsProposalsReport, SnsProposalsRequest,
+        assemble::{
+            SnsProposalReportParts, SnsProposalsReportParts, SnsReportProvenance,
+            sns_proposal_report_from_parts, sns_proposals_report_from_parts,
+        },
+        live::LiveSnsSource,
+        lookup::{lookup_request_from_parts, resolve_sns_lookup},
+        proposals_cache::{
+            build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
+        },
+        source::{SnsProposalSource, SnsProposalsSource},
+        view::{
+            proposal_matches_eligibility, proposal_matches_proposer, proposal_matches_query,
+            sort_sns_proposal_rows,
+        },
     },
 };
 
@@ -33,6 +37,14 @@ pub fn build_sns_proposals_report(
     request: &SnsProposalsRequest,
 ) -> Result<SnsProposalsReport, SnsHostError> {
     build_sns_proposals_report_with_source(request, &LiveSnsSource)
+}
+
+/// Build an SNS proposal list report and emit cache-refresh progress when needed.
+pub fn build_sns_proposals_report_with_progress(
+    request: &SnsProposalsRequest,
+    progress: &mut dyn QueryProgress,
+) -> Result<SnsProposalsReport, SnsHostError> {
+    build_sns_proposals_report_with_source_and_progress(request, &LiveSnsSource, progress)
 }
 
 pub fn build_sns_proposal_report_with_source(
@@ -69,9 +81,20 @@ pub fn build_sns_proposals_report_with_source(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
+    let mut progress = IgnoreQueryProgress;
+    build_sns_proposals_report_with_source_and_progress(request, source, &mut progress)
+}
+
+fn build_sns_proposals_report_with_source_and_progress(
+    request: &SnsProposalsRequest,
+    source: &dyn SnsProposalsSource,
+    progress: &mut dyn QueryProgress,
+) -> Result<SnsProposalsReport, SnsHostError> {
     validate_sns_proposals_request(request)?;
     if let Some(icp_root) = request.icp_root.as_ref() {
-        return build_sns_proposals_report_from_cache_or_refresh(request, icp_root, source);
+        return build_sns_proposals_report_from_cache_or_refresh(
+            request, icp_root, source, progress,
+        );
     }
     build_sns_proposals_report_live(request, source)
 }

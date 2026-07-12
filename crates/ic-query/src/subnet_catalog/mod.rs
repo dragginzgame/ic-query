@@ -1,3 +1,5 @@
+//! Cached NNS subnet catalog models, resolution helpers, builders, and renderers.
+
 mod error;
 #[cfg(feature = "host")]
 mod host;

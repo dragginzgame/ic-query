@@ -1,3 +1,5 @@
+//! NNS data-center inventory requests, reports, host builders, and renderers.
+
 mod report;
 
 #[cfg(feature = "host")]

@@ -10,13 +10,15 @@ use super::{
 };
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 use crate::{
+    QueryProgress,
     nns::proposals::report::{
         NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
         model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
         source::{NnsProposalSource, NnsProposalSourceRequest},
     },
     snapshot_cache::{
-        PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh, run_paged_snapshot_refresh,
+        PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
+        run_paged_snapshot_refresh_with_progress,
     },
 };
 use std::{cmp::Reverse, path::Path};
@@ -26,19 +28,23 @@ pub(super) fn fetch_complete_nns_proposal_collection(
     request: &NnsProposalRefreshRequest,
     source: &dyn NnsProposalSource,
     attempt_path: &Path,
+    progress: &mut dyn QueryProgress,
 ) -> Result<CompleteNnsProposalCollection, NnsProposalHostError> {
-    run_paged_snapshot_refresh(NnsProposalRefreshPages {
-        request,
-        fetch_request: NnsProposalSourceRequest::new(
-            MAINNET_NETWORK,
-            &request.source_endpoint,
-            format_utc_timestamp_secs(request.now_unix_secs),
-            NNS_PROPOSAL_FETCHED_BY,
-        ),
-        source,
-        attempt_path,
-        state: NnsProposalCollectionState::new(),
-    })
+    run_paged_snapshot_refresh_with_progress(
+        NnsProposalRefreshPages {
+            request,
+            fetch_request: NnsProposalSourceRequest::new(
+                MAINNET_NETWORK,
+                &request.source_endpoint,
+                format_utc_timestamp_secs(request.now_unix_secs),
+                NNS_PROPOSAL_FETCHED_BY,
+            ),
+            source,
+            attempt_path,
+            state: NnsProposalCollectionState::new(),
+        },
+        progress,
+    )
 }
 
 ///

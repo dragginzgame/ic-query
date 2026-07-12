@@ -27,10 +27,12 @@ pub fn build_nns_node_list_report_with_source(
     source: &dyn NnsNodeSource,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
     let report = load_or_refresh_missing_cache(
-        "node",
-        &request.source_endpoint,
         || load_cached_nns_node_report(&request.cache).map(|cached| cached.report),
-        || {
+        |err| match err {
+            NnsNodeHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => Ok(path),
+            err => Err(err),
+        },
+        |_| {
             let refresh_request = NnsNodeRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
@@ -40,10 +42,6 @@ pub fn build_nns_node_list_report_with_source(
                 output_path: None,
             };
             refresh_nns_node_cache_with_source(&refresh_request, source).map(|_| ())
-        },
-        |err| match err {
-            NnsNodeHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => Ok(path),
-            err => Err(err),
         },
     )?;
     Ok(filter_node_list_report(report, &request.filters))

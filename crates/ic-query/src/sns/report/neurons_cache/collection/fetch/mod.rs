@@ -8,7 +8,10 @@ mod attempt;
 mod state;
 
 use crate::{
-    snapshot_cache::{PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh},
+    QueryProgress,
+    snapshot_cache::{
+        PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress,
+    },
     sns::report::{
         SnsHostError, SnsNeuronsRefreshRequest,
         neurons_cache::model::CompleteSnsNeurons,
@@ -25,15 +28,19 @@ pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
     sns: &MainnetSns,
     source: &dyn SnsNeuronsSource,
     attempt_path: &Path,
+    progress: &mut dyn QueryProgress,
 ) -> Result<CompleteSnsNeurons, SnsHostError> {
-    run_paged_snapshot_refresh(SnsNeuronsRefreshPages {
-        request,
-        fetch_request,
-        sns,
-        source,
-        attempt_path,
-        state: SnsNeuronsCollectionState::new(),
-    })
+    run_paged_snapshot_refresh_with_progress(
+        SnsNeuronsRefreshPages {
+            request,
+            fetch_request,
+            sns,
+            source,
+            attempt_path,
+            state: SnsNeuronsCollectionState::new(),
+        },
+        progress,
+    )
 }
 
 ///

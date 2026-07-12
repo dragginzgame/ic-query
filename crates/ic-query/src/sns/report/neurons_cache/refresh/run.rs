@@ -6,6 +6,8 @@
 
 use super::{context::SnsNeuronsRefreshContext, publish::publish_complete_sns_neurons_cache};
 use crate::{
+    QueryProgress,
+    progress::IgnoreQueryProgress,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts,
         with_locked_snapshot_refresh,
@@ -31,9 +33,26 @@ pub fn refresh_sns_neurons_cache(
     refresh_sns_neurons_cache_with_source(request, &LiveSnsSource)
 }
 
+/// Refresh a complete SNS neuron snapshot and emit structured progress events.
+pub fn refresh_sns_neurons_cache_with_progress(
+    request: &SnsNeuronsRefreshRequest,
+    progress: &mut dyn QueryProgress,
+) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
+    refresh_sns_neurons_cache_with_source_and_progress(request, &LiveSnsSource, progress)
+}
+
 pub fn refresh_sns_neurons_cache_with_source(
     request: &SnsNeuronsRefreshRequest,
     source: &dyn SnsNeuronsSource,
+) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
+    let mut progress = IgnoreQueryProgress;
+    refresh_sns_neurons_cache_with_source_and_progress(request, source, &mut progress)
+}
+
+fn refresh_sns_neurons_cache_with_source_and_progress(
+    request: &SnsNeuronsRefreshRequest,
+    source: &dyn SnsNeuronsSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
     if !(1..=SNS_REFRESH_MAX_PAGE_SIZE).contains(&request.page_size) {
         return Err(SnsHostError::InvalidRefreshPageSize {
@@ -80,6 +99,7 @@ pub fn refresh_sns_neurons_cache_with_source(
                     replaced_existing_cache: refresh_state.replaced_existing_snapshot,
                 },
                 source,
+                progress,
             )
         },
     )
@@ -88,6 +108,7 @@ pub fn refresh_sns_neurons_cache_with_source(
 fn refresh_sns_neurons_cache_locked(
     context: SnsNeuronsRefreshContext<'_>,
     source: &dyn SnsNeuronsSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
     run_snapshot_refresh_with_attempts(
         || write_starting_attempt(&context),
@@ -98,6 +119,7 @@ fn refresh_sns_neurons_cache_locked(
                 &context.sns,
                 source,
                 &context.paths.attempt_path,
+                progress,
             )?;
             publish_complete_sns_neurons_cache(&context, complete)
         },

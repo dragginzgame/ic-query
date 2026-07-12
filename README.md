@@ -35,7 +35,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.9", default-features = false }
+ic-query = { version = "0.10", default-features = false }
 ```
 
 Feature boundary:
@@ -53,7 +53,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.9", default-features = false, features = ["host"] }
+ic-query = { version = "0.10", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -63,6 +63,12 @@ pre-collected data sources. Native tools should normally depend on
 `features = ["host"]`. Clap parsing, command dispatch, process output, and
 project-context discovery belong exclusively to `ic-query-cli` and are not a
 library feature.
+
+Ordinary library builders and refresh functions are silent. Native consumers
+that want live paged-refresh updates can use the matching `*_with_progress`
+entry point and handle `QueryProgressEvent` values in their own presentation
+layer. The `icq` executable supplies the stderr renderer; the reusable library
+never selects a process output sink.
 
 Each NNS and SNS family root is its sole public path. For example, topology
 consumers use `ic_query::nns::topology::*`; internal `report` modules are not

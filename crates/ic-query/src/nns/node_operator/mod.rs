@@ -1,3 +1,5 @@
+//! NNS node-operator inventory requests, reports, host builders, and renderers.
+
 mod report;
 
 pub use report::{

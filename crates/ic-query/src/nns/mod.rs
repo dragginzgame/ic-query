@@ -1,3 +1,5 @@
+//! Reusable Network Nervous System query families, models, and renderers.
+
 #[cfg(feature = "host")]
 #[macro_use]
 mod macros;

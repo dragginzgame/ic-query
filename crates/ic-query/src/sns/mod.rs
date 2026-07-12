@@ -1,3 +1,5 @@
+//! Reusable Service Nervous System query models, builders, caches, and renderers.
+
 mod report;
 
 pub use report::{
@@ -32,9 +34,10 @@ pub use report::{
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, build_sns_proposals_report,
-    build_sns_proposals_report_with_source, build_sns_token_report,
-    build_sns_token_report_with_source, refresh_sns_neurons_cache,
-    refresh_sns_neurons_cache_with_source, refresh_sns_proposals_cache,
+    build_sns_proposals_report_with_progress, build_sns_proposals_report_with_source,
+    build_sns_token_report, build_sns_token_report_with_source, refresh_sns_neurons_cache,
+    refresh_sns_neurons_cache_with_progress, refresh_sns_neurons_cache_with_source,
+    refresh_sns_proposals_cache, refresh_sns_proposals_cache_with_progress,
     refresh_sns_proposals_cache_with_source, sns_neurons_cache_list_report_text,
     sns_neurons_cache_path, sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
     sns_neurons_refresh_lock_path, sns_neurons_refresh_report_text, sns_neurons_report_text,

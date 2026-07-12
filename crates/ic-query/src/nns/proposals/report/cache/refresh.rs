@@ -12,10 +12,12 @@ use super::{
     publish::publish_complete_nns_proposal_cache,
 };
 use crate::{
+    QueryProgress,
     nns::proposals::report::{
         NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE, NnsProposalHostError, enforce_mainnet_network,
         source::{LiveNnsProposalSource, NnsProposalSource},
     },
+    progress::IgnoreQueryProgress,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts,
         with_locked_snapshot_refresh,
@@ -31,9 +33,26 @@ pub fn refresh_nns_proposal_cache(
     refresh_nns_proposal_cache_with_source(request, &LiveNnsProposalSource)
 }
 
+/// Refresh a complete NNS proposal snapshot and emit structured progress events.
+pub fn refresh_nns_proposal_cache_with_progress(
+    request: &NnsProposalRefreshRequest,
+    progress: &mut dyn QueryProgress,
+) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
+    refresh_nns_proposal_cache_with_source_and_progress(request, &LiveNnsProposalSource, progress)
+}
+
 pub fn refresh_nns_proposal_cache_with_source(
     request: &NnsProposalRefreshRequest,
     source: &dyn NnsProposalSource,
+) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
+    let mut progress = IgnoreQueryProgress;
+    refresh_nns_proposal_cache_with_source_and_progress(request, source, &mut progress)
+}
+
+pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
+    request: &NnsProposalRefreshRequest,
+    source: &dyn NnsProposalSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
     if !(1..=NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE).contains(&request.page_size) {
         return Err(NnsProposalHostError::InvalidRefreshPageSize {
@@ -60,6 +79,7 @@ pub fn refresh_nns_proposal_cache_with_source(
                         request,
                         source,
                         &paths.refresh_attempt_path,
+                        progress,
                     )?;
                     publish_complete_nns_proposal_cache(
                         request,

@@ -1,3 +1,5 @@
+//! NNS registry-version requests, reports, host builders, and renderers.
+
 mod report;
 
 pub use report::{

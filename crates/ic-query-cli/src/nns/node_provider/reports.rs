@@ -4,9 +4,9 @@ use ic_query::nns::node_provider::{
     NnsNodeProviderInfoRequest, NnsNodeProviderListReport, NnsNodeProviderListRequest,
     NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
     build_nns_node_provider_info_report, build_nns_node_provider_list_report,
-    nns_node_provider_info_report_text, nns_node_provider_list_report_text,
-    nns_node_provider_list_report_verbose_text, nns_node_provider_refresh_report_text,
-    refresh_nns_node_provider_report,
+    nns_node_provider_cache_path, nns_node_provider_info_report_text,
+    nns_node_provider_list_report_text, nns_node_provider_list_report_verbose_text,
+    nns_node_provider_refresh_report_text, refresh_nns_node_provider_report,
 };
 
 impl_nns_leaf_reports!(
@@ -31,5 +31,6 @@ impl_nns_leaf_reports!(
 impl_cached_leaf_cli_requests!(
     NnsNodeProviderCacheRequest,
     NnsNodeProviderListRequest,
-    NnsNodeProviderInfoRequest
+    NnsNodeProviderInfoRequest,
+    nns_node_provider_cache_path
 );

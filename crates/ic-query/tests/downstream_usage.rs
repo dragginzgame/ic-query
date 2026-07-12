@@ -29,6 +29,7 @@ fn render_registry_version() -> String {
 #[cfg(feature = "host")]
 mod host {
     use ic_query::{
+        QueryProgress, QueryProgressEvent, QueryProgressState,
         icrc::{
             DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcError, IcrcTokenRequest, build_icrc_token_report,
             icrc_token_report_text,
@@ -38,6 +39,10 @@ mod host {
             NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListRequest, build_nns_node_list_report,
             nns_node_list_report_text,
         },
+        nns::proposals::{
+            NnsProposalHostError, NnsProposalRefreshReport, NnsProposalRefreshRequest,
+            refresh_nns_proposal_cache_with_progress,
+        },
         nns::registry::{
             NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest,
             NnsRegistryVersionData, NnsRegistryVersionRequest,
@@ -45,12 +50,15 @@ mod host {
         },
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsCacheStatusRequest,
-            SnsNeuronsRequest, SnsNeuronsSort, SnsProposalSortDirection,
-            SnsProposalsCacheStatusRequest, SnsProposalsRequest, SnsProposalsSort,
+            SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort,
+            SnsProposalSortDirection, SnsProposalsCacheStatusRequest, SnsProposalsRefreshReport,
+            SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
             build_sns_neurons_cache_status_report, build_sns_neurons_report,
             build_sns_proposals_cache_status_report, build_sns_proposals_report,
-            sns_neurons_cache_status_report_text, sns_neurons_report_text,
-            sns_proposals_cache_status_report_text, sns_proposals_report_text,
+            build_sns_proposals_report_with_progress, refresh_sns_neurons_cache_with_progress,
+            refresh_sns_proposals_cache_with_progress, sns_neurons_cache_status_report_text,
+            sns_neurons_report_text, sns_proposals_cache_status_report_text,
+            sns_proposals_report_text,
         },
         subnet_catalog::{
             DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, ResolveAs,
@@ -69,6 +77,7 @@ mod host {
         accepts_sns_proposals_example(render_recent_sns_proposals);
         accepts_sns_neurons_example(render_cached_sns_neurons);
         accepts_sns_cache_status_example(render_sns_cache_status);
+        assert_progress_api_is_public();
 
         let text = render_registry_version_with_source(&FixtureRegistrySource, 1_700_000_000)
             .expect("custom registry source");
@@ -92,6 +101,36 @@ mod host {
 
         let report = build_subnet_catalog_info_report(&request)?;
         Ok(subnet_catalog_info_report_text(&report))
+    }
+
+    fn assert_progress_api_is_public() {
+        let mut events = Vec::new();
+        let mut progress = |event| events.push(event);
+        progress.report(QueryProgressEvent::PagedRefresh {
+            text: "refreshing".to_string(),
+            state: QueryProgressState::Running,
+        });
+        assert_eq!(events.len(), 1);
+
+        let _: fn(
+            &NnsProposalRefreshRequest,
+            &mut dyn QueryProgress,
+        ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> =
+            refresh_nns_proposal_cache_with_progress;
+        let _: fn(
+            &SnsNeuronsRefreshRequest,
+            &mut dyn QueryProgress,
+        ) -> Result<SnsNeuronsRefreshReport, SnsHostError> =
+            refresh_sns_neurons_cache_with_progress;
+        let _: fn(
+            &SnsProposalsRefreshRequest,
+            &mut dyn QueryProgress,
+        ) -> Result<SnsProposalsRefreshReport, SnsHostError> =
+            refresh_sns_proposals_cache_with_progress;
+        let _: fn(
+            &SnsProposalsRequest,
+            &mut dyn QueryProgress,
+        ) -> Result<SnsProposalsReport, SnsHostError> = build_sns_proposals_report_with_progress;
     }
 
     fn render_application_nodes(

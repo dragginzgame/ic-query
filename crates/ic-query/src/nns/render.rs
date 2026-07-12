@@ -1,3 +1,5 @@
+//! Shared NNS text-rendering primitives for inventory and refresh reports.
+
 use crate::text_value::{sanitize_text, yes_no};
 
 #[must_use]

@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.9", default-features = false, features = ["host"] }
+ic-query = { version = "0.10", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,13 +18,26 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.9", default-features = false }
+ic-query = { version = "0.10", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
 `ic-agent`, Tokio, or `futures`. That is a host-dependency boundary, not a
 `no_std` promise; the public DTOs may still use `String`, `Vec`, `serde`, and
 other normal `std`-using crates.
+
+## Progress Ownership
+
+Normal report builders and refresh entry points do not write to stdout or
+stderr. Paged NNS proposal and SNS neuron/proposal refreshes also expose
+`*_with_progress` entry points. These accept a `QueryProgress` sink and emit
+typed `QueryProgressEvent` values for cache creation and refresh lifecycle
+updates.
+
+Downstream libraries can ignore progress by using the ordinary entry points,
+record the events for their own UI, or render them at an executable boundary.
+Terminal detection, same-line updates, and stderr output remain process policy
+and are therefore implemented by `ic-query-cli`, not `ic-query`.
 
 ## Replace CLI Shell-Outs
 

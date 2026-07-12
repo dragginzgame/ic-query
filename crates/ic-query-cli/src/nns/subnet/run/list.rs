@@ -1,4 +1,4 @@
-use super::cache_request;
+use super::{announce_missing_catalog, cache_request};
 use crate::{
     cli::common::write_text_or_json_verbose,
     nns::{
@@ -19,8 +19,10 @@ pub(super) fn run_catalog_list(args: Vec<OsString>) -> Result<(), NnsCommandErro
     let options = CatalogListOptions::parse(args)?;
     let format = options.format;
     let verbose = options.verbose;
+    let cache = cache_request(&options.network)?;
+    announce_missing_catalog(&cache, &options.source_endpoint);
     let request = SubnetCatalogListRequest::new(
-        cache_request(&options.network)?,
+        cache,
         options.source_endpoint,
         now_unix_secs()?,
         DEFAULT_STALE_AFTER_SECONDS,

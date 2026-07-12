@@ -26,10 +26,14 @@ pub fn build_nns_node_operator_list_report_with_source(
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
     load_or_refresh_missing_cache(
-        "node-operator",
-        &request.source_endpoint,
         || load_cached_nns_node_operator_report(&request.cache).map(|cached| cached.report),
-        || {
+        |err| match err {
+            NnsNodeOperatorHostError::Cache(NnsLeafHostCacheError::MissingCache {
+                path, ..
+            }) => Ok(path),
+            err => Err(err),
+        },
+        |_| {
             let refresh_request = NnsNodeOperatorRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
@@ -39,12 +43,6 @@ pub fn build_nns_node_operator_list_report_with_source(
                 output_path: None,
             };
             refresh_nns_node_operator_cache_with_source(&refresh_request, source).map(|_| ())
-        },
-        |err| match err {
-            NnsNodeOperatorHostError::Cache(NnsLeafHostCacheError::MissingCache {
-                path, ..
-            }) => Ok(path),
-            err => Err(err),
         },
     )
 }

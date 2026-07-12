@@ -9,12 +9,11 @@ use crate::{
     snapshot_cache::{SnapshotCompleteness, publish_snapshot_with_attempt, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
+        cache_storage::SnsCacheMetadata,
         neurons_cache::{
             SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
             attempt::{SnsNeuronsAttemptProgress, write_complete_sns_neurons_attempt},
-            model::{
-                CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheMetadata, SnsNeuronsCacheRows,
-            },
+            model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheRows},
         },
         source::{MainnetSns, MainnetSnsList},
     },
@@ -96,7 +95,7 @@ fn sns_neurons_cache_from_parts(
         entity: sns.root_canister_id.clone(),
         collection: "neurons".to_string(),
         scope: "full".to_string(),
-        metadata: SnsNeuronsCacheMetadata {
+        metadata: SnsCacheMetadata {
             sns_wasm_canister_id: list.sns_wasm_canister_id.clone(),
             id,
             name: sns.name.clone(),

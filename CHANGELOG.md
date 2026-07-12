@@ -7,9 +7,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.10.x] - Unreleased - Canonical library API paths
+## [0.10.x] - Unreleased - Canonical library and process boundaries
 
 Detailed release notes: [docs/changelog/0.10.md](docs/changelog/0.10.md)
+
+- `0.10.1` removes the remaining stdout/stderr ownership from `ic-query`.
+  Paged refreshes expose structured `QueryProgressEvent` callbacks while the
+  `ic-query-cli` crate owns terminal detection, same-line progress, and
+  missing-cache notices. It also shares the duplicated SNS cache identity
+  model and validation, centralizes complete-snapshot path discovery, closes
+  the 0.10 documentation drift, and adds CI guards for the process boundary
+  and the existing public-rustdoc backlog.
 
 - `0.10.0` makes each NNS and SNS family root its only public library path.
   Redundant nested `report` modules are private, topology requests, reports,

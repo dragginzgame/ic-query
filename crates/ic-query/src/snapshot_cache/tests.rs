@@ -2,11 +2,12 @@ use super::{
     LockedSnapshotRefreshRequest, PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
     SnapshotCompleteness, SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotJsonPaths,
     SnapshotKey, SnapshotRefreshAttempt, collect_full_collection_snapshot_paths,
-    load_complete_snapshot_for_key, publish_snapshot_with_attempt, run_paged_snapshot_refresh,
-    run_snapshot_refresh_with_attempts, validate_snapshot_completeness,
-    with_locked_snapshot_refresh,
+    load_complete_snapshot_for_key, publish_snapshot_with_attempt,
+    run_paged_snapshot_refresh_with_progress, run_snapshot_refresh_with_attempts,
+    validate_snapshot_completeness, with_locked_snapshot_refresh,
 };
 use crate::{
+    QueryProgressEvent, QueryProgressState,
     cache_file::{CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
     test_support::temp_dir,
 };
@@ -245,10 +246,35 @@ fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
         state: PagedCollectionState::new(),
     };
 
-    let complete = run_paged_snapshot_refresh(refresh).expect("paged refresh completes");
+    let mut events = Vec::new();
+    let complete = run_paged_snapshot_refresh_with_progress(refresh, &mut |event| {
+        events.push(event);
+    })
+    .expect("paged refresh completes");
 
     assert_eq!(complete.rows, vec!["a", "b"]);
     assert_eq!(complete.attempts, vec![(1, 1), (2, 2)]);
+    assert_eq!(
+        events,
+        vec![
+            QueryProgressEvent::PagedRefresh {
+                text: "fixture pages=0 rows=0".to_string(),
+                state: QueryProgressState::Running,
+            },
+            QueryProgressEvent::PagedRefresh {
+                text: "fixture pages=1 rows=1".to_string(),
+                state: QueryProgressState::Running,
+            },
+            QueryProgressEvent::PagedRefresh {
+                text: "fixture pages=2 rows=2".to_string(),
+                state: QueryProgressState::Running,
+            },
+            QueryProgressEvent::PagedRefresh {
+                text: "fixture pages=2 rows=2 complete".to_string(),
+                state: QueryProgressState::Complete,
+            },
+        ]
+    );
 }
 
 #[test]
@@ -260,7 +286,8 @@ fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
         state: PagedCollectionState::new(),
     };
 
-    let err = run_paged_snapshot_refresh(refresh).expect_err("max pages rejects incomplete scan");
+    let err = run_paged_snapshot_refresh_with_progress(refresh, &mut |_| {})
+        .expect_err("max pages rejects incomplete scan");
 
     assert_eq!(
         err,
@@ -280,7 +307,8 @@ fn paged_snapshot_refresh_rejects_duplicate_only_page_with_cursor() {
         state: PagedCollectionState::new(),
     };
 
-    let err = run_paged_snapshot_refresh(refresh).expect_err("stalled page is incomplete");
+    let err = run_paged_snapshot_refresh_with_progress(refresh, &mut |_| {})
+        .expect_err("stalled page is incomplete");
 
     assert_eq!(
         err,

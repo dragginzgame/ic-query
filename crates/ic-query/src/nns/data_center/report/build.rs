@@ -26,10 +26,14 @@ pub fn build_nns_data_center_list_report_with_source(
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
     load_or_refresh_missing_cache(
-        "data-center",
-        &request.source_endpoint,
         || load_cached_nns_data_center_report(&request.cache).map(|cached| cached.report),
-        || {
+        |err| match err {
+            NnsDataCenterHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => {
+                Ok(path)
+            }
+            err => Err(err),
+        },
+        |_| {
             let refresh_request = NnsDataCenterRefreshRequest {
                 cache: request.cache.clone(),
                 source_endpoint: request.source_endpoint.clone(),
@@ -39,12 +43,6 @@ pub fn build_nns_data_center_list_report_with_source(
                 output_path: None,
             };
             refresh_nns_data_center_cache_with_source(&refresh_request, source).map(|_| ())
-        },
-        |err| match err {
-            NnsDataCenterHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => {
-                Ok(path)
-            }
-            err => Err(err),
         },
     )
 }

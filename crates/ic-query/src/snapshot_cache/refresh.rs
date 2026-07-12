@@ -1,11 +1,11 @@
 //! Module: snapshot_cache::refresh
 //!
-//! Responsibility: run command-owned paged snapshot refresh adapters.
-//! Does not own: source APIs, cache publication, or refresh-attempt schemas.
-//! Boundary: drives progress, page fetching, running-attempt writes, and completion.
+//! Responsibility: run paged snapshot refresh adapters.
+//! Does not own: source APIs, cache publication, refresh-attempt schemas, or process output.
+//! Boundary: emits structured progress while driving page fetches and attempt writes.
 
 use super::PagedCollectionPage;
-use crate::progress::ProgressLine;
+use crate::{QueryProgress, QueryProgressEvent, QueryProgressState};
 
 ///
 /// PagedSnapshotRefresh
@@ -26,48 +26,78 @@ pub trait PagedSnapshotRefresh {
     fn into_complete(self) -> Self::Complete;
 }
 
-pub fn run_paged_snapshot_refresh<Refresh>(
+/// Run a complete paged snapshot refresh and emit structured progress events.
+pub fn run_paged_snapshot_refresh_with_progress<Refresh>(
     mut refresh: Refresh,
+    progress: &mut dyn QueryProgress,
 ) -> Result<Refresh::Complete, Refresh::Error>
 where
     Refresh: PagedSnapshotRefresh,
 {
-    let mut progress = ProgressLine::stderr();
-    progress.update(&refresh.progress_text());
+    report_progress(
+        progress,
+        refresh.progress_text(),
+        QueryProgressState::Running,
+    );
 
     loop {
         if refresh.max_pages_reached() {
-            progress.finish(&format!(
-                "{} stopped before completion",
-                refresh.progress_text()
-            ));
+            report_progress(
+                progress,
+                format!("{} stopped before completion", refresh.progress_text()),
+                QueryProgressState::Stopped,
+            );
             return Err(refresh.incomplete_refresh_error("max pages reached before API exhaustion"));
         }
 
         let page = match refresh.fetch_next_page() {
             Ok(page) => page,
             Err(err) => {
-                progress.finish(&format!("{} failed", refresh.progress_text()));
+                report_progress(
+                    progress,
+                    format!("{} failed", refresh.progress_text()),
+                    QueryProgressState::Failed,
+                );
                 return Err(err);
             }
         };
         if let Err(err) = refresh.write_running_attempt(&page) {
-            progress.finish(&format!("{} failed", refresh.progress_text()));
+            report_progress(
+                progress,
+                format!("{} failed", refresh.progress_text()),
+                QueryProgressState::Failed,
+            );
             return Err(err);
         }
-        progress.update(&refresh.progress_text());
+        report_progress(
+            progress,
+            refresh.progress_text(),
+            QueryProgressState::Running,
+        );
 
         if refresh.page_exhausts_collection(&page) {
             break;
         }
         if page.has_no_new_rows() {
-            progress.finish(&format!("{} stalled", refresh.progress_text()));
+            report_progress(
+                progress,
+                format!("{} stalled", refresh.progress_text()),
+                QueryProgressState::Stalled,
+            );
             return Err(refresh.incomplete_refresh_error(
                 "page returned no new rows while advertising another cursor",
             ));
         }
     }
 
-    progress.finish(&format!("{} complete", refresh.progress_text()));
+    report_progress(
+        progress,
+        format!("{} complete", refresh.progress_text()),
+        QueryProgressState::Complete,
+    );
     Ok(refresh.into_complete())
+}
+
+fn report_progress(progress: &mut dyn QueryProgress, text: String, state: QueryProgressState) {
+    progress.report(QueryProgressEvent::PagedRefresh { text, state });
 }

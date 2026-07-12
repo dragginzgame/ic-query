@@ -5,13 +5,14 @@
 //! Boundary: coordinates cache load/refresh policy and cache-backed report projection.
 
 use crate::{
+    QueryProgress, QueryProgressEvent,
     cache_file::load_or_refresh_missing_cache,
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
         assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
-            refresh_sns_proposals_cache_with_source,
+            refresh_sns_proposals_cache_with_source_and_progress,
             reports::cache_projection::project_sns_proposals_cache,
             storage::load_sns_proposals_cache_for_input_with_path,
         },
@@ -30,8 +31,10 @@ pub(in crate::sns::report) fn build_sns_proposals_report_from_cache_or_refresh(
     request: &SnsProposalsRequest,
     icp_root: &Path,
     source: &dyn SnsProposalsSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    let (cache_path, cache) = load_or_refresh_sns_proposals_cache(request, icp_root, source)?;
+    let (cache_path, cache) =
+        load_or_refresh_sns_proposals_cache(request, icp_root, source, progress)?;
     Ok(sns_proposals_report_from_cache(request, cache_path, cache))
 }
 
@@ -39,21 +42,26 @@ fn load_or_refresh_sns_proposals_cache(
     request: &SnsProposalsRequest,
     icp_root: &Path,
     source: &dyn SnsProposalsSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
     load_or_refresh_missing_cache(
-        "SNS proposals",
-        &request.source_endpoint,
         || load_sns_proposals_cache_for_input_with_path(icp_root, &request.network, &request.input),
-        || {
-            refresh_sns_proposals_cache_with_source(
-                &proposals_refresh_request_from_list_request(request, icp_root),
-                source,
-            )
-            .map(|_| ())
-        },
         |err| match err {
             SnsHostError::MissingProposalsCache { path } => Ok(path),
             err => Err(err),
+        },
+        |path| {
+            progress.report(QueryProgressEvent::CacheRefresh {
+                component: "SNS proposals".to_string(),
+                path: path.to_path_buf(),
+                source_endpoint: request.source_endpoint.clone(),
+            });
+            refresh_sns_proposals_cache_with_source_and_progress(
+                &proposals_refresh_request_from_list_request(request, icp_root),
+                source,
+                progress,
+            )
+            .map(|_| ())
         },
     )
 }

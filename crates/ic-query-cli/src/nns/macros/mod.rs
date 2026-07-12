@@ -5,10 +5,18 @@ mod reports;
 mod test_helpers;
 
 macro_rules! impl_cached_leaf_cli_requests {
-    ($cache:ty, $list:ty, $info:ty) => {
+    ($cache:ty, $list:ty, $info:ty, $cache_path:path) => {
         impl crate::nns::leaf::model::NnsLeafCacheRequest for $cache {
             fn from_root_network(icp_root: &std::path::Path, network: &str) -> Self {
                 Self::new(icp_root, network)
+            }
+
+            fn cache_path(&self) -> std::path::PathBuf {
+                $cache_path(&self.icp_root, &self.network)
+            }
+
+            fn network(&self) -> &str {
+                &self.network
             }
         }
         impl crate::nns::leaf::model::NnsLeafListRequest for $list {

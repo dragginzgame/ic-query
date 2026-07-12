@@ -1,4 +1,4 @@
-use super::cache_request;
+use super::{announce_missing_node_cache, cache_request};
 use crate::nns::{
     NnsCommandError, command_args,
     node::{commands::node_info_usage, options::node_info_options},
@@ -14,8 +14,10 @@ pub(super) fn run_node_info(args: Vec<OsString>) -> Result<(), NnsCommandError> 
         return Ok(());
     };
     let options = node_info_options(args)?;
+    let cache = cache_request(&options.network)?;
+    announce_missing_node_cache(&cache, &options.source_endpoint);
     let request = NnsNodeInfoRequest::new(
-        cache_request(&options.network)?,
+        cache,
         options.source_endpoint,
         options.input,
         now_unix_secs()?,

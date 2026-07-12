@@ -41,3 +41,6 @@ mod test_support;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "host")]
+pub use progress::{QueryProgress, QueryProgressEvent, QueryProgressState};

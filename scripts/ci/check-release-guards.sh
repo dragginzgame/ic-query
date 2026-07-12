@@ -15,6 +15,8 @@ mkdir -p "${changelog_case}/bin" "${changelog_case}/docs/changelog"
 printf 'version = "0.8.0"\n' > "${changelog_case}/Cargo.toml"
 printf "release \`0.8.1\`\n" > "${changelog_case}/CHANGELOG.md"
 printf '## 0.8.1\n' > "${changelog_case}/docs/changelog/0.8.md"
+printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/README.md"
+printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/docs/library-usage.md"
 cat > "${changelog_case}/bin/git" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -39,6 +41,32 @@ chmod +x "${changelog_case}/bin/git"
   PATH="${changelog_case}/bin:${PATH}" \
     bash "${repo_root}/scripts/ci/check-changelog-version.sh" 0.8.1
 ) || fail "the changelog check rejected an explicit target version"
+
+printf '## 0.8.1 - Unreleased\n' > "${changelog_case}/docs/changelog/0.8.md"
+set +e
+(
+  cd "${changelog_case}"
+  PATH="${changelog_case}/bin:${PATH}" \
+    bash "${repo_root}/scripts/ci/check-changelog-version.sh" 0.8.1
+) >/dev/null 2>&1
+unreleased_status="$?"
+set -e
+[[ "${unreleased_status}" -ne 0 ]] \
+  || fail "the changelog check accepted an Unreleased target version"
+printf '## 0.8.1\n' > "${changelog_case}/docs/changelog/0.8.md"
+
+printf 'ic-query = { version = "0.7" }\n' > "${changelog_case}/README.md"
+set +e
+(
+  cd "${changelog_case}"
+  PATH="${changelog_case}/bin:${PATH}" \
+    bash "${repo_root}/scripts/ci/check-changelog-version.sh" 0.8.1
+) >/dev/null 2>&1
+stale_usage_status="$?"
+set -e
+[[ "${stale_usage_status}" -ne 0 ]] \
+  || fail "the changelog check accepted a stale dependency example"
+printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/README.md"
 
 bump_case="${work_dir}/bump"
 mkdir -p "${bump_case}/bin"

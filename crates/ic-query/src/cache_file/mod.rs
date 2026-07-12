@@ -15,7 +15,7 @@ mod write;
 pub use error::CacheFileError;
 pub use json::{
     CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-    announce_cache_refresh, load_json_cache,
+    load_json_cache,
 };
 pub use lock::{RefreshLockRequest, with_refresh_lock};
 pub use policy::load_or_refresh_missing_cache;

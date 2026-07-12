@@ -61,6 +61,9 @@ If code or habit conflicts with this file, this file wins.
   belong in the relevant report module; reusable cache mechanics belong in
   `src/cache_file.rs`; reusable formatting belongs in small shared modules
   such as `src/table.rs`, `src/duration.rs`, and token amount helpers.
+- Process arguments, stdout/stderr, terminal detection, and progress rendering
+  belong exclusively to `ic-query-cli`. The reusable library may emit typed
+  progress events, but it must never select or write to a process output sink.
 - Keep NNS and SNS command families separate unless a helper is genuinely
   shared. Keep clap parsing separate from report building, and keep live host
   calls behind source traits or local helpers so tests can use fixtures.

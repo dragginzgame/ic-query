@@ -6,6 +6,7 @@
 
 use crate::{
     cli::common::write_text_or_json,
+    progress::StderrQueryProgress,
     sns::commands::{
         SnsCommandError,
         options::SnsNeuronsRefreshOptions,
@@ -14,7 +15,8 @@ use crate::{
     },
 };
 use ic_query::sns::{
-    SnsNeuronsRefreshRequest, refresh_sns_neurons_cache, sns_neurons_refresh_report_text,
+    SnsNeuronsRefreshRequest, refresh_sns_neurons_cache_with_progress,
+    sns_neurons_refresh_report_text,
 };
 use std::ffi::OsString;
 
@@ -37,6 +39,7 @@ where
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
-    let report = refresh_sns_neurons_cache(&request)?;
+    let mut progress = StderrQueryProgress::new();
+    let report = refresh_sns_neurons_cache_with_progress(&request, &mut progress)?;
     write_text_or_json(format, &report, sns_neurons_refresh_report_text)
 }

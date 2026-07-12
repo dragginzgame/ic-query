@@ -9,13 +9,11 @@ use crate::{
     snapshot_cache::{SnapshotCompleteness, publish_snapshot_with_attempt, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsProposalRow, SnsProposalsRefreshReport,
+        cache_storage::SnsCacheMetadata,
         proposals_cache::{
             SNS_PROPOSALS_CACHE_SCHEMA_VERSION, SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,
             attempt::{SnsProposalsAttemptProgress, write_complete_attempt},
-            model::{
-                CompleteSnsProposals, SnsProposalsCache, SnsProposalsCacheMetadata,
-                SnsProposalsCacheRows,
-            },
+            model::{CompleteSnsProposals, SnsProposalsCache, SnsProposalsCacheRows},
         },
         source::{MainnetSns, MainnetSnsList},
     },
@@ -97,7 +95,7 @@ fn sns_proposals_cache_from_parts(
         entity: sns.root_canister_id.clone(),
         collection: "proposals".to_string(),
         scope: "full".to_string(),
-        metadata: SnsProposalsCacheMetadata {
+        metadata: SnsCacheMetadata {
             sns_wasm_canister_id: list.sns_wasm_canister_id.clone(),
             id,
             name: sns.name.clone(),

@@ -22,12 +22,17 @@ use std::{
 )]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnapshotJsonPaths {
+    /// Complete snapshot JSON path.
     pub snapshot_path: PathBuf,
+    /// Lock path held while replacing the snapshot.
     pub refresh_lock_path: PathBuf,
+    /// Sidecar path recording the latest refresh attempt.
     pub refresh_attempt_path: PathBuf,
 }
 
 impl SnapshotJsonPaths {
+    /// Build every snapshot path for one logical cache key.
+    #[must_use]
     pub fn for_key(icp_root: &Path, key: &SnapshotKey) -> Self {
         let collection_dir = snapshot_collection_dir(icp_root, key);
         let file_stem = key.scope_file_stem();
@@ -39,51 +44,47 @@ impl SnapshotJsonPaths {
     }
 }
 
+/// Return the cache directory for one domain and network.
+#[must_use]
 pub fn snapshot_network_dir(icp_root: &Path, domain: &str, network: &str) -> PathBuf {
     icp_root.join(".icq").join(domain).join(network)
 }
 
+/// Collect sorted complete-snapshot paths for every entity in a collection.
 pub fn collect_full_collection_snapshot_paths(
     network_dir: &Path,
     collection: &str,
 ) -> std::io::Result<Vec<PathBuf>> {
-    let entries = match fs::read_dir(network_dir) {
-        Ok(entries) => entries,
-        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(source) => return Err(source),
-    };
-    let mut snapshot_paths = Vec::new();
-    for entry in entries {
-        let path = entry?.path().join(collection).join("full.json");
-        if path.is_file() {
-            snapshot_paths.push(path);
-        }
-    }
-    snapshot_paths.sort();
-    Ok(snapshot_paths)
+    collect_full_collection_paths(network_dir, collection, "full.json")
 }
 
+/// Collect sorted refresh-attempt paths for every entity in a collection.
 pub fn collect_full_collection_attempt_paths(
     network_dir: &Path,
     collection: &str,
+) -> std::io::Result<Vec<PathBuf>> {
+    collect_full_collection_paths(network_dir, collection, "full.refresh-attempt.json")
+}
+
+fn collect_full_collection_paths(
+    network_dir: &Path,
+    collection: &str,
+    file_name: &str,
 ) -> std::io::Result<Vec<PathBuf>> {
     let entries = match fs::read_dir(network_dir) {
         Ok(entries) => entries,
         Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
         Err(source) => return Err(source),
     };
-    let mut attempt_paths = Vec::new();
+    let mut paths = Vec::new();
     for entry in entries {
-        let path = entry?
-            .path()
-            .join(collection)
-            .join("full.refresh-attempt.json");
+        let path = entry?.path().join(collection).join(file_name);
         if path.is_file() {
-            attempt_paths.push(path);
+            paths.push(path);
         }
     }
-    attempt_paths.sort();
-    Ok(attempt_paths)
+    paths.sort();
+    Ok(paths)
 }
 
 fn snapshot_collection_dir(icp_root: &Path, key: &SnapshotKey) -> PathBuf {

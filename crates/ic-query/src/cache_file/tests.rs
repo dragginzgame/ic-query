@@ -19,14 +19,12 @@ fn existing_cache_does_not_refresh() {
     let refreshed = Cell::new(false);
 
     let loaded = load_or_refresh_missing_cache(
-        "test",
-        "https://example.test",
         || Ok::<_, PolicyError>("cached"),
-        || {
+        missing_path,
+        |_| {
             refreshed.set(true);
             Ok(())
         },
-        missing_path,
     );
 
     assert_eq!(loaded, Ok("cached"));
@@ -39,8 +37,6 @@ fn missing_cache_refreshes_then_loads_again() {
     let refreshes = Cell::new(0);
 
     let loaded = load_or_refresh_missing_cache(
-        "test",
-        "https://example.test",
         || {
             loads.set(loads.get() + 1);
             if loads.get() == 1 {
@@ -49,11 +45,12 @@ fn missing_cache_refreshes_then_loads_again() {
                 Ok("refreshed")
             }
         },
-        || {
+        missing_path,
+        |path| {
+            assert_eq!(path, PathBuf::from("/tmp/missing.json"));
             refreshes.set(refreshes.get() + 1);
             Ok(())
         },
-        missing_path,
     );
 
     assert_eq!(loaded, Ok("refreshed"));
@@ -66,14 +63,12 @@ fn non_missing_error_does_not_refresh() {
     let refreshed = Cell::new(false);
 
     let loaded = load_or_refresh_missing_cache(
-        "test",
-        "https://example.test",
         || Err::<&str, _>(PolicyError::Other),
-        || {
+        missing_path,
+        |_| {
             refreshed.set(true);
             Ok(())
         },
-        missing_path,
     );
 
     assert_eq!(loaded, Err(PolicyError::Other));

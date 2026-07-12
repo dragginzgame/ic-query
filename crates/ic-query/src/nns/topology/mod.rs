@@ -1,3 +1,5 @@
+//! NNS topology requests, reports, host builders, source adapters, and renderers.
+
 mod report;
 
 pub use report::{

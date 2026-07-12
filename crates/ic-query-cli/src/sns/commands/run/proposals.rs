@@ -6,6 +6,7 @@
 
 use crate::{
     cli::{clap::OptionalSubcommand, common::write_text_or_json},
+    progress::StderrQueryProgress,
     sns::commands::{
         SnsCommandError,
         options::{
@@ -27,9 +28,10 @@ use ic_query::sns::{
     SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
     SnsProposalsRefreshRequest, SnsProposalsRequest, build_sns_proposal_report,
     build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
-    build_sns_proposals_report, refresh_sns_proposals_cache, sns_proposal_report_text,
-    sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
-    sns_proposals_refresh_report_text, sns_proposals_report_text,
+    build_sns_proposals_report_with_progress, refresh_sns_proposals_cache_with_progress,
+    sns_proposal_report_text, sns_proposals_cache_list_report_text,
+    sns_proposals_cache_status_report_text, sns_proposals_refresh_report_text,
+    sns_proposals_report_text,
 };
 use std::ffi::OsString;
 
@@ -98,7 +100,8 @@ where
         icp_root: Some(parts.icp_root),
         verbose: options.verbose,
     };
-    let report = build_sns_proposals_report(&request)?;
+    let mut progress = StderrQueryProgress::new();
+    let report = build_sns_proposals_report_with_progress(&request, &mut progress)?;
     write_text_or_json(format, &report, sns_proposals_report_text)
 }
 
@@ -121,7 +124,8 @@ where
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
-    let report = refresh_sns_proposals_cache(&request)?;
+    let mut progress = StderrQueryProgress::new();
+    let report = refresh_sns_proposals_cache_with_progress(&request, &mut progress)?;
     write_text_or_json(format, &report, sns_proposals_refresh_report_text)
 }
 

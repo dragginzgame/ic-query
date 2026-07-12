@@ -1,3 +1,9 @@
+//! Module: nns::topology::report
+//!
+//! Responsibility: assemble reusable NNS topology reports and refresh operations.
+//! Does not own: CLI parsing, registry transport internals, or process output.
+//! Boundary: groups topology requests, sources, projections, and text renderers.
+
 #[cfg(feature = "host")]
 mod build;
 #[cfg(feature = "host")]
@@ -28,6 +34,28 @@ mod summary;
 mod text;
 #[cfg(feature = "host")]
 mod versions;
+
+#[cfg(all(test, feature = "host"))]
+mod tests;
+
+#[cfg(all(test, feature = "host"))]
+use capacity::topology_capacity_report_from_report;
+#[cfg(all(test, feature = "host"))]
+use coverage::topology_coverage_report_from_summary;
+#[cfg(all(test, feature = "host"))]
+use gaps::topology_gaps_report_from_reports;
+#[cfg(all(test, feature = "host"))]
+use health::topology_health_report_from_summary;
+#[cfg(all(test, feature = "host"))]
+use providers::topology_providers_report_from_reports;
+#[cfg(all(test, feature = "host"))]
+use refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports};
+#[cfg(all(test, feature = "host"))]
+use regions::topology_regions_report_from_report;
+#[cfg(all(test, feature = "host"))]
+use summary::topology_summary_report_from_reports;
+#[cfg(all(test, feature = "host"))]
+use versions::topology_versions_report_from_summary;
 
 #[cfg(feature = "host")]
 pub use build::{
@@ -77,27 +105,5 @@ pub const NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 12;
 
-#[cfg(all(test, feature = "host"))]
-use capacity::topology_capacity_report_from_report;
-#[cfg(all(test, feature = "host"))]
-use coverage::topology_coverage_report_from_summary;
-#[cfg(all(test, feature = "host"))]
-use gaps::topology_gaps_report_from_reports;
-#[cfg(all(test, feature = "host"))]
-use health::topology_health_report_from_summary;
-#[cfg(all(test, feature = "host"))]
-use providers::topology_providers_report_from_reports;
-#[cfg(all(test, feature = "host"))]
-use refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports};
-#[cfg(all(test, feature = "host"))]
-use regions::topology_regions_report_from_report;
-#[cfg(all(test, feature = "host"))]
-use summary::topology_summary_report_from_reports;
-#[cfg(all(test, feature = "host"))]
-use versions::topology_versions_report_from_summary;
-
 #[cfg(feature = "host")]
 impl_nns_mainnet_network_enforcer!(NnsTopologyHostError);
-
-#[cfg(all(test, feature = "host"))]
-mod tests;

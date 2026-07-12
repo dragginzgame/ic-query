@@ -6,27 +6,15 @@
 
 use crate::{
     snapshot_cache::{SnapshotEnvelope, SnapshotHeader},
-    sns::report::{SnsNeuronRow, SnsNeuronsSort},
+    sns::report::{
+        SnsNeuronRow, SnsNeuronsSort,
+        cache_storage::{SnsCacheHeaderMetadata, SnsCacheMetadata},
+    },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::PathBuf;
 
-pub(super) type SnsNeuronsCache = SnapshotEnvelope<SnsNeuronsCacheMetadata, SnsNeuronsCacheRows>;
-
-///
-/// SnsNeuronsCacheMetadata
-///
-/// Snapshot metadata identifying the SNS covered by a complete neuron cache.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct SnsNeuronsCacheMetadata {
-    pub(super) sns_wasm_canister_id: String,
-    pub(super) id: usize,
-    pub(super) name: String,
-    pub(super) root_canister_id: String,
-    pub(super) governance_canister_id: String,
-}
+pub(super) type SnsNeuronsCache = SnapshotEnvelope<SnsCacheMetadata, SnsNeuronsCacheRows>;
 
 ///
 /// SnsNeuronsCacheRows
@@ -39,18 +27,7 @@ pub(super) struct SnsNeuronsCacheRows {
     pub(super) neurons: Vec<SnsNeuronRow>,
 }
 
-pub(super) type SnsNeuronsCacheHeader = SnapshotHeader<SnsNeuronsCacheHeaderMetadata>;
-
-///
-/// SnsNeuronsCacheHeaderMetadata
-///
-/// Minimal metadata loaded while scanning neuron cache headers.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
-pub(super) struct SnsNeuronsCacheHeaderMetadata {
-    pub(super) id: usize,
-}
+pub(super) type SnsNeuronsCacheHeader = SnapshotHeader<SnsCacheHeaderMetadata>;
 
 ///
 /// CompleteSnsNeurons

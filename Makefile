@@ -1,4 +1,4 @@
-.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy dependency-check ensure-clean feature-boundary-check fmt fmt-check install msrv package package-contents-check publish release-guards-check test type-docs-check
+.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy dependency-check ensure-clean feature-boundary-check fmt fmt-check install library-process-boundary-check msrv package package-contents-check public-docs-check publish release-guards-check test type-docs-check
 
 MSRV ?= 1.91.0
 CARGO_HTTP_MULTIPLEXING ?= false
@@ -18,8 +18,10 @@ help:
 	@echo "  changelog-check  Check changelog entries for the package version"
 	@echo "  package-contents-check  Check crate package excludes internal files"
 	@echo "  feature-boundary-check  Check library default/no-default feature boundaries"
+	@echo "  library-process-boundary-check  Check process IO remains in the CLI crate"
 	@echo "  release-guards-check  Check release automation fails closed"
 	@echo "  type-docs-check  Check cross-module type documentation blocks"
+	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
 	@echo "  check      Run cargo check with locked dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
@@ -74,11 +76,17 @@ package-contents-check:
 feature-boundary-check:
 	bash scripts/ci/check-library-feature-boundaries.sh
 
+library-process-boundary-check:
+	bash scripts/ci/check-library-process-boundary.sh
+
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
 
 type-docs-check:
 	perl scripts/ci/check-type-docs.pl
+
+public-docs-check:
+	bash scripts/ci/check-public-docs.sh
 
 dependency-check:
 	# These maintenance advisories are transitive through ic-agent/candid.
@@ -102,7 +110,7 @@ msrv:
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh
 
-ci: changelog-check actions-check package-contents-check feature-boundary-check release-guards-check type-docs-check dependency-check fmt-check check clippy test package
+ci: changelog-check actions-check package-contents-check feature-boundary-check library-process-boundary-check release-guards-check type-docs-check public-docs-check dependency-check fmt-check check clippy test package
 
 install:
 	cargo install --locked --path crates/ic-query-cli --bin icq

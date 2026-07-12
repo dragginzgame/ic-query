@@ -4,9 +4,9 @@ use ic_query::nns::node_operator::{
     NnsNodeOperatorInfoRequest, NnsNodeOperatorListReport, NnsNodeOperatorListRequest,
     NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
     build_nns_node_operator_info_report, build_nns_node_operator_list_report,
-    nns_node_operator_info_report_text, nns_node_operator_list_report_text,
-    nns_node_operator_list_report_verbose_text, nns_node_operator_refresh_report_text,
-    refresh_nns_node_operator_report,
+    nns_node_operator_cache_path, nns_node_operator_info_report_text,
+    nns_node_operator_list_report_text, nns_node_operator_list_report_verbose_text,
+    nns_node_operator_refresh_report_text, refresh_nns_node_operator_report,
 };
 
 impl_nns_leaf_reports!(
@@ -31,5 +31,6 @@ impl_nns_leaf_reports!(
 impl_cached_leaf_cli_requests!(
     NnsNodeOperatorCacheRequest,
     NnsNodeOperatorListRequest,
-    NnsNodeOperatorInfoRequest
+    NnsNodeOperatorInfoRequest,
+    nns_node_operator_cache_path
 );

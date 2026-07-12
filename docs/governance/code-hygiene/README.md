@@ -367,6 +367,8 @@ local checks include:
 make fmt-check
 make clippy
 make test
+make library-process-boundary-check
+make public-docs-check
 ```
 
 Do not change Cargo package versions, release scripts, install URLs, or

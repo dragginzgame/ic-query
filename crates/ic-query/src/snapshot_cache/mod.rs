@@ -35,7 +35,7 @@ pub use paths::{
     SnapshotJsonPaths, collect_full_collection_attempt_paths,
     collect_full_collection_snapshot_paths, snapshot_network_dir,
 };
-pub use refresh::{PagedSnapshotRefresh, run_paged_snapshot_refresh};
+pub use refresh::{PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress};
 
 #[cfg(test)]
 mod tests;

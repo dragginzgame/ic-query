@@ -10,5 +10,5 @@ mod run;
 
 pub use run::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, refresh_sns_neurons_cache,
-    refresh_sns_neurons_cache_with_source,
+    refresh_sns_neurons_cache_with_progress, refresh_sns_neurons_cache_with_source,
 };

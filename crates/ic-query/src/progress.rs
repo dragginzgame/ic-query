@@ -1,79 +1,85 @@
 //! Module: progress
 //!
-//! Responsibility: render terminal progress updates on stderr.
-//! Does not own: refresh orchestration, cache publication, or report output.
-//! Boundary: writes and clears same-line progress text when stderr is a terminal.
+//! Responsibility: define process-agnostic query progress events.
+//! Does not own: terminal detection, stderr output, or command presentation.
+//! Boundary: lets host operations report progress without choosing an output sink.
 
-use std::io::{self, IsTerminal, Write};
+use std::path::PathBuf;
 
 ///
-/// ProgressLine
+/// QueryProgressEvent
 ///
-/// Same-line stderr progress writer used by refresh flows.
+/// Structured progress emitted by host-backed query and refresh operations.
 ///
 
-#[derive(Debug)]
-pub struct ProgressLine {
-    enabled: bool,
-    last_width: usize,
-    stderr: io::Stderr,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum QueryProgressEvent {
+    /// A missing cache is about to be created from a live endpoint.
+    CacheRefresh {
+        /// Human-readable cache component name.
+        component: String,
+        /// Missing cache path that triggered the refresh.
+        path: PathBuf,
+        /// Explicit live endpoint used to create the cache.
+        source_endpoint: String,
+    },
+    /// Progress from a complete paged snapshot refresh.
+    PagedRefresh {
+        /// Human-readable progress text owned by the refresh family.
+        text: String,
+        /// Current lifecycle state for the progress message.
+        state: QueryProgressState,
+    },
 }
 
-impl ProgressLine {
-    #[must_use]
-    pub fn stderr() -> Self {
-        Self::with_enabled(io::stderr().is_terminal())
-    }
+///
+/// QueryProgressState
+///
+/// Lifecycle state attached to a paged refresh progress message.
+///
 
-    #[must_use]
-    pub fn with_enabled(enabled: bool) -> Self {
-        Self {
-            enabled,
-            last_width: 0,
-            stderr: io::stderr(),
-        }
-    }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QueryProgressState {
+    /// The refresh is still fetching or persisting pages.
+    Running,
+    /// The complete snapshot was fetched successfully.
+    Complete,
+    /// A source or persistence operation failed.
+    Failed,
+    /// A configured page limit stopped the refresh before completion.
+    Stopped,
+    /// Paging stopped making forward progress before completion.
+    Stalled,
+}
 
-    pub fn update(&mut self, text: &str) {
-        if !self.enabled {
-            return;
-        }
-        self.write_line(text, false);
-    }
+///
+/// QueryProgress
+///
+/// Process-agnostic sink for structured host-operation progress.
+///
 
-    pub fn finish(&mut self, text: &str) {
-        if !self.enabled {
-            return;
-        }
-        self.write_line(text, true);
-        self.last_width = 0;
-    }
+pub trait QueryProgress {
+    /// Receive one progress event.
+    fn report(&mut self, event: QueryProgressEvent);
+}
 
-    pub fn clear(&mut self) {
-        if !self.enabled || self.last_width == 0 {
-            return;
-        }
-        let padding = " ".repeat(self.last_width);
-        let _ = write!(self.stderr, "\r{padding}\r");
-        let _ = self.stderr.flush();
-        self.last_width = 0;
-    }
-
-    fn write_line(&mut self, text: &str, newline: bool) {
-        let width = text.chars().count();
-        let padding = " ".repeat(self.last_width.saturating_sub(width));
-        if newline {
-            let _ = writeln!(self.stderr, "\r{text}{padding}");
-        } else {
-            let _ = write!(self.stderr, "\r{text}{padding}");
-        }
-        let _ = self.stderr.flush();
-        self.last_width = width;
+impl<Reporter> QueryProgress for Reporter
+where
+    Reporter: FnMut(QueryProgressEvent),
+{
+    fn report(&mut self, event: QueryProgressEvent) {
+        self(event);
     }
 }
 
-impl Drop for ProgressLine {
-    fn drop(&mut self) {
-        self.clear();
-    }
+///
+/// IgnoreQueryProgress
+///
+/// No-op progress sink used by silent library entry points.
+///
+
+pub struct IgnoreQueryProgress;
+
+impl QueryProgress for IgnoreQueryProgress {
+    fn report(&mut self, _event: QueryProgressEvent) {}
 }

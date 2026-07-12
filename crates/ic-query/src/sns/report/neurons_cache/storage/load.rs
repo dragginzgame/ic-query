@@ -8,7 +8,7 @@ use super::errors::{SnsNeuronsCacheErrors, incomplete_cache_error};
 use crate::snapshot_cache::validate_snapshot_completeness;
 use crate::sns::report::{
     SnsHostError,
-    cache_storage::load_sns_complete_cache,
+    cache_storage::{load_sns_complete_cache, validate_sns_cache_metadata},
     neurons_cache::{
         SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache,
         paths::sns_neurons_cache_key_for_cache_path,
@@ -43,20 +43,7 @@ fn validate_sns_neurons_cache(path: &Path, cache: &SnsNeuronsCache) -> Result<()
     };
     validate_snapshot_completeness(&cache.completeness, cache.data.neurons.len())
         .map_err(invalid)?;
-    if cache.metadata.id == 0 {
-        return Err(invalid("SNS list id must be greater than zero".to_string()));
-    }
-    if cache.metadata.root_canister_id != cache.entity {
-        return Err(invalid(format!(
-            "root_canister_id is {}, expected {}",
-            cache.metadata.root_canister_id, cache.entity
-        )));
-    }
-    if cache.metadata.governance_canister_id.is_empty() {
-        return Err(invalid(
-            "governance_canister_id must not be empty".to_string(),
-        ));
-    }
+    validate_sns_cache_metadata(path, &cache.metadata, &cache.entity)?;
     let mut neuron_ids = HashSet::new();
     for neuron in &cache.data.neurons {
         if neuron.neuron_id.is_empty()

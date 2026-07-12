@@ -3,8 +3,11 @@ mod list;
 mod refresh;
 
 use super::commands::{subnet_command, subnet_usage};
-use crate::nns::{NnsCommandError, command_args, command_icp_root, parse_nns_required_subcommand};
-use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
+use crate::{
+    nns::{NnsCommandError, command_args, command_icp_root, parse_nns_required_subcommand},
+    progress::announce_missing_mainnet_cache,
+};
+use ic_query::subnet_catalog::{SubnetCatalogCacheRequest, subnet_catalog_path};
 use std::ffi::OsString;
 
 pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
@@ -26,4 +29,9 @@ where
 
 fn cache_request(network: &str) -> Result<SubnetCatalogCacheRequest, NnsCommandError> {
     Ok(SubnetCatalogCacheRequest::new(command_icp_root()?, network))
+}
+
+fn announce_missing_catalog(cache: &SubnetCatalogCacheRequest, source_endpoint: &str) {
+    let path = subnet_catalog_path(&cache.icp_root, &cache.network);
+    announce_missing_mainnet_cache(&cache.network, "subnet catalog", &path, source_endpoint);
 }

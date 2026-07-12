@@ -66,8 +66,10 @@ jobs:
       - run: make actions-check
       - run: make package-contents-check
       - run: make feature-boundary-check
+      - run: make library-process-boundary-check
       - run: make release-guards-check
       - run: make type-docs-check
+      - run: make public-docs-check
       - run: make dependency-check
       - run: make fmt-check
       - run: make check

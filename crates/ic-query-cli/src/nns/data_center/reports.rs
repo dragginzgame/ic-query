@@ -3,9 +3,10 @@ use ic_query::nns::data_center::{
     NnsDataCenterCacheRequest, NnsDataCenterHostError, NnsDataCenterInfoReport,
     NnsDataCenterInfoRequest, NnsDataCenterListReport, NnsDataCenterListRequest,
     NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, build_nns_data_center_info_report,
-    build_nns_data_center_list_report, nns_data_center_info_report_text,
-    nns_data_center_list_report_text, nns_data_center_list_report_verbose_text,
-    nns_data_center_refresh_report_text, refresh_nns_data_center_report,
+    build_nns_data_center_list_report, nns_data_center_cache_path,
+    nns_data_center_info_report_text, nns_data_center_list_report_text,
+    nns_data_center_list_report_verbose_text, nns_data_center_refresh_report_text,
+    refresh_nns_data_center_report,
 };
 
 impl_nns_leaf_reports!(
@@ -30,5 +31,6 @@ impl_nns_leaf_reports!(
 impl_cached_leaf_cli_requests!(
     NnsDataCenterCacheRequest,
     NnsDataCenterListRequest,
-    NnsDataCenterInfoRequest
+    NnsDataCenterInfoRequest,
+    nns_data_center_cache_path
 );

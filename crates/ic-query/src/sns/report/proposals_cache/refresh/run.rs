@@ -6,6 +6,8 @@
 
 use super::{context::SnsProposalsRefreshContext, publish::publish_complete_sns_proposals_cache};
 use crate::{
+    QueryProgress,
+    progress::IgnoreQueryProgress,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts,
         with_locked_snapshot_refresh,
@@ -33,10 +35,27 @@ pub fn refresh_sns_proposals_cache(
     refresh_sns_proposals_cache_with_source(request, &LiveSnsSource)
 }
 
+/// Refresh a complete SNS proposal snapshot and emit structured progress events.
+pub fn refresh_sns_proposals_cache_with_progress(
+    request: &SnsProposalsRefreshRequest,
+    progress: &mut dyn QueryProgress,
+) -> Result<SnsProposalsRefreshReport, SnsHostError> {
+    refresh_sns_proposals_cache_with_source_and_progress(request, &LiveSnsSource, progress)
+}
+
 /// Refresh a complete SNS proposal snapshot using an injected source.
 pub fn refresh_sns_proposals_cache_with_source(
     request: &SnsProposalsRefreshRequest,
     source: &dyn SnsProposalsSource,
+) -> Result<SnsProposalsRefreshReport, SnsHostError> {
+    let mut progress = IgnoreQueryProgress;
+    refresh_sns_proposals_cache_with_source_and_progress(request, source, &mut progress)
+}
+
+pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progress(
+    request: &SnsProposalsRefreshRequest,
+    source: &dyn SnsProposalsSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
     validate_refresh_page_size(request.page_size)?;
     enforce_mainnet_network(&request.network)?;
@@ -78,6 +97,7 @@ pub fn refresh_sns_proposals_cache_with_source(
                     replaced_existing_cache: refresh_state.replaced_existing_snapshot,
                 },
                 source,
+                progress,
             )
         },
     )
@@ -96,6 +116,7 @@ fn validate_refresh_page_size(page_size: u32) -> Result<(), SnsHostError> {
 fn refresh_sns_proposals_cache_locked(
     context: SnsProposalsRefreshContext<'_>,
     source: &dyn SnsProposalsSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
     run_snapshot_refresh_with_attempts(
         || write_starting_attempt(context.attempt_context()),
@@ -106,6 +127,7 @@ fn refresh_sns_proposals_cache_locked(
                 &context.sns,
                 source,
                 &context.paths.attempt_path,
+                progress,
             )?;
             publish_complete_sns_proposals_cache(&context, complete)
         },

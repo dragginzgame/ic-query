@@ -5,30 +5,18 @@
 //! Boundary: defines complete proposal snapshot metadata, rows, and attempts.
 
 use crate::snapshot_cache::{SnapshotEnvelope, SnapshotHeader, SnapshotRefreshAttempt};
-use crate::sns::report::{SnsProposalRow, cache_attempt::SnsRefreshAttemptMetadata};
+use crate::sns::report::{
+    SnsProposalRow,
+    cache_attempt::SnsRefreshAttemptMetadata,
+    cache_storage::{SnsCacheHeaderMetadata, SnsCacheMetadata},
+};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
-pub(super) type SnsProposalsCache =
-    SnapshotEnvelope<SnsProposalsCacheMetadata, SnsProposalsCacheRows>;
+pub(super) type SnsProposalsCache = SnapshotEnvelope<SnsCacheMetadata, SnsProposalsCacheRows>;
 
-pub(super) type SnsProposalsCacheHeader = SnapshotHeader<SnsProposalsCacheHeaderMetadata>;
+pub(super) type SnsProposalsCacheHeader = SnapshotHeader<SnsCacheHeaderMetadata>;
 
 pub(super) type SnsProposalsRefreshAttempt = SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
-
-///
-/// SnsProposalsCacheMetadata
-///
-/// Snapshot metadata identifying the SNS covered by a complete proposal cache.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct SnsProposalsCacheMetadata {
-    pub(super) sns_wasm_canister_id: String,
-    pub(super) id: usize,
-    pub(super) name: String,
-    pub(super) root_canister_id: String,
-    pub(super) governance_canister_id: String,
-}
 
 ///
 /// SnsProposalsCacheRows
@@ -39,17 +27,6 @@ pub(super) struct SnsProposalsCacheMetadata {
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub(super) struct SnsProposalsCacheRows {
     pub(super) proposals: Vec<SnsProposalRow>,
-}
-
-///
-/// SnsProposalsCacheHeaderMetadata
-///
-/// Minimal metadata loaded while scanning proposal cache headers.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
-pub(super) struct SnsProposalsCacheHeaderMetadata {
-    pub(super) id: usize,
 }
 
 ///

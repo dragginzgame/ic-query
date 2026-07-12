@@ -87,10 +87,12 @@ pub fn load_or_refresh_subnet_catalog_with_source(
     source: &dyn SubnetCatalogSource,
 ) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
     load_or_refresh_missing_cache(
-        "subnet catalog",
-        source_endpoint,
         || load_cached_subnet_catalog(request),
-        || {
+        |err| match err {
+            SubnetCatalogHostError::MissingCatalog { path } => Ok(path),
+            err => Err(err),
+        },
+        |_| {
             let refresh_request = SubnetCatalogRefreshRequest::new(
                 request.clone(),
                 source_endpoint,
@@ -98,10 +100,6 @@ pub fn load_or_refresh_subnet_catalog_with_source(
                 DEFAULT_REFRESH_LOCK_STALE_SECONDS,
             );
             refresh_subnet_catalog_with_source(&refresh_request, source).map(|_| ())
-        },
-        |err| match err {
-            SubnetCatalogHostError::MissingCatalog { path } => Ok(path),
-            err => Err(err),
         },
     )
 }

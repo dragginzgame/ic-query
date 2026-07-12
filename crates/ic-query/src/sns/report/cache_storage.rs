@@ -16,8 +16,34 @@ use crate::{
         cache_paths::{SnsCacheCollection, sns_snapshot_network_cache_dir},
     },
 };
-use serde::de::DeserializeOwned;
+use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
+
+///
+/// SnsCacheMetadata
+///
+/// Shared persisted identity metadata for a complete SNS collection cache.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+pub(in crate::sns::report) struct SnsCacheMetadata {
+    pub(in crate::sns::report) sns_wasm_canister_id: String,
+    pub(in crate::sns::report) id: usize,
+    pub(in crate::sns::report) name: String,
+    pub(in crate::sns::report) root_canister_id: String,
+    pub(in crate::sns::report) governance_canister_id: String,
+}
+
+///
+/// SnsCacheHeaderMetadata
+///
+/// Minimal SNS metadata loaded while scanning collection cache headers.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
+pub(in crate::sns::report) struct SnsCacheHeaderMetadata {
+    pub(in crate::sns::report) id: usize,
+}
 
 /// Collect complete SNS snapshot paths for one cache collection.
 pub(in crate::sns::report) fn collect_sns_cache_paths<Collection>(
@@ -95,6 +121,33 @@ where
         incomplete_error,
         |mismatch| sns_identity_mismatch_error(path, mismatch),
     )
+}
+
+/// Validate identity fields shared by complete SNS collection caches.
+pub(in crate::sns::report) fn validate_sns_cache_metadata(
+    path: &Path,
+    metadata: &SnsCacheMetadata,
+    entity: &str,
+) -> Result<(), SnsHostError> {
+    let invalid = |reason| SnsHostError::InvalidCache {
+        path: path.to_path_buf(),
+        reason,
+    };
+    if metadata.id == 0 {
+        return Err(invalid("SNS list id must be greater than zero".to_string()));
+    }
+    if metadata.root_canister_id != entity {
+        return Err(invalid(format!(
+            "root_canister_id is {}, expected {entity}",
+            metadata.root_canister_id
+        )));
+    }
+    if metadata.governance_canister_id.is_empty() {
+        return Err(invalid(
+            "governance_canister_id must not be empty".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn sns_identity_mismatch_error(path: PathBuf, mismatch: SnapshotIdentityMismatch) -> SnsHostError {
