@@ -22,9 +22,9 @@ fi
 
 minor="${version%.*}"
 detail_changelog="docs/changelog/${minor}.md"
-root_version_marker="\`${version}\`"
-detail_version_heading="## ${version}"
+root_version_marker="- \`${version}\`"
 detail_unreleased_heading="## ${version} - Unreleased"
+version_pattern="${version//./\\.}"
 
 if [[ ! -f "${detail_changelog}" ]]; then
   echo "error: missing detailed changelog ${detail_changelog} for version ${version}" >&2
@@ -51,12 +51,12 @@ if ! grep -Fq -- "${root_version_marker}" <<<"${head_root_changelog}"; then
   exit 1
 fi
 
-if ! grep -Fq -- "${detail_version_heading}" "${detail_changelog}"; then
+if ! grep -Eq -- "^## ${version_pattern}( - .+)?$" "${detail_changelog}"; then
   echo "error: ${detail_changelog} has no heading for package version ${version}" >&2
   exit 1
 fi
 
-if ! grep -Fq -- "${detail_version_heading}" <<<"${head_detail_changelog}"; then
+if ! grep -Eq -- "^## ${version_pattern}( - .+)?$" <<<"${head_detail_changelog}"; then
   echo "error: ${detail_changelog} in HEAD has no heading for package version ${version}" >&2
   exit 1
 fi

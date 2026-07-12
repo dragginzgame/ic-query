@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.10.md](docs/changelog/0.10.md)
 
+- `0.10.4` centralizes hosted and local CI on one sequential gate, separates
+  CI, publication, and release-script regressions, and makes workspace
+  publishing resumable across crates.io indexing delays. Publishing now
+  requires the release tag at `HEAD`, package-list failures propagate, and
+  pre-bump cleanliness is checked before CI starts.
+
+  ```bash
+  make ci-scripts-check
+  make publish-guards-check
+  ```
+
 - `0.10.3` makes the public-rustdoc debt check independent of forced Cargo
   color in hosted CI, covers that environment in the local release guards,
   reruns the complete CI gate on the release commit before pushing it, and

@@ -1,4 +1,13 @@
-.PHONY: help version tags patch minor major release-patch release-minor release-major release-stage release-commit release-push actions-check build changelog-check check ci clean clippy dependency-check ensure-clean feature-boundary-check fmt fmt-check install install-dev library-process-boundary-check msrv package package-contents-check public-docs-check publish release-guards-check test type-docs-check
+.PHONY: \
+	actions-check build changelog-check check ci ci-scripts-check clean clippy \
+	dependency-check ensure-clean feature-boundary-check fmt fmt-check help \
+	install install-dev library-process-boundary-check major minor msrv package \
+	package-contents-check patch public-docs-check publish publish-guards-check \
+	release-commit \
+	release-guards-check release-major release-minor release-patch release-push \
+	release-stage release-tag-check tags test type-docs-check version
+
+REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 MSRV ?= 1.91.0
 CARGO_AUDIT_VERSION ?= 0.22.2
@@ -7,10 +16,19 @@ RIPGREP_VERSION ?= 15.1.0
 CARGO_HTTP_MULTIPLEXING ?= false
 CARGO_NET_RETRY ?= 10
 CARGO_PACKAGE_RETRIES ?= 3
+CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
+CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
+
+CI_TARGETS := changelog-check actions-check package-contents-check \
+	feature-boundary-check library-process-boundary-check ci-scripts-check \
+	publish-guards-check release-guards-check type-docs-check public-docs-check dependency-check \
+	fmt-check check clippy test package
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
 export CARGO_PACKAGE_RETRIES
+export CARGO_PUBLISH_INDEX_ATTEMPTS
+export CARGO_PUBLISH_INDEX_DELAY_SECONDS
 
 help:
 	@echo "Available commands:"
@@ -22,6 +40,8 @@ help:
 	@echo "  package-contents-check  Check crate package excludes internal files"
 	@echo "  feature-boundary-check  Check library default/no-default feature boundaries"
 	@echo "  library-process-boundary-check  Check process IO remains in the CLI crate"
+	@echo "  ci-scripts-check  Check CI helper-script failure and environment handling"
+	@echo "  publish-guards-check  Check workspace publication fails closed and resumes safely"
 	@echo "  release-guards-check  Check release automation fails closed"
 	@echo "  type-docs-check  Check cross-module type documentation blocks"
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
@@ -34,6 +54,7 @@ help:
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
 	@echo "  install-dev  Install pinned tools required by the local CI gate"
+	@echo "  publish    Publish the library, then the CLI, to crates.io"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
 	@echo "  patch      Run release gate, then bump patch version files"
@@ -44,7 +65,7 @@ help:
 	@echo "  release-major  Bump, stage, commit, tag, and push a major release"
 	@echo "  release-stage  Stage release version files after review"
 	@echo "  release-commit Commit and tag the staged release"
-	@echo "  release-push   Push the release commit and tags"
+	@echo "  release-push   Verify and push the release commit and tags"
 	@echo "  clean      Remove build artifacts"
 
 ensure-clean:
@@ -86,6 +107,12 @@ library-process-boundary-check:
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
 
+ci-scripts-check:
+	bash scripts/ci/check-ci-scripts.sh
+
+publish-guards-check:
+	bash scripts/ci/check-publish-guards.sh
+
 type-docs-check:
 	perl scripts/ci/check-type-docs.pl
 
@@ -114,7 +141,10 @@ msrv:
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh
 
-ci: changelog-check actions-check package-contents-check feature-boundary-check library-process-boundary-check release-guards-check type-docs-check public-docs-check dependency-check fmt-check check clippy test package
+ci:
+	+@set -e; for target in $(CI_TARGETS); do \
+		$(MAKE) --no-print-directory "$$target"; \
+	done
 
 install:
 	cargo install --locked --path crates/ic-query-cli --bin icq
@@ -124,9 +154,8 @@ install-dev:
 	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
 	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
 
-publish: ensure-clean
-	cargo publish --locked -p ic-query
-	cargo publish --locked -p ic-query-cli
+publish: ensure-clean release-tag-check
+	bash scripts/release/publish-workspace.sh
 
 patch:
 	bash scripts/release/bump-version.sh patch
@@ -172,18 +201,10 @@ release-commit:
 	git commit -m "Release $$version"; \
 	git tag -a "v$$version" -m "Release $$version"
 
-release-push:
-	@set -eu; \
-	version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \
-	if ! tag_commit="$$(git rev-parse "v$$version^{}" 2>/dev/null)"; then \
-		echo "error: release tag v$$version does not exist" >&2; \
-		exit 1; \
-	fi; \
-	head_commit="$$(git rev-parse HEAD)"; \
-	if [ "$$tag_commit" != "$$head_commit" ]; then \
-		echo "error: release tag v$$version does not point to HEAD" >&2; \
-		exit 1; \
-	fi
+release-tag-check:
+	bash "$(REPO_ROOT)scripts/release/check-tag-at-head.sh"
+
+release-push: ensure-clean release-tag-check
 	+$(MAKE) --no-print-directory ci
 	git push --follow-tags
 

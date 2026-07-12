@@ -14,7 +14,7 @@ fail() {
 changelog_case="${work_dir}/changelog"
 mkdir -p "${changelog_case}/bin" "${changelog_case}/docs/changelog"
 printf 'version = "0.8.0"\n' > "${changelog_case}/Cargo.toml"
-printf "release \`0.8.1\`\n" > "${changelog_case}/CHANGELOG.md"
+printf -- "- \`0.8.1\` release\n" > "${changelog_case}/CHANGELOG.md"
 printf '## 0.8.1\n' > "${changelog_case}/docs/changelog/0.8.md"
 printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/README.md"
 printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/docs/library-usage.md"
@@ -80,7 +80,11 @@ EOF
 cat > "${bump_case}/bin/make" <<'EOF'
 #!/bin/bash
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
-exit 23
+case "${*: -1}" in
+  ensure-clean) exit "${CLEAN_STATUS:-0}" ;;
+  ci) exit 23 ;;
+  *) exit 2 ;;
+esac
 EOF
 chmod +x "${bump_case}/bin/bash" "${bump_case}/bin/make"
 before_bump="$(<"${bump_case}/Cargo.toml")"
@@ -117,80 +121,32 @@ set -e
 mapfile -t bump_trace < "${bump_case}/trace"
 [[ "${bump_trace[0]:-}" == "changelog scripts/ci/check-changelog-version.sh 0.8.1" ]] \
   || fail "the bump script did not check the target-version changelog first"
-[[ "${bump_trace[1]:-}" == "make --no-print-directory ensure-clean ci" ]] \
-  || fail "the bump script did not run the complete CI gate after the target changelog check"
+[[ "${bump_trace[1]:-}" == "make --no-print-directory ensure-clean" ]] \
+  || fail "the bump script did not check cleanliness before CI"
+[[ "${bump_trace[2]:-}" == "make --no-print-directory ci" ]] \
+  || fail "the bump script did not run the complete CI gate after the cleanliness check"
 
-public_docs_case="${work_dir}/public-docs"
-mkdir -p "${public_docs_case}/bin"
-public_docs_warning_count="$(sed -n \
-  's/^readonly expected_missing_docs=\([0-9][0-9]*\)$/\1/p' \
-  "${repo_root}/scripts/ci/check-public-docs.sh")"
-[[ "${public_docs_warning_count}" =~ ^[0-9]+$ ]] \
-  || fail "the public documentation check has no numeric warning baseline"
-cat > "${public_docs_case}/bin/cargo" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-case "${1:-}" in
-  clean)
-    exit 0
-    ;;
-  doc)
-    for ((warning = 0; warning < WARNING_COUNT; warning++)); do
-      if [[ "${CARGO_TERM_COLOR:-}" == "always" ]]; then
-        printf '\033[33mwarning: missing documentation for a struct\033[0m\n' >&2
-      else
-        printf 'warning: missing documentation for a struct\n' >&2
-      fi
-    done
-    ;;
-  *)
-    exit 2
-    ;;
-esac
-EOF
-chmod +x "${public_docs_case}/bin/cargo"
-(
-  cd "${public_docs_case}"
-  PATH="${public_docs_case}/bin:${PATH}" CARGO_TERM_COLOR=always \
-    WARNING_COUNT="${public_docs_warning_count}" \
-    bash "${repo_root}/scripts/ci/check-public-docs.sh"
-) >/dev/null 2>&1 \
-  || fail "the public documentation check is not stable under forced Cargo color"
-
-package_case="${work_dir}/package"
-mkdir -p "${package_case}/bin"
-cat > "${package_case}/bin/cargo" <<'EOF'
-#!/usr/bin/env bash
-exit 42
-EOF
-chmod +x "${package_case}/bin/cargo"
-set +e
-PATH="${package_case}/bin:${PATH}" CARGO_PACKAGE_RETRIES=1 \
-  bash "${repo_root}/scripts/ci/cargo-package-retry.sh" --workspace --locked \
-  >/dev/null 2>&1
-package_status="$?"
-set -e
-[[ "${package_status}" -eq 42 ]] \
-  || fail "the package retry wrapper did not preserve cargo's failure status"
-
-package_workspace_case="${work_dir}/package-workspace"
-mkdir -p "${package_workspace_case}/bin"
-cat > "${package_workspace_case}/bin/cargo" <<'EOF'
-#!/usr/bin/env bash
-printf 'cargo %s\n' "$*" >> "${TRACE_FILE}"
-EOF
-chmod +x "${package_workspace_case}/bin/cargo"
-PATH="${package_workspace_case}/bin:${PATH}" \
-  TRACE_FILE="${package_workspace_case}/trace" CARGO_PACKAGE_RETRIES=1 \
-  bash "${repo_root}/scripts/ci/package-workspace.sh" >/dev/null
-mapfile -t package_workspace_trace < "${package_workspace_case}/trace"
-[[ "${package_workspace_trace[0]:-}" == "cargo package -p ic-query --locked" ]] \
-  || fail "the workspace package check did not package the library first"
-expected_cli_package='cargo package -p ic-query-cli --locked --config patch.crates-io.ic-query.path="crates/ic-query"'
-[[ "${package_workspace_trace[1]:-}" == "${expected_cli_package}" ]] \
-  || fail "the workspace package check did not verify the CLI against the unpublished local library"
-[[ "${#package_workspace_trace[@]}" -eq 2 ]] \
-  || fail "the workspace package check ran unexpected Cargo commands"
+: > "${bump_case}/trace"
+if (
+  cd "${bump_case}"
+  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CLEAN_STATUS=31 \
+    /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
+) >/dev/null 2>&1; then
+  dirty_bump_status=0
+else
+  dirty_bump_status="$?"
+fi
+[[ "${dirty_bump_status}" -eq 31 ]] \
+  || fail "the bump script did not preserve a failed cleanliness check"
+[[ "$(<"${bump_case}/Cargo.toml")" == "${before_bump}" ]] \
+  || fail "the bump script edited version metadata after a failed cleanliness check"
+mapfile -t dirty_bump_trace < "${bump_case}/trace"
+[[ "${dirty_bump_trace[0]:-}" == "changelog scripts/ci/check-changelog-version.sh 0.8.1" ]] \
+  || fail "the bump script did not check the target-version changelog before cleanliness"
+[[ "${dirty_bump_trace[1]:-}" == "make --no-print-directory ensure-clean" ]] \
+  || fail "the bump script did not run the cleanliness check"
+[[ "${#dirty_bump_trace[@]}" -eq 2 ]] \
+  || fail "the bump script ran CI after a failed cleanliness check"
 
 clean_case="${work_dir}/clean"
 mkdir -p "${clean_case}/bin"
@@ -264,6 +220,12 @@ EOF
 cat > "${push_case}/bin/git" <<'EOF'
 #!/usr/bin/env bash
 case "${1:-}" in
+  diff-index)
+    exit 0
+    ;;
+  ls-files)
+    exit 0
+    ;;
   rev-parse)
     case "${2:-}" in
       'v0.8.1^{}') printf '%s\n' "${TAG_COMMIT}" ;;

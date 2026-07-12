@@ -60,17 +60,5 @@ jobs:
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
       - name: Install development tools
         run: make install-dev
-      - run: make changelog-check
-      - run: make actions-check
-      - run: make package-contents-check
-      - run: make feature-boundary-check
-      - run: make library-process-boundary-check
-      - run: make release-guards-check
-      - run: make type-docs-check
-      - run: make public-docs-check
-      - run: make dependency-check
-      - run: make fmt-check
-      - run: make check
-      - run: make clippy
-      - run: make test
-      - run: make package
+      - name: Run complete CI gate
+        run: make ci
