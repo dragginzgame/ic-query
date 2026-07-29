@@ -7,11 +7,10 @@
 use super::{load::load_sns_neurons_cache_at, scan::collect_sns_neurons_cache_paths};
 use crate::snapshot_cache::SNAPSHOT_CACHE_STATUS_OK;
 use crate::sns::report::{
-    SnsHostError, SnsNeuronsCacheSummary, invalid_sns_cache_summary_fields,
-    neurons_cache::{
-        attempt::read_sns_neurons_attempt_status, model::SnsNeuronsCache,
-        paths::sns_neurons_attempt_path_for_cache_path,
-    },
+    SnsHostError, SnsNeuronsCacheSummary,
+    cache_attempt::read_sns_refresh_attempt_status,
+    invalid_sns_cache_summary_fields,
+    neurons_cache::{model::SnsNeuronsCache, paths::sns_neurons_attempt_path_for_cache_path},
 };
 use std::path::{Path, PathBuf};
 
@@ -40,7 +39,7 @@ pub(in crate::sns::report::neurons_cache) fn sns_neurons_cache_summary(
     cache: SnsNeuronsCache,
 ) -> SnsNeuronsCacheSummary {
     let attempt_path = sns_neurons_attempt_path_for_cache_path(&cache_path);
-    let latest_attempt = read_sns_neurons_attempt_status(&attempt_path, &cache.network);
+    let latest_attempt = read_sns_refresh_attempt_status(&attempt_path, &cache.network);
     let metadata = cache.metadata;
     SnsNeuronsCacheSummary {
         id: metadata.id,
@@ -83,6 +82,6 @@ pub(in crate::sns::report::neurons_cache) fn invalid_sns_neurons_cache_summary(
         source_endpoint: fields.source_endpoint,
         cache_path: fields.cache_path,
         refresh_attempt_path: fields.refresh_attempt_path,
-        latest_attempt: read_sns_neurons_attempt_status(&attempt_path, network),
+        latest_attempt: read_sns_refresh_attempt_status(&attempt_path, network),
     }
 }

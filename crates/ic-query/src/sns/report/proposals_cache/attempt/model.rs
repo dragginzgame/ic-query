@@ -8,8 +8,7 @@ use crate::{
     snapshot_cache::{SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, current_attempt_timestamp},
     sns::report::{
         SnsProposalsRefreshRequest,
-        cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
-        proposals_cache::model::SnsProposalsRefreshAttempt,
+        cache_attempt::{SnsRefreshAttempt, SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
         source::{MainnetSns, SnsSourceRequest},
     },
 };
@@ -47,8 +46,8 @@ pub(in crate::sns::report::proposals_cache::attempt) struct SnsProposalsAttemptP
 
 pub(in crate::sns::report::proposals_cache::attempt) fn attempt_from_parts(
     parts: SnsProposalsAttemptParts<'_>,
-) -> SnsProposalsRefreshAttempt {
-    SnsProposalsRefreshAttempt {
+) -> SnsRefreshAttempt {
+    SnsRefreshAttempt {
         schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
         network: parts.context.request.network.clone(),
         source_endpoint: parts.context.request.source_endpoint.clone(),

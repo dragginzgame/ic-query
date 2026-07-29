@@ -7,7 +7,7 @@ use super::{
     resolve::resolve_node_provider,
     source::{LiveNnsNodeProviderSource, NnsNodeProviderSource},
 };
-use crate::{cache_file::load_or_refresh_missing_cache, nns::leaf::NnsLeafHostCacheError};
+use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache};
 
 pub fn build_nns_node_provider_list_report(
     request: &NnsNodeProviderListRequest,
@@ -28,9 +28,7 @@ pub fn build_nns_node_provider_list_report_with_source(
     load_or_refresh_missing_cache(
         || load_cached_nns_node_provider_report(&request.cache).map(|cached| cached.report),
         |err| match err {
-            NnsNodeProviderHostError::Cache(NnsLeafHostCacheError::MissingCache {
-                path, ..
-            }) => Ok(path),
+            NnsNodeProviderHostError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
             err => Err(err),
         },
         |_| {

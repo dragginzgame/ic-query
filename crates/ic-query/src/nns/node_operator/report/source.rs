@@ -3,42 +3,10 @@ use super::{
     NnsNodeOperatorListReport, NnsNodeOperatorRow,
 };
 use crate::{
-    ic_registry::{
-        MainnetNodeOperatorList, MainnetRegistryFetchRequest, fetch_mainnet_node_operator_list,
-    },
+    ic_registry::{MainnetNodeOperatorList, fetch_mainnet_node_operator_list},
+    nns::{NnsInventorySourceRequest, inventory_source::mainnet_registry_fetch_request},
     subnet_catalog::format_utc_timestamp_secs,
 };
-
-///
-/// NnsNodeOperatorSourceRequest
-///
-/// Source request settings for fetching one complete NNS node-operator snapshot.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsNodeOperatorSourceRequest {
-    pub network: String,
-    pub endpoint: String,
-    pub fetched_at: String,
-    pub fetched_by: String,
-}
-
-impl NnsNodeOperatorSourceRequest {
-    #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        fetched_at: impl Into<String>,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            endpoint: endpoint.into(),
-            fetched_at: fetched_at.into(),
-            fetched_by: fetched_by.into(),
-        }
-    }
-}
 
 ///
 /// NnsNodeOperatorSource
@@ -49,7 +17,7 @@ impl NnsNodeOperatorSourceRequest {
 pub trait NnsNodeOperatorSource {
     fn fetch_node_operator_list_report(
         &self,
-        request: &NnsNodeOperatorSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>;
 }
 
@@ -64,11 +32,11 @@ pub struct LiveNnsNodeOperatorSource;
 impl NnsNodeOperatorSource for LiveNnsNodeOperatorSource {
     fn fetch_node_operator_list_report(
         &self,
-        request: &NnsNodeOperatorSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-        let mut fetch_request = MainnetRegistryFetchRequest::new(request.fetched_at.clone());
-        fetch_request.endpoint.clone_from(&request.endpoint);
-        fetch_request.fetched_by.clone_from(&request.fetched_by);
+        let fetch_request = mainnet_registry_fetch_request(request, |network| {
+            NnsNodeOperatorHostError::UnsupportedNetwork { network }
+        })?;
         Ok(node_operator_report_from_list(
             fetch_mainnet_node_operator_list(&fetch_request)?,
         ))
@@ -84,7 +52,7 @@ pub(super) fn fetch_nns_node_operator_list_report_with_source(
     super::enforce_mainnet_network(network)?;
     let fetched_at = format_utc_timestamp_secs(now_unix_secs);
     let fetch_request =
-        NnsNodeOperatorSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
+        NnsInventorySourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
     source.fetch_node_operator_list_report(&fetch_request)
 }
 

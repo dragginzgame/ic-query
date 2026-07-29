@@ -4,6 +4,7 @@ mod status;
 use super::{
     NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION, NnsTopologyProviderRow,
     NnsTopologyProvidersReport, NnsTopologyRegistryVersionRow,
+    registry_versions::topology_component_registry_versions,
 };
 use crate::nns::data_center::NnsDataCenterListReport;
 use crate::nns::node::NnsNodeListReport;
@@ -27,7 +28,7 @@ pub(super) fn topology_providers_report_from_reports(
 
     let mut providers = accumulator.into_provider_rows();
     sort_provider_rows(&mut providers);
-    let registry_versions = registry_versions(
+    let registry_versions = topology_component_registry_versions(
         &node_report,
         &node_provider_report,
         &node_operator_report,
@@ -86,54 +87,5 @@ fn nns_topology_providers_report(
             .count(),
         registry_versions,
         providers,
-    }
-}
-
-fn registry_versions(
-    node_report: &NnsNodeListReport,
-    node_provider_report: &NnsNodeProviderListReport,
-    node_operator_report: &NnsNodeOperatorListReport,
-    data_center_report: &NnsDataCenterListReport,
-) -> Vec<NnsTopologyRegistryVersionRow> {
-    vec![
-        registry_version_row(
-            "nodes",
-            node_report.registry_version,
-            &node_report.fetched_at,
-            &node_report.source_endpoint,
-        ),
-        registry_version_row(
-            "node_providers",
-            node_provider_report.registry_version,
-            &node_provider_report.fetched_at,
-            &node_provider_report.source_endpoint,
-        ),
-        registry_version_row(
-            "node_operators",
-            node_operator_report.registry_version,
-            &node_operator_report.fetched_at,
-            &node_operator_report.source_endpoint,
-        ),
-        registry_version_row(
-            "data_centers",
-            data_center_report.registry_version,
-            &data_center_report.fetched_at,
-            &data_center_report.source_endpoint,
-        ),
-    ]
-}
-
-fn registry_version_row(
-    source: &str,
-    registry_version: u64,
-    fetched_at: &str,
-    source_endpoint: &str,
-) -> NnsTopologyRegistryVersionRow {
-    NnsTopologyRegistryVersionRow {
-        source: source.to_string(),
-        registry_version,
-        fetched_at: fetched_at.to_string(),
-        source_endpoint: source_endpoint.to_string(),
-        stale: None,
     }
 }

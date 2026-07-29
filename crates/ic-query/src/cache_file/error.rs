@@ -88,3 +88,133 @@ pub enum CacheFileError {
     #[error("failed to sync cache output at {}: {source}", path.display())]
     SyncOutput { path: PathBuf, source: io::Error },
 }
+
+///
+/// HostCacheError
+///
+/// Component-labelled JSON cache and cache-operation failure shared by host reports.
+///
+
+#[derive(Debug, ThisError)]
+pub enum HostCacheError {
+    #[error("{component} cache is missing at {}", path.display())]
+    MissingCache {
+        component: &'static str,
+        path: PathBuf,
+    },
+
+    #[error("failed to read {component} cache at {}: {source}", path.display())]
+    ReadCache {
+        component: &'static str,
+        path: PathBuf,
+        source: io::Error,
+    },
+
+    #[error("failed to parse {component} cache at {}: {source}", path.display())]
+    ParseCache {
+        component: &'static str,
+        path: PathBuf,
+        source: serde_json::Error,
+    },
+
+    #[error("failed to serialize {component} cache JSON for {}: {source}", path.display())]
+    SerializeCache {
+        component: &'static str,
+        path: PathBuf,
+        source: serde_json::Error,
+    },
+
+    #[error("unsupported {component} cache schema version {version}; expected {expected}")]
+    UnsupportedCacheSchemaVersion {
+        component: &'static str,
+        version: u32,
+        expected: u32,
+    },
+
+    #[error("cached {component} network mismatch: path is for {requested}, report is for {actual}")]
+    NetworkMismatch {
+        component: &'static str,
+        requested: String,
+        actual: String,
+    },
+
+    #[error("{component} cache operation failed: {source}")]
+    Operation {
+        component: &'static str,
+        #[source]
+        source: CacheFileError,
+    },
+}
+
+impl HostCacheError {
+    #[must_use]
+    pub const fn missing_cache(component: &'static str, path: PathBuf) -> Self {
+        Self::MissingCache { component, path }
+    }
+
+    #[must_use]
+    pub const fn read_cache(component: &'static str, path: PathBuf, source: io::Error) -> Self {
+        Self::ReadCache {
+            component,
+            path,
+            source,
+        }
+    }
+
+    #[must_use]
+    pub const fn parse_cache(
+        component: &'static str,
+        path: PathBuf,
+        source: serde_json::Error,
+    ) -> Self {
+        Self::ParseCache {
+            component,
+            path,
+            source,
+        }
+    }
+
+    #[must_use]
+    pub const fn serialize_cache(
+        component: &'static str,
+        path: PathBuf,
+        source: serde_json::Error,
+    ) -> Self {
+        Self::SerializeCache {
+            component,
+            path,
+            source,
+        }
+    }
+
+    #[must_use]
+    pub const fn unsupported_cache_schema_version(
+        component: &'static str,
+        version: u32,
+        expected: u32,
+    ) -> Self {
+        Self::UnsupportedCacheSchemaVersion {
+            component,
+            version,
+            expected,
+        }
+    }
+
+    #[must_use]
+    pub const fn network_mismatch(
+        component: &'static str,
+        requested: String,
+        actual: String,
+    ) -> Self {
+        Self::NetworkMismatch {
+            component,
+            requested,
+            actual,
+        }
+    }
+
+    #[must_use]
+    pub const fn operation(component: &'static str, source: CacheFileError) -> Self {
+        Self::Operation { component, source }
+    }
+}

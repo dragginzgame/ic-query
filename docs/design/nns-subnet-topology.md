@@ -13,8 +13,10 @@ Subnet-oriented topology snapshot. Each `NnsSubnetTopologyRow` contains the
 raw Registry `SubnetKind`, total assigned node count, and canonically ordered
 `NnsSubnetNodeProviderRow` values with per-provider node counts.
 
-The live source resolves the latest Registry version exactly once, then reads
-the Subnet list, Subnet records, assigned node records, and node-operator
+The live source accepts the shared
+`ic_query::nns::NnsInventorySourceRequest`, rejects non-mainnet requests before
+agent construction, resolves the latest Registry version exactly once, then
+reads the Subnet list, Subnet records, assigned node records, and node-operator
 records at that version. Provider membership comes only from the Registry
 node-to-operator-to-provider relation. Governance names, registration state,
 reward accounts, capacity summaries, data-center labels, and regions are

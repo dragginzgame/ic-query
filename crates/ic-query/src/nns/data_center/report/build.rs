@@ -7,7 +7,7 @@ use super::{
     resolve::resolve_data_center,
     source::{LiveNnsDataCenterSource, NnsDataCenterSource},
 };
-use crate::{cache_file::load_or_refresh_missing_cache, nns::leaf::NnsLeafHostCacheError};
+use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache};
 
 pub fn build_nns_data_center_list_report(
     request: &NnsDataCenterListRequest,
@@ -28,9 +28,7 @@ pub fn build_nns_data_center_list_report_with_source(
     load_or_refresh_missing_cache(
         || load_cached_nns_data_center_report(&request.cache).map(|cached| cached.report),
         |err| match err {
-            NnsDataCenterHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => {
-                Ok(path)
-            }
+            NnsDataCenterHostError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
             err => Err(err),
         },
         |_| {

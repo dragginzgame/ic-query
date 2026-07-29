@@ -1,8 +1,10 @@
 #[cfg(feature = "host")]
+use ic_query::nns::NnsInventorySourceRequest;
+#[cfg(feature = "host")]
 use ic_query::nns::data_center::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
     NnsDataCenterHostError, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest,
-    NnsDataCenterSource, NnsDataCenterSourceRequest, build_nns_data_center_info_report,
+    NnsDataCenterSource, build_nns_data_center_info_report,
     build_nns_data_center_info_report_with_source, build_nns_data_center_list_report,
     build_nns_data_center_list_report_with_source, nns_data_center_cache_path,
     nns_data_center_refresh_lock_path, nns_data_center_refresh_report_text,
@@ -17,8 +19,8 @@ use ic_query::nns::data_center::{
 #[cfg(feature = "host")]
 use ic_query::nns::node::{
     DEFAULT_NNS_NODE_SOURCE_ENDPOINT, DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NnsNodeHostError,
-    NnsNodeRefreshReport, NnsNodeRefreshRequest, NnsNodeSource, NnsNodeSourceRequest,
-    build_nns_node_info_report, build_nns_node_info_report_with_source, build_nns_node_list_report,
+    NnsNodeRefreshReport, NnsNodeRefreshRequest, NnsNodeSource, build_nns_node_info_report,
+    build_nns_node_info_report_with_source, build_nns_node_list_report,
     build_nns_node_list_report_with_source, nns_node_cache_path, nns_node_refresh_lock_path,
     nns_node_refresh_report_text, refresh_nns_node_report, refresh_nns_node_report_with_source,
 };
@@ -31,7 +33,7 @@ use ic_query::nns::node::{
 use ic_query::nns::node_operator::{
     DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT, DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS,
     NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
-    NnsNodeOperatorSource, NnsNodeOperatorSourceRequest, build_nns_node_operator_info_report,
+    NnsNodeOperatorSource, build_nns_node_operator_info_report,
     build_nns_node_operator_info_report_with_source, build_nns_node_operator_list_report,
     build_nns_node_operator_list_report_with_source, nns_node_operator_cache_path,
     nns_node_operator_refresh_lock_path, nns_node_operator_refresh_report_text,
@@ -47,7 +49,7 @@ use ic_query::nns::node_operator::{
 use ic_query::nns::node_provider::{
     DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT, DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
     NnsNodeProviderHostError, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
-    NnsNodeProviderSource, NnsNodeProviderSourceRequest, build_nns_node_provider_info_report,
+    NnsNodeProviderSource, build_nns_node_provider_info_report,
     build_nns_node_provider_info_report_with_source, build_nns_node_provider_list_report,
     build_nns_node_provider_list_report_with_source, nns_node_provider_cache_path,
     nns_node_provider_refresh_lock_path, nns_node_provider_refresh_report_text,
@@ -619,7 +621,7 @@ struct FixtureNnsNodeSource;
 impl NnsNodeSource for FixtureNnsNodeSource {
     fn fetch_node_list_report(
         &self,
-        request: &NnsNodeSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeListReport, NnsNodeHostError> {
         assert_inventory_source_request(
             &request.network,
@@ -643,7 +645,7 @@ struct FixtureNnsDataCenterSource;
 impl NnsDataCenterSource for FixtureNnsDataCenterSource {
     fn fetch_data_center_list_report(
         &self,
-        request: &NnsDataCenterSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
         assert_inventory_source_request(
             &request.network,
@@ -667,7 +669,7 @@ struct FixtureNnsNodeProviderSource;
 impl NnsNodeProviderSource for FixtureNnsNodeProviderSource {
     fn fetch_node_provider_list_report(
         &self,
-        request: &NnsNodeProviderSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
         assert_inventory_source_request(
             &request.network,
@@ -691,7 +693,7 @@ struct FixtureNnsNodeOperatorSource;
 impl NnsNodeOperatorSource for FixtureNnsNodeOperatorSource {
     fn fetch_node_operator_list_report(
         &self,
-        request: &NnsNodeOperatorSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
         assert_inventory_source_request(
             &request.network,

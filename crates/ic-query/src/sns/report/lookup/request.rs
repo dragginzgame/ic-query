@@ -6,7 +6,8 @@
 
 use crate::sns::report::lookup::network::enforce_mainnet_network;
 use crate::sns::report::{
-    SnsHostError, SnsListRequest, SnsLookupRequest, source::SnsSourceRequest,
+    SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListRequest, SnsLookupRequest,
+    source::SnsSourceRequest,
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
 
@@ -23,6 +24,18 @@ pub(in crate::sns::report) fn lookup_request_from_parts(
         now_unix_secs,
         input: input.to_string(),
     }
+}
+
+pub(in crate::sns::report) fn validate_sns_refresh_page_size(
+    page_size: u32,
+) -> Result<(), SnsHostError> {
+    if (1..=SNS_REFRESH_MAX_PAGE_SIZE).contains(&page_size) {
+        return Ok(());
+    }
+    Err(SnsHostError::InvalidRefreshPageSize {
+        page_size,
+        max_page_size: SNS_REFRESH_MAX_PAGE_SIZE,
+    })
 }
 
 /// Build a live fetch request for an SNS list command.

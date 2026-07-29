@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::cache_file::{CacheFileError, HostCacheError};
 
 #[test]
 fn refresh_writes_catalog_atomically_and_removes_lock() {
@@ -75,7 +76,10 @@ fn refresh_existing_fresh_lock_fails_fast() {
     let _ = fs::remove_dir_all(root);
     assert!(matches!(
         err,
-        SubnetCatalogHostError::RefreshAlreadyInProgress { .. }
+        SubnetCatalogHostError::Cache(HostCacheError::Operation {
+            source: CacheFileError::RefreshAlreadyInProgress { .. },
+            ..
+        })
     ));
 }
 
@@ -96,7 +100,10 @@ fn refresh_rejects_stale_lock_without_removing_it() {
 
     assert!(matches!(
         err,
-        SubnetCatalogHostError::StaleRefreshLock { .. }
+        SubnetCatalogHostError::Cache(HostCacheError::Operation {
+            source: CacheFileError::StaleRefreshLock { .. },
+            ..
+        })
     ));
     assert!(lock_path.exists());
     let _ = fs::remove_dir_all(root);

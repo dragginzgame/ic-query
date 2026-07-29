@@ -7,6 +7,7 @@
 use crate::sns::report::{
     SnsHostError, SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest,
     SnsProposalsCacheSummary, SnsRefreshAttemptStatus,
+    cache_attempt::read_sns_refresh_attempt_status_strict,
     cache_status::{
         SnsCacheStatusFamily, SnsCacheStatusPaths, SnsCacheStatusSummaryView,
         build_sns_cache_status_lookup,
@@ -14,7 +15,6 @@ use crate::sns::report::{
     find_sns_cache_summary_by_id,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-        attempt::read_sns_proposals_attempt_status_strict,
         paths::{SnsProposalsCachePaths, sns_network_cache_dir},
         storage::{
             collect_sns_proposals_cache_paths, load_sns_proposals_cache_summary_at,
@@ -112,7 +112,7 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
         attempt_path: &Path,
         network: &str,
     ) -> Result<Option<Self::Attempt>, SnsHostError> {
-        read_sns_proposals_attempt_status_strict(attempt_path, network)
+        read_sns_refresh_attempt_status_strict(attempt_path, network)
     }
 }
 

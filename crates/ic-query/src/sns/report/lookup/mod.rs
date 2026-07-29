@@ -12,5 +12,7 @@ mod resolve;
 
 pub(in crate::sns::report) use ids::assign_sns_ids_in_current_order;
 pub(in crate::sns::report) use network::enforce_mainnet_network;
-pub(in crate::sns::report) use request::{lookup_request_from_parts, sns_list_fetch_request};
+pub(in crate::sns::report) use request::{
+    lookup_request_from_parts, sns_list_fetch_request, validate_sns_refresh_page_size,
+};
 pub(in crate::sns::report) use resolve::resolve_sns_lookup;

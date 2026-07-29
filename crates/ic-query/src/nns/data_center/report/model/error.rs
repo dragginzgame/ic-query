@@ -1,4 +1,4 @@
-use crate::{ic_registry::RegistryFetchError, nns::leaf::NnsLeafHostCacheError};
+use crate::{HostCacheError, ic_registry::RegistryFetchError};
 use thiserror::Error as ThisError;
 
 ///
@@ -15,7 +15,7 @@ pub enum NnsDataCenterHostError {
     UnsupportedNetwork { network: String },
 
     #[error(transparent)]
-    Cache(#[from] NnsLeafHostCacheError),
+    Cache(#[from] HostCacheError),
 
     #[error("live NNS data-center refresh failed: {0}")]
     NnsQuery(#[from] RegistryFetchError),

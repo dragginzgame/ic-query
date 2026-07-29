@@ -4,10 +4,9 @@
 //! Does not own: cache path construction, refresh orchestration, or rendering.
 //! Boundary: defines complete proposal snapshot metadata, rows, and attempts.
 
-use crate::snapshot_cache::{SnapshotEnvelope, SnapshotHeader, SnapshotRefreshAttempt};
+use crate::snapshot_cache::{SnapshotEnvelope, SnapshotHeader};
 use crate::sns::report::{
     SnsProposalRow,
-    cache_attempt::SnsRefreshAttemptMetadata,
     cache_storage::{SnsCacheHeaderMetadata, SnsCacheMetadata},
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
@@ -15,8 +14,6 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 pub(super) type SnsProposalsCache = SnapshotEnvelope<SnsCacheMetadata, SnsProposalsCacheRows>;
 
 pub(super) type SnsProposalsCacheHeader = SnapshotHeader<SnsCacheHeaderMetadata>;
-
-pub(super) type SnsProposalsRefreshAttempt = SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
 
 ///
 /// SnsProposalsCacheRows

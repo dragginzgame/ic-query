@@ -23,7 +23,7 @@ pub use refresh::{refresh_nns_node_operator_report, refresh_nns_node_operator_re
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_node_operator;
 #[cfg(feature = "host")]
-pub use source::{LiveNnsNodeOperatorSource, NnsNodeOperatorSource, NnsNodeOperatorSourceRequest};
+pub use source::{LiveNnsNodeOperatorSource, NnsNodeOperatorSource};
 
 pub use model::{
     NnsNodeOperatorCacheRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,

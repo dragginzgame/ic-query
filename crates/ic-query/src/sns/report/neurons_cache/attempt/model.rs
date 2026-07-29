@@ -5,19 +5,14 @@
 //! Boundary: maps refresh context and progress into the generic snapshot attempt envelope.
 
 use crate::{
-    snapshot_cache::{
-        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt, current_attempt_timestamp,
-    },
+    snapshot_cache::{SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, current_attempt_timestamp},
     sns::report::{
         SnsNeuronsRefreshRequest,
-        cache_attempt::{SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
+        cache_attempt::{SnsRefreshAttempt, SnsRefreshAttemptMetadata, SnsRefreshAttemptProgress},
         source::{MainnetSns, SnsSourceRequest},
     },
 };
 use std::path::Path;
-
-pub(in crate::sns::report::neurons_cache) type SnsNeuronsRefreshAttempt =
-    SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
 
 ///
 /// SnsNeuronsAttemptContext
@@ -51,8 +46,8 @@ pub(in crate::sns::report::neurons_cache::attempt) struct SnsNeuronsAttemptParts
 
 pub(in crate::sns::report::neurons_cache::attempt) fn attempt_from_parts(
     parts: SnsNeuronsAttemptParts<'_>,
-) -> SnsNeuronsRefreshAttempt {
-    SnsNeuronsRefreshAttempt {
+) -> SnsRefreshAttempt {
+    SnsRefreshAttempt {
         schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
         network: parts.context.request.network.clone(),
         source_endpoint: parts.context.request.source_endpoint.clone(),

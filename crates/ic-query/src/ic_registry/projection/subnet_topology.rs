@@ -3,8 +3,10 @@ use crate::{
         MainnetRegistryFetchRequest, MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider,
         MainnetSubnetTopologySubnet, RegistryFetchError,
         projection::subnet_kind_from_registry,
-        proto::{NodeOperatorRecord, SubnetRecord},
-        relations::{RegistryRelationInventory, node_operator_references_from_records},
+        proto::SubnetRecord,
+        relations::{
+            RegistryRelationInventory, ResolvedNodeRelation, resolved_node_relations_from_records,
+        },
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -17,7 +19,11 @@ pub(in crate::ic_registry) fn subnet_topology_from_inventory(
     registry_version: u64,
 ) -> Result<MainnetSubnetTopology, RegistryFetchError> {
     let mut node_assignments = BTreeMap::<String, String>::new();
-    let node_operator_references = node_operator_references_from_records(&inventory.node_records)?;
+    let node_relations = resolved_node_relations_from_records(
+        &inventory.node_principals,
+        &inventory.node_records,
+        &inventory.node_operator_records,
+    )?;
     let mut subnets = Vec::with_capacity(inventory.subnet_records.len());
 
     for (subnet_principal, subnet_record) in &inventory.subnet_records {
@@ -29,8 +35,7 @@ pub(in crate::ic_registry) fn subnet_topology_from_inventory(
         let node_providers = subnet_node_providers(
             subnet_principal,
             subnet_record,
-            inventory,
-            &node_operator_references,
+            &node_relations,
             &mut node_assignments,
         )?;
         subnets.push(MainnetSubnetTopologySubnet {
@@ -55,8 +60,7 @@ pub(in crate::ic_registry) fn subnet_topology_from_inventory(
 fn subnet_node_providers(
     subnet_principal: &str,
     subnet_record: &SubnetRecord,
-    inventory: &RegistryRelationInventory,
-    node_operator_references: &BTreeMap<String, Vec<String>>,
+    node_relations: &BTreeMap<String, ResolvedNodeRelation>,
     node_assignments: &mut BTreeMap<String, String>,
 ) -> Result<Vec<MainnetSubnetTopologyNodeProvider>, RegistryFetchError> {
     let mut provider_counts = BTreeMap::<String, u32>::new();
@@ -76,38 +80,14 @@ fn subnet_node_providers(
                 second_subnet_principal: subnet_principal.to_string(),
             });
         }
-        let node_record = inventory.node_records.get(&node_principal).ok_or_else(|| {
+        let relation = node_relations.get(&node_principal).ok_or_else(|| {
             RegistryFetchError::MissingNodeRecord {
                 node_principal: node_principal.clone(),
             }
         })?;
-        if node_record.node_operator_id.is_empty() {
-            return Err(RegistryFetchError::MissingNodeOperatorPrincipal { node_principal });
-        }
-        let node_operator_principal = Principal::try_from_slice(&node_record.node_operator_id)
-            .map(|principal| principal.to_text())
-            .map_err(|err| RegistryFetchError::InvalidPrincipal {
-                field: "node_record.node_operator_id",
-                reason: err.to_string(),
-            })?;
-        let Some(node_operator_record) = inventory
-            .node_operator_records
-            .get(&node_operator_principal)
-        else {
-            let referencing_node_principals = node_operator_references
-                .get(&node_operator_principal)
-                .cloned()
-                .ok_or(RegistryFetchError::MissingField {
-                    field: "node_operator_references",
-                })?;
-            return Err(RegistryFetchError::MissingNodeOperatorRecord {
-                node_operator_principal,
-                referencing_node_principals,
-            });
-        };
-        let node_provider_principal =
-            node_provider_principal(&node_operator_principal, node_operator_record)?;
-        let count = provider_counts.entry(node_provider_principal).or_default();
+        let count = provider_counts
+            .entry(relation.node_provider_principal.clone())
+            .or_default();
         *count = count
             .checked_add(1)
             .ok_or(RegistryFetchError::CountOverflow {
@@ -124,23 +104,6 @@ fn subnet_node_providers(
             },
         )
         .collect())
-}
-
-fn node_provider_principal(
-    node_operator_principal: &str,
-    record: &NodeOperatorRecord,
-) -> Result<String, RegistryFetchError> {
-    if record.node_provider_principal_id.is_empty() {
-        return Err(RegistryFetchError::MissingNodeProviderPrincipal {
-            node_operator_principal: node_operator_principal.to_string(),
-        });
-    }
-    Principal::try_from_slice(&record.node_provider_principal_id)
-        .map(|principal| principal.to_text())
-        .map_err(|err| RegistryFetchError::InvalidPrincipal {
-            field: "node_operator_record.node_provider_principal_id",
-            reason: err.to_string(),
-        })
 }
 
 #[cfg(test)]

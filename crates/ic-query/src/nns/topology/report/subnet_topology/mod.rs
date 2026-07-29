@@ -30,9 +30,7 @@ pub use model::{
     CachedNnsSubnetTopologyReport, NnsSubnetTopologyCacheRequest, NnsSubnetTopologyRefreshRequest,
 };
 #[cfg(feature = "host")]
-pub use source::{
-    LiveNnsSubnetTopologySource, NnsSubnetTopologySource, NnsSubnetTopologySourceRequest,
-};
+pub use source::{LiveNnsSubnetTopologySource, NnsSubnetTopologySource};
 
 /// Current serialized schema version for exact-version Subnet topology reports.
 pub const NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION: u32 = 1;

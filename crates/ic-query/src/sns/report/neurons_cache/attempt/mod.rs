@@ -5,11 +5,9 @@
 //! Boundary: tracks refresh lifecycle status and progress for cache status reports.
 
 mod model;
-mod read;
 mod write;
 
 pub(super) use model::{SnsNeuronsAttemptContext, SnsNeuronsAttemptProgress};
-pub(super) use read::{read_sns_neurons_attempt_status, read_sns_neurons_attempt_status_strict};
 pub(super) use write::{
     write_complete_sns_neurons_attempt, write_failed_sns_neurons_attempt,
     write_running_sns_neurons_attempt, write_starting_sns_neurons_attempt,

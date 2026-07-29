@@ -1,10 +1,12 @@
 use crate::{
     ic_registry::{
         MainnetNode, MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
-        principal_text_from_required_raw,
         projection::subnet_kind_from_registry,
-        proto::{NodeOperatorRecord, NodeRecord, SubnetRecord},
-        relations::{RegistryRelationInventory, node_subnet_assignments_from_records},
+        proto::SubnetRecord,
+        relations::{
+            RegistryRelationInventory, ResolvedNodeRelation, node_subnet_assignments_from_records,
+            resolved_node_relations_from_records,
+        },
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -16,14 +18,17 @@ pub(in crate::ic_registry) fn node_list_from_inventory(
     registry_version: u64,
 ) -> Result<MainnetNodeList, RegistryFetchError> {
     let node_subnets = node_subnet_assignments_from_records(&inventory.subnet_records)?;
-    let mut nodes = inventory
-        .node_records
+    let node_relations = resolved_node_relations_from_records(
+        &inventory.node_principals,
+        &inventory.node_records,
+        &inventory.node_operator_records,
+    )?;
+    let mut nodes = node_relations
         .into_iter()
-        .map(|(principal, record)| {
-            node_from_record(
+        .map(|(principal, relation)| {
+            node_from_relation(
                 principal,
-                record,
-                &inventory.node_operator_records,
+                relation,
                 &inventory.subnet_records,
                 &node_subnets,
             )
@@ -41,24 +46,12 @@ pub(in crate::ic_registry) fn node_list_from_inventory(
     })
 }
 
-fn node_from_record(
+fn node_from_relation(
     principal: String,
-    record: NodeRecord,
-    node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
+    relation: ResolvedNodeRelation,
     subnet_records: &BTreeMap<String, SubnetRecord>,
     node_subnets: &BTreeMap<String, String>,
 ) -> Result<MainnetNode, RegistryFetchError> {
-    let node_operator_principal =
-        principal_text_from_required_raw(&record.node_operator_id, "node_record.node_operator_id")?;
-    let node_operator_record = node_operator_records.get(&node_operator_principal).ok_or(
-        RegistryFetchError::MissingField {
-            field: "node_operator_record",
-        },
-    )?;
-    let node_provider_principal = principal_text_from_required_raw(
-        &node_operator_record.node_provider_principal_id,
-        "node_operator_record.node_provider_principal_id",
-    )?;
     let subnet_principal =
         node_subnets
             .get(&principal)
@@ -73,12 +66,12 @@ fn node_from_record(
             })?;
     Ok(MainnetNode {
         principal,
-        node_operator_principal,
-        node_provider_principal,
+        node_operator_principal: relation.node_operator_principal,
+        node_provider_principal: relation.node_provider_principal,
         subnet_principal: subnet_principal.clone(),
         subnet_kind: subnet_kind_from_registry(subnet_record.subnet_type)
             .as_str()
             .to_string(),
-        data_center_id: node_operator_record.dc_id.clone(),
+        data_center_id: relation.data_center_id,
     })
 }

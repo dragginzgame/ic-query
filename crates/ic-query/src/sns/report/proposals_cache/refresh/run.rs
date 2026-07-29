@@ -13,10 +13,12 @@ use crate::{
         with_locked_snapshot_refresh,
     },
     sns::report::{
-        SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsProposalsRefreshReport,
-        SnsProposalsRefreshRequest,
+        SnsHostError, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
         live::LiveSnsSource,
-        lookup::{enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup},
+        lookup::{
+            enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup,
+            validate_sns_refresh_page_size,
+        },
         proposals_cache::{
             attempt::{write_failed_attempt, write_starting_attempt},
             collection::fetch_complete_sns_proposals,
@@ -57,7 +59,7 @@ pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progre
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
-    validate_refresh_page_size(request.page_size)?;
+    validate_sns_refresh_page_size(request.page_size)?;
     enforce_mainnet_network(&request.network)?;
     let lookup_request = lookup_request_from_parts(
         &request.network,
@@ -101,16 +103,6 @@ pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progre
             )
         },
     )
-}
-
-fn validate_refresh_page_size(page_size: u32) -> Result<(), SnsHostError> {
-    if (1..=SNS_REFRESH_MAX_PAGE_SIZE).contains(&page_size) {
-        return Ok(());
-    }
-    Err(SnsHostError::InvalidRefreshPageSize {
-        page_size,
-        max_page_size: SNS_REFRESH_MAX_PAGE_SIZE,
-    })
 }
 
 fn refresh_sns_proposals_cache_locked(

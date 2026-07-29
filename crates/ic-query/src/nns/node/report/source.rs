@@ -1,39 +1,9 @@
 use super::{NNS_NODE_LIST_REPORT_SCHEMA_VERSION, NnsNodeHostError, NnsNodeListReport, NnsNodeRow};
 use crate::{
-    ic_registry::{MainnetNodeList, MainnetRegistryFetchRequest, fetch_mainnet_node_list},
+    ic_registry::{MainnetNodeList, fetch_mainnet_node_list},
+    nns::{NnsInventorySourceRequest, inventory_source::mainnet_registry_fetch_request},
     subnet_catalog::format_utc_timestamp_secs,
 };
-
-///
-/// NnsNodeSourceRequest
-///
-/// Source request settings for fetching one complete NNS node inventory snapshot.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsNodeSourceRequest {
-    pub network: String,
-    pub endpoint: String,
-    pub fetched_at: String,
-    pub fetched_by: String,
-}
-
-impl NnsNodeSourceRequest {
-    #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        fetched_at: impl Into<String>,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            endpoint: endpoint.into(),
-            fetched_at: fetched_at.into(),
-            fetched_by: fetched_by.into(),
-        }
-    }
-}
 
 ///
 /// NnsNodeSource
@@ -44,7 +14,7 @@ impl NnsNodeSourceRequest {
 pub trait NnsNodeSource {
     fn fetch_node_list_report(
         &self,
-        request: &NnsNodeSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeListReport, NnsNodeHostError>;
 }
 
@@ -59,11 +29,11 @@ pub struct LiveNnsNodeSource;
 impl NnsNodeSource for LiveNnsNodeSource {
     fn fetch_node_list_report(
         &self,
-        request: &NnsNodeSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-        let mut fetch_request = MainnetRegistryFetchRequest::new(request.fetched_at.clone());
-        fetch_request.endpoint.clone_from(&request.endpoint);
-        fetch_request.fetched_by.clone_from(&request.fetched_by);
+        let fetch_request = mainnet_registry_fetch_request(request, |network| {
+            NnsNodeHostError::UnsupportedNetwork { network }
+        })?;
         Ok(node_report_from_list(fetch_mainnet_node_list(
             &fetch_request,
         )?))
@@ -78,7 +48,8 @@ pub(super) fn fetch_nns_node_list_report_with_source(
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
     super::enforce_mainnet_network(network)?;
     let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let fetch_request = NnsNodeSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
+    let fetch_request =
+        NnsInventorySourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
     source.fetch_node_list_report(&fetch_request)
 }
 

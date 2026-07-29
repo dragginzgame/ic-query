@@ -13,6 +13,7 @@ use crate::duration::parse_duration_seconds;
 #[cfg(test)]
 use super::SubnetCatalogHostError;
 use super::{CatalogStaleStatus, SubnetCatalog};
+use crate::freshness::freshness_facts;
 
 /// Computes stale/fresh metadata for a catalog relative to a caller-provided time.
 #[must_use]
@@ -21,31 +22,17 @@ pub fn catalog_stale_status(
     now_unix_secs: u64,
     stale_after_seconds: u64,
 ) -> CatalogStaleStatus {
-    let Some(fetched_at_unix_secs) = parse_utc_timestamp_secs(&catalog.fetched_at) else {
-        return CatalogStaleStatus {
-            catalog_stale: true,
-            stale_reason: "fetched_at_unparseable".to_string(),
-            stale_after_seconds,
-            fetched_at_unix_secs: None,
-            age_seconds: None,
-        };
-    };
-    let Some(age_seconds) = now_unix_secs.checked_sub(fetched_at_unix_secs) else {
-        return CatalogStaleStatus {
-            catalog_stale: true,
-            stale_reason: "fetched_at_in_future".to_string(),
-            stale_after_seconds,
-            fetched_at_unix_secs: Some(fetched_at_unix_secs),
-            age_seconds: None,
-        };
-    };
-    let catalog_stale = age_seconds > stale_after_seconds;
-    CatalogStaleStatus {
-        catalog_stale,
-        stale_reason: if catalog_stale { "expired" } else { "fresh" }.to_string(),
+    let freshness = freshness_facts(
+        parse_utc_timestamp_secs(&catalog.fetched_at),
+        now_unix_secs,
         stale_after_seconds,
-        fetched_at_unix_secs: Some(fetched_at_unix_secs),
-        age_seconds: Some(age_seconds),
+    );
+    CatalogStaleStatus {
+        catalog_stale: freshness.stale,
+        stale_reason: freshness.reason.to_string(),
+        stale_after_seconds: freshness.stale_after_seconds,
+        fetched_at_unix_secs: freshness.fetched_at_unix_secs,
+        age_seconds: freshness.age_seconds,
     }
 }
 

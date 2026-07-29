@@ -16,6 +16,8 @@
 #[cfg(feature = "host")]
 mod cache_file;
 pub mod duration;
+#[cfg(feature = "host")]
+mod freshness;
 mod hex;
 #[cfg(feature = "host")]
 mod ic_registry;
@@ -29,6 +31,9 @@ mod runtime;
 pub(crate) mod snapshot_cache;
 pub mod sns;
 pub mod subnet_catalog;
+
+#[cfg(feature = "host")]
+pub use cache_file::{CacheFileError, HostCacheError};
 mod table;
 #[cfg(feature = "host")]
 mod text_search;

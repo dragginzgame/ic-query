@@ -7,9 +7,10 @@ use super::{
 };
 use crate::{
     cache_file::{
-        LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshLockRequest,
+        HostCacheError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshLockRequest,
         create_parent_directory, load_json_cache, with_refresh_lock, write_text_atomically,
     },
+    freshness::freshness_facts,
     subnet_catalog::{MAINNET_REGISTRY_CANISTER_ID, parse_utc_timestamp_secs},
 };
 use std::{
@@ -19,6 +20,7 @@ use std::{
 
 const CACHE_DIR: &str = "subnet-topology";
 const CACHE_FILE: &str = "report.json";
+const CACHE_COMPONENT: &str = "Subnet topology";
 
 /// Return the canonical joined Subnet topology cache path.
 #[must_use]
@@ -73,7 +75,8 @@ pub fn refresh_nns_subnet_topology_with_source(
         nns_subnet_topology_cache_path(&request.cache.icp_root, &request.cache.network);
     let lock_path =
         nns_subnet_topology_refresh_lock_path(&request.cache.icp_root, &request.cache.network);
-    create_parent_directory(&cache_path)?;
+    create_parent_directory(&cache_path)
+        .map_err(|error| HostCacheError::operation(CACHE_COMPONENT, error))?;
     with_refresh_lock(
         RefreshLockRequest {
             lock_path: &lock_path,
@@ -82,7 +85,7 @@ pub fn refresh_nns_subnet_topology_with_source(
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
-        NnsSubnetTopologyHostError::from,
+        |error| HostCacheError::operation(CACHE_COMPONENT, error).into(),
         || {
             let source_request = source_request(
                 &request.cache.network,
@@ -96,12 +99,10 @@ pub fn refresh_nns_subnet_topology_with_source(
                 Some(&request.source_endpoint),
             )?;
             let report_json = serde_json::to_string_pretty(&report).map_err(|source| {
-                NnsSubnetTopologyHostError::SerializeCache {
-                    path: cache_path.clone(),
-                    source,
-                }
+                HostCacheError::serialize_cache(CACHE_COMPONENT, cache_path.clone(), source)
             })?;
-            write_text_atomically(&cache_path, &report_json)?;
+            write_text_atomically(&cache_path, &report_json)
+                .map_err(|error| HostCacheError::operation(CACHE_COMPONENT, error))?;
             Ok(CachedNnsSubnetTopologyReport {
                 path: cache_path.clone(),
                 report,
@@ -124,7 +125,7 @@ pub fn load_or_refresh_missing_nns_subnet_topology_with_source(
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     match load_cached_nns_subnet_topology(&request.cache) {
         Ok(cached) => Ok(cached),
-        Err(NnsSubnetTopologyHostError::MissingCache { .. }) => {
+        Err(NnsSubnetTopologyHostError::Cache(HostCacheError::MissingCache { .. })) => {
             refresh_nns_subnet_topology_with_source(request, source)
         }
         Err(error) => Err(error),
@@ -160,7 +161,7 @@ pub fn load_or_refresh_stale_nns_subnet_topology_with_source(
         {
             Ok(cached)
         }
-        Ok(_) | Err(NnsSubnetTopologyHostError::MissingCache { .. }) => {
+        Ok(_) | Err(NnsSubnetTopologyHostError::Cache(HostCacheError::MissingCache { .. })) => {
             refresh_nns_subnet_topology_with_source(request, source)
         }
         Err(error) => Err(error),
@@ -174,31 +175,17 @@ pub fn nns_subnet_topology_freshness(
     now_unix_secs: u64,
     stale_after_seconds: u64,
 ) -> NnsSubnetTopologyFreshness {
-    let Some(fetched_at_unix_secs) = parse_utc_timestamp_secs(&report.fetched_at) else {
-        return NnsSubnetTopologyFreshness {
-            stale: true,
-            reason: "fetched_at_unparseable".to_string(),
-            stale_after_seconds,
-            fetched_at_unix_secs: None,
-            age_seconds: None,
-        };
-    };
-    let Some(age_seconds) = now_unix_secs.checked_sub(fetched_at_unix_secs) else {
-        return NnsSubnetTopologyFreshness {
-            stale: true,
-            reason: "fetched_at_in_future".to_string(),
-            stale_after_seconds,
-            fetched_at_unix_secs: Some(fetched_at_unix_secs),
-            age_seconds: None,
-        };
-    };
-    let stale = age_seconds > stale_after_seconds;
-    NnsSubnetTopologyFreshness {
-        stale,
-        reason: if stale { "expired" } else { "fresh" }.to_string(),
+    let freshness = freshness_facts(
+        parse_utc_timestamp_secs(&report.fetched_at),
+        now_unix_secs,
         stale_after_seconds,
-        fetched_at_unix_secs: Some(fetched_at_unix_secs),
-        age_seconds: Some(age_seconds),
+    );
+    NnsSubnetTopologyFreshness {
+        stale: freshness.stale,
+        reason: freshness.reason.to_string(),
+        stale_after_seconds: freshness.stale_after_seconds,
+        fetched_at_unix_secs: freshness.fetched_at_unix_secs,
+        age_seconds: freshness.age_seconds,
     }
 }
 
@@ -237,22 +224,22 @@ impl LoadJsonCacheErrorMapper for SubnetTopologyLoadErrors {
     type Error = NnsSubnetTopologyHostError;
 
     fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        NnsSubnetTopologyHostError::MissingCache { path }
+        HostCacheError::missing_cache(CACHE_COMPONENT, path).into()
     }
 
     fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        NnsSubnetTopologyHostError::ReadCache { path, source }
+        HostCacheError::read_cache(CACHE_COMPONENT, path, source).into()
     }
 
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        NnsSubnetTopologyHostError::ParseCache { path, source }
+        HostCacheError::parse_cache(CACHE_COMPONENT, path, source).into()
     }
 
     fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        NnsSubnetTopologyHostError::UnsupportedCacheSchemaVersion { version, expected }
+        HostCacheError::unsupported_cache_schema_version(CACHE_COMPONENT, version, expected).into()
     }
 
     fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        NnsSubnetTopologyHostError::CacheNetworkMismatch { requested, actual }
+        HostCacheError::network_mismatch(CACHE_COMPONENT, requested, actual).into()
     }
 }

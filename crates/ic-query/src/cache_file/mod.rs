@@ -12,7 +12,7 @@ mod policy;
 mod tests;
 mod write;
 
-pub use error::CacheFileError;
+pub use error::{CacheFileError, HostCacheError};
 pub use json::{
     CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
     load_json_cache,

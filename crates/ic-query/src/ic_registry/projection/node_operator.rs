@@ -1,9 +1,12 @@
 use crate::{
     ic_registry::{
         MainnetNodeOperator, MainnetNodeOperatorList, MainnetRegistryFetchRequest,
-        RegistryFetchError, principal_text_from_required_raw,
+        RegistryFetchError,
         proto::NodeOperatorRecord,
-        relations::{RegistryRelationInventory, node_operator_counts_from_records},
+        relations::{
+            RegistryRelationInventory, node_operator_counts_from_records,
+            node_provider_principal_from_record,
+        },
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -41,10 +44,7 @@ fn node_operator_from_record(
     record: NodeOperatorRecord,
     node_counts: &BTreeMap<String, u32>,
 ) -> Result<MainnetNodeOperator, RegistryFetchError> {
-    let node_provider_principal = principal_text_from_required_raw(
-        &record.node_provider_principal_id,
-        "node_operator_record.node_provider_principal_id",
-    )?;
+    let node_provider_principal = node_provider_principal_from_record(&principal, &record)?;
     Ok(MainnetNodeOperator {
         node_count: Some(node_counts.get(&principal).copied().unwrap_or(0)),
         principal,

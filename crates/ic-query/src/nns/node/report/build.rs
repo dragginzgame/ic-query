@@ -8,7 +8,7 @@ use super::{
     resolve::resolve_node,
     source::{LiveNnsNodeSource, NnsNodeSource},
 };
-use crate::{cache_file::load_or_refresh_missing_cache, nns::leaf::NnsLeafHostCacheError};
+use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache};
 
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
@@ -29,7 +29,7 @@ pub fn build_nns_node_list_report_with_source(
     let report = load_or_refresh_missing_cache(
         || load_cached_nns_node_report(&request.cache).map(|cached| cached.report),
         |err| match err {
-            NnsNodeHostError::Cache(NnsLeafHostCacheError::MissingCache { path, .. }) => Ok(path),
+            NnsNodeHostError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
             err => Err(err),
         },
         |_| {

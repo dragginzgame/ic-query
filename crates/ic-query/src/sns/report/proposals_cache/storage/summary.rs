@@ -6,9 +6,10 @@
 
 use super::{load::load_sns_proposals_cache_at, scan::collect_sns_proposals_cache_paths};
 use crate::snapshot_cache::SNAPSHOT_CACHE_STATUS_OK;
-use crate::sns::report::proposals_cache::attempt::read_sns_proposals_attempt_status;
 use crate::sns::report::{
-    SnsHostError, SnsProposalsCacheSummary, invalid_sns_cache_summary_fields,
+    SnsHostError, SnsProposalsCacheSummary,
+    cache_attempt::read_sns_refresh_attempt_status,
+    invalid_sns_cache_summary_fields,
     proposals_cache::{model::SnsProposalsCache, paths::attempt_path_for_cache_path},
 };
 use std::path::{Path, PathBuf};
@@ -40,7 +41,7 @@ pub(in crate::sns::report::proposals_cache) fn sns_proposals_cache_summary(
     cache: SnsProposalsCache,
 ) -> SnsProposalsCacheSummary {
     let attempt_path = attempt_path_for_cache_path(&cache_path);
-    let latest_attempt = read_sns_proposals_attempt_status(&attempt_path, &cache.network);
+    let latest_attempt = read_sns_refresh_attempt_status(&attempt_path, &cache.network);
     SnsProposalsCacheSummary {
         id: cache.metadata.id,
         name: cache.metadata.name,
@@ -82,6 +83,6 @@ pub(in crate::sns::report::proposals_cache) fn invalid_sns_proposals_cache_summa
         source_endpoint: fields.source_endpoint,
         refresh_attempt_path: fields.refresh_attempt_path,
         cache_path: fields.cache_path,
-        latest_attempt: read_sns_proposals_attempt_status(&attempt_path, network),
+        latest_attempt: read_sns_refresh_attempt_status(&attempt_path, network),
     }
 }

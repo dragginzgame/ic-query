@@ -1,12 +1,32 @@
 use super::{
-    NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
-    NnsNodeListRequest, NnsNodeRow, NnsNodeSource, NnsNodeSourceRequest,
+    LiveNnsNodeSource, NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListFilters,
+    NnsNodeListReport, NnsNodeListRequest, NnsNodeRow, NnsNodeSource,
     build_nns_node_list_report_with_source, filter_node_list_report, nns_node_list_report_text,
     resolve_node,
 };
 use crate::ic_registry::MainnetNode;
+use crate::nns::NnsInventorySourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
+
+#[test]
+fn live_node_source_rejects_non_mainnet_before_agent_construction() {
+    let request = NnsInventorySourceRequest::new(
+        "local",
+        "not a valid replica endpoint",
+        "2026-07-29T00:00:00Z",
+        "test",
+    );
+
+    let error = LiveNnsNodeSource
+        .fetch_node_list_report(&request)
+        .expect_err("unsupported network");
+
+    assert!(matches!(
+        error,
+        NnsNodeHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+}
 
 #[test]
 fn node_report_uses_live_registry_source() {
@@ -138,7 +158,7 @@ struct FixtureNodeSource {
 impl NnsNodeSource for FixtureNodeSource {
     fn fetch_node_list_report(
         &self,
-        request: &NnsNodeSourceRequest,
+        request: &NnsInventorySourceRequest,
     ) -> Result<NnsNodeListReport, NnsNodeHostError> {
         let nodes = self
             .nodes

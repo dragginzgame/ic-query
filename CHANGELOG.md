@@ -9,6 +9,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.11.md](docs/changelog/0.11.md)
 
+- `0.11.1` consolidates Registry inventory source requests, exact relation
+  resolution, host cache errors, freshness/provenance projection, and SNS
+  refresh-attempt reads. All public NNS Registry inventory live sources now
+  reject non-mainnet requests before agent construction. This is a breaking
+  library hard cut: the five family-specific inventory source-request types
+  become `ic_query::nns::NnsInventorySourceRequest`, and component cache
+  failures are exposed through `HostCacheError` and `CacheFileError`. Report
+  schemas, cache formats, and CLI behavior are unchanged.
+
 - `0.11.0` adds an exact-Registry-version `NnsSubnetTopologyReport` with raw
   Subnet kinds, canonical per-Subnet node-provider counts, strict relation and
   count validation, atomic joined caching, and distinct load, refresh,

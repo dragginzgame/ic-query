@@ -5,13 +5,13 @@
 //! Boundary: maps generic cache-file load/write operations to leaf cache errors.
 
 use super::{
-    error::NnsLeafHostCacheError,
     model::{NnsLeafCacheRequest, NnsLeafRefreshRequest},
     paths::NnsLeafCachePaths,
 };
 use crate::cache_file::{
-    CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-    RefreshCacheWriteRequest, RefreshCacheWriteResult, load_json_cache, write_json_refresh_cache,
+    CachedJsonReport, HostCacheError, JsonCacheReport, LoadJsonCacheErrorMapper,
+    LoadJsonCacheRequest, RefreshCacheWriteRequest, RefreshCacheWriteResult, load_json_cache,
+    write_json_refresh_cache,
 };
 use serde::{Serialize, de::DeserializeOwned};
 use std::{io, path::PathBuf};
@@ -22,7 +22,7 @@ pub(in crate::nns) fn load_nns_leaf_json_cache<Cache, Report>(
     component_dir: &'static str,
     cache_file: &str,
     expected_schema_version: u32,
-) -> Result<CachedJsonReport<Report>, NnsLeafHostCacheError>
+) -> Result<CachedJsonReport<Report>, HostCacheError>
 where
     Cache: NnsLeafCacheRequest,
     Report: DeserializeOwned + JsonCacheReport,
@@ -51,7 +51,7 @@ pub(in crate::nns) fn write_nns_leaf_json_refresh_cache<Request, Report>(
     component_dir: &'static str,
     cache_file: &str,
     report: &Report,
-) -> Result<RefreshCacheWriteResult, NnsLeafHostCacheError>
+) -> Result<RefreshCacheWriteResult, HostCacheError>
 where
     Request: NnsLeafRefreshRequest,
     Report: Serialize,
@@ -74,8 +74,8 @@ where
             output_path: request.output_path(),
             report,
         },
-        |err| NnsLeafHostCacheError::from_cache_file_error(component_dir, err),
-        |path, source| NnsLeafHostCacheError::serialize_cache(component_dir, path, source),
+        |err| HostCacheError::operation(component_dir, err),
+        |path, source| HostCacheError::serialize_cache(component_dir, path, source),
     )
 }
 
@@ -84,25 +84,25 @@ struct NnsLeafLoadJsonCacheErrors {
 }
 
 impl LoadJsonCacheErrorMapper for NnsLeafLoadJsonCacheErrors {
-    type Error = NnsLeafHostCacheError;
+    type Error = HostCacheError;
 
     fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        NnsLeafHostCacheError::missing_cache(self.component, path)
+        HostCacheError::missing_cache(self.component, path)
     }
 
     fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        NnsLeafHostCacheError::read_cache(self.component, path, source)
+        HostCacheError::read_cache(self.component, path, source)
     }
 
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        NnsLeafHostCacheError::parse_cache(self.component, path, source)
+        HostCacheError::parse_cache(self.component, path, source)
     }
 
     fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        NnsLeafHostCacheError::unsupported_cache_schema_version(self.component, version, expected)
+        HostCacheError::unsupported_cache_schema_version(self.component, version, expected)
     }
 
     fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        NnsLeafHostCacheError::network_mismatch(self.component, requested, actual)
+        HostCacheError::network_mismatch(self.component, requested, actual)
     }
 }

@@ -5,6 +5,8 @@
 mod macros;
 pub mod data_center;
 #[cfg(feature = "host")]
+mod inventory_source;
+#[cfg(feature = "host")]
 mod leaf;
 pub mod node;
 pub mod node_operator;
@@ -13,3 +15,6 @@ pub mod proposals;
 pub mod registry;
 pub mod render;
 pub mod topology;
+
+#[cfg(feature = "host")]
+pub use inventory_source::NnsInventorySourceRequest;

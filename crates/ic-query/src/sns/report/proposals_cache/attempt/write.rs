@@ -8,10 +8,12 @@ use super::model::{
     SnsProposalsAttemptContext, SnsProposalsAttemptParts, SnsProposalsAttemptProgress,
     attempt_from_parts,
 };
-use super::read::read_sns_proposals_attempt;
 use crate::{
     snapshot_cache::write_snapshot_refresh_attempt,
-    sns::report::{SnsHostError, proposals_cache::model::SnsProposalsRefreshAttempt},
+    sns::report::{
+        SnsHostError,
+        cache_attempt::{SnsRefreshAttempt, read_sns_refresh_attempt},
+    },
 };
 use std::path::Path;
 
@@ -48,7 +50,7 @@ pub(in crate::sns::report::proposals_cache) fn write_failed_attempt(
     context: SnsProposalsAttemptContext<'_>,
     err: &SnsHostError,
 ) {
-    let latest = read_sns_proposals_attempt(context.path, &context.request.network);
+    let latest = read_sns_refresh_attempt(context.path, &context.request.network);
     let progress = SnsProposalsAttemptProgress::new(
         latest.as_ref().map_or(0, |attempt| attempt.pages_fetched),
         latest.as_ref().map_or(0, |attempt| attempt.rows_fetched),
@@ -74,10 +76,7 @@ pub(in crate::sns::report::proposals_cache::attempt) fn write_attempt_status(
     )
 }
 
-fn write_proposals_attempt(
-    path: &Path,
-    attempt: &SnsProposalsRefreshAttempt,
-) -> Result<(), SnsHostError> {
+fn write_proposals_attempt(path: &Path, attempt: &SnsRefreshAttempt) -> Result<(), SnsHostError> {
     write_snapshot_refresh_attempt(
         path,
         attempt,

@@ -21,13 +21,13 @@ fn public_subnet_topology_model_is_constructible_and_validatable_without_host() 
 #[cfg(feature = "host")]
 mod host {
     use super::*;
+    use ic_query::nns::NnsInventorySourceRequest;
     use ic_query::nns::topology::{
         CachedNnsSubnetTopologyReport, LiveNnsSubnetTopologySource, NnsSubnetTopologyCacheRequest,
         NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest, NnsSubnetTopologySource,
-        NnsSubnetTopologySourceRequest, load_cached_nns_subnet_topology,
-        load_or_refresh_missing_nns_subnet_topology, load_or_refresh_stale_nns_subnet_topology,
-        nns_subnet_topology_cache_path, nns_subnet_topology_freshness,
-        refresh_nns_subnet_topology_with_source,
+        load_cached_nns_subnet_topology, load_or_refresh_missing_nns_subnet_topology,
+        load_or_refresh_stale_nns_subnet_topology, nns_subnet_topology_cache_path,
+        nns_subnet_topology_freshness, refresh_nns_subnet_topology_with_source,
     };
     use std::{
         fs,
@@ -39,7 +39,7 @@ mod host {
 
     #[test]
     fn public_live_source_rejects_non_mainnet_before_agent_construction() {
-        let request = NnsSubnetTopologySourceRequest::new(
+        let request = NnsInventorySourceRequest::new(
             "local",
             "not a valid replica endpoint",
             "2026-07-29T00:00:00Z",
@@ -91,7 +91,7 @@ mod host {
     impl NnsSubnetTopologySource for FixtureSource {
         fn fetch_subnet_topology_report(
             &self,
-            request: &NnsSubnetTopologySourceRequest,
+            request: &NnsInventorySourceRequest,
         ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
             Ok(fixture_report(77, &request.fetched_at, &request.endpoint))
         }
