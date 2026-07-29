@@ -9,6 +9,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.11.md](docs/changelog/0.11.md)
 
+- `0.11.4` centralizes NNS node, data-center, node-operator, and node-provider
+  cache-path, refresh-lock-path, network-validation, and typed cache-load
+  wrappers. Public paths, errors, cache schemas, and refresh behavior are
+  unchanged.
+
 - `0.11.3` centralizes the shared NNS node, data-center, node-operator, and
   node-provider refresh-report and text projections. Public report fields,
   JSON and text output, cache behavior, and CLI behavior are unchanged.
