@@ -16,7 +16,7 @@ categories = ["command-line-utilities"]
 [dependencies]
 candid.workspace = true
 futures = { version = "0.3", optional = true }
-ic-agent = { version = "0.48.1", default-features = false, optional = true }
+ic-agent = { version = "0.49.2", default-features = false, optional = true }
 prost = { version = "0.14.3", optional = true }
 serde.workspace = true
 serde_json.workspace = true

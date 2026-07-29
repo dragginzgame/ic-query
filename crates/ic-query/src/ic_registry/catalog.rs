@@ -1,14 +1,14 @@
 use super::{
     MainnetRegistryFetchRequest, RegistryFetchError, apply_mainnet_annotations, canister_id_text,
     principal_text_from_raw,
-    proto::{RoutingTable, SubnetListRecord, SubnetRecord, SubnetType},
+    projection::subnet_kind_from_registry,
+    proto::{RoutingTable, SubnetListRecord, SubnetRecord},
     subnet_id_text, subnet_record_key,
     transport::{decode_message, get_registry_value},
 };
 use crate::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_NETWORK,
-    MAINNET_REGISTRY_CANISTER_ID, RoutingRange, SubnetCatalog, SubnetInfo, SubnetKind,
-    SubnetSpecialization,
+    MAINNET_REGISTRY_CANISTER_ID, RoutingRange, SubnetCatalog, SubnetInfo, SubnetSpecialization,
 };
 use candid::Principal;
 use futures::future::try_join_all;
@@ -72,12 +72,7 @@ pub(super) async fn catalog_from_registry_records(
 }
 
 pub(super) fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRecord) -> SubnetInfo {
-    let subnet_kind = match SubnetType::try_from(record.subnet_type).ok() {
-        Some(SubnetType::Application | SubnetType::VerifiedApplication) => SubnetKind::Application,
-        Some(SubnetType::CloudEngine) => SubnetKind::CloudEngine,
-        Some(SubnetType::System) => SubnetKind::System,
-        Some(SubnetType::Unspecified) | None => SubnetKind::Unknown,
-    };
+    let subnet_kind = subnet_kind_from_registry(record.subnet_type);
     let charges_apply_by_default = subnet_kind.charges_apply_by_default();
     SubnetInfo {
         subnet_principal: subnet_principal.to_string(),

@@ -29,6 +29,7 @@ mod relations;
 mod request;
 #[cfg(feature = "host")]
 mod source;
+mod subnet_topology;
 #[cfg(feature = "host")]
 mod summary;
 mod text;
@@ -83,6 +84,24 @@ pub use request::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
 pub use source::{
     LiveNnsTopologySource, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
     NnsTopologySource, NnsTopologySourceRequest,
+};
+#[cfg(feature = "host")]
+pub use subnet_topology::{
+    CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
+    DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
+    LiveNnsSubnetTopologySource, NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
+    NnsSubnetTopologyRefreshRequest, NnsSubnetTopologySource, NnsSubnetTopologySourceRequest,
+    load_cached_nns_subnet_topology, load_or_refresh_missing_nns_subnet_topology,
+    load_or_refresh_missing_nns_subnet_topology_with_source,
+    load_or_refresh_stale_nns_subnet_topology,
+    load_or_refresh_stale_nns_subnet_topology_with_source, nns_subnet_topology_cache_path,
+    nns_subnet_topology_freshness, nns_subnet_topology_refresh_lock_path,
+    refresh_nns_subnet_topology, refresh_nns_subnet_topology_with_source,
+};
+pub use subnet_topology::{
+    NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetNodeProviderRow,
+    NnsSubnetTopologyFreshness, NnsSubnetTopologyReport, NnsSubnetTopologyRow,
+    NnsSubnetTopologyValidationError, nns_subnet_topology_report_text,
 };
 pub use text::{
     nns_topology_capacity_report_text, nns_topology_coverage_report_text,

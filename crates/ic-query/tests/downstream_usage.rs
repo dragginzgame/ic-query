@@ -48,6 +48,12 @@ mod host {
             NnsRegistryVersionData, NnsRegistryVersionRequest,
             build_nns_registry_version_report_with_source, nns_registry_version_report_text,
         },
+        nns::topology::{
+            CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
+            DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, NnsSubnetTopologyCacheRequest,
+            NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
+            refresh_nns_subnet_topology,
+        },
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsCacheStatusRequest,
             SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort,
@@ -74,6 +80,7 @@ mod host {
         accepts_nns_node_example(render_application_nodes);
         accepts_icrc_example(render_token);
         accepts_custom_source_example(render_registry_version_with_source);
+        accepts_subnet_topology_example(refresh_subnet_topology);
         accepts_sns_proposals_example(render_recent_sns_proposals);
         accepts_sns_neurons_example(render_cached_sns_neurons);
         accepts_sns_cache_status_example(render_sns_cache_status);
@@ -185,6 +192,19 @@ mod host {
         Ok(sns_proposals_report_text(&report))
     }
 
+    fn refresh_subnet_topology(
+        project_root: &Path,
+        now_unix_secs: u64,
+    ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
+        let request = NnsSubnetTopologyRefreshRequest::new(
+            NnsSubnetTopologyCacheRequest::new(project_root, "ic"),
+            DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
+            now_unix_secs,
+            DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
+        );
+        refresh_nns_subnet_topology(&request)
+    }
+
     fn render_cached_sns_neurons(
         project_root: &Path,
         sns_input: &str,
@@ -255,6 +275,14 @@ mod host {
 
     fn accepts_sns_proposals_example(
         _example: fn(&Path, &str, u64) -> Result<String, SnsHostError>,
+    ) {
+    }
+
+    fn accepts_subnet_topology_example(
+        _example: fn(
+            &Path,
+            u64,
+        ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError>,
     ) {
     }
 

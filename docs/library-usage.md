@@ -84,7 +84,8 @@ list/info/token/params, SNS proposal, and SNS neuron host APIs expose this
 pattern with `IcrcSource`, `build_icrc_*_report_with_source`,
 `SubnetCatalogSource`, subnet catalog `*_with_source` builders,
 `NnsRegistrySource`, the NNS inventory source traits, `NnsProposalSource`,
-`NnsTopologySource`, `NnsTopologyRefreshSource`, `SnsListSource`,
+`NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
+`SnsListSource`,
 `SnsTokenSource`, `SnsParamsSource`, `SnsProposalSource`,
 `SnsProposalsSource`, and `SnsNeuronsSource`.
 
@@ -202,6 +203,44 @@ fn render_subnet_info(
 `load_cached_subnet_catalog` is cache-only. `load_or_refresh_subnet_catalog`
 and the report builders can refresh missing cache data, so downstream commands
 should surface that behavior clearly.
+
+## Exact-Version Subnet Topology
+
+Placement-sensitive host tools should use the joined Subnet topology snapshot
+instead of joining independently cached topology components. Its live source
+resolves one Registry version and derives every Subnet, node, operator, and
+provider relation at that exact version:
+
+```rust
+use std::path::Path;
+
+use ic_query::nns::topology::{
+    DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
+    DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, CachedNnsSubnetTopologyReport,
+    NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
+    NnsSubnetTopologyRefreshRequest, refresh_nns_subnet_topology,
+};
+
+fn refresh_subnet_topology(
+    project_root: &Path,
+    now_unix_secs: u64,
+) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
+    let request = NnsSubnetTopologyRefreshRequest::new(
+        NnsSubnetTopologyCacheRequest::new(project_root, "ic"),
+        DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
+        now_unix_secs,
+        DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
+    );
+    refresh_nns_subnet_topology(&request)
+}
+```
+
+Use `load_cached_nns_subnet_topology` for a strictly local read,
+`load_or_refresh_missing_nns_subnet_topology` when only absence authorizes a
+live call, and `load_or_refresh_stale_nns_subnet_topology` when a
+caller-supplied age policy authorizes refresh. These operations are distinct
+so a consumer cannot mistake read-through cache creation for freshness
+enforcement.
 
 ## Native Report Example
 

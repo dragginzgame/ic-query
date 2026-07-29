@@ -4,11 +4,12 @@ use super::{
     keys::{node_operator_record_key, node_record_key},
 };
 use crate::ic_registry::{
-    RegistryFetchError, SUBNET_LIST_KEY, principal_text_from_raw, principal_text_from_required_raw,
+    RegistryFetchError, SUBNET_LIST_KEY, principal_text_from_raw,
     proto::{NodeOperatorRecord, NodeRecord, SubnetListRecord, SubnetRecord},
     relations::{
         RegistryRelationInventory, RegistryRelationInventoryScope,
-        assigned_node_principals_from_subnets, node_provider_counts_from_records,
+        assigned_node_principals_from_subnets, node_operator_references_from_records,
+        node_provider_counts_from_records,
     },
     subnet_record_key,
     transport::{decode_message, get_registry_value},
@@ -55,6 +56,14 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
         .iter()
         .map(|subnet_raw| principal_text_from_raw(subnet_raw, "subnet_list.subnets"))
         .collect::<Result<Vec<_>, _>>()?;
+    let mut unique_subnet_principals = BTreeSet::new();
+    for subnet_principal in &subnet_principals {
+        if !unique_subnet_principals.insert(subnet_principal.clone()) {
+            return Err(RegistryFetchError::DuplicateSubnetPrincipal {
+                subnet_principal: subnet_principal.clone(),
+            });
+        }
+    }
     let subnet_records = stream::iter(subnet_principals)
         .map(|subnet_principal| async move {
             let key = subnet_record_key(&subnet_principal);
@@ -71,8 +80,9 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
     let node_records = stream::iter(node_principals.iter().cloned())
         .map(|node_principal| async move {
             let key = node_record_key(&node_principal);
-            let record_bytes =
-                get_registry_value(agent, registry_canister, &key, registry_version).await?;
+            let record_bytes = get_registry_value(agent, registry_canister, &key, registry_version)
+                .await
+                .map_err(|error| translate_missing_node_record(&node_principal, error))?;
             let record = decode_message::<NodeRecord>("NodeRecord", &record_bytes)?;
             Ok::<_, RegistryFetchError>((node_principal, record))
         })
@@ -80,22 +90,27 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
         .try_collect::<BTreeMap<_, _>>()
         .await?;
 
-    let mut node_operator_principals = BTreeSet::new();
-    for record in node_records.values() {
-        node_operator_principals.insert(principal_text_from_required_raw(
-            &record.node_operator_id,
-            "node_record.node_operator_id",
-        )?);
-    }
+    let node_operator_references = node_operator_references_from_records(&node_records)?;
 
-    let node_operator_records = stream::iter(node_operator_principals)
-        .map(|node_operator_principal| async move {
-            let key = node_operator_record_key(&node_operator_principal);
-            let record_bytes =
-                get_registry_value(agent, registry_canister, &key, registry_version).await?;
-            let record = decode_message::<NodeOperatorRecord>("NodeOperatorRecord", &record_bytes)?;
-            Ok::<_, RegistryFetchError>((node_operator_principal, record))
-        })
+    let node_operator_records = stream::iter(node_operator_references)
+        .map(
+            |(node_operator_principal, referencing_node_principals)| async move {
+                let key = node_operator_record_key(&node_operator_principal);
+                let record_bytes =
+                    get_registry_value(agent, registry_canister, &key, registry_version)
+                        .await
+                        .map_err(|error| {
+                            translate_missing_node_operator_record(
+                                &node_operator_principal,
+                                &referencing_node_principals,
+                                error,
+                            )
+                        })?;
+                let record =
+                    decode_message::<NodeOperatorRecord>("NodeOperatorRecord", &record_bytes)?;
+                Ok::<_, RegistryFetchError>((node_operator_principal, record))
+            },
+        )
         .buffer_unordered(INVENTORY_FETCH_CONCURRENCY)
         .try_collect::<BTreeMap<_, _>>()
         .await?;
@@ -120,4 +135,131 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
         subnet_records,
         data_center_records,
     })
+}
+
+fn translate_missing_node_record(
+    node_principal: &str,
+    error: RegistryFetchError,
+) -> RegistryFetchError {
+    if registry_key_not_present_for(&error, &node_record_key(node_principal)) {
+        return RegistryFetchError::MissingNodeRecord {
+            node_principal: node_principal.to_string(),
+        };
+    }
+    error
+}
+
+fn translate_missing_node_operator_record(
+    node_operator_principal: &str,
+    referencing_node_principals: &[String],
+    error: RegistryFetchError,
+) -> RegistryFetchError {
+    if registry_key_not_present_for(&error, &node_operator_record_key(node_operator_principal)) {
+        return RegistryFetchError::MissingNodeOperatorRecord {
+            node_operator_principal: node_operator_principal.to_string(),
+            referencing_node_principals: referencing_node_principals.to_vec(),
+        };
+    }
+    error
+}
+
+fn registry_key_not_present_for(error: &RegistryFetchError, expected_key: &str) -> bool {
+    matches!(
+        error,
+        RegistryFetchError::RegistryValue { key, code, .. }
+            if key == expected_key && code == "key_not_present"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn required_node_key_not_present_becomes_missing_node_relation() {
+        let node_principal = "node-a";
+        let error = RegistryFetchError::RegistryValue {
+            key: node_record_key(node_principal),
+            code: "key_not_present".to_string(),
+            reason: "missing at requested version".to_string(),
+        };
+
+        let translated = translate_missing_node_record(node_principal, error);
+
+        assert!(matches!(
+            translated,
+            RegistryFetchError::MissingNodeRecord { node_principal: found }
+                if found == node_principal
+        ));
+    }
+
+    #[test]
+    fn required_operator_key_not_present_keeps_all_referencing_nodes() {
+        let node_operator_principal = "operator-a";
+        let referencing_node_principals = vec!["node-a".to_string(), "node-b".to_string()];
+        let error = RegistryFetchError::RegistryValue {
+            key: node_operator_record_key(node_operator_principal),
+            code: "key_not_present".to_string(),
+            reason: "missing at requested version".to_string(),
+        };
+
+        let translated = translate_missing_node_operator_record(
+            node_operator_principal,
+            &referencing_node_principals,
+            error,
+        );
+
+        assert!(matches!(
+            translated,
+            RegistryFetchError::MissingNodeOperatorRecord {
+                node_operator_principal: found_operator,
+                referencing_node_principals: found_nodes,
+            } if found_operator == node_operator_principal
+                && found_nodes == referencing_node_principals
+        ));
+    }
+
+    #[test]
+    fn unrelated_registry_value_error_is_preserved() {
+        let error = RegistryFetchError::RegistryValue {
+            key: node_record_key("node-a"),
+            code: "version_not_latest".to_string(),
+            reason: "version was compacted".to_string(),
+        };
+
+        let translated = translate_missing_node_record("node-a", error);
+
+        assert!(matches!(
+            translated,
+            RegistryFetchError::RegistryValue { key, code, reason }
+                if key == node_record_key("node-a")
+                    && code == "version_not_latest"
+                    && reason == "version was compacted"
+        ));
+    }
+
+    #[test]
+    fn operator_reference_context_is_canonically_ordered() {
+        let node_a = Principal::self_authenticating(b"node-a").to_text();
+        let node_b = Principal::self_authenticating(b"node-b").to_text();
+        let node_operator = Principal::self_authenticating(b"operator").to_text();
+        let node_operator_id = Principal::from_text(&node_operator)
+            .expect("operator principal")
+            .as_slice()
+            .to_vec();
+        let records = BTreeMap::from([
+            (
+                node_b.clone(),
+                NodeRecord {
+                    node_operator_id: node_operator_id.clone(),
+                },
+            ),
+            (node_a.clone(), NodeRecord { node_operator_id }),
+        ]);
+
+        let references =
+            node_operator_references_from_records(&records).expect("operator references");
+
+        assert_eq!(references.get(&node_operator), Some(&vec![node_a, node_b]));
+    }
 }

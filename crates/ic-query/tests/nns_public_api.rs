@@ -980,6 +980,13 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
         total_node_allowance: 2,
         over_assigned_provider_count: 1,
         unknown_provider_count: 0,
+        registry_versions: vec![NnsTopologyRegistryVersionRow {
+            source: "nodes".to_string(),
+            registry_version: 42,
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            stale: None,
+        }],
         providers: vec![NnsTopologyProviderRow {
             node_provider_principal: "w6gnz-6qaaa-aaaar-qaada-cai".to_string(),
             registered: true,

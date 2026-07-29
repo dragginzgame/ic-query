@@ -1,3 +1,4 @@
+use super::NnsTopologyRegistryVersionRow;
 use serde::{Deserialize, Serialize};
 
 ///
@@ -20,6 +21,8 @@ pub struct NnsTopologyProvidersReport {
     pub total_node_allowance: u64,
     pub over_assigned_provider_count: usize,
     pub unknown_provider_count: usize,
+    /// Registry source versions carried forward from the joined input reports.
+    pub registry_versions: Vec<NnsTopologyRegistryVersionRow>,
     pub providers: Vec<NnsTopologyProviderRow>,
 }
 

@@ -67,14 +67,46 @@ pub enum RegistryFetchError {
     #[error("registry protobuf field {field} was missing")]
     MissingField { field: &'static str },
 
+    #[error("registry count for {field} exceeded the supported u32 range")]
+    CountOverflow { field: &'static str },
+
     #[error("registry principal field {field} is invalid: {reason}")]
     InvalidPrincipal { field: &'static str, reason: String },
+
+    #[error(
+        "node {node_principal} is assigned to both Subnet {first_subnet_principal} and Subnet {second_subnet_principal}"
+    )]
+    DuplicateNodeAssignment {
+        node_principal: String,
+        first_subnet_principal: String,
+        second_subnet_principal: String,
+    },
+
+    #[error("Subnet membership references node {node_principal} without a node record")]
+    MissingNodeRecord { node_principal: String },
+
+    #[error("node {node_principal} has no node-operator principal")]
+    MissingNodeOperatorPrincipal { node_principal: String },
+
+    #[error(
+        "nodes {referencing_node_principals:?} reference node operator {node_operator_principal} without a node-operator record"
+    )]
+    MissingNodeOperatorRecord {
+        node_operator_principal: String,
+        referencing_node_principals: Vec<String>,
+    },
+
+    #[error("node operator {node_operator_principal} has no node-provider principal")]
+    MissingNodeProviderPrincipal { node_operator_principal: String },
 
     #[error("data center record id mismatch: key id {key_id}, record id {record_id}")]
     InvalidDataCenterRecordId { key_id: String, record_id: String },
 
     #[error("registry subnet list was empty")]
     EmptySubnetList,
+
+    #[error("registry subnet list contains duplicate Subnet {subnet_principal}")]
+    DuplicateSubnetPrincipal { subnet_principal: String },
 
     #[error("registry routing table was empty")]
     EmptyRoutingTable,

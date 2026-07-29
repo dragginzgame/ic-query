@@ -51,7 +51,7 @@ pub use text::{
 #[cfg(all(test, feature = "host"))]
 pub(crate) use time::parse_stale_after_duration;
 #[cfg(feature = "host")]
-pub(crate) use time::{catalog_stale_status, format_utc_timestamp_secs};
+pub(crate) use time::{catalog_stale_status, format_utc_timestamp_secs, parse_utc_timestamp_secs};
 
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 pub const MAINNET_NETWORK: &str = "ic";

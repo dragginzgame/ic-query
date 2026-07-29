@@ -7,6 +7,20 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+Detailed release notes: [docs/changelog/0.11.md](docs/changelog/0.11.md)
+
+- `0.11.0` adds an exact-Registry-version `NnsSubnetTopologyReport` with raw
+  Subnet kinds, canonical per-Subnet node-provider counts, strict relation and
+  count validation, atomic joined caching, and distinct load, refresh,
+  refresh-missing, and refresh-stale library APIs. This is a breaking library
+  release because `NnsTopologyProvidersReport` gains the required
+  `registry_versions` field; aggregate provider reports now retain every
+  component Registry version instead of dropping their source provenance. The
+  public live source rejects non-mainnet requests before agent construction,
+  and required node and node-operator `key_not_present` responses become
+  relation-specific typed errors while preserving other Registry failures.
+  The native live-call stack also updates to `ic-agent` 0.49.2.
+
 ## [0.10.x] - 2026-07-12 - Canonical library and process boundaries
 
 Detailed release notes: [docs/changelog/0.10.md](docs/changelog/0.10.md)

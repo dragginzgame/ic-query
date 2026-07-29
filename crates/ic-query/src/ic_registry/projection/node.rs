@@ -2,7 +2,8 @@ use crate::{
     ic_registry::{
         MainnetNode, MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
         principal_text_from_required_raw,
-        proto::{NodeOperatorRecord, NodeRecord, SubnetRecord, SubnetType},
+        projection::subnet_kind_from_registry,
+        proto::{NodeOperatorRecord, NodeRecord, SubnetRecord},
         relations::{RegistryRelationInventory, node_subnet_assignments_from_records},
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
@@ -75,17 +76,9 @@ fn node_from_record(
         node_operator_principal,
         node_provider_principal,
         subnet_principal: subnet_principal.clone(),
-        subnet_kind: subnet_kind_text(subnet_record),
+        subnet_kind: subnet_kind_from_registry(subnet_record.subnet_type)
+            .as_str()
+            .to_string(),
         data_center_id: node_operator_record.dc_id.clone(),
     })
-}
-
-fn subnet_kind_text(record: &SubnetRecord) -> String {
-    match SubnetType::try_from(record.subnet_type).ok() {
-        Some(SubnetType::Application | SubnetType::VerifiedApplication) => "application",
-        Some(SubnetType::CloudEngine) => "cloud_engine",
-        Some(SubnetType::System) => "system",
-        Some(SubnetType::Unspecified) | None => "unknown",
-    }
-    .to_string()
 }

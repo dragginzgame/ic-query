@@ -57,7 +57,7 @@ pub fn parse_stale_after_duration(value: &str) -> Result<u64, SubnetCatalogHostE
     })
 }
 
-fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
+pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
     let value = value.strip_suffix('Z')?;
     let (date, time) = value.split_once('T')?;
     let mut date_parts = date.split('-');

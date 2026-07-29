@@ -4,6 +4,28 @@ use crate::ic_registry::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+pub(in crate::ic_registry) fn node_operator_references_from_records(
+    node_records: &BTreeMap<String, NodeRecord>,
+) -> Result<BTreeMap<String, Vec<String>>, RegistryFetchError> {
+    let mut references = BTreeMap::<String, Vec<String>>::new();
+    for (node_principal, record) in node_records {
+        if record.node_operator_id.is_empty() {
+            return Err(RegistryFetchError::MissingNodeOperatorPrincipal {
+                node_principal: node_principal.clone(),
+            });
+        }
+        let node_operator_principal = principal_text_from_required_raw(
+            &record.node_operator_id,
+            "node_record.node_operator_id",
+        )?;
+        references
+            .entry(node_operator_principal)
+            .or_default()
+            .push(node_principal.clone());
+    }
+    Ok(references)
+}
+
 pub(in crate::ic_registry) fn node_provider_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,

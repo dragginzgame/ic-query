@@ -18,12 +18,14 @@ use candid::Principal;
 pub use client::{
     fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
     fetch_mainnet_node_provider_list, fetch_mainnet_registry_version, fetch_mainnet_subnet_catalog,
+    fetch_mainnet_subnet_topology,
 };
 pub use error::RegistryFetchError;
 pub use model::{
     MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
     MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList,
-    MainnetRegistryFetchRequest, MainnetRegistryVersion,
+    MainnetRegistryFetchRequest, MainnetRegistryVersion, MainnetSubnetTopology,
+    MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
 use proto::{CanisterId, SubnetId};
 

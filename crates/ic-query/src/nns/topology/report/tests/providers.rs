@@ -21,6 +21,20 @@ fn topology_providers_report_summarizes_provider_distribution() {
     assert_eq!(report.total_node_allowance, 2);
     assert_eq!(report.over_assigned_provider_count, 1);
     assert_eq!(report.unknown_provider_count, 1);
+    assert_eq!(report.registry_versions.len(), 4);
+    assert_eq!(
+        report
+            .registry_versions
+            .iter()
+            .map(|row| (row.source.as_str(), row.registry_version))
+            .collect::<Vec<_>>(),
+        vec![
+            ("nodes", 43),
+            ("node_providers", 44),
+            ("node_operators", 45),
+            ("data_centers", 46),
+        ]
+    );
     assert!(report.providers.iter().any(|provider| {
         provider.node_provider_principal == "provider-a"
             && provider.registered
@@ -56,4 +70,7 @@ fn topology_providers_text_renders_provider_table() {
     assert!(text.contains("OPERATORS"));
     assert!(text.contains("provider-a"));
     assert!(text.contains("unknown_provider"));
+    assert!(text.contains("SOURCE"));
+    assert!(text.contains("node_providers"));
+    assert!(text.contains("46"));
 }

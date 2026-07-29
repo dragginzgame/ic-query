@@ -4,6 +4,7 @@
 //! Does not own: provider aggregation, source reads, or JSON output.
 //! Boundary: formats provider distribution rows for human inspection.
 
+use super::common::render_registry_version_table;
 use crate::{
     nns::{
         render::compact_text,
@@ -17,7 +18,11 @@ use crate::{
 
 #[must_use]
 pub fn nns_topology_providers_report_text(report: &NnsTopologyProvidersReport) -> String {
-    render_providers_table(&report.providers)
+    format!(
+        "{}\n\n{}",
+        render_providers_table(&report.providers),
+        render_registry_version_table(&report.registry_versions)
+    )
 }
 
 fn render_providers_table(rows: &[NnsTopologyProviderRow]) -> String {
