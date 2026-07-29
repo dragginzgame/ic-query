@@ -25,6 +25,7 @@ pub struct NnsInventorySourceRequest {
 }
 
 impl NnsInventorySourceRequest {
+    /// Create source settings for one mainnet Registry inventory collection.
     #[must_use]
     pub fn new(
         network: impl Into<String>,
