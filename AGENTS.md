@@ -43,6 +43,10 @@ If code or habit conflicts with this file, this file wins.
   requested release notes or active release slices. Keep entries factual and
   user-facing; include implementation detail only when it affects behavior,
   compatibility, release flow, or operations.
+- When the maintainer assigns a target package version or asks whether the
+  current patch should ship as that version, treat it as an active release
+  slice: prepare the matching root release-ledger entry and detailed changelog
+  heading before handoff without waiting for a separate changelog request.
 - Detailed patch breakdowns live in `docs/changelog/<major>.<minor>.md`; link
   the detailed file from the matching minor line in root `CHANGELOG.md` when
   present.

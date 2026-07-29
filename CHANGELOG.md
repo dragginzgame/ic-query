@@ -9,6 +9,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.11.md](docs/changelog/0.11.md)
 
+- `0.11.2` consolidates duplicated SNS neuron and proposal cache error mapping,
+  summary projection, and refresh-attempt persistence while preserving public
+  APIs, cache and sidecar schemas, errors, and CLI behavior. Automatic
+  missing-cache refreshes for the four NNS inventory families now use their
+  existing refresh-request constructors instead of repeating defaults.
+
 - `0.11.1` consolidates Registry inventory source requests, exact relation
   resolution, host cache errors, freshness/provenance projection, and SNS
   refresh-attempt reads. All public NNS Registry inventory live sources now
