@@ -84,15 +84,15 @@ pub use model::{
 pub use request::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
 #[cfg(feature = "host")]
 pub use source::{
-    LiveNnsTopologySource, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
-    NnsTopologySource, NnsTopologySourceRequest,
+    NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest, NnsTopologySource,
+    NnsTopologySourceRequest,
 };
 #[cfg(feature = "host")]
 pub use subnet_topology::{
     CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
-    LiveNnsSubnetTopologySource, NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
-    NnsSubnetTopologyRefreshRequest, NnsSubnetTopologySource, load_cached_nns_subnet_topology,
+    NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
+    NnsSubnetTopologySource, load_cached_nns_subnet_topology,
     load_or_refresh_missing_nns_subnet_topology,
     load_or_refresh_missing_nns_subnet_topology_with_source,
     load_or_refresh_stale_nns_subnet_topology,

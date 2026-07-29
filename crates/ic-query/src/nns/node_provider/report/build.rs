@@ -3,22 +3,21 @@ use super::{
     NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,
     NnsNodeProviderListReport, NnsNodeProviderListRequest, NnsNodeProviderRefreshRequest,
     cache::load_cached_nns_node_provider_report,
-    refresh::refresh_nns_node_provider_cache_with_source,
-    resolve::resolve_node_provider,
-    source::{LiveNnsNodeProviderSource, NnsNodeProviderSource},
+    refresh::refresh_nns_node_provider_cache_with_source, resolve::resolve_node_provider,
+    source::NnsNodeProviderSource,
 };
-use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache};
+use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
 
 pub fn build_nns_node_provider_list_report(
     request: &NnsNodeProviderListRequest,
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
-    build_nns_node_provider_list_report_with_source(request, &LiveNnsNodeProviderSource)
+    build_nns_node_provider_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_provider_info_report(
     request: &NnsNodeProviderInfoRequest,
 ) -> Result<NnsNodeProviderInfoReport, NnsNodeProviderHostError> {
-    build_nns_node_provider_info_report_with_source(request, &LiveNnsNodeProviderSource)
+    build_nns_node_provider_info_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_provider_list_report_with_source(

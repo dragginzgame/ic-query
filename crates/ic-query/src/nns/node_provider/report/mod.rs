@@ -23,7 +23,7 @@ pub use refresh::{refresh_nns_node_provider_report, refresh_nns_node_provider_re
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_node_provider;
 #[cfg(feature = "host")]
-pub use source::{LiveNnsNodeProviderSource, NnsNodeProviderSource};
+pub use source::NnsNodeProviderSource;
 
 pub use model::{
     NnsNodeProviderCacheRequest, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,

@@ -1,16 +1,19 @@
 use super::{
     SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogSubnetRow,
 };
-use crate::subnet_catalog::{
-    LiveNnsRegistryRefreshSource, SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalog,
-    SubnetCatalogHostError, SubnetCatalogSource, SubnetInfo, catalog_stale_status,
-    load_or_refresh_subnet_catalog_with_source,
+use crate::{
+    nns::LiveNnsSource,
+    subnet_catalog::{
+        SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalog, SubnetCatalogHostError,
+        SubnetCatalogSource, SubnetInfo, catalog_stale_status,
+        load_or_refresh_subnet_catalog_with_source,
+    },
 };
 
 pub fn build_subnet_catalog_list_report(
     request: &SubnetCatalogListRequest,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    build_subnet_catalog_list_report_with_source(request, &LiveNnsRegistryRefreshSource)
+    build_subnet_catalog_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_subnet_catalog_list_report_with_source(

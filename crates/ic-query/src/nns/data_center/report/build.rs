@@ -2,23 +2,21 @@ use super::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION,
     NnsDataCenterHostError, NnsDataCenterInfoReport, NnsDataCenterInfoRequest,
     NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRefreshRequest,
-    cache::load_cached_nns_data_center_report,
-    refresh::refresh_nns_data_center_cache_with_source,
-    resolve::resolve_data_center,
-    source::{LiveNnsDataCenterSource, NnsDataCenterSource},
+    cache::load_cached_nns_data_center_report, refresh::refresh_nns_data_center_cache_with_source,
+    resolve::resolve_data_center, source::NnsDataCenterSource,
 };
-use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache};
+use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
 
 pub fn build_nns_data_center_list_report(
     request: &NnsDataCenterListRequest,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-    build_nns_data_center_list_report_with_source(request, &LiveNnsDataCenterSource)
+    build_nns_data_center_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_data_center_info_report(
     request: &NnsDataCenterInfoRequest,
 ) -> Result<NnsDataCenterInfoReport, NnsDataCenterHostError> {
-    build_nns_data_center_info_report_with_source(request, &LiveNnsDataCenterSource)
+    build_nns_data_center_info_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_data_center_list_report_with_source(

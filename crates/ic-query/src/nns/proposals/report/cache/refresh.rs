@@ -13,9 +13,12 @@ use super::{
 };
 use crate::{
     QueryProgress,
-    nns::proposals::report::{
-        NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE, NnsProposalHostError, enforce_mainnet_network,
-        source::{LiveNnsProposalSource, NnsProposalSource},
+    nns::{
+        LiveNnsSource,
+        proposals::report::{
+            NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE, NnsProposalHostError, enforce_mainnet_network,
+            source::NnsProposalSource,
+        },
     },
     progress::IgnoreQueryProgress,
     snapshot_cache::{
@@ -30,7 +33,7 @@ pub const DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 pub fn refresh_nns_proposal_cache(
     request: &NnsProposalRefreshRequest,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
-    refresh_nns_proposal_cache_with_source(request, &LiveNnsProposalSource)
+    refresh_nns_proposal_cache_with_source(request, &LiveNnsSource)
 }
 
 /// Refresh a complete NNS proposal snapshot and emit structured progress events.
@@ -38,7 +41,7 @@ pub fn refresh_nns_proposal_cache_with_progress(
     request: &NnsProposalRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
-    refresh_nns_proposal_cache_with_source_and_progress(request, &LiveNnsProposalSource, progress)
+    refresh_nns_proposal_cache_with_source_and_progress(request, &LiveNnsSource, progress)
 }
 
 pub fn refresh_nns_proposal_cache_with_source(

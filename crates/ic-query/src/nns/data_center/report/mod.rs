@@ -23,7 +23,7 @@ pub use refresh::{refresh_nns_data_center_report, refresh_nns_data_center_report
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_data_center;
 #[cfg(feature = "host")]
-pub use source::{LiveNnsDataCenterSource, NnsDataCenterSource};
+pub use source::NnsDataCenterSource;
 
 pub use model::{
     NnsDataCenterCacheRequest, NnsDataCenterInfoReport, NnsDataCenterInfoRequest,

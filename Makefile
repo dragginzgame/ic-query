@@ -125,9 +125,7 @@ dependency-check:
 	# Deny every warning that is not part of this reviewed baseline.
 	cargo audit --deny warnings \
 		--ignore RUSTSEC-2021-0127 \
-		--ignore RUSTSEC-2024-0384 \
-		--ignore RUSTSEC-2024-0436 \
-		--ignore RUSTSEC-2025-0012
+		--ignore RUSTSEC-2024-0436
 	cargo machete --with-metadata
 
 clippy:

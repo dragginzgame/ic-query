@@ -3,6 +3,7 @@ use super::{
     CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_REGISTRY_CANISTER_ID,
     SubnetSpecialization,
 };
+use crate::nns::NnsSourceRequest;
 use crate::test_support::temp_dir;
 use std::{
     fs,

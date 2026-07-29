@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     ic_registry::{MainnetDataCenterList, fetch_mainnet_data_center_list},
-    nns::{NnsInventorySourceRequest, inventory_source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
     subnet_catalog::format_utc_timestamp_secs,
 };
 
@@ -17,22 +17,14 @@ use crate::{
 pub trait NnsDataCenterSource {
     fn fetch_data_center_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError>;
 }
 
-///
-/// LiveNnsDataCenterSource
-///
-/// Source implementation backed by live NNS registry data-center calls.
-///
-
-pub struct LiveNnsDataCenterSource;
-
-impl NnsDataCenterSource for LiveNnsDataCenterSource {
+impl NnsDataCenterSource for LiveNnsSource {
     fn fetch_data_center_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
         let fetch_request = mainnet_registry_fetch_request(request, |network| {
             NnsDataCenterHostError::UnsupportedNetwork { network }
@@ -51,8 +43,7 @@ pub(super) fn fetch_nns_data_center_list_report_with_source(
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
     super::enforce_mainnet_network(network)?;
     let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let fetch_request =
-        NnsInventorySourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
+    let fetch_request = NnsSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
     source.fetch_data_center_list_report(&fetch_request)
 }
 

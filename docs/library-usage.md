@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.11", default-features = false, features = ["host"] }
+ic-query = { version = "0.12", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.11", default-features = false }
+ic-query = { version = "0.12", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -89,6 +89,15 @@ pattern with `IcrcSource`, `build_icrc_*_report_with_source`,
 `SnsTokenSource`, `SnsParamsSource`, `SnsProposalSource`,
 `SnsProposalsSource`, and `SnsNeuronsSource`.
 
+The built-in implementations are deliberately less fragmented than the
+capability traits. `ic_query::nns::LiveNnsSource` implements every supported
+NNS and subnet-catalog source capability, while
+`ic_query::sns::LiveSnsSource` and `ic_query::icrc::LiveIcrcSource` own their
+respective live families. NNS capabilities share
+`ic_query::nns::NnsSourceRequest`; adding a new NNS report should normally add
+a capability implementation to that adapter instead of introducing another
+live-source type or another copy of the same provenance request.
+
 In the 0.5 line these source traits were intentionally internal; downstream
 crates used public request/report DTOs at their own boundary. In 0.6,
 downstream crates can use `*_with_source` builders directly when they need
@@ -99,10 +108,13 @@ fixture, proxy, or pre-collected snapshot while still using `ic-query` report
 assembly and text rendering:
 
 ```rust
-use ic_query::nns::registry::{
-    NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest,
-    NnsRegistryVersionData, NnsRegistryVersionRequest,
-    build_nns_registry_version_report_with_source, nns_registry_version_report_text,
+use ic_query::nns::{
+    NnsSourceRequest,
+    registry::{
+        NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
+        NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
+        nns_registry_version_report_text,
+    },
 };
 
 struct FixtureRegistrySource;
@@ -110,7 +122,7 @@ struct FixtureRegistrySource;
 impl NnsRegistrySource for FixtureRegistrySource {
     fn fetch_registry_version(
         &self,
-        request: &NnsRegistrySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
         Ok(NnsRegistryVersionData {
             network: "ic".to_string(),
@@ -136,6 +148,9 @@ fn render_registry_version_with_source(
     Ok(nns_registry_version_report_text(&report))
 }
 ```
+
+See [IC Reporting Adapters](design/ic-reporting-adapters.md) for the extension
+rules and prioritized reporting backlog.
 
 ## Pure Rendering Example
 

@@ -13,9 +13,7 @@ pub use build::{build_nns_registry_version_report, build_nns_registry_version_re
 pub use error::NnsRegistryHostError;
 pub use model::{NnsRegistryVersionReport, NnsRegistryVersionRequest};
 #[cfg(feature = "host")]
-pub use source::{
-    LiveNnsRegistrySource, NnsRegistrySource, NnsRegistrySourceRequest, NnsRegistryVersionData,
-};
+pub use source::{NnsRegistrySource, NnsRegistryVersionData};
 pub use text::nns_registry_version_report_text;
 
 pub const DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT: &str = "https://icp-api.io";

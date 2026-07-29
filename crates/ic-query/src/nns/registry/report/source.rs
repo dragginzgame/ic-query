@@ -1,35 +1,8 @@
 use super::error::NnsRegistryHostError;
-use crate::ic_registry::{
-    MainnetRegistryFetchRequest, MainnetRegistryVersion, fetch_mainnet_registry_version,
+use crate::{
+    ic_registry::{MainnetRegistryVersion, fetch_mainnet_registry_version},
+    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
 };
-
-///
-/// NnsRegistrySourceRequest
-///
-/// Source request settings for fetching the mainnet NNS registry version.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsRegistrySourceRequest {
-    pub endpoint: String,
-    pub fetched_at: String,
-    pub fetched_by: String,
-}
-
-impl NnsRegistrySourceRequest {
-    #[must_use]
-    pub fn new(
-        endpoint: impl Into<String>,
-        fetched_at: impl Into<String>,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self {
-            endpoint: endpoint.into(),
-            fetched_at: fetched_at.into(),
-            fetched_by: fetched_by.into(),
-        }
-    }
-}
 
 ///
 /// NnsRegistryVersionData
@@ -69,26 +42,18 @@ impl From<MainnetRegistryVersion> for NnsRegistryVersionData {
 pub trait NnsRegistrySource {
     fn fetch_registry_version(
         &self,
-        request: &NnsRegistrySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsRegistryVersionData, NnsRegistryHostError>;
 }
 
-///
-/// LiveNnsRegistrySource
-///
-/// Source implementation backed by live NNS registry calls.
-///
-
-pub struct LiveNnsRegistrySource;
-
-impl NnsRegistrySource for LiveNnsRegistrySource {
+impl NnsRegistrySource for LiveNnsSource {
     fn fetch_registry_version(
         &self,
-        request: &NnsRegistrySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        let mut fetch_request = MainnetRegistryFetchRequest::new(request.fetched_at.clone());
-        fetch_request.endpoint.clone_from(&request.endpoint);
-        fetch_request.fetched_by.clone_from(&request.fetched_by);
+        let fetch_request = mainnet_registry_fetch_request(request, |network| {
+            NnsRegistryHostError::UnsupportedNetwork { network }
+        })?;
         Ok(fetch_mainnet_registry_version(&fetch_request)?.into())
     }
 }

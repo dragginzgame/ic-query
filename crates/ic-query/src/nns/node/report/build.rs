@@ -1,25 +1,22 @@
 use super::{
     DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NnsNodeHostError,
     NnsNodeInfoReport, NnsNodeInfoRequest, NnsNodeListFilters, NnsNodeListReport,
-    NnsNodeListRequest, NnsNodeRefreshRequest,
-    cache::load_cached_nns_node_report,
-    filters::filter_node_list_report,
-    refresh::refresh_nns_node_cache_with_source,
-    resolve::resolve_node,
-    source::{LiveNnsNodeSource, NnsNodeSource},
+    NnsNodeListRequest, NnsNodeRefreshRequest, cache::load_cached_nns_node_report,
+    filters::filter_node_list_report, refresh::refresh_nns_node_cache_with_source,
+    resolve::resolve_node, source::NnsNodeSource,
 };
-use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache};
+use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
 
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    build_nns_node_list_report_with_source(request, &LiveNnsNodeSource)
+    build_nns_node_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_info_report(
     request: &NnsNodeInfoRequest,
 ) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
-    build_nns_node_info_report_with_source(request, &LiveNnsNodeSource)
+    build_nns_node_info_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_list_report_with_source(

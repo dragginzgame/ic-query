@@ -1,16 +1,19 @@
-use crate::nns::topology::report::{
-    LiveNnsTopologySource, NnsTopologyCapacityReport, NnsTopologyGapsReport, NnsTopologyHostError,
-    NnsTopologyProvidersReport, NnsTopologyReadRequest, NnsTopologyRegionsReport,
-    NnsTopologySource, capacity::topology_capacity_report_from_report, enforce_mainnet_network,
-    gaps::topology_gaps_report_from_reports, providers::topology_providers_report_from_reports,
-    regions::topology_regions_report_from_report, request::TopologyRequestParts,
-    source::topology_source_request_from,
+use crate::nns::{
+    LiveNnsSource,
+    topology::report::{
+        NnsTopologyCapacityReport, NnsTopologyGapsReport, NnsTopologyHostError,
+        NnsTopologyProvidersReport, NnsTopologyReadRequest, NnsTopologyRegionsReport,
+        NnsTopologySource, capacity::topology_capacity_report_from_report, enforce_mainnet_network,
+        gaps::topology_gaps_report_from_reports, providers::topology_providers_report_from_reports,
+        regions::topology_regions_report_from_report, request::TopologyRequestParts,
+        source::topology_source_request_from,
+    },
 };
 
 pub fn build_nns_topology_gaps_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyGapsReport, NnsTopologyHostError> {
-    build_nns_topology_gaps_report_with_source(request, &LiveNnsTopologySource)
+    build_nns_topology_gaps_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_topology_gaps_report_with_source(
@@ -38,7 +41,7 @@ pub fn build_nns_topology_gaps_report_with_source(
 pub fn build_nns_topology_capacity_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyCapacityReport, NnsTopologyHostError> {
-    build_nns_topology_capacity_report_with_source(request, &LiveNnsTopologySource)
+    build_nns_topology_capacity_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_topology_capacity_report_with_source(
@@ -60,7 +63,7 @@ pub fn build_nns_topology_capacity_report_with_source(
 pub fn build_nns_topology_regions_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyRegionsReport, NnsTopologyHostError> {
-    build_nns_topology_regions_report_with_source(request, &LiveNnsTopologySource)
+    build_nns_topology_regions_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_topology_regions_report_with_source(
@@ -82,7 +85,7 @@ pub fn build_nns_topology_regions_report_with_source(
 pub fn build_nns_topology_providers_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyProvidersReport, NnsTopologyHostError> {
-    build_nns_topology_providers_report_with_source(request, &LiveNnsTopologySource)
+    build_nns_topology_providers_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_topology_providers_report_with_source(

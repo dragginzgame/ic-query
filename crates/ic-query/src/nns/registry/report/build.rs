@@ -4,18 +4,19 @@ use super::{
         NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION, NnsRegistryVersionReport,
         NnsRegistryVersionRequest,
     },
-    source::{
-        LiveNnsRegistrySource, NnsRegistrySource, NnsRegistrySourceRequest, NnsRegistryVersionData,
-    },
+    source::{NnsRegistrySource, NnsRegistryVersionData},
 };
-use crate::subnet_catalog::format_utc_timestamp_secs;
+use crate::{
+    nns::{LiveNnsSource, NnsSourceRequest},
+    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+};
 
 impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);
 
 pub fn build_nns_registry_version_report(
     request: &NnsRegistryVersionRequest,
 ) -> Result<NnsRegistryVersionReport, NnsRegistryHostError> {
-    build_nns_registry_version_report_with_source(request, &LiveNnsRegistrySource)
+    build_nns_registry_version_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_registry_version_report_with_source(
@@ -24,8 +25,12 @@ pub fn build_nns_registry_version_report_with_source(
 ) -> Result<NnsRegistryVersionReport, NnsRegistryHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request =
-        NnsRegistrySourceRequest::new(&request.source_endpoint, fetched_at, "ic-query");
+    let fetch_request = NnsSourceRequest::new(
+        MAINNET_NETWORK,
+        &request.source_endpoint,
+        fetched_at,
+        "ic-query",
+    );
     let version = source.fetch_registry_version(&fetch_request)?;
     Ok(registry_version_report_from_version(version))
 }

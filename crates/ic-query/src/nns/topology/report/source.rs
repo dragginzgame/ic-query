@@ -11,6 +11,7 @@ use super::{
 };
 use crate::{
     nns::{
+        LiveNnsSource,
         data_center::{
             NnsDataCenterListReport, NnsDataCenterRefreshReport, build_nns_data_center_list_report,
             refresh_nns_data_center_report,
@@ -227,15 +228,7 @@ pub trait NnsTopologyRefreshSource {
     ) -> Result<NnsDataCenterRefreshReport, NnsTopologyHostError>;
 }
 
-///
-/// LiveNnsTopologySource
-///
-/// Source implementation backed by the built-in NNS topology component reports.
-///
-
-pub struct LiveNnsTopologySource;
-
-impl NnsTopologySource for LiveNnsTopologySource {
+impl NnsTopologySource for LiveNnsSource {
     fn fetch_subnet_catalog_list_report(
         &self,
         request: &NnsTopologySourceRequest,
@@ -280,7 +273,7 @@ impl NnsTopologySource for LiveNnsTopologySource {
     }
 }
 
-impl NnsTopologyRefreshSource for LiveNnsTopologySource {
+impl NnsTopologyRefreshSource for LiveNnsSource {
     fn refresh_subnet_catalog_report(
         &self,
         request: &NnsTopologyRefreshSourceRequest,

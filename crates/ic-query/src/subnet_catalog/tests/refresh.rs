@@ -1,5 +1,25 @@
 use super::{fixtures::*, *};
 use crate::cache_file::{CacheFileError, HostCacheError};
+use crate::nns::{LiveNnsSource, NnsSourceRequest};
+
+#[test]
+fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
+    let request = NnsSourceRequest::new(
+        "local",
+        "not a valid replica endpoint",
+        "2026-07-29T00:00:00Z",
+        "test",
+    );
+
+    let error = LiveNnsSource
+        .fetch_catalog(&request)
+        .expect_err("unsupported network");
+
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+}
 
 #[test]
 fn refresh_writes_catalog_atomically_and_removes_lock() {

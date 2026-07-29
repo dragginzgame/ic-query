@@ -1,9 +1,29 @@
 use super::{
-    NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest, NnsRegistryVersionData,
-    NnsRegistryVersionReport, NnsRegistryVersionRequest,
-    build_nns_registry_version_report_with_source, nns_registry_version_report_text,
+    NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData, NnsRegistryVersionReport,
+    NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
+    nns_registry_version_report_text,
 };
+use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
+
+#[test]
+fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
+    let request = NnsSourceRequest::new(
+        "local",
+        "not a valid replica endpoint",
+        "2026-07-29T00:00:00Z",
+        "test",
+    );
+
+    let error = LiveNnsSource
+        .fetch_registry_version(&request)
+        .expect_err("unsupported network");
+
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+}
 
 #[test]
 fn registry_version_report_uses_live_source_shape() {
@@ -50,7 +70,7 @@ struct FixtureNnsRegistrySource;
 impl NnsRegistrySource for FixtureNnsRegistrySource {
     fn fetch_registry_version(
         &self,
-        request: &NnsRegistrySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
         Ok(NnsRegistryVersionData {
             network: MAINNET_NETWORK.to_string(),

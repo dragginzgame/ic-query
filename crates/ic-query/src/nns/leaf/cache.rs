@@ -4,10 +4,7 @@
 //! Does not own: component report models, command parsing, or cache path policy.
 //! Boundary: maps generic cache-file load/write operations to leaf cache errors.
 
-use super::{
-    model::{NnsLeafCacheRequest, NnsLeafRefreshRequest},
-    paths::NnsLeafCachePaths,
-};
+use super::{NnsLeafCachePaths, NnsLeafCacheRequest, NnsLeafRefreshRequest};
 use crate::cache_file::{
     CachedJsonReport, HostCacheError, JsonCacheReport, LoadJsonCacheErrorMapper,
     LoadJsonCacheRequest, RefreshCacheWriteRequest, RefreshCacheWriteResult, load_json_cache,

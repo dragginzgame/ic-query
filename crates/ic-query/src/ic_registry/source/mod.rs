@@ -2,6 +2,7 @@ mod agent;
 mod governance;
 mod nodes;
 mod registry;
+mod relation_inventory;
 mod subnet_catalog;
 mod subnet_topology;
 

@@ -1,15 +1,18 @@
-use crate::nns::topology::report::{
-    LiveNnsTopologySource, NnsTopologyHostError, NnsTopologyRefreshReport,
-    NnsTopologyRefreshRequest, NnsTopologyRefreshSource, enforce_mainnet_network,
-    refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports},
-    request::{TopologyRefreshParts, TopologyRequestParts},
-    source::topology_refresh_source_request_from,
+use crate::nns::{
+    LiveNnsSource,
+    topology::report::{
+        NnsTopologyHostError, NnsTopologyRefreshReport, NnsTopologyRefreshRequest,
+        NnsTopologyRefreshSource, enforce_mainnet_network,
+        refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports},
+        request::{TopologyRefreshParts, TopologyRequestParts},
+        source::topology_refresh_source_request_from,
+    },
 };
 
 pub fn refresh_nns_topology_report(
     request: &NnsTopologyRefreshRequest,
 ) -> Result<NnsTopologyRefreshReport, NnsTopologyHostError> {
-    refresh_nns_topology_report_with_source(request, &LiveNnsTopologySource)
+    refresh_nns_topology_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn refresh_nns_topology_report_with_source(

@@ -1,13 +1,16 @@
-use crate::nns::topology::report::{
-    LiveNnsTopologySource, NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource,
-    NnsTopologySummaryReport, enforce_mainnet_network, request::TopologyRequestParts,
-    source::topology_source_request_from, summary::topology_summary_report_from_reports,
+use crate::nns::{
+    LiveNnsSource,
+    topology::report::{
+        NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource, NnsTopologySummaryReport,
+        enforce_mainnet_network, request::TopologyRequestParts,
+        source::topology_source_request_from, summary::topology_summary_report_from_reports,
+    },
 };
 
 pub fn build_nns_topology_summary_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologySummaryReport, NnsTopologyHostError> {
-    build_nns_topology_summary_report_with_source(request, &LiveNnsTopologySource)
+    build_nns_topology_summary_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_topology_summary_report_with_source(

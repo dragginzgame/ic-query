@@ -19,7 +19,7 @@ use super::{
         NnsProposalStatusFilter, NnsProposalTopicFilter,
     },
     source::{
-        NnsProposalSource, NnsProposalSourceRequest, build_nns_proposal_list_report_with_source,
+        NnsProposalSource, build_nns_proposal_list_report_with_source,
         build_nns_proposal_report_with_source, nns_proposal_row_from_info,
     },
     text::{nns_proposal_list_report_text, nns_proposal_report_text},
@@ -31,6 +31,7 @@ use super::{
 };
 use crate::{
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
+    nns::{LiveNnsSource, NnsSourceRequest},
     subnet_catalog::MAINNET_NETWORK,
 };
 use candid::Reserved;
@@ -39,6 +40,31 @@ mod detail;
 mod labels;
 mod list;
 mod sorts;
+
+#[test]
+fn live_proposal_source_rejects_non_mainnet_before_agent_construction() {
+    let request = NnsSourceRequest::new(
+        "local",
+        "not a valid replica endpoint",
+        "2026-07-29T00:00:00Z",
+        "test",
+    );
+
+    let error = LiveNnsSource
+        .fetch_proposals(
+            &request,
+            1,
+            None,
+            NnsProposalStatusFilter::Any,
+            NnsProposalRewardStatusFilter::Any,
+        )
+        .expect_err("unsupported network");
+
+    assert!(matches!(
+        error,
+        NnsProposalHostError::LocalNetworkUnsupported
+    ));
+}
 
 #[derive(Clone, Debug)]
 struct FixtureSource {
@@ -51,7 +77,7 @@ struct FixtureSource {
 impl NnsProposalSource for FixtureSource {
     fn fetch_proposals(
         &self,
-        _request: &NnsProposalSourceRequest,
+        _request: &NnsSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
@@ -79,7 +105,7 @@ impl NnsProposalSource for FixtureSource {
 
     fn fetch_proposal(
         &self,
-        _request: &NnsProposalSourceRequest,
+        _request: &NnsSourceRequest,
         proposal_id: u64,
     ) -> Result<NnsProposalRow, NnsProposalHostError> {
         assert_eq!(proposal_id, 101);

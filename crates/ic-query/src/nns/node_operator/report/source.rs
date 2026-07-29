@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     ic_registry::{MainnetNodeOperatorList, fetch_mainnet_node_operator_list},
-    nns::{NnsInventorySourceRequest, inventory_source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
     subnet_catalog::format_utc_timestamp_secs,
 };
 
@@ -17,22 +17,14 @@ use crate::{
 pub trait NnsNodeOperatorSource {
     fn fetch_node_operator_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>;
 }
 
-///
-/// LiveNnsNodeOperatorSource
-///
-/// Source implementation backed by live NNS registry node-operator calls.
-///
-
-pub struct LiveNnsNodeOperatorSource;
-
-impl NnsNodeOperatorSource for LiveNnsNodeOperatorSource {
+impl NnsNodeOperatorSource for LiveNnsSource {
     fn fetch_node_operator_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
         let fetch_request = mainnet_registry_fetch_request(request, |network| {
             NnsNodeOperatorHostError::UnsupportedNetwork { network }
@@ -51,8 +43,7 @@ pub(super) fn fetch_nns_node_operator_list_report_with_source(
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
     super::enforce_mainnet_network(network)?;
     let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let fetch_request =
-        NnsInventorySourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
+    let fetch_request = NnsSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
     source.fetch_node_operator_list_report(&fetch_request)
 }
 

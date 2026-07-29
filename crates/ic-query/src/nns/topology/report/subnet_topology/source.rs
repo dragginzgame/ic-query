@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     ic_registry::{MainnetSubnetTopology, fetch_mainnet_subnet_topology},
-    nns::{NnsInventorySourceRequest, inventory_source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
     subnet_catalog::format_utc_timestamp_secs,
 };
 
@@ -18,22 +18,14 @@ pub trait NnsSubnetTopologySource {
     /// Fetch and join a complete topology report at one Registry version.
     fn fetch_subnet_topology_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>;
 }
 
-///
-/// LiveNnsSubnetTopologySource
-///
-/// Live source backed by one exact-version mainnet Registry inventory.
-///
-
-pub struct LiveNnsSubnetTopologySource;
-
-impl NnsSubnetTopologySource for LiveNnsSubnetTopologySource {
+impl NnsSubnetTopologySource for LiveNnsSource {
     fn fetch_subnet_topology_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
         let fetch_request = mainnet_registry_fetch_request(request, |network| {
             NnsSubnetTopologyHostError::UnsupportedNetwork { network }
@@ -46,8 +38,8 @@ pub(super) fn source_request(
     network: &str,
     endpoint: &str,
     now_unix_secs: u64,
-) -> NnsInventorySourceRequest {
-    NnsInventorySourceRequest::new(
+) -> NnsSourceRequest {
+    NnsSourceRequest::new(
         network,
         endpoint,
         format_utc_timestamp_secs(now_unix_secs),

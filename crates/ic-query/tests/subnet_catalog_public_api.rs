@@ -1,3 +1,5 @@
+#[cfg(feature = "host")]
+use ic_query::nns::NnsSourceRequest;
 use ic_query::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_NETWORK,
     MAINNET_REGISTRY_CANISTER_ID, ResolveAs, ResolvedSubnetSubject, RoutingRange, SubnetCatalog,
@@ -9,8 +11,8 @@ use ic_query::subnet_catalog::{
     DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest, SubnetCatalogFilters,
     SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
-    SubnetCatalogRefreshRequest, SubnetCatalogSource, SubnetCatalogSourceRequest,
-    SubnetCatalogSubnetRow, build_subnet_catalog_info_report, build_subnet_catalog_list_report,
+    SubnetCatalogRefreshRequest, SubnetCatalogSource, SubnetCatalogSubnetRow,
+    build_subnet_catalog_info_report, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source, load_or_refresh_subnet_catalog,
     refresh_subnet_catalog, subnet_catalog_info_report_text, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text, subnet_catalog_path, subnet_catalog_refresh_lock_path,
@@ -136,7 +138,7 @@ struct FixtureSubnetCatalogSource;
 impl SubnetCatalogSource for FixtureSubnetCatalogSource {
     fn fetch_catalog(
         &self,
-        request: &SubnetCatalogSourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<SubnetCatalog, SubnetCatalogHostError> {
         assert_eq!(request.endpoint, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
         assert_eq!(request.fetched_by, "ic-query");

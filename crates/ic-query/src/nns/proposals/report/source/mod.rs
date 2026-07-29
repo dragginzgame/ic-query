@@ -25,20 +25,21 @@ use super::{
     },
     wire::{NnsGovernanceBallot, NnsProposalInfo},
 };
-use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
-
-pub use live::LiveNnsProposalSource;
+use crate::{
+    nns::{LiveNnsSource, NnsSourceRequest},
+    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+};
 
 pub fn build_nns_proposal_list_report(
     request: &NnsProposalListRequest,
 ) -> Result<NnsProposalListReport, NnsProposalHostError> {
-    build_nns_proposal_list_report_with_source(request, &LiveNnsProposalSource)
+    build_nns_proposal_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_proposal_report(
     request: &NnsProposalRequest,
 ) -> Result<NnsProposalReport, NnsProposalHostError> {
-    build_nns_proposal_report_with_source(request, &LiveNnsProposalSource)
+    build_nns_proposal_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_proposal_list_report_with_source(
@@ -47,7 +48,7 @@ pub fn build_nns_proposal_list_report_with_source(
 ) -> Result<NnsProposalListReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request = NnsProposalSourceRequest::new(
+    let fetch_request = NnsSourceRequest::new(
         MAINNET_NETWORK,
         &request.source_endpoint,
         &fetched_at,
@@ -96,7 +97,7 @@ pub fn build_nns_proposal_report_with_source(
 ) -> Result<NnsProposalReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request = NnsProposalSourceRequest::new(
+    let fetch_request = NnsSourceRequest::new(
         MAINNET_NETWORK,
         &request.source_endpoint,
         &fetched_at,
@@ -118,37 +119,6 @@ pub fn build_nns_proposal_report_with_source(
 }
 
 ///
-/// NnsProposalSourceRequest
-///
-/// Source request settings for fetching NNS governance proposal data.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsProposalSourceRequest {
-    pub network: String,
-    pub endpoint: String,
-    pub fetched_at: String,
-    pub fetched_by: String,
-}
-
-impl NnsProposalSourceRequest {
-    #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        fetched_at: impl Into<String>,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            endpoint: endpoint.into(),
-            fetched_at: fetched_at.into(),
-            fetched_by: fetched_by.into(),
-        }
-    }
-}
-
-///
 /// NnsProposalSource
 ///
 /// Source contract for fetching NNS governance proposal rows.
@@ -157,7 +127,7 @@ impl NnsProposalSourceRequest {
 pub trait NnsProposalSource {
     fn fetch_proposals(
         &self,
-        request: &NnsProposalSourceRequest,
+        request: &NnsSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
@@ -166,7 +136,7 @@ pub trait NnsProposalSource {
 
     fn fetch_proposal(
         &self,
-        request: &NnsProposalSourceRequest,
+        request: &NnsSourceRequest,
         proposal_id: u64,
     ) -> Result<NnsProposalRow, NnsProposalHostError>;
 }

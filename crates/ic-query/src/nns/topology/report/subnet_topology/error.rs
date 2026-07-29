@@ -2,7 +2,7 @@ use crate::{
     HostCacheError,
     ic_registry::RegistryFetchError,
     nns::{
-        inventory_source::enforce_mainnet_network_with,
+        source::enforce_mainnet_network_with,
         topology::report::subnet_topology::NnsSubnetTopologyValidationError,
     },
 };

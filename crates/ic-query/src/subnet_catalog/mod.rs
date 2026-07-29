@@ -17,11 +17,11 @@ mod time;
 pub use error::CatalogError;
 #[cfg(feature = "host")]
 pub use host::{
-    CachedSubnetCatalog, LiveNnsRegistryRefreshSource, SubnetCatalogCacheRequest,
-    SubnetCatalogHostError, SubnetCatalogRefreshRequest, SubnetCatalogSource,
-    SubnetCatalogSourceRequest, load_cached_subnet_catalog, load_or_refresh_subnet_catalog,
-    load_or_refresh_subnet_catalog_with_source, refresh_subnet_catalog,
-    refresh_subnet_catalog_with_source, subnet_catalog_path, subnet_catalog_refresh_lock_path,
+    CachedSubnetCatalog, SubnetCatalogCacheRequest, SubnetCatalogHostError,
+    SubnetCatalogRefreshRequest, SubnetCatalogSource, load_cached_subnet_catalog,
+    load_or_refresh_subnet_catalog, load_or_refresh_subnet_catalog_with_source,
+    refresh_subnet_catalog, refresh_subnet_catalog_with_source, subnet_catalog_path,
+    subnet_catalog_refresh_lock_path,
 };
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 pub use model::{

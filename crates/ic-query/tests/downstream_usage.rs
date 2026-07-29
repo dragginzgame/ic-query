@@ -34,6 +34,7 @@ mod host {
             DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcError, IcrcTokenRequest, build_icrc_token_report,
             icrc_token_report_text,
         },
+        nns::NnsSourceRequest,
         nns::node::{
             DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION,
             NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListRequest, build_nns_node_list_report,
@@ -44,9 +45,9 @@ mod host {
             refresh_nns_proposal_cache_with_progress,
         },
         nns::registry::{
-            NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest,
-            NnsRegistryVersionData, NnsRegistryVersionRequest,
-            build_nns_registry_version_report_with_source, nns_registry_version_report_text,
+            NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
+            NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
+            nns_registry_version_report_text,
         },
         nns::topology::{
             CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
@@ -246,7 +247,7 @@ mod host {
     impl NnsRegistrySource for FixtureRegistrySource {
         fn fetch_registry_version(
             &self,
-            request: &NnsRegistrySourceRequest,
+            request: &NnsSourceRequest,
         ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
             Ok(NnsRegistryVersionData {
                 network: "ic".to_string(),

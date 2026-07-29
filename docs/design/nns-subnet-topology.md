@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: implemented in Unreleased
+- Status: implemented in 0.11.0
 - Scope: host-side, read-only public-IC Registry observation
 - Cache: one joined snapshot under the shared `.icq` root
 
@@ -13,8 +13,8 @@ Subnet-oriented topology snapshot. Each `NnsSubnetTopologyRow` contains the
 raw Registry `SubnetKind`, total assigned node count, and canonically ordered
 `NnsSubnetNodeProviderRow` values with per-provider node counts.
 
-The live source accepts the shared
-`ic_query::nns::NnsInventorySourceRequest`, rejects non-mainnet requests before
+The live source accepts the shared `ic_query::nns::NnsSourceRequest`, rejects
+non-mainnet requests before
 agent construction, resolves the latest Registry version exactly once, then
 reads the Subnet list, Subnet records, assigned node records, and node-operator
 records at that version. Provider membership comes only from the Registry

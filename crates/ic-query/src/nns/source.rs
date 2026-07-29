@@ -1,22 +1,31 @@
-//! Module: nns::inventory_source
+//! Module: nns::source
 //!
-//! Responsibility: define shared source settings for mainnet Registry inventories.
-//! Does not own: report projection, source traits, or cache policy.
-//! Boundary: enforces the network contract before constructing live fetch requests.
+//! Responsibility: identify the built-in live NNS source adapter.
+//! Does not own: source capability traits, report projection, or cache policy.
+//! Boundary: one adapter implements the capability traits owned by each NNS report family.
 
 use crate::{ic_registry::MainnetRegistryFetchRequest, subnet_catalog::MAINNET_NETWORK};
 
 ///
-/// NnsInventorySourceRequest
+/// LiveNnsSource
 ///
-/// Source settings shared by NNS Registry inventory and topology adapters.
+/// Built-in live adapter for supported NNS Registry and governance report capabilities.
+///
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LiveNnsSource;
+
+///
+/// NnsSourceRequest
+///
+/// Network and collection provenance shared by NNS source capabilities.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsInventorySourceRequest {
+pub struct NnsSourceRequest {
     /// Network to collect.
     pub network: String,
-    /// Replica endpoint used for Registry queries.
+    /// Replica endpoint used for the query.
     pub endpoint: String,
     /// UTC collection timestamp recorded in the report.
     pub fetched_at: String,
@@ -24,8 +33,8 @@ pub struct NnsInventorySourceRequest {
     pub fetched_by: String,
 }
 
-impl NnsInventorySourceRequest {
-    /// Create source settings for one mainnet Registry inventory collection.
+impl NnsSourceRequest {
+    /// Create source settings for one NNS collection.
     #[must_use]
     pub fn new(
         network: impl Into<String>,
@@ -42,8 +51,8 @@ impl NnsInventorySourceRequest {
     }
 }
 
-pub(in crate::nns) fn mainnet_registry_fetch_request<Error>(
-    request: &NnsInventorySourceRequest,
+pub fn mainnet_registry_fetch_request<Error>(
+    request: &NnsSourceRequest,
     unsupported_network: impl FnOnce(String) -> Error,
 ) -> Result<MainnetRegistryFetchRequest, Error> {
     enforce_mainnet_network_with(&request.network, unsupported_network)?;

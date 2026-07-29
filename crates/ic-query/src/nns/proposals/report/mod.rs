@@ -47,8 +47,7 @@ pub use model::{
 };
 #[cfg(feature = "host")]
 pub use source::{
-    LiveNnsProposalSource, NnsProposalSource, NnsProposalSourceRequest,
-    build_nns_proposal_list_report, build_nns_proposal_list_report_with_source,
+    NnsProposalSource, build_nns_proposal_list_report, build_nns_proposal_list_report_with_source,
     build_nns_proposal_report, build_nns_proposal_report_with_source,
 };
 #[cfg(feature = "host")]

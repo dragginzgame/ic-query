@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     nns::{
-        NnsInventorySourceRequest,
+        NnsSourceRequest,
         topology::report::subnet_topology::NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind},
@@ -151,7 +151,7 @@ impl FixtureSource {
 impl NnsSubnetTopologySource for FixtureSource {
     fn fetch_subnet_topology_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
         self.calls.set(self.calls.get() + 1);
         if let Some(lock_path) = &self.expected_lock_path {
@@ -169,7 +169,7 @@ struct InvalidFixtureSource;
 impl NnsSubnetTopologySource for InvalidFixtureSource {
     fn fetch_subnet_topology_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
         let mut report = fixture_report(2, &request.fetched_at);
         report.subnets[0].node_providers[0].node_count = 0;

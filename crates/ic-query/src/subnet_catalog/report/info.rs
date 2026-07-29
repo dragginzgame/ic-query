@@ -2,16 +2,18 @@ use super::{
     SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     rate::{FORMULA_VERSION, catalog_cycles_per_billion, charge_applicability},
 };
-use crate::subnet_catalog::{
-    LiveNnsRegistryRefreshSource, SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION,
-    SubnetCatalogHostError, SubnetCatalogSource, catalog_stale_status,
-    load_or_refresh_subnet_catalog_with_source,
+use crate::{
+    nns::LiveNnsSource,
+    subnet_catalog::{
+        SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION, SubnetCatalogHostError, SubnetCatalogSource,
+        catalog_stale_status, load_or_refresh_subnet_catalog_with_source,
+    },
 };
 
 pub fn build_subnet_catalog_info_report(
     request: &SubnetCatalogInfoRequest,
 ) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
-    build_subnet_catalog_info_report_with_source(request, &LiveNnsRegistryRefreshSource)
+    build_subnet_catalog_info_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_subnet_catalog_info_report_with_source(

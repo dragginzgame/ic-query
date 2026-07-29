@@ -3,17 +3,14 @@ use super::{
     NNS_NODE_PROVIDER_REFRESH_REPORT_SCHEMA_VERSION, NnsNodeProviderHostError,
     NnsNodeProviderListReport, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
     enforce_mainnet_network,
-    source::{
-        LiveNnsNodeProviderSource, NnsNodeProviderSource,
-        fetch_nns_node_provider_list_report_with_source,
-    },
+    source::{NnsNodeProviderSource, fetch_nns_node_provider_list_report_with_source},
 };
-use crate::nns::leaf::write_nns_leaf_json_refresh_cache;
+use crate::nns::{LiveNnsSource, leaf::write_nns_leaf_json_refresh_cache};
 
 pub fn refresh_nns_node_provider_report(
     request: &NnsNodeProviderRefreshRequest,
 ) -> Result<NnsNodeProviderRefreshReport, NnsNodeProviderHostError> {
-    refresh_nns_node_provider_report_with_source(request, &LiveNnsNodeProviderSource)
+    refresh_nns_node_provider_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn refresh_nns_node_provider_report_with_source(

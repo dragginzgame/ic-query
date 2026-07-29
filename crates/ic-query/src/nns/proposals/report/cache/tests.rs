@@ -10,24 +10,27 @@ use super::{
 };
 use crate::{
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
-    nns::proposals::report::{
-        NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-        NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
-        cache::paths::nns_proposal_cache_paths,
-        model::{
-            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
-            NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-            NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
-            NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
-        },
-        source::{NnsProposalSource, NnsProposalSourceRequest, nns_proposal_row_from_info},
-        text::{
-            nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
-            nns_proposal_refresh_report_text, nns_proposal_report_text,
-        },
-        wire::{
-            NnsGovernanceBallot, NnsNeuronId, NnsProposal, NnsProposalAction, NnsProposalId,
-            NnsProposalInfo, NnsProposalTallyWire,
+    nns::{
+        NnsSourceRequest,
+        proposals::report::{
+            NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+            NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
+            cache::paths::nns_proposal_cache_paths,
+            model::{
+                NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
+                NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+                NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
+                NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
+            },
+            source::{NnsProposalSource, nns_proposal_row_from_info},
+            text::{
+                nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
+                nns_proposal_refresh_report_text, nns_proposal_report_text,
+            },
+            wire::{
+                NnsGovernanceBallot, NnsNeuronId, NnsProposal, NnsProposalAction, NnsProposalId,
+                NnsProposalInfo, NnsProposalTallyWire,
+            },
         },
     },
     subnet_catalog::MAINNET_NETWORK,
@@ -41,7 +44,7 @@ struct FixtureSource;
 impl NnsProposalSource for FixtureSource {
     fn fetch_proposals(
         &self,
-        _request: &NnsProposalSourceRequest,
+        _request: &NnsSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
@@ -60,7 +63,7 @@ impl NnsProposalSource for FixtureSource {
 
     fn fetch_proposal(
         &self,
-        _request: &NnsProposalSourceRequest,
+        _request: &NnsSourceRequest,
         proposal_id: u64,
     ) -> Result<NnsProposalRow, NnsProposalHostError> {
         Ok(nns_proposal_row_from_info(proposal_info(proposal_id)))

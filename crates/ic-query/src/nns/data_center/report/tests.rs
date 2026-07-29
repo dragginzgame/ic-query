@@ -1,24 +1,24 @@
 use super::{
-    LiveNnsDataCenterSource, NnsDataCenterCacheRequest, NnsDataCenterHostError,
-    NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRow, NnsDataCenterSource,
+    NnsDataCenterCacheRequest, NnsDataCenterHostError, NnsDataCenterListReport,
+    NnsDataCenterListRequest, NnsDataCenterRow, NnsDataCenterSource,
     build_nns_data_center_list_report_with_source, nns_data_center_list_report_text,
     resolve_data_center,
 };
 use crate::ic_registry::MainnetDataCenter;
-use crate::nns::NnsInventorySourceRequest;
+use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
 
 #[test]
 fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsInventorySourceRequest::new(
+    let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
         "test",
     );
 
-    let error = LiveNnsDataCenterSource
+    let error = LiveNnsSource
         .fetch_data_center_list_report(&request)
         .expect_err("unsupported network");
 
@@ -125,7 +125,7 @@ struct FixtureDataCenterSource {
 impl NnsDataCenterSource for FixtureDataCenterSource {
     fn fetch_data_center_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
         let data_centers = self
             .data_centers

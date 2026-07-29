@@ -42,7 +42,7 @@ pub(super) struct FixtureNodeProviderSource {
 impl NnsNodeProviderSource for FixtureNodeProviderSource {
     fn fetch_node_provider_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
         let node_providers = self
             .node_providers
@@ -80,7 +80,7 @@ pub(super) struct FailingNodeProviderSource;
 impl NnsNodeProviderSource for FailingNodeProviderSource {
     fn fetch_node_provider_list_report(
         &self,
-        _request: &NnsInventorySourceRequest,
+        _request: &NnsSourceRequest,
     ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
         Err(NnsNodeProviderHostError::NodeProviderNotFound {
             input: "unexpected-live-fetch".to_string(),

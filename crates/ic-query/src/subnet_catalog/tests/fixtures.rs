@@ -108,7 +108,7 @@ impl FixtureRefreshSource {
 impl SubnetCatalogSource for FixtureRefreshSource {
     fn fetch_catalog(
         &self,
-        _request: &SubnetCatalogSourceRequest,
+        _request: &NnsSourceRequest,
     ) -> Result<SubnetCatalog, SubnetCatalogHostError> {
         if self.fail {
             return Err(SubnetCatalogHostError::InvalidStaleDuration {

@@ -3,22 +3,21 @@ use super::{
     NnsNodeOperatorHostError, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,
     NnsNodeOperatorListReport, NnsNodeOperatorListRequest, NnsNodeOperatorRefreshRequest,
     cache::load_cached_nns_node_operator_report,
-    refresh::refresh_nns_node_operator_cache_with_source,
-    resolve::resolve_node_operator,
-    source::{LiveNnsNodeOperatorSource, NnsNodeOperatorSource},
+    refresh::refresh_nns_node_operator_cache_with_source, resolve::resolve_node_operator,
+    source::NnsNodeOperatorSource,
 };
-use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache};
+use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
 
 pub fn build_nns_node_operator_list_report(
     request: &NnsNodeOperatorListRequest,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_list_report_with_source(request, &LiveNnsNodeOperatorSource)
+    build_nns_node_operator_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_operator_info_report(
     request: &NnsNodeOperatorInfoRequest,
 ) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_info_report_with_source(request, &LiveNnsNodeOperatorSource)
+    build_nns_node_operator_info_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_operator_list_report_with_source(

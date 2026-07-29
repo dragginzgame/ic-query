@@ -7,6 +7,20 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.12.x] - 2026-07-29 - Canonical NNS reporting adapter
+
+Detailed release notes: [docs/changelog/0.12.md](docs/changelog/0.12.md)
+
+- `0.12.0` replaces nine family-specific live NNS host adapters with
+  `ic_query::nns::LiveNnsSource` and replaces four duplicate source request
+  DTOs with
+  `ic_query::nns::NnsSourceRequest`. Direct live Registry, subnet-catalog,
+  inventory, proposal, and topology capability calls enforce their network
+  contract consistently. This is a breaking library hard cut with no aliases;
+  report schemas, cache formats, CLI behavior, and JSON output are unchanged.
+
+## [0.11.x] - 2026-07-29 - Exact-version NNS topology
+
 Detailed release notes: [docs/changelog/0.11.md](docs/changelog/0.11.md)
 
 - `0.11.4` centralizes NNS node, data-center, node-operator, and node-provider

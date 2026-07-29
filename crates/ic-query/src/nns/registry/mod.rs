@@ -8,7 +8,6 @@ pub use report::{
 };
 #[cfg(feature = "host")]
 pub use report::{
-    LiveNnsRegistrySource, NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest,
-    NnsRegistryVersionData, build_nns_registry_version_report,
-    build_nns_registry_version_report_with_source,
+    NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
+    build_nns_registry_version_report, build_nns_registry_version_report_with_source,
 };

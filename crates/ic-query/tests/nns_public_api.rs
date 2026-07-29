@@ -1,5 +1,5 @@
 #[cfg(feature = "host")]
-use ic_query::nns::NnsInventorySourceRequest;
+use ic_query::nns::NnsSourceRequest;
 #[cfg(feature = "host")]
 use ic_query::nns::data_center::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
@@ -66,14 +66,13 @@ use ic_query::nns::proposals::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
     NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalHostError,
     NnsProposalRefreshReport, NnsProposalRefreshRequest, NnsProposalSource,
-    NnsProposalSourceRequest, build_nns_proposal_cache_list_report,
-    build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
-    build_nns_proposal_list_report_from_cache, build_nns_proposal_list_report_with_source,
-    build_nns_proposal_report, build_nns_proposal_report_from_cache,
-    build_nns_proposal_report_with_source, nns_proposal_cache_list_report_text,
-    nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_cache_status_report_text,
-    nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path,
-    nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
+    build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
+    build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
+    build_nns_proposal_list_report_with_source, build_nns_proposal_report,
+    build_nns_proposal_report_from_cache, build_nns_proposal_report_with_source,
+    nns_proposal_cache_list_report_text, nns_proposal_cache_path, nns_proposal_cache_root,
+    nns_proposal_cache_status_report_text, nns_proposal_refresh_attempt_path,
+    nns_proposal_refresh_lock_path, nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
     refresh_nns_proposal_cache_with_source,
 };
 use ic_query::nns::proposals::{
@@ -84,7 +83,7 @@ use ic_query::nns::proposals::{
 };
 #[cfg(feature = "host")]
 use ic_query::nns::registry::{
-    NnsRegistryHostError, NnsRegistrySource, NnsRegistrySourceRequest, NnsRegistryVersionData,
+    NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
     build_nns_registry_version_report_with_source,
 };
 use ic_query::nns::registry::{
@@ -167,7 +166,7 @@ struct FixtureNnsRegistrySource;
 impl NnsRegistrySource for FixtureNnsRegistrySource {
     fn fetch_registry_version(
         &self,
-        request: &NnsRegistrySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
         assert_eq!(request.endpoint, "https://icp-api.io");
         assert_eq!(request.fetched_by, "ic-query");
@@ -621,7 +620,7 @@ struct FixtureNnsNodeSource;
 impl NnsNodeSource for FixtureNnsNodeSource {
     fn fetch_node_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsNodeListReport, NnsNodeHostError> {
         assert_inventory_source_request(
             &request.network,
@@ -645,7 +644,7 @@ struct FixtureNnsDataCenterSource;
 impl NnsDataCenterSource for FixtureNnsDataCenterSource {
     fn fetch_data_center_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
         assert_inventory_source_request(
             &request.network,
@@ -669,7 +668,7 @@ struct FixtureNnsNodeProviderSource;
 impl NnsNodeProviderSource for FixtureNnsNodeProviderSource {
     fn fetch_node_provider_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
         assert_inventory_source_request(
             &request.network,
@@ -693,7 +692,7 @@ struct FixtureNnsNodeOperatorSource;
 impl NnsNodeOperatorSource for FixtureNnsNodeOperatorSource {
     fn fetch_node_operator_list_report(
         &self,
-        request: &NnsInventorySourceRequest,
+        request: &NnsSourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
         assert_inventory_source_request(
             &request.network,
@@ -1426,7 +1425,7 @@ struct FixtureNnsProposalSource;
 impl NnsProposalSource for FixtureNnsProposalSource {
     fn fetch_proposals(
         &self,
-        request: &NnsProposalSourceRequest,
+        request: &NnsSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
@@ -1449,7 +1448,7 @@ impl NnsProposalSource for FixtureNnsProposalSource {
 
     fn fetch_proposal(
         &self,
-        request: &NnsProposalSourceRequest,
+        request: &NnsSourceRequest,
         proposal_id: u64,
     ) -> Result<NnsProposalRow, NnsProposalHostError> {
         assert_proposal_source_request(request);
@@ -1459,7 +1458,7 @@ impl NnsProposalSource for FixtureNnsProposalSource {
 }
 
 #[cfg(feature = "host")]
-fn assert_proposal_source_request(request: &NnsProposalSourceRequest) {
+fn assert_proposal_source_request(request: &NnsSourceRequest) {
     assert_eq!(request.network, "ic");
     assert_eq!(request.endpoint, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT);
     assert!(!request.fetched_at.is_empty());

@@ -27,7 +27,7 @@ pub use refresh::{refresh_nns_node_report, refresh_nns_node_report_with_source};
 #[cfg(all(test, feature = "host"))]
 use resolve::resolve_node;
 #[cfg(feature = "host")]
-pub use source::{LiveNnsNodeSource, NnsNodeSource};
+pub use source::NnsNodeSource;
 
 pub use model::{
     NnsNodeCacheRequest, NnsNodeInfoReport, NnsNodeInfoRequest, NnsNodeListFilters,

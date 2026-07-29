@@ -5,36 +5,36 @@
 //! Boundary: adapts source trait calls to candid queries against mainnet governance.
 
 use crate::{
-    nns::proposals::report::{
-        MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError,
-        model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
-        source::{NnsProposalSource, NnsProposalSourceRequest, nns_proposal_row_from_info},
-        wire::{
-            NnsListProposalInfoRequest, NnsListProposalInfoResponse, NnsProposalId, NnsProposalInfo,
+    nns::{
+        LiveNnsSource, NnsSourceRequest,
+        proposals::report::{
+            MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError,
+            model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
+            source::{NnsProposalSource, nns_proposal_row_from_info},
+            wire::{
+                NnsListProposalInfoRequest, NnsListProposalInfoResponse, NnsProposalId,
+                NnsProposalInfo,
+            },
         },
+        source::enforce_mainnet_network_with,
     },
     runtime::block_on_current_thread,
 };
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Agent;
 
-///
-/// LiveNnsProposalSource
-///
-/// Live source backed by the mainnet NNS governance canister.
-///
-
-pub struct LiveNnsProposalSource;
-
-impl NnsProposalSource for LiveNnsProposalSource {
+impl NnsProposalSource for LiveNnsSource {
     fn fetch_proposals(
         &self,
-        request: &NnsProposalSourceRequest,
+        request: &NnsSourceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
         reward_status: NnsProposalRewardStatusFilter,
     ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
+        enforce_mainnet_network_with(&request.network, |_| {
+            NnsProposalHostError::LocalNetworkUnsupported
+        })?;
         let include_status = status
             .governance_status_code()
             .into_iter()
@@ -59,9 +59,12 @@ impl NnsProposalSource for LiveNnsProposalSource {
 
     fn fetch_proposal(
         &self,
-        request: &NnsProposalSourceRequest,
+        request: &NnsSourceRequest,
         proposal_id: u64,
     ) -> Result<NnsProposalRow, NnsProposalHostError> {
+        enforce_mainnet_network_with(&request.network, |_| {
+            NnsProposalHostError::LocalNetworkUnsupported
+        })?;
         Ok(nns_proposal_row_from_info(
             block_on_current_thread(fetch_nns_proposal_async(request, proposal_id))
                 .map_err(NnsProposalHostError::Runtime)??,
@@ -70,7 +73,7 @@ impl NnsProposalSource for LiveNnsProposalSource {
 }
 
 async fn fetch_nns_proposal_list_async(
-    request: &NnsProposalSourceRequest,
+    request: &NnsSourceRequest,
     limit: u32,
     before_proposal_id: Option<u64>,
     include_status: &[i32],
@@ -100,7 +103,7 @@ async fn fetch_nns_proposal_list_async(
 }
 
 async fn fetch_nns_proposal_async(
-    request: &NnsProposalSourceRequest,
+    request: &NnsSourceRequest,
     proposal_id: u64,
 ) -> Result<NnsProposalInfo, NnsProposalHostError> {
     let agent = nns_agent(&request.endpoint)?;

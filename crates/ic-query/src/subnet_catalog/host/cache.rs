@@ -1,10 +1,10 @@
 use super::{
-    LiveNnsRegistryRefreshSource, SubnetCatalogHostError, SubnetCatalogRefreshRequest,
-    SubnetCatalogSource, error::enforce_mainnet_network, refresh_subnet_catalog_with_source,
-    subnet_catalog_path,
+    SubnetCatalogHostError, SubnetCatalogRefreshRequest, SubnetCatalogSource,
+    error::enforce_mainnet_network, refresh_subnet_catalog_with_source, subnet_catalog_path,
 };
 use crate::{
     cache_file::load_or_refresh_missing_cache,
+    nns::LiveNnsSource,
     subnet_catalog::{DEFAULT_REFRESH_LOCK_STALE_SECONDS, SubnetCatalog, parse_catalog_json},
 };
 use std::{fs, path::PathBuf};
@@ -76,7 +76,7 @@ pub fn load_or_refresh_subnet_catalog(
         request,
         source_endpoint,
         now_unix_secs,
-        &LiveNnsRegistryRefreshSource,
+        &LiveNnsSource,
     )
 }
 

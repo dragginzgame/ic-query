@@ -35,7 +35,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.11", default-features = false }
+ic-query = { version = "0.12", default-features = false }
 ```
 
 Feature boundary:
@@ -53,7 +53,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.11", default-features = false, features = ["host"] }
+ic-query = { version = "0.12", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -63,6 +63,12 @@ pre-collected data sources. Native tools should normally depend on
 `features = ["host"]`. Clap parsing, command dispatch, process output, and
 project-context discovery belong exclusively to `ic-query-cli` and are not a
 library feature.
+
+Built-in host calls use one concrete adapter per authority family:
+`ic_query::nns::LiveNnsSource`, `ic_query::sns::LiveSnsSource`, and
+`ic_query::icrc::LiveIcrcSource`. Small report-specific capability traits keep
+custom adapters narrow, while all NNS capability traits share
+`ic_query::nns::NnsSourceRequest` for network and collection provenance.
 
 Ordinary library builders and refresh functions are silent. Native consumers
 that want live paged-refresh updates can use the matching `*_with_progress`

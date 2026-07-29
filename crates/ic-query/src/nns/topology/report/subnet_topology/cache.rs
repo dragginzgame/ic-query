@@ -1,9 +1,8 @@
 use super::{
-    CachedNnsSubnetTopologyReport, LiveNnsSubnetTopologySource,
-    NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetTopologyCacheRequest,
-    NnsSubnetTopologyFreshness, NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
-    NnsSubnetTopologyReport, NnsSubnetTopologySource, error::enforce_mainnet_network,
-    source::source_request,
+    CachedNnsSubnetTopologyReport, NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
+    NnsSubnetTopologyCacheRequest, NnsSubnetTopologyFreshness, NnsSubnetTopologyHostError,
+    NnsSubnetTopologyRefreshRequest, NnsSubnetTopologyReport, NnsSubnetTopologySource,
+    error::enforce_mainnet_network, source::source_request,
 };
 use crate::{
     cache_file::{
@@ -11,6 +10,7 @@ use crate::{
         create_parent_directory, load_json_cache, with_refresh_lock, write_text_atomically,
     },
     freshness::freshness_facts,
+    nns::LiveNnsSource,
     subnet_catalog::{MAINNET_REGISTRY_CANISTER_ID, parse_utc_timestamp_secs},
 };
 use std::{
@@ -62,7 +62,7 @@ pub fn load_cached_nns_subnet_topology(
 pub fn refresh_nns_subnet_topology(
     request: &NnsSubnetTopologyRefreshRequest,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    refresh_nns_subnet_topology_with_source(request, &LiveNnsSubnetTopologySource)
+    refresh_nns_subnet_topology_with_source(request, &LiveNnsSource)
 }
 
 /// Explicitly refresh with a caller-supplied source, primarily for deterministic collection.
@@ -115,7 +115,7 @@ pub fn refresh_nns_subnet_topology_with_source(
 pub fn load_or_refresh_missing_nns_subnet_topology(
     request: &NnsSubnetTopologyRefreshRequest,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    load_or_refresh_missing_nns_subnet_topology_with_source(request, &LiveNnsSubnetTopologySource)
+    load_or_refresh_missing_nns_subnet_topology_with_source(request, &LiveNnsSource)
 }
 
 /// Load the joined cache or use a caller-supplied source only when it is missing.
@@ -140,7 +140,7 @@ pub fn load_or_refresh_stale_nns_subnet_topology(
     load_or_refresh_stale_nns_subnet_topology_with_source(
         request,
         stale_after_seconds,
-        &LiveNnsSubnetTopologySource,
+        &LiveNnsSource,
     )
 }
 
