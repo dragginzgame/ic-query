@@ -1,4 +1,10 @@
-use crate::{cli::clap::flag_arg, nns::leaf};
+use crate::{
+    cli::{
+        clap::flag_arg,
+        common::{COLLECTION_MODE_FORCE_REFRESH, collection_help},
+    },
+    nns::leaf,
+};
 use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
 pub(in crate::nns::topology) const DRY_RUN_ARG: &str = "dry-run";
@@ -30,5 +36,8 @@ pub(in crate::nns::topology) fn topology_refresh_command() -> clap::Command {
                 .help("Fetch and validate without replacing topology component caches"),
         )
         .arg(leaf::network_arg())
-        .after_help(TOPOLOGY_REFRESH_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            TOPOLOGY_REFRESH_HELP_AFTER,
+        ))
 }

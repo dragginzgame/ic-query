@@ -85,7 +85,10 @@ where
     let Some(args) = collect_args_or_print_help(args, usage) else {
         return Ok(());
     };
-    if let Some(option) = command_local_global_option(&args) {
+    if let Some((command, option)) = command_local_global_option(&args) {
+        if command == "icrc" {
+            return Err(unsupported_global_network_error(command));
+        }
         return Err(IcqCliError::Usage(format!(
             "{option} is a top-level option; put it before the command\n\n{}",
             usage()
@@ -104,7 +107,7 @@ where
         return Err(IcqCliError::Usage(usage()));
     };
     let mut tail = passthrough_args(subcommand_matches);
-    apply_global_network(command, &mut tail, global_network);
+    apply_global_network(command, &mut tail, global_network)?;
     let tail = tail.into_iter();
 
     match command {
@@ -149,7 +152,7 @@ fn network_arg() -> Arg {
         .num_args(1)
         .long("network")
         .value_name("name")
-        .help("ICP CLI network for networked commands")
+        .help("Network identity for supported NNS and SNS commands")
 }
 
 fn top_level_command() -> Command {
@@ -201,15 +204,16 @@ fn usage() -> String {
     command.render_help().to_string()
 }
 
-fn command_local_global_option(args: &[OsString]) -> Option<&'static str> {
+fn command_local_global_option(args: &[OsString]) -> Option<(&'static str, &'static str)> {
     let mut index = 0;
     while index < args.len() {
         let arg = args[index].to_str()?;
-        if command_family(arg).is_some() {
+        if let Some(family) = command_family(arg) {
             return args[index + 1..]
                 .iter()
                 .filter_map(|arg| arg.to_str())
-                .find_map(global_option_name);
+                .find_map(global_option_name)
+                .map(|option| (family.name, option));
         }
         index += if arg == "--network" { 2 } else { 1 };
     }
@@ -224,19 +228,39 @@ fn global_option_name(arg: &str) -> Option<&'static str> {
     }
 }
 
-fn apply_global_network(command: &str, tail: &mut Vec<OsString>, global_network: Option<String>) {
+fn apply_global_network(
+    command: &str,
+    tail: &mut Vec<OsString>,
+    global_network: Option<String>,
+) -> Result<(), IcqCliError> {
     let Some(global_network) = global_network else {
-        return;
+        return Ok(());
     };
     if tail_has_option(tail, INTERNAL_NETWORK_OPTION) {
-        return;
+        return Ok(());
+    }
+    if tail_requests_help_or_version(tail) {
+        return Ok(());
     }
     if !command_accepts_global_network(command, tail) {
-        return;
+        return Err(unsupported_global_network_error(command));
     }
 
     tail.push(OsString::from(INTERNAL_NETWORK_OPTION));
     tail.push(OsString::from(global_network));
+    Ok(())
+}
+
+fn unsupported_global_network_error(command: &str) -> IcqCliError {
+    let guidance = if command == "icrc" {
+        " use the command's --source-endpoint option to select the IC API endpoint"
+    } else {
+        ""
+    };
+    IcqCliError::Usage(format!(
+        "--network is not supported by `icq {command}`;{guidance}\n\n{}",
+        usage()
+    ))
 }
 
 fn command_accepts_global_network(command: &str, tail: &[OsString]) -> bool {
@@ -245,6 +269,12 @@ fn command_accepts_global_network(command: &str, tail: &[OsString]) -> bool {
 
 fn tail_has_option(tail: &[OsString], name: &str) -> bool {
     tail.iter().any(|arg| arg.to_str() == Some(name))
+}
+
+fn tail_requests_help_or_version(tail: &[OsString]) -> bool {
+    tail.iter()
+        .filter_map(|arg| arg.to_str())
+        .any(|arg| matches!(arg, "help" | "--help" | "-h" | "--version" | "-V"))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -284,6 +314,7 @@ fn nns_accepts_global_network(tail: &[OsString]) -> bool {
                 | "node"
                 | "node-operator"
                 | "node-provider"
+                | "proposal"
                 | "registry"
                 | "subnet"
                 | "topology"
@@ -336,7 +367,7 @@ Commands:
 
 Options:
   -V, --version         Print version
-      --network <name>  ICP CLI network for networked commands
+      --network <name>  Network identity for supported NNS and SNS commands
   -h, --help            Print help
 
 Run `icq <command> help` for command-specific help.
@@ -427,7 +458,8 @@ Run `icq <command> help` for command-specific help.
 
         let mut sns_info_tail = vec![OsString::from("info"), OsString::from("1")];
 
-        apply_global_network("sns", &mut sns_info_tail, Some("ic".to_string()));
+        apply_global_network("sns", &mut sns_info_tail, Some("ic".to_string()))
+            .expect("SNS supports global network");
 
         assert_eq!(
             sns_info_tail,
@@ -457,7 +489,8 @@ Run `icq <command> help` for command-specific help.
     fn global_network_is_forwarded_to_networked_leaf_commands() {
         let mut nns_tail = vec![OsString::from("data-center"), OsString::from("list")];
 
-        apply_global_network("nns", &mut nns_tail, Some("ic".to_string()));
+        apply_global_network("nns", &mut nns_tail, Some("ic".to_string()))
+            .expect("NNS data-center supports global network");
 
         assert_eq!(
             nns_tail,
@@ -471,7 +504,8 @@ Run `icq <command> help` for command-specific help.
 
         let mut sns_tail = vec![OsString::from("list")];
 
-        apply_global_network("sns", &mut sns_tail, Some("ic".to_string()));
+        apply_global_network("sns", &mut sns_tail, Some("ic".to_string()))
+            .expect("SNS list supports global network");
 
         assert_eq!(
             sns_tail,
@@ -482,11 +516,71 @@ Run `icq <command> help` for command-specific help.
             ]
         );
 
+        let mut nns_proposal_tail = vec![OsString::from("proposal"), OsString::from("list")];
+
+        apply_global_network("nns", &mut nns_proposal_tail, Some("local".to_string()))
+            .expect("NNS proposal supports global network");
+
+        assert_eq!(
+            nns_proposal_tail,
+            vec![
+                OsString::from("proposal"),
+                OsString::from("list"),
+                OsString::from(INTERNAL_NETWORK_OPTION),
+                OsString::from("local")
+            ]
+        );
+    }
+
+    #[test]
+    fn global_network_is_rejected_when_the_family_uses_endpoint_identity() {
         let mut icrc_tail = vec![OsString::from("token")];
 
-        apply_global_network("icrc", &mut icrc_tail, Some("ic".to_string()));
+        let error = apply_global_network("icrc", &mut icrc_tail, Some("ic".to_string()))
+            .expect_err("ICRC must reject an inapplicable global network");
 
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("--network is not supported"));
+        assert!(error.to_string().contains("icq icrc"));
+        assert!(error.to_string().contains("--source-endpoint"));
         assert_eq!(icrc_tail, vec![OsString::from("token")]);
+
+        let error = run([
+            OsString::from("--network"),
+            OsString::from("ic"),
+            OsString::from("icrc"),
+            OsString::from("token"),
+            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
+        ])
+        .expect_err("ICRC global network must fail before dispatch");
+
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("--source-endpoint"));
+
+        let error = run([
+            OsString::from("icrc"),
+            OsString::from("token"),
+            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
+            OsString::from("--network"),
+            OsString::from("ic"),
+        ])
+        .expect_err("command-local ICRC network must use the same rejection");
+
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("--network is not supported"));
+        assert!(!error.to_string().contains("put it before the command"));
+
+        assert!(
+            run([
+                OsString::from("--network"),
+                OsString::from("ic"),
+                OsString::from("icrc"),
+                OsString::from("token"),
+                OsString::from("help"),
+            ])
+            .is_ok(),
+            "help must remain available without dispatching a query"
+        );
     }
 
     #[test]

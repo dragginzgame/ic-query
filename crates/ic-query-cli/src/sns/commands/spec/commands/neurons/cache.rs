@@ -5,7 +5,11 @@
 //! Boundary: defines local-only cache command shape and examples.
 
 use crate::{
-    cli::{clap::passthrough_subcommand, common::format_arg, globals::internal_network_arg},
+    cli::{
+        clap::passthrough_subcommand,
+        common::{COLLECTION_MODE_CACHE_ONLY, collection_help, format_arg},
+        globals::internal_network_arg,
+    },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
 };
 use clap::Command as ClapCommand;
@@ -40,7 +44,10 @@ pub(in crate::sns::commands) fn sns_neurons_cache_command() -> ClapCommand {
             ClapCommand::new("status")
                 .about("Show local SNS neuron snapshot and refresh-attempt status"),
         ))
-        .after_help(SNS_NEURONS_CACHE_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            SNS_NEURONS_CACHE_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_neurons_cache_list_command() -> ClapCommand {
@@ -50,7 +57,10 @@ pub(in crate::sns::commands) fn sns_neurons_cache_list_command() -> ClapCommand 
         .disable_help_flag(true)
         .arg(format_arg())
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_NEURONS_CACHE_LIST_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            SNS_NEURONS_CACHE_LIST_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_neurons_cache_status_command() -> ClapCommand {
@@ -61,5 +71,8 @@ pub(in crate::sns::commands) fn sns_neurons_cache_status_command() -> ClapComman
         .arg(sns_lookup_input_arg())
         .arg(format_arg())
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_NEURONS_CACHE_STATUS_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            SNS_NEURONS_CACHE_STATUS_HELP_AFTER,
+        ))
 }

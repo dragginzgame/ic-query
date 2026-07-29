@@ -32,6 +32,7 @@ fn registry_help_is_advertised_under_nns() {
     assert!(nns.contains("registry"));
     assert!(registry.contains("Show the latest mainnet NNS registry version"));
     assert!(version.contains("icq nns registry version"));
+    assert!(version.contains("Collection mode: Live query"));
     assert!(version.contains("--format json"));
 }
 

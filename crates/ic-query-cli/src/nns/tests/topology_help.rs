@@ -25,6 +25,7 @@ fn topology_help_is_advertised_under_nns() {
     assert!(topology.contains("Summarize cached mainnet NNS topology by node provider"));
     assert!(topology.contains("Refresh cached mainnet NNS topology component reports"));
     assert!(summary.contains("icq nns topology summary"));
+    assert!(summary.contains("Collection mode: Cache-backed read"));
     assert!(summary.contains("--format json"));
     assert!(summary.contains("--source-endpoint"));
     assert!(coverage.contains("icq nns topology coverage"));
@@ -49,6 +50,7 @@ fn topology_help_is_advertised_under_nns() {
     assert!(providers.contains("--format json"));
     assert!(providers.contains("--source-endpoint"));
     assert!(refresh.contains("icq nns topology refresh"));
+    assert!(refresh.contains("Collection mode: Forced live refresh"));
     assert!(refresh.contains("--format json"));
     assert!(refresh.contains("--source-endpoint"));
     assert!(refresh.contains("--lock-stale-after"));

@@ -1,5 +1,8 @@
 use crate::{
-    cli::clap::{passthrough_subcommand, render_help},
+    cli::{
+        clap::{passthrough_subcommand, render_help},
+        common::{COLLECTION_MODE_LIVE, collection_help},
+    },
     nns::leaf,
 };
 use clap::Command as ClapCommand;
@@ -32,7 +35,10 @@ pub(in crate::nns::registry) fn registry_version_command() -> ClapCommand {
                 .help("IC API endpoint used for the native NNS registry query"),
         )
         .arg(leaf::network_arg())
-        .after_help(REGISTRY_VERSION_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_LIVE,
+            REGISTRY_VERSION_HELP_AFTER,
+        ))
 }
 
 #[cfg(test)]

@@ -11,6 +11,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.12.md](docs/changelog/0.12.md)
 
+- `0.12.1` adds a living 1.0 roadmap that tracks reporting coverage, caching
+  and follow-up-query policy, prioritized workstreams, and the completion bar.
+  CLI help now identifies live, cache-backed, cache-preferred, cache-only,
+  forced-refresh, and view-dependent collection behavior. Global `--network`
+  is honored by NNS proposals and rejected for ICRC commands instead of being
+  silently ignored. `make install` now replaces an existing local `icq`
+  binary.
+
+  ```bash
+  icq --network ic nns proposal list
+  ```
+
 - `0.12.0` replaces nine family-specific live NNS host adapters with
   `ic_query::nns::LiveNnsSource` and replaces four duplicate source request
   DTOs with

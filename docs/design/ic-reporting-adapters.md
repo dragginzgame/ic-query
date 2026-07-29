@@ -6,6 +6,10 @@
 - Scope: read-only IC reporting expansion after 0.11
 - Public boundary: typed requests, capability traits, reports, and provenance
 
+Product coverage, priorities, and the completion bar are tracked in the
+living [Roadmap to 1.0](../roadmap/1.0.md). This document owns the adapter and
+collection architecture rather than duplicating milestone status.
+
 ## Decision
 
 `ic-query` expands by authority family rather than by transport call. Each

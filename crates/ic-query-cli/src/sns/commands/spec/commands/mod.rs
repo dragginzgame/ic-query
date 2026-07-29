@@ -12,7 +12,7 @@ mod proposals;
 use crate::{
     cli::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
-        common::{format_arg, source_endpoint_arg},
+        common::{COLLECTION_MODE_LIVE, collection_help, format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
     sns::commands::spec::values::SnsListSortArg,
@@ -86,7 +86,7 @@ pub(in crate::sns::commands) fn sns_list_command() -> ClapCommand {
         )
         .arg(sort_arg())
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_LIST_HELP_AFTER)
+        .after_help(collection_help(COLLECTION_MODE_LIVE, SNS_LIST_HELP_AFTER))
 }
 
 fn sort_arg() -> clap::Arg {

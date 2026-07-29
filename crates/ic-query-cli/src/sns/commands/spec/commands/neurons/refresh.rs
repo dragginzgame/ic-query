@@ -6,7 +6,8 @@
 
 use crate::{
     cli::{
-        clap::value_arg, common::format_arg, common::source_endpoint_arg,
+        clap::value_arg,
+        common::{COLLECTION_MODE_FORCE_REFRESH, collection_help, format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
@@ -53,5 +54,8 @@ pub(in crate::sns::commands) fn sns_neurons_refresh_command() -> ClapCommand {
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_NEURONS_REFRESH_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            SNS_NEURONS_REFRESH_HELP_AFTER,
+        ))
 }

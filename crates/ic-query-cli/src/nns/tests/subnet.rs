@@ -86,6 +86,8 @@ fn list_and_info_help_hide_stale_policy_knobs() {
     let list = list_usage();
     let info = info_usage();
 
+    assert!(list.contains("Collection mode: Cache-backed read"));
+    assert!(info.contains("Collection mode: Cache-backed read"));
     assert!(!list.contains("--stale-after"));
     assert!(!list.contains("--allow-stale-subnet-catalog"));
     assert!(!info.contains("--stale-after"));
@@ -136,9 +138,11 @@ fn catalog_local_is_rejected_with_pinned_message() {
 #[test]
 fn refresh_is_advertised_as_subnet_command() {
     let text = subnet_usage();
+    let refresh = refresh_usage();
 
     assert!(text.contains("refresh"));
-    assert!(refresh_usage().contains("icq nns subnet refresh"));
+    assert!(refresh.contains("icq nns subnet refresh"));
+    assert!(refresh.contains("Collection mode: Forced live refresh"));
 }
 
 #[test]

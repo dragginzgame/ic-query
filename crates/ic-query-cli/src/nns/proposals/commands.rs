@@ -5,7 +5,13 @@
 //! Boundary: defines the public `icq nns proposal` command shape.
 
 use crate::{
-    cli::clap::{flag_arg, passthrough_subcommand, render_help, value_arg},
+    cli::{
+        clap::{flag_arg, passthrough_subcommand, render_help, value_arg},
+        common::{
+            COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+            COLLECTION_MODE_FORCE_REFRESH, collection_help,
+        },
+    },
     nns::{
         leaf,
         proposals::values::{
@@ -183,7 +189,10 @@ fn nns_proposal_list_command_with(
                 .help("Show per-proposal detail lines in text output"),
         )
         .arg(leaf::network_arg())
-        .after_help(help_after)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+            help_after,
+        ))
 }
 
 pub(in crate::nns::proposals) fn nns_proposal_list_command() -> ClapCommand {
@@ -226,7 +235,10 @@ fn nns_proposal_detail_command_with(
                 .help("Show full NNS proposal detail text"),
         )
         .arg(leaf::network_arg())
-        .after_help(help_after)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+            help_after,
+        ))
 }
 
 pub(in crate::nns::proposals) fn nns_proposal_command() -> ClapCommand {
@@ -287,7 +299,10 @@ pub(in crate::nns::proposals) fn nns_proposal_refresh_command() -> ClapCommand {
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
         .arg(leaf::network_arg())
-        .after_help(NNS_PROPOSAL_REFRESH_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            NNS_PROPOSAL_REFRESH_HELP_AFTER,
+        ))
 }
 
 pub(in crate::nns::proposals) fn nns_proposal_cache_command() -> ClapCommand {
@@ -301,7 +316,10 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_command() -> ClapCommand {
         .subcommand(passthrough_subcommand(ClapCommand::new("status").about(
             "Show local NNS proposal snapshot and refresh-attempt status",
         )))
-        .after_help(NNS_PROPOSAL_CACHE_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            NNS_PROPOSAL_CACHE_HELP_AFTER,
+        ))
 }
 
 pub(in crate::nns::proposals) fn nns_proposal_cache_list_command() -> ClapCommand {
@@ -311,7 +329,10 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_list_command() -> ClapComman
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(leaf::network_arg())
-        .after_help(NNS_PROPOSAL_CACHE_LIST_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            NNS_PROPOSAL_CACHE_LIST_HELP_AFTER,
+        ))
 }
 
 pub(in crate::nns::proposals) fn nns_proposal_cache_status_command() -> ClapCommand {
@@ -321,7 +342,10 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_status_command() -> ClapComm
         .disable_help_flag(true)
         .arg(leaf::format_arg())
         .arg(leaf::network_arg())
-        .after_help(NNS_PROPOSAL_CACHE_STATUS_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            NNS_PROPOSAL_CACHE_STATUS_HELP_AFTER,
+        ))
 }
 
 #[cfg(test)]

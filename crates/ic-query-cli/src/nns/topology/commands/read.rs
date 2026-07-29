@@ -1,4 +1,7 @@
-use crate::nns::leaf;
+use crate::{
+    cli::common::{COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help},
+    nns::leaf,
+};
 use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
 const TOPOLOGY_SUMMARY_HELP_AFTER: &str = "\
@@ -141,5 +144,8 @@ fn topology_read_command(
         .arg(leaf::format_arg())
         .arg(leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT).help(source_help))
         .arg(leaf::network_arg())
-        .after_help(after_help)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_REFRESH_MISSING,
+            after_help,
+        ))
 }

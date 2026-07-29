@@ -22,6 +22,9 @@ From this checkout:
 make install
 ```
 
+The local install target replaces an existing `icq` binary so repeated
+development installs do not require a separate Cargo `--force` option.
+
 From crates.io after publication:
 
 ```bash
@@ -85,6 +88,13 @@ See
 for downstream feature guidance, source-adapter examples, and patterns for
 using request constructors and report builders instead of process shell-outs.
 
+## Roadmap
+
+The living [Roadmap to 1.0](docs/roadmap/1.0.md) tracks current reporting
+coverage, prioritized NNS/SNS/ICRC and IC-wide workstreams, caching policy, and
+the stability bar for 1.0. Adapter ownership and provenance rules remain in
+[IC Reporting Adapters](docs/design/ic-reporting-adapters.md).
+
 ## Commands
 
 ```bash
@@ -107,6 +117,11 @@ Use `icq nns <family> help`, `icq nns topology <report> help`, or
 `icq icrc <command> help`, or `icq sns <command> help` for command options.
 Use `icq -V` or `icq --version` for the executable version; command families do
 not expose positional version shortcuts.
+
+The top-level `--network` option supplies network identity to NNS and SNS
+commands, including NNS proposals. ICRC commands identify their target by
+ledger canister and API endpoint instead; combining `--network` with `icrc` is
+rejected before dispatch and directs the caller to `--source-endpoint`.
 
 Most commands support text output by default and JSON output with
 `--format json`:
@@ -142,6 +157,19 @@ icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 ```
 
 ## Cache
+
+Detailed command help identifies one of five collection modes:
+
+- live queries do not read or write a report cache;
+- cache-backed reads refresh and store a complete snapshot only when missing;
+- cache-preferred reads use a complete snapshot when available and otherwise
+  make a live query;
+- local cache inspection never makes a network request;
+- forced refreshes fetch and validate a complete snapshot before any atomic
+  cache replacement.
+
+SNS neuron list mode is view-dependent: `--sort api` is a bounded live query,
+while other sorts require a complete local snapshot.
 
 The NNS subnet, node, provider, operator, data-center, and topology commands
 use project-local cache files under `.icq/`. Refresh commands fetch current

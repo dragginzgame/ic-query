@@ -2,7 +2,10 @@ use super::args::{
     geo_arg, kind_arg, range_limit_arg, range_offset_arg, show_ranges_arg, specialization_arg,
     verbose_arg,
 };
-use crate::nns::leaf;
+use crate::{
+    cli::common::{COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help},
+    nns::leaf,
+};
 use clap::Command as ClapCommand;
 use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
 
@@ -34,5 +37,8 @@ pub(in crate::nns::subnet) fn list_command() -> ClapCommand {
         .arg(range_limit_arg())
         .arg(range_offset_arg())
         .arg(leaf::network_arg())
-        .after_help(LIST_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_REFRESH_MISSING,
+            LIST_HELP_AFTER,
+        ))
 }

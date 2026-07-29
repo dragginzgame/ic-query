@@ -142,4 +142,18 @@ fn usage_mentions_icrc_command_surface() {
     ] {
         assert!(usage.contains(needle), "missing {needle:?} in {usage}");
     }
+
+    for usage in [
+        token_usage(),
+        capabilities_usage(),
+        balance_usage(),
+        allowance_usage(),
+        index_usage(),
+        transactions_usage(),
+        block_types_usage(),
+        archives_usage(),
+        tip_certificate_usage(),
+    ] {
+        assert!(usage.contains("Collection mode: Live query"));
+    }
 }

@@ -7,7 +7,9 @@
 use crate::{
     cli::{
         clap::{flag_arg, value_arg},
-        common::{format_arg, source_endpoint_arg},
+        common::{
+            COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help, format_arg, source_endpoint_arg,
+        },
         globals::internal_network_arg,
     },
     sns::commands::spec::commands::{
@@ -66,7 +68,10 @@ pub(in crate::sns::commands) fn sns_neurons_command() -> ClapCommand {
         )
         .arg(neurons_sort_arg())
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_NEURONS_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW,
+            SNS_NEURONS_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_neurons_dispatch_command() -> ClapCommand {

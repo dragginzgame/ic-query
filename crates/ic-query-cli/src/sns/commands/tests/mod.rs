@@ -11,7 +11,9 @@ use super::{
         SnsProposalTopicArg, SnsProposalsSortArg, sns_info_command, sns_info_usage, sns_list_usage,
         sns_neurons_cache_list_usage, sns_neurons_cache_status_usage, sns_neurons_cache_usage,
         sns_neurons_refresh_usage, sns_neurons_usage, sns_params_command, sns_params_usage,
-        sns_proposal_usage, sns_proposals_usage, sns_token_command, sns_token_usage, usage,
+        sns_proposal_usage, sns_proposals_cache_list_usage, sns_proposals_cache_status_usage,
+        sns_proposals_refresh_usage, sns_proposals_usage, sns_token_command, sns_token_usage,
+        usage,
     },
 };
 use crate::{cli::common::OutputFormat, test_support::assert_snapshot};

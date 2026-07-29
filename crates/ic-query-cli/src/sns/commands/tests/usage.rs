@@ -9,6 +9,9 @@ fn sns_help_is_advertised() {
     let params = sns_params_usage();
     let proposal = sns_proposal_usage();
     let proposals = sns_proposals_usage();
+    let proposals_cache_list = sns_proposals_cache_list_usage();
+    let proposals_cache_status = sns_proposals_cache_status_usage();
+    let proposals_refresh = sns_proposals_refresh_usage();
     let neurons = sns_neurons_usage();
     let neurons_cache = sns_neurons_cache_usage();
     let neurons_cache_list = sns_neurons_cache_list_usage();
@@ -30,6 +33,7 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("List SNS governance proposals"));
     assert!(sns.contains("List and refresh SNS governance neurons"));
     assert!(list.contains("icq sns list"));
+    assert!(list.contains("Collection mode: Live query"));
     assert!(list.contains("--format json"));
     assert!(list.contains("--source-endpoint"));
     assert!(list.contains("--sort"));
@@ -41,17 +45,25 @@ fn sns_help_is_advertised() {
     assert!(params.contains("icq sns params"));
     assert!(params.contains("id|root-principal"));
     assert!(proposal.contains("icq sns proposal"));
+    assert!(proposal.contains("Collection mode: Cache-preferred read"));
     assert!(proposal.contains("id|root-principal"));
     assert!(proposal.contains("proposal-id"));
     assert!(proposal.contains("--ballots"));
     assert!(proposal.contains("--verbose"));
     assert!(proposals.contains("icq sns proposals"));
+    assert!(proposals.contains("Collection mode: Cache-backed read"));
     assert!(proposals.contains("--limit"));
     assert!(proposals.contains("--before"));
     assert!(proposals.contains("--status"));
     assert!(proposals.contains("--topic"));
     assert!(proposals.contains("--verbose"));
+    assert!(proposals_cache_list.contains("Collection mode: Local cache inspection"));
+    assert!(proposals_cache_status.contains("Collection mode: Local cache inspection"));
+    assert!(!proposals_cache_list.contains("--source-endpoint"));
+    assert!(!proposals_cache_status.contains("--source-endpoint"));
+    assert!(proposals_refresh.contains("Collection mode: Forced live refresh"));
     assert!(neurons.contains("icq sns neurons"));
+    assert!(neurons.contains("Collection mode: View-dependent read"));
     assert!(neurons.contains("--limit"));
     assert!(neurons.contains("--owner"));
     assert!(neurons.contains("--verbose"));
@@ -62,10 +74,15 @@ fn sns_help_is_advertised() {
     assert!(neurons_cache.contains("list"));
     assert!(neurons_cache.contains("status"));
     assert!(neurons_cache_list.contains("icq sns neurons cache list"));
+    assert!(neurons_cache_list.contains("Collection mode: Local cache inspection"));
+    assert!(!neurons_cache_list.contains("--source-endpoint"));
     assert!(neurons_cache_list.contains("--format json"));
     assert!(neurons_cache_status.contains("icq sns neurons cache status"));
     assert!(neurons_cache_status.contains("id|root-principal"));
+    assert!(neurons_cache_status.contains("Collection mode: Local cache inspection"));
+    assert!(!neurons_cache_status.contains("--source-endpoint"));
     assert!(neurons_refresh.contains("icq sns neurons refresh"));
+    assert!(neurons_refresh.contains("Collection mode: Forced live refresh"));
     assert!(neurons_refresh.contains("--page-size"));
     assert!(neurons_refresh.contains("--max-pages"));
 }
@@ -82,6 +99,8 @@ Options:
       --source-endpoint <url>  IC API endpoint used for SNS-W and governance metadata queries [default: https://icp-api.io]
       --verbose                Show full canister IDs in text output
       --sort <id|name>         Text/JSON row order; ids follow the SNS-W response order [default: id] [possible values: id, name]
+
+Collection mode: Live query; does not read or write a report cache.
 
 Examples:
   icq sns list

@@ -18,6 +18,14 @@ use thiserror::Error as ThisError;
 
 pub const FORMAT_ARG: &str = "format";
 pub const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
+pub const COLLECTION_MODE_CACHE_ONLY: &str =
+    "Local cache inspection; does not make a network request.";
+pub const COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK: &str = "Cache-preferred read; uses a complete local snapshot when available and otherwise makes a live query.";
+pub const COLLECTION_MODE_CACHE_REFRESH_MISSING: &str =
+    "Cache-backed read; refreshes and stores a complete snapshot only when the cache is missing.";
+pub const COLLECTION_MODE_FORCE_REFRESH: &str = "Forced live refresh; fetches and validates a complete snapshot before any atomic cache replacement.";
+pub const COLLECTION_MODE_LIVE: &str = "Live query; does not read or write a report cache.";
+pub const COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW: &str = "View-dependent read; --sort api makes a bounded live query and other sorts use a complete local cache.";
 
 const DEFAULT_FORMAT: &str = "text";
 
@@ -104,4 +112,8 @@ pub fn source_endpoint_arg(default_source_endpoint: &'static str) -> clap::Arg {
         .long(SOURCE_ENDPOINT_ARG)
         .value_name("url")
         .default_value(default_source_endpoint)
+}
+
+pub fn collection_help(mode: &str, examples: &str) -> String {
+    format!("Collection mode: {mode}\n\n{examples}")
 }

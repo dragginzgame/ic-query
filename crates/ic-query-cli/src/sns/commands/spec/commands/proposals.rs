@@ -7,7 +7,11 @@
 use crate::{
     cli::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
-        common::{format_arg, source_endpoint_arg},
+        common::{
+            COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+            COLLECTION_MODE_CACHE_REFRESH_MISSING, COLLECTION_MODE_FORCE_REFRESH, collection_help,
+            format_arg, source_endpoint_arg,
+        },
         globals::internal_network_arg,
     },
     sns::commands::spec::{
@@ -121,7 +125,10 @@ pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
                 .help("Show proposal ballot rows in text output"),
         )
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_PROPOSAL_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+            SNS_PROPOSAL_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
@@ -214,7 +221,10 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
                 .help("Show full proposal titles and per-proposal detail lines in text output"),
         )
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_PROPOSALS_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_REFRESH_MISSING,
+            SNS_PROPOSALS_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_proposals_dispatch_command() -> ClapCommand {
@@ -256,7 +266,10 @@ pub(in crate::sns::commands) fn sns_proposals_refresh_command() -> ClapCommand {
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_PROPOSALS_REFRESH_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            SNS_PROPOSALS_REFRESH_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_proposals_cache_command() -> ClapCommand {
@@ -270,7 +283,10 @@ pub(in crate::sns::commands) fn sns_proposals_cache_command() -> ClapCommand {
         .subcommand(passthrough_subcommand(ClapCommand::new("status").about(
             "Show local SNS proposal snapshot and refresh-attempt status",
         )))
-        .after_help(SNS_PROPOSALS_CACHE_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            SNS_PROPOSALS_CACHE_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_proposals_cache_list_command() -> ClapCommand {
@@ -280,7 +296,10 @@ pub(in crate::sns::commands) fn sns_proposals_cache_list_command() -> ClapComman
         .disable_help_flag(true)
         .arg(format_arg())
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_PROPOSALS_CACHE_LIST_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            SNS_PROPOSALS_CACHE_LIST_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_proposals_cache_status_command() -> ClapCommand {
@@ -291,5 +310,8 @@ pub(in crate::sns::commands) fn sns_proposals_cache_status_command() -> ClapComm
         .arg(sns_lookup_input_arg())
         .arg(format_arg())
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER,
+        ))
 }

@@ -1,5 +1,11 @@
 use super::args::{INFO_INPUT_HELP, INFO_INPUT_VALUE_NAME};
-use crate::{cli::clap::value_arg, nns::leaf};
+use crate::{
+    cli::{
+        clap::value_arg,
+        common::{COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help},
+    },
+    nns::leaf,
+};
 use clap::Command as ClapCommand;
 use ic_query::subnet_catalog::{DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, ResolveAs};
 
@@ -35,5 +41,8 @@ pub(in crate::nns::subnet) fn info_command() -> ClapCommand {
                 .help("IC API endpoint used if the subnet catalog cache is missing"),
         )
         .arg(leaf::network_arg())
-        .after_help(INFO_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_REFRESH_MISSING,
+            INFO_HELP_AFTER,
+        ))
 }

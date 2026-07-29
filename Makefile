@@ -146,7 +146,7 @@ ci:
 	done
 
 install:
-	cargo install --locked --path crates/ic-query-cli --bin icq
+	cargo install --locked --force --path crates/ic-query-cli --bin icq
 
 install-dev:
 	cargo install --locked ripgrep --version $(RIPGREP_VERSION)

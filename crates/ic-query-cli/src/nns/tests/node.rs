@@ -105,6 +105,7 @@ fn node_help_is_advertised_under_nns() {
     assert!(node.contains("Show one cached mainnet NNS node"));
     assert!(node.contains("Force-refresh and cache NNS node metadata"));
     assert!(list.contains("icq nns node list"));
+    assert!(list.contains("Collection mode: Cache-backed read"));
     assert!(list.contains("--verbose"));
     assert!(list.contains("--format json"));
     assert!(list.contains("--data-center"));
@@ -115,6 +116,7 @@ fn node_help_is_advertised_under_nns() {
     assert!(info.contains("icq nns node info"));
     assert!(info.contains("node|node-prefix"));
     assert!(refresh.contains("icq nns node refresh"));
+    assert!(refresh.contains("Collection mode: Forced live refresh"));
     assert!(refresh.contains("--dry-run"));
 }
 

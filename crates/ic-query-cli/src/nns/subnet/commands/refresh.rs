@@ -1,4 +1,10 @@
-use crate::{cli::clap::flag_arg, nns::leaf};
+use crate::{
+    cli::{
+        clap::flag_arg,
+        common::{COLLECTION_MODE_FORCE_REFRESH, collection_help},
+    },
+    nns::leaf,
+};
 use clap::Command as ClapCommand;
 use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
 
@@ -26,5 +32,8 @@ pub(in crate::nns::subnet) fn refresh_command() -> ClapCommand {
         )
         .arg(leaf::output_path_arg().help("Also write the fetched catalog JSON to this path"))
         .arg(leaf::network_arg())
-        .after_help(REFRESH_HELP_AFTER)
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            REFRESH_HELP_AFTER,
+        ))
 }

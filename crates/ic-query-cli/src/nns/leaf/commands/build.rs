@@ -4,7 +4,10 @@ use super::args::{
 use crate::{
     cli::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
-        common::{format_arg, source_endpoint_arg},
+        common::{
+            COLLECTION_MODE_CACHE_REFRESH_MISSING, COLLECTION_MODE_FORCE_REFRESH, collection_help,
+            format_arg, source_endpoint_arg,
+        },
     },
     nns::leaf::model::NnsLeafCommandSpec,
 };
@@ -42,7 +45,10 @@ pub(in crate::nns) fn list_command(
                 .help(spec.verbose_help),
         )
         .arg(network_arg())
-        .after_help(spec.list_help_after)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_REFRESH_MISSING,
+            spec.list_help_after,
+        ))
 }
 
 pub(in crate::nns) fn info_command(
@@ -62,7 +68,10 @@ pub(in crate::nns) fn info_command(
         .arg(format_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.info_source_help))
         .arg(network_arg())
-        .after_help(spec.info_help_after)
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_REFRESH_MISSING,
+            spec.info_help_after,
+        ))
 }
 
 pub(in crate::nns) fn refresh_command(
@@ -83,5 +92,8 @@ pub(in crate::nns) fn refresh_command(
         )
         .arg(output_path_arg().help(spec.output_help))
         .arg(network_arg())
-        .after_help(spec.refresh_help_after)
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            spec.refresh_help_after,
+        ))
 }

@@ -101,6 +101,17 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
 }
 
 #[test]
+fn nns_proposal_list_accepts_the_forwarded_global_network() {
+    let options = NnsProposalListOptions::parse_list([
+        OsString::from("--__icq-network"),
+        OsString::from("local"),
+    ])
+    .expect("parse forwarded global network");
+
+    assert_eq!(options.network, "local");
+}
+
+#[test]
 fn nns_proposal_list_parses_extended_local_sort_values() {
     let reward_status_sort = NnsProposalListOptions::parse_list([
         OsString::from("--sort"),
@@ -256,15 +267,21 @@ fn nns_proposal_help_is_advertised_under_nns() {
     assert!(proposal.contains("icq nns proposal refresh"));
     assert!(proposal.contains("icq nns proposal cache status"));
     assert!(proposal_list.contains("icq nns proposal list"));
+    assert!(proposal_list.contains("Collection mode: Cache-preferred read"));
     assert!(proposal_list.contains("--reward-status settled"));
     assert!(proposal_info.contains("icq nns proposal info 132411"));
     assert!(proposal_refresh.contains("icq nns proposal refresh"));
+    assert!(proposal_refresh.contains("Collection mode: Forced live refresh"));
     assert!(proposal_refresh.contains("--page-size"));
     assert!(proposal_refresh.contains("--max-pages"));
     assert!(proposal_cache.contains("icq nns proposal cache list"));
     assert!(proposal_cache.contains("icq nns proposal cache status"));
     assert!(proposal_cache_list.contains("icq nns proposal cache list"));
     assert!(proposal_cache_status.contains("icq nns proposal cache status"));
+    assert!(proposal_cache_list.contains("Collection mode: Local cache inspection"));
+    assert!(proposal_cache_status.contains("Collection mode: Local cache inspection"));
+    assert!(!proposal_cache_list.contains("--source-endpoint"));
+    assert!(!proposal_cache_status.contains("--source-endpoint"));
     assert!(proposal_list.contains("--limit 50"));
     assert!(proposal_list.contains("--before 132000"));
     assert!(proposal_list.contains("--status open"));

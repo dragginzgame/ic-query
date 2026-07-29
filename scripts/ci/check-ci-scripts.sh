@@ -54,6 +54,22 @@ workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/work
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
 
+install_case="${work_dir}/install"
+mkdir -p "${install_case}/bin"
+cat > "${install_case}/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+printf 'cargo %s\n' "$*" > "${TRACE_FILE}"
+EOF
+chmod +x "${install_case}/bin/cargo"
+(
+  cd "${repo_root}"
+  PATH="${install_case}/bin:${PATH}" TRACE_FILE="${install_case}/trace" \
+    "${make_bin}" --no-print-directory install
+) >/dev/null
+[[ "$(<"${install_case}/trace")" \
+  == "cargo install --locked --force --path crates/ic-query-cli --bin icq" ]] \
+  || fail "make install does not replace an existing local icq binary"
+
 public_docs_case="${work_dir}/public-docs"
 mkdir -p "${public_docs_case}/bin"
 public_docs_warning_count="$(sed -n \

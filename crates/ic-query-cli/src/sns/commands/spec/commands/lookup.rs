@@ -6,7 +6,7 @@
 
 use crate::{
     cli::{
-        common::{format_arg, source_endpoint_arg},
+        common::{COLLECTION_MODE_LIVE, collection_help, format_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
@@ -77,5 +77,5 @@ fn sns_lookup_command(
         .arg(format_arg())
         .arg(source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT).help(source_endpoint_help))
         .arg(internal_network_arg().default_value("ic"))
-        .after_help(after_help)
+        .after_help(collection_help(COLLECTION_MODE_LIVE, after_help))
 }
