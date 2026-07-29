@@ -38,21 +38,13 @@ pub(super) fn refresh_nns_data_center_cache_with_source(
         NNS_DATA_CENTER_CACHE_FILE,
         &report,
     )?;
-    let refresh_report = NnsDataCenterRefreshReport {
-        schema_version: NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION,
-        network: report.network.clone(),
-        cache_path: write_result.cache_path,
-        refresh_lock_path: write_result.refresh_lock_path,
-        output_path: write_result.output_path,
-        registry_canister_id: report.registry_canister_id.clone(),
-        registry_version: report.registry_version,
-        fetched_at: report.fetched_at.clone(),
-        source_endpoint: report.source_endpoint.clone(),
-        fetched_by: report.fetched_by.clone(),
-        dry_run: request.dry_run,
-        wrote_cache: write_result.wrote_cache,
-        replaced_existing_cache: write_result.replaced_existing_cache,
-        data_center_count: report.data_center_count,
-    };
+    let refresh_report = nns_leaf_refresh_report!(
+        NnsDataCenterRefreshReport,
+        NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION,
+        request,
+        report,
+        write_result,
+        data_center_count,
+    );
     Ok((report, refresh_report))
 }

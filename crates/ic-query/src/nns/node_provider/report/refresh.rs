@@ -40,22 +40,14 @@ pub(super) fn refresh_nns_node_provider_cache_with_source(
         NNS_NODE_PROVIDER_CACHE_FILE,
         &report,
     )?;
-    let refresh_report = NnsNodeProviderRefreshReport {
-        schema_version: NNS_NODE_PROVIDER_REFRESH_REPORT_SCHEMA_VERSION,
-        network: report.network.clone(),
-        cache_path: write_result.cache_path,
-        refresh_lock_path: write_result.refresh_lock_path,
-        output_path: write_result.output_path,
-        governance_canister_id: report.governance_canister_id.clone(),
-        registry_canister_id: report.registry_canister_id.clone(),
-        registry_version: report.registry_version,
-        fetched_at: report.fetched_at.clone(),
-        source_endpoint: report.source_endpoint.clone(),
-        fetched_by: report.fetched_by.clone(),
-        dry_run: request.dry_run,
-        wrote_cache: write_result.wrote_cache,
-        replaced_existing_cache: write_result.replaced_existing_cache,
-        node_provider_count: report.node_provider_count,
-    };
+    let refresh_report = nns_leaf_refresh_report!(
+        NnsNodeProviderRefreshReport,
+        NNS_NODE_PROVIDER_REFRESH_REPORT_SCHEMA_VERSION,
+        request,
+        report,
+        write_result,
+        node_provider_count,
+        report.governance_canister_id.clone(),
+    );
     Ok((report, refresh_report))
 }

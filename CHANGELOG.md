@@ -9,6 +9,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.11.md](docs/changelog/0.11.md)
 
+- `0.11.3` centralizes the shared NNS node, data-center, node-operator, and
+  node-provider refresh-report and text projections. Public report fields,
+  JSON and text output, cache behavior, and CLI behavior are unchanged.
+
 - `0.11.2` consolidates duplicated SNS neuron and proposal cache error mapping,
   summary projection, and refresh-attempt persistence while preserving public
   APIs, cache and sidecar schemas, errors, and CLI behavior. Automatic
