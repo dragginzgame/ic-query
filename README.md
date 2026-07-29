@@ -35,7 +35,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.10", default-features = false }
+ic-query = { version = "0.11", default-features = false }
 ```
 
 Feature boundary:
@@ -53,7 +53,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.10", default-features = false, features = ["host"] }
+ic-query = { version = "0.11", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and

@@ -18,6 +18,7 @@ CARGO_NET_RETRY ?= 10
 CARGO_PACKAGE_RETRIES ?= 3
 CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
+CHANGELOG_VERSION ?=
 
 CI_TARGETS := changelog-check actions-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
@@ -93,7 +94,7 @@ actions-check:
 	bash scripts/ci/check-github-actions-pinned.sh
 
 changelog-check:
-	bash scripts/ci/check-changelog-version.sh
+	bash scripts/ci/check-changelog-version.sh $(CHANGELOG_VERSION)
 
 package-contents-check:
 	bash scripts/ci/check-package-contents.sh

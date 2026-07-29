@@ -54,7 +54,7 @@ bash scripts/ci/check-changelog-version.sh "${new_version}"
 
 echo "Running full CI gate before version bump..."
 make --no-print-directory ensure-clean
-make --no-print-directory ci
+CHANGELOG_VERSION="${new_version}" make --no-print-directory ci
 
 perl -0pi -e "s/version = \"\\Q${previous_version}\\E\"/version = \"${new_version}\"/g" Cargo.toml
 

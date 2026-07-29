@@ -69,6 +69,21 @@ set -e
   || fail "the changelog check accepted a stale dependency example"
 printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/README.md"
 
+cat > "${changelog_case}/bin/bash" <<'EOF'
+#!/bin/bash
+printf '%s\n' "$*" > "${TRACE_FILE}"
+EOF
+chmod +x "${changelog_case}/bin/bash"
+(
+  cd "${changelog_case}"
+  PATH="${changelog_case}/bin:${PATH}" TRACE_FILE="${changelog_case}/make-trace" \
+    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
+      CHANGELOG_VERSION=0.8.1 changelog-check
+) || fail "the Make changelog target rejected an explicit target version"
+[[ "$(<"${changelog_case}/make-trace")" \
+    == "scripts/ci/check-changelog-version.sh 0.8.1" ]] \
+  || fail "the Make changelog target did not forward the explicit target version"
+
 bump_case="${work_dir}/bump"
 mkdir -p "${bump_case}/bin"
 printf 'version = "0.8.0"\n' > "${bump_case}/Cargo.toml"
@@ -82,7 +97,10 @@ cat > "${bump_case}/bin/make" <<'EOF'
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
 case "${*: -1}" in
   ensure-clean) exit "${CLEAN_STATUS:-0}" ;;
-  ci) exit 23 ;;
+  ci)
+    [[ "${CHANGELOG_VERSION:-}" == "0.8.1" ]] || exit 42
+    exit 23
+    ;;
   *) exit 2 ;;
 esac
 EOF
