@@ -10,7 +10,7 @@ mod root;
 mod sort;
 
 pub(in crate::sns::commands) use cache::{
-    sns_neurons_cache_command, sns_neurons_cache_list_command, sns_neurons_cache_status_command,
+    sns_neuron_cache_command, sns_neuron_cache_list_command, sns_neuron_cache_status_command,
 };
-pub(in crate::sns::commands) use refresh::sns_neurons_refresh_command;
-pub(in crate::sns::commands) use root::{sns_neurons_command, sns_neurons_dispatch_command};
+pub(in crate::sns::commands) use refresh::sns_neuron_refresh_command;
+pub(in crate::sns::commands) use root::{sns_neuron_command, sns_neuron_list_command};

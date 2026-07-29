@@ -19,14 +19,14 @@ const SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 
 const SNS_NEURONS_REFRESH_HELP_AFTER: &str = "\
 Examples:
-  icq sns neurons refresh 1
-  icq sns neurons refresh 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns neurons refresh 1 --page-size 100
-  icq --network ic sns neurons refresh 1 --format json";
+  icq sns neuron refresh 1
+  icq sns neuron refresh 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns neuron refresh 1 --page-size 100
+  icq --network ic sns neuron refresh 1 --format json";
 
-pub(in crate::sns::commands) fn sns_neurons_refresh_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_neuron_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
-        .bin_name("icq sns neurons refresh")
+        .bin_name("icq sns neuron refresh")
         .about("Force-refresh and cache a complete SNS governance neuron snapshot")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())

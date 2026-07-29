@@ -24,13 +24,13 @@ pub(in crate::sns::commands) use lookup::{
     sns_info_command, sns_params_command, sns_token_command,
 };
 pub(in crate::sns::commands) use neurons::{
-    sns_neurons_cache_command, sns_neurons_cache_list_command, sns_neurons_cache_status_command,
-    sns_neurons_command, sns_neurons_dispatch_command, sns_neurons_refresh_command,
+    sns_neuron_cache_command, sns_neuron_cache_list_command, sns_neuron_cache_status_command,
+    sns_neuron_command, sns_neuron_list_command, sns_neuron_refresh_command,
 };
 pub(in crate::sns::commands) use proposals::{
-    sns_proposal_command, sns_proposals_cache_command, sns_proposals_cache_list_command,
-    sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_dispatch_command,
-    sns_proposals_refresh_command,
+    sns_proposal_cache_command, sns_proposal_cache_list_command, sns_proposal_cache_status_command,
+    sns_proposal_command, sns_proposal_info_command, sns_proposal_list_command,
+    sns_proposal_refresh_command,
 };
 
 const SNS_LIST_HELP_AFTER: &str = "\
@@ -58,13 +58,11 @@ pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
         .subcommand(passthrough_subcommand(ClapCommand::new("params").about(
             "Show SNS governance nervous system parameters by list id or root principal",
         )))
-        .subcommand(passthrough_subcommand(ClapCommand::new("proposal").about(
-            "Show one SNS governance proposal by SNS list id or root principal",
-        )))
-        .subcommand(passthrough_subcommand(ClapCommand::new("proposals").about(
-            "List SNS governance proposals by list id or root principal",
-        )))
-        .subcommand(passthrough_subcommand(ClapCommand::new("neurons").about(
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("proposal")
+                .about("List, inspect, and refresh SNS governance proposals"),
+        ))
+        .subcommand(passthrough_subcommand(ClapCommand::new("neuron").about(
             "List and refresh SNS governance neurons by SNS list id or root principal",
         )))
 }
@@ -96,24 +94,4 @@ fn sort_arg() -> clap::Arg {
         .default_value("id")
         .value_parser(clap::value_parser!(SnsListSortArg))
         .help("Text/JSON row order; ids follow the SNS-W response order")
-}
-
-pub(in crate::sns::commands::spec::commands) fn nested_dispatch_command(
-    name: &'static str,
-    bin_name: &'static str,
-    refresh_about: &'static str,
-    cache_about: &'static str,
-) -> ClapCommand {
-    passthrough_subcommand(
-        ClapCommand::new(name)
-            .bin_name(bin_name)
-            .disable_help_flag(true)
-            .subcommand_precedence_over_arg(true)
-            .subcommand(passthrough_subcommand(
-                ClapCommand::new("refresh").about(refresh_about),
-            ))
-            .subcommand(passthrough_subcommand(
-                ClapCommand::new("cache").about(cache_about),
-            )),
-    )
 }

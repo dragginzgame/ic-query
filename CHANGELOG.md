@@ -7,6 +7,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.13.x] - 2026-07-29 - Canonical query command hierarchy
+
+Detailed release notes: [docs/changelog/0.13.md](docs/changelog/0.13.md)
+
+- `0.13.0` makes the roadmap command hierarchy current: SNS governance uses
+  singular `proposal` and `neuron` families with explicit operations, while
+  generic ICRC queries are separated into ledger-wide and account-scoped
+  families. This is a breaking CLI hard cut; the replaced direct and plural
+  forms have no aliases. The public NNS proposal unsupported-network error now
+  retains the rejected network identity. Report models, JSON shapes, and cache
+  schemas are unchanged.
+
+  ```bash
+  icq sns proposal list 1
+  icq sns proposal info 1 387
+  icq sns neuron list 1
+  icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai
+  icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
+  ```
+
 ## [0.12.x] - 2026-07-29 - Canonical NNS reporting adapter
 
 Detailed release notes: [docs/changelog/0.12.md](docs/changelog/0.12.md)

@@ -77,34 +77,37 @@ fn binary_invalid_value_preserves_clap_diagnostic() {
 
 #[test]
 fn binary_icrc_balance_help_smoke() {
-    let output = run_icq(&["icrc", "balance", "help"]);
+    let output = run_icq(&["icrc", "account", "balance", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc balance [OPTIONS] <ledger-canister-id> <principal>"));
+    assert!(
+        stdout
+            .contains("Usage: icq icrc account balance [OPTIONS] <ledger-canister-id> <principal>")
+    );
     assert!(stdout.contains("--subaccount <hex>"));
     assert!(stdout.contains("--source-endpoint <url>"));
 }
 
 #[test]
 fn binary_icrc_capabilities_help_smoke() {
-    let output = run_icq(&["icrc", "capabilities", "help"]);
+    let output = run_icq(&["icrc", "ledger", "capabilities", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc capabilities [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("Usage: icq icrc ledger capabilities [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--format <text|json>"));
 }
 
 #[test]
 fn binary_icrc_allowance_help_smoke() {
-    let output = run_icq(&["icrc", "allowance", "help"]);
+    let output = run_icq(&["icrc", "account", "allowance", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
     assert!(stdout.contains(
-        "Usage: icq icrc allowance [OPTIONS] <ledger-canister-id> <owner-principal> <spender-principal>"
+        "Usage: icq icrc account allowance [OPTIONS] <ledger-canister-id> <owner-principal> <spender-principal>"
     ));
     assert!(stdout.contains("--owner-subaccount <hex>"));
     assert!(stdout.contains("--spender-subaccount <hex>"));
@@ -113,22 +116,22 @@ fn binary_icrc_allowance_help_smoke() {
 
 #[test]
 fn binary_icrc_index_help_smoke() {
-    let output = run_icq(&["icrc", "index", "help"]);
+    let output = run_icq(&["icrc", "ledger", "index", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc index [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("Usage: icq icrc ledger index [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--format <text|json>"));
 }
 
 #[test]
 fn binary_icrc_transactions_help_smoke() {
-    let output = run_icq(&["icrc", "transactions", "help"]);
+    let output = run_icq(&["icrc", "ledger", "transactions", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc transactions [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("Usage: icq icrc ledger transactions [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--start <index>"));
     assert!(stdout.contains("--limit <count>"));
     assert!(stdout.contains("--follow-archives"));
@@ -138,22 +141,22 @@ fn binary_icrc_transactions_help_smoke() {
 
 #[test]
 fn binary_icrc_block_types_help_smoke() {
-    let output = run_icq(&["icrc", "block-types", "help"]);
+    let output = run_icq(&["icrc", "ledger", "block-types", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc block-types [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("Usage: icq icrc ledger block-types [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--format <text|json>"));
 }
 
 #[test]
 fn binary_icrc_archives_help_smoke() {
-    let output = run_icq(&["icrc", "archives", "help"]);
+    let output = run_icq(&["icrc", "ledger", "archives", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc archives [OPTIONS] <ledger-canister-id>"));
+    assert!(stdout.contains("Usage: icq icrc ledger archives [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--from <canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--format <text|json>"));
@@ -161,11 +164,13 @@ fn binary_icrc_archives_help_smoke() {
 
 #[test]
 fn binary_icrc_tip_certificate_help_smoke() {
-    let output = run_icq(&["icrc", "tip-certificate", "help"]);
+    let output = run_icq(&["icrc", "ledger", "tip-certificate", "help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc tip-certificate [OPTIONS] <ledger-canister-id>"));
+    assert!(
+        stdout.contains("Usage: icq icrc ledger tip-certificate [OPTIONS] <ledger-canister-id>")
+    );
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--format <text|json>"));
 }
@@ -219,7 +224,7 @@ fn binary_local_cache_commands_emit_json_without_live_calls() {
 
     let sns_proposals = run_icq_in_root(
         &root,
-        &["sns", "proposals", "cache", "list", "--format", "json"],
+        &["sns", "proposal", "cache", "list", "--format", "json"],
     );
     assert_success(&sns_proposals);
     let sns_proposals: serde_json::Value =
@@ -228,7 +233,7 @@ fn binary_local_cache_commands_emit_json_without_live_calls() {
 
     let sns_neurons = run_icq_in_root(
         &root,
-        &["sns", "neurons", "cache", "list", "--format", "json"],
+        &["sns", "neuron", "cache", "list", "--format", "json"],
     );
     assert_success(&sns_neurons);
     let sns_neurons: serde_json::Value =

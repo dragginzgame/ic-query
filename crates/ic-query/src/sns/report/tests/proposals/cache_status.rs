@@ -189,7 +189,7 @@ fn sns_proposals_cache_status_reports_missing_cache() {
     assert!(status.cache.is_none());
     assert!(status.latest_attempt.is_none());
     assert!(text.contains("found: no"));
-    assert!(text.contains("refresh_hint: icq sns proposals refresh"));
+    assert!(text.contains("refresh_hint: icq sns proposal refresh"));
 
     let list = build_sns_proposals_cache_list_report(&SnsProposalsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),

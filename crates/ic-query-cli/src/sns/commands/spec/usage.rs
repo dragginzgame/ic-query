@@ -7,12 +7,12 @@
 use crate::{
     cli::clap::render_help,
     sns::commands::spec::commands::{
-        sns_command, sns_info_command, sns_list_command, sns_neurons_cache_command,
-        sns_neurons_cache_list_command, sns_neurons_cache_status_command, sns_neurons_command,
-        sns_neurons_refresh_command, sns_params_command, sns_proposal_command,
-        sns_proposals_cache_command, sns_proposals_cache_list_command,
-        sns_proposals_cache_status_command, sns_proposals_command, sns_proposals_refresh_command,
-        sns_token_command,
+        sns_command, sns_info_command, sns_list_command, sns_neuron_cache_command,
+        sns_neuron_cache_list_command, sns_neuron_cache_status_command, sns_neuron_command,
+        sns_neuron_list_command, sns_neuron_refresh_command, sns_params_command,
+        sns_proposal_cache_command, sns_proposal_cache_list_command,
+        sns_proposal_cache_status_command, sns_proposal_command, sns_proposal_info_command,
+        sns_proposal_list_command, sns_proposal_refresh_command, sns_token_command,
     },
 };
 
@@ -40,42 +40,50 @@ pub(in crate::sns::commands) fn sns_proposal_usage() -> String {
     render_help(sns_proposal_command())
 }
 
-pub(in crate::sns::commands) fn sns_proposals_usage() -> String {
-    render_help(sns_proposals_command())
+pub(in crate::sns::commands) fn sns_proposal_list_usage() -> String {
+    render_help(sns_proposal_list_command())
 }
 
-pub(in crate::sns::commands) fn sns_proposals_cache_usage() -> String {
-    render_help(sns_proposals_cache_command())
+pub(in crate::sns::commands) fn sns_proposal_info_usage() -> String {
+    render_help(sns_proposal_info_command())
 }
 
-pub(in crate::sns::commands) fn sns_proposals_cache_list_usage() -> String {
-    render_help(sns_proposals_cache_list_command())
+pub(in crate::sns::commands) fn sns_proposal_cache_usage() -> String {
+    render_help(sns_proposal_cache_command())
 }
 
-pub(in crate::sns::commands) fn sns_proposals_cache_status_usage() -> String {
-    render_help(sns_proposals_cache_status_command())
+pub(in crate::sns::commands) fn sns_proposal_cache_list_usage() -> String {
+    render_help(sns_proposal_cache_list_command())
 }
 
-pub(in crate::sns::commands) fn sns_proposals_refresh_usage() -> String {
-    render_help(sns_proposals_refresh_command())
+pub(in crate::sns::commands) fn sns_proposal_cache_status_usage() -> String {
+    render_help(sns_proposal_cache_status_command())
 }
 
-pub(in crate::sns::commands) fn sns_neurons_usage() -> String {
-    render_help(sns_neurons_command())
+pub(in crate::sns::commands) fn sns_proposal_refresh_usage() -> String {
+    render_help(sns_proposal_refresh_command())
 }
 
-pub(in crate::sns::commands) fn sns_neurons_cache_usage() -> String {
-    render_help(sns_neurons_cache_command())
+pub(in crate::sns::commands) fn sns_neuron_usage() -> String {
+    render_help(sns_neuron_command())
 }
 
-pub(in crate::sns::commands) fn sns_neurons_cache_list_usage() -> String {
-    render_help(sns_neurons_cache_list_command())
+pub(in crate::sns::commands) fn sns_neuron_list_usage() -> String {
+    render_help(sns_neuron_list_command())
 }
 
-pub(in crate::sns::commands) fn sns_neurons_cache_status_usage() -> String {
-    render_help(sns_neurons_cache_status_command())
+pub(in crate::sns::commands) fn sns_neuron_cache_usage() -> String {
+    render_help(sns_neuron_cache_command())
 }
 
-pub(in crate::sns::commands) fn sns_neurons_refresh_usage() -> String {
-    render_help(sns_neurons_refresh_command())
+pub(in crate::sns::commands) fn sns_neuron_cache_list_usage() -> String {
+    render_help(sns_neuron_cache_list_command())
+}
+
+pub(in crate::sns::commands) fn sns_neuron_cache_status_usage() -> String {
+    render_help(sns_neuron_cache_status_command())
+}
+
+pub(in crate::sns::commands) fn sns_neuron_refresh_usage() -> String {
+    render_help(sns_neuron_refresh_command())
 }

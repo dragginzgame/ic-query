@@ -38,7 +38,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.12", default-features = false }
+ic-query = { version = "0.13", default-features = false }
 ```
 
 Feature boundary:
@@ -56,7 +56,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.12", default-features = false, features = ["host"] }
+ic-query = { version = "0.13", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -107,14 +107,16 @@ icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
-icq icrc [capabilities|token|balance|allowance|index|transactions|block-types|archives|tip-certificate]
-icq sns [list|info|token|params|proposal|proposals|neurons]
-icq sns proposals [cache|refresh]
-icq sns neurons [cache|refresh]
+icq icrc ledger [capabilities|token|index|transactions|block-types|archives|tip-certificate]
+icq icrc account [balance|allowance]
+icq sns [list|info|token|params|proposal|neuron]
+icq sns proposal [list|info|refresh|cache]
+icq sns neuron [list|refresh|cache]
 ```
 
 Use `icq nns <family> help`, `icq nns topology <report> help`, or
-`icq icrc <command> help`, or `icq sns <command> help` for command options.
+`icq icrc <family> <command> help`, or `icq sns <command> help` for command
+options.
 Use `icq -V` or `icq --version` for the executable version; command families do
 not expose positional version shortcuts.
 
@@ -141,21 +143,21 @@ commands are live-only, include the queried source endpoint in text and JSON
 reports, and support endpoint overrides with `--source-endpoint`:
 
 ```bash
-icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai
-icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai
-icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai --format json
-icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
-icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000
-icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa
-icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000
-icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai
-icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai --format json
-icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai
-icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai --start 100 --limit 50 --format json
-icq icrc transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives
-icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai
-icq icrc archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json
-icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
+icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
+icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000
+icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa
+icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000
+icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai
+icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai
+icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai --start 100 --limit 50 --format json
+icq icrc ledger transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives
+icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai
+icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json
+icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 ```
 
 ## Cache
@@ -202,8 +204,8 @@ Whole-collection neuron sorts use complete snapshots and require an explicit
 refresh first:
 
 ```bash
-icq sns neurons refresh 1
-icq sns neurons 1 --limit 500 --sort stake
+icq sns neuron refresh 1
+icq sns neuron list 1 --limit 500 --sort stake
 ```
 
 Complete SNS neuron snapshots live under
@@ -218,8 +220,8 @@ Inspect local SNS neuron snapshots and their latest refresh-attempt metadata
 without making live calls:
 
 ```bash
-icq sns neurons cache list
-icq sns neurons cache status 1
+icq sns neuron cache list
+icq sns neuron cache status 1
 ```
 
 Cache list and status commands are local-only; malformed, unsupported, or
@@ -233,7 +235,7 @@ can use larger `--limit` values because they read from the complete local
 snapshot.
 
 Neuron IDs are shortened to eight characters in text tables by default. Use
-`icq sns neurons 1 --verbose` to show full neuron IDs.
+`icq sns neuron list 1 --verbose` to show full neuron IDs.
 Text output shows current SNS token amounts, including token fee, total supply,
 stake, maturity, and staked maturity, as token decimals with two places. JSON
 keeps the raw base-unit and e8s fields. ICRC metadata values, including token
@@ -313,37 +315,37 @@ filtered by prefix with `--proposer`. Use `--query <text>` to search proposal
 title, action, summary, URL, and payload text:
 
 ```bash
-icq sns proposals 1 --limit 25
-icq sns proposals 1 --status open
-icq sns proposals 1 --status decided
-icq sns proposals 1 --eligible yes
-icq sns proposals 1 --eligible no
-icq sns proposals 1 --proposer 00010203
-icq sns proposals 1 --query treasury
-icq sns proposals 1 --sort status
-icq sns proposals 1 --sort topic
-icq sns proposals 1 --sort proposer
-icq sns proposals 1 --sort title
-icq sns proposals 1 --sort title --desc
-icq sns proposals 1 --sort action
-icq sns proposals 1 --sort action-id
-icq sns proposals 1 --sort total-votes
-icq sns proposals 1 --sort tally-time
-icq sns proposals 1 --sort ballots
-icq sns proposals 1 --sort eligible
-icq sns proposals 1 --sort reject-cost
-icq sns proposals 1 --sort reward-round
-icq sns proposals 1 --sort reward-end
-icq sns proposals 1 --sort created
-icq sns proposals 1 --sort decided
-icq sns proposals 1 --sort executed
-icq sns proposals 1 --sort failed
-icq sns proposals 1 --sort created --asc
-icq sns proposals 1 --topic governance
-icq sns proposals 1 --status decided --topic governance
-icq sns proposals 1 --before 100 --format json
-icq sns proposal 1 387
-icq sns proposal 1 387 --ballots
+icq sns proposal list 1 --limit 25
+icq sns proposal list 1 --status open
+icq sns proposal list 1 --status decided
+icq sns proposal list 1 --eligible yes
+icq sns proposal list 1 --eligible no
+icq sns proposal list 1 --proposer 00010203
+icq sns proposal list 1 --query treasury
+icq sns proposal list 1 --sort status
+icq sns proposal list 1 --sort topic
+icq sns proposal list 1 --sort proposer
+icq sns proposal list 1 --sort title
+icq sns proposal list 1 --sort title --desc
+icq sns proposal list 1 --sort action
+icq sns proposal list 1 --sort action-id
+icq sns proposal list 1 --sort total-votes
+icq sns proposal list 1 --sort tally-time
+icq sns proposal list 1 --sort ballots
+icq sns proposal list 1 --sort eligible
+icq sns proposal list 1 --sort reject-cost
+icq sns proposal list 1 --sort reward-round
+icq sns proposal list 1 --sort reward-end
+icq sns proposal list 1 --sort created
+icq sns proposal list 1 --sort decided
+icq sns proposal list 1 --sort executed
+icq sns proposal list 1 --sort failed
+icq sns proposal list 1 --sort created --asc
+icq sns proposal list 1 --topic governance
+icq sns proposal list 1 --status decided --topic governance
+icq sns proposal list 1 --before 100 --format json
+icq sns proposal info 1 387
+icq sns proposal info 1 387 --ballots
 ```
 
 Proposal list views support
@@ -358,9 +360,9 @@ local snapshots before applying `--limit`.
 Complete SNS proposal snapshots can also be refreshed and inspected manually:
 
 ```bash
-icq sns proposals refresh 1
-icq sns proposals cache list
-icq sns proposals cache status 1
+icq sns proposal refresh 1
+icq sns proposal cache list
+icq sns proposal cache status 1
 ```
 
 Cache list and status commands are local-only; malformed, unsupported, or

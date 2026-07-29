@@ -62,7 +62,7 @@ fn live_proposal_source_rejects_non_mainnet_before_agent_construction() {
 
     assert!(matches!(
         error,
-        NnsProposalHostError::LocalNetworkUnsupported
+        NnsProposalHostError::UnsupportedNetwork { network } if network == "local"
     ));
 }
 

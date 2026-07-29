@@ -23,7 +23,7 @@ pub(in crate::sns::commands) const SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME: &str = c
 ///
 /// SnsProposalsSortArg
 ///
-/// Command-local clap value accepted by `icq sns proposals --sort`.
+/// Command-local clap value accepted by `icq sns proposal list --sort`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
@@ -83,7 +83,7 @@ impl From<SnsProposalsSortArg> for SnsProposalsSort {
 ///
 /// SnsProposalEligibilityArg
 ///
-/// Command-local clap value accepted by `icq sns proposals --eligible`.
+/// Command-local clap value accepted by `icq sns proposal list --eligible`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
@@ -107,7 +107,7 @@ impl From<SnsProposalEligibilityArg> for SnsProposalEligibilityFilter {
 ///
 /// SnsProposalStatusArg
 ///
-/// Command-local clap value accepted by `icq sns proposals --status`.
+/// Command-local clap value accepted by `icq sns proposal list --status`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
@@ -139,7 +139,7 @@ impl From<SnsProposalStatusArg> for SnsProposalStatusFilter {
 ///
 /// SnsProposalTopicArg
 ///
-/// Command-local clap value accepted by `icq sns proposals --topic`.
+/// Command-local clap value accepted by `icq sns proposal list --topic`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]

@@ -83,19 +83,19 @@ pub enum SnsHostError {
     AmbiguousCacheId { id: usize },
 
     #[error(
-        "SNS neurons cache is missing at {}\n\nRun `icq sns neurons refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting.",
+        "SNS neurons cache is missing at {}\n\nRun `icq sns neuron refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting.",
         path.display()
     )]
     MissingNeuronsCache { path: PathBuf },
 
     #[error(
-        "SNS neurons cache is missing for SNS list id {id} under {}\n\nRun `icq sns neurons refresh {id}` to fetch a complete snapshot before using cache-backed sorting.",
+        "SNS neurons cache is missing for SNS list id {id} under {}\n\nRun `icq sns neuron refresh {id}` to fetch a complete snapshot before using cache-backed sorting.",
         root.display()
     )]
     MissingNeuronsCacheForId { id: usize, root: PathBuf },
 
     #[error(
-        "SNS proposals cache is missing at {}\n\nRun `icq sns proposals refresh <id|root-principal>` to fetch a complete snapshot.",
+        "SNS proposals cache is missing at {}\n\nRun `icq sns proposal refresh <id|root-principal>` to fetch a complete snapshot.",
         path.display()
     )]
     MissingProposalsCache { path: PathBuf },

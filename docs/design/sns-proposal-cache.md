@@ -4,13 +4,14 @@
 
 - Status: implemented for the 0.2.5 slice
 - Decision style: command behavior and cache boundary
-- Primary command: `icq sns proposals <id|root-principal>`
+- Primary command: `icq sns proposal list <id|root-principal>`
 
 ## Summary
 
 SNS proposal listing now treats the complete local proposal snapshot as an
 implementation detail for normal list views. If a valid current complete
-snapshot exists, `icq sns proposals` reads it and applies view options locally.
+snapshot exists, `icq sns proposal list` reads it and applies view options
+locally.
 If the snapshot is missing, the command visibly refreshes the complete
 collection, publishes it only after governance pagination is exhausted, and
 then renders the requested view.
@@ -18,9 +19,9 @@ then renders the requested view.
 Manual commands remain available:
 
 ```bash
-icq sns proposals refresh 1
-icq sns proposals cache list
-icq sns proposals cache status 1
+icq sns proposal refresh 1
+icq sns proposal cache list
+icq sns proposal cache status 1
 ```
 
 ## Behavior

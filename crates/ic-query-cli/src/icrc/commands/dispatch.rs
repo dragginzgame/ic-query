@@ -6,11 +6,12 @@
 
 use super::{
     IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
-    IcrcTransactionsOptions, icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage,
-    icrc_block_types_command, icrc_block_types_usage, icrc_capabilities_command,
-    icrc_capabilities_usage, icrc_command, icrc_index_command, icrc_index_usage,
-    icrc_tip_certificate_command, icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage,
-    icrc_transactions_usage, usage,
+    IcrcTransactionsOptions, icrc_account_command, icrc_account_usage, icrc_allowance_usage,
+    icrc_archives_usage, icrc_balance_usage, icrc_block_types_command, icrc_block_types_usage,
+    icrc_capabilities_command, icrc_capabilities_usage, icrc_command, icrc_index_command,
+    icrc_index_usage, icrc_ledger_command, icrc_ledger_usage, icrc_tip_certificate_command,
+    icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage, icrc_transactions_usage,
+    usage,
 };
 use crate::{
     cli::{
@@ -44,16 +45,51 @@ where
     let (command, args) = parse_required_subcommand_or_usage(icrc_command(), args, usage)
         .map_err(IcrcCommandError::Usage)?;
     match command.as_str() {
+        "ledger" => run_icrc_ledger(args),
+        "account" => run_icrc_account(args),
+        _ => unreachable!("ICRC command only defines known subcommands"),
+    }
+}
+
+fn run_icrc_ledger<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = collect_args_or_print_help_or_version(args, icrc_ledger_usage, version_text())
+    else {
+        return Ok(());
+    };
+    let (command, args) =
+        parse_required_subcommand_or_usage(icrc_ledger_command(), args, icrc_ledger_usage)
+            .map_err(IcrcCommandError::Usage)?;
+    match command.as_str() {
         "token" => run_icrc_token(args),
-        "balance" => run_icrc_balance(args),
-        "allowance" => run_icrc_allowance(args),
         "index" => run_icrc_index(args),
         "transactions" => run_icrc_transactions(args),
         "block-types" => run_icrc_block_types(args),
         "archives" => run_icrc_archives(args),
         "tip-certificate" => run_icrc_tip_certificate(args),
         "capabilities" => run_icrc_capabilities(args),
-        _ => unreachable!("ICRC command only defines known subcommands"),
+        _ => unreachable!("ICRC ledger command only defines known subcommands"),
+    }
+}
+
+fn run_icrc_account<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) =
+        collect_args_or_print_help_or_version(args, icrc_account_usage, version_text())
+    else {
+        return Ok(());
+    };
+    let (command, args) =
+        parse_required_subcommand_or_usage(icrc_account_command(), args, icrc_account_usage)
+            .map_err(IcrcCommandError::Usage)?;
+    match command.as_str() {
+        "balance" => run_icrc_balance(args),
+        "allowance" => run_icrc_allowance(args),
+        _ => unreachable!("ICRC account command only defines known subcommands"),
     }
 }
 

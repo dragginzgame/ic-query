@@ -44,7 +44,7 @@ pub fn sns_proposals_cache_status_report_text(report: &SnsProposalsCacheStatusRe
     } else if let Some(path) = report.expected_cache_path.as_ref() {
         lines.push(format!("expected_cache_path: {}", sanitize_text(path)));
         lines.push(format!(
-            "refresh_hint: icq sns proposals refresh {}",
+            "refresh_hint: icq sns proposal refresh {}",
             sanitize_text(&report.input)
         ));
     }

@@ -11,7 +11,7 @@ use crate::{
         SnsCommandError,
         options::SnsNeuronsRefreshOptions,
         run::common::{cached_lookup_command_parts, command_args},
-        spec::sns_neurons_refresh_usage,
+        spec::sns_neuron_refresh_usage,
     },
 };
 use ic_query::sns::{
@@ -20,11 +20,11 @@ use ic_query::sns::{
 };
 use std::ffi::OsString;
 
-pub(super) fn run_sns_neurons_refresh<I>(args: I) -> Result<(), SnsCommandError>
+pub(super) fn run_sns_neuron_refresh<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, sns_neurons_refresh_usage) else {
+    let Some(args) = command_args(args, sns_neuron_refresh_usage) else {
         return Ok(());
     };
     let options = SnsNeuronsRefreshOptions::parse(args)?;

@@ -36,8 +36,7 @@ where
         "token" => lookup::run_sns_token(args),
         "params" => lookup::run_sns_params(args),
         "proposal" => proposals::run_sns_proposal(args),
-        "proposals" => proposals::run_sns_proposals(args),
-        "neurons" => neurons::run_sns_neurons(args),
+        "neuron" => neurons::run_sns_neuron(args),
         _ => unreachable!("sns dispatch command only defines known commands"),
     }
 }

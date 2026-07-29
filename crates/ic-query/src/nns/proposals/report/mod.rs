@@ -83,7 +83,10 @@ pub enum NnsProposalHostError {
     #[error(
         "`icq nns proposal` supports only the mainnet `ic` network\n\nThe NNS proposal list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not supported.\n\nTry:\n  icq --network ic nns proposal list"
     )]
-    LocalNetworkUnsupported,
+    UnsupportedNetwork {
+        /// The rejected network identity.
+        network: String,
+    },
 
     #[error("failed to build IC agent for {endpoint}: {reason}")]
     AgentBuild { endpoint: String, reason: String },
@@ -176,7 +179,7 @@ pub enum NnsProposalHostError {
 
 #[cfg(feature = "host")]
 fn enforce_mainnet_network(network: &str) -> Result<(), NnsProposalHostError> {
-    crate::network::enforce_mainnet_network_with(network, |_| {
-        NnsProposalHostError::LocalNetworkUnsupported
+    crate::network::enforce_mainnet_network_with(network, |network| {
+        NnsProposalHostError::UnsupportedNetwork { network }
     })
 }

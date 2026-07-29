@@ -298,7 +298,7 @@ struct CommandFamily {
 const COMMAND_FAMILIES: &[CommandFamily] = &[
     CommandFamily {
         name: "icrc",
-        about: "Inspect generic ICRC ledger metadata",
+        about: "Inspect generic ICRC ledger and account metadata",
         accepts_global_network: icrc_accepts_global_network,
     },
     CommandFamily {
@@ -340,7 +340,7 @@ const fn icrc_accepts_global_network(_tail: &[OsString]) -> bool {
 fn sns_accepts_global_network(tail: &[OsString]) -> bool {
     matches!(
         tail.first().and_then(|arg| arg.to_str()),
-        Some("list" | "info" | "token" | "params" | "proposal" | "proposals" | "neurons")
+        Some("list" | "info" | "token" | "params" | "proposal" | "neuron")
     )
 }
 
@@ -354,7 +354,7 @@ mod tests {
 
         assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
         assert!(text.contains("icrc"));
-        assert!(text.contains("Inspect generic ICRC ledger metadata"));
+        assert!(text.contains("Inspect generic ICRC ledger and account metadata"));
         assert!(text.contains("nns"));
         assert!(text.contains("Inspect NNS metadata"));
         assert!(text.contains("sns"));
@@ -372,7 +372,7 @@ Internet Computer metadata query CLI
 Usage: icq [OPTIONS] [COMMAND]
 
 Commands:
-  icrc  Inspect generic ICRC ledger metadata
+  icrc  Inspect generic ICRC ledger and account metadata
   nns   Inspect NNS metadata
   sns   Inspect SNS metadata
 
@@ -393,10 +393,12 @@ Run `icq <command> help` for command-specific help.
     fn command_family_help_returns_ok() {
         for args in [
             &["icrc", "help"][..],
-            &["icrc", "token", "help"],
-            &["icrc", "balance", "help"],
-            &["icrc", "allowance", "help"],
-            &["icrc", "index", "help"],
+            &["icrc", "ledger", "help"],
+            &["icrc", "ledger", "token", "help"],
+            &["icrc", "account", "help"],
+            &["icrc", "account", "balance", "help"],
+            &["icrc", "account", "allowance", "help"],
+            &["icrc", "ledger", "index", "help"],
             &["nns", "help"][..],
             &["nns", "data-center", "help"],
             &["nns", "data-center", "list", "help"],
@@ -439,12 +441,18 @@ Run `icq <command> help` for command-specific help.
             &["sns", "token", "help"],
             &["sns", "params", "help"],
             &["sns", "proposal", "help"],
-            &["sns", "proposals", "help"],
-            &["sns", "neurons", "help"],
-            &["sns", "neurons", "cache", "help"],
-            &["sns", "neurons", "cache", "list", "help"],
-            &["sns", "neurons", "cache", "status", "help"],
-            &["sns", "neurons", "refresh", "help"],
+            &["sns", "proposal", "list", "help"],
+            &["sns", "proposal", "info", "help"],
+            &["sns", "proposal", "cache", "help"],
+            &["sns", "proposal", "cache", "list", "help"],
+            &["sns", "proposal", "cache", "status", "help"],
+            &["sns", "proposal", "refresh", "help"],
+            &["sns", "neuron", "help"],
+            &["sns", "neuron", "list", "help"],
+            &["sns", "neuron", "cache", "help"],
+            &["sns", "neuron", "cache", "list", "help"],
+            &["sns", "neuron", "cache", "status", "help"],
+            &["sns", "neuron", "refresh", "help"],
         ] {
             assert_run_ok(args);
         }
@@ -600,7 +608,7 @@ Run `icq <command> help` for command-specific help.
 
     #[test]
     fn global_network_is_rejected_when_the_family_uses_endpoint_identity() {
-        let mut icrc_tail = vec![OsString::from("token")];
+        let mut icrc_tail = vec![OsString::from("ledger"), OsString::from("token")];
 
         let error = apply_global_network("icrc", &mut icrc_tail, Some("ic".to_string()))
             .expect_err("ICRC must reject an inapplicable global network");
@@ -609,12 +617,16 @@ Run `icq <command> help` for command-specific help.
         assert!(error.to_string().contains("--network is not supported"));
         assert!(error.to_string().contains("icq icrc"));
         assert!(error.to_string().contains("--source-endpoint"));
-        assert_eq!(icrc_tail, vec![OsString::from("token")]);
+        assert_eq!(
+            icrc_tail,
+            vec![OsString::from("ledger"), OsString::from("token")]
+        );
 
         let error = run([
             OsString::from("--network"),
             OsString::from("ic"),
             OsString::from("icrc"),
+            OsString::from("ledger"),
             OsString::from("token"),
             OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
         ])
@@ -625,6 +637,7 @@ Run `icq <command> help` for command-specific help.
 
         let error = run([
             OsString::from("icrc"),
+            OsString::from("ledger"),
             OsString::from("token"),
             OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
             OsString::from("--network"),
@@ -641,6 +654,7 @@ Run `icq <command> help` for command-specific help.
                 OsString::from("--network"),
                 OsString::from("ic"),
                 OsString::from("icrc"),
+                OsString::from("ledger"),
                 OsString::from("token"),
                 OsString::from("help"),
             ])
@@ -654,7 +668,7 @@ Run `icq <command> help` for command-specific help.
         assert!(
             run([
                 OsString::from("sns"),
-                OsString::from("neurons"),
+                OsString::from("neuron"),
                 OsString::from("refresh"),
                 OsString::from("--help")
             ])
@@ -663,7 +677,7 @@ Run `icq <command> help` for command-specific help.
         assert!(
             run([
                 OsString::from("sns"),
-                OsString::from("proposals"),
+                OsString::from("proposal"),
                 OsString::from("cache"),
                 OsString::from("status"),
                 OsString::from("--help")

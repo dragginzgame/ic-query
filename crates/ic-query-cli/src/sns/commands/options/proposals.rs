@@ -14,11 +14,11 @@ use crate::{
         options::{common::parse_sns_matches, lookup::SnsLookupOptions},
         spec::{
             SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
-            SnsProposalTopicArg, SnsProposalsSortArg, sns_proposal_command, sns_proposal_usage,
-            sns_proposals_cache_list_command, sns_proposals_cache_list_usage,
-            sns_proposals_cache_status_command, sns_proposals_cache_status_usage,
-            sns_proposals_command, sns_proposals_refresh_command, sns_proposals_refresh_usage,
-            sns_proposals_usage,
+            SnsProposalTopicArg, SnsProposalsSortArg, sns_proposal_cache_list_command,
+            sns_proposal_cache_list_usage, sns_proposal_cache_status_command,
+            sns_proposal_cache_status_usage, sns_proposal_info_command, sns_proposal_info_usage,
+            sns_proposal_list_command, sns_proposal_list_usage, sns_proposal_refresh_command,
+            sns_proposal_refresh_usage,
         },
     },
 };
@@ -29,7 +29,7 @@ use std::ffi::OsString;
 ///
 /// SnsProposalsOptions
 ///
-/// Parsed options accepted by `icq sns proposals`.
+/// Parsed options accepted by `icq sns proposal list`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,7 +50,7 @@ pub(in crate::sns::commands) struct SnsProposalsOptions {
 ///
 /// SnsProposalOptions
 ///
-/// Parsed options accepted by `icq sns proposal`.
+/// Parsed options accepted by `icq sns proposal info`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,7 +64,7 @@ pub(in crate::sns::commands) struct SnsProposalOptions {
 ///
 /// SnsProposalsCacheListOptions
 ///
-/// Parsed options accepted by `icq sns proposals cache list`.
+/// Parsed options accepted by `icq sns proposal cache list`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -76,7 +76,7 @@ pub(in crate::sns::commands) struct SnsProposalsCacheListOptions {
 ///
 /// SnsProposalsCacheStatusOptions
 ///
-/// Parsed options accepted by `icq sns proposals cache status`.
+/// Parsed options accepted by `icq sns proposal cache status`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -89,7 +89,7 @@ pub(in crate::sns::commands) struct SnsProposalsCacheStatusOptions {
 ///
 /// SnsProposalsRefreshOptions
 ///
-/// Parsed options accepted by `icq sns proposals refresh`.
+/// Parsed options accepted by `icq sns proposal refresh`.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -104,7 +104,8 @@ impl SnsProposalsOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_sns_matches(sns_proposals_command(), args, sns_proposals_usage)?;
+        let matches =
+            parse_sns_matches(sns_proposal_list_command(), args, sns_proposal_list_usage)?;
         let status = required_typed(&matches, "status");
         let sort = required_typed(&matches, "sort");
         let sort_direction = proposal_sort_direction(&matches, sort)?;
@@ -155,7 +156,8 @@ impl SnsProposalOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_sns_matches(sns_proposal_command(), args, sns_proposal_usage)?;
+        let matches =
+            parse_sns_matches(sns_proposal_info_command(), args, sns_proposal_info_usage)?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(&matches),
             proposal_id: required_typed(&matches, "proposal-id"),
@@ -171,9 +173,9 @@ impl SnsProposalsCacheListOptions {
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(
-            sns_proposals_cache_list_command(),
+            sns_proposal_cache_list_command(),
             args,
-            sns_proposals_cache_list_usage,
+            sns_proposal_cache_list_usage,
         )?;
         Ok(Self {
             network: required_string(&matches, "network"),
@@ -188,9 +190,9 @@ impl SnsProposalsCacheStatusOptions {
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(
-            sns_proposals_cache_status_command(),
+            sns_proposal_cache_status_command(),
             args,
-            sns_proposals_cache_status_usage,
+            sns_proposal_cache_status_usage,
         )?;
         Ok(Self {
             input: required_string(&matches, "input"),
@@ -206,9 +208,9 @@ impl SnsProposalsRefreshOptions {
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(
-            sns_proposals_refresh_command(),
+            sns_proposal_refresh_command(),
             args,
-            sns_proposals_refresh_usage,
+            sns_proposal_refresh_usage,
         )?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(&matches),

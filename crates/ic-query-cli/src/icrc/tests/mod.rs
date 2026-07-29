@@ -1,9 +1,9 @@
 use super::commands::test_support::{
-    allowance_usage, archives_usage, balance_usage, block_types_usage, capabilities_usage,
-    index_usage, parse_allowance_options, parse_archives_options, parse_balance_options,
-    parse_block_types_options, parse_capabilities_options, parse_index_options,
-    parse_tip_certificate_options, parse_token_options, parse_transactions_options, root_usage,
-    tip_certificate_usage, token_usage, transactions_usage,
+    account_usage, allowance_usage, archives_usage, balance_usage, block_types_usage,
+    capabilities_usage, index_usage, ledger_usage, parse_allowance_options, parse_archives_options,
+    parse_balance_options, parse_block_types_options, parse_capabilities_options,
+    parse_index_options, parse_tip_certificate_options, parse_token_options,
+    parse_transactions_options, root_usage, tip_certificate_usage, token_usage, transactions_usage,
 };
 use crate::cli::common::OutputFormat;
 
@@ -129,7 +129,12 @@ fn tip_certificate_options_parse_through_clap() {
 #[test]
 fn usage_mentions_icrc_command_surface() {
     for (usage, needle) in [
-        (root_usage(), "capabilities"),
+        (root_usage(), "ledger"),
+        (root_usage(), "account"),
+        (ledger_usage(), "capabilities"),
+        (ledger_usage(), "transactions"),
+        (account_usage(), "balance"),
+        (account_usage(), "allowance"),
         (token_usage(), "ledger-canister-id"),
         (capabilities_usage(), "ledger-canister-id"),
         (balance_usage(), "principal"),
@@ -142,6 +147,9 @@ fn usage_mentions_icrc_command_surface() {
     ] {
         assert!(usage.contains(needle), "missing {needle:?} in {usage}");
     }
+
+    assert!(token_usage().contains("icq icrc ledger token"));
+    assert!(balance_usage().contains("icq icrc account balance"));
 
     for usage in [
         token_usage(),

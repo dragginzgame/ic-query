@@ -6,10 +6,7 @@
 
 use crate::{
     cli::{
-        clap::{
-            OptionalSubcommand, parse_optional_subcommand_or_usage,
-            parse_required_subcommand_or_usage,
-        },
+        clap::parse_required_subcommand_or_usage,
         common::{OutputFormat, current_unix_secs},
         help::collect_args_or_print_help_or_version,
     },
@@ -86,17 +83,6 @@ where
     I: IntoIterator<Item = OsString>,
 {
     parse_required_subcommand_or_usage(command, args, usage).map_err(SnsCommandError::Usage)
-}
-
-pub(super) fn parse_optional_command<I>(
-    command: ClapCommand,
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Result<OptionalSubcommand, SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    parse_optional_subcommand_or_usage(command, args, usage).map_err(SnsCommandError::Usage)
 }
 
 pub(super) fn lookup_command_parts(

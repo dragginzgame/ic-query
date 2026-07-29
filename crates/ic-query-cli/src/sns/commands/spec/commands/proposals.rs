@@ -15,7 +15,7 @@ use crate::{
         globals::internal_network_arg,
     },
     sns::commands::spec::{
-        commands::{args::sns_lookup_input_arg, nested_dispatch_command},
+        commands::args::sns_lookup_input_arg,
         values::{
             SNS_PROPOSALS_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
             SnsProposalTopicArg, SnsProposalsSortArg,
@@ -32,73 +32,92 @@ const SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 
 const SNS_PROPOSALS_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposals 1
-  icq sns proposals 1 --status open
-  icq sns proposals 1 --status decided
-  icq sns proposals 1 --topic governance
-  icq sns proposals 1 --eligible yes
-  icq sns proposals 1 --proposer 00010203
-  icq sns proposals 1 --query treasury
-  icq sns proposals 1 --sort status
-  icq sns proposals 1 --sort topic
-  icq sns proposals 1 --sort proposer
-  icq sns proposals 1 --sort title
-  icq sns proposals 1 --sort action
-  icq sns proposals 1 --sort action-id
-  icq sns proposals 1 --sort total-votes
-  icq sns proposals 1 --sort tally-time
-  icq sns proposals 1 --sort ballots
-  icq sns proposals 1 --sort eligible
-  icq sns proposals 1 --sort reject-cost
-  icq sns proposals 1 --sort reward-round
-  icq sns proposals 1 --sort reward-end
-  icq sns proposals 1 --sort created
-  icq sns proposals 1 --sort decided
-  icq sns proposals 1 --sort executed
-  icq sns proposals 1 --sort failed
-  icq sns proposals 1 --sort created --asc
-  icq sns proposals refresh 1
-  icq sns proposals cache status 1
-  icq sns proposals 1 --before 100 --limit 50
-  icq sns proposals 23ten-uaaaa-aaaaq-aabia-cai --verbose
-  icq --network ic sns proposals 1 --format json";
+  icq sns proposal list 1
+  icq sns proposal list 1 --status open
+  icq sns proposal list 1 --status decided
+  icq sns proposal list 1 --topic governance
+  icq sns proposal list 1 --eligible yes
+  icq sns proposal list 1 --proposer 00010203
+  icq sns proposal list 1 --query treasury
+  icq sns proposal list 1 --sort status
+  icq sns proposal list 1 --sort topic
+  icq sns proposal list 1 --sort proposer
+  icq sns proposal list 1 --sort title
+  icq sns proposal list 1 --sort action
+  icq sns proposal list 1 --sort action-id
+  icq sns proposal list 1 --sort total-votes
+  icq sns proposal list 1 --sort tally-time
+  icq sns proposal list 1 --sort ballots
+  icq sns proposal list 1 --sort eligible
+  icq sns proposal list 1 --sort reject-cost
+  icq sns proposal list 1 --sort reward-round
+  icq sns proposal list 1 --sort reward-end
+  icq sns proposal list 1 --sort created
+  icq sns proposal list 1 --sort decided
+  icq sns proposal list 1 --sort executed
+  icq sns proposal list 1 --sort failed
+  icq sns proposal list 1 --sort created --asc
+  icq sns proposal refresh 1
+  icq sns proposal cache status 1
+  icq sns proposal list 1 --before 100 --limit 50
+  icq sns proposal list 23ten-uaaaa-aaaaq-aabia-cai --verbose
+  icq --network ic sns proposal list 1 --format json";
 
 const SNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposal 1 387
-  icq sns proposal 23ten-uaaaa-aaaaq-aabia-cai 387
-  icq sns proposal 1 387 --ballots
-  icq sns proposal 1 387 --verbose
-  icq --network ic sns proposal 1 387 --format json";
+  icq sns proposal info 1 387
+  icq sns proposal info 23ten-uaaaa-aaaaq-aabia-cai 387
+  icq sns proposal info 1 387 --ballots
+  icq sns proposal info 1 387 --verbose
+  icq --network ic sns proposal info 1 387 --format json";
 
 const SNS_PROPOSALS_REFRESH_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposals refresh 1
-  icq sns proposals refresh 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns proposals refresh 1 --page-size 100
-  icq --network ic sns proposals refresh 1 --format json";
+  icq sns proposal refresh 1
+  icq sns proposal refresh 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns proposal refresh 1 --page-size 100
+  icq --network ic sns proposal refresh 1 --format json";
 
 const SNS_PROPOSALS_CACHE_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposals cache list
-  icq sns proposals cache status 1
-  icq sns proposals cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns proposals cache status 1 --format json";
+  icq sns proposal cache list
+  icq sns proposal cache status 1
+  icq sns proposal cache status 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns proposal cache status 1 --format json";
 
 const SNS_PROPOSALS_CACHE_LIST_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposals cache list
-  icq sns proposals cache list --format json";
+  icq sns proposal cache list
+  icq sns proposal cache list --format json";
 
 const SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposals cache status 1
-  icq sns proposals cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns proposals cache status 1 --format json";
+  icq sns proposal cache status 1
+  icq sns proposal cache status 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns proposal cache status 1 --format json";
 
 pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
         .bin_name("icq sns proposal")
+        .about("List, inspect, and refresh SNS governance proposals")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("list").about("List SNS governance proposals"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("info").about("Show one SNS governance proposal"),
+        ))
+        .subcommand(passthrough_subcommand(ClapCommand::new("refresh").about(
+            "Force-refresh and cache a complete SNS governance proposal snapshot",
+        )))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("cache").about("Inspect local complete SNS proposal snapshots"),
+        ))
+}
+
+pub(in crate::sns::commands) fn sns_proposal_info_command() -> ClapCommand {
+    ClapCommand::new("info")
+        .bin_name("icq sns proposal info")
         .about("Show one SNS governance proposal by SNS list id or root principal")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
@@ -131,9 +150,9 @@ pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
         ))
 }
 
-pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
-    ClapCommand::new("proposals")
-        .bin_name("icq sns proposals")
+pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
+    ClapCommand::new("list")
+        .bin_name("icq sns proposal list")
         .about("List SNS governance proposals by list id or root principal")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
@@ -227,18 +246,9 @@ pub(in crate::sns::commands) fn sns_proposals_command() -> ClapCommand {
         ))
 }
 
-pub(in crate::sns::commands) fn sns_proposals_dispatch_command() -> ClapCommand {
-    nested_dispatch_command(
-        "proposals",
-        "icq sns proposals",
-        "Force-refresh and cache a complete SNS governance proposal snapshot",
-        "Inspect local complete SNS governance proposal snapshots",
-    )
-}
-
-pub(in crate::sns::commands) fn sns_proposals_refresh_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_proposal_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
-        .bin_name("icq sns proposals refresh")
+        .bin_name("icq sns proposal refresh")
         .about("Force-refresh and cache a complete SNS governance proposal snapshot")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
@@ -272,9 +282,9 @@ pub(in crate::sns::commands) fn sns_proposals_refresh_command() -> ClapCommand {
         ))
 }
 
-pub(in crate::sns::commands) fn sns_proposals_cache_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_proposal_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
-        .bin_name("icq sns proposals cache")
+        .bin_name("icq sns proposal cache")
         .about("Inspect local complete SNS governance proposal snapshots")
         .disable_help_flag(true)
         .subcommand(passthrough_subcommand(
@@ -289,9 +299,9 @@ pub(in crate::sns::commands) fn sns_proposals_cache_command() -> ClapCommand {
         ))
 }
 
-pub(in crate::sns::commands) fn sns_proposals_cache_list_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_proposal_cache_list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq sns proposals cache list")
+        .bin_name("icq sns proposal cache list")
         .about("List local complete SNS proposal snapshots")
         .disable_help_flag(true)
         .arg(format_arg())
@@ -302,9 +312,9 @@ pub(in crate::sns::commands) fn sns_proposals_cache_list_command() -> ClapComman
         ))
 }
 
-pub(in crate::sns::commands) fn sns_proposals_cache_status_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_proposal_cache_status_command() -> ClapCommand {
     ClapCommand::new("status")
-        .bin_name("icq sns proposals cache status")
+        .bin_name("icq sns proposal cache status")
         .about("Show local SNS proposal snapshot and refresh-attempt status")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())

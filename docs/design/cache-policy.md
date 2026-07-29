@@ -84,4 +84,4 @@ cache-backed sorts. A full neuron refresh can require many governance pages and
 the refresh command exposes `--page-size` and `--max-pages`; silently starting
 that crawl from a normal sort command would hide important cost and completion
 controls. Missing SNS neuron caches therefore remain typed user-facing errors
-that point to `icq sns neurons refresh <id|root-principal>`.
+that point to `icq sns neuron refresh <id|root-principal>`.

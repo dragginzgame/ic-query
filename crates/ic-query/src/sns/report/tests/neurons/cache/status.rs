@@ -249,7 +249,7 @@ fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
         Some(2)
     );
     assert!(status_text.contains("found: no"));
-    assert!(status_text.contains("refresh_hint: icq sns neurons refresh"));
+    assert!(status_text.contains("refresh_hint: icq sns neuron refresh"));
     assert!(status_text.contains("latest_attempt_status: failed"));
 
     let numeric_status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {

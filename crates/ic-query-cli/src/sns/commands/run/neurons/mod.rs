@@ -8,14 +8,14 @@ mod cache;
 mod refresh;
 
 use crate::{
-    cli::{clap::OptionalSubcommand, common::write_text_or_json},
+    cli::common::write_text_or_json,
     sns::commands::{
         SnsCommandError,
         options::SnsNeuronsOptions,
         run::common::{
-            command_args, command_icp_root, lookup_command_parts, parse_optional_command,
+            command_args, command_icp_root, lookup_command_parts, parse_required_command,
         },
-        spec::{SnsNeuronsSortArg, sns_neurons_dispatch_command, sns_neurons_usage},
+        spec::{SnsNeuronsSortArg, sns_neuron_command, sns_neuron_list_usage, sns_neuron_usage},
     },
 };
 use ic_query::sns::{
@@ -23,24 +23,29 @@ use ic_query::sns::{
 };
 use std::{ffi::OsString, path::PathBuf};
 
-pub(super) fn run_sns_neurons<I>(args: I) -> Result<(), SnsCommandError>
+pub(super) fn run_sns_neuron<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, sns_neurons_usage) else {
+    let Some(args) = command_args(args, sns_neuron_usage) else {
         return Ok(());
     };
-    let args =
-        match parse_optional_command(sns_neurons_dispatch_command(), args, sns_neurons_usage)? {
-            OptionalSubcommand::Matched { name, args } => {
-                return match name.as_str() {
-                    "refresh" => refresh::run_sns_neurons_refresh(args),
-                    "cache" => cache::run_sns_neurons_cache(args),
-                    _ => unreachable!("sns neurons dispatch command only defines known commands"),
-                };
-            }
-            OptionalSubcommand::Passthrough(args) => args,
-        };
+    let (command, args) = parse_required_command(sns_neuron_command(), args, sns_neuron_usage)?;
+    match command.as_str() {
+        "list" => run_sns_neuron_list(args),
+        "refresh" => refresh::run_sns_neuron_refresh(args),
+        "cache" => cache::run_sns_neuron_cache(args),
+        _ => unreachable!("sns neuron dispatch command only defines known commands"),
+    }
+}
+
+fn run_sns_neuron_list<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = command_args(args, sns_neuron_list_usage) else {
+        return Ok(());
+    };
     let options = SnsNeuronsOptions::parse(args)?;
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;

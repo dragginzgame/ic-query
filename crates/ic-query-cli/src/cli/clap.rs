@@ -9,18 +9,6 @@ use std::ffi::OsString;
 
 const PASSTHROUGH_ARGS: &str = "args";
 
-///
-/// OptionalSubcommand
-///
-/// Parsed result for commands that accept either a subcommand or passthrough args.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum OptionalSubcommand {
-    Matched { name: String, args: Vec<OsString> },
-    Passthrough(Vec<OsString>),
-}
-
 pub fn parse_matches<I>(command: Command, args: I) -> Result<ArgMatches, clap::Error>
 where
     I: IntoIterator<Item = OsString>,
@@ -82,25 +70,6 @@ where
     I: IntoIterator<Item = OsString>,
 {
     parse_required_subcommand(command, args).map_err(|error| format!("{error}\n{}", usage()))
-}
-
-pub fn parse_optional_subcommand_or_usage<I>(
-    command: Command,
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Result<OptionalSubcommand, String>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let matches = parse_matches_or_usage(command, args, usage)?;
-    if let Some((name, matches)) = matches.subcommand() {
-        return Ok(OptionalSubcommand::Matched {
-            name: name.to_string(),
-            args: passthrough_args(matches),
-        });
-    }
-
-    Ok(OptionalSubcommand::Passthrough(passthrough_args(&matches)))
 }
 
 pub fn value_arg(id: &'static str) -> Arg {

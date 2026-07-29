@@ -5,7 +5,7 @@
 //! Boundary: maps proposal CLI options into report/cache request DTOs.
 
 use crate::{
-    cli::{clap::OptionalSubcommand, common::write_text_or_json},
+    cli::common::write_text_or_json,
     progress::StderrQueryProgress,
     sns::commands::{
         SnsCommandError,
@@ -14,13 +14,13 @@ use crate::{
             SnsProposalsOptions, SnsProposalsRefreshOptions,
         },
         run::common::{
-            cache_command_parts, cached_lookup_command_parts, command_args, parse_optional_command,
-            parse_required_command,
+            cache_command_parts, cached_lookup_command_parts, command_args, parse_required_command,
         },
         spec::{
-            sns_proposal_usage, sns_proposals_cache_command, sns_proposals_cache_list_usage,
-            sns_proposals_cache_status_usage, sns_proposals_cache_usage,
-            sns_proposals_dispatch_command, sns_proposals_refresh_usage, sns_proposals_usage,
+            sns_proposal_cache_command, sns_proposal_cache_list_usage,
+            sns_proposal_cache_status_usage, sns_proposal_cache_usage, sns_proposal_command,
+            sns_proposal_info_usage, sns_proposal_list_usage, sns_proposal_refresh_usage,
+            sns_proposal_usage,
         },
     },
 };
@@ -42,6 +42,23 @@ where
     let Some(args) = command_args(args, sns_proposal_usage) else {
         return Ok(());
     };
+    let (command, args) = parse_required_command(sns_proposal_command(), args, sns_proposal_usage)?;
+    match command.as_str() {
+        "list" => run_sns_proposal_list(args),
+        "info" => run_sns_proposal_info(args),
+        "refresh" => run_sns_proposal_refresh(args),
+        "cache" => run_sns_proposal_cache(args),
+        _ => unreachable!("sns proposal dispatch command only defines known commands"),
+    }
+}
+
+fn run_sns_proposal_info<I>(args: I) -> Result<(), SnsCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = command_args(args, sns_proposal_info_usage) else {
+        return Ok(());
+    };
     let options = SnsProposalOptions::parse(args)?;
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
@@ -59,26 +76,12 @@ where
     write_text_or_json(format, &report, sns_proposal_report_text)
 }
 
-pub(super) fn run_sns_proposals<I>(args: I) -> Result<(), SnsCommandError>
+fn run_sns_proposal_list<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, sns_proposals_usage) else {
+    let Some(args) = command_args(args, sns_proposal_list_usage) else {
         return Ok(());
-    };
-    let args = match parse_optional_command(
-        sns_proposals_dispatch_command(),
-        args,
-        sns_proposals_usage,
-    )? {
-        OptionalSubcommand::Matched { name, args } => {
-            return match name.as_str() {
-                "refresh" => run_sns_proposals_refresh(args),
-                "cache" => run_sns_proposals_cache(args),
-                _ => unreachable!("sns proposals dispatch command only defines known commands"),
-            };
-        }
-        OptionalSubcommand::Passthrough(args) => args,
     };
     let options = SnsProposalsOptions::parse(args)?;
     let parts = cached_lookup_command_parts(options.lookup)?;
@@ -105,11 +108,11 @@ where
     write_text_or_json(format, &report, sns_proposals_report_text)
 }
 
-fn run_sns_proposals_refresh<I>(args: I) -> Result<(), SnsCommandError>
+fn run_sns_proposal_refresh<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, sns_proposals_refresh_usage) else {
+    let Some(args) = command_args(args, sns_proposal_refresh_usage) else {
         return Ok(());
     };
     let options = SnsProposalsRefreshOptions::parse(args)?;
@@ -129,30 +132,27 @@ where
     write_text_or_json(format, &report, sns_proposals_refresh_report_text)
 }
 
-fn run_sns_proposals_cache<I>(args: I) -> Result<(), SnsCommandError>
+fn run_sns_proposal_cache<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, sns_proposals_cache_usage) else {
+    let Some(args) = command_args(args, sns_proposal_cache_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_command(
-        sns_proposals_cache_command(),
-        args,
-        sns_proposals_cache_usage,
-    )?;
+    let (command, args) =
+        parse_required_command(sns_proposal_cache_command(), args, sns_proposal_cache_usage)?;
     match command.as_str() {
-        "list" => run_sns_proposals_cache_list(args),
-        "status" => run_sns_proposals_cache_status(args),
-        _ => unreachable!("sns proposals cache dispatch command only defines known commands"),
+        "list" => run_sns_proposal_cache_list(args),
+        "status" => run_sns_proposal_cache_status(args),
+        _ => unreachable!("sns proposal cache dispatch command only defines known commands"),
     }
 }
 
-fn run_sns_proposals_cache_list<I>(args: I) -> Result<(), SnsCommandError>
+fn run_sns_proposal_cache_list<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, sns_proposals_cache_list_usage) else {
+    let Some(args) = command_args(args, sns_proposal_cache_list_usage) else {
         return Ok(());
     };
     let options = SnsProposalsCacheListOptions::parse(args)?;
@@ -165,11 +165,11 @@ where
     write_text_or_json(parts.format, &report, sns_proposals_cache_list_report_text)
 }
 
-fn run_sns_proposals_cache_status<I>(args: I) -> Result<(), SnsCommandError>
+fn run_sns_proposal_cache_status<I>(args: I) -> Result<(), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = command_args(args, sns_proposals_cache_status_usage) else {
+    let Some(args) = command_args(args, sns_proposal_cache_status_usage) else {
         return Ok(());
     };
     let options = SnsProposalsCacheStatusOptions::parse(args)?;

@@ -53,18 +53,25 @@ fn icrc_command() -> ClapCommand {
         .about("Inspect generic ICRC ledgers")
         .disable_help_flag(true)
         .subcommand(passthrough_subcommand(
+            ClapCommand::new("ledger").about("Inspect ledger-wide ICRC metadata and transactions"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("account").about("Inspect ICRC account balances and allowances"),
+        ))
+}
+
+fn icrc_ledger_command() -> ClapCommand {
+    ClapCommand::new("ledger")
+        .bin_name("icq icrc ledger")
+        .about("Inspect ledger-wide ICRC metadata and transactions")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
             ClapCommand::new("capabilities")
                 .about("Probe generic ICRC ledger endpoint capabilities"),
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("token")
                 .about("Show generic ICRC token metadata by ledger canister id"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("balance").about("Show a generic ICRC account balance"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("allowance").about("Show a generic ICRC account allowance"),
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("index").about("Show a generic ICRC ledger index canister"),
@@ -86,31 +93,44 @@ fn icrc_command() -> ClapCommand {
         ))
 }
 
+fn icrc_account_command() -> ClapCommand {
+    ClapCommand::new("account")
+        .bin_name("icq icrc account")
+        .about("Inspect ICRC account balances and allowances")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("balance").about("Show a generic ICRC account balance"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("allowance").about("Show a generic ICRC account allowance"),
+        ))
+}
+
 fn icrc_token_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "token",
-        "icq icrc token",
+        "icq icrc ledger token",
         "Show generic ICRC token metadata by ledger canister id",
-        "Examples:\n  icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc token ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        "Examples:\n  icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
     )
 }
 
 fn icrc_capabilities_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "capabilities",
-        "icq icrc capabilities",
+        "icq icrc ledger capabilities",
         "Probe generic ICRC ledger endpoint capabilities",
-        "Examples:\n  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc capabilities mxzaz-hqaaa-aaaar-qaada-cai --format json",
+        "Examples:\n  icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai --format json",
     )
 }
 
 fn icrc_balance_command() -> ClapCommand {
     let command = ClapCommand::new("balance")
-        .bin_name("icq icrc balance")
+        .bin_name("icq icrc account balance")
         .about("Show a generic ICRC account balance")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa\n  icq icrc balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000",
+            "Examples:\n  icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa\n  icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000",
         ))
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -124,11 +144,11 @@ fn icrc_balance_command() -> ClapCommand {
 
 fn icrc_allowance_command() -> ClapCommand {
     let command = ClapCommand::new("allowance")
-        .bin_name("icq icrc allowance")
+        .bin_name("icq icrc account allowance")
         .about("Show a generic ICRC account allowance")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa\n  icq icrc allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000",
+            "Examples:\n  icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa\n  icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000",
         ))
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -154,19 +174,19 @@ fn icrc_allowance_command() -> ClapCommand {
 fn icrc_index_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "index",
-        "icq icrc index",
+        "icq icrc ledger index",
         "Show a generic ICRC ledger index canister",
-        "Examples:\n  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc index ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        "Examples:\n  icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
     )
 }
 
 fn icrc_transactions_command() -> ClapCommand {
     let command = ClapCommand::new("transactions")
-        .bin_name("icq icrc transactions")
+        .bin_name("icq icrc ledger transactions")
         .about("Show a generic ICRC ledger transaction history page")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --format json",
+            "Examples:\n  icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --format json",
         ))
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -199,19 +219,19 @@ fn icrc_transactions_command() -> ClapCommand {
 fn icrc_block_types_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "block-types",
-        "icq icrc block-types",
+        "icq icrc ledger block-types",
         "Show generic ICRC-3 ledger supported block types",
-        "Examples:\n  icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc block-types ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        "Examples:\n  icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
     )
 }
 
 fn icrc_archives_command() -> ClapCommand {
     let command = ClapCommand::new("archives")
-        .bin_name("icq icrc archives")
+        .bin_name("icq icrc ledger archives")
         .about("Show generic ICRC-3 ledger archive ranges")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc archives ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json",
+            "Examples:\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json",
         ))
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -228,9 +248,9 @@ fn icrc_archives_command() -> ClapCommand {
 fn icrc_tip_certificate_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "tip-certificate",
-        "icq icrc tip-certificate",
+        "icq icrc ledger tip-certificate",
         "Show a generic ICRC-3 ledger tip certificate",
-        "Examples:\n  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc tip-certificate mxzaz-hqaaa-aaaar-qaada-cai --format json",
+        "Examples:\n  icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai --format json",
     )
 }
 
@@ -251,6 +271,14 @@ fn simple_icrc_ledger_command(
 
 fn usage() -> String {
     render_help(icrc_command())
+}
+
+fn icrc_ledger_usage() -> String {
+    render_help(icrc_ledger_command())
+}
+
+fn icrc_account_usage() -> String {
+    render_help(icrc_account_command())
 }
 
 fn icrc_token_usage() -> String {

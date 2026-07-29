@@ -55,7 +55,7 @@ pub fn sns_neurons_cache_status_report_text(report: &SnsNeuronsCacheStatusReport
             ));
         }
         lines.push(format!(
-            "refresh_hint: icq sns neurons refresh {}",
+            "refresh_hint: icq sns neuron refresh {}",
             sanitize_text(&report.input)
         ));
     }
