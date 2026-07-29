@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.12.md](docs/changelog/0.12.md)
 
+- `0.12.2` rejects non-mainnet global network identities before NNS or SNS
+  family dispatch and makes the current mainnet-only target contract explicit
+  in top-level help and documentation.
+
 - `0.12.1` adds a living 1.0 roadmap that tracks reporting coverage, caching
   and follow-up-query policy, prioritized workstreams, and the completion bar.
   CLI help now identifies live, cache-backed, cache-preferred, cache-only,

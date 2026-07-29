@@ -5,101 +5,91 @@
 //! Boundary: keeps test-only access out of the production command surface.
 
 use super::{
-    IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcBlockTypesOptions,
-    IcrcCapabilitiesOptions, IcrcIndexOptions, IcrcTipCertificateOptions, IcrcTokenOptions,
+    IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
     IcrcTransactionsOptions, icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage,
-    icrc_block_types_usage, icrc_capabilities_usage, icrc_index_usage, icrc_tip_certificate_usage,
-    icrc_token_usage, icrc_transactions_usage, usage,
+    icrc_block_types_command, icrc_block_types_usage, icrc_capabilities_command,
+    icrc_capabilities_usage, icrc_index_command, icrc_index_usage, icrc_tip_certificate_command,
+    icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage, icrc_transactions_usage,
+    usage,
 };
 
-pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcTokenOptions {
-    try_parse_token_options(args).expect("parse ICRC token options")
+pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcLedgerOptions {
+    parse_ledger_options(
+        args,
+        icrc_token_command,
+        icrc_token_usage,
+        "parse ICRC token options",
+    )
 }
 
-pub(in crate::icrc) fn try_parse_token_options(
-    args: &[&str],
-) -> Result<IcrcTokenOptions, crate::icrc::IcrcCommandError> {
-    IcrcTokenOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
-}
-
-pub(in crate::icrc) fn parse_capabilities_options(args: &[&str]) -> IcrcCapabilitiesOptions {
-    try_parse_capabilities_options(args).expect("parse ICRC capabilities options")
-}
-
-pub(in crate::icrc) fn try_parse_capabilities_options(
-    args: &[&str],
-) -> Result<IcrcCapabilitiesOptions, crate::icrc::IcrcCommandError> {
-    IcrcCapabilitiesOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+pub(in crate::icrc) fn parse_capabilities_options(args: &[&str]) -> IcrcLedgerOptions {
+    parse_ledger_options(
+        args,
+        icrc_capabilities_command,
+        icrc_capabilities_usage,
+        "parse ICRC capabilities options",
+    )
 }
 
 pub(in crate::icrc) fn parse_balance_options(args: &[&str]) -> IcrcBalanceOptions {
-    try_parse_balance_options(args).expect("parse ICRC balance options")
-}
-
-pub(in crate::icrc) fn try_parse_balance_options(
-    args: &[&str],
-) -> Result<IcrcBalanceOptions, crate::icrc::IcrcCommandError> {
     IcrcBalanceOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC balance options")
 }
 
 pub(in crate::icrc) fn parse_allowance_options(args: &[&str]) -> IcrcAllowanceOptions {
-    try_parse_allowance_options(args).expect("parse ICRC allowance options")
-}
-
-pub(in crate::icrc) fn try_parse_allowance_options(
-    args: &[&str],
-) -> Result<IcrcAllowanceOptions, crate::icrc::IcrcCommandError> {
     IcrcAllowanceOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC allowance options")
 }
 
-pub(in crate::icrc) fn parse_index_options(args: &[&str]) -> IcrcIndexOptions {
-    try_parse_index_options(args).expect("parse ICRC index options")
-}
-
-pub(in crate::icrc) fn try_parse_index_options(
-    args: &[&str],
-) -> Result<IcrcIndexOptions, crate::icrc::IcrcCommandError> {
-    IcrcIndexOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+pub(in crate::icrc) fn parse_index_options(args: &[&str]) -> IcrcLedgerOptions {
+    parse_ledger_options(
+        args,
+        icrc_index_command,
+        icrc_index_usage,
+        "parse ICRC index options",
+    )
 }
 
 pub(in crate::icrc) fn parse_transactions_options(args: &[&str]) -> IcrcTransactionsOptions {
-    try_parse_transactions_options(args).expect("parse ICRC transactions options")
-}
-
-pub(in crate::icrc) fn try_parse_transactions_options(
-    args: &[&str],
-) -> Result<IcrcTransactionsOptions, crate::icrc::IcrcCommandError> {
     IcrcTransactionsOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC transactions options")
 }
 
-pub(in crate::icrc) fn parse_block_types_options(args: &[&str]) -> IcrcBlockTypesOptions {
-    try_parse_block_types_options(args).expect("parse ICRC block types options")
-}
-
-pub(in crate::icrc) fn try_parse_block_types_options(
-    args: &[&str],
-) -> Result<IcrcBlockTypesOptions, crate::icrc::IcrcCommandError> {
-    IcrcBlockTypesOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+pub(in crate::icrc) fn parse_block_types_options(args: &[&str]) -> IcrcLedgerOptions {
+    parse_ledger_options(
+        args,
+        icrc_block_types_command,
+        icrc_block_types_usage,
+        "parse ICRC block types options",
+    )
 }
 
 pub(in crate::icrc) fn parse_archives_options(args: &[&str]) -> IcrcArchivesOptions {
-    try_parse_archives_options(args).expect("parse ICRC archives options")
-}
-
-pub(in crate::icrc) fn try_parse_archives_options(
-    args: &[&str],
-) -> Result<IcrcArchivesOptions, crate::icrc::IcrcCommandError> {
     IcrcArchivesOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC archives options")
 }
 
-pub(in crate::icrc) fn parse_tip_certificate_options(args: &[&str]) -> IcrcTipCertificateOptions {
-    try_parse_tip_certificate_options(args).expect("parse ICRC tip certificate options")
+pub(in crate::icrc) fn parse_tip_certificate_options(args: &[&str]) -> IcrcLedgerOptions {
+    parse_ledger_options(
+        args,
+        icrc_tip_certificate_command,
+        icrc_tip_certificate_usage,
+        "parse ICRC tip certificate options",
+    )
 }
 
-pub(in crate::icrc) fn try_parse_tip_certificate_options(
+fn parse_ledger_options(
     args: &[&str],
-) -> Result<IcrcTipCertificateOptions, crate::icrc::IcrcCommandError> {
-    IcrcTipCertificateOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+    command: fn() -> clap::Command,
+    usage: fn() -> String,
+    expectation: &str,
+) -> IcrcLedgerOptions {
+    IcrcLedgerOptions::parse(
+        args.iter().copied().map(std::ffi::OsString::from),
+        command,
+        usage,
+    )
+    .expect(expectation)
 }
 
 pub(in crate::icrc) fn root_usage() -> String {

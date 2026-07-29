@@ -101,14 +101,14 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
 }
 
 #[test]
-fn nns_proposal_list_accepts_the_forwarded_global_network() {
+fn nns_proposal_list_accepts_the_forwarded_mainnet_network() {
     let options = NnsProposalListOptions::parse_list([
         OsString::from("--__icq-network"),
-        OsString::from("local"),
+        OsString::from("ic"),
     ])
     .expect("parse forwarded global network");
 
-    assert_eq!(options.network, "local");
+    assert_eq!(options.network, "ic");
 }
 
 #[test]

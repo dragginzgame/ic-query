@@ -13,6 +13,7 @@ use crate::cli::clap::{
     parse_matches_or_usage, passthrough_args, passthrough_subcommand, string_option,
 };
 use clap::{Arg, ArgAction, Command};
+use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::ffi::OsString;
 use thiserror::Error as ThisError;
 
@@ -152,7 +153,7 @@ fn network_arg() -> Arg {
         .num_args(1)
         .long("network")
         .value_name("name")
-        .help("Network identity for supported NNS and SNS commands")
+        .help("Network identity for NNS and SNS commands; currently only ic")
 }
 
 fn top_level_command() -> Command {
@@ -236,14 +237,17 @@ fn apply_global_network(
     let Some(global_network) = global_network else {
         return Ok(());
     };
-    if tail_has_option(tail, INTERNAL_NETWORK_OPTION) {
-        return Ok(());
-    }
     if tail_requests_help_or_version(tail) {
         return Ok(());
     }
     if !command_accepts_global_network(command, tail) {
         return Err(unsupported_global_network_error(command));
+    }
+    if global_network != MAINNET_NETWORK {
+        return Err(unsupported_mainnet_network_error(command, &global_network));
+    }
+    if tail_has_option(tail, INTERNAL_NETWORK_OPTION) {
+        return Ok(());
     }
 
     tail.push(OsString::from(INTERNAL_NETWORK_OPTION));
@@ -259,6 +263,13 @@ fn unsupported_global_network_error(command: &str) -> IcqCliError {
     };
     IcqCliError::Usage(format!(
         "--network is not supported by `icq {command}`;{guidance}\n\n{}",
+        usage()
+    ))
+}
+
+fn unsupported_mainnet_network_error(command: &str, network: &str) -> IcqCliError {
+    IcqCliError::Usage(format!(
+        "`icq {command}` currently supports only the mainnet `{MAINNET_NETWORK}` network; received `{network}`\n\n{}",
         usage()
     ))
 }
@@ -367,7 +378,7 @@ Commands:
 
 Options:
   -V, --version         Print version
-      --network <name>  Network identity for supported NNS and SNS commands
+      --network <name>  Network identity for NNS and SNS commands; currently only ic
   -h, --help            Print help
 
 Run `icq <command> help` for command-specific help.
@@ -518,7 +529,7 @@ Run `icq <command> help` for command-specific help.
 
         let mut nns_proposal_tail = vec![OsString::from("proposal"), OsString::from("list")];
 
-        apply_global_network("nns", &mut nns_proposal_tail, Some("local".to_string()))
+        apply_global_network("nns", &mut nns_proposal_tail, Some("ic".to_string()))
             .expect("NNS proposal supports global network");
 
         assert_eq!(
@@ -527,9 +538,64 @@ Run `icq <command> help` for command-specific help.
                 OsString::from("proposal"),
                 OsString::from("list"),
                 OsString::from(INTERNAL_NETWORK_OPTION),
-                OsString::from("local")
+                OsString::from("ic")
             ]
         );
+    }
+
+    #[test]
+    fn non_mainnet_network_is_rejected_before_nns_or_sns_dispatch() {
+        for command in ["nns", "sns"] {
+            let mut tail = if command == "nns" {
+                vec![OsString::from("proposal"), OsString::from("list")]
+            } else {
+                vec![OsString::from("list")]
+            };
+
+            let error = apply_global_network(command, &mut tail, Some("local".to_string()))
+                .expect_err("current NNS and SNS adapters are mainnet-only");
+
+            assert_eq!(error.exit_code(), 2);
+            assert!(error.to_string().contains("supports only the mainnet `ic`"));
+            assert!(error.to_string().contains("received `local`"));
+            assert!(!tail_has_option(&tail, INTERNAL_NETWORK_OPTION));
+        }
+
+        let mut preforwarded_tail = vec![
+            OsString::from("proposal"),
+            OsString::from("list"),
+            OsString::from(INTERNAL_NETWORK_OPTION),
+            OsString::from(MAINNET_NETWORK),
+        ];
+        let error = apply_global_network("nns", &mut preforwarded_tail, Some("local".to_string()))
+            .expect_err("an internal forwarded value must not bypass global validation");
+        assert!(error.to_string().contains("received `local`"));
+
+        for args in [
+            vec![
+                OsString::from("--network"),
+                OsString::from("local"),
+                OsString::from("nns"),
+                OsString::from("proposal"),
+                OsString::from("list"),
+            ],
+            vec![
+                OsString::from("--network"),
+                OsString::from("local"),
+                OsString::from("sns"),
+                OsString::from("list"),
+            ],
+        ] {
+            let command = args[2].to_string_lossy().into_owned();
+            let error = run(args).expect_err("non-mainnet network must fail before dispatch");
+
+            assert_eq!(error.exit_code(), 2);
+            assert!(
+                error
+                    .to_string()
+                    .starts_with(&format!("`icq {command}` currently"))
+            );
+        }
     }
 
     #[test]

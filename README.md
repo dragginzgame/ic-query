@@ -122,6 +122,8 @@ The top-level `--network` option supplies network identity to NNS and SNS
 commands, including NNS proposals. ICRC commands identify their target by
 ledger canister and API endpoint instead; combining `--network` with `icrc` is
 rejected before dispatch and directs the caller to `--source-endpoint`.
+The built-in NNS and SNS sources and caches currently support only the mainnet
+`ic` identity, so another network name is rejected before family dispatch.
 
 Most commands support text output by default and JSON output with
 `--format json`:

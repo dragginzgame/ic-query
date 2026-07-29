@@ -5,11 +5,12 @@
 //! Boundary: converts command options to public requests and writes one report.
 
 use super::{
-    IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcBlockTypesOptions,
-    IcrcCapabilitiesOptions, IcrcIndexOptions, IcrcTipCertificateOptions, IcrcTokenOptions,
+    IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
     IcrcTransactionsOptions, icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage,
-    icrc_block_types_usage, icrc_capabilities_usage, icrc_command, icrc_index_usage,
-    icrc_tip_certificate_usage, icrc_token_usage, icrc_transactions_usage, usage,
+    icrc_block_types_command, icrc_block_types_usage, icrc_capabilities_command,
+    icrc_capabilities_usage, icrc_command, icrc_index_command, icrc_index_usage,
+    icrc_tip_certificate_command, icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage,
+    icrc_transactions_usage, usage,
 };
 use crate::{
     cli::{
@@ -64,7 +65,7 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcTokenOptions::parse(args)?;
+    let options = IcrcLedgerOptions::parse(args, icrc_token_command, icrc_token_usage)?;
     let request = IcrcTokenRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -126,7 +127,7 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcIndexOptions::parse(args)?;
+    let options = IcrcLedgerOptions::parse(args, icrc_index_command, icrc_index_usage)?;
     let request = IcrcIndexRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -167,7 +168,7 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcBlockTypesOptions::parse(args)?;
+    let options = IcrcLedgerOptions::parse(args, icrc_block_types_command, icrc_block_types_usage)?;
     let request = IcrcBlockTypesRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -206,7 +207,11 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcTipCertificateOptions::parse(args)?;
+    let options = IcrcLedgerOptions::parse(
+        args,
+        icrc_tip_certificate_command,
+        icrc_tip_certificate_usage,
+    )?;
     let request = IcrcTipCertificateRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -225,7 +230,8 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcCapabilitiesOptions::parse(args)?;
+    let options =
+        IcrcLedgerOptions::parse(args, icrc_capabilities_command, icrc_capabilities_usage)?;
     let request = IcrcCapabilitiesRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,

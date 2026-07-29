@@ -9,10 +9,8 @@ use super::{
     OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PRINCIPAL_ARG, SPENDER_PRINCIPAL_ARG,
     SPENDER_SUBACCOUNT_ARG, START_ARG, SUBACCOUNT_ARG, format_from_matches, icrc_allowance_command,
     icrc_allowance_usage, icrc_archives_command, icrc_archives_usage, icrc_balance_command,
-    icrc_balance_usage, icrc_block_types_command, icrc_block_types_usage,
-    icrc_capabilities_command, icrc_capabilities_usage, icrc_index_command, icrc_index_usage,
-    icrc_tip_certificate_command, icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage,
-    icrc_transactions_command, icrc_transactions_usage, source_endpoint_from_matches,
+    icrc_balance_usage, icrc_transactions_command, icrc_transactions_usage,
+    source_endpoint_from_matches,
 };
 use crate::{
     cli::{
@@ -21,57 +19,33 @@ use crate::{
     },
     icrc::IcrcCommandError,
 };
+use clap::Command as ClapCommand;
 use std::ffi::OsString;
 
 ///
-/// IcrcCapabilitiesOptions
+/// IcrcLedgerOptions
 ///
-/// Clap-parsed options for generic ICRC capability probes.
+/// Shared ledger target, output, and endpoint options for simple ICRC queries.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcCapabilitiesOptions {
+pub(in crate::icrc) struct IcrcLedgerOptions {
     pub(in crate::icrc) ledger_canister_id: String,
     pub(in crate::icrc) format: OutputFormat,
     pub(in crate::icrc) source_endpoint: String,
 }
 
-impl IcrcCapabilitiesOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
+impl IcrcLedgerOptions {
+    pub(super) fn parse<I>(
+        args: I,
+        command: fn() -> ClapCommand,
+        usage: fn() -> String,
+    ) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches =
-            parse_matches_or_usage(icrc_capabilities_command(), args, icrc_capabilities_usage)
-                .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
-    }
-}
-
-///
-/// IcrcTokenOptions
-///
-/// Clap-parsed options for generic ICRC token metadata queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTokenOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
-}
-
-impl IcrcTokenOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_token_command(), args, icrc_token_usage)
-            .map_err(IcrcCommandError::Usage)?;
+            parse_matches_or_usage(command(), args, usage).map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
             format: format_from_matches(&matches),
@@ -149,34 +123,6 @@ impl IcrcAllowanceOptions {
 }
 
 ///
-/// IcrcIndexOptions
-///
-/// Clap-parsed options for generic ICRC index discovery queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcIndexOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
-}
-
-impl IcrcIndexOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_index_command(), args, icrc_index_usage)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
-    }
-}
-
-///
 /// IcrcTransactionsOptions
 ///
 /// Clap-parsed options for generic ICRC transaction history queries.
@@ -212,35 +158,6 @@ impl IcrcTransactionsOptions {
 }
 
 ///
-/// IcrcBlockTypesOptions
-///
-/// Clap-parsed options for generic ICRC-3 supported block type queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcBlockTypesOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
-}
-
-impl IcrcBlockTypesOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches =
-            parse_matches_or_usage(icrc_block_types_command(), args, icrc_block_types_usage)
-                .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
-    }
-}
-
-///
 /// IcrcArchivesOptions
 ///
 /// Clap-parsed options for generic ICRC-3 archive range queries.
@@ -264,38 +181,6 @@ impl IcrcArchivesOptions {
         Ok(Self {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
             from_canister_id: string_option(&matches, FROM_CANISTER_ID_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
-    }
-}
-
-///
-/// IcrcTipCertificateOptions
-///
-/// Clap-parsed options for generic ICRC-3 tip certificate queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTipCertificateOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
-}
-
-impl IcrcTipCertificateOptions {
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(
-            icrc_tip_certificate_command(),
-            args,
-            icrc_tip_certificate_usage,
-        )
-        .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
             format: format_from_matches(&matches),
             source_endpoint: source_endpoint_from_matches(&matches),
         })
