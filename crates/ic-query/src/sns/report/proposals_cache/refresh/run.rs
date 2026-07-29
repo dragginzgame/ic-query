@@ -14,15 +14,14 @@ use crate::{
     },
     sns::report::{
         SnsHostError, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
+        cache_attempt::{write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt},
         live::LiveSnsSource,
         lookup::{
             enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup,
             validate_sns_refresh_page_size,
         },
         proposals_cache::{
-            attempt::{write_failed_attempt, write_starting_attempt},
-            collection::fetch_complete_sns_proposals,
-            paths::SnsProposalsCachePaths,
+            collection::fetch_complete_sns_proposals, paths::SnsProposalsCachePaths,
         },
         source::SnsProposalsSource,
     },
@@ -111,7 +110,7 @@ fn refresh_sns_proposals_cache_locked(
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
     run_snapshot_refresh_with_attempts(
-        || write_starting_attempt(context.attempt_context()),
+        || write_starting_sns_refresh_attempt(context.attempt_context()),
         || {
             let complete = fetch_complete_sns_proposals(
                 context.request,
@@ -123,6 +122,6 @@ fn refresh_sns_proposals_cache_locked(
             )?;
             publish_complete_sns_proposals_cache(&context, complete)
         },
-        |err| write_failed_attempt(context.attempt_context(), err),
+        |err| write_failed_sns_refresh_attempt(context.attempt_context(), err),
     )
 }

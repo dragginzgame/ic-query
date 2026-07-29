@@ -5,11 +5,8 @@
 //! Boundary: maps loaded proposal snapshots into public cache report models.
 
 use super::{load::load_sns_proposals_cache_at, scan::collect_sns_proposals_cache_paths};
-use crate::snapshot_cache::SNAPSHOT_CACHE_STATUS_OK;
 use crate::sns::report::{
-    SnsHostError, SnsProposalsCacheSummary,
-    cache_attempt::read_sns_refresh_attempt_status,
-    invalid_sns_cache_summary_fields,
+    SnsHostError, SnsProposalsCacheSummary, project_sns_cache_summary,
     proposals_cache::{model::SnsProposalsCache, paths::attempt_path_for_cache_path},
 };
 use std::path::{Path, PathBuf};
@@ -41,24 +38,12 @@ pub(in crate::sns::report::proposals_cache) fn sns_proposals_cache_summary(
     cache: SnsProposalsCache,
 ) -> SnsProposalsCacheSummary {
     let attempt_path = attempt_path_for_cache_path(&cache_path);
-    let latest_attempt = read_sns_refresh_attempt_status(&attempt_path, &cache.network);
-    SnsProposalsCacheSummary {
-        id: cache.metadata.id,
-        name: cache.metadata.name,
-        root_canister_id: cache.metadata.root_canister_id,
-        governance_canister_id: cache.metadata.governance_canister_id,
-        cache_status: SNAPSHOT_CACHE_STATUS_OK.to_string(),
-        cache_error: None,
-        complete: cache.completeness.is_api_exhausted(),
-        row_count: cache.completeness.row_count,
-        page_count: cache.completeness.page_count,
-        page_size: cache.completeness.page_size,
-        fetched_at: cache.fetched_at,
-        source_endpoint: cache.source_endpoint,
-        refresh_attempt_path: attempt_path.display().to_string(),
-        cache_path: cache_path.display().to_string(),
-        latest_attempt,
-    }
+    project_sns_cache_summary!(valid
+        SnsProposalsCacheSummary,
+        &cache_path,
+        &attempt_path,
+        cache
+    )
 }
 
 pub(in crate::sns::report::proposals_cache) fn invalid_sns_proposals_cache_summary(
@@ -67,22 +52,11 @@ pub(in crate::sns::report::proposals_cache) fn invalid_sns_proposals_cache_summa
     error: &SnsHostError,
 ) -> SnsProposalsCacheSummary {
     let attempt_path = attempt_path_for_cache_path(&cache_path);
-    let fields = invalid_sns_cache_summary_fields(&cache_path, &attempt_path, error);
-    SnsProposalsCacheSummary {
-        id: 0,
-        name: "-".to_string(),
-        root_canister_id: fields.root_canister_id,
-        governance_canister_id: "-".to_string(),
-        cache_status: fields.cache_status,
-        cache_error: fields.cache_error,
-        complete: fields.complete,
-        row_count: fields.row_count,
-        page_count: fields.page_count,
-        page_size: fields.page_size,
-        fetched_at: fields.fetched_at,
-        source_endpoint: fields.source_endpoint,
-        refresh_attempt_path: fields.refresh_attempt_path,
-        cache_path: fields.cache_path,
-        latest_attempt: read_sns_refresh_attempt_status(&attempt_path, network),
-    }
+    project_sns_cache_summary!(invalid
+        SnsProposalsCacheSummary,
+        &cache_path,
+        &attempt_path,
+        network,
+        error
+    )
 }

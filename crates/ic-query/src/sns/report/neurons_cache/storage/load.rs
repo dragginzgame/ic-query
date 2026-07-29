@@ -4,11 +4,10 @@
 //! Does not own: lookup resolution, cache path construction, refresh, or rendering.
 //! Boundary: validates schema, network, and completeness before returning a cache model.
 
-use super::errors::{SnsNeuronsCacheErrors, incomplete_cache_error};
 use crate::snapshot_cache::validate_snapshot_completeness;
 use crate::sns::report::{
     SnsHostError,
-    cache_storage::{load_sns_complete_cache, validate_sns_cache_metadata},
+    cache_storage::{SnsCacheLoadErrors, load_sns_complete_cache, validate_sns_cache_metadata},
     neurons_cache::{
         SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache,
         paths::sns_neurons_cache_key_for_cache_path,
@@ -24,13 +23,14 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
     network: &str,
 ) -> Result<SnsNeuronsCache, SnsHostError> {
     let key = sns_neurons_cache_key_for_cache_path(network, &path);
+    let errors = SnsCacheLoadErrors::neurons();
     let cache = load_sns_complete_cache(
         path.clone(),
         network,
         SNS_NEURONS_CACHE_SCHEMA_VERSION,
         &key,
-        SnsNeuronsCacheErrors,
-        |completeness| incomplete_cache_error(completeness.page_count, completeness.row_count),
+        errors,
+        |completeness| errors.incomplete_cache_error(completeness),
     )?;
     validate_sns_neurons_cache(&path, &cache)?;
     Ok(cache)

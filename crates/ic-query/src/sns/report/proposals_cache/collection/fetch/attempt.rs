@@ -8,9 +8,8 @@ use super::state::SnsProposalsCollectionState;
 use crate::snapshot_cache::PagedCollectionPage;
 use crate::sns::report::{
     SnsHostError, SnsProposalsRefreshRequest,
-    proposals_cache::attempt::{
-        SnsProposalsAttemptContext, SnsProposalsAttemptProgress,
-        write_running_attempt as write_running_proposals_attempt,
+    cache_attempt::{
+        SnsRefreshAttemptContext, SnsRefreshAttemptProgress, write_running_sns_refresh_attempt,
     },
     source::{MainnetSns, SnsSourceRequest},
 };
@@ -24,14 +23,14 @@ pub(super) fn write_running_attempt(
     state: &SnsProposalsCollectionState,
     page: &PagedCollectionPage,
 ) -> Result<(), SnsHostError> {
-    write_running_proposals_attempt(
-        SnsProposalsAttemptContext {
+    write_running_sns_refresh_attempt(
+        SnsRefreshAttemptContext {
             path: attempt_path,
             request,
             fetch_request,
             sns,
         },
-        SnsProposalsAttemptProgress::new(
+        SnsRefreshAttemptProgress::new(
             state.page_count(),
             state.row_count(),
             page.last_cursor_text.clone(),

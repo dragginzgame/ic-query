@@ -6,7 +6,8 @@
 
 use crate::sns::report::{
     SnsProposalsRefreshRequest,
-    proposals_cache::{attempt::SnsProposalsAttemptContext, paths::SnsProposalsCachePaths},
+    cache_attempt::SnsRefreshAttemptContext,
+    proposals_cache::paths::SnsProposalsCachePaths,
     source::{MainnetSns, MainnetSnsList, SnsSourceRequest},
 };
 
@@ -27,8 +28,8 @@ pub(super) struct SnsProposalsRefreshContext<'a> {
 }
 
 impl SnsProposalsRefreshContext<'_> {
-    pub(super) fn attempt_context(&self) -> SnsProposalsAttemptContext<'_> {
-        SnsProposalsAttemptContext {
+    pub(super) fn attempt_context(&self) -> SnsRefreshAttemptContext<'_> {
+        SnsRefreshAttemptContext {
             path: &self.paths.attempt_path,
             request: self.request,
             fetch_request: self.fetch_request,

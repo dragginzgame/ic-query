@@ -4,7 +4,6 @@
 //! Does not own: CLI parsing, live SNS transport, generic snapshot mechanics, or text rendering.
 //! Boundary: coordinates neuron cache refresh, lookup, storage, and cache-backed reports.
 
-mod attempt;
 mod collection;
 mod model;
 mod paths;

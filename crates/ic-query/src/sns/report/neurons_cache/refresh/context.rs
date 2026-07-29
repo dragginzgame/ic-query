@@ -6,7 +6,8 @@
 
 use crate::sns::report::{
     SnsNeuronsRefreshRequest,
-    neurons_cache::{attempt::SnsNeuronsAttemptContext, paths::SnsNeuronsCachePaths},
+    cache_attempt::SnsRefreshAttemptContext,
+    neurons_cache::paths::SnsNeuronsCachePaths,
     source::{MainnetSns, MainnetSnsList, SnsSourceRequest},
 };
 
@@ -27,8 +28,8 @@ pub(super) struct SnsNeuronsRefreshContext<'a> {
 }
 
 impl SnsNeuronsRefreshContext<'_> {
-    pub(super) fn attempt_context(&self) -> SnsNeuronsAttemptContext<'_> {
-        SnsNeuronsAttemptContext {
+    pub(super) fn attempt_context(&self) -> SnsRefreshAttemptContext<'_> {
+        SnsRefreshAttemptContext {
             path: &self.paths.attempt_path,
             request: self.request,
             fetch_request: self.fetch_request,

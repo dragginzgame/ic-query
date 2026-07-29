@@ -8,8 +8,8 @@ use super::state::SnsNeuronsCollectionState;
 use crate::snapshot_cache::PagedCollectionPage;
 use crate::sns::report::{
     SnsHostError, SnsNeuronsRefreshRequest,
-    neurons_cache::attempt::{
-        SnsNeuronsAttemptContext, SnsNeuronsAttemptProgress, write_running_sns_neurons_attempt,
+    cache_attempt::{
+        SnsRefreshAttemptContext, SnsRefreshAttemptProgress, write_running_sns_refresh_attempt,
     },
     source::{MainnetSns, SnsSourceRequest},
 };
@@ -23,14 +23,14 @@ pub(super) fn write_running_attempt(
     state: &SnsNeuronsCollectionState,
     page: &PagedCollectionPage,
 ) -> Result<(), SnsHostError> {
-    write_running_sns_neurons_attempt(
-        SnsNeuronsAttemptContext {
+    write_running_sns_refresh_attempt(
+        SnsRefreshAttemptContext {
             path: attempt_path,
             request,
             fetch_request,
             sns,
         },
-        SnsNeuronsAttemptProgress::new(
+        SnsRefreshAttemptProgress::new(
             state.page_count(),
             state.row_count(),
             page.last_cursor_text.clone(),

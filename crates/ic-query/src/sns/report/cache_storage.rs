@@ -1,7 +1,7 @@
 //! Module: sns::report::cache_storage
 //!
-//! Responsibility: shared SNS snapshot cache storage helpers.
-//! Does not own: family-specific schemas, error mappers, cache models, or refresh policy.
+//! Responsibility: shared SNS snapshot cache storage and error-mapping helpers.
+//! Does not own: family-specific schemas, cache models, or refresh policy.
 //! Boundary: builds common snapshot-cache load and discovery requests for SNS caches.
 
 use crate::{
@@ -18,6 +18,79 @@ use crate::{
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
+
+#[derive(Clone, Copy)]
+enum SnsCacheFamily {
+    Neurons,
+    Proposals,
+}
+
+///
+/// SnsCacheLoadErrors
+///
+/// Shared JSON cache error mapper for complete SNS collection snapshots.
+///
+
+#[derive(Clone, Copy)]
+pub(in crate::sns::report) struct SnsCacheLoadErrors {
+    family: SnsCacheFamily,
+}
+
+impl SnsCacheLoadErrors {
+    pub(in crate::sns::report) const fn neurons() -> Self {
+        Self {
+            family: SnsCacheFamily::Neurons,
+        }
+    }
+
+    pub(in crate::sns::report) const fn proposals() -> Self {
+        Self {
+            family: SnsCacheFamily::Proposals,
+        }
+    }
+
+    pub(in crate::sns::report) fn incomplete_cache_error(
+        self,
+        completeness: &SnapshotCompleteness,
+    ) -> SnsHostError {
+        let collection = match self.family {
+            SnsCacheFamily::Neurons => "neurons",
+            SnsCacheFamily::Proposals => "proposals",
+        };
+        SnsHostError::IncompleteRefresh {
+            pages_fetched: completeness.page_count,
+            rows_fetched: completeness.row_count,
+            reason: format!("cached SNS {collection} snapshot is not complete"),
+        }
+    }
+}
+
+impl LoadJsonCacheErrorMapper for SnsCacheLoadErrors {
+    type Error = SnsHostError;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        match self.family {
+            SnsCacheFamily::Neurons => SnsHostError::MissingNeuronsCache { path },
+            SnsCacheFamily::Proposals => SnsHostError::MissingProposalsCache { path },
+        }
+    }
+
+    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
+        SnsHostError::ReadCache { path, source }
+    }
+
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
+        SnsHostError::ParseCache { path, source }
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        SnsHostError::UnsupportedCacheSchemaVersion { version, expected }
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        SnsHostError::CacheNetworkMismatch { requested, actual }
+    }
+}
 
 ///
 /// SnsCacheMetadata

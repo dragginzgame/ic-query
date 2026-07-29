@@ -6,10 +6,10 @@
 
 use crate::sns::report::{
     SnsHostError,
-    cache_storage::{collect_sns_cache_paths, read_sns_cache_header},
+    cache_storage::{SnsCacheLoadErrors, collect_sns_cache_paths, read_sns_cache_header},
     neurons_cache::{
         SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCacheHeader,
-        paths::SnsNeuronsCacheCollection, storage::errors::SnsNeuronsCacheErrors,
+        paths::SnsNeuronsCacheCollection,
     },
 };
 use std::path::{Path, PathBuf};
@@ -29,6 +29,6 @@ pub(in crate::sns::report) fn read_sns_neurons_cache_header(
         path,
         network,
         SNS_NEURONS_CACHE_SCHEMA_VERSION,
-        SnsNeuronsCacheErrors,
+        SnsCacheLoadErrors::neurons(),
     )
 }

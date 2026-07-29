@@ -9,10 +9,10 @@ use crate::{
     snapshot_cache::{SnapshotCompleteness, publish_snapshot_with_attempt, write_snapshot_json},
     sns::report::{
         SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
+        cache_attempt::{SnsRefreshAttemptProgress, write_complete_sns_refresh_attempt},
         cache_storage::SnsCacheMetadata,
         neurons_cache::{
             SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
-            attempt::{SnsNeuronsAttemptProgress, write_complete_sns_neurons_attempt},
             model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheRows},
         },
         source::{MainnetSns, MainnetSnsList},
@@ -47,9 +47,9 @@ pub(super) fn publish_complete_sns_neurons_cache(
             )
         },
         || {
-            write_complete_sns_neurons_attempt(
+            write_complete_sns_refresh_attempt(
                 context.attempt_context(),
-                SnsNeuronsAttemptProgress::new(page_count, neuron_count, last_cursor),
+                SnsRefreshAttemptProgress::new(page_count, neuron_count, last_cursor),
             )
         },
     )?;

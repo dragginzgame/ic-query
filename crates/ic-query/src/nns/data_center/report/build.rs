@@ -32,14 +32,12 @@ pub fn build_nns_data_center_list_report_with_source(
             err => Err(err),
         },
         |_| {
-            let refresh_request = NnsDataCenterRefreshRequest {
-                cache: request.cache.clone(),
-                source_endpoint: request.source_endpoint.clone(),
-                now_unix_secs: request.now_unix_secs,
-                lock_stale_after_seconds: DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS,
-                dry_run: false,
-                output_path: None,
-            };
+            let refresh_request = NnsDataCenterRefreshRequest::new(
+                request.cache.clone(),
+                request.source_endpoint.clone(),
+                request.now_unix_secs,
+                DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS,
+            );
             refresh_nns_data_center_cache_with_source(&refresh_request, source).map(|_| ())
         },
     )
