@@ -4,7 +4,7 @@
 //! Does not own: source capability traits, report projection, or cache policy.
 //! Boundary: one adapter implements the capability traits owned by each NNS report family.
 
-use crate::{ic_registry::MainnetRegistryFetchRequest, subnet_catalog::MAINNET_NETWORK};
+use crate::{ic_registry::MainnetRegistryFetchRequest, network::enforce_mainnet_network_with};
 
 ///
 /// LiveNnsSource
@@ -60,14 +60,4 @@ pub fn mainnet_registry_fetch_request<Error>(
     fetch_request.endpoint.clone_from(&request.endpoint);
     fetch_request.fetched_by.clone_from(&request.fetched_by);
     Ok(fetch_request)
-}
-
-pub(in crate::nns) fn enforce_mainnet_network_with<Error>(
-    network: &str,
-    unsupported_network: impl FnOnce(String) -> Error,
-) -> Result<(), Error> {
-    if network == MAINNET_NETWORK {
-        return Ok(());
-    }
-    Err(unsupported_network(network.to_string()))
 }

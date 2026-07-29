@@ -7,11 +7,10 @@
 use crate::sns::report::lookup::{
     ids::{assign_sns_ids_in_current_order, sort_sns_by_assigned_id},
     model::SnsLookup,
-    network::enforce_mainnet_network,
     request::fetch_request_from_parts,
 };
 use crate::sns::report::{
-    SnsHostError, SnsLookupRequest,
+    SnsHostError, SnsLookupRequest, enforce_mainnet_network,
     source::{MainnetSns, SnsListSource},
 };
 use candid::Principal;

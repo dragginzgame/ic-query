@@ -22,7 +22,6 @@ mod wire;
 #[cfg(feature = "host")]
 use crate::{
     cache_file::CacheFileError, ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, runtime::RuntimeError,
-    subnet_catalog::MAINNET_NETWORK,
 };
 #[cfg(feature = "host")]
 use std::{io, path::PathBuf};
@@ -177,9 +176,7 @@ pub enum NnsProposalHostError {
 
 #[cfg(feature = "host")]
 fn enforce_mainnet_network(network: &str) -> Result<(), NnsProposalHostError> {
-    if network == MAINNET_NETWORK {
-        Ok(())
-    } else {
-        Err(NnsProposalHostError::LocalNetworkUnsupported)
-    }
+    crate::network::enforce_mainnet_network_with(network, |_| {
+        NnsProposalHostError::LocalNetworkUnsupported
+    })
 }

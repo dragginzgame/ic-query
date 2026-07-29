@@ -1,10 +1,6 @@
 use crate::{
-    HostCacheError,
-    ic_registry::RegistryFetchError,
-    nns::{
-        source::enforce_mainnet_network_with,
-        topology::report::subnet_topology::NnsSubnetTopologyValidationError,
-    },
+    HostCacheError, ic_registry::RegistryFetchError, network::enforce_mainnet_network_with,
+    nns::topology::report::subnet_topology::NnsSubnetTopologyValidationError,
 };
 use thiserror::Error as ThisError;
 

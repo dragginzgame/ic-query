@@ -1,7 +1,8 @@
 use crate::{
     cache_file::{CacheFileError, HostCacheError},
     ic_registry::RegistryFetchError,
-    subnet_catalog::{CatalogError, MAINNET_NETWORK},
+    network::enforce_mainnet_network_with,
+    subnet_catalog::CatalogError,
 };
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
@@ -53,11 +54,8 @@ pub enum SubnetCatalogHostError {
 }
 
 pub(super) fn enforce_mainnet_network(network: &str) -> Result<(), SubnetCatalogHostError> {
-    if network == MAINNET_NETWORK {
-        return Ok(());
-    }
-    Err(SubnetCatalogHostError::UnsupportedNetwork {
-        network: network.to_string(),
+    enforce_mainnet_network_with(network, |network| {
+        SubnetCatalogHostError::UnsupportedNetwork { network }
     })
 }
 

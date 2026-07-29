@@ -22,6 +22,8 @@ mod hex;
 #[cfg(feature = "host")]
 mod ic_registry;
 pub mod icrc;
+#[cfg(feature = "host")]
+mod network;
 pub mod nns;
 #[cfg(feature = "host")]
 mod progress;

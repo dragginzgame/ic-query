@@ -8,7 +8,7 @@ use crate::{
     nns::{
         LiveNnsSource, NnsSourceRequest,
         proposals::report::{
-            MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError,
+            MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError, enforce_mainnet_network,
             model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
             source::{NnsProposalSource, nns_proposal_row_from_info},
             wire::{
@@ -16,7 +16,6 @@ use crate::{
                 NnsProposalInfo,
             },
         },
-        source::enforce_mainnet_network_with,
     },
     runtime::block_on_current_thread,
 };
@@ -32,9 +31,7 @@ impl NnsProposalSource for LiveNnsSource {
         status: NnsProposalStatusFilter,
         reward_status: NnsProposalRewardStatusFilter,
     ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
-        enforce_mainnet_network_with(&request.network, |_| {
-            NnsProposalHostError::LocalNetworkUnsupported
-        })?;
+        enforce_mainnet_network(&request.network)?;
         let include_status = status
             .governance_status_code()
             .into_iter()
@@ -62,9 +59,7 @@ impl NnsProposalSource for LiveNnsSource {
         request: &NnsSourceRequest,
         proposal_id: u64,
     ) -> Result<NnsProposalRow, NnsProposalHostError> {
-        enforce_mainnet_network_with(&request.network, |_| {
-            NnsProposalHostError::LocalNetworkUnsupported
-        })?;
+        enforce_mainnet_network(&request.network)?;
         Ok(nns_proposal_row_from_info(
             block_on_current_thread(fetch_nns_proposal_async(request, proposal_id))
                 .map_err(NnsProposalHostError::Runtime)??,

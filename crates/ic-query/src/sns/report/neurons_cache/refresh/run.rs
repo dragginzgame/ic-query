@@ -15,11 +15,9 @@ use crate::{
     sns::report::{
         SnsHostError, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
         cache_attempt::{write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt},
+        enforce_mainnet_network,
         live::LiveSnsSource,
-        lookup::{
-            enforce_mainnet_network, lookup_request_from_parts, resolve_sns_lookup,
-            validate_sns_refresh_page_size,
-        },
+        lookup::{lookup_request_from_parts, resolve_sns_lookup, validate_sns_refresh_page_size},
         neurons_cache::{collection::fetch_complete_sns_neurons, paths::SnsNeuronsCachePaths},
         source::SnsNeuronsSource,
     },

@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.12.md](docs/changelog/0.12.md)
 
+- `0.12.3` centralizes the built-in mainnet network policy used by NNS, SNS,
+  topology, and subnet-cache adapters so unsupported-network rejection cannot
+  drift between report families.
+
 - `0.12.2` rejects non-mainnet global network identities before NNS or SNS
   family dispatch and makes the current mainnet-only target contract explicit
   in top-level help and documentation.

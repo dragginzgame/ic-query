@@ -42,8 +42,6 @@ use crate::hex::hex_bytes;
 use crate::icrc::ledger::{IcrcMetadataValue, metadata_row};
 #[cfg(all(test, feature = "host"))]
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
-#[cfg(feature = "host")]
-use lookup::enforce_mainnet_network;
 #[cfg(all(test, feature = "host"))]
 use neurons_cache::{
     SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_SCHEMA_VERSION,
@@ -152,6 +150,13 @@ const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
 #[cfg(feature = "host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;
+
+#[cfg(feature = "host")]
+pub(in crate::sns::report) fn enforce_mainnet_network(network: &str) -> Result<(), SnsHostError> {
+    crate::network::enforce_mainnet_network_with(network, |network| {
+        SnsHostError::UnsupportedNetwork { network }
+    })
+}
 
 pub(super) fn short_principal(value: &str) -> String {
     value.chars().take(COMPACT_PRINCIPAL_CHARS).collect()

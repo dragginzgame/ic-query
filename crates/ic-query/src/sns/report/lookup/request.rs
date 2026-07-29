@@ -4,10 +4,9 @@
 //! Does not own: command parsing, source fetching, or report assembly.
 //! Boundary: normalizes shared request fields before lookup/source calls.
 
-use crate::sns::report::lookup::network::enforce_mainnet_network;
 use crate::sns::report::{
     SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListRequest, SnsLookupRequest,
-    source::SnsSourceRequest,
+    enforce_mainnet_network, source::SnsSourceRequest,
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
 
