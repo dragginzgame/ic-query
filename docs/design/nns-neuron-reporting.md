@@ -82,6 +82,10 @@ strictly local.
 `NnsNeuronSource` is the narrow public capability for fixture, mirror, proxy,
 or pre-collected implementations. The built-in implementation remains
 `LiveNnsSource` and shares the same internal NNS Governance query transport as
-proposal reporting. Custom sources must honor the same ordered pagination and
-exact detail-id contracts; report builders validate their results before
-projection or cache publication.
+proposal reporting. Proposal and neuron complete collections also share the
+public `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
+`NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceQueryError` contracts;
+their page validation, cache identities, and reports remain family-specific.
+Custom sources must honor the same ordered pagination and exact detail-id
+contracts; report builders validate their results before projection or cache
+publication.

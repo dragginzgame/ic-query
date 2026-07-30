@@ -15,10 +15,7 @@ use super::{
 };
 use crate::{
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
-    nns::{
-        LiveNnsSource, NnsSourceRequest,
-        governance_query::{NnsGovernanceQueryError, query_nns_governance},
-    },
+    nns::{LiveNnsSource, NnsSourceRequest, governance_query::query_nns_governance},
     runtime::block_on_current_thread,
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
@@ -317,8 +314,7 @@ async fn fetch_neuron_index_async(
             page_size: Some(page_size),
         },
     )
-    .await
-    .map_err(map_governance_query_error)?;
+    .await?;
     governance_result(result)
 }
 
@@ -333,26 +329,8 @@ async fn fetch_neuron_info_async(
         "NeuronInfoResult",
         &neuron_id,
     )
-    .await
-    .map_err(map_governance_query_error)?;
+    .await?;
     governance_result(result).map_err(|error| map_neuron_info_error(error, neuron_id))
-}
-
-fn map_governance_query_error(error: NnsGovernanceQueryError) -> NnsNeuronHostError {
-    match error {
-        NnsGovernanceQueryError::AgentBuild { endpoint, reason } => {
-            NnsNeuronHostError::AgentBuild { endpoint, reason }
-        }
-        NnsGovernanceQueryError::AgentCall { method, reason } => {
-            NnsNeuronHostError::AgentCall { method, reason }
-        }
-        NnsGovernanceQueryError::CandidEncode { message, reason } => {
-            NnsNeuronHostError::CandidEncode { message, reason }
-        }
-        NnsGovernanceQueryError::CandidDecode { message, reason } => {
-            NnsNeuronHostError::CandidDecode { message, reason }
-        }
-    }
 }
 
 trait GovernanceResult<Response> {

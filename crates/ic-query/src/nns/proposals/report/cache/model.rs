@@ -5,112 +5,16 @@
 //! Boundary: defines complete proposal snapshot metadata, rows, and reports.
 
 use crate::{
+    nns::governance::{NnsGovernanceCacheMetadata, NnsGovernanceRefreshAttemptStatus},
     nns::proposals::report::model::NnsProposalRow,
     snapshot_cache::{SnapshotEnvelope, SnapshotRefreshAttempt},
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-use std::path::{Path, PathBuf};
 
-pub(super) type NnsProposalCache = SnapshotEnvelope<NnsProposalCacheMetadata, NnsProposalCacheRows>;
+pub(super) type NnsProposalCache =
+    SnapshotEnvelope<NnsGovernanceCacheMetadata, NnsProposalCacheRows>;
 
-pub(super) type NnsProposalRefreshAttempt =
-    SnapshotRefreshAttempt<NnsProposalRefreshAttemptMetadata>;
-
-///
-/// NnsProposalRefreshRequest
-///
-/// Request accepted by the complete NNS proposal snapshot refresh builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsProposalRefreshRequest {
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub cache_root: PathBuf,
-    pub page_size: u32,
-    pub max_pages: Option<u32>,
-}
-
-impl NnsProposalRefreshRequest {
-    #[must_use]
-    pub fn new(
-        cache_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        page_size: u32,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            cache_root: cache_root.into(),
-            page_size,
-            max_pages: None,
-        }
-    }
-
-    #[must_use]
-    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
-        self.max_pages = max_pages;
-        self
-    }
-}
-
-///
-/// NnsProposalCacheListRequest
-///
-/// Request accepted by the local NNS proposal cache list report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsProposalCacheListRequest {
-    pub network: String,
-    pub cache_root: PathBuf,
-}
-
-impl NnsProposalCacheListRequest {
-    #[must_use]
-    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
-        Self {
-            network: network.into(),
-            cache_root: cache_root.into(),
-        }
-    }
-
-    #[must_use]
-    pub fn cache_root(&self) -> &Path {
-        &self.cache_root
-    }
-}
-
-///
-/// NnsProposalCacheStatusRequest
-///
-/// Request accepted by the local NNS proposal cache status report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsProposalCacheStatusRequest {
-    pub network: String,
-    pub cache_root: PathBuf,
-}
-
-impl NnsProposalCacheStatusRequest {
-    #[must_use]
-    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
-        Self {
-            network: network.into(),
-            cache_root: cache_root.into(),
-        }
-    }
-
-    #[must_use]
-    pub fn cache_root(&self) -> &Path {
-        &self.cache_root
-    }
-}
+pub(super) type NnsProposalRefreshAttempt = SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>;
 
 ///
 /// NnsProposalRefreshReport
@@ -168,7 +72,7 @@ pub struct NnsProposalCacheStatusReport {
     pub cache: Option<NnsProposalCacheSummary>,
     pub expected_cache_path: String,
     pub refresh_attempt_path: String,
-    pub latest_attempt: Option<NnsProposalRefreshAttemptStatus>,
+    pub latest_attempt: Option<NnsGovernanceRefreshAttemptStatus>,
 }
 
 ///
@@ -190,51 +94,7 @@ pub struct NnsProposalCacheSummary {
     pub source_endpoint: String,
     pub cache_path: String,
     pub refresh_attempt_path: String,
-    pub latest_attempt: Option<NnsProposalRefreshAttemptStatus>,
-}
-
-///
-/// NnsProposalRefreshAttemptStatus
-///
-/// Serializable status for the latest NNS proposal snapshot refresh attempt.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct NnsProposalRefreshAttemptStatus {
-    pub status: String,
-    pub started_at: String,
-    pub updated_at: String,
-    pub page_size: u32,
-    pub pages_fetched: u32,
-    pub rows_fetched: usize,
-    pub last_cursor: Option<String>,
-    pub last_error: Option<String>,
-}
-
-impl From<NnsProposalRefreshAttempt> for NnsProposalRefreshAttemptStatus {
-    fn from(attempt: NnsProposalRefreshAttempt) -> Self {
-        Self {
-            status: attempt.status,
-            started_at: attempt.started_at,
-            updated_at: attempt.updated_at,
-            page_size: attempt.page_size,
-            pages_fetched: attempt.pages_fetched,
-            rows_fetched: attempt.rows_fetched,
-            last_cursor: attempt.last_cursor,
-            last_error: attempt.last_error,
-        }
-    }
-}
-
-///
-/// NnsProposalCacheMetadata
-///
-/// Snapshot metadata identifying the NNS governance canister.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct NnsProposalCacheMetadata {
-    pub(super) governance_canister_id: String,
+    pub latest_attempt: Option<NnsGovernanceRefreshAttemptStatus>,
 }
 
 ///
@@ -246,17 +106,6 @@ pub(super) struct NnsProposalCacheMetadata {
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub(super) struct NnsProposalCacheRows {
     pub(super) proposals: Vec<NnsProposalRow>,
-}
-
-///
-/// NnsProposalRefreshAttemptMetadata
-///
-/// Refresh-attempt metadata identifying the NNS governance canister.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct NnsProposalRefreshAttemptMetadata {
-    pub(super) governance_canister_id: String,
 }
 
 ///

@@ -6,12 +6,13 @@
 
 #[cfg(feature = "host")]
 use super::cache::{
-    NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshAttemptStatus,
-    NnsProposalRefreshReport,
+    NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshReport,
 };
 use super::model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow,
 };
+#[cfg(feature = "host")]
+use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     table::{ColumnAlign, render_table},
     text_value::{optional_u64_text, sanitize_text, truncate_text, yes_no},
@@ -380,7 +381,7 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
 }
 
 #[cfg(feature = "host")]
-fn attempt_lines(attempt: &NnsProposalRefreshAttemptStatus) -> [String; 9] {
+fn attempt_lines(attempt: &NnsGovernanceRefreshAttemptStatus) -> [String; 9] {
     [
         "latest_attempt:".to_string(),
         format!("  status: {}", attempt.status),

@@ -4,15 +4,12 @@
 //! Does not own: refresh locking, cache publication, or command parsing.
 //! Boundary: drives proposal paging and refresh-attempt progress updates.
 
-use super::{
-    attempt::write_running_attempt,
-    model::{CompleteNnsProposalCollection, NnsProposalRefreshRequest},
-};
+use super::{attempt::write_running_attempt, model::CompleteNnsProposalCollection};
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 use crate::{
     QueryProgress,
     nns::{
-        NnsSourceRequest,
+        NnsGovernanceRefreshRequest, NnsSourceRequest,
         proposals::report::{
             NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
             model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
@@ -28,7 +25,7 @@ use std::{cmp::Reverse, path::Path};
 
 /// Fetch every proposal page required for a complete NNS proposal snapshot.
 pub(super) fn fetch_complete_nns_proposal_collection(
-    request: &NnsProposalRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
@@ -57,7 +54,7 @@ pub(super) fn fetch_complete_nns_proposal_collection(
 ///
 
 struct NnsProposalRefreshPages<'a> {
-    request: &'a NnsProposalRefreshRequest,
+    request: &'a NnsGovernanceRefreshRequest,
     fetch_request: NnsSourceRequest,
     source: &'a dyn NnsProposalSource,
     attempt_path: &'a Path,

@@ -18,13 +18,13 @@ use crate::{
     progress::StderrQueryProgress,
 };
 use ic_query::nns::neuron::{
-    NnsNeuronCacheStatusRequest, NnsNeuronInfoRequest, NnsNeuronListRequest,
-    NnsNeuronRefreshRequest, build_nns_neuron_cache_status_report, build_nns_neuron_info_report,
-    build_nns_neuron_info_report_from_cache, build_nns_neuron_list_report,
-    build_nns_neuron_list_report_from_cache, nns_neuron_cache_status_report_text,
-    nns_neuron_info_report_text, nns_neuron_list_report_text, nns_neuron_refresh_report_text,
-    refresh_nns_neuron_cache_with_progress,
+    NnsNeuronInfoRequest, NnsNeuronListRequest, build_nns_neuron_cache_status_report,
+    build_nns_neuron_info_report, build_nns_neuron_info_report_from_cache,
+    build_nns_neuron_list_report, build_nns_neuron_list_report_from_cache,
+    nns_neuron_cache_status_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
+    nns_neuron_refresh_report_text, refresh_nns_neuron_cache_with_progress,
 };
+use ic_query::nns::{NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest};
 use std::ffi::OsString;
 
 pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
@@ -96,7 +96,7 @@ where
         return Ok(());
     };
     let options = NnsNeuronRefreshOptions::parse(args)?;
-    let request = NnsNeuronRefreshRequest::new(
+    let request = NnsGovernanceRefreshRequest::new(
         command_cache_root()?,
         options.network,
         options.source_endpoint,
@@ -132,7 +132,7 @@ where
         return Ok(());
     };
     let options = NnsNeuronCacheOptions::parse(args)?;
-    let request = NnsNeuronCacheStatusRequest::new(command_cache_root()?, options.network);
+    let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_neuron_cache_status_report(&request)?;
     write_text_or_json(options.format, &report, nns_neuron_cache_status_report_text)
 }

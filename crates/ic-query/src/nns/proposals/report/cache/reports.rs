@@ -5,32 +5,38 @@
 //! Boundary: loads local complete snapshots and projects cache metadata.
 
 use super::{
-    NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
-    NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
+    NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
+    NNS_PROPOSAL_CACHE_SCHEMA_VERSION, NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
     attempt::{read_attempt_status, read_attempt_status_strict},
     model::{
-        NnsProposalCache, NnsProposalCacheListReport, NnsProposalCacheListRequest,
-        NnsProposalCacheStatusReport, NnsProposalCacheStatusRequest, NnsProposalCacheSummary,
+        NnsProposalCache, NnsProposalCacheListReport, NnsProposalCacheStatusReport,
+        NnsProposalCacheSummary,
     },
     paths::{nns_proposal_cache_paths, nns_proposal_cache_root},
 };
 use crate::{
+    HostCacheError,
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
-    nns::proposals::report::{
-        NnsProposalHostError,
-        assemble::{
-            NnsProposalListReportParts, NnsProposalReportParts, NnsProposalReportProvenance,
-            nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
-        },
-        enforce_mainnet_network,
-        model::{
-            NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
-        },
-        view::{
-            proposal_matches_before, proposal_matches_proposer, proposal_matches_query,
-            proposal_matches_reward_status, proposal_matches_status, proposal_matches_topic,
-            sort_nns_proposal_rows,
+    nns::{
+        NnsGovernanceCacheRequest,
+        governance::validate_governance_cache_metadata,
+        proposals::report::{
+            NnsProposalHostError,
+            assemble::{
+                NnsProposalListReportParts, NnsProposalReportParts, NnsProposalReportProvenance,
+                nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
+            },
+            enforce_mainnet_network,
+            model::{
+                NnsProposalListReport, NnsProposalListRequest, NnsProposalReport,
+                NnsProposalRequest,
+            },
+            view::{
+                proposal_matches_before, proposal_matches_proposer, proposal_matches_query,
+                proposal_matches_reward_status, proposal_matches_status, proposal_matches_topic,
+                sort_nns_proposal_rows,
+            },
         },
     },
     snapshot_cache::{
@@ -47,7 +53,7 @@ use std::{
 
 /// Build a local NNS proposal cache list report.
 pub fn build_nns_proposal_cache_list_report(
-    request: &NnsProposalCacheListRequest,
+    request: &NnsGovernanceCacheRequest,
 ) -> Result<NnsProposalCacheListReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
@@ -73,7 +79,7 @@ pub fn build_nns_proposal_cache_list_report(
 
 /// Build a local NNS proposal cache status report.
 pub fn build_nns_proposal_cache_status_report(
-    request: &NnsProposalCacheStatusRequest,
+    request: &NnsGovernanceCacheRequest,
 ) -> Result<NnsProposalCacheStatusReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
@@ -173,12 +179,7 @@ fn validate_nns_proposal_cache(
     };
     validate_snapshot_completeness(&cache.completeness, cache.data.proposals.len())
         .map_err(invalid)?;
-    if cache.metadata.governance_canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
-        return Err(invalid(format!(
-            "governance_canister_id is {}, expected {MAINNET_GOVERNANCE_CANISTER_ID}",
-            cache.metadata.governance_canister_id
-        )));
-    }
+    validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
     let mut proposal_ids = HashSet::new();
     for proposal in &cache.data.proposals {
         let proposal_id = proposal
@@ -320,19 +321,35 @@ impl LoadJsonCacheErrorMapper for NnsProposalCacheErrors {
     }
 
     fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        NnsProposalHostError::ReadCache { path, source }
+        NnsProposalHostError::Cache(HostCacheError::read_cache(
+            NNS_PROPOSAL_CACHE_COMPONENT,
+            path,
+            source,
+        ))
     }
 
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        NnsProposalHostError::ParseCache { path, source }
+        NnsProposalHostError::Cache(HostCacheError::parse_cache(
+            NNS_PROPOSAL_CACHE_COMPONENT,
+            path,
+            source,
+        ))
     }
 
     fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        NnsProposalHostError::UnsupportedCacheSchemaVersion { version, expected }
+        NnsProposalHostError::Cache(HostCacheError::unsupported_cache_schema_version(
+            NNS_PROPOSAL_CACHE_COMPONENT,
+            version,
+            expected,
+        ))
     }
 
     fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        NnsProposalHostError::CacheNetworkMismatch { requested, actual }
+        NnsProposalHostError::Cache(HostCacheError::network_mismatch(
+            NNS_PROPOSAL_CACHE_COMPONENT,
+            requested,
+            actual,
+        ))
     }
 }
 

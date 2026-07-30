@@ -1,7 +1,4 @@
 use super::{
-    model::{
-        NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalRefreshRequest,
-    },
     refresh::refresh_nns_proposal_cache_with_source,
     reports::{
         build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
@@ -9,9 +6,10 @@ use super::{
     },
 };
 use crate::{
+    HostCacheError,
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
     nns::{
-        NnsSourceRequest,
+        NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
         proposals::report::{
             NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
             NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
@@ -73,7 +71,7 @@ impl NnsProposalSource for FixtureSource {
 #[test]
 fn nns_proposal_refresh_rejects_invalid_public_page_size() {
     let root = temp_dir("ic-query-nns-proposal-invalid-page-size");
-    let request = NnsProposalRefreshRequest::new(
+    let request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_MAINNET_ENDPOINT,
@@ -94,7 +92,7 @@ fn nns_proposal_refresh_rejects_invalid_public_page_size() {
 #[test]
 fn nns_proposal_failed_refresh_preserves_page_progress() {
     let root = temp_dir("ic-query-nns-proposal-failed-progress");
-    let request = NnsProposalRefreshRequest::new(
+    let request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_MAINNET_ENDPOINT,
@@ -128,7 +126,7 @@ fn nns_proposal_failed_refresh_preserves_page_progress() {
 #[test]
 fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     let root = temp_dir("ic-query-nns-proposal-cache");
-    let request = NnsProposalRefreshRequest {
+    let request = NnsGovernanceRefreshRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
         now_unix_secs: 1_700_000_000,
@@ -161,7 +159,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     assert_eq!(cache["collection"], "proposals");
     assert_eq!(cache["scope"], "full");
 
-    let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
+    let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
     })
@@ -173,7 +171,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     assert_eq!(list.caches[0].row_count, 3);
     assert_eq!(list.caches[0].page_count, 2);
 
-    let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
+    let status = build_nns_proposal_cache_status_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root,
     })
@@ -201,7 +199,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
 fn nns_proposal_cache_status_reports_missing_cache() {
     let root = temp_dir("ic-query-nns-proposal-status-missing");
 
-    let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
+    let status = build_nns_proposal_cache_status_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
     })
@@ -214,7 +212,7 @@ fn nns_proposal_cache_status_reports_missing_cache() {
     assert!(text.contains("found: no"));
     assert!(text.contains("refresh_hint: icq nns proposal refresh"));
 
-    let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
+    let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
     })
@@ -232,12 +230,15 @@ fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
     fs::create_dir_all(paths.refresh_attempt_path.parent().expect("attempt parent"))
         .expect("create attempt parent");
     fs::write(&paths.refresh_attempt_path, "{").expect("write malformed attempt");
-    let request = NnsProposalCacheStatusRequest::new(&root, MAINNET_NETWORK);
+    let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
 
     let err = build_nns_proposal_cache_status_report(&request)
         .expect_err("malformed attempt must remain visible");
 
-    assert!(matches!(err, NnsProposalHostError::ParseCache { .. }));
+    assert!(matches!(
+        err,
+        NnsProposalHostError::Cache(HostCacheError::ParseCache { .. })
+    ));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -245,7 +246,7 @@ fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
 fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-nns-proposal-list-cache");
     refresh_nns_proposal_cache_with_source(
-        &NnsProposalRefreshRequest {
+        &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
@@ -378,7 +379,7 @@ fn nns_proposal_cache_status_reports_malformed_json() {
 fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-nns-proposal-detail-cache");
     refresh_nns_proposal_cache_with_source(
-        &NnsProposalRefreshRequest {
+        &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
@@ -424,7 +425,7 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
 fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
     let root = temp_dir("ic-query-nns-proposal-detail-cache-missing");
     refresh_nns_proposal_cache_with_source(
-        &NnsProposalRefreshRequest {
+        &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
@@ -454,7 +455,7 @@ fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
 
 fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::PathBuf {
     refresh_nns_proposal_cache_with_source(
-        &NnsProposalRefreshRequest {
+        &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
@@ -469,7 +470,7 @@ fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::Path
 }
 
 fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_error: &str) {
-    let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
+    let status = build_nns_proposal_cache_status_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.to_path_buf(),
     })
@@ -488,7 +489,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
     assert!(status_text.contains("cache_status: invalid"));
     assert!(status_text.contains("cache_error:"));
 
-    let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
+    let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.to_path_buf(),
     })

@@ -76,9 +76,11 @@ SNS info, token, and parameter builders share `SnsLookupRequest`; all read-only
 NNS topology builders share `NnsTopologyReadRequest`; Registry-derived NNS
 inventory families share the `NnsInventory*Request` contracts; SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts
-plus `SnsRefreshAttemptStatus`; simple ledger-wide ICRC metadata and capability
-builders share `IcrcLedgerRequest`. There are no per-report aliases for those
-canonical types.
+plus `SnsRefreshAttemptStatus`; complete NNS Governance proposal and neuron
+collections share `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
+and `NnsGovernanceRefreshAttemptStatus`; simple ledger-wide ICRC metadata and
+capability builders share `IcrcLedgerRequest`. There are no per-report aliases
+for those canonical types.
 The examples below are covered by the `downstream_usage` integration test.
 
 ## Source Adapters

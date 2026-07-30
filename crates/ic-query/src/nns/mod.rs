@@ -5,6 +5,8 @@
 mod macros;
 pub mod data_center;
 #[cfg(feature = "host")]
+mod governance;
+#[cfg(feature = "host")]
 mod governance_query;
 mod inventory_request;
 #[cfg(feature = "host")]
@@ -20,6 +22,12 @@ pub mod render;
 pub(crate) mod source;
 pub mod topology;
 
+#[cfg(feature = "host")]
+pub use governance::{
+    NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus, NnsGovernanceRefreshRequest,
+};
+#[cfg(feature = "host")]
+pub use governance_query::NnsGovernanceQueryError;
 #[cfg(feature = "host")]
 pub use inventory_request::NnsInventoryRefreshRequest;
 pub use inventory_request::{

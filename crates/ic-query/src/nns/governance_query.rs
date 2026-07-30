@@ -2,34 +2,51 @@
 //!
 //! Responsibility: perform typed query calls against mainnet NNS Governance.
 //! Does not own: report-specific errors, wire projections, or cache policy.
-//! Boundary: centralizes agent construction, Candid encoding, transport, and decoding.
+//! Boundary: centralizes agent construction, Candid encoding, transport, decoding, and errors.
 
 use crate::{ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, nns::NnsSourceRequest};
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Agent;
+use thiserror::Error as ThisError;
 
 ///
 /// NnsGovernanceQueryError
 ///
-/// Internal transport failure from one typed NNS Governance query.
+/// Transport failure from one typed NNS Governance query.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ThisError)]
 pub enum NnsGovernanceQueryError {
+    /// The IC agent could not be constructed for the requested endpoint.
+    #[error("failed to build IC agent for {endpoint}: {reason}")]
     AgentBuild {
+        /// Endpoint used to build the agent.
         endpoint: String,
+        /// Agent construction failure.
         reason: String,
     },
+    /// A query call to the NNS Governance canister failed.
+    #[error("NNS Governance agent call {method} failed: {reason}")]
     AgentCall {
+        /// Governance method being queried.
         method: &'static str,
+        /// Agent call failure.
         reason: String,
     },
+    /// A Governance query argument could not be Candid encoded.
+    #[error("failed to encode Candid {message}: {reason}")]
     CandidEncode {
+        /// Candid request type.
         message: &'static str,
+        /// Encoding failure.
         reason: String,
     },
+    /// A Governance query response could not be Candid decoded.
+    #[error("failed to decode Candid {message}: {reason}")]
     CandidDecode {
+        /// Candid response type.
         message: &'static str,
+        /// Decoding failure.
         reason: String,
     },
 }

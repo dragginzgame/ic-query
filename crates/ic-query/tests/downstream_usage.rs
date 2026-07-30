@@ -39,7 +39,7 @@ mod host {
             NnsNodeListRequest, build_nns_node_list_report, nns_node_list_report_text,
         },
         nns::proposals::{
-            NnsProposalHostError, NnsProposalRefreshReport, NnsProposalRefreshRequest,
+            NnsProposalHostError, NnsProposalRefreshReport,
             refresh_nns_proposal_cache_with_progress,
         },
         nns::registry::{
@@ -53,7 +53,7 @@ mod host {
             NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
             refresh_nns_subnet_topology,
         },
-        nns::{NnsInventoryCacheRequest, NnsSourceRequest},
+        nns::{NnsGovernanceRefreshRequest, NnsInventoryCacheRequest, NnsSourceRequest},
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError,
             SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort,
@@ -120,7 +120,7 @@ mod host {
         assert_eq!(events.len(), 1);
 
         let _: fn(
-            &NnsProposalRefreshRequest,
+            &NnsGovernanceRefreshRequest,
             &mut dyn QueryProgress,
         ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> =
             refresh_nns_proposal_cache_with_progress;

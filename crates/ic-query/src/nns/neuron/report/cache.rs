@@ -21,7 +21,15 @@ use crate::{
     HostCacheError, QueryProgress,
     cache_file::{HostJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache},
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
-    nns::{LiveNnsSource, NnsSourceRequest},
+    nns::{
+        LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus,
+        NnsGovernanceRefreshRequest, NnsSourceRequest,
+        governance::{
+            NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS, NnsGovernanceCacheMetadata,
+            governance_refresh_attempt_status, governance_refresh_progress,
+            mainnet_governance_cache_metadata, validate_governance_cache_metadata,
+        },
+    },
     progress::IgnoreQueryProgress,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, PagedCollectionPage, PagedSnapshotRefresh,
@@ -39,88 +47,12 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 const CACHE_COMPONENT: &str = "NNS neuron";
-const ATTEMPT_METADATA_FIELDS: &[&str] = &["governance_canister_id"];
 const CACHE_DOMAIN: &str = "nns";
 const CACHE_ENTITY: &str = "governance";
 const CACHE_COLLECTION: &str = "neurons";
 
 /// Default age after which an NNS neuron refresh lock is reported as stale.
 pub const DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
-
-///
-/// NnsNeuronRefreshRequest
-///
-/// Request for one complete public NNS neuron-index refresh.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsNeuronRefreshRequest {
-    /// Root directory containing shared caches.
-    pub cache_root: PathBuf,
-    /// Requested network identity.
-    pub network: String,
-    /// Replica endpoint used for every page.
-    pub source_endpoint: String,
-    /// Caller-provided collection time in Unix seconds.
-    pub now_unix_secs: u64,
-    /// Governance page size.
-    pub page_size: u32,
-    /// Optional diagnostic page cap.
-    pub max_pages: Option<u32>,
-}
-
-impl NnsNeuronRefreshRequest {
-    /// Construct a complete public neuron-index refresh request.
-    #[must_use]
-    pub fn new(
-        cache_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        page_size: u32,
-    ) -> Self {
-        Self {
-            cache_root: cache_root.into(),
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            page_size,
-            max_pages: None,
-        }
-    }
-
-    /// Stop diagnostically before fetching more than the given pages.
-    #[must_use]
-    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
-        self.max_pages = max_pages;
-        self
-    }
-}
-
-///
-/// NnsNeuronCacheStatusRequest
-///
-/// Request for local NNS neuron snapshot and refresh-attempt status.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsNeuronCacheStatusRequest {
-    /// Root directory containing shared caches.
-    pub cache_root: PathBuf,
-    /// Requested network identity.
-    pub network: String,
-}
-
-impl NnsNeuronCacheStatusRequest {
-    /// Construct a local cache-status request.
-    #[must_use]
-    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
-        Self {
-            cache_root: cache_root.into(),
-            network: network.into(),
-        }
-    }
-}
 
 ///
 /// NnsNeuronRefreshReport
@@ -187,7 +119,7 @@ pub struct NnsNeuronCacheStatusReport {
     /// Expected refresh-attempt path.
     pub refresh_attempt_path: String,
     /// Latest valid refresh-attempt evidence.
-    pub latest_attempt: Option<NnsNeuronRefreshAttemptStatus>,
+    pub latest_attempt: Option<NnsGovernanceRefreshAttemptStatus>,
 }
 
 ///
@@ -220,48 +152,12 @@ pub struct NnsNeuronCacheSummary {
     pub cache_path: String,
 }
 
-///
-/// NnsNeuronRefreshAttemptStatus
-///
-/// Serializable lifecycle evidence for the latest neuron refresh attempt.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct NnsNeuronRefreshAttemptStatus {
-    /// Attempt lifecycle status.
-    pub status: String,
-    /// Attempt start timestamp.
-    pub started_at: String,
-    /// Latest attempt update timestamp.
-    pub updated_at: String,
-    /// Requested page size.
-    pub page_size: u32,
-    /// Successfully retained pages.
-    pub pages_fetched: u32,
-    /// Successfully retained rows.
-    pub rows_fetched: usize,
-    /// Latest exclusive cursor.
-    pub last_cursor: Option<String>,
-    /// Latest terminal error.
-    pub last_error: Option<String>,
-}
-
-type NnsNeuronCache = SnapshotEnvelope<NnsNeuronCacheMetadata, NnsNeuronCacheRows>;
-type NnsNeuronRefreshAttempt = SnapshotRefreshAttempt<NnsNeuronRefreshAttemptMetadata>;
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-struct NnsNeuronCacheMetadata {
-    governance_canister_id: String,
-}
+type NnsNeuronCache = SnapshotEnvelope<NnsGovernanceCacheMetadata, NnsNeuronCacheRows>;
+type NnsNeuronRefreshAttempt = SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>;
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 struct NnsNeuronCacheRows {
     neurons: Vec<NnsNeuronRow>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-struct NnsNeuronRefreshAttemptMetadata {
-    governance_canister_id: String,
 }
 
 struct CompleteNeuronCollection {
@@ -350,7 +246,7 @@ pub fn build_nns_neuron_info_report_from_cache(
 
 /// Inspect the expected complete neuron snapshot without making a live call.
 pub fn build_nns_neuron_cache_status_report(
-    request: &NnsNeuronCacheStatusRequest,
+    request: &NnsGovernanceCacheRequest,
 ) -> Result<NnsNeuronCacheStatusReport, NnsNeuronHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = cache_paths(&request.cache_root, &request.network);
@@ -385,14 +281,14 @@ pub fn build_nns_neuron_cache_status_report(
 
 /// Refresh the complete public neuron index using the built-in live source.
 pub fn refresh_nns_neuron_cache(
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
     refresh_nns_neuron_cache_with_source(request, &LiveNnsSource)
 }
 
 /// Refresh the complete neuron index while emitting structured progress.
 pub fn refresh_nns_neuron_cache_with_progress(
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
     refresh_with_source_and_progress(request, &LiveNnsSource, progress)
@@ -400,7 +296,7 @@ pub fn refresh_nns_neuron_cache_with_progress(
 
 /// Refresh the complete neuron index through a custom source.
 pub fn refresh_nns_neuron_cache_with_source(
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
     let mut progress = IgnoreQueryProgress;
@@ -408,7 +304,7 @@ pub fn refresh_nns_neuron_cache_with_source(
 }
 
 fn refresh_with_source_and_progress(
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
@@ -450,7 +346,7 @@ fn refresh_with_source_and_progress(
 }
 
 struct NeuronRefreshPages<'a> {
-    request: &'a NnsNeuronRefreshRequest,
+    request: &'a NnsGovernanceRefreshRequest,
     fetch_request: NnsSourceRequest,
     source: &'a dyn NnsNeuronSource,
     attempt_path: &'a Path,
@@ -532,7 +428,7 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
 }
 
 fn fetch_complete_collection(
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
@@ -557,7 +453,7 @@ fn fetch_complete_collection(
 }
 
 fn publish_complete_cache(
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     paths: &SnapshotJsonPaths,
     replaced_existing_cache: bool,
     complete: CompleteNeuronCollection,
@@ -575,9 +471,7 @@ fn publish_complete_cache(
         entity: CACHE_ENTITY.to_string(),
         collection: CACHE_COLLECTION.to_string(),
         scope: "full".to_string(),
-        metadata: NnsNeuronCacheMetadata {
-            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        },
+        metadata: mainnet_governance_cache_metadata(),
         completeness: SnapshotCompleteness::api_exhausted(
             request.page_size,
             complete.page_count,
@@ -659,16 +553,12 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
         ("entity", CACHE_ENTITY, cache.entity.as_str()),
         ("collection", CACHE_COLLECTION, cache.collection.as_str()),
         ("scope", "full", cache.scope.as_str()),
-        (
-            "governance_canister_id",
-            MAINNET_GOVERNANCE_CANISTER_ID,
-            cache.metadata.governance_canister_id.as_str(),
-        ),
     ] {
         if actual != expected {
             return Err(invalid(format!("{field} is {actual}, expected {expected}")));
         }
     }
+    validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
     if !cache.completeness.is_api_exhausted() {
         return Err(invalid(format!(
             "completeness status is {}, expected api_exhausted",
@@ -735,7 +625,7 @@ fn invalid_cache_summary(path: &Path, error: String) -> NnsNeuronCacheSummary {
 
 fn write_attempt(
     path: &Path,
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     status: &'static str,
     progress: Option<SnapshotRefreshProgress>,
     last_error: Option<String>,
@@ -748,9 +638,7 @@ fn write_attempt(
         source_endpoint: request.source_endpoint.clone(),
         started_at: started_at.clone(),
         updated_at: current_attempt_timestamp(&started_at),
-        metadata: NnsNeuronRefreshAttemptMetadata {
-            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        },
+        metadata: mainnet_governance_cache_metadata(),
         status: status.to_string(),
         page_size: request.page_size,
         pages_fetched: progress.pages_fetched,
@@ -774,25 +662,19 @@ fn write_attempt(
 
 fn write_failed_attempt(
     path: &Path,
-    request: &NnsNeuronRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     error: &NnsNeuronHostError,
 ) -> Result<(), NnsNeuronHostError> {
     let latest = read_attempt(path, &request.network).ok().flatten();
-    let progress = latest.map(|attempt| {
-        SnapshotRefreshProgress::new(
-            attempt.pages_fetched,
-            attempt.rows_fetched,
-            attempt.last_cursor,
-        )
-    });
+    let progress = latest.map(governance_refresh_progress);
     write_attempt(path, request, "failed", progress, Some(error.to_string()))
 }
 
 fn read_attempt_status(
     path: &Path,
     network: &str,
-) -> Result<Option<NnsNeuronRefreshAttemptStatus>, NnsNeuronHostError> {
-    read_attempt(path, network).map(|attempt| attempt.map(attempt_status))
+) -> Result<Option<NnsGovernanceRefreshAttemptStatus>, NnsNeuronHostError> {
+    read_attempt(path, network).map(|attempt| attempt.map(governance_refresh_attempt_status))
 }
 
 fn read_attempt(
@@ -801,7 +683,7 @@ fn read_attempt(
 ) -> Result<Option<NnsNeuronRefreshAttempt>, NnsNeuronHostError> {
     let attempt = read_snapshot_refresh_attempt_strict::<NnsNeuronRefreshAttempt>(
         path,
-        ATTEMPT_METADATA_FIELDS,
+        NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS,
     )
     .map_err(map_attempt_read_error)?;
     attempt
@@ -812,31 +694,15 @@ fn read_attempt(
                     reason,
                 }
             })?;
-            if attempt.metadata.governance_canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
-                return Err(NnsNeuronHostError::InvalidCache {
+            validate_governance_cache_metadata(&attempt.metadata).map_err(|reason| {
+                NnsNeuronHostError::InvalidCache {
                     path: path.to_path_buf(),
-                    reason: format!(
-                        "governance_canister_id is {}, expected {MAINNET_GOVERNANCE_CANISTER_ID}",
-                        attempt.metadata.governance_canister_id
-                    ),
-                });
-            }
+                    reason,
+                }
+            })?;
             Ok(attempt)
         })
         .transpose()
-}
-
-fn attempt_status(attempt: NnsNeuronRefreshAttempt) -> NnsNeuronRefreshAttemptStatus {
-    NnsNeuronRefreshAttemptStatus {
-        status: attempt.status,
-        started_at: attempt.started_at,
-        updated_at: attempt.updated_at,
-        page_size: attempt.page_size,
-        pages_fetched: attempt.pages_fetched,
-        rows_fetched: attempt.rows_fetched,
-        last_cursor: attempt.last_cursor,
-        last_error: attempt.last_error,
-    }
 }
 
 fn map_attempt_read_error(error: SnapshotRefreshAttemptReadError) -> NnsNeuronHostError {

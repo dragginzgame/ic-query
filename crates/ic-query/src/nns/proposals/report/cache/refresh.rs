@@ -5,16 +5,17 @@
 //! Boundary: acquires the refresh lock, fetches pages, and publishes snapshots.
 
 use super::{
+    NNS_PROPOSAL_CACHE_COMPONENT,
     attempt::{write_failed_attempt, write_starting_attempt},
     collection::fetch_complete_nns_proposal_collection,
-    model::{NnsProposalRefreshReport, NnsProposalRefreshRequest},
+    model::NnsProposalRefreshReport,
     paths::nns_proposal_cache_paths,
     publish::publish_complete_nns_proposal_cache,
 };
 use crate::{
-    QueryProgress,
+    HostCacheError, QueryProgress,
     nns::{
-        LiveNnsSource,
+        LiveNnsSource, NnsGovernanceRefreshRequest,
         proposals::report::{
             NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE, NnsProposalHostError, enforce_mainnet_network,
             source::NnsProposalSource,
@@ -31,21 +32,21 @@ pub const DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
 pub fn refresh_nns_proposal_cache(
-    request: &NnsProposalRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
     refresh_nns_proposal_cache_with_source(request, &LiveNnsSource)
 }
 
 /// Refresh a complete NNS proposal snapshot and emit structured progress events.
 pub fn refresh_nns_proposal_cache_with_progress(
-    request: &NnsProposalRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
     refresh_nns_proposal_cache_with_source_and_progress(request, &LiveNnsSource, progress)
 }
 
 pub fn refresh_nns_proposal_cache_with_source(
-    request: &NnsProposalRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
     let mut progress = IgnoreQueryProgress;
@@ -53,7 +54,7 @@ pub fn refresh_nns_proposal_cache_with_source(
 }
 
 pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
-    request: &NnsProposalRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
@@ -73,7 +74,12 @@ pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS,
         },
-        NnsProposalHostError::Cache,
+        |error| {
+            NnsProposalHostError::Cache(HostCacheError::operation(
+                NNS_PROPOSAL_CACHE_COMPONENT,
+                error,
+            ))
+        },
         |refresh_state| {
             run_snapshot_refresh_with_attempts(
                 || write_starting_attempt(&paths.refresh_attempt_path, request),

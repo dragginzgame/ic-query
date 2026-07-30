@@ -15,11 +15,10 @@ use ic_query::nns::data_center::{
 };
 #[cfg(feature = "host")]
 use ic_query::nns::neuron::{
-    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsNeuronCacheStatusRequest, NnsNeuronHostError,
-    NnsNeuronInfoRequest, NnsNeuronPage, NnsNeuronRefreshRequest, NnsNeuronSource,
-    build_nns_neuron_cache_status_report, build_nns_neuron_info_report_with_source,
-    build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
-    nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
+    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsNeuronHostError, NnsNeuronInfoRequest, NnsNeuronPage,
+    NnsNeuronSource, build_nns_neuron_cache_status_report,
+    build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_with_source,
+    nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
 };
 use ic_query::nns::neuron::{
     NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData, NnsNeuronListRequest, NnsNeuronRow,
@@ -71,8 +70,7 @@ use ic_query::nns::node_provider::{
 #[cfg(feature = "host")]
 use ic_query::nns::proposals::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
-    NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalHostError,
-    NnsProposalRefreshReport, NnsProposalRefreshRequest, NnsProposalSource,
+    NnsProposalHostError, NnsProposalRefreshReport, NnsProposalSource,
     build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
     build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
     build_nns_proposal_list_report_with_source, build_nns_proposal_report,
@@ -118,9 +116,12 @@ use ic_query::nns::topology::{
     nns_topology_refresh_report_text, nns_topology_regions_report_text,
     nns_topology_summary_report_text, nns_topology_versions_report_text,
 };
-use ic_query::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
 #[cfg(feature = "host")]
-use ic_query::nns::{NnsInventoryRefreshRequest, NnsSourceRequest};
+use ic_query::nns::{
+    NnsGovernanceCacheRequest, NnsGovernanceQueryError, NnsGovernanceRefreshRequest,
+    NnsInventoryRefreshRequest, NnsSourceRequest,
+};
+use ic_query::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
 #[cfg(feature = "host")]
 use ic_query::subnet_catalog::{
     ClassificationSource, GeographicScope, SubnetCatalogListReport, SubnetCatalogRefreshReport,
@@ -133,6 +134,40 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+
+#[cfg(feature = "host")]
+#[test]
+fn public_nns_governance_collection_contracts_are_shared() {
+    let cache = NnsGovernanceCacheRequest::new("/tmp/ic-query-governance-contract", "ic");
+    let refresh = NnsGovernanceRefreshRequest::new(
+        cache.cache_root(),
+        &cache.network,
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        1_700_000_000,
+        100,
+    )
+    .with_max_pages(Some(2));
+    assert_eq!(refresh.max_pages, Some(2));
+
+    let query_error = NnsGovernanceQueryError::AgentCall {
+        method: "list_proposals",
+        reason: "fixture failure".to_string(),
+    };
+    assert!(matches!(
+        NnsProposalHostError::from(query_error.clone()),
+        NnsProposalHostError::GovernanceQuery(NnsGovernanceQueryError::AgentCall {
+            method: "list_proposals",
+            ..
+        })
+    ));
+    assert!(matches!(
+        NnsNeuronHostError::from(query_error),
+        NnsNeuronHostError::GovernanceQuery(NnsGovernanceQueryError::AgentCall {
+            method: "list_proposals",
+            ..
+        })
+    ));
+}
 
 #[test]
 fn public_nns_neuron_api_is_constructible_and_renderable() {
@@ -195,7 +230,7 @@ fn public_nns_neuron_host_api_accepts_custom_source_and_cache_requests() {
     assert_eq!(info.neuron.neuron_id, 7);
 
     let root = PathBuf::from("/tmp/ic-query-public-neuron-api");
-    let refresh = NnsNeuronRefreshRequest::new(
+    let refresh = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
         DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
@@ -207,9 +242,8 @@ fn public_nns_neuron_host_api_accepts_custom_source_and_cache_requests() {
     assert!(nns_neuron_refresh_lock_path(&root, "ic").ends_with("full.refresh.lock"));
     assert!(nns_neuron_refresh_attempt_path(&root, "ic").ends_with("full.refresh-attempt.json"));
 
-    let status =
-        build_nns_neuron_cache_status_report(&NnsNeuronCacheStatusRequest::new(root, "ic"))
-            .expect("missing cache status");
+    let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(root, "ic"))
+        .expect("missing cache status");
     assert!(!status.found);
 }
 
@@ -1441,8 +1475,8 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
     let root = temp_root("nns-proposal-host-public-api");
     write_nns_proposal_fixture_cache(&root);
 
-    let cache_list_request = NnsProposalCacheListRequest::new(&root, "ic");
-    let cache_status_request = NnsProposalCacheStatusRequest::new(&root, "ic");
+    let cache_list_request = NnsGovernanceCacheRequest::new(&root, "ic");
+    let cache_status_request = NnsGovernanceCacheRequest::new(&root, "ic");
     let list_request = NnsProposalListRequest::new(
         "ic",
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
@@ -1463,7 +1497,7 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
         132_411,
     )
     .with_show_ballots(true);
-    let refresh_request = NnsProposalRefreshRequest::new(
+    let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
@@ -1536,7 +1570,7 @@ fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
         1_700_000_000,
         132_411,
     );
-    let refresh_request = NnsProposalRefreshRequest::new(
+    let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,

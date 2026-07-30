@@ -12,7 +12,7 @@ mod source;
 mod text;
 
 #[cfg(feature = "host")]
-use crate::{HostCacheError, runtime::RuntimeError};
+use crate::{HostCacheError, nns::NnsGovernanceQueryError, runtime::RuntimeError};
 #[cfg(feature = "host")]
 use std::path::PathBuf;
 #[cfg(feature = "host")]
@@ -21,8 +21,7 @@ use thiserror::Error as ThisError;
 #[cfg(feature = "host")]
 pub use cache::{
     DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS, NnsNeuronCacheStatusReport,
-    NnsNeuronCacheStatusRequest, NnsNeuronCacheSummary, NnsNeuronRefreshAttemptStatus,
-    NnsNeuronRefreshReport, NnsNeuronRefreshRequest, build_nns_neuron_cache_status_report,
+    NnsNeuronCacheSummary, NnsNeuronRefreshReport, build_nns_neuron_cache_status_report,
     build_nns_neuron_info_report_from_cache, build_nns_neuron_list_report_from_cache,
     nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
     refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_progress,
@@ -91,41 +90,9 @@ pub enum NnsNeuronHostError {
         max_page_size: u32,
     },
 
-    /// The IC agent could not be constructed for the requested endpoint.
-    #[error("failed to build IC agent for {endpoint}: {reason}")]
-    AgentBuild {
-        /// Endpoint used to build the agent.
-        endpoint: String,
-        /// Agent construction failure.
-        reason: String,
-    },
-
-    /// A query call to the NNS Governance canister failed.
-    #[error("NNS Governance agent call {method} failed: {reason}")]
-    AgentCall {
-        /// Governance method being queried.
-        method: &'static str,
-        /// Agent call failure.
-        reason: String,
-    },
-
-    /// A Governance query argument could not be Candid encoded.
-    #[error("failed to encode Candid {message}: {reason}")]
-    CandidEncode {
-        /// Candid request type.
-        message: &'static str,
-        /// Encoding failure.
-        reason: String,
-    },
-
-    /// A Governance query response could not be Candid decoded.
-    #[error("failed to decode Candid {message}: {reason}")]
-    CandidDecode {
-        /// Candid response type.
-        message: &'static str,
-        /// Decoding failure.
-        reason: String,
-    },
+    /// Shared NNS Governance transport failed.
+    #[error(transparent)]
+    GovernanceQuery(#[from] NnsGovernanceQueryError),
 
     /// Governance returned its typed application-level error.
     #[error("NNS Governance rejected the neuron query with code {error_type}: {message}")]

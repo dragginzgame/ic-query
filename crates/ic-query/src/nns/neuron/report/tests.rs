@@ -1,13 +1,15 @@
 use super::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronHostError,
-    NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRefreshRequest,
-    NnsNeuronRow, NnsNeuronSource, build_nns_neuron_cache_status_report,
-    build_nns_neuron_info_report_from_cache, build_nns_neuron_info_report_with_source,
-    build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_source,
-    nns_neuron_cache_path, refresh_nns_neuron_cache_with_source,
+    NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource,
+    build_nns_neuron_cache_status_report, build_nns_neuron_info_report_from_cache,
+    build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
+    build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
+    refresh_nns_neuron_cache_with_source,
 };
 use crate::{
-    nns::{LiveNnsSource, NnsSourceRequest},
+    nns::{
+        LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
+    },
     subnet_catalog::MAINNET_NETWORK,
     test_support::temp_dir,
 };
@@ -199,7 +201,7 @@ fn list_rejects_a_cursor_that_does_not_match_the_page() {
 #[test]
 fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     let root = temp_dir("ic-query-nns-neuron-cache");
-    let refresh_request = NnsNeuronRefreshRequest::new(
+    let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
@@ -257,7 +259,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     assert!(info.from_cache);
     assert_eq!(info.neuron.neuron_id, 2);
 
-    let status = build_nns_neuron_cache_status_report(&super::NnsNeuronCacheStatusRequest::new(
+    let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
         &root,
         MAINNET_NETWORK,
     ))
@@ -277,7 +279,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
 #[test]
 fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     let root = temp_dir("ic-query-nns-neuron-incomplete");
-    let request = NnsNeuronRefreshRequest::new(
+    let request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
@@ -298,7 +300,7 @@ fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
         }
     ));
     assert!(!nns_neuron_cache_path(&root, MAINNET_NETWORK).exists());
-    let status = build_nns_neuron_cache_status_report(&super::NnsNeuronCacheStatusRequest::new(
+    let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
         &root,
         MAINNET_NETWORK,
     ))

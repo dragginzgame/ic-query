@@ -11,6 +11,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.15.md](docs/changelog/0.15.md)
 
+- `0.15.1` consolidates the identical proposal and neuron collection
+  contracts into shared `NnsGovernanceRefreshRequest`,
+  `NnsGovernanceCacheRequest`, and `NnsGovernanceRefreshAttemptStatus` types,
+  and exposes one typed `NnsGovernanceQueryError` instead of copying its
+  transport variants and mapping flow into each report family. Shared
+  Governance cache provenance and validation are also defined once, and
+  proposal cache JSON/operation failures use the shared `HostCacheError`.
+  This is a breaking Rust-API hard cut: the replaced family-specific request,
+  attempt, transport-error, and duplicated proposal cache-error variants are
+  removed without aliases. CLI behavior, report JSON, and cache schemas are
+  unchanged.
+
 - `0.15.0` adds native public NNS neuron list and detail queries, complete
   atomic refreshes, cache-preferred reads, and cache-only status reporting.
   Reports preserve raw Governance neuron state, visibility, type, vote,

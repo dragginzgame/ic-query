@@ -30,7 +30,11 @@ share `NnsInventoryCacheRequest`, `NnsInventoryListRequest`,
 ledger-wide ICRC capabilities share `IcrcLedgerRequest`. SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts;
 the collection-specific builders still own their distinct cache paths and
-rendering.
+rendering. Complete NNS Governance proposal and neuron collections share
+`NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
+`NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceQueryError`, while each
+capability retains its own page validation, cache identity, report, and
+renderer.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report.

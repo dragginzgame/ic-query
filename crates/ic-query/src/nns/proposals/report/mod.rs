@@ -21,22 +21,22 @@ mod wire;
 
 #[cfg(feature = "host")]
 use crate::{
-    cache_file::CacheFileError, ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, runtime::RuntimeError,
+    HostCacheError, ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, nns::NnsGovernanceQueryError,
+    runtime::RuntimeError,
 };
 #[cfg(feature = "host")]
-use std::{io, path::PathBuf};
+use std::path::PathBuf;
 #[cfg(feature = "host")]
 use thiserror::Error as ThisError;
 
 #[cfg(feature = "host")]
 pub use cache::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalCacheListReport,
-    NnsProposalCacheListRequest, NnsProposalCacheStatusReport, NnsProposalCacheStatusRequest,
-    NnsProposalCacheSummary, NnsProposalRefreshAttemptStatus, NnsProposalRefreshReport,
-    NnsProposalRefreshRequest, build_nns_proposal_cache_list_report,
-    build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,
-    build_nns_proposal_report_from_cache, nns_proposal_cache_path, nns_proposal_cache_root,
-    nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
+    NnsProposalCacheStatusReport, NnsProposalCacheSummary, NnsProposalRefreshReport,
+    build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
+    build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
+    nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_refresh_attempt_path,
+    nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
     refresh_nns_proposal_cache_with_progress, refresh_nns_proposal_cache_with_source,
 };
 pub use model::{
@@ -88,34 +88,12 @@ pub enum NnsProposalHostError {
         network: String,
     },
 
-    #[error("failed to build IC agent for {endpoint}: {reason}")]
-    AgentBuild { endpoint: String, reason: String },
+    /// Shared NNS Governance transport failed.
+    #[error(transparent)]
+    GovernanceQuery(#[from] NnsGovernanceQueryError),
 
-    #[error("NNS governance agent call {method} failed: {reason}")]
-    AgentCall {
-        method: &'static str,
-        reason: String,
-    },
-
-    #[error("failed to encode candid {message}: {reason}")]
-    CandidEncode {
-        message: &'static str,
-        reason: String,
-    },
-
-    #[error("failed to decode candid {message}: {reason}")]
-    CandidDecode {
-        message: &'static str,
-        reason: String,
-    },
-
-    #[error("NNS proposal cache operation failed: {0}")]
-    Cache(#[from] CacheFileError),
-
-    #[error(
-        "cached NNS proposal network mismatch: path is for {requested}, report is for {actual}"
-    )]
-    CacheNetworkMismatch { requested: String, actual: String },
+    #[error(transparent)]
+    Cache(#[from] HostCacheError),
 
     #[error(
         "cached NNS proposal snapshot identity mismatch at {}: {field} is {actual}, expected {expected}",
@@ -149,32 +127,14 @@ pub enum NnsProposalHostError {
     #[error("NNS proposal list page returned a row without a proposal id")]
     MissingProposalIdInPage,
 
-    #[error("failed to parse NNS proposal cache at {}: {source}", path.display())]
-    ParseCache {
-        path: PathBuf,
-        source: serde_json::Error,
-    },
-
     #[error("invalid NNS proposal refresh attempt at {}: {reason}", path.display())]
     InvalidRefreshAttempt { path: PathBuf, reason: String },
 
     #[error("invalid NNS proposal cache at {}: {reason}", path.display())]
     InvalidCache { path: PathBuf, reason: String },
 
-    #[error("failed to read NNS proposal cache at {}: {source}", path.display())]
-    ReadCache { path: PathBuf, source: io::Error },
-
     #[error("failed to create Tokio runtime for NNS proposal query: {0}")]
     Runtime(#[from] RuntimeError),
-
-    #[error("failed to serialize NNS proposal cache JSON for {}: {source}", path.display())]
-    SerializeCache {
-        path: PathBuf,
-        source: serde_json::Error,
-    },
-
-    #[error("unsupported NNS proposal cache schema version {version}; expected {expected}")]
-    UnsupportedCacheSchemaVersion { version: u32, expected: u32 },
 }
 
 #[cfg(feature = "host")]

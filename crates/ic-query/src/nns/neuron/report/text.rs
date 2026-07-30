@@ -5,10 +5,10 @@
 //! Boundary: formats raw public neuron values without changing report data.
 
 #[cfg(feature = "host")]
-use super::cache::{
-    NnsNeuronCacheStatusReport, NnsNeuronRefreshAttemptStatus, NnsNeuronRefreshReport,
-};
+use super::cache::{NnsNeuronCacheStatusReport, NnsNeuronRefreshReport};
 use super::model::{NnsNeuronInfoReport, NnsNeuronListReport, NnsNeuronRow};
+#[cfg(feature = "host")]
+use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     duration::display_duration_seconds,
     table::{ColumnAlign, render_table},
@@ -301,7 +301,7 @@ fn neuron_detail_lines(neuron: &NnsNeuronRow) -> Vec<String> {
 }
 
 #[cfg(feature = "host")]
-fn attempt_lines(attempt: Option<&NnsNeuronRefreshAttemptStatus>) -> Vec<String> {
+fn attempt_lines(attempt: Option<&NnsGovernanceRefreshAttemptStatus>) -> Vec<String> {
     let Some(attempt) = attempt else {
         return vec!["latest_attempt: -".to_string()];
     };

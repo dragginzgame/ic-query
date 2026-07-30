@@ -16,8 +16,7 @@ use crate::{
     progress::StderrQueryProgress,
 };
 use ic_query::nns::proposals::{
-    NnsProposalCacheListRequest, NnsProposalCacheStatusRequest, NnsProposalListRequest,
-    NnsProposalRefreshRequest, NnsProposalRequest, build_nns_proposal_cache_list_report,
+    NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_cache_list_report,
     build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
     build_nns_proposal_list_report_from_cache, build_nns_proposal_report,
     build_nns_proposal_report_from_cache, nns_proposal_cache_list_report_text,
@@ -25,6 +24,7 @@ use ic_query::nns::proposals::{
     nns_proposal_refresh_report_text, nns_proposal_report_text,
     refresh_nns_proposal_cache_with_progress,
 };
+use ic_query::nns::{NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest};
 use std::ffi::OsString;
 
 const PROPOSAL_CACHE_COMMAND: &str = "cache";
@@ -138,7 +138,7 @@ where
         return Ok(());
     };
     let options = NnsProposalRefreshOptions::parse(args)?;
-    let request = NnsProposalRefreshRequest::new(
+    let request = NnsGovernanceRefreshRequest::new(
         command_cache_root()?,
         options.network,
         options.source_endpoint,
@@ -181,7 +181,7 @@ where
         return Ok(());
     };
     let options = NnsProposalCacheOptions::parse_list(args)?;
-    let request = NnsProposalCacheListRequest::new(command_cache_root()?, options.network);
+    let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_list_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
 }
@@ -197,7 +197,7 @@ where
         return Ok(());
     };
     let options = NnsProposalCacheOptions::parse_status(args)?;
-    let request = NnsProposalCacheStatusRequest::new(command_cache_root()?, options.network);
+    let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_status_report(&request)?;
     write_text_or_json(
         options.format,

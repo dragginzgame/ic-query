@@ -7,7 +7,7 @@
 use crate::{
     nns::{
         LiveNnsSource, NnsSourceRequest,
-        governance_query::{NnsGovernanceQueryError, query_nns_governance},
+        governance_query::query_nns_governance,
         proposals::report::{
             NnsProposalHostError, enforce_mainnet_network,
             model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
@@ -89,8 +89,7 @@ async fn fetch_nns_proposal_list_async(
             return_self_describing_action: Some(false),
         },
     )
-    .await
-    .map_err(map_governance_query_error)?;
+    .await?;
     Ok(response.proposal_info)
 }
 
@@ -105,24 +104,6 @@ async fn fetch_nns_proposal_async(
         "ProposalInfo",
         &proposal_id,
     )
-    .await
-    .map_err(map_governance_query_error)?;
+    .await?;
     proposal.ok_or(NnsProposalHostError::ProposalNotFound { proposal_id })
-}
-
-fn map_governance_query_error(error: NnsGovernanceQueryError) -> NnsProposalHostError {
-    match error {
-        NnsGovernanceQueryError::AgentBuild { endpoint, reason } => {
-            NnsProposalHostError::AgentBuild { endpoint, reason }
-        }
-        NnsGovernanceQueryError::AgentCall { method, reason } => {
-            NnsProposalHostError::AgentCall { method, reason }
-        }
-        NnsGovernanceQueryError::CandidEncode { message, reason } => {
-            NnsProposalHostError::CandidEncode { message, reason }
-        }
-        NnsGovernanceQueryError::CandidDecode { message, reason } => {
-            NnsProposalHostError::CandidDecode { message, reason }
-        }
-    }
 }

@@ -5,16 +5,22 @@
 //! Boundary: writes complete cache JSON and complete-attempt metadata.
 
 use super::{
-    NNS_PROPOSAL_CACHE_SCHEMA_VERSION, NNS_PROPOSAL_REFRESH_REPORT_SCHEMA_VERSION,
+    NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
+    NNS_PROPOSAL_REFRESH_REPORT_SCHEMA_VERSION,
     attempt::write_complete_attempt,
     model::{
-        CompleteNnsProposalCollection, NnsProposalCache, NnsProposalCacheMetadata,
-        NnsProposalCacheRows, NnsProposalRefreshReport, NnsProposalRefreshRequest,
+        CompleteNnsProposalCollection, NnsProposalCache, NnsProposalCacheRows,
+        NnsProposalRefreshReport,
     },
 };
 use crate::{
-    nns::proposals::report::{
-        MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
+    HostCacheError,
+    nns::{
+        NnsGovernanceRefreshRequest,
+        governance::mainnet_governance_cache_metadata,
+        proposals::report::{
+            MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
+        },
     },
     snapshot_cache::{
         SnapshotCompleteness, SnapshotJsonPaths, SnapshotRefreshProgress,
@@ -24,7 +30,7 @@ use crate::{
 };
 
 pub(super) fn publish_complete_nns_proposal_cache(
-    request: &NnsProposalRefreshRequest,
+    request: &NnsGovernanceRefreshRequest,
     paths: &SnapshotJsonPaths,
     replaced_existing_cache: bool,
     complete: CompleteNnsProposalCollection,
@@ -45,9 +51,7 @@ pub(super) fn publish_complete_nns_proposal_cache(
         entity: "governance".to_string(),
         collection: "proposals".to_string(),
         scope: "full".to_string(),
-        metadata: NnsProposalCacheMetadata {
-            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        },
+        metadata: mainnet_governance_cache_metadata(),
         completeness: SnapshotCompleteness::api_exhausted(
             request.page_size,
             page_count,
@@ -62,8 +66,19 @@ pub(super) fn publish_complete_nns_proposal_cache(
             write_snapshot_json(
                 &paths.snapshot_path,
                 &cache,
-                |path, source| NnsProposalHostError::SerializeCache { path, source },
-                NnsProposalHostError::Cache,
+                |path, source| {
+                    NnsProposalHostError::Cache(HostCacheError::serialize_cache(
+                        NNS_PROPOSAL_CACHE_COMPONENT,
+                        path,
+                        source,
+                    ))
+                },
+                |error| {
+                    NnsProposalHostError::Cache(HostCacheError::operation(
+                        NNS_PROPOSAL_CACHE_COMPONENT,
+                        error,
+                    ))
+                },
             )
         },
         || {
