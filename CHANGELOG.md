@@ -7,6 +7,25 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.18.x] - 2026-07-30 - Official Dashboard canister reporting
+
+Detailed release notes: [docs/changelog/0.18.md](docs/changelog/0.18.md)
+
+- `0.18.0` adds the official Dashboard authority family and a bounded live
+  canister detail report. Text and JSON preserve raw canister classification,
+  name, controllers, Subnet, language, module hash, Dashboard update time, and
+  nullable proposal-linked upgrade history alongside endpoint and retrieval
+  provenance. Reports explicitly state that Dashboard evidence is not
+  certified and is not one point-in-time snapshot. The public library exposes
+  `LiveIcSource`, `IcCanisterSource`, typed source/request/report/error DTOs,
+  custom-source construction, validation, and rendering. This report is
+  live-only and does not add a cache.
+
+  ```bash
+  icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
+  icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+  ```
+
 ## [0.17.x] - 2026-07-30 - SNS Root inventory and health
 
 Detailed release notes: [docs/changelog/0.17.md](docs/changelog/0.17.md)

@@ -1,4 +1,5 @@
 mod cli;
+mod ic;
 mod icrc;
 mod nns;
 mod output;
@@ -42,6 +43,9 @@ pub enum IcqCliError {
     #[error("icrc: {0}")]
     Icrc(#[from] icrc::IcrcCommandError),
 
+    #[error("ic: {0}")]
+    Ic(#[from] ic::IcCommandError),
+
     #[error("sns: {0}")]
     Sns(#[from] sns::SnsCommandError),
 }
@@ -51,12 +55,13 @@ impl IcqCliError {
     #[must_use]
     pub fn is_broken_pipe(&self) -> bool {
         match self {
+            Self::Ic(error) if error.is_broken_pipe() => true,
             Self::Nns(nns::NnsCommandError::Io(err))
             | Self::Icrc(icrc::IcrcCommandError::Io(err))
             | Self::Sns(sns::SnsCommandError::Io(err)) => {
                 err.kind() == std::io::ErrorKind::BrokenPipe
             }
-            Self::Usage(_) | Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => false,
+            Self::Usage(_) | Self::Ic(_) | Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => false,
         }
     }
 
@@ -65,9 +70,11 @@ impl IcqCliError {
     pub const fn exit_code(&self) -> i32 {
         match self {
             Self::Usage(_)
+            | Self::Ic(ic::IcCommandError::Usage(_))
             | Self::Nns(nns::NnsCommandError::Usage(_))
             | Self::Icrc(icrc::IcrcCommandError::Usage(_))
             | Self::Sns(sns::SnsCommandError::Usage(_)) => 2,
+            Self::Ic(error) => error.exit_code(),
             Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => 1,
         }
     }
@@ -87,7 +94,7 @@ where
         return Ok(());
     };
     if let Some((command, option)) = command_local_global_option(&args) {
-        if command == "icrc" {
+        if matches!(command, "ic" | "icrc") {
             return Err(unsupported_global_network_error(command));
         }
         return Err(IcqCliError::Usage(format!(
@@ -112,6 +119,7 @@ where
     let tail = tail.into_iter();
 
     match command {
+        "ic" => Ok(ic::run(tail)?),
         "icrc" => Ok(icrc::run(tail)?),
         "nns" => Ok(nns::run(tail)?),
         "sns" => Ok(sns::run(tail)?),
@@ -256,8 +264,8 @@ fn apply_global_network(
 }
 
 fn unsupported_global_network_error(command: &str) -> IcqCliError {
-    let guidance = if command == "icrc" {
-        " use the command's --source-endpoint option to select the IC API endpoint"
+    let guidance = if matches!(command, "ic" | "icrc") {
+        " use the command's --source-endpoint option to select its API endpoint"
     } else {
         ""
     };
@@ -297,6 +305,11 @@ struct CommandFamily {
 
 const COMMAND_FAMILIES: &[CommandFamily] = &[
     CommandFamily {
+        name: "ic",
+        about: "Inspect official IC Dashboard metadata",
+        accepts_global_network: ic_accepts_global_network,
+    },
+    CommandFamily {
         name: "icrc",
         about: "Inspect generic ICRC ledger and account metadata",
         accepts_global_network: icrc_accepts_global_network,
@@ -321,6 +334,10 @@ const fn nns_accepts_global_network(_tail: &[OsString]) -> bool {
     true
 }
 
+const fn ic_accepts_global_network(_tail: &[OsString]) -> bool {
+    false
+}
+
 const fn icrc_accepts_global_network(_tail: &[OsString]) -> bool {
     false
 }
@@ -338,6 +355,8 @@ mod tests {
         let text = usage();
 
         assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
+        assert!(text.contains("ic"));
+        assert!(text.contains("Inspect official IC Dashboard metadata"));
         assert!(text.contains("icrc"));
         assert!(text.contains("Inspect generic ICRC ledger and account metadata"));
         assert!(text.contains("nns"));
@@ -357,6 +376,7 @@ Internet Computer metadata query CLI
 Usage: icq [OPTIONS] [COMMAND]
 
 Commands:
+  ic    Inspect official IC Dashboard metadata
   icrc  Inspect generic ICRC ledger and account metadata
   nns   Inspect NNS metadata
   sns   Inspect SNS metadata
@@ -377,7 +397,10 @@ Run `icq <command> help` for command-specific help.
     #[test]
     fn command_family_help_returns_ok() {
         for args in [
-            &["icrc", "help"][..],
+            &["ic", "help"][..],
+            &["ic", "canister", "help"],
+            &["ic", "canister", "info", "help"],
+            &["icrc", "help"],
             &["icrc", "ledger", "help"],
             &["icrc", "ledger", "token", "help"],
             &["icrc", "account", "help"],
@@ -453,6 +476,7 @@ Run `icq <command> help` for command-specific help.
     fn version_flags_return_ok() {
         assert_eq!(VERSION_TEXT, concat!("icq ", env!("CARGO_PKG_VERSION")));
         assert!(run([OsString::from("--version")]).is_ok());
+        assert!(run([OsString::from("ic"), OsString::from("--version")]).is_ok());
         assert!(run([OsString::from("icrc"), OsString::from("--version")]).is_ok());
         assert!(run([OsString::from("nns"), OsString::from("--version")]).is_ok());
         assert!(run([OsString::from("sns"), OsString::from("--version")]).is_ok());
@@ -612,19 +636,26 @@ Run `icq <command> help` for command-specific help.
 
     #[test]
     fn global_network_is_rejected_when_the_family_uses_endpoint_identity() {
-        let mut icrc_tail = vec![OsString::from("ledger"), OsString::from("token")];
+        for (command, mut tail) in [
+            (
+                "ic",
+                vec![OsString::from("canister"), OsString::from("info")],
+            ),
+            (
+                "icrc",
+                vec![OsString::from("ledger"), OsString::from("token")],
+            ),
+        ] {
+            let original = tail.clone();
+            let error = apply_global_network(command, &mut tail, Some("ic".to_string()))
+                .expect_err("endpoint-identified family must reject global network");
 
-        let error = apply_global_network("icrc", &mut icrc_tail, Some("ic".to_string()))
-            .expect_err("ICRC must reject an inapplicable global network");
-
-        assert_eq!(error.exit_code(), 2);
-        assert!(error.to_string().contains("--network is not supported"));
-        assert!(error.to_string().contains("icq icrc"));
-        assert!(error.to_string().contains("--source-endpoint"));
-        assert_eq!(
-            icrc_tail,
-            vec![OsString::from("ledger"), OsString::from("token")]
-        );
+            assert_eq!(error.exit_code(), 2);
+            assert!(error.to_string().contains("--network is not supported"));
+            assert!(error.to_string().contains(&format!("icq {command}")));
+            assert!(error.to_string().contains("--source-endpoint"));
+            assert_eq!(tail, original);
+        }
 
         let error = run([
             OsString::from("--network"),
@@ -665,6 +696,34 @@ Run `icq <command> help` for command-specific help.
             .is_ok(),
             "help must remain available without dispatching a query"
         );
+
+        let error = run([
+            OsString::from("--network"),
+            OsString::from("ic"),
+            OsString::from("ic"),
+            OsString::from("canister"),
+            OsString::from("info"),
+            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
+        ])
+        .expect_err("Dashboard family global network must fail before dispatch");
+
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("icq ic"));
+        assert!(error.to_string().contains("--source-endpoint"));
+
+        let error = run([
+            OsString::from("ic"),
+            OsString::from("canister"),
+            OsString::from("info"),
+            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
+            OsString::from("--network"),
+            OsString::from("ic"),
+        ])
+        .expect_err("command-local Dashboard network must use the same rejection");
+
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("--network is not supported"));
+        assert!(!error.to_string().contains("put it before the command"));
     }
 
     #[test]

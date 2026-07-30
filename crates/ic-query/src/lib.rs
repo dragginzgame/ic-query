@@ -7,7 +7,7 @@
 //!
 //! This is a host dependency boundary, not a `no_std` promise. No-default
 //! builds are expected to compile for `wasm32-unknown-unknown` without
-//! `ic-agent`, Tokio, or `futures`, but they may still use ordinary
+//! `ic-agent`, Reqwest, Tokio, or `futures`, but they may still use ordinary
 //! `std` types such as `String` and `Vec`.
 //!
 //! Enable `host` for native live-call adapters and runtime helpers. CLI parsing
@@ -21,6 +21,7 @@ pub mod duration;
 #[cfg(feature = "host")]
 mod freshness;
 mod hex;
+pub mod ic;
 #[cfg(feature = "host")]
 mod ic_registry;
 pub mod icrc;

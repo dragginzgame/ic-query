@@ -1166,6 +1166,7 @@ dependencies = [
  "futures",
  "ic-agent",
  "prost",
+ "reqwest",
  "serde",
  "serde_cbor",
  "serde_json",

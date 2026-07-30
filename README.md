@@ -8,14 +8,14 @@
 `ic-query` provides read-only Internet Computer metadata query code, and
 `ic-query-cli` provides the `icq` executable wrapper.
 
-`icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
-version, subnet catalog lookup, node/provider/operator/data-center inventory,
-topology reports, NNS proposals and publicly readable neuron views, deployed
-SNS reports, native NNS Governance economics, metrics, reward-event, and
-maturity-modulation reports, SNS Root canister inventory and operational
-health, and ICRC ledger capabilities, token, balance, allowance, index
-discovery, ledger and account transaction history, block type, archive, and
-tip certificate reports.
+`icq` currently supports official IC Dashboard, NNS, SNS, and generic ICRC
+metadata queries: deployed canister lookup, registry version, subnet catalog
+lookup, node/provider/operator/data-center inventory, topology reports, NNS
+proposals and publicly readable neuron views, deployed SNS reports, native NNS
+Governance economics, metrics, reward-event, and maturity-modulation reports,
+SNS Root canister inventory and operational health, and ICRC ledger
+capabilities, token, balance, allowance, index discovery, ledger and account
+transaction history, block type, archive, and tip certificate reports.
 
 ## Install
 
@@ -41,7 +41,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.17", default-features = false }
+ic-query = { version = "0.18", default-features = false }
 ```
 
 Feature boundary:
@@ -51,18 +51,19 @@ Feature boundary:
 | none / `default-features = false` | Pure request/report DTOs, text renderers, and local parsing/resolution helpers. CI checks this path for `wasm32-unknown-unknown` without host-only dependencies. |
 | `host` | Native cache, refresh, live-call, and filesystem-backed report builders. Pulls in the native runtime/live-call dependencies. |
 
-This is a host dependency boundary, not a `no_std` promise. No-default
-builds may still use ordinary `std` types such as `String` and `Vec`.
+This is a host dependency boundary, not a `no_std` promise. No-default builds
+exclude `ic-agent`, Reqwest, Tokio, and `futures`, but may still use ordinary
+`std` types such as `String` and `Vec`.
 
 Native tools that want live calls, cache-backed report builders, refresh
 helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.17", default-features = false, features = ["host"] }
+ic-query = { version = "0.18", default-features = false, features = ["host"] }
 ```
 
-Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
+Use `ic_query::ic`, `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
 `ic_query::subnet_catalog` for the public report-family APIs. The `host`
 feature also exposes source traits for fixture, mirror, proxy, or
 pre-collected data sources. Native tools should normally depend on
@@ -71,9 +72,10 @@ project-context discovery belong exclusively to `ic-query-cli` and are not a
 library feature.
 
 Built-in host calls use one concrete adapter per authority family:
-`ic_query::nns::LiveNnsSource`, `ic_query::sns::LiveSnsSource`, and
-`ic_query::icrc::LiveIcrcSource`. Small report-specific capability traits keep
-custom adapters narrow. NNS capability traits share
+`ic_query::ic::LiveIcSource`, `ic_query::nns::LiveNnsSource`,
+`ic_query::sns::LiveSnsSource`, and `ic_query::icrc::LiveIcrcSource`. Small
+report-specific capability traits keep custom adapters narrow. Dashboard
+capabilities share `ic_query::ic::IcSourceRequest`; NNS capability traits share
 `ic_query::nns::NnsSourceRequest`, and SNS capability traits share
 `ic_query::sns::SnsSourceRequest`, for network and collection provenance.
 
@@ -83,9 +85,9 @@ entry point and handle `QueryProgressEvent` values in their own presentation
 layer. The `icq` executable supplies the stderr renderer; the reusable library
 never selects a process output sink.
 
-Each NNS and SNS family root is its sole public path. For example, topology
-consumers use `ic_query::nns::topology::*`; internal `report` modules are not
-public API.
+Each report-family root is its sole public path. For example, Dashboard
+canister consumers use `ic_query::ic::*` and topology consumers use
+`ic_query::nns::topology::*`; internal report modules are not public API.
 
 See
 [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
@@ -102,6 +104,7 @@ the stability bar for 1.0. Adapter ownership and provenance rules remain in
 ## Commands
 
 ```bash
+icq ic canister info <canister-id>
 icq nns help
 icq nns registry version
 icq nns governance [economics|metrics|reward-event|maturity-modulation]
@@ -122,16 +125,17 @@ icq sns proposal [list|info|refresh|cache]
 icq sns neuron [list|refresh|cache]
 ```
 
-Use `icq nns <family> help`, `icq nns topology <report> help`, or
-`icq icrc <family> <command> help`, or `icq sns <command> help` for command
-options.
+Use `icq ic canister info help`, `icq nns <family> help`,
+`icq nns topology <report> help`, `icq icrc <family> <command> help`, or
+`icq sns <command> help` for command options.
 Use `icq -V` or `icq --version` for the executable version; command families do
 not expose positional version shortcuts.
 
 The top-level `--network` option supplies network identity to NNS and SNS
-commands, including NNS proposals. ICRC commands identify their target by
-ledger canister and API endpoint instead; combining `--network` with `icrc` is
-rejected before dispatch and directs the caller to `--source-endpoint`.
+commands, including NNS proposals. Dashboard and ICRC commands identify their
+target by API endpoint and stable entity id instead; combining `--network`
+with `ic` or `icrc` is rejected before dispatch and directs the caller to
+`--source-endpoint`.
 The built-in NNS and SNS sources and caches currently support only the mainnet
 `ic` identity, so another network name is rejected before family dispatch.
 
@@ -145,6 +149,22 @@ icq --network ic nns subnet info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 All current report `schema_version` values are `1`. Before 1.0, a hard-cut
 shape replaces its predecessor instead of extending a historical schema
 number sequence.
+
+Official Dashboard canister metadata is available as a bounded live lookup:
+
+```bash
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+```
+
+The report preserves the Dashboard canister classification, name, controllers,
+Subnet, language, module hash, Dashboard update timestamp, and nullable
+proposal-linked upgrade history. It separately records the REST endpoint and
+collection timestamp and states `certified: false` and
+`point_in_time_guaranteed: false`; Dashboard analytics do not inherit Registry
+version or certified canister authority. This point lookup is live-only and
+does not read or write a cache. See
+[IC Dashboard Canister Reporting](docs/design/ic-dashboard-canister-reporting.md).
 
 Generic ICRC ledgers can be queried directly by ledger canister id. Live
 commands include the queried source endpoint in text and JSON reports and
@@ -508,6 +528,8 @@ linking registry adapters directly. For one integration example, see
 
 The command namespace is intentionally small:
 
+- `ic canister info` provides live official Dashboard canister metadata with
+  explicit off-chain API provenance.
 - `nns` is implemented.
 - `nns proposal list` and `nns proposal info` are cache-aware mainnet NNS
   governance proposal queries: they reuse complete local snapshots when those

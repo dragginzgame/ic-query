@@ -15,9 +15,10 @@ collection architecture rather than duplicating milestone status.
 `ic-query` expands by authority family rather than by transport call. Each
 authority family owns one built-in live adapter:
 
+- `ic_query::ic::LiveIcSource`
+- `ic_query::icrc::LiveIcrcSource`
 - `ic_query::nns::LiveNnsSource`
 - `ic_query::sns::LiveSnsSource`
-- `ic_query::icrc::LiveIcrcSource`
 
 Report families continue to own small source capability traits. A custom
 adapter implements only the capabilities it can supply, while the built-in
@@ -42,15 +43,19 @@ SNS capabilities share `SnsSourceRequest`, including explicit network and
 collection provenance. SNS Root inventory and health use one
 `SnsCanisterSource` capability on `LiveSnsSource` rather than separate
 adapters for the Root inventory query and read-only health ingress.
+Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
+the focused `IcCanisterSource` capability on `LiveIcSource`; future Dashboard
+network and metric reports should extend that adapter rather than introduce
+one live source per REST endpoint.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report. Report builders
 still treat capability results as untrusted boundary data: returned provenance,
 canonical identifiers, requested limits, ordering, uniqueness, relation
 consistency, and authority claims are validated before projection. Live
-adapters validate HTTP(S) endpoint syntax before agent construction so
-malformed endpoint text returns a typed build error rather than reaching an
-infallible parser path.
+adapters validate HTTP(S) endpoint syntax before constructing their transport
+or making a live call, so malformed endpoint text returns a typed error rather
+than reaching an infallible parser path.
 
 ## Collection Rules
 
@@ -108,6 +113,11 @@ infallible parser path.
   rather than cloning the complete snapshot before truncation. The bounded page
   builder applies the same explicit-index, canonical-cursor, requested-limit,
   uniqueness, and newest-first checks to custom page sources.
+- Official Dashboard canister reporting follows one canonical canister
+  principal to the bounded `/canisters/{canister_id}` REST resource. It keeps
+  the API endpoint, retrieval timestamp, Dashboard update timestamp, and raw
+  nullable classification/history distinct, and explicitly claims neither
+  certification nor point-in-time consistency.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -124,7 +134,7 @@ Expansion should proceed in layers:
 | --- | --- | --- |
 | 1 | Fuller SNS neuron state, swap lifecycle, blessed upgrade-path comparison, and treasury evidence | Extend focused SNS capability traits on `LiveSnsSource` |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
-| 2 | Canister, boundary-node, replica-version, and network metrics | Add an official Dashboard family adapter with API endpoint/timestamp provenance |
+| 2 | Boundary-node, replica-version, and network metrics beyond the implemented canister detail report | Extend `LiveIcSource` with focused capabilities and API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |
 | 3 | CMC/XDR, Internet Identity, Bitcoin, and other protocol-canister reports | Add one authority-family adapter only when multiple coherent reports justify it |
 

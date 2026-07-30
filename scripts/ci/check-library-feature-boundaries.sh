@@ -5,6 +5,7 @@ forbidden_pure_library_dependencies=(
   clap
   futures
   ic-agent
+  reqwest
   tokio
 )
 
@@ -73,6 +74,8 @@ cargo test -p ic-query --test downstream_usage --no-default-features --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --features host --locked
+cargo test -p ic-query --test ic_public_api --no-default-features --locked
+cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --locked

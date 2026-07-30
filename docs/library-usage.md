@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.17", default-features = false, features = ["host"] }
+ic-query = { version = "0.18", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,13 +18,13 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.17", default-features = false }
+ic-query = { version = "0.18", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
-`ic-agent`, Tokio, or `futures`. That is a host-dependency boundary, not a
-`no_std` promise; the public DTOs may still use `String`, `Vec`, `serde`, and
-other normal `std`-using crates.
+`ic-agent`, Reqwest, Tokio, or `futures`. That is a host-dependency boundary,
+not a `no_std` promise; the public DTOs may still use `String`, `Vec`, `serde`,
+and other normal `std`-using crates.
 
 ## Progress Ownership
 
@@ -58,6 +58,7 @@ A canic-style native crate should usually replace shell-outs in this order:
 
 The CLI module layout is intentionally mirrored at the family level:
 
+- `icq ic ...` maps to `ic_query::ic`.
 - `icq icrc ...` maps to `ic_query::icrc`.
 - `icq nns proposal ...` maps to `ic_query::nns::proposals`.
 - `icq nns neuron ...` maps to `ic_query::nns::neuron`.
@@ -91,10 +92,11 @@ The examples below are covered by the `downstream_usage` integration test.
 
 The public API exposes source adapters for host-only downstream crates that
 need to reuse `ic-query` report assembly with data that does not come from the
-built-in live adapters. The generic ICRC, subnet catalog, NNS registry, NNS
-inventory, NNS proposal, NNS neuron, NNS topology, SNS
-list/info/token/params/canister, SNS proposal, and SNS neuron host APIs expose this
-pattern with narrow ICRC capabilities such as `IcrcTokenSource`,
+built-in live adapters. The official Dashboard, generic ICRC, subnet catalog,
+NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
+list/info/token/params/canister, SNS proposal, and SNS neuron host APIs expose
+this pattern with `IcCanisterSource` and narrow ICRC capabilities such as
+`IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,
 `build_icrc_*_report_with_source`,
 `SubnetCatalogSource`, subnet catalog `*_with_source` builders,
@@ -106,8 +108,9 @@ pattern with narrow ICRC capabilities such as `IcrcTokenSource`,
 `SnsProposalSource`, `SnsProposalsSource`, and `SnsNeuronsSource`.
 
 The built-in implementations are deliberately less fragmented than the
-capability traits. `ic_query::nns::LiveNnsSource` implements every supported
-NNS and subnet-catalog source capability, while
+capability traits. `ic_query::ic::LiveIcSource` owns official Dashboard
+capabilities, `ic_query::nns::LiveNnsSource` implements every supported NNS and
+subnet-catalog source capability, while
 `ic_query::sns::LiveSnsSource` and `ic_query::icrc::LiveIcrcSource` own their
 respective live families. NNS capabilities share
 `ic_query::nns::NnsSourceRequest`; adding a new NNS report should normally add

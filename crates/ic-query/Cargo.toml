@@ -18,6 +18,10 @@ candid.workspace = true
 futures = { version = "0.3", optional = true }
 ic-agent = { version = "0.49.2", default-features = false, optional = true }
 prost = { version = "0.14.3", optional = true }
+reqwest = { version = "0.13.4", default-features = false, features = [
+    "json",
+    "rustls",
+], optional = true }
 serde.workspace = true
 serde_cbor = { version = "0.11.2", optional = true }
 serde_json.workspace = true
@@ -33,11 +37,15 @@ host = [
     "dep:futures",
     "dep:ic-agent",
     "dep:prost",
+    "dep:reqwest",
     "dep:serde_cbor",
     "dep:sha2",
     "dep:tokio",
     "dep:url",
 ]
+
+[[test]]
+name = "ic_public_api"
 
 [[test]]
 name = "nns_public_api"

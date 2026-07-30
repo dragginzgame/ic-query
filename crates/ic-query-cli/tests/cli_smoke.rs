@@ -62,6 +62,7 @@ fn binary_top_level_help_smoke() {
     assert_success(&output);
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq [OPTIONS] [COMMAND]"));
+    assert!(stdout.contains("ic"));
     assert!(stdout.contains("icrc"));
     assert!(stdout.contains("nns"));
     assert!(stdout.contains("sns"));
@@ -83,6 +84,18 @@ fn binary_invalid_value_preserves_clap_diagnostic() {
     let stderr = stderr_text(&output);
     assert!(stderr.contains("invalid value 'nope'"));
     assert!(stderr.contains("--limit <count>"));
+}
+
+#[test]
+fn binary_ic_canister_info_help_smoke() {
+    let output = run_icq(&["ic", "canister", "info", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq ic canister info [OPTIONS] <canister-id>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("off-chain analytics authority"));
 }
 
 #[test]
