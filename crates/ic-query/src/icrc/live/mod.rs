@@ -8,6 +8,7 @@ mod account_transactions;
 mod build;
 mod fetch;
 mod source;
+mod tip_certificate;
 
 pub use build::{
     build_icrc_account_transactions_report, build_icrc_account_transactions_report_with_source,

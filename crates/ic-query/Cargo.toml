@@ -19,6 +19,7 @@ futures = { version = "0.3", optional = true }
 ic-agent = { version = "0.49.2", default-features = false, optional = true }
 prost = { version = "0.14.3", optional = true }
 serde.workspace = true
+serde_cbor = { version = "0.11.2", optional = true }
 serde_json.workspace = true
 sha2 = { version = "0.10.9", optional = true }
 thiserror.workspace = true
@@ -27,7 +28,14 @@ unicode-width = "0.2"
 
 [features]
 default = []
-host = ["dep:futures", "dep:ic-agent", "dep:prost", "dep:sha2", "dep:tokio"]
+host = [
+    "dep:futures",
+    "dep:ic-agent",
+    "dep:prost",
+    "dep:serde_cbor",
+    "dep:sha2",
+    "dep:tokio",
+]
 
 [[test]]
 name = "nns_public_api"

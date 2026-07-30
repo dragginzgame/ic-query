@@ -4,6 +4,7 @@
 //! Does not own: source traits, synchronous runtime adaptation, report construction, or output.
 //! Boundary: contains all generic ICRC host calls and wire-to-domain conversion.
 
+use super::tip_certificate::verified_tip_certificate_data;
 use crate::{
     hex::hex_bytes,
     icrc::{
@@ -264,7 +265,7 @@ pub(super) async fn fetch_tip_certificate_async(
     )
     .await?;
 
-    Ok(tip_certificate_data_from_wire(certificate))
+    verified_tip_certificate_data(&agent, &ledger_canister, certificate)
 }
 
 pub(super) async fn fetch_capabilities_async(
@@ -416,23 +417,28 @@ async fn fetch_tip_certificate_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    match query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
+    let certificate = query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
         agent,
         ledger_canister,
         ICRC3_GET_TIP_CERTIFICATE_METHOD,
     )
-    .await
+    .await;
+
+    match certificate
+        .and_then(|certificate| verified_tip_certificate_data(agent, ledger_canister, certificate))
     {
-        Ok(Some(certificate)) => available_capability_row(
+        Ok(IcrcTipCertificateData {
+            certificate_bytes: Some(certificate_bytes),
+            hash_tree_bytes: Some(hash_tree_bytes),
+            ..
+        }) => available_capability_row(
             "ICRC-3 tip certificate",
             ICRC3_GET_TIP_CERTIFICATE_METHOD,
             format!(
-                "certificate {} bytes, hash tree {} bytes",
-                certificate.certificate.len(),
-                certificate.hash_tree.len()
+                "verified certificate {certificate_bytes} bytes, hash tree {hash_tree_bytes} bytes"
             ),
         ),
-        Ok(None) => available_capability_row(
+        Ok(_) => available_capability_row(
             "ICRC-3 tip certificate",
             ICRC3_GET_TIP_CERTIFICATE_METHOD,
             "certificate absent",
@@ -644,25 +650,6 @@ fn archive_row_from_wire(archive: Icrc3ArchiveInfo) -> IcrcArchiveRow {
         start: archive.start.to_string(),
         end: archive.end.to_string(),
     }
-}
-
-fn tip_certificate_data_from_wire(
-    certificate: Option<Icrc3DataCertificate>,
-) -> IcrcTipCertificateData {
-    certificate.map_or(
-        IcrcTipCertificateData {
-            certificate_hex: None,
-            certificate_bytes: None,
-            hash_tree_hex: None,
-            hash_tree_bytes: None,
-        },
-        |certificate| IcrcTipCertificateData {
-            certificate_hex: Some(hex_bytes(&certificate.certificate)),
-            certificate_bytes: Some(certificate.certificate.len()),
-            hash_tree_hex: Some(hex_bytes(&certificate.hash_tree)),
-            hash_tree_bytes: Some(certificate.hash_tree.len()),
-        },
-    )
 }
 
 fn available_capability_row(

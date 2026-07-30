@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.13.md](docs/changelog/0.13.md)
 
+- `0.13.2` authenticates live ICRC-3 tip certificates against the IC root of
+  trust and requested ledger canister, enforces certificate freshness, and
+  validates that the returned hash-tree digest and required tip leaves match
+  the certified data. The capability probe now reports a tip certificate as
+  available only after the same verification. CLI and JSON shapes are
+  unchanged.
+
 - `0.13.1` adds typed, live ICRC index account-history queries. The command
   discovers the index through ICRC-106 unless one is supplied, verifies the
   index reports the requested ledger, preserves ledger/index/account/endpoint

@@ -172,6 +172,13 @@ ICRC-106, so its official index must be supplied explicitly as shown above.
 Both generic ICRC index-ng and deployed ICP index transactions are supported.
 This query is currently live-only.
 
+When `icrc3_get_tip_certificate` returns evidence, the built-in live source
+authenticates the IC certificate, including delegation, canister authority,
+and freshness, then proves that the returned hash tree matches
+`certified_data` and contains canonical `last_block_index` and
+`last_block_hash` leaves. Endpoint overrides must therefore serve
+mainnet-certified responses; alternate root keys are not configured.
+
 ## Cache
 
 Detailed command help identifies one of five collection modes:

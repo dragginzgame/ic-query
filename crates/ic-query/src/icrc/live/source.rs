@@ -83,6 +83,8 @@ pub trait IcrcAccountTransactionsSource {
 /// LiveIcrcSource
 ///
 /// Source implementation backed by live ICRC ledger canister queries.
+/// Returned ICRC-3 tip evidence is authenticated and checked against the
+/// ledger's certified-data value before it is exposed.
 ///
 
 pub struct LiveIcrcSource;
