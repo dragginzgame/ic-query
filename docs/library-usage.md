@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.13", default-features = false, features = ["host"] }
+ic-query = { version = "0.14", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.13", default-features = false }
+ic-query = { version = "0.14", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -32,7 +32,10 @@ Normal report builders and refresh entry points do not write to stdout or
 stderr. Paged NNS proposal and SNS neuron/proposal refreshes also expose
 `*_with_progress` entry points. These accept a `QueryProgress` sink and emit
 typed `QueryProgressEvent` values for cache creation and refresh lifecycle
-updates.
+updates. ICRC complete account-history refreshes expose the same pattern.
+The sink supplied to that ICRC entry point must also be `Send` because its
+synchronous host adapter may move the caller-owned sink across its internal
+runtime boundary.
 
 Downstream libraries can ignore progress by using the ordinary entry points,
 record the events for their own UI, or render them at an executable boundary.
@@ -76,18 +79,19 @@ The examples below are covered by the `downstream_usage` integration test.
 
 ## Source Adapters
 
-The 0.6 public API exposes source adapters for host-only downstream crates
-that need to reuse `ic-query` report assembly with data that does not come
-from the built-in live adapters. The generic ICRC, subnet catalog, NNS
-registry, NNS inventory, NNS proposal, NNS topology, SNS
+The public API exposes source adapters for host-only downstream crates that
+need to reuse `ic-query` report assembly with data that does not come from the
+built-in live adapters. The generic ICRC, subnet catalog, NNS registry, NNS
+inventory, NNS proposal, NNS topology, SNS
 list/info/token/params, SNS proposal, and SNS neuron host APIs expose this
 pattern with `IcrcSource`, `build_icrc_*_report_with_source`,
 `SubnetCatalogSource`, subnet catalog `*_with_source` builders,
 `NnsRegistrySource`, the NNS inventory source traits, `NnsProposalSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
+`IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
 `SnsListSource`,
-`SnsTokenSource`, `SnsParamsSource`, `SnsProposalSource`,
-`SnsProposalsSource`, and `SnsNeuronsSource`.
+`SnsTokenSource`, `SnsParamsSource`, `SnsProposalSource`, `SnsProposalsSource`,
+and `SnsNeuronsSource`.
 
 The built-in implementations are deliberately less fragmented than the
 capability traits. `ic_query::nns::LiveNnsSource` implements every supported
@@ -97,11 +101,6 @@ respective live families. NNS capabilities share
 `ic_query::nns::NnsSourceRequest`; adding a new NNS report should normally add
 a capability implementation to that adapter instead of introducing another
 live-source type or another copy of the same provenance request.
-
-In the 0.5 line these source traits were intentionally internal; downstream
-crates used public request/report DTOs at their own boundary. In 0.6,
-downstream crates can use `*_with_source` builders directly when they need
-fixture, mirror, proxy, or pre-collected data sources.
 
 Use a custom source when a downstream tool needs to read from a mirror,
 fixture, proxy, or pre-collected snapshot while still using `ic-query` report
@@ -256,6 +255,49 @@ live call, and `load_or_refresh_stale_nns_subnet_topology` when a
 caller-supplied age policy authorizes refresh. These operations are distinct
 so a consumer cannot mistake read-through cache creation for freshness
 enforcement.
+
+## Complete ICRC Account History
+
+Native consumers can collect and cache one complete account history without
+shelling out to `icq`:
+
+```rust
+use std::path::Path;
+
+use ic_query::icrc::{
+    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
+    IcrcAccountTransactionCacheRequest, IcrcAccountTransactionRefreshRequest,
+    IcrcAccountTransactionRefreshReport, refresh_icrc_account_transaction_cache,
+};
+
+fn refresh_account_history(
+    project_root: &Path,
+    now_unix_secs: u64,
+    ledger_canister_id: &str,
+    account_owner: &str,
+) -> Result<IcrcAccountTransactionRefreshReport, ic_query::icrc::IcrcAccountTransactionError> {
+    let cache = IcrcAccountTransactionCacheRequest::new(
+        project_root,
+        "https://icp-api.io",
+        ledger_canister_id,
+        account_owner,
+    );
+    let request = IcrcAccountTransactionRefreshRequest::new(
+        cache,
+        now_unix_secs,
+        100,
+        DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
+    );
+    refresh_icrc_account_transaction_cache(&request)
+}
+```
+
+Use `load_cached_icrc_account_transactions` for cache-only access,
+`load_or_refresh_missing_icrc_account_transactions` when absence authorizes a
+live crawl, and `load_or_refresh_stale_icrc_account_transactions` only when a
+caller-supplied age policy authorizes it. Complete account snapshots prove
+index API exhaustion but carry `point_in_time_guaranteed: false`: the index
+interface does not expose a snapshot version that can be held across pages.
 
 ## Native Report Example
 

@@ -4,8 +4,9 @@
 //! Does not own: errors, source-layer data, subaccount validation, live transport, or rendering.
 //! Boundary: preserves the public request API and raw JSON report fields.
 
-use serde::Serialize;
+use serde::{Deserialize as SerdeDeserialize, Serialize};
 use serde_json::Value as JsonValue;
+use std::path::PathBuf;
 
 ///
 /// IcrcTokenRequest
@@ -131,13 +132,13 @@ impl IcrcAllowanceRequest {
 }
 
 ///
-/// IcrcAccountTransactionsRequest
+/// IcrcAccountTransactionPageRequest
 ///
-/// Request accepted by the generic ICRC index account-transaction report builder.
+/// Request accepted by the live ICRC index account-transaction page builder.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcAccountTransactionsRequest {
+pub struct IcrcAccountTransactionPageRequest {
     /// IC API endpoint used for ledger and index queries.
     pub source_endpoint: String,
     /// Collection time as Unix seconds.
@@ -151,12 +152,12 @@ pub struct IcrcAccountTransactionsRequest {
     /// Optional normalized 32-byte subaccount hex.
     pub subaccount_hex: Option<String>,
     /// Optional exclusive block-index cursor for backward pagination.
-    pub start: Option<u64>,
+    pub start: Option<String>,
     /// Maximum number of account transactions to request.
     pub limit: u32,
 }
 
-impl IcrcAccountTransactionsRequest {
+impl IcrcAccountTransactionPageRequest {
     /// Constructs an account-history request that discovers the index through the ledger.
     #[must_use]
     pub fn new(
@@ -194,8 +195,170 @@ impl IcrcAccountTransactionsRequest {
 
     /// Starts after the given transaction block index when paginating backward.
     #[must_use]
-    pub const fn with_start(mut self, start: u64) -> Self {
-        self.start = Some(start);
+    pub fn with_start(mut self, start: impl Into<String>) -> Self {
+        self.start = Some(start.into());
+        self
+    }
+}
+
+///
+/// IcrcAccountTransactionCacheRequest
+///
+/// Stable account-history cache identity independent of page and view options.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcrcAccountTransactionCacheRequest {
+    /// Project root containing the `.icq` cache directory.
+    pub icp_root: PathBuf,
+    /// IC API endpoint whose indexed history is cached.
+    pub source_endpoint: String,
+    /// Ledger canister whose account history is cached.
+    pub ledger_canister_id: String,
+    /// Account owner principal.
+    pub account_owner: String,
+    /// Optional normalized 32-byte subaccount hex.
+    pub subaccount_hex: Option<String>,
+}
+
+impl IcrcAccountTransactionCacheRequest {
+    /// Constructs a cache identity for the default subaccount.
+    #[must_use]
+    pub fn new(
+        icp_root: impl Into<PathBuf>,
+        source_endpoint: impl Into<String>,
+        ledger_canister_id: impl Into<String>,
+        account_owner: impl Into<String>,
+    ) -> Self {
+        Self {
+            icp_root: icp_root.into(),
+            source_endpoint: source_endpoint.into(),
+            ledger_canister_id: ledger_canister_id.into(),
+            account_owner: account_owner.into(),
+            subaccount_hex: None,
+        }
+    }
+
+    /// Selects a 32-byte ICRC subaccount encoded as hex.
+    #[must_use]
+    pub fn with_subaccount_hex(mut self, subaccount_hex: impl Into<String>) -> Self {
+        self.subaccount_hex = Some(subaccount_hex.into());
+        self
+    }
+}
+
+///
+/// IcrcAccountTransactionRefreshRequest
+///
+/// Request for a forced complete account-history refresh.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcrcAccountTransactionRefreshRequest {
+    /// Stable cache identity.
+    pub cache: IcrcAccountTransactionCacheRequest,
+    /// Collection start time as Unix seconds.
+    pub now_unix_secs: u64,
+    /// Optional explicit index canister; otherwise ICRC-106 discovery is used.
+    pub index_canister_id: Option<String>,
+    /// Maximum transactions requested per index page.
+    pub page_size: u32,
+    /// Optional diagnostic bound that fails rather than publishing a partial cache.
+    pub max_pages: Option<u32>,
+    /// Age after which an abandoned refresh lock is reported as stale.
+    pub lock_stale_after_seconds: u64,
+}
+
+impl IcrcAccountTransactionRefreshRequest {
+    /// Constructs a complete refresh request.
+    #[must_use]
+    pub const fn new(
+        cache: IcrcAccountTransactionCacheRequest,
+        now_unix_secs: u64,
+        page_size: u32,
+        lock_stale_after_seconds: u64,
+    ) -> Self {
+        Self {
+            cache,
+            now_unix_secs,
+            index_canister_id: None,
+            page_size,
+            max_pages: None,
+            lock_stale_after_seconds,
+        }
+    }
+
+    /// Uses an explicit index canister instead of ICRC-106 discovery.
+    #[must_use]
+    pub fn with_index_canister_id(mut self, index_canister_id: impl Into<String>) -> Self {
+        self.index_canister_id = Some(index_canister_id.into());
+        self
+    }
+
+    /// Bounds pages for diagnostics; reaching the bound never publishes a cache.
+    #[must_use]
+    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
+        self.max_pages = max_pages;
+        self
+    }
+}
+
+///
+/// IcrcAccountTransactionSort
+///
+/// Supported cached account-history ordering.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IcrcAccountTransactionSort {
+    /// Highest transaction id first.
+    Newest,
+    /// Lowest transaction id first.
+    Oldest,
+}
+
+impl IcrcAccountTransactionSort {
+    /// Stable JSON/text name for this ordering.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Newest => "newest",
+            Self::Oldest => "oldest",
+        }
+    }
+}
+
+///
+/// IcrcAccountTransactionListRequest
+///
+/// Cache-only account-history list view.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcrcAccountTransactionListRequest {
+    /// Stable cache identity.
+    pub cache: IcrcAccountTransactionCacheRequest,
+    /// Maximum cached rows returned by this view.
+    pub limit: u32,
+    /// Requested cached-row ordering.
+    pub sort: IcrcAccountTransactionSort,
+}
+
+impl IcrcAccountTransactionListRequest {
+    /// Constructs a newest-first cached list view.
+    #[must_use]
+    pub const fn new(cache: IcrcAccountTransactionCacheRequest, limit: u32) -> Self {
+        Self {
+            cache,
+            limit,
+            sort: IcrcAccountTransactionSort::Newest,
+        }
+    }
+
+    /// Selects cached-row ordering.
+    #[must_use]
+    pub const fn with_sort(mut self, sort: IcrcAccountTransactionSort) -> Self {
+        self.sort = sort;
         self
     }
 }
@@ -458,13 +621,13 @@ pub struct IcrcAllowanceReport {
 }
 
 ///
-/// IcrcAccountTransactionsReport
+/// IcrcAccountTransactionPageReport
 ///
 /// Serializable report for a backward page of ICRC index account transactions.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcrcAccountTransactionsReport {
+pub struct IcrcAccountTransactionPageReport {
     /// Report schema version.
     pub schema_version: u32,
     /// Ledger canister whose transactions were indexed.
@@ -497,6 +660,272 @@ pub struct IcrcAccountTransactionsReport {
     pub fetched_by: String,
     /// Transactions returned by the index in its native page order.
     pub transactions: Vec<IcrcAccountTransactionRow>,
+}
+
+///
+/// IcrcAccountTransactionCompleteness
+///
+/// Evidence that a persisted account-history snapshot exhausted the index API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+pub struct IcrcAccountTransactionCompleteness {
+    /// Stable completeness classification; complete snapshots use `api_exhausted`.
+    pub status: String,
+    /// Maximum transactions requested per source page.
+    pub page_size: u32,
+    /// Number of source pages collected.
+    pub page_count: u32,
+    /// Number of unique persisted transaction rows.
+    pub row_count: usize,
+    /// Whether the source guarantees every page belongs to one point in time.
+    pub point_in_time_guaranteed: bool,
+}
+
+///
+/// IcrcAccountTransactionSnapshot
+///
+/// Complete persisted account-history snapshot collected by exhausting the index API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+pub struct IcrcAccountTransactionSnapshot {
+    /// Cache schema version.
+    pub schema_version: u32,
+    /// IC API endpoint used for ledger and index calls.
+    pub source_endpoint: String,
+    /// Collection start timestamp.
+    pub collection_started_at: String,
+    /// Collection completion timestamp.
+    pub collection_completed_at: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Ledger canister whose transactions were indexed.
+    pub ledger_canister_id: String,
+    /// Verified index canister used for every page.
+    pub index_canister_id: String,
+    /// Queried account owner principal.
+    pub account_owner: String,
+    /// Queried subaccount as normalized hex.
+    pub subaccount_hex: Option<String>,
+    /// Account balance reported by the first index page.
+    pub balance: String,
+    /// Ledger token symbol used for text rendering.
+    pub token_symbol: String,
+    /// Ledger token decimals used for text rendering.
+    pub decimals: u8,
+    /// Highest collected transaction id.
+    pub newest_transaction_id: Option<String>,
+    /// Lowest collected transaction id.
+    pub oldest_transaction_id: Option<String>,
+    /// Complete-collection evidence.
+    pub completeness: IcrcAccountTransactionCompleteness,
+    /// Canonical newest-first account transactions.
+    pub transactions: Vec<IcrcAccountTransactionRow>,
+}
+
+///
+/// IcrcAccountTransactionRefreshReport
+///
+/// Serializable forced-refresh outcome for one complete account-history cache.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionRefreshReport {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Ledger canister whose account history was collected.
+    pub ledger_canister_id: String,
+    /// Verified index canister used for every page.
+    pub index_canister_id: String,
+    /// Queried account owner principal.
+    pub account_owner: String,
+    /// Queried subaccount as normalized hex.
+    pub subaccount_hex: Option<String>,
+    /// Number of unique transactions published.
+    pub transaction_count: usize,
+    /// Highest published transaction id.
+    pub newest_transaction_id: Option<String>,
+    /// Lowest published transaction id.
+    pub oldest_transaction_id: Option<String>,
+    /// Maximum transactions requested per source page.
+    pub page_size: u32,
+    /// Number of source pages collected.
+    pub page_count: u32,
+    /// Whether the source guarantees one point-in-time snapshot.
+    pub point_in_time_guaranteed: bool,
+    /// Whether a prior complete cache existed.
+    pub replaced_existing_cache: bool,
+    /// Non-fatal error encountered finalizing the refresh-attempt sidecar.
+    pub attempt_finalization_error: Option<String>,
+    /// Collection start timestamp.
+    pub collection_started_at: String,
+    /// Collection completion timestamp.
+    pub collection_completed_at: String,
+    /// IC API endpoint used for ledger and index calls.
+    pub source_endpoint: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Published complete-cache path.
+    pub cache_path: String,
+    /// Refresh-attempt sidecar path.
+    pub refresh_attempt_path: String,
+    /// Refresh lock path.
+    pub refresh_lock_path: String,
+}
+
+///
+/// IcrcAccountTransactionListReport
+///
+/// Serializable cache-only view over a complete account-history snapshot.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionListReport {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Ledger canister whose cached history is shown.
+    pub ledger_canister_id: String,
+    /// Verified index canister used to collect the cache.
+    pub index_canister_id: String,
+    /// Cached account owner principal.
+    pub account_owner: String,
+    /// Cached subaccount as normalized hex.
+    pub subaccount_hex: Option<String>,
+    /// Maximum cached rows requested by this view.
+    pub requested_limit: u32,
+    /// Stable requested ordering name.
+    pub sort: String,
+    /// Total rows in the complete cache.
+    pub total_transaction_count: usize,
+    /// Rows returned by this view.
+    pub returned_transaction_count: usize,
+    /// Highest transaction id in the complete cache.
+    pub newest_transaction_id: Option<String>,
+    /// Lowest transaction id in the complete cache.
+    pub oldest_transaction_id: Option<String>,
+    /// Account balance captured from the first index page.
+    pub balance: String,
+    /// Ledger token symbol used for text rendering.
+    pub token_symbol: String,
+    /// Ledger token decimals used for text rendering.
+    pub decimals: u8,
+    /// Complete collection start timestamp.
+    pub collection_started_at: String,
+    /// Complete collection finish timestamp.
+    pub collection_completed_at: String,
+    /// IC API endpoint represented by the cache.
+    pub source_endpoint: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Whether source exhaustion was proven.
+    pub complete: bool,
+    /// Whether the source guaranteed one point-in-time snapshot.
+    pub point_in_time_guaranteed: bool,
+    /// Maximum transactions requested per source page.
+    pub page_size: u32,
+    /// Number of source pages collected.
+    pub page_count: u32,
+    /// Complete-cache path read by this view.
+    pub cache_path: String,
+    /// Selected cached rows in requested order.
+    pub transactions: Vec<IcrcAccountTransactionRow>,
+}
+
+///
+/// IcrcAccountTransactionCacheStatusReport
+///
+/// Serializable local cache and latest-refresh status.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionCacheStatusReport {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Ledger canister in the requested cache identity.
+    pub ledger_canister_id: String,
+    /// Account owner in the requested cache identity.
+    pub account_owner: String,
+    /// Subaccount in the requested cache identity.
+    pub subaccount_hex: Option<String>,
+    /// IC API endpoint in the requested cache identity.
+    pub source_endpoint: String,
+    /// Whether a cache file exists at the expected path.
+    pub found: bool,
+    /// Validation summary when a cache file exists.
+    pub cache: Option<IcrcAccountTransactionCacheSummary>,
+    /// Expected complete-cache path.
+    pub expected_cache_path: String,
+    /// Refresh-attempt sidecar path.
+    pub refresh_attempt_path: String,
+    /// Refresh lock path.
+    pub refresh_lock_path: String,
+    /// Latest refresh-attempt state when present.
+    pub latest_attempt: Option<IcrcAccountTransactionRefreshAttemptStatus>,
+}
+
+///
+/// IcrcAccountTransactionCacheSummary
+///
+/// Serializable validation summary for one complete account-history cache.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionCacheSummary {
+    /// Stable cache validation status.
+    pub cache_status: String,
+    /// Validation error when the existing cache is invalid.
+    pub cache_error: Option<String>,
+    /// Verified index canister when the cache is valid.
+    pub index_canister_id: Option<String>,
+    /// Number of cached transaction rows.
+    pub transaction_count: usize,
+    /// Highest cached transaction id.
+    pub newest_transaction_id: Option<String>,
+    /// Lowest cached transaction id.
+    pub oldest_transaction_id: Option<String>,
+    /// Maximum transactions requested per source page.
+    pub page_size: u32,
+    /// Number of source pages collected.
+    pub page_count: u32,
+    /// Whether source exhaustion was proven.
+    pub complete: bool,
+    /// Whether the source guaranteed one point-in-time snapshot.
+    pub point_in_time_guaranteed: bool,
+    /// Complete collection start timestamp.
+    pub collection_started_at: String,
+    /// Complete collection finish timestamp.
+    pub collection_completed_at: String,
+    /// Complete-cache path.
+    pub cache_path: String,
+}
+
+///
+/// IcrcAccountTransactionRefreshAttemptStatus
+///
+/// Serializable status of the latest complete-history refresh attempt.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionRefreshAttemptStatus {
+    /// Stable attempt lifecycle status.
+    pub status: String,
+    /// Attempt start timestamp.
+    pub started_at: String,
+    /// Last attempt update timestamp.
+    pub updated_at: String,
+    /// Explicit or resolved index canister recorded by the attempt.
+    pub index_canister_id: Option<String>,
+    /// Maximum transactions requested per source page.
+    pub page_size: u32,
+    /// Successfully collected pages.
+    pub pages_fetched: u32,
+    /// Unique rows collected before the latest update.
+    pub rows_fetched: usize,
+    /// Last exclusive cursor when present.
+    pub last_cursor: Option<String>,
+    /// Final failure text when the attempt failed.
+    pub last_error: Option<String>,
 }
 
 ///
@@ -655,7 +1084,7 @@ pub struct IcrcTokenMetadataRow {
 /// Serializable ICRC account identity used in account-transaction rows.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct IcrcAccountRow {
     /// ICRC account owner principal when the index uses structured accounts.
     pub owner: Option<String>,
@@ -671,7 +1100,7 @@ pub struct IcrcAccountRow {
 /// Serializable projected and lossless JSON representation of one index transaction.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct IcrcAccountTransactionRow {
     /// Ledger block index of the transaction.
     pub id: String,

@@ -5,7 +5,8 @@
 //! Boundary: preserves one public error surface for reusable ICRC query behavior.
 
 #[cfg(feature = "host")]
-use crate::runtime::RuntimeError;
+use crate::{HostCacheError, runtime::RuntimeError};
+use std::path::PathBuf;
 use thiserror::Error as ThisError;
 
 ///
@@ -52,18 +53,54 @@ pub enum IcrcError {
 }
 
 ///
-/// IcrcAccountTransactionsError
+/// IcrcAccountTransactionError
 ///
 /// Error surfaced while resolving and querying an ICRC account index.
 ///
 
 #[derive(Debug, ThisError)]
-pub enum IcrcAccountTransactionsError {
-    /// The caller requested an empty page.
-    #[error("invalid ICRC account transaction limit {limit}; expected at least 1")]
-    InvalidLimit {
+pub enum IcrcAccountTransactionError {
+    /// A cache identity omitted its endpoint.
+    #[error("invalid ICRC account transaction source endpoint {value:?}: {reason}")]
+    InvalidSourceEndpoint {
+        /// Rejected endpoint.
+        value: String,
+        /// Validation failure.
+        reason: String,
+    },
+
+    /// A page or refresh requested an unsupported page size.
+    #[error(
+        "invalid ICRC account transaction page size {page_size}; expected between 1 and {max_page_size}"
+    )]
+    InvalidPageSize {
         /// Rejected page size.
+        page_size: u32,
+        /// Largest supported page size.
+        max_page_size: u32,
+    },
+
+    /// A cache view requested no rows.
+    #[error("invalid ICRC account transaction list limit {limit}; expected at least 1")]
+    InvalidListLimit {
+        /// Rejected view limit.
         limit: u32,
+    },
+
+    /// A diagnostic refresh bound cannot prove any collection progress.
+    #[error("invalid ICRC account transaction max pages {max_pages}; expected at least 1")]
+    InvalidMaxPages {
+        /// Rejected page bound.
+        max_pages: u32,
+    },
+
+    /// A caller supplied a non-decimal or otherwise invalid candid Nat cursor.
+    #[error("invalid ICRC account transaction cursor {value:?}: {reason}")]
+    InvalidCursor {
+        /// Rejected cursor text.
+        value: String,
+        /// Validation failure.
+        reason: String,
     },
 
     /// A ledger, index, principal, Candid, or transport operation failed.
@@ -112,4 +149,61 @@ pub enum IcrcAccountTransactionsError {
         /// Index-provided error message.
         message: String,
     },
+
+    /// Complete collection stopped before the source API was exhausted.
+    #[error(
+        "incomplete ICRC account transaction collection after {pages_fetched} page(s) and {rows_fetched} row(s): {reason}"
+    )]
+    IncompleteCollection {
+        /// Successfully fetched pages.
+        pages_fetched: u32,
+        /// Unique rows retained.
+        rows_fetched: usize,
+        /// Last exclusive cursor when present.
+        last_cursor: Option<String>,
+        /// Reason the collection could not be proven complete.
+        reason: String,
+    },
+
+    /// A page fetch failed after collection had begun.
+    #[error(
+        "ICRC account transaction collection failed after {pages_fetched} page(s) and {rows_fetched} row(s): {source}"
+    )]
+    CollectionPage {
+        /// Successfully fetched pages before the failure.
+        pages_fetched: u32,
+        /// Unique rows retained before the failure.
+        rows_fetched: usize,
+        /// Last exclusive cursor when present.
+        last_cursor: Option<String>,
+        /// Underlying typed page failure.
+        #[source]
+        source: Box<Self>,
+    },
+
+    /// A complete cache failed semantic validation.
+    #[error("invalid ICRC account transaction cache at {}: {reason}", path.display())]
+    InvalidCache {
+        /// Cache path.
+        path: PathBuf,
+        /// Validation failure.
+        reason: String,
+    },
+
+    /// A refresh-attempt sidecar failed semantic validation.
+    #[error(
+        "invalid ICRC account transaction refresh attempt at {}: {reason}",
+        path.display()
+    )]
+    InvalidRefreshAttempt {
+        /// Attempt sidecar path.
+        path: PathBuf,
+        /// Validation failure.
+        reason: String,
+    },
+
+    /// A cache load, lock, or atomic-write operation failed.
+    #[cfg(feature = "host")]
+    #[error(transparent)]
+    Cache(#[from] HostCacheError),
 }

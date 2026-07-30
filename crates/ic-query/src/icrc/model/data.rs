@@ -9,6 +9,7 @@ use super::contracts::{
     IcrcBlockTypeRow, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcTokenMetadataRow,
     IcrcTokenStandardRow, IcrcTransactionBlockRow,
 };
+use std::path::PathBuf;
 
 ///
 /// IcrcTokenData
@@ -57,13 +58,13 @@ pub struct IcrcAllowanceData {
 }
 
 ///
-/// IcrcAccountTransactionsData
+/// IcrcAccountTransactionPageData
 ///
 /// Source-layer account-history page returned by an ICRC index canister.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcAccountTransactionsData {
+pub struct IcrcAccountTransactionPageData {
     /// Index canister that answered the query.
     pub index_canister_id: String,
     /// Account balance reported by the index.
@@ -78,6 +79,44 @@ pub struct IcrcAccountTransactionsData {
     pub decimals: u8,
     /// Account transactions in index response order.
     pub transactions: Vec<IcrcAccountTransactionRow>,
+}
+
+///
+/// IcrcAccountTransactionCollectionData
+///
+/// Complete account history returned after a source exhausts one verified index.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcrcAccountTransactionCollectionData {
+    /// Verified index canister used for every page.
+    pub index_canister_id: String,
+    /// Balance returned by the first page.
+    pub balance: String,
+    /// Ledger token symbol.
+    pub token_symbol: String,
+    /// Ledger token decimals.
+    pub decimals: u8,
+    /// Canonical newest-first transaction rows.
+    pub transactions: Vec<IcrcAccountTransactionRow>,
+    /// Number of index pages fetched.
+    pub page_count: u32,
+    /// Last cursor observed while exhausting the index.
+    pub last_cursor: Option<String>,
+}
+
+///
+/// CachedIcrcAccountTransactionSnapshot
+///
+/// Validated complete account-history snapshot paired with its local path.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CachedIcrcAccountTransactionSnapshot {
+    /// Local cache path.
+    pub path: PathBuf,
+    /// Validated complete snapshot.
+    pub snapshot: super::contracts::IcrcAccountTransactionSnapshot,
 }
 
 ///

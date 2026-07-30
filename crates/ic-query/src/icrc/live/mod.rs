@@ -4,16 +4,17 @@
 //! Does not own: command parsing, text rendering, or cache behavior.
 //! Boundary: keeps report assembly, source adaptation, and host calls in separate owners.
 
-mod account_transactions;
+pub(in crate::icrc) mod account_transactions;
 mod build;
 mod fetch;
 mod source;
 mod tip_certificate;
 
 pub use build::{
-    build_icrc_account_transactions_report, build_icrc_account_transactions_report_with_source,
-    build_icrc_allowance_report, build_icrc_allowance_report_with_source,
-    build_icrc_archives_report, build_icrc_archives_report_with_source, build_icrc_balance_report,
+    build_icrc_account_transaction_page_report,
+    build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
+    build_icrc_allowance_report_with_source, build_icrc_archives_report,
+    build_icrc_archives_report_with_source, build_icrc_balance_report,
     build_icrc_balance_report_with_source, build_icrc_block_types_report,
     build_icrc_block_types_report_with_source, build_icrc_capabilities_report,
     build_icrc_capabilities_report_with_source, build_icrc_index_report,
@@ -22,14 +23,17 @@ pub use build::{
     build_icrc_token_report_with_source, build_icrc_transactions_report,
     build_icrc_transactions_report_with_source,
 };
-pub use source::{IcrcAccountTransactionsSource, IcrcSource, LiveIcrcSource};
+pub use source::{
+    IcrcAccountTransactionCollectionSource, IcrcAccountTransactionPageSource, IcrcSource,
+    LiveIcrcSource,
+};
 
 use crate::icrc::{ledger::IcrcLedgerError, model::IcrcError};
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION: u32 = 1;
-pub(in crate::icrc) const ICRC_ACCOUNT_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_INDEX_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -37,6 +41,9 @@ pub(in crate::icrc) const ICRC_ARCHIVES_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
+
+/// Largest account-history page accepted by the built-in index adapter.
+pub const ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE: u32 = 100;
 
 impl IcrcLedgerError for IcrcError {
     fn agent_build(endpoint: &str, reason: String) -> Self {

@@ -11,8 +11,9 @@ pub(in crate::icrc) mod test_support;
 
 pub use dispatch::run;
 use options::{
-    IcrcAccountTransactionsOptions, IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions,
-    IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
+    IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
+    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 
 use crate::cli::{
@@ -20,7 +21,8 @@ use crate::cli::{
         flag_arg, passthrough_subcommand, render_help, required_string, required_typed, value_arg,
     },
     common::{
-        COLLECTION_MODE_LIVE, OutputFormat, collection_help, format_arg, source_endpoint_arg,
+        COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_FORCE_REFRESH, COLLECTION_MODE_LIVE,
+        OutputFormat, collection_help, format_arg, source_endpoint_arg,
     },
 };
 use candid::Principal;
@@ -28,10 +30,13 @@ use clap::{
     ArgMatches, Command as ClapCommand,
     builder::{RangedU64ValueParser, ValueParser},
 };
-use ic_query::icrc::{DEFAULT_ICRC_SOURCE_ENDPOINT, normalize_subaccount_hex};
+use ic_query::icrc::{
+    DEFAULT_ICRC_SOURCE_ENDPOINT, ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, normalize_subaccount_hex,
+};
 
 const DEFAULT_ICRC_TRANSACTIONS_LIMIT: &str = "25";
 const MAX_ICRC_TRANSACTIONS_LIMIT: u64 = 100;
+const DEFAULT_ICRC_ACCOUNT_TRANSACTION_PAGE_SIZE: &str = "100";
 const LEDGER_CANISTER_ID_ARG: &str = "ledger-canister-id";
 const INDEX_CANISTER_ID_ARG: &str = "index-canister-id";
 const PRINCIPAL_ARG: &str = "principal";
@@ -42,6 +47,9 @@ const OWNER_SUBACCOUNT_ARG: &str = "owner-subaccount";
 const SPENDER_SUBACCOUNT_ARG: &str = "spender-subaccount";
 const START_ARG: &str = "start";
 const LIMIT_ARG: &str = "limit";
+const PAGE_SIZE_ARG: &str = "page-size";
+const MAX_PAGES_ARG: &str = "max-pages";
+const SORT_ARG: &str = "sort";
 const FOLLOW_ARCHIVES_ARG: &str = "follow-archives";
 const FROM_CANISTER_ID_ARG: &str = "from";
 const FORMAT_ARG: &str = "format";
@@ -106,8 +114,8 @@ fn icrc_account_command() -> ClapCommand {
             ClapCommand::new("allowance").about("Show a generic ICRC account allowance"),
         ))
         .subcommand(passthrough_subcommand(
-            ClapCommand::new("transactions")
-                .about("Show an ICRC account transaction-history page from its index"),
+            ClapCommand::new("transaction")
+                .about("Inspect live pages and complete cached account transaction history"),
         ))
 }
 
@@ -176,21 +184,35 @@ fn icrc_allowance_command() -> ClapCommand {
     with_common_icrc_options(command)
 }
 
-fn icrc_account_transactions_command() -> ClapCommand {
-    let command = ClapCommand::new("transactions")
-        .bin_name("icq icrc account transactions")
+fn icrc_account_transaction_command() -> ClapCommand {
+    ClapCommand::new("transaction")
+        .bin_name("icq icrc account transaction")
+        .about("Inspect live pages and complete cached account transaction history")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("page").about("Fetch one live backward account-history page"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("list").about("List rows from a complete local account cache"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("refresh").about("Refresh a complete local account cache"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("cache").about("Inspect local account-history cache state"),
+        ))
+}
+
+fn icrc_account_transaction_page_command() -> ClapCommand {
+    let command = ClapCommand::new("page")
+        .bin_name("icq icrc account transaction page")
         .about("Show an ICRC account transaction-history page from its index")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 100 --limit 25 --format json\n  icq icrc account transactions ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai",
+            "Examples:\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 100 --limit 25 --format json\n  icq icrc account transaction page ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai",
         ))
         .disable_help_flag(true)
-        .arg(ledger_canister_id_arg())
-        .arg(principal_arg(PRINCIPAL_ARG, "Account owner principal"))
-        .arg(subaccount_arg(
-            SUBACCOUNT_ARG,
-            "Optional 32-byte ICRC subaccount as hex",
-        ))
+        .args(account_transaction_target_args())
         .arg(
             value_arg(INDEX_CANISTER_ID_ARG)
                 .long(INDEX_CANISTER_ID_ARG)
@@ -202,7 +224,7 @@ fn icrc_account_transactions_command() -> ClapCommand {
             value_arg(START_ARG)
                 .long(START_ARG)
                 .value_name("block-index")
-                .value_parser(clap::value_parser!(u64))
+                .value_parser(account_transaction_cursor_value_parser())
                 .help("Exclusive transaction id cursor returned as next_start by the prior page"),
         )
         .arg(
@@ -215,6 +237,95 @@ fn icrc_account_transactions_command() -> ClapCommand {
                 )
                 .help("Maximum account transactions to request from the index"),
         );
+    with_common_icrc_options(command)
+}
+
+fn icrc_account_transaction_list_command() -> ClapCommand {
+    let command = ClapCommand::new("list")
+        .bin_name("icq icrc account transaction list")
+        .about("List rows from a complete local ICRC account-history cache")
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            "Examples:\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --sort oldest --limit 100 --format json",
+        ))
+        .disable_help_flag(true)
+        .args(account_transaction_target_args())
+        .arg(
+            value_arg(LIMIT_ARG)
+                .long(LIMIT_ARG)
+                .value_name("count")
+                .default_value(DEFAULT_ICRC_TRANSACTIONS_LIMIT)
+                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+                .help("Maximum cached account transactions to return"),
+        )
+        .arg(
+            value_arg(SORT_ARG)
+                .long(SORT_ARG)
+                .value_name("newest|oldest")
+                .default_value("newest")
+                .value_parser(["newest", "oldest"])
+                .help("Cached transaction ordering"),
+        );
+    with_common_icrc_options(command)
+}
+
+fn icrc_account_transaction_refresh_command() -> ClapCommand {
+    let command = ClapCommand::new("refresh")
+        .bin_name("icq icrc account transaction refresh")
+        .about("Fetch and atomically cache complete ICRC account history")
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            "Examples:\n  icq icrc account transaction refresh mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction refresh ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai --page-size 100 --format json",
+        ))
+        .disable_help_flag(true)
+        .args(account_transaction_target_args())
+        .arg(
+            value_arg(INDEX_CANISTER_ID_ARG)
+                .long(INDEX_CANISTER_ID_ARG)
+                .value_name("canister-id")
+                .value_parser(principal_text_value_parser())
+                .help("Explicit index canister; otherwise discover it from the ledger via ICRC-106"),
+        )
+        .arg(
+            value_arg(PAGE_SIZE_ARG)
+                .long(PAGE_SIZE_ARG)
+                .value_name("count")
+                .default_value(DEFAULT_ICRC_ACCOUNT_TRANSACTION_PAGE_SIZE)
+                .value_parser(RangedU64ValueParser::<u32>::new().range(
+                    1..=u64::from(ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE),
+                ))
+                .help("Transactions requested per index page"),
+        )
+        .arg(
+            value_arg(MAX_PAGES_ARG)
+                .long(MAX_PAGES_ARG)
+                .value_name("count")
+                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+                .help("Diagnostic page bound; reaching it fails without replacing the cache"),
+        );
+    with_common_icrc_options(command)
+}
+
+fn icrc_account_transaction_cache_command() -> ClapCommand {
+    ClapCommand::new("cache")
+        .bin_name("icq icrc account transaction cache")
+        .about("Inspect local complete account-history cache state")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("status").about("Show cache and latest refresh-attempt status"),
+        ))
+}
+
+fn icrc_account_transaction_cache_status_command() -> ClapCommand {
+    let command = ClapCommand::new("status")
+        .bin_name("icq icrc account transaction cache status")
+        .about("Show local account-history cache and latest refresh-attempt status")
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            "Examples:\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --format json",
+        ))
+        .disable_help_flag(true)
+        .args(account_transaction_target_args());
     with_common_icrc_options(command)
 }
 
@@ -344,8 +455,28 @@ fn icrc_allowance_usage() -> String {
     render_help(icrc_allowance_command())
 }
 
-fn icrc_account_transactions_usage() -> String {
-    render_help(icrc_account_transactions_command())
+fn icrc_account_transaction_usage() -> String {
+    render_help(icrc_account_transaction_command())
+}
+
+fn icrc_account_transaction_page_usage() -> String {
+    render_help(icrc_account_transaction_page_command())
+}
+
+fn icrc_account_transaction_list_usage() -> String {
+    render_help(icrc_account_transaction_list_command())
+}
+
+fn icrc_account_transaction_refresh_usage() -> String {
+    render_help(icrc_account_transaction_refresh_command())
+}
+
+fn icrc_account_transaction_cache_usage() -> String {
+    render_help(icrc_account_transaction_cache_command())
+}
+
+fn icrc_account_transaction_cache_status_usage() -> String {
+    render_help(icrc_account_transaction_cache_status_command())
 }
 
 fn icrc_index_usage() -> String {
@@ -370,6 +501,14 @@ fn icrc_tip_certificate_usage() -> String {
 
 fn ledger_canister_id_arg() -> clap::Arg {
     principal_arg(LEDGER_CANISTER_ID_ARG, "ICRC ledger canister principal")
+}
+
+fn account_transaction_target_args() -> [clap::Arg; 3] {
+    [
+        ledger_canister_id_arg(),
+        principal_arg(PRINCIPAL_ARG, "Account owner principal"),
+        subaccount_arg(SUBACCOUNT_ARG, "Optional 32-byte ICRC subaccount as hex"),
+    ]
 }
 
 fn with_common_icrc_options(command: ClapCommand) -> ClapCommand {
@@ -422,4 +561,16 @@ fn principal_text_value_parser() -> ValueParser {
 
 fn subaccount_hex_value_parser() -> ValueParser {
     ValueParser::new(|value: &str| normalize_subaccount_hex(value).map_err(|err| err.to_string()))
+}
+
+fn account_transaction_cursor_value_parser() -> ValueParser {
+    ValueParser::new(|value: &str| {
+        if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err("expected unsigned decimal transaction id".to_string());
+        }
+        value
+            .parse::<candid::Nat>()
+            .map(|cursor| cursor.0.to_str_radix(10))
+            .map_err(|error| error.to_string())
+    })
 }

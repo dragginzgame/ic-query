@@ -58,7 +58,11 @@ without creating a concrete live-source type for every report.
   canister id, verifies the index's ledger identity, and paginates backward
   with an exclusive transaction-id cursor. The same capability decodes the
   official generic index-ng and deployed ICP index interfaces without
-  conflating structured ICRC accounts with ICP account identifiers.
+  conflating structured ICRC accounts with ICP account identifiers. Complete
+  collection resolves and verifies that context once, exhausts the same index,
+  and atomically publishes one endpoint/ledger/account snapshot. It records
+  API exhaustion but no point-in-time guarantee because the index exposes no
+  snapshot version.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -73,7 +77,6 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Complete ICRC account-history caching | Extend the focused ICRC capability while preserving ledger/index identity separately |
 | 1 | Fuller SNS neuron state, SNS root inventory, and health | Extend the relevant SNS capability traits on `LiveSnsSource` |
 | 1 | NNS neuron, economics, rewards, and governance metrics | Add focused NNS capability traits on `LiveNnsSource` |
 | 2 | Canister, boundary-node, replica-version, and network metrics | Add an official Dashboard family adapter with API endpoint/timestamp provenance |

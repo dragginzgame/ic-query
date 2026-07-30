@@ -1,12 +1,17 @@
 use super::commands::test_support::{
-    account_transactions_usage, account_usage, allowance_usage, archives_usage, balance_usage,
-    block_types_usage, capabilities_usage, index_usage, ledger_usage,
-    parse_account_transactions_options, parse_allowance_options, parse_archives_options,
-    parse_balance_options, parse_block_types_options, parse_capabilities_options,
-    parse_index_options, parse_tip_certificate_options, parse_token_options,
-    parse_transactions_options, root_usage, tip_certificate_usage, token_usage, transactions_usage,
+    account_transaction_cache_status_usage, account_transaction_cache_usage,
+    account_transaction_list_usage, account_transaction_page_usage,
+    account_transaction_refresh_usage, account_transaction_usage, account_usage, allowance_usage,
+    archives_usage, balance_usage, block_types_usage, capabilities_usage, index_usage,
+    ledger_usage, parse_account_transaction_cache_options, parse_account_transaction_list_options,
+    parse_account_transaction_page_options, parse_account_transaction_refresh_options,
+    parse_allowance_options, parse_archives_options, parse_balance_options,
+    parse_block_types_options, parse_capabilities_options, parse_index_options,
+    parse_tip_certificate_options, parse_token_options, parse_transactions_options, root_usage,
+    tip_certificate_usage, token_usage, transactions_usage,
 };
 use crate::cli::common::OutputFormat;
+use ic_query::icrc::IcrcAccountTransactionSort;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const INDEX_CANISTER_ID: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
@@ -73,8 +78,8 @@ fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
 }
 
 #[test]
-fn account_transactions_options_parse_through_clap() {
-    let options = parse_account_transactions_options(&[
+fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
+    let options = parse_account_transaction_page_options(&[
         LEDGER_CANISTER_ID,
         ACCOUNT_OWNER,
         "--index-canister-id",
@@ -82,7 +87,7 @@ fn account_transactions_options_parse_through_clap() {
         "--subaccount",
         SUBACCOUNT,
         "--start",
-        "17",
+        "18446744073709551616",
         "--limit",
         "42",
         "--format",
@@ -98,10 +103,60 @@ fn account_transactions_options_parse_through_clap() {
     );
     assert_eq!(options.account_owner, ACCOUNT_OWNER);
     assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
-    assert_eq!(options.start, Some(17));
+    assert_eq!(options.start.as_deref(), Some("18446744073709551616"));
     assert_eq!(options.limit, 42);
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+}
+
+#[test]
+fn account_transaction_list_options_parse_cache_view() {
+    let options = parse_account_transaction_list_options(&[
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        "--limit",
+        "250",
+        "--sort",
+        "oldest",
+    ]);
+
+    assert_eq!(options.limit, 250);
+    assert_eq!(options.sort, IcrcAccountTransactionSort::Oldest);
+}
+
+#[test]
+fn account_transaction_refresh_options_parse_collection_bounds() {
+    let options = parse_account_transaction_refresh_options(&[
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        "--index-canister-id",
+        INDEX_CANISTER_ID,
+        "--page-size",
+        "100",
+        "--max-pages",
+        "20",
+    ]);
+
+    assert_eq!(options.page_size, 100);
+    assert_eq!(options.max_pages, Some(20));
+    assert_eq!(
+        options.index_canister_id.as_deref(),
+        Some(INDEX_CANISTER_ID)
+    );
+}
+
+#[test]
+fn account_transaction_cache_options_parse_identity() {
+    let options = parse_account_transaction_cache_options(&[
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        "--subaccount",
+        SUBACCOUNT,
+    ]);
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.account_owner, ACCOUNT_OWNER);
+    assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
 }
 
 #[test]
@@ -168,12 +223,20 @@ fn usage_mentions_icrc_command_surface() {
         (ledger_usage(), "transactions"),
         (account_usage(), "balance"),
         (account_usage(), "allowance"),
-        (account_usage(), "transactions"),
+        (account_usage(), "transaction"),
         (token_usage(), "ledger-canister-id"),
         (capabilities_usage(), "ledger-canister-id"),
         (balance_usage(), "principal"),
         (allowance_usage(), "spender-principal"),
-        (account_transactions_usage(), "--index-canister-id"),
+        (account_transaction_usage(), "refresh"),
+        (account_transaction_page_usage(), "--index-canister-id"),
+        (account_transaction_list_usage(), "--sort"),
+        (account_transaction_refresh_usage(), "--page-size"),
+        (account_transaction_cache_usage(), "status"),
+        (
+            account_transaction_cache_status_usage(),
+            "ledger-canister-id",
+        ),
         (index_usage(), "ledger-canister-id"),
         (transactions_usage(), "follow-archives"),
         (block_types_usage(), "ledger-canister-id"),
@@ -185,14 +248,15 @@ fn usage_mentions_icrc_command_surface() {
 
     assert!(token_usage().contains("icq icrc ledger token"));
     assert!(balance_usage().contains("icq icrc account balance"));
-    assert!(account_transactions_usage().contains("icq icrc account transactions"));
+    assert!(account_transaction_usage().contains("icq icrc account transaction"));
+    assert!(account_transaction_page_usage().contains("icq icrc account transaction page"));
 
     for usage in [
         token_usage(),
         capabilities_usage(),
         balance_usage(),
         allowance_usage(),
-        account_transactions_usage(),
+        account_transaction_page_usage(),
         index_usage(),
         transactions_usage(),
         block_types_usage(),
@@ -201,4 +265,11 @@ fn usage_mentions_icrc_command_surface() {
     ] {
         assert!(usage.contains("Collection mode: Live query"));
     }
+
+    assert!(account_transaction_list_usage().contains("Collection mode: Local cache inspection"));
+    assert!(
+        account_transaction_cache_status_usage()
+            .contains("Collection mode: Local cache inspection")
+    );
+    assert!(account_transaction_refresh_usage().contains("Collection mode: Forced live refresh"));
 }

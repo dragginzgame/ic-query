@@ -38,7 +38,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.13", default-features = false }
+ic-query = { version = "0.14", default-features = false }
 ```
 
 Feature boundary:
@@ -56,7 +56,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.13", default-features = false, features = ["host"] }
+ic-query = { version = "0.14", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -108,7 +108,8 @@ icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq icrc ledger [capabilities|token|index|transactions|block-types|archives|tip-certificate]
-icq icrc account [balance|allowance|transactions]
+icq icrc account [balance|allowance|transaction]
+icq icrc account transaction [page|list|refresh|cache]
 icq sns [list|info|token|params|proposal|neuron]
 icq sns proposal [list|info|refresh|cache]
 icq sns neuron [list|refresh|cache]
@@ -138,9 +139,9 @@ All current report `schema_version` values are `1`. Before 1.0, a hard-cut
 shape replaces its predecessor instead of extending a historical schema
 number sequence.
 
-Generic ICRC ledgers can be queried directly by ledger canister id. These
-commands are live-only, include the queried source endpoint in text and JSON
-reports, and support endpoint overrides with `--source-endpoint`:
+Generic ICRC ledgers can be queried directly by ledger canister id. Live
+commands include the queried source endpoint in text and JSON reports and
+support endpoint overrides with `--source-endpoint`:
 
 ```bash
 icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai
@@ -150,9 +151,12 @@ icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
 icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000
 icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa
 icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000
-icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa
-icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 12345 --limit 25 --format json
-icq icrc account transactions ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai
+icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa
+icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 12345 --limit 25 --format json
+icq icrc account transaction page ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai
+icq icrc account transaction refresh mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa
+icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --sort oldest --limit 100
+icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa
 icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai
@@ -163,14 +167,24 @@ icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aa
 icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 ```
 
-Account-history queries discover the index through ICRC-106 unless
-`--index-canister-id` is supplied and verify that the selected index reports
-the requested ledger. Reports retain ledger, index, account, endpoint, and
-pagination provenance. Pass the reported `next_start` value back through
-`--start` to fetch the next older page. The ICP ledger does not export
-ICRC-106, so its official index must be supplied explicitly as shown above.
-Both generic ICRC index-ng and deployed ICP index transactions are supported.
-This query is currently live-only.
+Account-history page and refresh operations discover the index through
+ICRC-106 unless `--index-canister-id` is supplied, then verify that the
+selected index reports the requested ledger. Reports retain ledger, index,
+account, endpoint, and pagination provenance. Pass the page report's
+`next_start` value back through `--start` to fetch the next older page. Cursors
+are arbitrary-size unsigned decimal Candid `Nat` values. The ICP ledger does
+not export ICRC-106, so its official index must be supplied explicitly as
+shown above. Both generic ICRC index-ng and deployed ICP index transactions
+are supported.
+
+`transaction refresh` exhausts the verified index and publishes one complete
+account cache atomically. `transaction list` and `transaction cache status`
+are strictly local and never make a network request. Cache identity includes
+the source endpoint, ledger, account owner, and subaccount; page size, list
+limit, and sort remain operation or view options. A failed or capped refresh
+records attempt progress and leaves the prior complete cache unchanged.
+Because the index interface exposes no snapshot version, complete caches prove
+API exhaustion but explicitly report `point_in_time_guaranteed: false`.
 
 When `icrc3_get_tip_certificate` returns evidence, the built-in live source
 authenticates the IC certificate, including delegation, canister authority,
@@ -217,6 +231,14 @@ Refresh locks and attempt sidecars accept only their exact current fields and
 validate schema, network, identity, and lifecycle state. Stale or malformed
 locks are reported but never deleted automatically; remove one manually only
 after verifying that no refresh is still running.
+
+Complete ICRC account-history snapshots use the same atomic snapshot, lock,
+and refresh-attempt lifecycle under
+`.icq/icrc/ic/account-<identity-hash>/transactions/full.json`. They require an
+explicit `transaction refresh`; normal cache-only list and status operations
+do not start a potentially long index crawl. The public library additionally
+offers distinct refresh-if-missing and refresh-if-stale policies for consumers
+that choose those behaviors explicitly.
 
 SNS neuron commands keep quick `--sort api` output on a bounded live query.
 Whole-collection neuron sorts use complete snapshots and require an explicit

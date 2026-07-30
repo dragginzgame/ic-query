@@ -5,8 +5,8 @@ use super::{
         Icrc3SupportedBlockType, Icrc3Value,
     },
     live::{
-        IcrcAccountTransactionsSource, IcrcSource,
-        build_icrc_account_transactions_report_with_source,
+        IcrcAccountTransactionPageSource, IcrcSource,
+        build_icrc_account_transaction_page_report_with_source,
         build_icrc_allowance_report_with_source, build_icrc_archives_report_with_source,
         build_icrc_balance_report_with_source, build_icrc_block_types_report_with_source,
         build_icrc_capabilities_report_with_source, build_icrc_index_report_with_source,
@@ -14,8 +14,8 @@ use super::{
         build_icrc_transactions_report_with_source,
     },
     model::{
-        IcrcAccountRow, IcrcAccountTransactionRow, IcrcAccountTransactionsData,
-        IcrcAccountTransactionsError, IcrcAccountTransactionsRequest, IcrcAllowanceData,
+        IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionPageData,
+        IcrcAccountTransactionPageRequest, IcrcAccountTransactionRow, IcrcAllowanceData,
         IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
         IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
         IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest,
@@ -26,7 +26,7 @@ use super::{
         IcrcTransactionsRequest,
     },
     text::{
-        icrc_account_transactions_report_text, icrc_allowance_report_text,
+        icrc_account_transaction_page_report_text, icrc_allowance_report_text,
         icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
         icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
         icrc_token_report_text, icrc_transactions_report_text,
@@ -323,11 +323,11 @@ impl IcrcSource for FixtureIcrcSource {
 
 struct FixtureAccountTransactionsSource;
 
-impl IcrcAccountTransactionsSource for FixtureAccountTransactionsSource {
-    fn fetch_account_transactions(
+impl IcrcAccountTransactionPageSource for FixtureAccountTransactionsSource {
+    fn fetch_account_transaction_page(
         &self,
-        request: &IcrcAccountTransactionsRequest,
-    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
+        request: &IcrcAccountTransactionPageRequest,
+    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(
             request.index_canister_id.as_deref(),
@@ -338,7 +338,7 @@ impl IcrcAccountTransactionsSource for FixtureAccountTransactionsSource {
             request.subaccount_hex.as_deref(),
             Some(LOWER_SUBACCOUNT_HEX)
         );
-        assert_eq!(request.start, Some(42));
+        assert_eq!(request.start.as_deref(), Some("42"));
         assert_eq!(request.limit, 2);
 
         let account = IcrcAccountRow {
@@ -346,7 +346,7 @@ impl IcrcAccountTransactionsSource for FixtureAccountTransactionsSource {
             subaccount_hex: Some(LOWER_SUBACCOUNT_HEX.to_string()),
             account_identifier: None,
         };
-        Ok(IcrcAccountTransactionsData {
+        Ok(IcrcAccountTransactionPageData {
             index_canister_id: INDEX_CANISTER_ID.to_string(),
             balance: "250000000".to_string(),
             oldest_transaction_id: Some("7".to_string()),
@@ -393,11 +393,11 @@ impl IcrcAccountTransactionsSource for FixtureAccountTransactionsSource {
 
 struct PanickingAccountTransactionsSource;
 
-impl IcrcAccountTransactionsSource for PanickingAccountTransactionsSource {
-    fn fetch_account_transactions(
+impl IcrcAccountTransactionPageSource for PanickingAccountTransactionsSource {
+    fn fetch_account_transaction_page(
         &self,
-        _request: &IcrcAccountTransactionsRequest,
-    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
+        _request: &IcrcAccountTransactionPageRequest,
+    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
         panic!("account transactions source should not be called")
     }
 }
@@ -683,8 +683,8 @@ fn index_report_builds_text_and_json_friendly_fields() {
 }
 
 #[test]
-fn account_transactions_report_preserves_index_provenance_and_cursor() {
-    let request = IcrcAccountTransactionsRequest::new(
+fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
+    let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
         LEDGER_CANISTER_ID,
@@ -693,13 +693,13 @@ fn account_transactions_report_preserves_index_provenance_and_cursor() {
     )
     .with_index_canister_id(INDEX_CANISTER_ID)
     .with_subaccount_hex(UPPER_SUBACCOUNT_HEX)
-    .with_start(42);
+    .with_start("42");
 
-    let report = build_icrc_account_transactions_report_with_source(
+    let report = build_icrc_account_transaction_page_report_with_source(
         &request,
         &FixtureAccountTransactionsSource,
     )
-    .expect("build ICRC account transactions report");
+    .expect("build ICRC account transaction page report");
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
@@ -711,14 +711,14 @@ fn account_transactions_report_preserves_index_provenance_and_cursor() {
     assert_eq!(report.balance, "250000000");
     assert_eq!(report.transactions[0].memo_hex.as_deref(), Some("aabb"));
 
-    let text = icrc_account_transactions_report_text(&report);
+    let text = icrc_account_transaction_page_report_text(&report);
     assert!(text.contains(&format!("index_canister_id: {INDEX_CANISTER_ID}")));
     assert!(text.contains("requested_start: 42"));
     assert!(text.contains("next_start: 40"));
     assert!(text.contains("balance: 2.50 FIX"));
     assert!(text.contains("transfer"));
 
-    let json = serde_json::to_value(&report).expect("serialize account transactions report");
+    let json = serde_json::to_value(&report).expect("serialize account transaction page report");
     assert_eq!(json["index_canister_id"], json!(INDEX_CANISTER_ID));
     assert_eq!(json["requested_start"], json!("42"));
     assert_eq!(json["next_start"], json!("40"));
@@ -729,8 +729,8 @@ fn account_transactions_report_preserves_index_provenance_and_cursor() {
 }
 
 #[test]
-fn account_transactions_report_rejects_zero_limit_before_source_call() {
-    let request = IcrcAccountTransactionsRequest::new(
+fn account_transaction_page_report_rejects_zero_limit_before_source_call() {
+    let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
         LEDGER_CANISTER_ID,
@@ -738,7 +738,7 @@ fn account_transactions_report_rejects_zero_limit_before_source_call() {
         0,
     );
 
-    let error = build_icrc_account_transactions_report_with_source(
+    let error = build_icrc_account_transaction_page_report_with_source(
         &request,
         &PanickingAccountTransactionsSource,
     )
@@ -746,7 +746,10 @@ fn account_transactions_report_rejects_zero_limit_before_source_call() {
 
     assert!(matches!(
         error,
-        IcrcAccountTransactionsError::InvalidLimit { limit: 0 }
+        IcrcAccountTransactionError::InvalidPageSize {
+            page_size: 0,
+            max_page_size: 100,
+        }
     ));
 }
 

@@ -1,25 +1,18 @@
-use ic_query::icrc::{
-    DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcAccountRow, IcrcAccountTransactionRow,
-    IcrcAccountTransactionsReport, IcrcAccountTransactionsRequest, IcrcAllowanceReport,
-    IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
-    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
-    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcBlockTypesRequest,
-    IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
-    IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateReport,
-    IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
-    icrc_account_transactions_report_text, icrc_allowance_report_text, icrc_archives_report_text,
-    icrc_balance_report_text, icrc_block_types_report_text, icrc_capabilities_report_text,
-    icrc_index_report_text, icrc_tip_certificate_report_text, icrc_token_report_text,
-    icrc_transactions_report_text, normalize_subaccount_hex,
-};
+#[cfg(feature = "host")]
+use ic_query::QueryProgress;
 #[cfg(feature = "host")]
 use ic_query::icrc::{
-    IcrcAccountTransactionsData, IcrcAccountTransactionsError, IcrcAccountTransactionsSource,
-    IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData,
-    IcrcError, IcrcIndexData, IcrcSource, IcrcTipCertificateData, IcrcTokenData,
-    IcrcTransactionsData, build_icrc_account_transactions_report,
-    build_icrc_account_transactions_report_with_source, build_icrc_allowance_report,
+    CachedIcrcAccountTransactionSnapshot,
+    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
+    ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCacheStatusReport,
+    IcrcAccountTransactionCollectionData, IcrcAccountTransactionCollectionSource,
+    IcrcAccountTransactionError, IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
+    IcrcAccountTransactionPageSource, IcrcAccountTransactionRefreshReport, IcrcAllowanceData,
+    IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData, IcrcError,
+    IcrcIndexData, IcrcSource, IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData,
+    build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
+    build_icrc_account_transaction_page_report,
+    build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
     build_icrc_allowance_report_with_source, build_icrc_archives_report,
     build_icrc_archives_report_with_source, build_icrc_balance_report,
     build_icrc_balance_report_with_source, build_icrc_block_types_report,
@@ -28,9 +21,35 @@ use ic_query::icrc::{
     build_icrc_index_report_with_source, build_icrc_tip_certificate_report,
     build_icrc_tip_certificate_report_with_source, build_icrc_token_report,
     build_icrc_token_report_with_source, build_icrc_transactions_report,
-    build_icrc_transactions_report_with_source,
+    build_icrc_transactions_report_with_source, icrc_account_transaction_cache_path,
+    icrc_account_transaction_refresh_attempt_path, icrc_account_transaction_refresh_lock_path,
+    load_cached_icrc_account_transactions, load_or_refresh_missing_icrc_account_transactions,
+    load_or_refresh_missing_icrc_account_transactions_with_source,
+    load_or_refresh_stale_icrc_account_transactions,
+    load_or_refresh_stale_icrc_account_transactions_with_source,
+    refresh_icrc_account_transaction_cache, refresh_icrc_account_transaction_cache_with_progress,
+    refresh_icrc_account_transaction_cache_with_source,
+};
+use ic_query::icrc::{
+    DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcAccountRow, IcrcAccountTransactionCacheRequest,
+    IcrcAccountTransactionListRequest, IcrcAccountTransactionPageReport,
+    IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest,
+    IcrcAccountTransactionRow, IcrcAccountTransactionSort, IcrcAllowanceReport,
+    IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
+    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
+    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcBlockTypesRequest,
+    IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
+    IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateReport,
+    IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
+    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+    icrc_account_transaction_page_report_text, icrc_allowance_report_text,
+    icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
+    icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
+    icrc_token_report_text, icrc_transactions_report_text, normalize_subaccount_hex,
 };
 use serde_json::json;
+#[cfg(feature = "host")]
+use std::path::PathBuf;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const ACCOUNT_OWNER: &str = "aaaaa-aa";
@@ -48,10 +67,69 @@ type IcrcBalanceBuilder = fn(&IcrcBalanceRequest) -> Result<IcrcBalanceReport, I
 #[cfg(feature = "host")]
 type IcrcAllowanceBuilder = fn(&IcrcAllowanceRequest) -> Result<IcrcAllowanceReport, IcrcError>;
 #[cfg(feature = "host")]
-type IcrcAccountTransactionsBuilder =
+type IcrcAccountTransactionPageBuilder =
     fn(
-        &IcrcAccountTransactionsRequest,
-    ) -> Result<IcrcAccountTransactionsReport, IcrcAccountTransactionsError>;
+        &IcrcAccountTransactionPageRequest,
+    ) -> Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionListBuilder =
+    fn(
+        &IcrcAccountTransactionListRequest,
+    ) -> Result<IcrcAccountTransactionListReport, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionCacheLoader =
+    fn(
+        &IcrcAccountTransactionCacheRequest,
+    ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionRefreshWithSource =
+    fn(
+        &IcrcAccountTransactionRefreshRequest,
+        &dyn IcrcAccountTransactionCollectionSource,
+    ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionLoadMissingWithSource =
+    fn(
+        &IcrcAccountTransactionRefreshRequest,
+        &dyn IcrcAccountTransactionCollectionSource,
+    ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionLoadStaleWithSource =
+    fn(
+        &IcrcAccountTransactionRefreshRequest,
+        u64,
+        &dyn IcrcAccountTransactionCollectionSource,
+    ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionCachePath =
+    fn(&IcrcAccountTransactionCacheRequest) -> Result<PathBuf, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionCacheStatusBuilder =
+    fn(
+        &IcrcAccountTransactionCacheRequest,
+    ) -> Result<IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionRefresh =
+    fn(
+        &IcrcAccountTransactionRefreshRequest,
+    ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionRefreshWithProgress =
+    fn(
+        &IcrcAccountTransactionRefreshRequest,
+        &mut (dyn QueryProgress + Send),
+    ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionLoadMissing =
+    fn(
+        &IcrcAccountTransactionRefreshRequest,
+    ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
+#[cfg(feature = "host")]
+type IcrcAccountTransactionLoadStale =
+    fn(
+        &IcrcAccountTransactionRefreshRequest,
+        u64,
+    ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
 #[cfg(feature = "host")]
 type IcrcIndexBuilder = fn(&IcrcIndexRequest) -> Result<IcrcIndexReport, IcrcError>;
 #[cfg(feature = "host")]
@@ -115,7 +193,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
         Some(SUBACCOUNT_HEX)
     );
 
-    let account_transactions = IcrcAccountTransactionsRequest::new(
+    let account_transactions = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
         LEDGER_CANISTER_ID,
@@ -124,7 +202,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
     )
     .with_index_canister_id(ARCHIVE_CANISTER_ID)
     .with_subaccount_hex(SUBACCOUNT_HEX)
-    .with_start(100);
+    .with_start("100");
     assert_eq!(
         account_transactions.index_canister_id.as_deref(),
         Some(ARCHIVE_CANISTER_ID)
@@ -134,8 +212,25 @@ fn public_icrc_request_constructors_set_expected_fields() {
         account_transactions.subaccount_hex.as_deref(),
         Some(SUBACCOUNT_HEX)
     );
-    assert_eq!(account_transactions.start, Some(100));
+    assert_eq!(account_transactions.start.as_deref(), Some("100"));
     assert_eq!(account_transactions.limit, 25);
+
+    let cache = IcrcAccountTransactionCacheRequest::new(
+        "/tmp/project",
+        SOURCE_ENDPOINT,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+    )
+    .with_subaccount_hex(SUBACCOUNT_HEX);
+    let refresh =
+        IcrcAccountTransactionRefreshRequest::new(cache.clone(), FETCHED_AT_UNIX_SECS, 100, 1_800)
+            .with_index_canister_id(ARCHIVE_CANISTER_ID)
+            .with_max_pages(Some(50));
+    let list = IcrcAccountTransactionListRequest::new(cache, 25)
+        .with_sort(IcrcAccountTransactionSort::Oldest);
+    assert_eq!(refresh.page_size, 100);
+    assert_eq!(refresh.max_pages, Some(50));
+    assert_eq!(list.sort, IcrcAccountTransactionSort::Oldest);
 
     let index = IcrcIndexRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
     assert_eq!(index.ledger_canister_id, LEDGER_CANISTER_ID);
@@ -176,11 +271,53 @@ fn public_icrc_request_constructors_set_expected_fields() {
 #[cfg(feature = "host")]
 #[test]
 fn public_icrc_host_api_exposes_live_builder_entry_points() {
+    assert_eq!(ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, 100);
+    assert_eq!(
+        DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
+        1_800
+    );
     accepts_public_function::<IcrcTokenBuilder>(build_icrc_token_report);
     accepts_public_function::<IcrcBalanceBuilder>(build_icrc_balance_report);
     accepts_public_function::<IcrcAllowanceBuilder>(build_icrc_allowance_report);
-    accepts_public_function::<IcrcAccountTransactionsBuilder>(
-        build_icrc_account_transactions_report,
+    accepts_public_function::<IcrcAccountTransactionPageBuilder>(
+        build_icrc_account_transaction_page_report,
+    );
+    accepts_public_function::<IcrcAccountTransactionListBuilder>(
+        build_icrc_account_transaction_list_report,
+    );
+    accepts_public_function::<IcrcAccountTransactionCacheLoader>(
+        load_cached_icrc_account_transactions,
+    );
+    accepts_public_function::<IcrcAccountTransactionRefreshWithSource>(
+        refresh_icrc_account_transaction_cache_with_source,
+    );
+    accepts_public_function::<IcrcAccountTransactionLoadMissingWithSource>(
+        load_or_refresh_missing_icrc_account_transactions_with_source,
+    );
+    accepts_public_function::<IcrcAccountTransactionLoadStaleWithSource>(
+        load_or_refresh_stale_icrc_account_transactions_with_source,
+    );
+    for path_builder in [
+        icrc_account_transaction_cache_path,
+        icrc_account_transaction_refresh_attempt_path,
+        icrc_account_transaction_refresh_lock_path,
+    ] {
+        accepts_public_function::<IcrcAccountTransactionCachePath>(path_builder);
+    }
+    accepts_public_function::<IcrcAccountTransactionCacheStatusBuilder>(
+        build_icrc_account_transaction_cache_status_report,
+    );
+    accepts_public_function::<IcrcAccountTransactionRefresh>(
+        refresh_icrc_account_transaction_cache,
+    );
+    accepts_public_function::<IcrcAccountTransactionRefreshWithProgress>(
+        refresh_icrc_account_transaction_cache_with_progress,
+    );
+    accepts_public_function::<IcrcAccountTransactionLoadMissing>(
+        load_or_refresh_missing_icrc_account_transactions,
+    );
+    accepts_public_function::<IcrcAccountTransactionLoadStale>(
+        load_or_refresh_stale_icrc_account_transactions,
     );
     accepts_public_function::<IcrcIndexBuilder>(build_icrc_index_report);
     accepts_public_function::<IcrcTransactionsBuilder>(build_icrc_transactions_report);
@@ -227,8 +364,8 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
         &source,
     )
     .expect("allowance report");
-    build_icrc_account_transactions_report_with_source(
-        &IcrcAccountTransactionsRequest::new(
+    build_icrc_account_transaction_page_report_with_source(
+        &IcrcAccountTransactionPageRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
             LEDGER_CANISTER_ID,
@@ -237,7 +374,24 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
         ),
         &source,
     )
-    .expect("account transactions report");
+    .expect("account transaction page report");
+    let mut progress = |_event| {};
+    source
+        .fetch_complete_account_transactions(
+            &IcrcAccountTransactionRefreshRequest::new(
+                IcrcAccountTransactionCacheRequest::new(
+                    "/tmp/project",
+                    SOURCE_ENDPOINT,
+                    LEDGER_CANISTER_ID,
+                    ACCOUNT_OWNER,
+                ),
+                FETCHED_AT_UNIX_SECS,
+                100,
+                1_800,
+            ),
+            &mut progress,
+        )
+        .expect("complete account transaction source");
     build_icrc_index_report_with_source(
         &IcrcIndexRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
         &source,
@@ -378,12 +532,12 @@ impl IcrcSource for FixtureIcrcSource {
 }
 
 #[cfg(feature = "host")]
-impl IcrcAccountTransactionsSource for FixtureIcrcSource {
-    fn fetch_account_transactions(
+impl IcrcAccountTransactionPageSource for FixtureIcrcSource {
+    fn fetch_account_transaction_page(
         &self,
-        _request: &IcrcAccountTransactionsRequest,
-    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
-        Ok(IcrcAccountTransactionsData {
+        _request: &IcrcAccountTransactionPageRequest,
+    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
+        Ok(IcrcAccountTransactionPageData {
             index_canister_id: ARCHIVE_CANISTER_ID.to_string(),
             balance: "0".to_string(),
             oldest_transaction_id: None,
@@ -391,6 +545,25 @@ impl IcrcAccountTransactionsSource for FixtureIcrcSource {
             token_symbol: "FIX".to_string(),
             decimals: 8,
             transactions: Vec::new(),
+        })
+    }
+}
+
+#[cfg(feature = "host")]
+impl IcrcAccountTransactionCollectionSource for FixtureIcrcSource {
+    fn fetch_complete_account_transactions(
+        &self,
+        _request: &IcrcAccountTransactionRefreshRequest,
+        _progress: &mut (dyn QueryProgress + Send),
+    ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
+        Ok(IcrcAccountTransactionCollectionData {
+            index_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+            balance: "0".to_string(),
+            token_symbol: "FIX".to_string(),
+            decimals: 8,
+            transactions: Vec::new(),
+            page_count: 1,
+            last_cursor: None,
         })
     }
 }
@@ -497,13 +670,13 @@ fn public_icrc_allowance_api_is_constructible_and_renderable_without_host() {
 }
 
 #[test]
-fn public_icrc_account_transactions_api_is_constructible_without_host() {
+fn public_icrc_account_transaction_page_api_is_constructible_without_host() {
     let account = IcrcAccountRow {
         owner: Some(ACCOUNT_OWNER.to_string()),
         subaccount_hex: Some(SUBACCOUNT_HEX.to_string()),
         account_identifier: None,
     };
-    let report = IcrcAccountTransactionsReport {
+    let report = IcrcAccountTransactionPageReport {
         schema_version: 1,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
         index_canister_id: ARCHIVE_CANISTER_ID.to_string(),
@@ -540,7 +713,7 @@ fn public_icrc_account_transactions_api_is_constructible_without_host() {
         }],
     };
 
-    let text = icrc_account_transactions_report_text(&report);
+    let text = icrc_account_transaction_page_report_text(&report);
 
     assert!(text.contains(&format!("index_canister_id: {ARCHIVE_CANISTER_ID}")));
     assert!(text.contains("next_start: 75"));

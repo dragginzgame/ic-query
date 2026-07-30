@@ -1,13 +1,14 @@
 //! Module: icrc::live::account_transactions
 //!
-//! Responsibility: resolve and query ICRC index account-transaction pages.
+//! Responsibility: resolve one ICRC index and query page or complete account history.
 //! Does not own: public report assembly, CLI parsing, caching, or text rendering.
-//! Boundary: validates ledger/index identity and projects the typed index response losslessly.
+//! Boundary: validates ledger/index identity once per operation and projects responses losslessly.
 
 use super::fetch::{
     account_from_parts, live_query_context, query_index_principal, query_token_display_fields,
 };
 use crate::{
+    QueryProgress, QueryProgressEvent, QueryProgressState,
     hex::hex_bytes,
     icrc::{
         ledger::{
@@ -15,89 +16,337 @@ use crate::{
             query_ledger, query_ledger_arg_bytes,
         },
         model::{
-            IcrcAccountRow, IcrcAccountTransactionRow, IcrcAccountTransactionsData,
-            IcrcAccountTransactionsError, IcrcAccountTransactionsRequest, IcrcError,
+            IcrcAccountRow, IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
+            IcrcAccountTransactionPageData, IcrcAccountTransactionPageRequest,
+            IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionRow, IcrcError,
         },
     },
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
+use ic_agent::Agent;
 use serde_json::{Map as JsonMap, Value as JsonValue};
+use std::{cmp::Reverse, collections::HashSet, str::FromStr};
 
 const INDEX_LEDGER_ID_METHOD: &str = "ledger_id";
 const INDEX_ACCOUNT_TRANSACTIONS_METHOD: &str = "get_account_transactions";
 
-pub(super) async fn fetch_account_transactions_async(
-    request: &IcrcAccountTransactionsRequest,
-) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
-    let index_canister = match request.index_canister_id.as_deref() {
+pub(super) async fn fetch_account_transaction_page_async(
+    request: &IcrcAccountTransactionPageRequest,
+) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
+    let context = resolve_account_transaction_context(
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+        request.index_canister_id.as_deref(),
+        &request.account_owner,
+        request.subaccount_hex.as_deref(),
+    )
+    .await?;
+    let page =
+        query_account_transaction_page(&context, request.start.as_deref(), request.limit).await?;
+
+    Ok(IcrcAccountTransactionPageData {
+        index_canister_id: context.index_canister.to_text(),
+        balance: page.balance,
+        oldest_transaction_id: page.oldest_transaction_id,
+        next_start: page.next_start,
+        token_symbol: context.token_symbol,
+        decimals: context.decimals,
+        transactions: page.transactions,
+    })
+}
+
+pub(super) async fn fetch_complete_account_transactions_async(
+    request: &IcrcAccountTransactionRefreshRequest,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
+    let context = resolve_account_transaction_context(
+        &request.cache.source_endpoint,
+        &request.cache.ledger_canister_id,
+        request.index_canister_id.as_deref(),
+        &request.cache.account_owner,
+        request.cache.subaccount_hex.as_deref(),
+    )
+    .await?;
+    let mut state = AccountTransactionCollectionState::default();
+
+    report_collection_progress(progress, &state, QueryProgressState::Running);
+    loop {
+        if request
+            .max_pages
+            .is_some_and(|max_pages| state.page_count >= max_pages)
+        {
+            let error = state.incomplete("max pages reached before index exhaustion");
+            report_collection_progress(progress, &state, QueryProgressState::Stopped);
+            return Err(error);
+        }
+
+        let page = match query_account_transaction_page(
+            &context,
+            state.next_cursor.as_deref(),
+            request.page_size,
+        )
+        .await
+        {
+            Ok(page) => page,
+            Err(source) => {
+                let error = state.page_error(source);
+                report_collection_progress(progress, &state, QueryProgressState::Failed);
+                return Err(error);
+            }
+        };
+        let exhausted = match state.ingest(page, request.page_size) {
+            Ok(exhausted) => exhausted,
+            Err(error) => {
+                report_collection_progress(progress, &state, QueryProgressState::Failed);
+                return Err(error);
+            }
+        };
+        report_collection_progress(progress, &state, QueryProgressState::Running);
+        if exhausted {
+            break;
+        }
+    }
+    report_collection_progress(progress, &state, QueryProgressState::Complete);
+
+    Ok(state.into_complete(
+        context.index_canister.to_text(),
+        context.token_symbol,
+        context.decimals,
+    ))
+}
+
+struct AccountTransactionQueryContext {
+    agent: Agent,
+    index_canister: Principal,
+    account: IcrcAccount,
+    token_symbol: String,
+    decimals: u8,
+}
+
+async fn resolve_account_transaction_context(
+    source_endpoint: &str,
+    ledger_canister_id: &str,
+    index_canister_id: Option<&str>,
+    account_owner: &str,
+    subaccount_hex: Option<&str>,
+) -> Result<AccountTransactionQueryContext, IcrcAccountTransactionError> {
+    let (agent, ledger_canister) = live_query_context(source_endpoint, ledger_canister_id)?;
+    let index_canister = match index_canister_id {
         Some(index_canister_id) => {
             principal_from_text::<IcrcError>(index_canister_id, "index_canister_id")?
         }
         None => resolve_index_canister(&agent, &ledger_canister).await?,
     };
-    let actual_ledger =
-        query_ledger::<Principal, IcrcError>(&agent, &index_canister, INDEX_LEDGER_ID_METHOD)
-            .await?;
+    let (actual_ledger, token_display) = futures::try_join!(
+        query_ledger::<Principal, IcrcError>(&agent, &index_canister, INDEX_LEDGER_ID_METHOD),
+        query_token_display_fields(&agent, &ledger_canister),
+    )?;
     if actual_ledger != ledger_canister {
-        return Err(IcrcAccountTransactionsError::IndexLedgerMismatch {
+        return Err(IcrcAccountTransactionError::IndexLedgerMismatch {
             index_canister_id: index_canister.to_text(),
             expected_ledger_canister_id: ledger_canister.to_text(),
             actual_ledger_canister_id: actual_ledger.to_text(),
         });
     }
-
-    let args = IcrcIndexAccountTransactionsArgs {
-        account: account_from_parts(
-            &request.account_owner,
-            request.subaccount_hex.as_deref(),
-            "account_owner",
-        )?,
-        start: request.start.map(Nat::from),
-        max_results: Nat::from(request.limit),
-    };
-    let (token_display, result) = futures::try_join!(
-        query_token_display_fields(&agent, &ledger_canister),
-        query_ledger_arg_bytes::<IcrcIndexAccountTransactionsArgs, IcrcError>(
-            &agent,
-            &index_canister,
-            INDEX_ACCOUNT_TRANSACTIONS_METHOD,
-            &args,
-        ),
-    )?;
-    let transactions = decode_account_transactions(&result, &index_canister)?;
+    let account = account_from_parts(account_owner, subaccount_hex, "account_owner")?;
     let (token_symbol, decimals) = token_display;
 
-    Ok(IcrcAccountTransactionsData {
-        index_canister_id: index_canister.to_text(),
-        balance: transactions.balance,
-        oldest_transaction_id: transactions.oldest_transaction_id,
-        next_start: transactions.next_start,
+    Ok(AccountTransactionQueryContext {
+        agent,
+        index_canister,
+        account,
         token_symbol,
         decimals,
-        transactions: transactions.transactions,
     })
+}
+
+async fn query_account_transaction_page(
+    context: &AccountTransactionQueryContext,
+    start: Option<&str>,
+    limit: u32,
+) -> Result<AccountTransactionsPage, IcrcAccountTransactionError> {
+    let args = IcrcIndexAccountTransactionsArgs {
+        account: context.account.clone(),
+        start: start.map(parse_transaction_cursor).transpose()?,
+        max_results: Nat::from(limit),
+    };
+    let result = query_ledger_arg_bytes::<IcrcIndexAccountTransactionsArgs, IcrcError>(
+        &context.agent,
+        &context.index_canister,
+        INDEX_ACCOUNT_TRANSACTIONS_METHOD,
+        &args,
+    )
+    .await?;
+    decode_account_transactions(&result, &context.index_canister)
+}
+
+pub(in crate::icrc) fn normalize_transaction_cursor(
+    value: &str,
+) -> Result<String, IcrcAccountTransactionError> {
+    parse_transaction_cursor(value).map(|cursor| nat_text(&cursor))
+}
+
+fn parse_transaction_cursor(value: &str) -> Result<Nat, IcrcAccountTransactionError> {
+    if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(IcrcAccountTransactionError::InvalidCursor {
+            value: value.to_string(),
+            reason: "expected unsigned decimal text".to_string(),
+        });
+    }
+    Nat::from_str(value).map_err(|error| IcrcAccountTransactionError::InvalidCursor {
+        value: value.to_string(),
+        reason: error.to_string(),
+    })
+}
+
+#[derive(Default)]
+struct AccountTransactionCollectionState {
+    balance: Option<String>,
+    oldest_transaction_id: Option<String>,
+    oldest_transaction_id_initialized: bool,
+    transactions: Vec<IcrcAccountTransactionRow>,
+    seen_transaction_ids: HashSet<String>,
+    seen_cursors: HashSet<String>,
+    page_count: u32,
+    next_cursor: Option<String>,
+}
+
+impl AccountTransactionCollectionState {
+    fn ingest(
+        &mut self,
+        page: AccountTransactionsPage,
+        page_size: u32,
+    ) -> Result<bool, IcrcAccountTransactionError> {
+        let page_len = page.transactions.len();
+        if page_len > usize::try_from(page_size).unwrap_or(usize::MAX) {
+            return Err(self.incomplete(format!(
+                "index returned {page_len} transactions for page size {page_size}"
+            )));
+        }
+        if !self.oldest_transaction_id_initialized {
+            self.balance = Some(page.balance);
+            self.oldest_transaction_id = page.oldest_transaction_id.clone();
+            self.oldest_transaction_id_initialized = true;
+        } else if self.oldest_transaction_id != page.oldest_transaction_id {
+            return Err(self.incomplete("index oldest transaction id changed during collection"));
+        }
+        if page_len > 0 && self.oldest_transaction_id.is_none() {
+            return Err(
+                self.incomplete("index returned transactions without an oldest transaction id")
+            );
+        }
+
+        for transaction in page.transactions {
+            normalize_transaction_cursor(&transaction.id)
+                .map_err(|error| self.incomplete(error.to_string()))?;
+            if !self.seen_transaction_ids.insert(transaction.id.clone()) {
+                return Err(self.incomplete("index returned a duplicate transaction id"));
+            }
+            self.transactions.push(transaction);
+        }
+        self.page_count = self.page_count.saturating_add(1);
+
+        if let Some(next_cursor) = page.next_start.as_deref() {
+            let next = parse_transaction_cursor(next_cursor)
+                .map_err(|error| self.incomplete(error.to_string()))?;
+            if nat_text(&next) != next_cursor {
+                return Err(self.incomplete("index returned a non-canonical transaction cursor"));
+            }
+            if let Some(previous_cursor) = self.next_cursor.as_deref()
+                && next
+                    >= parse_transaction_cursor(previous_cursor)
+                        .map_err(|error| self.incomplete(error.to_string()))?
+            {
+                return Err(self.incomplete("index cursor did not move toward older transactions"));
+            }
+            if !self.seen_cursors.insert(next_cursor.to_string()) {
+                return Err(self.incomplete("index repeated an account-history cursor"));
+            }
+        }
+        self.next_cursor = page.next_start;
+
+        let exhausted =
+            self.next_cursor.is_none() || self.next_cursor == self.oldest_transaction_id;
+        if !exhausted && page_len == 0 {
+            return Err(
+                self.incomplete("index returned no transactions while advertising another cursor")
+            );
+        }
+        Ok(exhausted)
+    }
+
+    fn incomplete(&self, reason: impl Into<String>) -> IcrcAccountTransactionError {
+        IcrcAccountTransactionError::IncompleteCollection {
+            pages_fetched: self.page_count,
+            rows_fetched: self.transactions.len(),
+            last_cursor: self.next_cursor.clone(),
+            reason: reason.into(),
+        }
+    }
+
+    fn page_error(&self, source: IcrcAccountTransactionError) -> IcrcAccountTransactionError {
+        IcrcAccountTransactionError::CollectionPage {
+            pages_fetched: self.page_count,
+            rows_fetched: self.transactions.len(),
+            last_cursor: self.next_cursor.clone(),
+            source: Box::new(source),
+        }
+    }
+
+    fn into_complete(
+        mut self,
+        index_canister_id: String,
+        token_symbol: String,
+        decimals: u8,
+    ) -> IcrcAccountTransactionCollectionData {
+        self.transactions.sort_by(|left, right| {
+            let left = parse_transaction_cursor(&left.id).expect("validated transaction id");
+            let right = parse_transaction_cursor(&right.id).expect("validated transaction id");
+            Reverse(left).cmp(&Reverse(right))
+        });
+        IcrcAccountTransactionCollectionData {
+            index_canister_id,
+            balance: self.balance.unwrap_or_else(|| "0".to_string()),
+            token_symbol,
+            decimals,
+            transactions: self.transactions,
+            page_count: self.page_count,
+            last_cursor: self.next_cursor,
+        }
+    }
+}
+
+fn report_collection_progress(
+    progress: &mut dyn QueryProgress,
+    state: &AccountTransactionCollectionState,
+    status: QueryProgressState,
+) {
+    progress.report(QueryProgressEvent::PagedRefresh {
+        text: format!(
+            "refreshing ICRC account transactions: pages={} rows={}",
+            state.page_count,
+            state.transactions.len()
+        ),
+        state: status,
+    });
 }
 
 async fn resolve_index_canister(
     agent: &ic_agent::Agent,
     ledger_canister: &Principal,
-) -> Result<Principal, IcrcAccountTransactionsError> {
+) -> Result<Principal, IcrcAccountTransactionError> {
     let result = query_index_principal(agent, ledger_canister)
         .await
-        .map_err(|source| IcrcAccountTransactionsError::IndexDiscovery {
+        .map_err(|source| IcrcAccountTransactionError::IndexDiscovery {
             ledger_canister_id: ledger_canister.to_text(),
             source,
         })?;
     match result {
         GetIndexPrincipalResult::Ok(index_canister) => Ok(index_canister),
-        GetIndexPrincipalResult::Err(error) => {
-            Err(IcrcAccountTransactionsError::IndexUnavailable {
-                ledger_canister_id: ledger_canister.to_text(),
-                reason: index_principal_error_text(error),
-            })
-        }
+        GetIndexPrincipalResult::Err(error) => Err(IcrcAccountTransactionError::IndexUnavailable {
+            ledger_canister_id: ledger_canister.to_text(),
+            reason: index_principal_error_text(error),
+        }),
     }
 }
 
@@ -291,7 +540,7 @@ struct AccountTransactionsPage {
 fn decode_account_transactions(
     bytes: &[u8],
     index_canister: &Principal,
-) -> Result<AccountTransactionsPage, IcrcAccountTransactionsError> {
+) -> Result<AccountTransactionsPage, IcrcAccountTransactionError> {
     match candid::decode_one::<IcrcIndexTransactionsResult>(bytes) {
         Ok(result) => generic_account_transactions_page(result, index_canister),
         Err(generic_error) => match candid::decode_one::<IcpIndexTransactionsResult>(bytes) {
@@ -308,11 +557,11 @@ fn decode_account_transactions(
 fn generic_account_transactions_page(
     result: IcrcIndexTransactionsResult,
     index_canister: &Principal,
-) -> Result<AccountTransactionsPage, IcrcAccountTransactionsError> {
+) -> Result<AccountTransactionsPage, IcrcAccountTransactionError> {
     let transactions = match result {
         IcrcIndexTransactionsResult::Ok(transactions) => transactions,
         IcrcIndexTransactionsResult::Err(error) => {
-            return Err(IcrcAccountTransactionsError::IndexQuery {
+            return Err(IcrcAccountTransactionError::IndexQuery {
                 index_canister_id: index_canister.to_text(),
                 message: error.message,
             });
@@ -336,11 +585,11 @@ fn generic_account_transactions_page(
 fn icp_account_transactions_page(
     result: IcpIndexTransactionsResult,
     index_canister: &Principal,
-) -> Result<AccountTransactionsPage, IcrcAccountTransactionsError> {
+) -> Result<AccountTransactionsPage, IcrcAccountTransactionError> {
     let transactions = match result {
         IcpIndexTransactionsResult::Ok(transactions) => transactions,
         IcpIndexTransactionsResult::Err(error) => {
-            return Err(IcrcAccountTransactionsError::IndexQuery {
+            return Err(IcrcAccountTransactionError::IndexQuery {
                 index_canister_id: index_canister.to_text(),
                 message: error.message,
             });
@@ -948,6 +1197,83 @@ mod tests {
     }
 
     #[test]
+    fn account_transaction_cursor_accepts_nat_beyond_u64_and_canonicalizes_zeroes() {
+        assert_eq!(
+            normalize_transaction_cursor("18446744073709551616")
+                .expect("arbitrary candid Nat cursor"),
+            "18446744073709551616"
+        );
+        assert_eq!(
+            normalize_transaction_cursor("00042").expect("decimal cursor"),
+            "42"
+        );
+    }
+
+    #[test]
+    fn collection_state_requires_stable_exhausting_unique_pages() {
+        let mut state = AccountTransactionCollectionState::default();
+
+        assert!(
+            !state
+                .ingest(page(&["10", "9"], Some("8"), Some("9")), 3)
+                .expect("short non-exhausting first page")
+        );
+        assert!(
+            state
+                .ingest(page(&["8"], Some("8"), Some("8")), 2)
+                .expect("exhausting page")
+        );
+        let complete = state.into_complete(
+            Principal::management_canister().to_text(),
+            "TEST".to_string(),
+            8,
+        );
+
+        assert_eq!(complete.page_count, 2);
+        assert_eq!(
+            complete
+                .transactions
+                .iter()
+                .map(|transaction| transaction.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["10", "9", "8"]
+        );
+    }
+
+    #[test]
+    fn collection_state_rejects_duplicate_rows_and_changed_oldest_id() {
+        let mut duplicate = AccountTransactionCollectionState::default();
+        duplicate
+            .ingest(page(&["10", "9"], Some("8"), Some("9")), 2)
+            .expect("first page");
+        let duplicate_error = duplicate
+            .ingest(page(&["9", "8"], Some("8"), Some("8")), 2)
+            .expect_err("duplicate transaction id");
+        assert!(matches!(
+            duplicate_error,
+            IcrcAccountTransactionError::IncompleteCollection {
+                reason,
+                ..
+            } if reason.contains("duplicate")
+        ));
+
+        let mut changed_oldest = AccountTransactionCollectionState::default();
+        changed_oldest
+            .ingest(page(&["10", "9"], Some("1"), Some("9")), 2)
+            .expect("first page");
+        let changed_error = changed_oldest
+            .ingest(page(&["8"], Some("2"), Some("8")), 2)
+            .expect_err("changed oldest transaction id");
+        assert!(matches!(
+            changed_error,
+            IcrcAccountTransactionError::IncompleteCollection {
+                reason,
+                ..
+            } if reason.contains("oldest transaction id changed")
+        ));
+    }
+
+    #[test]
     fn current_index_wire_shape_round_trips_and_projects_approve_losslessly() {
         let owner = IcrcAccount {
             owner: Principal::anonymous(),
@@ -1072,5 +1398,35 @@ mod tests {
             row.raw_transaction["operation"]["spender_account_identifier"],
             json!("spender-account")
         );
+    }
+
+    fn page(
+        transaction_ids: &[&str],
+        oldest_transaction_id: Option<&str>,
+        next_start: Option<&str>,
+    ) -> AccountTransactionsPage {
+        AccountTransactionsPage {
+            balance: "100".to_string(),
+            oldest_transaction_id: oldest_transaction_id.map(str::to_string),
+            next_start: next_start.map(str::to_string),
+            transactions: transaction_ids
+                .iter()
+                .map(|id| IcrcAccountTransactionRow {
+                    id: (*id).to_string(),
+                    kind: "transfer".to_string(),
+                    timestamp_unix_nanos: None,
+                    amount_base_units: None,
+                    fee_base_units: None,
+                    from: None,
+                    to: None,
+                    spender: None,
+                    memo_hex: None,
+                    created_at_time_unix_nanos: None,
+                    expires_at_unix_nanos: None,
+                    expected_allowance_base_units: None,
+                    raw_transaction: json!({"kind": "transfer"}),
+                })
+                .collect(),
+        }
     }
 }

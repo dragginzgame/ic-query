@@ -115,20 +115,66 @@ fn binary_icrc_allowance_help_smoke() {
 }
 
 #[test]
-fn binary_icrc_account_transactions_help_smoke() {
-    let output = run_icq(&["icrc", "account", "transactions", "help"]);
+fn binary_icrc_account_transaction_help_smoke() {
+    for (args, usage, option) in [
+        (
+            &["icrc", "account", "transaction", "page", "help"][..],
+            "Usage: icq icrc account transaction page [OPTIONS] <ledger-canister-id> <principal>",
+            "--start <block-index>",
+        ),
+        (
+            &["icrc", "account", "transaction", "list", "help"][..],
+            "Usage: icq icrc account transaction list [OPTIONS] <ledger-canister-id> <principal>",
+            "--sort <newest|oldest>",
+        ),
+        (
+            &["icrc", "account", "transaction", "refresh", "help"][..],
+            "Usage: icq icrc account transaction refresh [OPTIONS] <ledger-canister-id> <principal>",
+            "--page-size <count>",
+        ),
+        (
+            &["icrc", "account", "transaction", "cache", "status", "help"][..],
+            "Usage: icq icrc account transaction cache status [OPTIONS] <ledger-canister-id> <principal>",
+            "--source-endpoint <url>",
+        ),
+    ] {
+        let output = run_icq(args);
+        assert_success(&output);
+        let stdout = stdout_text(&output);
+        assert!(stdout.contains(usage), "missing {usage:?} in {stdout}");
+        assert!(stdout.contains(option), "missing {option:?} in {stdout}");
+        assert!(stdout.contains("--format <text|json>"));
+    }
+}
+
+#[test]
+fn binary_icrc_account_transaction_cache_status_is_local_only() {
+    let root = temp_icp_root("ic-query-cli-icrc-account-status");
+    fs::create_dir_all(&root).expect("create temporary project root");
+
+    let output = run_icq_in_root(
+        &root,
+        &[
+            "icrc",
+            "account",
+            "transaction",
+            "cache",
+            "status",
+            "ryjl3-tyaaa-aaaaa-aaaba-cai",
+            "aaaaa-aa",
+            "--format",
+            "json",
+        ],
+    );
 
     assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains(
-        "Usage: icq icrc account transactions [OPTIONS] <ledger-canister-id> <principal>"
-    ));
-    assert!(stdout.contains("--index-canister-id <canister-id>"));
-    assert!(stdout.contains("--subaccount <hex>"));
-    assert!(stdout.contains("--start <block-index>"));
-    assert!(stdout.contains("--limit <count>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("parse cache status JSON");
+    assert_eq!(report["found"], false);
+    assert!(output.stderr.is_empty());
+    assert!(!root.join(".icq").exists());
+
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]

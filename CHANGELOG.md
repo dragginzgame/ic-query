@@ -7,6 +7,27 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.14.x] - 2026-07-30 - Complete ICRC account-history snapshots
+
+Detailed release notes: [docs/changelog/0.14.md](docs/changelog/0.14.md)
+
+- `0.14.0` replaces the live-only plural account-history command with explicit
+  live-page, complete-refresh, cache-only list, and cache-status operations.
+  Complete refreshes resolve and verify one index, exhaust backward pagination,
+  validate canonical unique transaction ids and stable pagination evidence,
+  and atomically publish one account snapshot. Failed or capped refreshes
+  preserve the last complete cache and record attempt progress. This is a
+  breaking CLI and library hard cut with no aliases for the replaced plural
+  command or public page types. Complete snapshots explicitly report that the
+  index API provides no point-in-time guarantee.
+
+  ```bash
+  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --limit 25
+  icq icrc account transaction refresh mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa
+  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --sort oldest --limit 100
+  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa
+  ```
+
 ## [0.13.x] - 2026-07-29 - Canonical query command hierarchy
 
 Detailed release notes: [docs/changelog/0.13.md](docs/changelog/0.13.md)

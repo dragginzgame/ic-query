@@ -85,3 +85,11 @@ the refresh command exposes `--page-size` and `--max-pages`; silently starting
 that crawl from a normal sort command would hide important cost and completion
 controls. Missing SNS neuron caches therefore remain typed user-facing errors
 that point to `icq sns neuron refresh <id|root-principal>`.
+
+ICRC account transaction lists also require an explicit complete refresh.
+`icq icrc account transaction list` and `cache status` are local-only;
+`transaction refresh` is the network-and-write operation. Library consumers
+that explicitly want read-through behavior can choose the separate
+refresh-if-missing or refresh-if-stale APIs. Endpoint, ledger, owner, and
+subaccount form cache identity, while page size, cursor, list limit, and sort
+do not.

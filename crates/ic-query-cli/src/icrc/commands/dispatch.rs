@@ -5,9 +5,14 @@
 //! Boundary: converts command options to public requests and writes one report.
 
 use super::{
-    IcrcAccountTransactionsOptions, IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions,
-    IcrcLedgerOptions, IcrcTransactionsOptions, icrc_account_command,
-    icrc_account_transactions_usage, icrc_account_usage, icrc_allowance_usage, icrc_archives_usage,
+    IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
+    IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
+    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    icrc_account_command, icrc_account_transaction_cache_command,
+    icrc_account_transaction_cache_status_usage, icrc_account_transaction_cache_usage,
+    icrc_account_transaction_command, icrc_account_transaction_list_usage,
+    icrc_account_transaction_page_usage, icrc_account_transaction_refresh_usage,
+    icrc_account_transaction_usage, icrc_account_usage, icrc_allowance_usage, icrc_archives_usage,
     icrc_balance_usage, icrc_block_types_command, icrc_block_types_usage,
     icrc_capabilities_command, icrc_capabilities_usage, icrc_command, icrc_index_command,
     icrc_index_usage, icrc_ledger_command, icrc_ledger_usage, icrc_tip_certificate_command,
@@ -21,19 +26,27 @@ use crate::{
         help::collect_args_or_print_help_or_version,
     },
     icrc::IcrcCommandError,
+    progress::StderrQueryProgress,
+    project::icp_root,
     version_text,
 };
 use ic_query::icrc::{
-    IcrcAccountTransactionsRequest, IcrcAllowanceRequest, IcrcArchivesRequest, IcrcBalanceRequest,
-    IcrcBlockTypesRequest, IcrcCapabilitiesRequest, IcrcIndexRequest, IcrcTipCertificateRequest,
-    IcrcTokenRequest, IcrcTransactionsRequest, build_icrc_account_transactions_report,
-    build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
-    build_icrc_block_types_report, build_icrc_capabilities_report, build_icrc_index_report,
-    build_icrc_tip_certificate_report, build_icrc_token_report, build_icrc_transactions_report,
-    icrc_account_transactions_report_text, icrc_allowance_report_text, icrc_archives_report_text,
-    icrc_balance_report_text, icrc_block_types_report_text, icrc_capabilities_report_text,
-    icrc_index_report_text, icrc_tip_certificate_report_text, icrc_token_report_text,
-    icrc_transactions_report_text,
+    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
+    IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
+    IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest, IcrcAllowanceRequest,
+    IcrcArchivesRequest, IcrcBalanceRequest, IcrcBlockTypesRequest, IcrcCapabilitiesRequest,
+    IcrcIndexRequest, IcrcTipCertificateRequest, IcrcTokenRequest, IcrcTransactionsRequest,
+    build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
+    build_icrc_account_transaction_page_report, build_icrc_allowance_report,
+    build_icrc_archives_report, build_icrc_balance_report, build_icrc_block_types_report,
+    build_icrc_capabilities_report, build_icrc_index_report, build_icrc_tip_certificate_report,
+    build_icrc_token_report, build_icrc_transactions_report,
+    icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,
+    icrc_account_transaction_page_report_text, icrc_account_transaction_refresh_report_text,
+    icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
+    icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
+    icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
+    refresh_icrc_account_transaction_cache_with_progress,
 };
 use std::ffi::OsString;
 
@@ -91,7 +104,7 @@ where
     match command.as_str() {
         "balance" => run_icrc_balance(args),
         "allowance" => run_icrc_allowance(args),
-        "transactions" => run_icrc_account_transactions(args),
+        "transaction" => run_icrc_account_transaction(args),
         _ => unreachable!("ICRC account command only defines known subcommands"),
     }
 }
@@ -158,19 +171,43 @@ where
     write_text_or_json(options.format, &report, icrc_allowance_report_text)
 }
 
-fn run_icrc_account_transactions<I>(args: I) -> Result<(), IcrcCommandError>
+fn run_icrc_account_transaction<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) =
+        collect_args_or_print_help_or_version(args, icrc_account_transaction_usage, version_text())
+    else {
+        return Ok(());
+    };
+    let (command, args) = parse_required_subcommand_or_usage(
+        icrc_account_transaction_command(),
+        args,
+        icrc_account_transaction_usage,
+    )
+    .map_err(IcrcCommandError::Usage)?;
+    match command.as_str() {
+        "page" => run_icrc_account_transaction_page(args),
+        "list" => run_icrc_account_transaction_list(args),
+        "refresh" => run_icrc_account_transaction_refresh(args),
+        "cache" => run_icrc_account_transaction_cache(args),
+        _ => unreachable!("ICRC account transaction command only defines known subcommands"),
+    }
+}
+
+fn run_icrc_account_transaction_page<I>(args: I) -> Result<(), IcrcCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
     let Some(args) = collect_args_or_print_help_or_version(
         args,
-        icrc_account_transactions_usage,
+        icrc_account_transaction_page_usage,
         version_text(),
     ) else {
         return Ok(());
     };
-    let options = IcrcAccountTransactionsOptions::parse(args)?;
-    let request = IcrcAccountTransactionsRequest {
+    let options = IcrcAccountTransactionPageOptions::parse(args)?;
+    let request = IcrcAccountTransactionPageRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,
@@ -180,12 +217,140 @@ where
         start: options.start,
         limit: options.limit,
     };
-    let report = build_icrc_account_transactions_report(&request)?;
+    let report = build_icrc_account_transaction_page_report(&request)?;
     write_text_or_json(
         options.format,
         &report,
-        icrc_account_transactions_report_text,
+        icrc_account_transaction_page_report_text,
     )
+}
+
+fn run_icrc_account_transaction_list<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = collect_args_or_print_help_or_version(
+        args,
+        icrc_account_transaction_list_usage,
+        version_text(),
+    ) else {
+        return Ok(());
+    };
+    let options = IcrcAccountTransactionListOptions::parse(args)?;
+    let request = IcrcAccountTransactionListRequest {
+        cache: account_transaction_cache_request(
+            options.source_endpoint,
+            options.ledger_canister_id,
+            options.account_owner,
+            options.subaccount_hex,
+        )?,
+        limit: options.limit,
+        sort: options.sort,
+    };
+    let report = build_icrc_account_transaction_list_report(&request)?;
+    write_text_or_json(
+        options.format,
+        &report,
+        icrc_account_transaction_list_report_text,
+    )
+}
+
+fn run_icrc_account_transaction_refresh<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = collect_args_or_print_help_or_version(
+        args,
+        icrc_account_transaction_refresh_usage,
+        version_text(),
+    ) else {
+        return Ok(());
+    };
+    let options = IcrcAccountTransactionRefreshOptions::parse(args)?;
+    let request = IcrcAccountTransactionRefreshRequest {
+        cache: account_transaction_cache_request(
+            options.source_endpoint,
+            options.ledger_canister_id,
+            options.account_owner,
+            options.subaccount_hex,
+        )?,
+        now_unix_secs: current_unix_secs()?,
+        index_canister_id: options.index_canister_id,
+        page_size: options.page_size,
+        max_pages: options.max_pages,
+        lock_stale_after_seconds: DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
+    };
+    let mut progress = StderrQueryProgress::new();
+    let report = refresh_icrc_account_transaction_cache_with_progress(&request, &mut progress)?;
+    write_text_or_json(
+        options.format,
+        &report,
+        icrc_account_transaction_refresh_report_text,
+    )
+}
+
+fn run_icrc_account_transaction_cache<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = collect_args_or_print_help_or_version(
+        args,
+        icrc_account_transaction_cache_usage,
+        version_text(),
+    ) else {
+        return Ok(());
+    };
+    let (command, args) = parse_required_subcommand_or_usage(
+        icrc_account_transaction_cache_command(),
+        args,
+        icrc_account_transaction_cache_usage,
+    )
+    .map_err(IcrcCommandError::Usage)?;
+    match command.as_str() {
+        "status" => run_icrc_account_transaction_cache_status(args),
+        _ => unreachable!("ICRC account transaction cache command only defines known subcommands"),
+    }
+}
+
+fn run_icrc_account_transaction_cache_status<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = collect_args_or_print_help_or_version(
+        args,
+        icrc_account_transaction_cache_status_usage,
+        version_text(),
+    ) else {
+        return Ok(());
+    };
+    let options = IcrcAccountTransactionCacheOptions::parse(args)?;
+    let request = account_transaction_cache_request(
+        options.source_endpoint,
+        options.ledger_canister_id,
+        options.account_owner,
+        options.subaccount_hex,
+    )?;
+    let report = build_icrc_account_transaction_cache_status_report(&request)?;
+    write_text_or_json(
+        options.format,
+        &report,
+        icrc_account_transaction_cache_status_report_text,
+    )
+}
+
+fn account_transaction_cache_request(
+    source_endpoint: String,
+    ledger_canister_id: String,
+    account_owner: String,
+    subaccount_hex: Option<String>,
+) -> Result<IcrcAccountTransactionCacheRequest, IcrcCommandError> {
+    Ok(IcrcAccountTransactionCacheRequest {
+        icp_root: icp_root().map_err(|error| IcrcCommandError::Usage(error.to_string()))?,
+        source_endpoint,
+        ledger_canister_id,
+        account_owner,
+        subaccount_hex,
+    })
 }
 
 fn run_icrc_index<I>(args: I) -> Result<(), IcrcCommandError>

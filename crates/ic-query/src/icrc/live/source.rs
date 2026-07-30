@@ -5,7 +5,9 @@
 //! Boundary: isolates the synchronous public source API from async live fetching.
 
 use super::{
-    account_transactions::fetch_account_transactions_async,
+    account_transactions::{
+        fetch_account_transaction_page_async, fetch_complete_account_transactions_async,
+    },
     fetch::{
         fetch_allowance_async, fetch_archives_async, fetch_balance_async, fetch_block_types_async,
         fetch_capabilities_async, fetch_index_async, fetch_tip_certificate_async,
@@ -13,13 +15,16 @@ use super::{
     },
 };
 use crate::{
+    QueryProgress,
     icrc::model::{
-        IcrcAccountTransactionsData, IcrcAccountTransactionsError, IcrcAccountTransactionsRequest,
-        IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchivesData, IcrcArchivesRequest,
-        IcrcBalanceData, IcrcBalanceRequest, IcrcBlockTypesData, IcrcBlockTypesRequest,
-        IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcError, IcrcIndexData, IcrcIndexRequest,
-        IcrcTipCertificateData, IcrcTipCertificateRequest, IcrcTokenData, IcrcTokenRequest,
-        IcrcTransactionsData, IcrcTransactionsRequest,
+        IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
+        IcrcAccountTransactionPageData, IcrcAccountTransactionPageRequest,
+        IcrcAccountTransactionRefreshRequest, IcrcAllowanceData, IcrcAllowanceRequest,
+        IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest,
+        IcrcBlockTypesData, IcrcBlockTypesRequest, IcrcCapabilitiesData, IcrcCapabilitiesRequest,
+        IcrcError, IcrcIndexData, IcrcIndexRequest, IcrcTipCertificateData,
+        IcrcTipCertificateRequest, IcrcTokenData, IcrcTokenRequest, IcrcTransactionsData,
+        IcrcTransactionsRequest,
     },
     runtime::block_on_current_thread,
 };
@@ -66,17 +71,32 @@ pub trait IcrcSource {
 }
 
 ///
-/// IcrcAccountTransactionsSource
+/// IcrcAccountTransactionPageSource
 ///
 /// Source capability for resolving an ICRC index and fetching account history.
 ///
 
-pub trait IcrcAccountTransactionsSource {
+pub trait IcrcAccountTransactionPageSource {
     /// Fetches one backward page of transactions for the requested account.
-    fn fetch_account_transactions(
+    fn fetch_account_transaction_page(
         &self,
-        request: &IcrcAccountTransactionsRequest,
-    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError>;
+        request: &IcrcAccountTransactionPageRequest,
+    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError>;
+}
+
+///
+/// IcrcAccountTransactionCollectionSource
+///
+/// Source capability for exhausting one verified ICRC account index.
+///
+
+pub trait IcrcAccountTransactionCollectionSource {
+    /// Fetches complete account history without publishing a cache.
+    fn fetch_complete_account_transactions(
+        &self,
+        request: &IcrcAccountTransactionRefreshRequest,
+        progress: &mut (dyn QueryProgress + Send),
+    ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError>;
 }
 
 ///
@@ -142,12 +162,23 @@ impl IcrcSource for LiveIcrcSource {
     }
 }
 
-impl IcrcAccountTransactionsSource for LiveIcrcSource {
-    fn fetch_account_transactions(
+impl IcrcAccountTransactionPageSource for LiveIcrcSource {
+    fn fetch_account_transaction_page(
         &self,
-        request: &IcrcAccountTransactionsRequest,
-    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
-        block_on_current_thread(fetch_account_transactions_async(request))
+        request: &IcrcAccountTransactionPageRequest,
+    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
+        block_on_current_thread(fetch_account_transaction_page_async(request))
+            .map_err(IcrcError::from)?
+    }
+}
+
+impl IcrcAccountTransactionCollectionSource for LiveIcrcSource {
+    fn fetch_complete_account_transactions(
+        &self,
+        request: &IcrcAccountTransactionRefreshRequest,
+        progress: &mut (dyn QueryProgress + Send),
+    ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
+        block_on_current_thread(fetch_complete_account_transactions_async(request, progress))
             .map_err(IcrcError::from)?
     }
 }

@@ -5,13 +5,16 @@
 //! Boundary: keeps test-only access out of the production command surface.
 
 use super::{
-    IcrcAccountTransactionsOptions, IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions,
-    IcrcLedgerOptions, IcrcTransactionsOptions, icrc_account_transactions_usage,
-    icrc_account_usage, icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage,
-    icrc_block_types_command, icrc_block_types_usage, icrc_capabilities_command,
-    icrc_capabilities_usage, icrc_index_command, icrc_index_usage, icrc_ledger_usage,
-    icrc_tip_certificate_command, icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage,
-    icrc_transactions_usage, usage,
+    IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
+    IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
+    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    icrc_account_transaction_cache_status_usage, icrc_account_transaction_cache_usage,
+    icrc_account_transaction_list_usage, icrc_account_transaction_page_usage,
+    icrc_account_transaction_refresh_usage, icrc_account_transaction_usage, icrc_account_usage,
+    icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage, icrc_block_types_command,
+    icrc_block_types_usage, icrc_capabilities_command, icrc_capabilities_usage, icrc_index_command,
+    icrc_index_usage, icrc_ledger_usage, icrc_tip_certificate_command, icrc_tip_certificate_usage,
+    icrc_token_command, icrc_token_usage, icrc_transactions_usage, usage,
 };
 
 pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcLedgerOptions {
@@ -42,11 +45,32 @@ pub(in crate::icrc) fn parse_allowance_options(args: &[&str]) -> IcrcAllowanceOp
         .expect("parse ICRC allowance options")
 }
 
-pub(in crate::icrc) fn parse_account_transactions_options(
+pub(in crate::icrc) fn parse_account_transaction_page_options(
     args: &[&str],
-) -> IcrcAccountTransactionsOptions {
-    IcrcAccountTransactionsOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
-        .expect("parse ICRC account transactions options")
+) -> IcrcAccountTransactionPageOptions {
+    IcrcAccountTransactionPageOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC account transaction page options")
+}
+
+pub(in crate::icrc) fn parse_account_transaction_list_options(
+    args: &[&str],
+) -> IcrcAccountTransactionListOptions {
+    IcrcAccountTransactionListOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC account transaction list options")
+}
+
+pub(in crate::icrc) fn parse_account_transaction_refresh_options(
+    args: &[&str],
+) -> IcrcAccountTransactionRefreshOptions {
+    IcrcAccountTransactionRefreshOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC account transaction refresh options")
+}
+
+pub(in crate::icrc) fn parse_account_transaction_cache_options(
+    args: &[&str],
+) -> IcrcAccountTransactionCacheOptions {
+    IcrcAccountTransactionCacheOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC account transaction cache options")
 }
 
 pub(in crate::icrc) fn parse_index_options(args: &[&str]) -> IcrcLedgerOptions {
@@ -128,8 +152,28 @@ pub(in crate::icrc) fn allowance_usage() -> String {
     icrc_allowance_usage()
 }
 
-pub(in crate::icrc) fn account_transactions_usage() -> String {
-    icrc_account_transactions_usage()
+pub(in crate::icrc) fn account_transaction_usage() -> String {
+    icrc_account_transaction_usage()
+}
+
+pub(in crate::icrc) fn account_transaction_page_usage() -> String {
+    icrc_account_transaction_page_usage()
+}
+
+pub(in crate::icrc) fn account_transaction_list_usage() -> String {
+    icrc_account_transaction_list_usage()
+}
+
+pub(in crate::icrc) fn account_transaction_refresh_usage() -> String {
+    icrc_account_transaction_refresh_usage()
+}
+
+pub(in crate::icrc) fn account_transaction_cache_usage() -> String {
+    icrc_account_transaction_cache_usage()
+}
+
+pub(in crate::icrc) fn account_transaction_cache_status_usage() -> String {
+    icrc_account_transaction_cache_status_usage()
 }
 
 pub(in crate::icrc) fn index_usage() -> String {

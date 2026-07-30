@@ -5,19 +5,20 @@
 //! Boundary: validates request-local values and projects raw source data into reports.
 
 use super::{
-    ICRC_ACCOUNT_TRANSACTIONS_REPORT_SCHEMA_VERSION, ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
-    ICRC_ARCHIVES_REPORT_SCHEMA_VERSION, ICRC_BALANCE_REPORT_SCHEMA_VERSION,
-    ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION, ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
-    ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION, ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
-    ICRC_TOKEN_REPORT_SCHEMA_VERSION, ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
-    IcrcAccountTransactionsSource, IcrcSource, LiveIcrcSource,
+    ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
+    ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION, ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
+    ICRC_BALANCE_REPORT_SCHEMA_VERSION, ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
+    ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION, ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION,
+    ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION, ICRC_TOKEN_REPORT_SCHEMA_VERSION,
+    ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION, IcrcAccountTransactionPageSource, IcrcSource,
+    LiveIcrcSource, account_transactions::normalize_transaction_cursor,
 };
 use crate::{
     icrc::{
         ledger::principal_from_text,
         model::{
-            IcrcAccountTransactionsError, IcrcAccountTransactionsReport,
-            IcrcAccountTransactionsRequest, IcrcAllowanceReport, IcrcAllowanceRequest,
+            IcrcAccountTransactionError, IcrcAccountTransactionPageReport,
+            IcrcAccountTransactionPageRequest, IcrcAllowanceReport, IcrcAllowanceRequest,
             IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
             IcrcBlockTypesReport, IcrcBlockTypesRequest, IcrcCapabilitiesReport,
             IcrcCapabilitiesRequest, IcrcError, IcrcIndexReport, IcrcIndexRequest,
@@ -45,10 +46,10 @@ pub fn build_icrc_allowance_report(
 }
 
 /// Resolves an ICRC index and builds one account-transaction page.
-pub fn build_icrc_account_transactions_report(
-    request: &IcrcAccountTransactionsRequest,
-) -> Result<IcrcAccountTransactionsReport, IcrcAccountTransactionsError> {
-    build_icrc_account_transactions_report_with_source(request, &LiveIcrcSource)
+pub fn build_icrc_account_transaction_page_report(
+    request: &IcrcAccountTransactionPageRequest,
+) -> Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError> {
+    build_icrc_account_transaction_page_report_with_source(request, &LiveIcrcSource)
 }
 
 pub fn build_icrc_index_report(request: &IcrcIndexRequest) -> Result<IcrcIndexReport, IcrcError> {
@@ -171,31 +172,51 @@ pub fn build_icrc_allowance_report_with_source(
 }
 
 /// Builds one account-transaction page from a caller-supplied index capability.
-pub fn build_icrc_account_transactions_report_with_source(
-    request: &IcrcAccountTransactionsRequest,
-    source: &dyn IcrcAccountTransactionsSource,
-) -> Result<IcrcAccountTransactionsReport, IcrcAccountTransactionsError> {
-    if request.limit == 0 {
-        return Err(IcrcAccountTransactionsError::InvalidLimit {
-            limit: request.limit,
+pub fn build_icrc_account_transaction_page_report_with_source(
+    request: &IcrcAccountTransactionPageRequest,
+    source: &dyn IcrcAccountTransactionPageSource,
+) -> Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError> {
+    if !(1..=ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE).contains(&request.limit) {
+        return Err(IcrcAccountTransactionError::InvalidPageSize {
+            page_size: request.limit,
+            max_page_size: ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE,
         });
     }
-    let request = IcrcAccountTransactionsRequest {
+    let ledger_canister_id =
+        principal_from_text::<IcrcError>(&request.ledger_canister_id, "ledger_canister_id")?
+            .to_text();
+    let account_owner =
+        principal_from_text::<IcrcError>(&request.account_owner, "account_owner")?.to_text();
+    let index_canister_id = request
+        .index_canister_id
+        .as_deref()
+        .map(|value| principal_from_text::<IcrcError>(value, "index_canister_id"))
+        .transpose()?
+        .map(|principal| principal.to_text());
+    let request = IcrcAccountTransactionPageRequest {
+        ledger_canister_id,
+        index_canister_id,
+        account_owner,
         subaccount_hex: request
             .subaccount_hex
             .as_deref()
             .map(normalize_subaccount_hex)
             .transpose()?,
+        start: request
+            .start
+            .as_deref()
+            .map(normalize_transaction_cursor)
+            .transpose()?,
         ..request.clone()
     };
-    let transactions = source.fetch_account_transactions(&request)?;
-    Ok(IcrcAccountTransactionsReport {
-        schema_version: ICRC_ACCOUNT_TRANSACTIONS_REPORT_SCHEMA_VERSION,
+    let transactions = source.fetch_account_transaction_page(&request)?;
+    Ok(IcrcAccountTransactionPageReport {
+        schema_version: ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id,
         index_canister_id: transactions.index_canister_id,
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
-        requested_start: request.start.map(|start| start.to_string()),
+        requested_start: request.start,
         requested_limit: request.limit,
         next_start: transactions.next_start,
         oldest_transaction_id: transactions.oldest_transaction_id,
