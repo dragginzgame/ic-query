@@ -5,12 +5,10 @@
 //! Boundary: adapts collection state into refresh-attempt writer inputs.
 
 use super::state::SnsProposalsCollectionState;
-use crate::snapshot_cache::PagedCollectionPage;
+use crate::snapshot_cache::{PagedCollectionPage, SnapshotRefreshProgress};
 use crate::sns::report::{
     SnsHostError, SnsProposalsRefreshRequest,
-    cache_attempt::{
-        SnsRefreshAttemptContext, SnsRefreshAttemptProgress, write_running_sns_refresh_attempt,
-    },
+    cache_attempt::{SnsRefreshAttemptContext, write_running_sns_refresh_attempt},
     source::{MainnetSns, SnsSourceRequest},
 };
 use std::path::Path;
@@ -30,7 +28,7 @@ pub(super) fn write_running_attempt(
             fetch_request,
             sns,
         },
-        SnsRefreshAttemptProgress::new(
+        SnapshotRefreshProgress::new(
             state.page_count(),
             state.row_count(),
             page.last_cursor_text.clone(),

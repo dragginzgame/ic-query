@@ -182,7 +182,11 @@ account cache atomically. `transaction list` and `transaction cache status`
 are strictly local and never make a network request. Cache identity includes
 the source endpoint, ledger, account owner, and subaccount; page size, list
 limit, and sort remain operation or view options. A failed or capped refresh
-records attempt progress and leaves the prior complete cache unchanged.
+records attempt progress, including the resolved index canister when
+available, and leaves the prior complete cache unchanged. Custom collection
+sources must return the explicitly requested index canister when one was
+provided. Local list projection consumes the loaded transaction rows directly
+instead of cloning the complete snapshot before applying sort and limit.
 Because the index interface exposes no snapshot version, complete caches prove
 API exhaustion but explicitly report `point_in_time_guaranteed: false`.
 
@@ -208,9 +212,21 @@ Detailed command help identifies one of five collection modes:
 SNS neuron list mode is view-dependent: `--sort api` is a bounded live query,
 while other sorts require a complete local snapshot.
 
+The CLI uses one user-level cache root for every working directory. It resolves
+the root from the first non-empty source below:
+
+1. `ICQ_CACHE_ROOT` (an explicit absolute override);
+2. `$XDG_CACHE_HOME/ic-query`; or
+3. `$HOME/.cache/ic-query`.
+
+It does not inspect the current directory for `icp.yaml` or `dfx.json`, and it
+does not read or migrate former project-local `.icq` directories. Library cache
+request types take this actual cache root; they do not append another `.icq`
+directory.
+
 The NNS subnet, node, provider, operator, data-center, and topology commands
-use project-local cache files under `.icq/`. Refresh commands fetch current
-mainnet registry data and replace the matching cache atomically:
+share this cache. Refresh commands fetch current mainnet registry data and
+replace the matching cache atomically:
 
 ```bash
 icq nns subnet refresh
@@ -234,7 +250,7 @@ after verifying that no refresh is still running.
 
 Complete ICRC account-history snapshots use the same atomic snapshot, lock,
 and refresh-attempt lifecycle under
-`.icq/icrc/ic/account-<identity-hash>/transactions/full.json`. They require an
+`<cache-root>/icrc/ic/account-<identity-hash>/transactions/full.json`. They require an
 explicit `transaction refresh`; normal cache-only list and status operations
 do not start a potentially long index crawl. The public library additionally
 offers distinct refresh-if-missing and refresh-if-stale policies for consumers
@@ -250,7 +266,7 @@ icq sns neuron list 1 --limit 500 --sort stake
 ```
 
 Complete SNS neuron snapshots live under
-`.icq/sns/ic/<root-principal>/neurons/full.json`. Failed or capped refresh
+`<cache-root>/sns/ic/<root-principal>/neurons/full.json`. Failed or capped refresh
 attempts are recorded separately and do not replace the last complete snapshot.
 Refresh shows a same-line stderr progress counter with pages and rows fetched
 when running in a terminal. If the complete snapshot is published but final
@@ -337,7 +353,7 @@ icq nns proposal cache status
 ```
 
 Complete NNS proposal snapshots live under
-`.icq/nns/ic/governance/proposals/full.json`. Failed or capped refresh attempts
+`<cache-root>/nns/ic/governance/proposals/full.json`. Failed or capped refresh attempts
 are recorded separately and do not replace the last complete snapshot. Proposal
 list and detail lookups reuse an existing complete snapshot when it can satisfy
 the request, then fall back to live governance lookup.

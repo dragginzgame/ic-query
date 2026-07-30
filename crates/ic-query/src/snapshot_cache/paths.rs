@@ -2,7 +2,7 @@
 //!
 //! Responsibility: build and discover snapshot cache paths.
 //! Does not own: cache JSON schemas, locking, or refresh attempts.
-//! Boundary: maps logical snapshot keys to `.icq` filesystem locations.
+//! Boundary: maps logical snapshot keys to cache-root filesystem locations.
 
 use super::SnapshotKey;
 use std::{
@@ -33,8 +33,8 @@ pub struct SnapshotJsonPaths {
 impl SnapshotJsonPaths {
     /// Build every snapshot path for one logical cache key.
     #[must_use]
-    pub fn for_key(icp_root: &Path, key: &SnapshotKey) -> Self {
-        let collection_dir = snapshot_collection_dir(icp_root, key);
+    pub fn for_key(cache_root: &Path, key: &SnapshotKey) -> Self {
+        let collection_dir = snapshot_collection_dir(cache_root, key);
         let file_stem = key.scope_file_stem();
         Self {
             snapshot_path: collection_dir.join(format!("{file_stem}.json")),
@@ -46,8 +46,8 @@ impl SnapshotJsonPaths {
 
 /// Return the cache directory for one domain and network.
 #[must_use]
-pub fn snapshot_network_dir(icp_root: &Path, domain: &str, network: &str) -> PathBuf {
-    icp_root.join(".icq").join(domain).join(network)
+pub fn snapshot_network_dir(cache_root: &Path, domain: &str, network: &str) -> PathBuf {
+    cache_root.join(domain).join(network)
 }
 
 /// Collect sorted complete-snapshot paths for every entity in a collection.
@@ -87,8 +87,8 @@ fn collect_full_collection_paths(
     Ok(paths)
 }
 
-fn snapshot_collection_dir(icp_root: &Path, key: &SnapshotKey) -> PathBuf {
-    snapshot_network_dir(icp_root, key.domain(), key.network())
+fn snapshot_collection_dir(cache_root: &Path, key: &SnapshotKey) -> PathBuf {
+    snapshot_network_dir(cache_root, key.domain(), key.network())
         .join(key.entity())
         .join(key.collection())
 }

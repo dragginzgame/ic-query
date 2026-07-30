@@ -9,19 +9,19 @@ use serde_json::Value as JsonValue;
 use std::path::PathBuf;
 
 ///
-/// IcrcTokenRequest
+/// IcrcLedgerRequest
 ///
-/// Request accepted by the generic ICRC token metadata report builder.
+/// Shared ledger identity and provenance for metadata and capability report builders.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcTokenRequest {
+pub struct IcrcLedgerRequest {
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub ledger_canister_id: String,
 }
 
-impl IcrcTokenRequest {
+impl IcrcLedgerRequest {
     #[must_use]
     pub fn new(
         source_endpoint: impl Into<String>,
@@ -209,8 +209,8 @@ impl IcrcAccountTransactionPageRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcAccountTransactionCacheRequest {
-    /// Project root containing the `.icq` cache directory.
-    pub icp_root: PathBuf,
+    /// Root directory containing the shared cache.
+    pub cache_root: PathBuf,
     /// IC API endpoint whose indexed history is cached.
     pub source_endpoint: String,
     /// Ledger canister whose account history is cached.
@@ -225,13 +225,13 @@ impl IcrcAccountTransactionCacheRequest {
     /// Constructs a cache identity for the default subaccount.
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         source_endpoint: impl Into<String>,
         ledger_canister_id: impl Into<String>,
         account_owner: impl Into<String>,
     ) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             source_endpoint: source_endpoint.into(),
             ledger_canister_id: ledger_canister_id.into(),
             account_owner: account_owner.into(),
@@ -364,34 +364,6 @@ impl IcrcAccountTransactionListRequest {
 }
 
 ///
-/// IcrcIndexRequest
-///
-/// Request accepted by the generic ICRC index discovery report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcIndexRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
-}
-
-impl IcrcIndexRequest {
-    #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-    ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
-        }
-    }
-}
-
-///
 /// IcrcTransactionsRequest
 ///
 /// Request accepted by the generic ICRC transaction history report builder.
@@ -434,34 +406,6 @@ impl IcrcTransactionsRequest {
 }
 
 ///
-/// IcrcBlockTypesRequest
-///
-/// Request accepted by the generic ICRC supported block types report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcBlockTypesRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
-}
-
-impl IcrcBlockTypesRequest {
-    #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-    ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
-        }
-    }
-}
-
-///
 /// IcrcArchivesRequest
 ///
 /// Request accepted by the generic ICRC archives report builder.
@@ -494,62 +438,6 @@ impl IcrcArchivesRequest {
     pub fn with_from_canister_id(mut self, from_canister_id: impl Into<String>) -> Self {
         self.from_canister_id = Some(from_canister_id.into());
         self
-    }
-}
-
-///
-/// IcrcTipCertificateRequest
-///
-/// Request accepted by the generic ICRC-3 tip certificate report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcTipCertificateRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
-}
-
-impl IcrcTipCertificateRequest {
-    #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-    ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
-        }
-    }
-}
-
-///
-/// IcrcCapabilitiesRequest
-///
-/// Request accepted by the generic ICRC ledger capabilities report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcCapabilitiesRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
-}
-
-impl IcrcCapabilitiesRequest {
-    #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-    ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
-        }
     }
 }
 
@@ -920,7 +808,7 @@ pub struct IcrcAccountTransactionRefreshAttemptStatus {
     pub page_size: u32,
     /// Successfully collected pages.
     pub pages_fetched: u32,
-    /// Unique rows collected before the latest update.
+    /// Rows retained before the latest update.
     pub rows_fetched: usize,
     /// Last exclusive cursor when present.
     pub last_cursor: Option<String>,

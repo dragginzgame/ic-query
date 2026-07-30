@@ -41,13 +41,13 @@ where
 {
     /// Build complete snapshot, lock, and refresh-attempt paths for one SNS root.
     pub(in crate::sns::report) fn for_root(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
         root_canister_id: &str,
     ) -> Self {
         let snapshot_key =
             SnapshotKey::full("sns", network, root_canister_id, Collection::COLLECTION);
-        let snapshot_paths = SnapshotJsonPaths::for_key(icp_root, &snapshot_key);
+        let snapshot_paths = SnapshotJsonPaths::for_key(cache_root, &snapshot_key);
         Self {
             cache_path: snapshot_paths.snapshot_path,
             lock_path: snapshot_paths.refresh_lock_path,
@@ -59,10 +59,10 @@ where
 
 /// Return the network-level SNS snapshot cache directory.
 pub(in crate::sns::report) fn sns_snapshot_network_cache_dir(
-    icp_root: &Path,
+    cache_root: &Path,
     network: &str,
 ) -> PathBuf {
-    snapshot_network_dir(icp_root, "sns", network)
+    snapshot_network_dir(cache_root, "sns", network)
 }
 
 /// Return the refresh-attempt path paired with a complete cache file.

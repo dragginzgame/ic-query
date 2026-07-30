@@ -4,7 +4,7 @@ use super::*;
 fn sns_proposals_cached_sort_created_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
@@ -48,7 +48,7 @@ fn sns_proposals_cached_sort_created_orders_before_limit() {
 fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created-asc");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
@@ -96,7 +96,7 @@ fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
 fn sns_proposals_cached_sort_decided_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-decided");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
@@ -140,7 +140,7 @@ fn sns_proposals_cached_sort_decided_orders_before_limit() {
 fn sns_proposals_cached_sort_executed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-executed");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
@@ -184,7 +184,7 @@ fn sns_proposals_cached_sort_executed_orders_before_limit() {
 fn sns_proposals_cached_sort_failed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-failed");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;

@@ -4,7 +4,7 @@ use super::*;
 fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
     let root = temp_dir("ic-query-sns-proposals-status-decided");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Decided;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
@@ -70,7 +70,7 @@ fn sns_proposals_cached_query_filters_complete_snapshot() {
 fn sns_proposals_cached_topic_filters_complete_snapshot() {
     let root = temp_dir("ic-query-sns-proposals-topic-governance");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Governance;
     request.before_proposal_id = None;
@@ -98,7 +98,7 @@ fn sns_proposals_cached_topic_filters_complete_snapshot() {
 fn sns_proposals_cached_decided_status_combines_with_topic_filter() {
     let root = temp_dir("ic-query-sns-proposals-topic-decided");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Decided;
     request.topic = SnsProposalTopicFilter::Governance;
     request.before_proposal_id = None;

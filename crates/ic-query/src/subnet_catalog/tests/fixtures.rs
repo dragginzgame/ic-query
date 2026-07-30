@@ -30,7 +30,7 @@ pub(super) fn info_request(root: &Path, input: &str) -> SubnetCatalogInfoRequest
 
 pub(super) fn cache_request(root: &Path) -> SubnetCatalogCacheRequest {
     SubnetCatalogCacheRequest {
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
         network: MAINNET_NETWORK.to_string(),
     }
 }
@@ -67,7 +67,7 @@ pub(super) fn write_refresh_lock_for_test(
         "network": request.cache.network.clone(),
         "pid": 12345,
         "started_at_unix_ms": started_at_unix_ms,
-        "target_path": subnet_catalog_path(&request.cache.icp_root, &request.cache.network)
+        "target_path": subnet_catalog_path(&request.cache.cache_root, &request.cache.network)
             .display()
             .to_string(),
     });

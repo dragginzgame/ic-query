@@ -1,6 +1,6 @@
 use super::{
-    NnsDataCenterCacheRequest, NnsDataCenterHostError, NnsDataCenterListReport,
-    NnsDataCenterListRequest, NnsDataCenterRow, NnsDataCenterSource,
+    NnsDataCenterHostError, NnsDataCenterListReport, NnsDataCenterRow, NnsDataCenterSource,
+    NnsInventoryCacheRequest, NnsInventoryListRequest,
     build_nns_data_center_list_report_with_source, nns_data_center_list_report_text,
     resolve_data_center,
 };
@@ -30,7 +30,7 @@ fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {
 
 #[test]
 fn data_center_report_uses_live_registry_source() {
-    let request = NnsDataCenterListRequest {
+    let request = NnsInventoryListRequest {
         cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
@@ -111,9 +111,9 @@ fn data_center_fixture() -> MainnetDataCenter {
     }
 }
 
-fn test_cache_request(network: &str, name: &str) -> NnsDataCenterCacheRequest {
-    NnsDataCenterCacheRequest {
-        icp_root: temp_dir(&format!("ic-query-nns-data-center-{name}")),
+fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
+    NnsInventoryCacheRequest {
+        cache_root: temp_dir(&format!("ic-query-nns-data-center-{name}")),
         network: network.to_string(),
     }
 }

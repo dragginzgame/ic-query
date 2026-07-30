@@ -7,7 +7,7 @@
 use crate::{
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        SnapshotRefreshAttemptReadError, current_attempt_timestamp,
+        SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
         read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
         write_snapshot_refresh_attempt,
     },
@@ -87,45 +87,10 @@ pub(in crate::sns::report) struct SnsRefreshAttemptContext<'a> {
     pub(in crate::sns::report) sns: &'a MainnetSns,
 }
 
-///
-/// SnsRefreshAttemptProgress
-///
-/// In-progress page and row counters persisted by SNS cache refresh attempts.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct SnsRefreshAttemptProgress {
-    pub(in crate::sns::report) pages_fetched: u32,
-    pub(in crate::sns::report) rows_fetched: usize,
-    pub(in crate::sns::report) last_cursor: Option<String>,
-}
-
-impl SnsRefreshAttemptProgress {
-    pub(in crate::sns::report) const fn new(
-        pages_fetched: u32,
-        rows_fetched: usize,
-        last_cursor: Option<String>,
-    ) -> Self {
-        Self {
-            pages_fetched,
-            rows_fetched,
-            last_cursor,
-        }
-    }
-
-    pub(in crate::sns::report) const fn starting() -> Self {
-        Self {
-            pages_fetched: 0,
-            rows_fetched: 0,
-            last_cursor: None,
-        }
-    }
-}
-
 struct SnsRefreshAttemptParts<'a> {
     context: SnsRefreshAttemptContext<'a>,
     status: &'static str,
-    progress: SnsRefreshAttemptProgress,
+    progress: SnapshotRefreshProgress,
     last_error: Option<String>,
 }
 
@@ -153,24 +118,19 @@ fn attempt_from_parts(parts: SnsRefreshAttemptParts<'_>) -> SnsRefreshAttempt {
 pub(in crate::sns::report) fn write_starting_sns_refresh_attempt(
     context: SnsRefreshAttemptContext<'_>,
 ) -> Result<(), SnsHostError> {
-    write_sns_refresh_attempt_status(
-        context,
-        "running",
-        SnsRefreshAttemptProgress::starting(),
-        None,
-    )
+    write_sns_refresh_attempt_status(context, "running", SnapshotRefreshProgress::default(), None)
 }
 
 pub(in crate::sns::report) fn write_running_sns_refresh_attempt(
     context: SnsRefreshAttemptContext<'_>,
-    progress: SnsRefreshAttemptProgress,
+    progress: SnapshotRefreshProgress,
 ) -> Result<(), SnsHostError> {
     write_sns_refresh_attempt_status(context, "running", progress, None)
 }
 
 pub(in crate::sns::report) fn write_complete_sns_refresh_attempt(
     context: SnsRefreshAttemptContext<'_>,
-    progress: SnsRefreshAttemptProgress,
+    progress: SnapshotRefreshProgress,
 ) -> Result<(), SnsHostError> {
     write_sns_refresh_attempt_status(context, "complete", progress, None)
 }
@@ -180,7 +140,7 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
     error: &SnsHostError,
 ) {
     let latest = read_sns_refresh_attempt(context.path, context.request.network());
-    let progress = SnsRefreshAttemptProgress::new(
+    let progress = SnapshotRefreshProgress::new(
         latest.as_ref().map_or(0, |attempt| attempt.pages_fetched),
         latest.as_ref().map_or(0, |attempt| attempt.rows_fetched),
         latest.and_then(|attempt| attempt.last_cursor),
@@ -191,7 +151,7 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
 fn write_sns_refresh_attempt_status(
     context: SnsRefreshAttemptContext<'_>,
     status: &'static str,
-    progress: SnsRefreshAttemptProgress,
+    progress: SnapshotRefreshProgress,
     last_error: Option<String>,
 ) -> Result<(), SnsHostError> {
     let attempt = attempt_from_parts(SnsRefreshAttemptParts {

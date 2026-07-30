@@ -1,15 +1,9 @@
 use super::{
-    cache::{
-        data_center_cache_request, node_cache_request, node_operator_cache_request,
-        node_provider_cache_request, subnet_catalog_cache_request,
-    },
+    cache::{inventory_cache_request, subnet_catalog_cache_request},
     model::TopologyRequestParts,
 };
 use crate::{
-    nns::data_center::NnsDataCenterListRequest,
-    nns::node::NnsNodeListRequest,
-    nns::node_operator::NnsNodeOperatorListRequest,
-    nns::node_provider::NnsNodeProviderListRequest,
+    nns::{NnsInventoryListRequest, node::NnsNodeListRequest},
     subnet_catalog::{DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogListRequest},
 };
 
@@ -29,38 +23,18 @@ pub(in crate::nns::topology::report) fn node_list_request(
     request: &impl TopologyRequestParts,
 ) -> NnsNodeListRequest {
     NnsNodeListRequest::new(
-        node_cache_request(request),
+        inventory_cache_request(request),
         request.source_endpoint(),
         request.now_unix_secs(),
     )
 }
 
-macro_rules! component_list_request {
-    ($name:ident, $request:path, $cache_request:ident) => {
-        pub(in crate::nns::topology::report) fn $name(
-            request: &impl TopologyRequestParts,
-        ) -> $request {
-            <$request>::new(
-                $cache_request(request),
-                request.source_endpoint(),
-                request.now_unix_secs(),
-            )
-        }
-    };
+pub(in crate::nns::topology::report) fn inventory_list_request(
+    request: &impl TopologyRequestParts,
+) -> NnsInventoryListRequest {
+    NnsInventoryListRequest::new(
+        inventory_cache_request(request),
+        request.source_endpoint(),
+        request.now_unix_secs(),
+    )
 }
-
-component_list_request!(
-    node_provider_list_request,
-    NnsNodeProviderListRequest,
-    node_provider_cache_request
-);
-component_list_request!(
-    node_operator_list_request,
-    NnsNodeOperatorListRequest,
-    node_operator_cache_request
-);
-component_list_request!(
-    data_center_list_request,
-    NnsDataCenterListRequest,
-    data_center_cache_request
-);

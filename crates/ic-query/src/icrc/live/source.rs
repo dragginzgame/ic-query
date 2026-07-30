@@ -21,52 +21,114 @@ use crate::{
         IcrcAccountTransactionPageData, IcrcAccountTransactionPageRequest,
         IcrcAccountTransactionRefreshRequest, IcrcAllowanceData, IcrcAllowanceRequest,
         IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest,
-        IcrcBlockTypesData, IcrcBlockTypesRequest, IcrcCapabilitiesData, IcrcCapabilitiesRequest,
-        IcrcError, IcrcIndexData, IcrcIndexRequest, IcrcTipCertificateData,
-        IcrcTipCertificateRequest, IcrcTokenData, IcrcTokenRequest, IcrcTransactionsData,
-        IcrcTransactionsRequest,
+        IcrcBlockTypesData, IcrcCapabilitiesData, IcrcError, IcrcIndexData, IcrcLedgerRequest,
+        IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData, IcrcTransactionsRequest,
     },
     runtime::block_on_current_thread,
 };
 
 ///
-/// IcrcSource
+/// IcrcTokenSource
 ///
-/// Source contract for fetching generic ICRC ledger metadata, balances, allowances, indexes, and ICRC-3 rows.
+/// Source capability for fetching generic ICRC token metadata.
 ///
 
-pub trait IcrcSource {
-    fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError>;
+pub trait IcrcTokenSource {
+    fn fetch_token(&self, request: &IcrcLedgerRequest) -> Result<IcrcTokenData, IcrcError>;
+}
 
+///
+/// IcrcBalanceSource
+///
+/// Source capability for fetching one ICRC account balance.
+///
+
+pub trait IcrcBalanceSource {
     fn fetch_balance(&self, request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError>;
+}
 
+///
+/// IcrcAllowanceSource
+///
+/// Source capability for fetching one ICRC account allowance.
+///
+
+pub trait IcrcAllowanceSource {
     fn fetch_allowance(
         &self,
         request: &IcrcAllowanceRequest,
     ) -> Result<IcrcAllowanceData, IcrcError>;
+}
 
-    fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError>;
+///
+/// IcrcIndexSource
+///
+/// Source capability for discovering a ledger's ICRC index.
+///
 
+pub trait IcrcIndexSource {
+    fn fetch_index(&self, request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError>;
+}
+
+///
+/// IcrcTransactionsSource
+///
+/// Source capability for fetching ICRC-3 ledger transaction blocks.
+///
+
+pub trait IcrcTransactionsSource {
     fn fetch_transactions(
         &self,
         request: &IcrcTransactionsRequest,
     ) -> Result<IcrcTransactionsData, IcrcError>;
+}
 
+///
+/// IcrcBlockTypesSource
+///
+/// Source capability for fetching supported ICRC-3 block types.
+///
+
+pub trait IcrcBlockTypesSource {
     fn fetch_block_types(
         &self,
-        request: &IcrcBlockTypesRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcBlockTypesData, IcrcError>;
+}
 
+///
+/// IcrcArchivesSource
+///
+/// Source capability for discovering ICRC-3 archive ranges.
+///
+
+pub trait IcrcArchivesSource {
     fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError>;
+}
 
+///
+/// IcrcTipCertificateSource
+///
+/// Source capability for fetching and verifying ICRC-3 tip evidence.
+///
+
+pub trait IcrcTipCertificateSource {
     fn fetch_tip_certificate(
         &self,
-        request: &IcrcTipCertificateRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcTipCertificateData, IcrcError>;
+}
 
+///
+/// IcrcCapabilitiesSource
+///
+/// Source capability for probing supported ledger and index operations.
+///
+
+pub trait IcrcCapabilitiesSource {
     fn fetch_capabilities(
         &self,
-        request: &IcrcCapabilitiesRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcCapabilitiesData, IcrcError>;
 }
 
@@ -109,54 +171,70 @@ pub trait IcrcAccountTransactionCollectionSource {
 
 pub struct LiveIcrcSource;
 
-impl IcrcSource for LiveIcrcSource {
-    fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
+impl IcrcTokenSource for LiveIcrcSource {
+    fn fetch_token(&self, request: &IcrcLedgerRequest) -> Result<IcrcTokenData, IcrcError> {
         block_on_current_thread(fetch_token_async(request))?
     }
+}
 
+impl IcrcBalanceSource for LiveIcrcSource {
     fn fetch_balance(&self, request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
         block_on_current_thread(fetch_balance_async(request))?
     }
+}
 
+impl IcrcAllowanceSource for LiveIcrcSource {
     fn fetch_allowance(
         &self,
         request: &IcrcAllowanceRequest,
     ) -> Result<IcrcAllowanceData, IcrcError> {
         block_on_current_thread(fetch_allowance_async(request))?
     }
+}
 
-    fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+impl IcrcIndexSource for LiveIcrcSource {
+    fn fetch_index(&self, request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError> {
         block_on_current_thread(fetch_index_async(request))?
     }
+}
 
+impl IcrcTransactionsSource for LiveIcrcSource {
     fn fetch_transactions(
         &self,
         request: &IcrcTransactionsRequest,
     ) -> Result<IcrcTransactionsData, IcrcError> {
         block_on_current_thread(fetch_transactions_async(request))?
     }
+}
 
+impl IcrcBlockTypesSource for LiveIcrcSource {
     fn fetch_block_types(
         &self,
-        request: &IcrcBlockTypesRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcBlockTypesData, IcrcError> {
         block_on_current_thread(fetch_block_types_async(request))?
     }
+}
 
+impl IcrcArchivesSource for LiveIcrcSource {
     fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError> {
         block_on_current_thread(fetch_archives_async(request))?
     }
+}
 
+impl IcrcTipCertificateSource for LiveIcrcSource {
     fn fetch_tip_certificate(
         &self,
-        request: &IcrcTipCertificateRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcTipCertificateData, IcrcError> {
         block_on_current_thread(fetch_tip_certificate_async(request))?
     }
+}
 
+impl IcrcCapabilitiesSource for LiveIcrcSource {
     fn fetch_capabilities(
         &self,
-        request: &IcrcCapabilitiesRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcCapabilitiesData, IcrcError> {
         block_on_current_thread(fetch_capabilities_async(request))?
     }

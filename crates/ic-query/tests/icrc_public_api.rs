@@ -8,8 +8,10 @@ use ic_query::icrc::{
     IcrcAccountTransactionCollectionData, IcrcAccountTransactionCollectionSource,
     IcrcAccountTransactionError, IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
     IcrcAccountTransactionPageSource, IcrcAccountTransactionRefreshReport, IcrcAllowanceData,
-    IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData, IcrcError,
-    IcrcIndexData, IcrcSource, IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData,
+    IcrcAllowanceSource, IcrcArchivesData, IcrcArchivesSource, IcrcBalanceData, IcrcBalanceSource,
+    IcrcBlockTypesData, IcrcBlockTypesSource, IcrcCapabilitiesData, IcrcCapabilitiesSource,
+    IcrcError, IcrcIndexData, IcrcIndexSource, IcrcTipCertificateData, IcrcTipCertificateSource,
+    IcrcTokenData, IcrcTokenSource, IcrcTransactionsData, IcrcTransactionsSource,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
     build_icrc_account_transaction_page_report,
     build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
@@ -37,11 +39,10 @@ use ic_query::icrc::{
     IcrcAccountTransactionRow, IcrcAccountTransactionSort, IcrcAllowanceReport,
     IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
     IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
-    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcBlockTypesRequest,
-    IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
-    IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateReport,
-    IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
+    IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcLedgerRequest,
+    IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
+    IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
     icrc_account_transaction_page_report_text, icrc_allowance_report_text,
     icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
     icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
@@ -61,7 +62,7 @@ const FETCHED_BY: &str = "ic-query";
 const SUBACCOUNT_HEX: &str = "0000000000000000000000000000000000000000000000000000000000000001";
 
 #[cfg(feature = "host")]
-type IcrcTokenBuilder = fn(&IcrcTokenRequest) -> Result<IcrcTokenReport, IcrcError>;
+type IcrcTokenBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcTokenReport, IcrcError>;
 #[cfg(feature = "host")]
 type IcrcBalanceBuilder = fn(&IcrcBalanceRequest) -> Result<IcrcBalanceReport, IcrcError>;
 #[cfg(feature = "host")]
@@ -131,20 +132,19 @@ type IcrcAccountTransactionLoadStale =
         u64,
     ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
 #[cfg(feature = "host")]
-type IcrcIndexBuilder = fn(&IcrcIndexRequest) -> Result<IcrcIndexReport, IcrcError>;
+type IcrcIndexBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcIndexReport, IcrcError>;
 #[cfg(feature = "host")]
 type IcrcTransactionsBuilder =
     fn(&IcrcTransactionsRequest) -> Result<IcrcTransactionsReport, IcrcError>;
 #[cfg(feature = "host")]
-type IcrcBlockTypesBuilder = fn(&IcrcBlockTypesRequest) -> Result<IcrcBlockTypesReport, IcrcError>;
+type IcrcBlockTypesBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcBlockTypesReport, IcrcError>;
 #[cfg(feature = "host")]
 type IcrcArchivesBuilder = fn(&IcrcArchivesRequest) -> Result<IcrcArchivesReport, IcrcError>;
 #[cfg(feature = "host")]
 type IcrcTipCertificateBuilder =
-    fn(&IcrcTipCertificateRequest) -> Result<IcrcTipCertificateReport, IcrcError>;
+    fn(&IcrcLedgerRequest) -> Result<IcrcTipCertificateReport, IcrcError>;
 #[cfg(feature = "host")]
-type IcrcCapabilitiesBuilder =
-    fn(&IcrcCapabilitiesRequest) -> Result<IcrcCapabilitiesReport, IcrcError>;
+type IcrcCapabilitiesBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcCapabilitiesReport, IcrcError>;
 
 #[test]
 fn public_icrc_subaccount_normalization_is_available_without_host() {
@@ -158,10 +158,10 @@ fn public_icrc_subaccount_normalization_is_available_without_host() {
 fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(DEFAULT_ICRC_SOURCE_ENDPOINT, SOURCE_ENDPOINT);
 
-    let token = IcrcTokenRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
-    assert_eq!(token.source_endpoint, SOURCE_ENDPOINT);
-    assert_eq!(token.now_unix_secs, FETCHED_AT_UNIX_SECS);
-    assert_eq!(token.ledger_canister_id, LEDGER_CANISTER_ID);
+    let ledger = IcrcLedgerRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+    assert_eq!(ledger.source_endpoint, SOURCE_ENDPOINT);
+    assert_eq!(ledger.now_unix_secs, FETCHED_AT_UNIX_SECS);
+    assert_eq!(ledger.ledger_canister_id, LEDGER_CANISTER_ID);
 
     let balance = IcrcBalanceRequest::new(
         SOURCE_ENDPOINT,
@@ -216,7 +216,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(account_transactions.limit, 25);
 
     let cache = IcrcAccountTransactionCacheRequest::new(
-        "/tmp/project",
+        "/tmp/ic-query-cache",
         SOURCE_ENDPOINT,
         LEDGER_CANISTER_ID,
         ACCOUNT_OWNER,
@@ -232,9 +232,6 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(refresh.max_pages, Some(50));
     assert_eq!(list.sort, IcrcAccountTransactionSort::Oldest);
 
-    let index = IcrcIndexRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
-    assert_eq!(index.ledger_canister_id, LEDGER_CANISTER_ID);
-
     let transactions = IcrcTransactionsRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
@@ -247,10 +244,6 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(transactions.limit, 25);
     assert!(transactions.follow_archives);
 
-    let block_types =
-        IcrcBlockTypesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
-    assert_eq!(block_types.ledger_canister_id, LEDGER_CANISTER_ID);
-
     let archives =
         IcrcArchivesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID)
             .with_from_canister_id(ARCHIVE_CANISTER_ID);
@@ -258,14 +251,6 @@ fn public_icrc_request_constructors_set_expected_fields() {
         archives.from_canister_id.as_deref(),
         Some(ARCHIVE_CANISTER_ID)
     );
-
-    let tip_certificate =
-        IcrcTipCertificateRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
-    assert_eq!(tip_certificate.source_endpoint, SOURCE_ENDPOINT);
-
-    let capabilities =
-        IcrcCapabilitiesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
-    assert_eq!(capabilities.now_unix_secs, FETCHED_AT_UNIX_SECS);
 }
 
 #[cfg(feature = "host")]
@@ -335,7 +320,7 @@ fn accepts_public_function<T>(_function: T) {}
 fn public_icrc_host_api_accepts_custom_source_adapters() {
     let source = FixtureIcrcSource;
     let token_request =
-        IcrcTokenRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
+        IcrcLedgerRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID);
     let report =
         build_icrc_token_report_with_source(&token_request, &source).expect("token report");
 
@@ -380,7 +365,7 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
         .fetch_complete_account_transactions(
             &IcrcAccountTransactionRefreshRequest::new(
                 IcrcAccountTransactionCacheRequest::new(
-                    "/tmp/project",
+                    "/tmp/ic-query-cache",
                     SOURCE_ENDPOINT,
                     LEDGER_CANISTER_ID,
                     ACCOUNT_OWNER,
@@ -393,7 +378,7 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
         )
         .expect("complete account transaction source");
     build_icrc_index_report_with_source(
-        &IcrcIndexRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
+        &IcrcLedgerRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
         &source,
     )
     .expect("index report");
@@ -409,7 +394,7 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
     )
     .expect("transactions report");
     build_icrc_block_types_report_with_source(
-        &IcrcBlockTypesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
+        &IcrcLedgerRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
         &source,
     )
     .expect("block types report");
@@ -419,12 +404,12 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
     )
     .expect("archives report");
     build_icrc_tip_certificate_report_with_source(
-        &IcrcTipCertificateRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
+        &IcrcLedgerRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
         &source,
     )
     .expect("tip certificate report");
     build_icrc_capabilities_report_with_source(
-        &IcrcCapabilitiesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
+        &IcrcLedgerRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
         &source,
     )
     .expect("capabilities report");
@@ -434,8 +419,8 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
 struct FixtureIcrcSource;
 
 #[cfg(feature = "host")]
-impl IcrcSource for FixtureIcrcSource {
-    fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
+impl IcrcTokenSource for FixtureIcrcSource {
+    fn fetch_token(&self, request: &IcrcLedgerRequest) -> Result<IcrcTokenData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         Ok(IcrcTokenData {
             token_name: "Fixture Token".to_string(),
@@ -449,7 +434,10 @@ impl IcrcSource for FixtureIcrcSource {
             metadata: Vec::new(),
         })
     }
+}
 
+#[cfg(feature = "host")]
+impl IcrcBalanceSource for FixtureIcrcSource {
     fn fetch_balance(&self, _request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
         Ok(IcrcBalanceData {
             token_symbol: "FIX".to_string(),
@@ -457,7 +445,10 @@ impl IcrcSource for FixtureIcrcSource {
             balance: "0".to_string(),
         })
     }
+}
 
+#[cfg(feature = "host")]
+impl IcrcAllowanceSource for FixtureIcrcSource {
     fn fetch_allowance(
         &self,
         _request: &IcrcAllowanceRequest,
@@ -469,14 +460,20 @@ impl IcrcSource for FixtureIcrcSource {
             expires_at_unix_nanos: None,
         })
     }
+}
 
-    fn fetch_index(&self, _request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+#[cfg(feature = "host")]
+impl IcrcIndexSource for FixtureIcrcSource {
+    fn fetch_index(&self, _request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError> {
         Ok(IcrcIndexData {
             index_canister_id: None,
             index_error: None,
         })
     }
+}
 
+#[cfg(feature = "host")]
+impl IcrcTransactionsSource for FixtureIcrcSource {
     fn fetch_transactions(
         &self,
         _request: &IcrcTransactionsRequest,
@@ -489,16 +486,22 @@ impl IcrcSource for FixtureIcrcSource {
             archive_follow_errors: Vec::new(),
         })
     }
+}
 
+#[cfg(feature = "host")]
+impl IcrcBlockTypesSource for FixtureIcrcSource {
     fn fetch_block_types(
         &self,
-        _request: &IcrcBlockTypesRequest,
+        _request: &IcrcLedgerRequest,
     ) -> Result<IcrcBlockTypesData, IcrcError> {
         Ok(IcrcBlockTypesData {
             block_types: Vec::new(),
         })
     }
+}
 
+#[cfg(feature = "host")]
+impl IcrcArchivesSource for FixtureIcrcSource {
     fn fetch_archives(
         &self,
         _request: &IcrcArchivesRequest,
@@ -507,10 +510,13 @@ impl IcrcSource for FixtureIcrcSource {
             archives: Vec::new(),
         })
     }
+}
 
+#[cfg(feature = "host")]
+impl IcrcTipCertificateSource for FixtureIcrcSource {
     fn fetch_tip_certificate(
         &self,
-        _request: &IcrcTipCertificateRequest,
+        _request: &IcrcLedgerRequest,
     ) -> Result<IcrcTipCertificateData, IcrcError> {
         Ok(IcrcTipCertificateData {
             certificate_hex: None,
@@ -519,10 +525,13 @@ impl IcrcSource for FixtureIcrcSource {
             hash_tree_bytes: None,
         })
     }
+}
 
+#[cfg(feature = "host")]
+impl IcrcCapabilitiesSource for FixtureIcrcSource {
     fn fetch_capabilities(
         &self,
-        _request: &IcrcCapabilitiesRequest,
+        _request: &IcrcLedgerRequest,
     ) -> Result<IcrcCapabilitiesData, IcrcError> {
         Ok(IcrcCapabilitiesData {
             supported_standards: vec![standard_row("ICRC-1")],
@@ -570,7 +579,7 @@ impl IcrcAccountTransactionCollectionSource for FixtureIcrcSource {
 
 #[test]
 fn public_icrc_token_api_is_constructible_and_renderable_without_host() {
-    let request = IcrcTokenRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -723,7 +732,7 @@ fn public_icrc_account_transaction_page_api_is_constructible_without_host() {
 
 #[test]
 fn public_icrc_index_api_is_constructible_and_renderable_without_host() {
-    let request = IcrcIndexRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -810,7 +819,7 @@ fn public_icrc_transactions_api_is_constructible_and_renderable_without_host() {
 
 #[test]
 fn public_icrc_block_types_api_is_constructible_and_renderable_without_host() {
-    let request = IcrcBlockTypesRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -866,7 +875,7 @@ fn public_icrc_archives_api_is_constructible_and_renderable_without_host() {
 
 #[test]
 fn public_icrc_tip_certificate_api_is_constructible_and_renderable_without_host() {
-    let request = IcrcTipCertificateRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -894,7 +903,7 @@ fn public_icrc_tip_certificate_api_is_constructible_and_renderable_without_host(
 
 #[test]
 fn public_icrc_capabilities_api_is_constructible_and_renderable_without_host() {
-    let request = IcrcCapabilitiesRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),

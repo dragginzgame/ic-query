@@ -1,5 +1,5 @@
 use crate::nns::{
-    NnsCommandError, command_args, command_icp_root, now_unix_secs,
+    NnsCommandError, command_args, command_cache_root, now_unix_secs,
     topology::{commands::topology_refresh_usage, options::TopologyRefreshOptions},
     write_text_or_json,
 };
@@ -17,9 +17,9 @@ where
     };
     let options = TopologyRefreshOptions::parse(args)?;
     let format = options.format;
-    let icp_root = command_icp_root()?;
+    let cache_root = command_cache_root()?;
     let request = NnsTopologyRefreshRequest::new(
-        icp_root,
+        cache_root,
         options.network,
         options.source_endpoint,
         now_unix_secs()?,

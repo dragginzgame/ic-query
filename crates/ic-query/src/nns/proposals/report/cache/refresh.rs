@@ -64,7 +64,7 @@ pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
         });
     }
     enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(&request.icp_root, &request.network);
+    let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
             snapshot_path: &paths.snapshot_path,

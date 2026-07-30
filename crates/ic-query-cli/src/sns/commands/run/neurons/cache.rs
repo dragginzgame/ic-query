@@ -17,7 +17,7 @@ use crate::{
     },
 };
 use ic_query::sns::{
-    SnsNeuronsCacheListRequest, SnsNeuronsCacheStatusRequest, build_sns_neurons_cache_list_report,
+    SnsCacheListRequest, SnsCacheStatusRequest, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, sns_neurons_cache_list_report_text,
     sns_neurons_cache_status_report_text,
 };
@@ -48,9 +48,9 @@ where
     };
     let options = SnsNeuronsCacheListOptions::parse(args)?;
     let parts = cache_command_parts(options.format, options.network)?;
-    let request = SnsNeuronsCacheListRequest {
+    let request = SnsCacheListRequest {
         network: parts.network,
-        icp_root: parts.icp_root,
+        cache_root: parts.cache_root,
     };
     let report = build_sns_neurons_cache_list_report(&request)?;
     write_text_or_json(parts.format, &report, sns_neurons_cache_list_report_text)
@@ -65,9 +65,9 @@ where
     };
     let options = SnsNeuronsCacheStatusOptions::parse(args)?;
     let parts = cache_command_parts(options.format, options.network)?;
-    let request = SnsNeuronsCacheStatusRequest {
+    let request = SnsCacheStatusRequest {
         network: parts.network,
-        icp_root: parts.icp_root,
+        cache_root: parts.cache_root,
         input: options.input,
     };
     let report = build_sns_neurons_cache_status_report(&request)?;

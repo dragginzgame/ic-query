@@ -20,7 +20,7 @@ const NODE_OPERATOR_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns node-operator refresh
   icq --network ic nns node-operator refresh --format json
-  icq nns node-operator refresh --dry-run --output .icq/node-operator/ic/operators.preview.json";
+  icq nns node-operator refresh --dry-run --output /tmp/icq-node-operators.preview.json";
 
 pub(super) const NODE_OPERATOR_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "node-operator",

@@ -11,28 +11,28 @@ const NNS_PROPOSAL_CACHE_DOMAIN: &str = "nns";
 const NNS_PROPOSAL_CACHE_ENTITY: &str = "governance";
 const NNS_PROPOSAL_CACHE_COLLECTION: &str = "proposals";
 
-pub(super) fn nns_proposal_cache_paths(icp_root: &Path, network: &str) -> SnapshotJsonPaths {
-    SnapshotJsonPaths::for_key(icp_root, &nns_proposal_cache_key(network))
+pub(super) fn nns_proposal_cache_paths(cache_root: &Path, network: &str) -> SnapshotJsonPaths {
+    SnapshotJsonPaths::for_key(cache_root, &nns_proposal_cache_key(network))
 }
 
 #[must_use]
-pub fn nns_proposal_cache_path(icp_root: &Path, network: &str) -> PathBuf {
-    nns_proposal_cache_paths(icp_root, network).snapshot_path
+pub fn nns_proposal_cache_path(cache_root: &Path, network: &str) -> PathBuf {
+    nns_proposal_cache_paths(cache_root, network).snapshot_path
 }
 
 #[must_use]
-pub fn nns_proposal_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
-    nns_proposal_cache_paths(icp_root, network).refresh_lock_path
+pub fn nns_proposal_refresh_lock_path(cache_root: &Path, network: &str) -> PathBuf {
+    nns_proposal_cache_paths(cache_root, network).refresh_lock_path
 }
 
 #[must_use]
-pub fn nns_proposal_refresh_attempt_path(icp_root: &Path, network: &str) -> PathBuf {
-    nns_proposal_cache_paths(icp_root, network).refresh_attempt_path
+pub fn nns_proposal_refresh_attempt_path(cache_root: &Path, network: &str) -> PathBuf {
+    nns_proposal_cache_paths(cache_root, network).refresh_attempt_path
 }
 
 #[must_use]
-pub fn nns_proposal_cache_root(icp_root: &Path, network: &str) -> PathBuf {
-    snapshot_network_dir(icp_root, NNS_PROPOSAL_CACHE_DOMAIN, network)
+pub fn nns_proposal_cache_root(cache_root: &Path, network: &str) -> PathBuf {
+    snapshot_network_dir(cache_root, NNS_PROPOSAL_CACHE_DOMAIN, network)
         .join(NNS_PROPOSAL_CACHE_ENTITY)
         .join(NNS_PROPOSAL_CACHE_COLLECTION)
 }

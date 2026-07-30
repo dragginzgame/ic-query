@@ -1,27 +1,27 @@
 use super::{
     NNS_NODE_OPERATOR_CACHE_DIR, NNS_NODE_OPERATOR_CACHE_FILE,
-    NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION, NnsNodeOperatorHostError,
-    NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
+    NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION, NnsInventoryRefreshRequest,
+    NnsNodeOperatorHostError, NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport,
     enforce_mainnet_network,
     source::{NnsNodeOperatorSource, fetch_nns_node_operator_list_report_with_source},
 };
 use crate::nns::{LiveNnsSource, leaf::write_nns_leaf_json_refresh_cache};
 
 pub fn refresh_nns_node_operator_report(
-    request: &NnsNodeOperatorRefreshRequest,
+    request: &NnsInventoryRefreshRequest,
 ) -> Result<NnsNodeOperatorRefreshReport, NnsNodeOperatorHostError> {
     refresh_nns_node_operator_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn refresh_nns_node_operator_report_with_source(
-    request: &NnsNodeOperatorRefreshRequest,
+    request: &NnsInventoryRefreshRequest,
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<NnsNodeOperatorRefreshReport, NnsNodeOperatorHostError> {
     refresh_nns_node_operator_cache_with_source(request, source).map(|(_, report)| report)
 }
 
 pub(super) fn refresh_nns_node_operator_cache_with_source(
-    request: &NnsNodeOperatorRefreshRequest,
+    request: &NnsInventoryRefreshRequest,
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<(NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport), NnsNodeOperatorHostError> {
     enforce_mainnet_network(&request.cache.network)?;

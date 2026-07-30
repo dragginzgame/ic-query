@@ -4,12 +4,10 @@
 //! Does not own: live neuron fetches, cache storage, sorting, or rendering.
 //! Boundary: re-exports serializable neuron report models.
 
-mod cache;
 mod refresh;
 mod report;
 mod row;
 
-pub use cache::{SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary};
 pub use refresh::SnsNeuronsRefreshReport;
 pub use report::SnsNeuronsReport;
 pub use row::SnsNeuronRow;

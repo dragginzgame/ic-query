@@ -113,7 +113,7 @@ struct LockFixture {
 impl LockFixture {
     fn new(prefix: &str) -> Self {
         let root = temp_dir(prefix);
-        let target_path = root.join(".icq").join("test").join("full.json");
+        let target_path = root.join("test").join("full.json");
         let lock_path = target_path.with_file_name("full.refresh.lock");
         fs::create_dir_all(lock_path.parent().expect("lock parent")).expect("create lock parent");
         Self {

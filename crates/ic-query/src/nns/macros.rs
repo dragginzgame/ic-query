@@ -14,13 +14,13 @@ macro_rules! nns_leaf_cache {
         $(,)?
     ) => {
         #[must_use]
-        pub fn $cache_path_fn(icp_root: &std::path::Path, network: &str) -> std::path::PathBuf {
-            nns_leaf_cache_paths(icp_root, network).cache_path
+        pub fn $cache_path_fn(cache_root: &std::path::Path, network: &str) -> std::path::PathBuf {
+            nns_leaf_cache_paths(cache_root, network).cache_path
         }
 
         #[must_use]
-        pub fn $lock_path_fn(icp_root: &std::path::Path, network: &str) -> std::path::PathBuf {
-            nns_leaf_cache_paths(icp_root, network).lock_path
+        pub fn $lock_path_fn(cache_root: &std::path::Path, network: &str) -> std::path::PathBuf {
+            nns_leaf_cache_paths(cache_root, network).lock_path
         }
 
         pub(super) fn $load_fn(
@@ -37,11 +37,11 @@ macro_rules! nns_leaf_cache {
         }
 
         fn nns_leaf_cache_paths(
-            icp_root: &std::path::Path,
+            cache_root: &std::path::Path,
             network: &str,
         ) -> $crate::nns::leaf::NnsLeafCachePaths {
             $crate::nns::leaf::NnsLeafCachePaths::for_component(
-                icp_root,
+                cache_root,
                 $component_dir,
                 network,
                 $cache_file,
@@ -111,15 +111,8 @@ macro_rules! nns_leaf_refresh_report_text {
 macro_rules! impl_nns_leaf_cache_and_refresh_requests {
     ($cache:ty, $refresh:ty) => {
         impl crate::nns::leaf::NnsLeafCacheRequest for $cache {
-            fn from_root_network(icp_root: &std::path::Path, network: &str) -> Self {
-                Self {
-                    icp_root: icp_root.to_path_buf(),
-                    network: network.to_string(),
-                }
-            }
-
-            fn icp_root(&self) -> &std::path::Path {
-                &self.icp_root
+            fn cache_root(&self) -> &std::path::Path {
+                &self.cache_root
             }
 
             fn network(&self) -> &str {

@@ -12,6 +12,7 @@ macro_rules! impl_nns_leaf_reports {
         build_list = $build_list:ident,
         build_info = $build_info:ident,
         refresh = $refresh:ident,
+        cache_path = $cache_path:path,
         list_text = $list_text:ident,
         list_verbose_text = $list_verbose_text:ident,
         info_text = $info_text:ident,
@@ -48,6 +49,10 @@ macro_rules! impl_nns_leaf_reports {
                 request: &Self::RefreshRequest,
             ) -> Result<Self::RefreshReport, Self::HostError> {
                 $refresh(request)
+            }
+
+            fn cache_path(&self, cache: &Self::Cache) -> std::path::PathBuf {
+                $cache_path(&cache.cache_root, &cache.network)
             }
 
             fn list_report_text(&self, report: &Self::ListReport) -> String {

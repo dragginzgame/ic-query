@@ -12,6 +12,11 @@ mod source;
 mod text;
 
 #[cfg(feature = "host")]
+use crate::nns::NnsInventoryRefreshRequest;
+#[cfg(feature = "host")]
+use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
+
+#[cfg(feature = "host")]
 pub use build::{
     build_nns_data_center_info_report, build_nns_data_center_info_report_with_source,
     build_nns_data_center_list_report, build_nns_data_center_list_report_with_source,
@@ -25,12 +30,9 @@ use resolve::resolve_data_center;
 #[cfg(feature = "host")]
 pub use source::NnsDataCenterSource;
 
-pub use model::{
-    NnsDataCenterCacheRequest, NnsDataCenterInfoReport, NnsDataCenterInfoRequest,
-    NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRow,
-};
 #[cfg(feature = "host")]
-pub use model::{NnsDataCenterHostError, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest};
+pub use model::{NnsDataCenterHostError, NnsDataCenterRefreshReport};
+pub use model::{NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterRow};
 #[cfg(feature = "host")]
 pub use text::nns_data_center_refresh_report_text;
 pub use text::{

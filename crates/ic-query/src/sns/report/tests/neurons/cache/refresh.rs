@@ -37,7 +37,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert!(cache.get("data").is_none());
 
     let mut cached_request = neurons_request("1");
-    cached_request.icp_root = Some(root.clone());
+    cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     cached_request.limit = 2;
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
@@ -74,7 +74,7 @@ fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
         .expect_err("incomplete refresh");
 
     let mut cached_request = neurons_request("1");
-    cached_request.icp_root = Some(root.clone());
+    cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .expect("previous complete cache remains usable");

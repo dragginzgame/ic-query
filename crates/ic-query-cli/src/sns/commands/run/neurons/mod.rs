@@ -13,7 +13,7 @@ use crate::{
         SnsCommandError,
         options::SnsNeuronsOptions,
         run::common::{
-            command_args, command_icp_root, lookup_command_parts, parse_required_command,
+            command_args, command_cache_root, lookup_command_parts, parse_required_command,
         },
         spec::{SnsNeuronsSortArg, sns_neuron_command, sns_neuron_list_usage, sns_neuron_usage},
     },
@@ -49,7 +49,7 @@ where
     let options = SnsNeuronsOptions::parse(args)?;
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;
-    let icp_root = cache_root_for_sort(options.sort)?;
+    let cache_root = cache_root_for_sort(options.sort)?;
     let request = SnsNeuronsRequest {
         network: parts.network,
         source_endpoint: parts.source_endpoint,
@@ -58,7 +58,7 @@ where
         limit: options.limit,
         owner_principal_id: options.owner_principal_id,
         sort: options.sort.into(),
-        icp_root,
+        cache_root,
         verbose: options.verbose,
     };
     let report = build_sns_neurons_report(&request)?;
@@ -67,7 +67,7 @@ where
 
 fn cache_root_for_sort(sort: SnsNeuronsSortArg) -> Result<Option<PathBuf>, SnsCommandError> {
     if SnsNeuronsSort::from(sort).uses_cache() {
-        return Ok(Some(command_icp_root()?));
+        return Ok(Some(command_cache_root()?));
     }
     Ok(None)
 }

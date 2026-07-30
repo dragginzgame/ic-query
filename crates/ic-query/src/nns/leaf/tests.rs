@@ -1,4 +1,4 @@
-use super::{NnsLeafCacheRequest, write_nns_leaf_json_refresh_cache};
+use super::write_nns_leaf_json_refresh_cache;
 use crate::test_support::temp_dir;
 use serde::Serialize;
 use std::{fs, path::PathBuf};
@@ -15,16 +15,8 @@ fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
     let result = write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &report)
         .expect("dry-run refresh writes output");
 
-    let cache_path = root
-        .join(".icq")
-        .join("fixture")
-        .join("ic")
-        .join("fixture.json");
-    let lock_path = root
-        .join(".icq")
-        .join("fixture")
-        .join("ic")
-        .join("refresh.lock");
+    let cache_path = root.join("fixture").join("ic").join("fixture.json");
+    let lock_path = root.join("fixture").join("ic").join("refresh.lock");
     assert_eq!(result.cache_path, cache_path.display().to_string());
     assert_eq!(result.refresh_lock_path, lock_path.display().to_string());
     assert_eq!(result.output_path, Some(output_path.display().to_string()));
@@ -50,16 +42,8 @@ fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
     let second_report = FixtureReport {
         rows: vec!["second"],
     };
-    let cache_path = root
-        .join(".icq")
-        .join("fixture")
-        .join("ic")
-        .join("fixture.json");
-    let lock_path = root
-        .join(".icq")
-        .join("fixture")
-        .join("ic")
-        .join("refresh.lock");
+    let cache_path = root.join("fixture").join("ic").join("fixture.json");
+    let lock_path = root.join("fixture").join("ic").join("refresh.lock");
 
     let first =
         write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &first_report)
@@ -86,7 +70,7 @@ fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct FixtureCacheRequest {
-    icp_root: PathBuf,
+    cache_root: PathBuf,
     network: String,
 }
 
@@ -113,7 +97,10 @@ fn fixture_refresh_request(
     output_path: Option<PathBuf>,
 ) -> FixtureRefreshRequest {
     FixtureRefreshRequest {
-        cache: FixtureCacheRequest::from_root_network(root, "ic"),
+        cache: FixtureCacheRequest {
+            cache_root: root.to_path_buf(),
+            network: "ic".to_string(),
+        },
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1,
         lock_stale_after_seconds: 60,

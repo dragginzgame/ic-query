@@ -4,10 +4,10 @@ mod refresh;
 
 use super::commands::NODE_SPEC;
 use crate::{
-    nns::{NnsCommandError, command_icp_root, leaf},
+    nns::{NnsCommandError, command_cache_root, leaf},
     progress::announce_missing_mainnet_cache,
 };
-use ic_query::nns::node::{NnsNodeCacheRequest, nns_node_cache_path};
+use ic_query::nns::{NnsInventoryCacheRequest, node::nns_node_cache_path};
 use std::ffi::OsString;
 
 pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
@@ -23,11 +23,14 @@ where
     )
 }
 
-fn cache_request(network: &str) -> Result<NnsNodeCacheRequest, NnsCommandError> {
-    Ok(NnsNodeCacheRequest::new(command_icp_root()?, network))
+fn cache_request(network: &str) -> Result<NnsInventoryCacheRequest, NnsCommandError> {
+    Ok(NnsInventoryCacheRequest::new(
+        command_cache_root()?,
+        network,
+    ))
 }
 
-fn announce_missing_node_cache(cache: &NnsNodeCacheRequest, source_endpoint: &str) {
-    let path = nns_node_cache_path(&cache.icp_root, &cache.network);
+fn announce_missing_node_cache(cache: &NnsInventoryCacheRequest, source_endpoint: &str) {
+    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
     announce_missing_mainnet_cache(&cache.network, "node", &path, source_endpoint);
 }

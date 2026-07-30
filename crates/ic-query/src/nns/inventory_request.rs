@@ -1,44 +1,50 @@
+//! Module: nns::inventory_request
+//!
+//! Responsibility: define shared request contracts for Registry-derived NNS inventory reports.
+//! Does not own: family-specific filters, source calls, cache IO, or report projection.
+//! Boundary: keeps identical cache, list, info, and refresh provenance from drifting by family.
+
 use std::path::PathBuf;
 
 ///
-/// NnsDataCenterCacheRequest
+/// NnsInventoryCacheRequest
 ///
-/// Cache identity used by NNS data center report reads.
+/// Shared cache identity for Registry-derived NNS inventory reports.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsDataCenterCacheRequest {
-    pub icp_root: PathBuf,
+pub struct NnsInventoryCacheRequest {
+    pub cache_root: PathBuf,
     pub network: String,
 }
 
-impl NnsDataCenterCacheRequest {
+impl NnsInventoryCacheRequest {
     #[must_use]
-    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             network: network.into(),
         }
     }
 }
 
 ///
-/// NnsDataCenterListRequest
+/// NnsInventoryListRequest
 ///
-/// Request for the complete NNS data center inventory report.
+/// Shared request for a complete Registry-derived NNS inventory report.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsDataCenterListRequest {
-    pub cache: NnsDataCenterCacheRequest,
+pub struct NnsInventoryListRequest {
+    pub cache: NnsInventoryCacheRequest,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
 }
 
-impl NnsDataCenterListRequest {
+impl NnsInventoryListRequest {
     #[must_use]
     pub fn new(
-        cache: NnsDataCenterCacheRequest,
+        cache: NnsInventoryCacheRequest,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
     ) -> Self {
@@ -51,23 +57,23 @@ impl NnsDataCenterListRequest {
 }
 
 ///
-/// NnsDataCenterInfoRequest
+/// NnsInventoryInfoRequest
 ///
-/// Request for one NNS data center selected by identifier or prefix.
+/// Shared request for one Registry-derived NNS inventory row selected by id or prefix.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsDataCenterInfoRequest {
-    pub cache: NnsDataCenterCacheRequest,
+pub struct NnsInventoryInfoRequest {
+    pub cache: NnsInventoryCacheRequest,
     pub source_endpoint: String,
     pub input: String,
     pub now_unix_secs: u64,
 }
 
-impl NnsDataCenterInfoRequest {
+impl NnsInventoryInfoRequest {
     #[must_use]
     pub fn new(
-        cache: NnsDataCenterCacheRequest,
+        cache: NnsInventoryCacheRequest,
         source_endpoint: impl Into<String>,
         input: impl Into<String>,
         now_unix_secs: u64,
@@ -82,15 +88,15 @@ impl NnsDataCenterInfoRequest {
 }
 
 ///
-/// NnsDataCenterRefreshRequest
+/// NnsInventoryRefreshRequest
 ///
-/// Host request for refreshing the cached NNS data center inventory.
+/// Shared host request for refreshing one Registry-derived NNS inventory cache.
 ///
 
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsDataCenterRefreshRequest {
-    pub cache: NnsDataCenterCacheRequest,
+pub struct NnsInventoryRefreshRequest {
+    pub cache: NnsInventoryCacheRequest,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub lock_stale_after_seconds: u64,
@@ -99,10 +105,10 @@ pub struct NnsDataCenterRefreshRequest {
 }
 
 #[cfg(feature = "host")]
-impl NnsDataCenterRefreshRequest {
+impl NnsInventoryRefreshRequest {
     #[must_use]
     pub fn new(
-        cache: NnsDataCenterCacheRequest,
+        cache: NnsInventoryCacheRequest,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
         lock_stale_after_seconds: u64,
@@ -131,4 +137,4 @@ impl NnsDataCenterRefreshRequest {
 }
 
 #[cfg(feature = "host")]
-impl_nns_leaf_cache_and_refresh_requests!(NnsDataCenterCacheRequest, NnsDataCenterRefreshRequest);
+impl_nns_leaf_cache_and_refresh_requests!(NnsInventoryCacheRequest, NnsInventoryRefreshRequest);

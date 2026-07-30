@@ -14,6 +14,11 @@ mod source;
 mod text;
 
 #[cfg(feature = "host")]
+use crate::nns::NnsInventoryRefreshRequest;
+#[cfg(feature = "host")]
+use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest};
+
+#[cfg(feature = "host")]
 pub use build::{
     build_nns_node_info_report, build_nns_node_info_report_with_source, build_nns_node_list_report,
     build_nns_node_list_report_with_source,
@@ -29,12 +34,11 @@ use resolve::resolve_node;
 #[cfg(feature = "host")]
 pub use source::NnsNodeSource;
 
-pub use model::{
-    NnsNodeCacheRequest, NnsNodeInfoReport, NnsNodeInfoRequest, NnsNodeListFilters,
-    NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
-};
 #[cfg(feature = "host")]
-pub use model::{NnsNodeHostError, NnsNodeRefreshReport, NnsNodeRefreshRequest};
+pub use model::{NnsNodeHostError, NnsNodeRefreshReport};
+pub use model::{
+    NnsNodeInfoReport, NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
+};
 #[cfg(feature = "host")]
 pub use text::nns_node_refresh_report_text;
 pub use text::{

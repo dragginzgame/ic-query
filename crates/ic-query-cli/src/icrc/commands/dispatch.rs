@@ -5,19 +5,19 @@
 //! Boundary: converts command options to public requests and writes one report.
 
 use super::{
-    IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
-    IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
-    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
-    icrc_account_command, icrc_account_transaction_cache_command,
-    icrc_account_transaction_cache_status_usage, icrc_account_transaction_cache_usage,
-    icrc_account_transaction_command, icrc_account_transaction_list_usage,
-    icrc_account_transaction_page_usage, icrc_account_transaction_refresh_usage,
-    icrc_account_transaction_usage, icrc_account_usage, icrc_allowance_usage, icrc_archives_usage,
-    icrc_balance_usage, icrc_block_types_command, icrc_block_types_usage,
-    icrc_capabilities_command, icrc_capabilities_usage, icrc_command, icrc_index_command,
-    icrc_index_usage, icrc_ledger_command, icrc_ledger_usage, icrc_tip_certificate_command,
-    icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage, icrc_transactions_usage,
-    usage,
+    IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
+    IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
+    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions, icrc_account_command,
+    icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_usage,
+    icrc_account_transaction_cache_usage, icrc_account_transaction_command,
+    icrc_account_transaction_list_usage, icrc_account_transaction_page_usage,
+    icrc_account_transaction_refresh_usage, icrc_account_transaction_usage, icrc_account_usage,
+    icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage, icrc_block_types_command,
+    icrc_block_types_usage, icrc_capabilities_command, icrc_capabilities_usage, icrc_command,
+    icrc_index_command, icrc_index_usage, icrc_ledger_command, icrc_ledger_usage,
+    icrc_tip_certificate_command, icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage,
+    icrc_transactions_usage, usage,
 };
 use crate::{
     cli::{
@@ -27,15 +27,14 @@ use crate::{
     },
     icrc::IcrcCommandError,
     progress::StderrQueryProgress,
-    project::icp_root,
+    storage::cache_root,
     version_text,
 };
 use ic_query::icrc::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
     IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest, IcrcAllowanceRequest,
-    IcrcArchivesRequest, IcrcBalanceRequest, IcrcBlockTypesRequest, IcrcCapabilitiesRequest,
-    IcrcIndexRequest, IcrcTipCertificateRequest, IcrcTokenRequest, IcrcTransactionsRequest,
+    IcrcArchivesRequest, IcrcBalanceRequest, IcrcLedgerRequest, IcrcTransactionsRequest,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
     build_icrc_account_transaction_page_report, build_icrc_allowance_report,
     build_icrc_archives_report, build_icrc_balance_report, build_icrc_block_types_report,
@@ -118,7 +117,7 @@ where
         return Ok(());
     };
     let options = IcrcLedgerOptions::parse(args, icrc_token_command, icrc_token_usage)?;
-    let request = IcrcTokenRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,
@@ -207,13 +206,14 @@ where
         return Ok(());
     };
     let options = IcrcAccountTransactionPageOptions::parse(args)?;
+    let target = options.target;
     let request = IcrcAccountTransactionPageRequest {
-        source_endpoint: options.source_endpoint,
+        source_endpoint: target.source_endpoint,
         now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: options.ledger_canister_id,
+        ledger_canister_id: target.ledger_canister_id,
         index_canister_id: options.index_canister_id,
-        account_owner: options.account_owner,
-        subaccount_hex: options.subaccount_hex,
+        account_owner: target.account_owner,
+        subaccount_hex: target.subaccount_hex,
         start: options.start,
         limit: options.limit,
     };
@@ -238,12 +238,7 @@ where
     };
     let options = IcrcAccountTransactionListOptions::parse(args)?;
     let request = IcrcAccountTransactionListRequest {
-        cache: account_transaction_cache_request(
-            options.source_endpoint,
-            options.ledger_canister_id,
-            options.account_owner,
-            options.subaccount_hex,
-        )?,
+        cache: account_transaction_cache_request(options.target)?,
         limit: options.limit,
         sort: options.sort,
     };
@@ -268,12 +263,7 @@ where
     };
     let options = IcrcAccountTransactionRefreshOptions::parse(args)?;
     let request = IcrcAccountTransactionRefreshRequest {
-        cache: account_transaction_cache_request(
-            options.source_endpoint,
-            options.ledger_canister_id,
-            options.account_owner,
-            options.subaccount_hex,
-        )?,
+        cache: account_transaction_cache_request(options.target)?,
         now_unix_secs: current_unix_secs()?,
         index_canister_id: options.index_canister_id,
         page_size: options.page_size,
@@ -324,12 +314,7 @@ where
         return Ok(());
     };
     let options = IcrcAccountTransactionCacheOptions::parse(args)?;
-    let request = account_transaction_cache_request(
-        options.source_endpoint,
-        options.ledger_canister_id,
-        options.account_owner,
-        options.subaccount_hex,
-    )?;
+    let request = account_transaction_cache_request(options.target)?;
     let report = build_icrc_account_transaction_cache_status_report(&request)?;
     write_text_or_json(
         options.format,
@@ -339,17 +324,14 @@ where
 }
 
 fn account_transaction_cache_request(
-    source_endpoint: String,
-    ledger_canister_id: String,
-    account_owner: String,
-    subaccount_hex: Option<String>,
+    target: IcrcAccountTargetOptions,
 ) -> Result<IcrcAccountTransactionCacheRequest, IcrcCommandError> {
     Ok(IcrcAccountTransactionCacheRequest {
-        icp_root: icp_root().map_err(|error| IcrcCommandError::Usage(error.to_string()))?,
-        source_endpoint,
-        ledger_canister_id,
-        account_owner,
-        subaccount_hex,
+        cache_root: cache_root().map_err(|error| IcrcCommandError::Usage(error.to_string()))?,
+        source_endpoint: target.source_endpoint,
+        ledger_canister_id: target.ledger_canister_id,
+        account_owner: target.account_owner,
+        subaccount_hex: target.subaccount_hex,
     })
 }
 
@@ -362,7 +344,7 @@ where
         return Ok(());
     };
     let options = IcrcLedgerOptions::parse(args, icrc_index_command, icrc_index_usage)?;
-    let request = IcrcIndexRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,
@@ -403,7 +385,7 @@ where
         return Ok(());
     };
     let options = IcrcLedgerOptions::parse(args, icrc_block_types_command, icrc_block_types_usage)?;
-    let request = IcrcBlockTypesRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,
@@ -446,7 +428,7 @@ where
         icrc_tip_certificate_command,
         icrc_tip_certificate_usage,
     )?;
-    let request = IcrcTipCertificateRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,
@@ -466,7 +448,7 @@ where
     };
     let options =
         IcrcLedgerOptions::parse(args, icrc_capabilities_command, icrc_capabilities_usage)?;
-    let request = IcrcCapabilitiesRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,

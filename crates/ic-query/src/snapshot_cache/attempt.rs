@@ -38,6 +38,30 @@ pub enum SnapshotRefreshAttemptReadError {
 }
 
 ///
+/// SnapshotRefreshProgress
+///
+/// Page, row, and cursor progress shared by complete-snapshot refresh attempts.
+///
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct SnapshotRefreshProgress {
+    pub pages_fetched: u32,
+    pub rows_fetched: usize,
+    pub last_cursor: Option<String>,
+}
+
+impl SnapshotRefreshProgress {
+    #[must_use]
+    pub const fn new(pages_fetched: u32, rows_fetched: usize, last_cursor: Option<String>) -> Self {
+        Self {
+            pages_fetched,
+            rows_fetched,
+            last_cursor,
+        }
+    }
+}
+
+///
 /// SnapshotRefreshAttempt
 ///
 /// Sidecar status for an in-progress or failed complete snapshot refresh.

@@ -74,9 +74,9 @@ pub fn refresh_subnet_catalog_with_source(
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
     enforce_mainnet_network(&request.cache.network)?;
-    let catalog_path = subnet_catalog_path(&request.cache.icp_root, &request.cache.network);
+    let catalog_path = subnet_catalog_path(&request.cache.cache_root, &request.cache.network);
     let lock_path =
-        subnet_catalog_refresh_lock_path(&request.cache.icp_root, &request.cache.network);
+        subnet_catalog_refresh_lock_path(&request.cache.cache_root, &request.cache.network);
     create_parent_directory(&catalog_path).map_err(subnet_cache_error)?;
     with_refresh_lock(
         RefreshLockRequest {

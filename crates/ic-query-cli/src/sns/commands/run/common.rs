@@ -10,8 +10,8 @@ use crate::{
         common::{OutputFormat, current_unix_secs},
         help::collect_args_or_print_help_or_version,
     },
-    project::icp_root,
     sns::commands::{SnsCommandError, options::SnsLookupOptions},
+    storage::cache_root,
     version_text,
 };
 use clap::Command as ClapCommand;
@@ -44,7 +44,7 @@ pub(in crate::sns::commands::run) struct SnsCachedLookupCommandParts {
     pub(in crate::sns::commands::run) source_endpoint: String,
     pub(in crate::sns::commands::run) now_unix_secs: u64,
     pub(in crate::sns::commands::run) input: String,
-    pub(in crate::sns::commands::run) icp_root: PathBuf,
+    pub(in crate::sns::commands::run) cache_root: PathBuf,
 }
 
 ///
@@ -56,7 +56,7 @@ pub(in crate::sns::commands::run) struct SnsCachedLookupCommandParts {
 pub(in crate::sns::commands::run) struct SnsCacheCommandParts {
     pub(in crate::sns::commands::run) format: OutputFormat,
     pub(in crate::sns::commands::run) network: String,
-    pub(in crate::sns::commands::run) icp_root: PathBuf,
+    pub(in crate::sns::commands::run) cache_root: PathBuf,
 }
 
 pub(super) fn command_unix_secs() -> Result<u64, SnsCommandError> {
@@ -70,8 +70,8 @@ where
     collect_args_or_print_help_or_version(args, usage, version_text())
 }
 
-pub(super) fn command_icp_root() -> Result<PathBuf, SnsCommandError> {
-    icp_root().map_err(|err| SnsCommandError::Usage(err.to_string()))
+pub(super) fn command_cache_root() -> Result<PathBuf, SnsCommandError> {
+    cache_root().map_err(|err| SnsCommandError::Usage(err.to_string()))
 }
 
 pub(super) fn parse_required_command<I>(
@@ -107,7 +107,7 @@ pub(in crate::sns::commands::run) fn cached_lookup_command_parts(
         source_endpoint: parts.source_endpoint,
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
-        icp_root: command_icp_root()?,
+        cache_root: command_cache_root()?,
     })
 }
 
@@ -118,6 +118,6 @@ pub(in crate::sns::commands::run) fn cache_command_parts(
     Ok(SnsCacheCommandParts {
         format,
         network,
-        icp_root: command_icp_root()?,
+        cache_root: command_cache_root()?,
     })
 }

@@ -15,10 +15,10 @@ use crate::sns::report::{
 use std::path::{Path, PathBuf};
 
 pub(in crate::sns::report) fn collect_sns_proposals_cache_paths(
-    icp_root: &Path,
+    cache_root: &Path,
     network: &str,
 ) -> Result<Vec<PathBuf>, SnsHostError> {
-    collect_sns_cache_paths::<SnsProposalsCacheCollection>(icp_root, network)
+    collect_sns_cache_paths::<SnsProposalsCacheCollection>(cache_root, network)
 }
 
 pub(in crate::sns::report) fn read_sns_proposals_cache_header(

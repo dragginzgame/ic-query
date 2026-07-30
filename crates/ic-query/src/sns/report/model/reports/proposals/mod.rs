@@ -5,16 +5,10 @@
 //! Boundary: re-exports serializable proposal report models.
 
 #[cfg(feature = "host")]
-mod cache;
-#[cfg(feature = "host")]
 mod refresh;
 mod report;
 mod row;
 
-#[cfg(feature = "host")]
-pub use cache::{
-    SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
-};
 #[cfg(feature = "host")]
 pub use refresh::SnsProposalsRefreshReport;
 pub use report::{SnsProposalReport, SnsProposalsReport};

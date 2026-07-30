@@ -58,7 +58,7 @@ fn refresh_dry_run_writes_output_without_replacing_cache() {
     let report = refresh_subnet_catalog_with_source(&request, &source).expect("dry-run");
 
     assert!(!report.wrote_catalog);
-    assert!(!subnet_catalog_path(&request.cache.icp_root, MAINNET_NETWORK).exists());
+    assert!(!subnet_catalog_path(&request.cache.cache_root, MAINNET_NETWORK).exists());
     assert!(output_path.exists());
     let _ = fs::remove_dir_all(root);
 }

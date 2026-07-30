@@ -2,7 +2,7 @@ use super::{fixtures::*, *};
 
 #[test]
 fn node_provider_info_resolves_exact_principal() {
-    let request = NnsNodeProviderInfoRequest {
+    let request = NnsInventoryInfoRequest {
         cache: test_cache_request(MAINNET_NETWORK, "info-exact"),
         source_endpoint: "https://icp-api.io".to_string(),
         input: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),

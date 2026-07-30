@@ -10,7 +10,7 @@ fn sns_neurons_cache_status_surfaces_malformed_attempt_sidecar() {
         .expect("create attempt parent");
     fs::write(&attempt_path, "{").expect("write malformed attempt");
 
-    let err = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest::new(
+    let err = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest::new(
         &root,
         MAINNET_NETWORK,
         ROOT_A,
@@ -38,7 +38,7 @@ fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
     )
     .expect("write attempt");
 
-    let err = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest::new(
+    let err = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest::new(
         &root,
         MAINNET_NETWORK,
         ROOT_A,
@@ -57,9 +57,9 @@ fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
         .expect("refresh neurons");
 
-    let list = build_sns_neurons_cache_list_report(&SnsNeuronsCacheListRequest {
+    let list = build_sns_neurons_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
     })
     .expect("cache list");
     let list_text = sns_neurons_cache_list_report_text(&list);
@@ -86,9 +86,9 @@ fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     assert!(list_text.contains("cache_count: 1"));
     assert!(list_text.contains("Fixture SNS"));
 
-    let status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {
+    let status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         input: "1".to_string(),
     })
     .expect("cache status");
@@ -218,9 +218,9 @@ fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
         .expect_err("incomplete refresh");
 
-    let status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {
+    let status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         input: ROOT_A.to_string(),
     })
     .expect("cache status");
@@ -252,9 +252,9 @@ fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     assert!(status_text.contains("refresh_hint: icq sns neuron refresh"));
     assert!(status_text.contains("latest_attempt_status: failed"));
 
-    let numeric_status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {
+    let numeric_status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         input: "1".to_string(),
     })
     .expect("numeric cache status");
@@ -279,9 +279,9 @@ fn refresh_fixture_sns_neurons_cache(root: &std::path::Path) -> std::path::PathB
 }
 
 fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_error: &str) {
-    let status = build_sns_neurons_cache_status_report(&SnsNeuronsCacheStatusRequest {
+    let status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
         input: ROOT_A.to_string(),
     })
     .expect("cache status");
@@ -299,9 +299,9 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
     assert!(status_text.contains("cache_status: invalid"));
     assert!(status_text.contains("cache_error:"));
 
-    let list = build_sns_neurons_cache_list_report(&SnsNeuronsCacheListRequest {
+    let list = build_sns_neurons_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
     })
     .expect("cache list");
     assert_eq!(list.cache_count, 1);

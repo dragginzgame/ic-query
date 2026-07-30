@@ -27,31 +27,35 @@ impl SnsCacheCollection for SnsProposalsCacheCollection {
 }
 
 #[must_use]
-pub fn sns_proposals_cache_path(icp_root: &Path, network: &str, root_canister_id: &str) -> PathBuf {
-    SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id).cache_path
+pub fn sns_proposals_cache_path(
+    cache_root: &Path,
+    network: &str,
+    root_canister_id: &str,
+) -> PathBuf {
+    SnsProposalsCachePaths::for_root(cache_root, network, root_canister_id).cache_path
 }
 
 #[must_use]
 pub fn sns_proposals_refresh_lock_path(
-    icp_root: &Path,
+    cache_root: &Path,
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id).lock_path
+    SnsProposalsCachePaths::for_root(cache_root, network, root_canister_id).lock_path
 }
 
 #[must_use]
 pub fn sns_proposals_refresh_attempt_path(
-    icp_root: &Path,
+    cache_root: &Path,
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id).attempt_path
+    SnsProposalsCachePaths::for_root(cache_root, network, root_canister_id).attempt_path
 }
 
 /// Return the network-level SNS cache directory.
-pub(super) fn sns_network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
-    sns_snapshot_network_cache_dir(icp_root, network)
+pub(super) fn sns_network_cache_dir(cache_root: &Path, network: &str) -> PathBuf {
+    sns_snapshot_network_cache_dir(cache_root, network)
 }
 
 /// Return the refresh-attempt path paired with a proposal cache path.

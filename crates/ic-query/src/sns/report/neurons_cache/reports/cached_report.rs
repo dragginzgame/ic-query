@@ -16,12 +16,12 @@ use crate::sns::report::{
 pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     request: &SnsNeuronsRequest,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
-    let icp_root = request
-        .icp_root
+    let cache_root = request
+        .cache_root
         .as_ref()
         .ok_or(SnsHostError::MissingCacheRoot)?;
     let (cache_path, mut cache) =
-        load_sns_neurons_cache_for_input(icp_root, &request.network, &request.input)?;
+        load_sns_neurons_cache_for_input(cache_root, &request.network, &request.input)?;
     sort_sns_neurons(&mut cache.data.neurons, request.sort);
     let total_neuron_count = cache.data.neurons.len();
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);

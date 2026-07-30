@@ -4,8 +4,9 @@ use crate::nns::{
     node::{commands::node_info_usage, options::node_info_options},
     now_unix_secs, write_text_or_json,
 };
-use ic_query::nns::node::{
-    NnsNodeInfoRequest, build_nns_node_info_report, nns_node_info_report_text,
+use ic_query::nns::{
+    NnsInventoryInfoRequest,
+    node::{build_nns_node_info_report, nns_node_info_report_text},
 };
 use std::ffi::OsString;
 
@@ -16,7 +17,7 @@ pub(super) fn run_node_info(args: Vec<OsString>) -> Result<(), NnsCommandError> 
     let options = node_info_options(args)?;
     let cache = cache_request(&options.network)?;
     announce_missing_node_cache(&cache, &options.source_endpoint);
-    let request = NnsNodeInfoRequest::new(
+    let request = NnsInventoryInfoRequest::new(
         cache,
         options.source_endpoint,
         options.input,

@@ -28,8 +28,8 @@ pub(in crate::nns::topology::report::tests) fn subnet_refresh_report_fixture()
     SubnetCatalogRefreshReport {
         schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
-        catalog_path: ".icq/subnet-catalog/ic/catalog.json".to_string(),
-        refresh_lock_path: ".icq/subnet-catalog/ic/refresh.lock".to_string(),
+        catalog_path: "/cache/subnet-catalog/ic/catalog.json".to_string(),
+        refresh_lock_path: "/cache/subnet-catalog/ic/refresh.lock".to_string(),
         output_path: None,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 42,

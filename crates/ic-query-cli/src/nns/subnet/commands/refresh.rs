@@ -12,7 +12,7 @@ const REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns subnet refresh
   icq --network ic nns subnet refresh --format json
-  icq nns subnet refresh --dry-run --output .icq/subnet-catalog/ic/catalog.preview.json";
+  icq nns subnet refresh --dry-run --output /tmp/icq-subnet-catalog.preview.json";
 
 pub(in crate::nns::subnet) fn refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")

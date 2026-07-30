@@ -29,23 +29,29 @@ use std::path::{Path, PathBuf};
 /// Build a proposal listing report from cache, refreshing when the cache is missing.
 pub(in crate::sns::report) fn build_sns_proposals_report_from_cache_or_refresh(
     request: &SnsProposalsRequest,
-    icp_root: &Path,
+    cache_root: &Path,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsReport, SnsHostError> {
     let (cache_path, cache) =
-        load_or_refresh_sns_proposals_cache(request, icp_root, source, progress)?;
+        load_or_refresh_sns_proposals_cache(request, cache_root, source, progress)?;
     Ok(sns_proposals_report_from_cache(request, cache_path, cache))
 }
 
 fn load_or_refresh_sns_proposals_cache(
     request: &SnsProposalsRequest,
-    icp_root: &Path,
+    cache_root: &Path,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
     load_or_refresh_missing_cache(
-        || load_sns_proposals_cache_for_input_with_path(icp_root, &request.network, &request.input),
+        || {
+            load_sns_proposals_cache_for_input_with_path(
+                cache_root,
+                &request.network,
+                &request.input,
+            )
+        },
         |err| match err {
             SnsHostError::MissingProposalsCache { path } => Ok(path),
             err => Err(err),
@@ -57,7 +63,7 @@ fn load_or_refresh_sns_proposals_cache(
                 source_endpoint: request.source_endpoint.clone(),
             });
             refresh_sns_proposals_cache_with_source_and_progress(
-                &proposals_refresh_request_from_list_request(request, icp_root),
+                &proposals_refresh_request_from_list_request(request, cache_root),
                 source,
                 progress,
             )
@@ -68,14 +74,14 @@ fn load_or_refresh_sns_proposals_cache(
 
 fn proposals_refresh_request_from_list_request(
     request: &SnsProposalsRequest,
-    icp_root: &Path,
+    cache_root: &Path,
 ) -> SnsProposalsRefreshRequest {
     SnsProposalsRefreshRequest {
         network: request.network.clone(),
         source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,
         input: request.input.clone(),
-        icp_root: icp_root.to_path_buf(),
+        cache_root: cache_root.to_path_buf(),
         page_size: SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE,
         max_pages: None,
     }

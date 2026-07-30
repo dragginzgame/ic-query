@@ -1,56 +1,55 @@
-//! Module: sns::report::model::reports::proposals::cache
+//! Module: sns::report::model::reports::cache
 //!
-//! Responsibility: define SNS proposal cache list and status report DTOs.
-//! Does not own: cache discovery, cache file reads, or text rendering.
-//! Boundary: preserves cache metadata fields for text and JSON reports.
+//! Responsibility: shared SNS complete-snapshot cache inspection DTOs.
+//! Does not own: cache discovery, collection-specific storage, or rendering.
+//! Boundary: preserves fields common to neuron and proposal cache list/status reports.
 
-use super::super::attempt::SnsRefreshAttemptStatus;
+use super::SnsRefreshAttemptStatus;
 use crate::sns::report::SnsCacheSummarySortKey;
-
 use serde::Serialize;
 
 ///
-/// SnsProposalsCacheListReport
+/// SnsCacheListReport
 ///
-/// Serializable report listing complete local SNS proposal caches.
+/// Serializable report listing one family of complete local SNS caches.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct SnsProposalsCacheListReport {
+pub struct SnsCacheListReport {
     pub schema_version: u32,
     pub network: String,
     pub cache_root: String,
     pub cache_count: usize,
-    pub caches: Vec<SnsProposalsCacheSummary>,
+    pub caches: Vec<SnsCacheSummary>,
 }
 
 ///
-/// SnsProposalsCacheStatusReport
+/// SnsCacheStatusReport
 ///
-/// Serializable report describing one expected or discovered SNS proposal cache.
+/// Serializable report describing one expected or discovered SNS cache.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct SnsProposalsCacheStatusReport {
+pub struct SnsCacheStatusReport {
     pub schema_version: u32,
     pub network: String,
     pub cache_root: String,
     pub input: String,
     pub found: bool,
-    pub cache: Option<SnsProposalsCacheSummary>,
+    pub cache: Option<SnsCacheSummary>,
     pub expected_cache_path: Option<String>,
     pub refresh_attempt_path: Option<String>,
     pub latest_attempt: Option<SnsRefreshAttemptStatus>,
 }
 
 ///
-/// SnsProposalsCacheSummary
+/// SnsCacheSummary
 ///
-/// Serializable summary of one complete SNS proposal snapshot cache.
+/// Serializable summary of one complete SNS snapshot cache.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct SnsProposalsCacheSummary {
+pub struct SnsCacheSummary {
     pub id: usize,
     pub name: String,
     pub root_canister_id: String,
@@ -68,7 +67,7 @@ pub struct SnsProposalsCacheSummary {
     pub latest_attempt: Option<SnsRefreshAttemptStatus>,
 }
 
-impl SnsCacheSummarySortKey for SnsProposalsCacheSummary {
+impl SnsCacheSummarySortKey for SnsCacheSummary {
     fn id(&self) -> usize {
         self.id
     }

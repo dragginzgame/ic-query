@@ -20,7 +20,7 @@ const ACCOUNT_OWNER: &str = "aaaaa-aa";
 #[test]
 fn cache_entity_changes_with_collection_identity_not_view_options() {
     let first = IcrcAccountTransactionCacheRequest::new(
-        "/tmp/project",
+        "/tmp/ic-query-cache",
         "https://icp-api.io",
         "ryjl3-tyaaa-aaaaa-aaaba-cai",
         "aaaaa-aa",
@@ -84,7 +84,7 @@ fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
 }
 
 #[test]
-fn failed_refresh_preserves_last_complete_cache_and_records_failure() {
+fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() {
     let root = temp_dir("ic-query-icrc-account-refresh-failure");
     let cache = cache_request(&root);
     let first_request = refresh_request(cache.clone(), 1_700_000_000);
@@ -107,10 +107,11 @@ fn failed_refresh_preserves_last_complete_cache_and_records_failure() {
     assert!(matches!(
         error,
         IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id,
             pages_fetched: 2,
             rows_fetched: 100,
             ..
-        }
+        } if index_canister_id.as_deref() == Some(INDEX_CANISTER_ID)
     ));
     assert_eq!(after, before);
     assert_eq!(
@@ -122,6 +123,10 @@ fn failed_refresh_preserves_last_complete_cache_and_records_failure() {
     assert_eq!(attempt.pages_fetched, 2);
     assert_eq!(attempt.rows_fetched, 100);
     assert_eq!(attempt.last_cursor.as_deref(), Some("50"));
+    assert_eq!(
+        attempt.index_canister_id.as_deref(),
+        Some(INDEX_CANISTER_ID)
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -141,6 +146,36 @@ fn source_claiming_completion_with_wrong_final_cursor_is_not_published() {
             reason,
             ..
         } if reason.contains("final cursor")
+    ));
+    assert!(
+        !icrc_account_transaction_cache_path(&cache)
+            .expect("cache path")
+            .exists()
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn custom_source_must_return_the_explicitly_requested_index() {
+    let root = temp_dir("ic-query-icrc-account-index-mismatch");
+    let cache = cache_request(&root);
+    let request = refresh_request(cache.clone(), 1_700_000_000)
+        .with_index_canister_id(Principal::management_canister().to_text());
+
+    let error = refresh_icrc_account_transaction_cache_with_source(
+        &request,
+        &SuccessSource::new(vec![row("7")]),
+    )
+    .expect_err("source index must match explicit request");
+
+    assert!(matches!(
+        error,
+        IcrcAccountTransactionError::CollectionIndexMismatch {
+            expected_index_canister_id,
+            actual_index_canister_id,
+        } if expected_index_canister_id == Principal::management_canister().to_text()
+            && actual_index_canister_id == INDEX_CANISTER_ID
     ));
     assert!(
         !icrc_account_transaction_cache_path(&cache)
@@ -247,10 +282,12 @@ struct IncompleteSource;
 impl IcrcAccountTransactionCollectionSource for IncompleteSource {
     fn fetch_complete_account_transactions(
         &self,
-        _request: &IcrcAccountTransactionRefreshRequest,
+        request: &IcrcAccountTransactionRefreshRequest,
         _progress: &mut (dyn QueryProgress + Send),
     ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
+        assert!(request.index_canister_id.is_none());
         Err(IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id: Some(INDEX_CANISTER_ID.to_string()),
             pages_fetched: 2,
             rows_fetched: 100,
             last_cursor: Some("50".to_string()),

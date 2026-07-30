@@ -6,12 +6,11 @@
 
 use super::{NnsLeafCachePaths, NnsLeafCacheRequest, NnsLeafRefreshRequest};
 use crate::cache_file::{
-    CachedJsonReport, HostCacheError, JsonCacheReport, LoadJsonCacheErrorMapper,
+    CachedJsonReport, HostCacheError, HostJsonCacheErrorMapper, JsonCacheReport,
     LoadJsonCacheRequest, RefreshCacheWriteRequest, RefreshCacheWriteResult, load_json_cache,
     write_json_refresh_cache,
 };
 use serde::{Serialize, de::DeserializeOwned};
-use std::{io, path::PathBuf};
 
 /// Load a generic NNS leaf JSON cache using component-labelled errors.
 pub(in crate::nns) fn load_nns_leaf_json_cache<Cache, Report>(
@@ -25,7 +24,7 @@ where
     Report: DeserializeOwned + JsonCacheReport,
 {
     let paths = NnsLeafCachePaths::for_component(
-        cache.icp_root(),
+        cache.cache_root(),
         component_dir,
         cache.network(),
         cache_file,
@@ -36,9 +35,7 @@ where
             network: cache.network(),
             expected_schema_version,
         },
-        NnsLeafLoadJsonCacheErrors {
-            component: component_dir,
-        },
+        HostJsonCacheErrorMapper::new(component_dir),
     )
 }
 
@@ -55,7 +52,7 @@ where
 {
     let cache = request.cache();
     let paths = NnsLeafCachePaths::for_component(
-        cache.icp_root(),
+        cache.cache_root(),
         component_dir,
         cache.network(),
         cache_file,
@@ -74,32 +71,4 @@ where
         |err| HostCacheError::operation(component_dir, err),
         |path, source| HostCacheError::serialize_cache(component_dir, path, source),
     )
-}
-
-struct NnsLeafLoadJsonCacheErrors {
-    component: &'static str,
-}
-
-impl LoadJsonCacheErrorMapper for NnsLeafLoadJsonCacheErrors {
-    type Error = HostCacheError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        HostCacheError::missing_cache(self.component, path)
-    }
-
-    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        HostCacheError::read_cache(self.component, path, source)
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        HostCacheError::parse_cache(self.component, path, source)
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        HostCacheError::unsupported_cache_schema_version(self.component, version, expected)
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        HostCacheError::network_mismatch(self.component, requested, actual)
-    }
 }

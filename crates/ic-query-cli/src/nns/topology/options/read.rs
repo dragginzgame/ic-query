@@ -46,9 +46,13 @@ macro_rules! topology_read_options {
                 self.format
             }
 
-            fn into_request(self, icp_root: PathBuf, now_unix_secs: u64) -> NnsTopologyReadRequest {
+            fn into_request(
+                self,
+                cache_root: PathBuf,
+                now_unix_secs: u64,
+            ) -> NnsTopologyReadRequest {
                 NnsTopologyReadRequest::new(
-                    icp_root,
+                    cache_root,
                     self.network,
                     self.source_endpoint,
                     now_unix_secs,
@@ -67,7 +71,7 @@ macro_rules! topology_read_options {
 pub(in crate::nns::topology) trait TopologyReadOptions: Sized {
     fn parse_args(args: Vec<OsString>) -> Result<Self, NnsCommandError>;
     fn format(&self) -> OutputFormat;
-    fn into_request(self, icp_root: PathBuf, now_unix_secs: u64) -> NnsTopologyReadRequest;
+    fn into_request(self, cache_root: PathBuf, now_unix_secs: u64) -> NnsTopologyReadRequest;
 }
 
 topology_read_options!(

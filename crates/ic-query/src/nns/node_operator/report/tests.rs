@@ -1,6 +1,6 @@
 use super::{
-    NnsNodeOperatorCacheRequest, NnsNodeOperatorHostError, NnsNodeOperatorListReport,
-    NnsNodeOperatorListRequest, NnsNodeOperatorRow, NnsNodeOperatorSource,
+    NnsInventoryCacheRequest, NnsInventoryListRequest, NnsNodeOperatorHostError,
+    NnsNodeOperatorListReport, NnsNodeOperatorRow, NnsNodeOperatorSource,
     build_nns_node_operator_list_report_with_source, nns_node_operator_list_report_text,
     resolve_node_operator,
 };
@@ -30,7 +30,7 @@ fn live_node_operator_source_rejects_non_mainnet_before_agent_construction() {
 
 #[test]
 fn node_operator_report_uses_live_registry_source() {
-    let request = NnsNodeOperatorListRequest {
+    let request = NnsInventoryListRequest {
         cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
@@ -113,9 +113,9 @@ fn node_operator_report_fixture() -> NnsNodeOperatorListReport {
     }
 }
 
-fn test_cache_request(network: &str, name: &str) -> NnsNodeOperatorCacheRequest {
-    NnsNodeOperatorCacheRequest {
-        icp_root: temp_dir(&format!("ic-query-nns-node-operator-{name}")),
+fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
+    NnsInventoryCacheRequest {
+        cache_root: temp_dir(&format!("ic-query-nns-node-operator-{name}")),
         network: network.to_string(),
     }
 }

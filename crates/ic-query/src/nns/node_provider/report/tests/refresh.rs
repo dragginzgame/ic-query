@@ -3,7 +3,7 @@ use super::{fixtures::*, *};
 #[test]
 fn node_provider_refresh_writes_cache_and_list_reads_it() {
     let cache = test_cache_request(MAINNET_NETWORK, "refresh-cache");
-    let refresh_request = NnsNodeProviderRefreshRequest {
+    let refresh_request = NnsInventoryRefreshRequest {
         cache: cache.clone(),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
@@ -27,7 +27,7 @@ fn node_provider_refresh_writes_cache_and_list_reads_it() {
     assert!(refresh_report.wrote_cache);
     assert_eq!(refresh_report.node_provider_count, 1);
 
-    let list_request = NnsNodeProviderListRequest {
+    let list_request = NnsInventoryListRequest {
         cache,
         source_endpoint: "https://unused.example".to_string(),
         now_unix_secs: 1_780_531_300,

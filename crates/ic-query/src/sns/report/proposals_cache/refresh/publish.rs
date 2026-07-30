@@ -6,10 +6,13 @@
 
 use super::context::SnsProposalsRefreshContext;
 use crate::{
-    snapshot_cache::{SnapshotCompleteness, publish_snapshot_with_attempt, write_snapshot_json},
+    snapshot_cache::{
+        SnapshotCompleteness, SnapshotRefreshProgress, publish_snapshot_with_attempt,
+        write_snapshot_json,
+    },
     sns::report::{
         SnsHostError, SnsProposalRow, SnsProposalsRefreshReport,
-        cache_attempt::{SnsRefreshAttemptProgress, write_complete_sns_refresh_attempt},
+        cache_attempt::write_complete_sns_refresh_attempt,
         cache_storage::SnsCacheMetadata,
         proposals_cache::{
             SNS_PROPOSALS_CACHE_SCHEMA_VERSION, SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,
@@ -49,7 +52,7 @@ pub(super) fn publish_complete_sns_proposals_cache(
         || {
             write_complete_sns_refresh_attempt(
                 context.attempt_context(),
-                SnsRefreshAttemptProgress::new(page_count, proposal_count, last_cursor),
+                SnapshotRefreshProgress::new(page_count, proposal_count, last_cursor),
             )
         },
     )?;

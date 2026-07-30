@@ -2,7 +2,7 @@ use super::{fixtures::*, *};
 
 #[test]
 fn node_provider_report_uses_live_governance_source() {
-    let request = NnsNodeProviderListRequest {
+    let request = NnsInventoryListRequest {
         cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
@@ -47,7 +47,7 @@ fn node_provider_report_uses_live_governance_source() {
 
 #[test]
 fn node_provider_list_rejects_local_network() {
-    let request = NnsNodeProviderListRequest {
+    let request = NnsInventoryListRequest {
         cache: test_cache_request("local", "local-rejected"),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1,

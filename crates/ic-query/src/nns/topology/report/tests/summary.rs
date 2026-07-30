@@ -67,7 +67,7 @@ fn topology_summary_text_renders_count_and_version_tables() {
 #[test]
 fn topology_summary_rejects_local_network_with_topology_hint() {
     let request = NnsTopologyReadRequest {
-        icp_root: temp_dir("ic-query-topology-local-network"),
+        cache_root: temp_dir("ic-query-topology-local-network"),
         network: "local".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,

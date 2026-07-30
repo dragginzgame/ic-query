@@ -10,7 +10,7 @@ use super::options::{
 use crate::{
     cli::common::write_text_or_json,
     nns::{
-        NnsCommandError, command_args, command_icp_root, now_unix_secs,
+        NnsCommandError, command_args, command_cache_root, now_unix_secs,
         parse_nns_required_subcommand,
     },
     progress::StderrQueryProgress,
@@ -78,7 +78,7 @@ fn run_nns_proposal_list_with_options(
         request = request.with_query(query);
     }
 
-    let report = build_nns_proposal_list_report_from_cache(&request, &command_icp_root()?)?
+    let report = build_nns_proposal_list_report_from_cache(&request, &command_cache_root()?)?
         .map_or_else(|| build_nns_proposal_list_report(&request), Ok)?;
     write_text_or_json(options.format, &report, nns_proposal_list_report_text)
 }
@@ -124,7 +124,7 @@ fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsC
     )
     .with_show_ballots(options.show_ballots)
     .with_verbose(options.verbose);
-    let report = build_nns_proposal_report_from_cache(&request, &command_icp_root()?)?
+    let report = build_nns_proposal_report_from_cache(&request, &command_cache_root()?)?
         .map_or_else(|| build_nns_proposal_report(&request), Ok)?;
     write_text_or_json(options.format, &report, nns_proposal_report_text)
 }
@@ -139,7 +139,7 @@ where
     };
     let options = NnsProposalRefreshOptions::parse(args)?;
     let request = NnsProposalRefreshRequest::new(
-        command_icp_root()?,
+        command_cache_root()?,
         options.network,
         options.source_endpoint,
         now_unix_secs()?,
@@ -181,7 +181,7 @@ where
         return Ok(());
     };
     let options = NnsProposalCacheOptions::parse_list(args)?;
-    let request = NnsProposalCacheListRequest::new(command_icp_root()?, options.network);
+    let request = NnsProposalCacheListRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_list_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
 }
@@ -197,7 +197,7 @@ where
         return Ok(());
     };
     let options = NnsProposalCacheOptions::parse_status(args)?;
-    let request = NnsProposalCacheStatusRequest::new(command_icp_root()?, options.network);
+    let request = NnsProposalCacheStatusRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_status_report(&request)?;
     write_text_or_json(
         options.format,

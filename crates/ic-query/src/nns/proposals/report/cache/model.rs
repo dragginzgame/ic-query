@@ -27,7 +27,7 @@ pub struct NnsProposalRefreshRequest {
     pub network: String,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub page_size: u32,
     pub max_pages: Option<u32>,
 }
@@ -35,7 +35,7 @@ pub struct NnsProposalRefreshRequest {
 impl NnsProposalRefreshRequest {
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         network: impl Into<String>,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
@@ -45,7 +45,7 @@ impl NnsProposalRefreshRequest {
             network: network.into(),
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             page_size,
             max_pages: None,
         }
@@ -67,21 +67,21 @@ impl NnsProposalRefreshRequest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsProposalCacheListRequest {
     pub network: String,
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
 }
 
 impl NnsProposalCacheListRequest {
     #[must_use]
-    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
         Self {
             network: network.into(),
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
         }
     }
 
     #[must_use]
-    pub fn icp_root(&self) -> &Path {
-        &self.icp_root
+    pub fn cache_root(&self) -> &Path {
+        &self.cache_root
     }
 }
 
@@ -94,21 +94,21 @@ impl NnsProposalCacheListRequest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsProposalCacheStatusRequest {
     pub network: String,
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
 }
 
 impl NnsProposalCacheStatusRequest {
     #[must_use]
-    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
         Self {
             network: network.into(),
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
         }
     }
 
     #[must_use]
-    pub fn icp_root(&self) -> &Path {
-        &self.icp_root
+    pub fn cache_root(&self) -> &Path {
+        &self.cache_root
     }
 }
 

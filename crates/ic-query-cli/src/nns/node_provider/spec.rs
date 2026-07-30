@@ -20,7 +20,7 @@ const NODE_PROVIDER_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns node-provider refresh
   icq --network ic nns node-provider refresh --format json
-  icq nns node-provider refresh --dry-run --output .icq/node-provider/ic/providers.preview.json";
+  icq nns node-provider refresh --dry-run --output /tmp/icq-node-providers.preview.json";
 
 pub(super) const NODE_PROVIDER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "node-provider",

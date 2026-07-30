@@ -1,20 +1,23 @@
 use crate::nns::leaf;
-use ic_query::nns::data_center::{
-    NnsDataCenterCacheRequest, NnsDataCenterHostError, NnsDataCenterInfoReport,
-    NnsDataCenterInfoRequest, NnsDataCenterListReport, NnsDataCenterListRequest,
-    NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest, build_nns_data_center_info_report,
-    build_nns_data_center_list_report, nns_data_center_cache_path,
-    nns_data_center_info_report_text, nns_data_center_list_report_text,
-    nns_data_center_list_report_verbose_text, nns_data_center_refresh_report_text,
-    refresh_nns_data_center_report,
+use ic_query::nns::{
+    NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
+    NnsInventoryRefreshRequest,
+    data_center::{
+        NnsDataCenterHostError, NnsDataCenterInfoReport, NnsDataCenterListReport,
+        NnsDataCenterRefreshReport, build_nns_data_center_info_report,
+        build_nns_data_center_list_report, nns_data_center_cache_path,
+        nns_data_center_info_report_text, nns_data_center_list_report_text,
+        nns_data_center_list_report_verbose_text, nns_data_center_refresh_report_text,
+        refresh_nns_data_center_report,
+    },
 };
 
 impl_nns_leaf_reports!(
     NnsDataCenterReports,
-    cache = NnsDataCenterCacheRequest,
-    list_request = NnsDataCenterListRequest,
-    info_request = NnsDataCenterInfoRequest,
-    refresh_request = NnsDataCenterRefreshRequest,
+    cache = NnsInventoryCacheRequest,
+    list_request = NnsInventoryListRequest,
+    info_request = NnsInventoryInfoRequest,
+    refresh_request = NnsInventoryRefreshRequest,
     list_report = NnsDataCenterListReport,
     info_report = NnsDataCenterInfoReport,
     refresh_report = NnsDataCenterRefreshReport,
@@ -22,15 +25,9 @@ impl_nns_leaf_reports!(
     build_list = build_nns_data_center_list_report,
     build_info = build_nns_data_center_info_report,
     refresh = refresh_nns_data_center_report,
+    cache_path = nns_data_center_cache_path,
     list_text = nns_data_center_list_report_text,
     list_verbose_text = nns_data_center_list_report_verbose_text,
     info_text = nns_data_center_info_report_text,
     refresh_text = nns_data_center_refresh_report_text,
-);
-
-impl_cached_leaf_cli_requests!(
-    NnsDataCenterCacheRequest,
-    NnsDataCenterListRequest,
-    NnsDataCenterInfoRequest,
-    nns_data_center_cache_path
 );

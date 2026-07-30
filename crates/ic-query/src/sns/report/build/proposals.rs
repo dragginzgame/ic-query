@@ -51,8 +51,8 @@ pub fn build_sns_proposal_report_with_source(
     request: &SnsProposalRequest,
     source: &dyn SnsProposalSource,
 ) -> Result<SnsProposalReport, SnsHostError> {
-    if let Some(icp_root) = request.icp_root.as_ref()
-        && let Some(report) = build_sns_proposal_report_from_cache(request, icp_root)?
+    if let Some(cache_root) = request.cache_root.as_ref()
+        && let Some(report) = build_sns_proposal_report_from_cache(request, cache_root)?
     {
         return Ok(report);
     }
@@ -91,16 +91,16 @@ fn build_sns_proposals_report_with_source_and_progress(
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsReport, SnsHostError> {
     validate_sns_proposals_request(request)?;
-    if let Some(icp_root) = request.icp_root.as_ref() {
+    if let Some(cache_root) = request.cache_root.as_ref() {
         return build_sns_proposals_report_from_cache_or_refresh(
-            request, icp_root, source, progress,
+            request, cache_root, source, progress,
         );
     }
     build_sns_proposals_report_live(request, source)
 }
 
 fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), SnsHostError> {
-    if request.status == SnsProposalStatusFilter::Decided && request.icp_root.is_none() {
+    if request.status == SnsProposalStatusFilter::Decided && request.cache_root.is_none() {
         return Err(SnsHostError::UnsupportedProposalView {
             reason: "`--status decided` requires a complete proposal cache".to_string(),
         });

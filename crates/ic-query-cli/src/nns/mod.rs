@@ -23,7 +23,7 @@ use crate::{
         common::{CurrentUnixSecsError, OutputFormat, current_unix_secs, write_text_or_json},
         help::collect_args_or_print_help_or_version,
     },
-    project::icp_root as project_icp_root,
+    storage::cache_root,
     version_text,
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -129,8 +129,8 @@ where
 fn now_unix_secs() -> Result<u64, NnsCommandError> {
     Ok(current_unix_secs()?)
 }
-fn command_icp_root() -> Result<PathBuf, NnsCommandError> {
-    project_icp_root().map_err(|err| NnsCommandError::Usage(err.to_string()))
+fn command_cache_root() -> Result<PathBuf, NnsCommandError> {
+    cache_root().map_err(|err| NnsCommandError::Usage(err.to_string()))
 }
 
 fn nns_command() -> ClapCommand {

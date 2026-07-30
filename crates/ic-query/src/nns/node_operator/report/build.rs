@@ -1,7 +1,7 @@
 use super::{
     DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION,
-    NnsNodeOperatorHostError, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,
-    NnsNodeOperatorListReport, NnsNodeOperatorListRequest, NnsNodeOperatorRefreshRequest,
+    NnsInventoryInfoRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest,
+    NnsNodeOperatorHostError, NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
     cache::load_cached_nns_node_operator_report,
     refresh::refresh_nns_node_operator_cache_with_source, resolve::resolve_node_operator,
     source::NnsNodeOperatorSource,
@@ -9,19 +9,19 @@ use super::{
 use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
 
 pub fn build_nns_node_operator_list_report(
-    request: &NnsNodeOperatorListRequest,
+    request: &NnsInventoryListRequest,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
     build_nns_node_operator_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_operator_info_report(
-    request: &NnsNodeOperatorInfoRequest,
+    request: &NnsInventoryInfoRequest,
 ) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
     build_nns_node_operator_info_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_operator_list_report_with_source(
-    request: &NnsNodeOperatorListRequest,
+    request: &NnsInventoryListRequest,
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
     load_or_refresh_missing_cache(
@@ -31,7 +31,7 @@ pub fn build_nns_node_operator_list_report_with_source(
             err => Err(err),
         },
         |_| {
-            let refresh_request = NnsNodeOperatorRefreshRequest::new(
+            let refresh_request = NnsInventoryRefreshRequest::new(
                 request.cache.clone(),
                 request.source_endpoint.clone(),
                 request.now_unix_secs,
@@ -43,10 +43,10 @@ pub fn build_nns_node_operator_list_report_with_source(
 }
 
 pub fn build_nns_node_operator_info_report_with_source(
-    request: &NnsNodeOperatorInfoRequest,
+    request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
-    let list_request = NnsNodeOperatorListRequest {
+    let list_request = NnsInventoryListRequest {
         cache: request.cache.clone(),
         source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,

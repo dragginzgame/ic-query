@@ -5,7 +5,7 @@
 //! Boundary: drives proposal paging and refresh-attempt progress updates.
 
 use super::{
-    attempt::{NnsProposalAttemptProgress, write_running_attempt},
+    attempt::write_running_attempt,
     model::{CompleteNnsProposalCollection, NnsProposalRefreshRequest},
 };
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
@@ -20,7 +20,7 @@ use crate::{
         },
     },
     snapshot_cache::{
-        PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
+        PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh, SnapshotRefreshProgress,
         run_paged_snapshot_refresh_with_progress,
     },
 };
@@ -105,7 +105,7 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
         write_running_attempt(
             self.attempt_path,
             self.request,
-            NnsProposalAttemptProgress::new(
+            SnapshotRefreshProgress::new(
                 self.state.page_count(),
                 self.state.row_count(),
                 page.last_cursor_text.clone(),

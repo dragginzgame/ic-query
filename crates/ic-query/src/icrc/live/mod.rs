@@ -24,7 +24,9 @@ pub use build::{
     build_icrc_transactions_report_with_source,
 };
 pub use source::{
-    IcrcAccountTransactionCollectionSource, IcrcAccountTransactionPageSource, IcrcSource,
+    IcrcAccountTransactionCollectionSource, IcrcAccountTransactionPageSource, IcrcAllowanceSource,
+    IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource,
+    IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource,
     LiveIcrcSource,
 };
 

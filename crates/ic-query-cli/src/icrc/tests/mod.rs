@@ -96,17 +96,17 @@ fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
         SOURCE_ENDPOINT,
     ]);
 
-    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.target.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(
         options.index_canister_id.as_deref(),
         Some(INDEX_CANISTER_ID)
     );
-    assert_eq!(options.account_owner, ACCOUNT_OWNER);
-    assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
+    assert_eq!(options.target.account_owner, ACCOUNT_OWNER);
+    assert_eq!(options.target.subaccount_hex.as_deref(), Some(SUBACCOUNT));
     assert_eq!(options.start.as_deref(), Some("18446744073709551616"));
     assert_eq!(options.limit, 42);
     assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+    assert_eq!(options.target.source_endpoint, SOURCE_ENDPOINT);
 }
 
 #[test]
@@ -154,9 +154,9 @@ fn account_transaction_cache_options_parse_identity() {
         SUBACCOUNT,
     ]);
 
-    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.account_owner, ACCOUNT_OWNER);
-    assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
+    assert_eq!(options.target.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.target.account_owner, ACCOUNT_OWNER);
+    assert_eq!(options.target.subaccount_hex.as_deref(), Some(SUBACCOUNT));
 }
 
 #[test]

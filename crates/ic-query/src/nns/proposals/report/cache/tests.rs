@@ -132,7 +132,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
         now_unix_secs: 1_700_000_000,
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         page_size: 2,
         max_pages: None,
     };
@@ -163,7 +163,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
 
     let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
     })
     .expect("cache list");
 
@@ -175,7 +175,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
 
     let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root,
+        cache_root: root,
     })
     .expect("cache status");
     let status_text = nns_proposal_cache_status_report_text(&status);
@@ -203,7 +203,7 @@ fn nns_proposal_cache_status_reports_missing_cache() {
 
     let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
     })
     .expect("cache status");
     let text = nns_proposal_cache_status_report_text(&status);
@@ -216,7 +216,7 @@ fn nns_proposal_cache_status_reports_missing_cache() {
 
     let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
     })
     .expect("cache list");
     assert_eq!(list.cache_count, 0);
@@ -249,7 +249,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
-            icp_root: root.clone(),
+            cache_root: root.clone(),
             page_size: 2,
             max_pages: None,
         },
@@ -382,7 +382,7 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
-            icp_root: root.clone(),
+            cache_root: root.clone(),
             page_size: 2,
             max_pages: None,
         },
@@ -413,7 +413,7 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
             .cache_path
             .as_deref()
             .expect("cache path")
-            .ends_with(".icq/nns/ic/governance/proposals/full.json")
+            .ends_with("nns/ic/governance/proposals/full.json")
     );
     assert!(text.contains("data_source: cache"));
     assert!(text.contains("cache_complete: yes"));
@@ -428,7 +428,7 @@ fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
-            icp_root: root.clone(),
+            cache_root: root.clone(),
             page_size: 2,
             max_pages: None,
         },
@@ -458,7 +458,7 @@ fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::Path
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             now_unix_secs: 1_700_000_000,
-            icp_root: root.to_path_buf(),
+            cache_root: root.to_path_buf(),
             page_size: 2,
             max_pages: None,
         },
@@ -471,7 +471,7 @@ fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::Path
 fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_error: &str) {
     let status = build_nns_proposal_cache_status_report(&NnsProposalCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
     })
     .expect("cache status");
     let status_text = nns_proposal_cache_status_report_text(&status);
@@ -490,7 +490,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
 
     let list = build_nns_proposal_cache_list_report(&NnsProposalCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
     })
     .expect("cache list");
     assert_eq!(list.cache_count, 1);

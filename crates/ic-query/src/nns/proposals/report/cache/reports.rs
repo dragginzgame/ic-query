@@ -50,7 +50,7 @@ pub fn build_nns_proposal_cache_list_report(
     request: &NnsProposalCacheListRequest,
 ) -> Result<NnsProposalCacheListReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(&request.icp_root, &request.network);
+    let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
     let snapshot_path = paths.snapshot_path;
     let caches = if snapshot_path.is_file() {
         vec![load_nns_proposal_cache_summary(
@@ -63,7 +63,7 @@ pub fn build_nns_proposal_cache_list_report(
     Ok(NnsProposalCacheListReport {
         schema_version: NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
-        cache_root: nns_proposal_cache_root(&request.icp_root, &request.network)
+        cache_root: nns_proposal_cache_root(&request.cache_root, &request.network)
             .display()
             .to_string(),
         cache_count: caches.len(),
@@ -76,7 +76,7 @@ pub fn build_nns_proposal_cache_status_report(
     request: &NnsProposalCacheStatusRequest,
 ) -> Result<NnsProposalCacheStatusReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(&request.icp_root, &request.network);
+    let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
     let cache = if paths.snapshot_path.is_file() {
         Some(load_nns_proposal_cache_summary(
             paths.snapshot_path.clone(),
@@ -89,7 +89,7 @@ pub fn build_nns_proposal_cache_status_report(
     Ok(NnsProposalCacheStatusReport {
         schema_version: NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
-        cache_root: nns_proposal_cache_root(&request.icp_root, &request.network)
+        cache_root: nns_proposal_cache_root(&request.cache_root, &request.network)
             .display()
             .to_string(),
         found: cache.is_some(),
@@ -103,10 +103,10 @@ pub fn build_nns_proposal_cache_status_report(
 /// Build an NNS proposal list report from a complete local proposal snapshot.
 pub fn build_nns_proposal_list_report_from_cache(
     request: &NnsProposalListRequest,
-    icp_root: &Path,
+    cache_root: &Path,
 ) -> Result<Option<NnsProposalListReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(icp_root, &request.network);
+    let paths = nns_proposal_cache_paths(cache_root, &request.network);
     if !paths.snapshot_path.is_file() {
         return Ok(None);
     }
@@ -121,10 +121,10 @@ pub fn build_nns_proposal_list_report_from_cache(
 /// Build an NNS proposal detail report from a complete local proposal snapshot.
 pub fn build_nns_proposal_report_from_cache(
     request: &NnsProposalRequest,
-    icp_root: &Path,
+    cache_root: &Path,
 ) -> Result<Option<NnsProposalReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(icp_root, &request.network);
+    let paths = nns_proposal_cache_paths(cache_root, &request.network);
     if !paths.snapshot_path.is_file() {
         return Ok(None);
     }

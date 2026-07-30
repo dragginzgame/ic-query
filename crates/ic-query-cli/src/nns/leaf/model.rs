@@ -1,3 +1,7 @@
+use ic_query::nns::{
+    NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
+    NnsInventoryRefreshRequest,
+};
 use std::path::{Path, PathBuf};
 
 ///
@@ -34,9 +38,18 @@ pub(in crate::nns) struct NnsLeafCommandSpec {
 ///
 
 pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
-    fn from_root_network(icp_root: &Path, network: &str) -> Self;
-    fn cache_path(&self) -> PathBuf;
+    fn from_root_network(cache_root: &Path, network: &str) -> Self;
     fn network(&self) -> &str;
+}
+
+impl NnsLeafCacheRequest for NnsInventoryCacheRequest {
+    fn from_root_network(cache_root: &Path, network: &str) -> Self {
+        Self::new(cache_root, network)
+    }
+
+    fn network(&self) -> &str {
+        &self.network
+    }
 }
 
 ///
@@ -48,6 +61,14 @@ pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
 pub(in crate::nns) trait NnsLeafListRequest {
     type Cache: NnsLeafCacheRequest;
     fn from_leaf_parts(cache: Self::Cache, source_endpoint: String, now_unix_secs: u64) -> Self;
+}
+
+impl NnsLeafListRequest for NnsInventoryListRequest {
+    type Cache = NnsInventoryCacheRequest;
+
+    fn from_leaf_parts(cache: Self::Cache, source_endpoint: String, now_unix_secs: u64) -> Self {
+        Self::new(cache, source_endpoint, now_unix_secs)
+    }
 }
 
 ///
@@ -66,6 +87,19 @@ pub(in crate::nns) trait NnsLeafInfoRequest {
     ) -> Self;
 }
 
+impl NnsLeafInfoRequest for NnsInventoryInfoRequest {
+    type Cache = NnsInventoryCacheRequest;
+
+    fn from_leaf_parts(
+        cache: Self::Cache,
+        source_endpoint: String,
+        input: String,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self::new(cache, source_endpoint, input, now_unix_secs)
+    }
+}
+
 ///
 /// NnsLeafRefreshRequest
 ///
@@ -82,6 +116,31 @@ pub(in crate::nns) trait NnsLeafRefreshRequest {
         dry_run: bool,
         output_path: Option<PathBuf>,
     ) -> Self;
+}
+
+impl NnsLeafRefreshRequest for NnsInventoryRefreshRequest {
+    type Cache = NnsInventoryCacheRequest;
+
+    fn from_leaf_parts(
+        cache: Self::Cache,
+        source_endpoint: String,
+        now_unix_secs: u64,
+        lock_stale_after_seconds: u64,
+        dry_run: bool,
+        output_path: Option<PathBuf>,
+    ) -> Self {
+        let mut request = Self::new(
+            cache,
+            source_endpoint,
+            now_unix_secs,
+            lock_stale_after_seconds,
+        )
+        .with_dry_run(dry_run);
+        if let Some(output_path) = output_path {
+            request = request.with_output_path(output_path);
+        }
+        request
+    }
 }
 
 ///
@@ -111,6 +170,7 @@ pub(in crate::nns) trait NnsLeafReports {
         &self,
         request: &Self::RefreshRequest,
     ) -> Result<Self::RefreshReport, Self::HostError>;
+    fn cache_path(&self, cache: &Self::Cache) -> PathBuf;
     fn list_report_text(&self, report: &Self::ListReport) -> String;
     fn list_report_verbose_text(&self, report: &Self::ListReport) -> String;
     fn info_report_text(&self, report: &Self::InfoReport) -> String;

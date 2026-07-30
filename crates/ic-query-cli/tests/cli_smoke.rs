@@ -14,7 +14,17 @@ fn run_icq(args: &[&str]) -> Output {
 
 fn run_icq_in_root(root: &Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_icq"))
-        .env("ICQ_ICP_ROOT", root)
+        .env("ICQ_CACHE_ROOT", root)
+        .args(args)
+        .output()
+        .expect("run icq test binary")
+}
+
+fn run_icq_with_xdg_cache(cwd: &Path, xdg_cache_home: &Path, args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_icq"))
+        .current_dir(cwd)
+        .env_remove("ICQ_CACHE_ROOT")
+        .env("XDG_CACHE_HOME", xdg_cache_home)
         .args(args)
         .output()
         .expect("run icq test binary")
@@ -37,7 +47,7 @@ fn assert_success(output: &Output) {
     );
 }
 
-fn temp_icp_root(prefix: &str) -> std::path::PathBuf {
+fn temp_cache_root(prefix: &str) -> std::path::PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system time after epoch")
@@ -149,8 +159,7 @@ fn binary_icrc_account_transaction_help_smoke() {
 
 #[test]
 fn binary_icrc_account_transaction_cache_status_is_local_only() {
-    let root = temp_icp_root("ic-query-cli-icrc-account-status");
-    fs::create_dir_all(&root).expect("create temporary project root");
+    let root = temp_cache_root("ic-query-cli-icrc-account-status");
 
     let output = run_icq_in_root(
         &root,
@@ -172,9 +181,40 @@ fn binary_icrc_account_transaction_cache_status_is_local_only() {
         serde_json::from_slice(&output.stdout).expect("parse cache status JSON");
     assert_eq!(report["found"], false);
     assert!(output.stderr.is_empty());
-    assert!(!root.join(".icq").exists());
+    assert!(!root.exists());
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn binary_default_cache_root_uses_xdg_cache_home() {
+    let cwd = temp_cache_root("ic-query-cli-cwd");
+    let xdg_cache_home = temp_cache_root("ic-query-cli-xdg");
+    fs::create_dir_all(&cwd).expect("create temporary working directory");
+
+    let output = run_icq_with_xdg_cache(
+        &cwd,
+        &xdg_cache_home,
+        &["nns", "proposal", "cache", "status", "--format", "json"],
+    );
+
+    assert_success(&output);
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("parse cache status JSON");
+    assert_eq!(
+        report["cache_root"],
+        xdg_cache_home
+            .join("ic-query")
+            .join("nns")
+            .join("ic")
+            .join("governance")
+            .join("proposals")
+            .display()
+            .to_string()
+    );
+    assert!(!xdg_cache_home.exists());
+
+    let _ = fs::remove_dir_all(cwd);
 }
 
 #[test]
@@ -273,8 +313,8 @@ fn binary_version_smoke() {
 
 #[test]
 fn binary_local_cache_commands_emit_json_without_live_calls() {
-    let root = temp_icp_root("ic-query-cli-cache-json");
-    fs::create_dir_all(&root).expect("create temp icp root");
+    let root = temp_cache_root("ic-query-cli-cache-json");
+    fs::create_dir_all(&root).expect("create temporary cache root");
 
     let nns_status = run_icq_in_root(
         &root,

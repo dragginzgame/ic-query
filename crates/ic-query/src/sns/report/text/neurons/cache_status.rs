@@ -5,14 +5,12 @@
 //! Boundary: formats neuron snapshot status and latest refresh attempt for humans.
 
 use crate::{
-    sns::report::{
-        SnsNeuronsCacheStatusReport, SnsRefreshAttemptStatus, text::common::optional_text,
-    },
+    sns::report::{SnsCacheStatusReport, SnsRefreshAttemptStatus, text::common::optional_text},
     text_value::{sanitize_text, yes_no},
 };
 
 #[must_use]
-pub fn sns_neurons_cache_status_report_text(report: &SnsNeuronsCacheStatusReport) -> String {
+pub fn sns_neurons_cache_status_report_text(report: &SnsCacheStatusReport) -> String {
     let mut lines = vec![
         format!("network: {}", sanitize_text(&report.network)),
         format!("input: {}", sanitize_text(&report.input)),

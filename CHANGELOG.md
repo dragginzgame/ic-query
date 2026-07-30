@@ -7,9 +7,23 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.14.x] - 2026-07-30 - Complete ICRC account-history snapshots
+## [0.14.x] - 2026-07-30 - Complete snapshots and shared cache contracts
 
 Detailed release notes: [docs/changelog/0.14.md](docs/changelog/0.14.md)
+
+- `0.14.1` moves every CLI cache from repository-local `.icq` state to one
+  user-level cache root resolved from `ICQ_CACHE_ROOT`,
+  `$XDG_CACHE_HOME/ic-query`, or `$HOME/.cache/ic-query`. Library cache
+  requests now accept the actual cache root and consistently use `cache_root`
+  terminology. The patch also consolidates repeated ICRC ledger requests, NNS
+  inventory requests, SNS cache inspection DTOs, JSON cache error mapping,
+  refresh policies, and attempt progress. Account-history collection reduces
+  full-history memory overhead, requires custom sources to preserve an
+  explicitly requested index, and retains the resolved index in failed
+  collection evidence. This is a breaking CLI-storage and Rust-API hard cut:
+  former project discovery, `ICQ_ICP_ROOT`, family-specific shared DTOs, old
+  field and builder names, compatibility aliases, and cache migration are not
+  retained. CLI command grammar and report schemas are unchanged.
 
 - `0.14.0` replaces the live-only plural account-history command with explicit
   live-page, complete-refresh, cache-only list, and cache-status operations.

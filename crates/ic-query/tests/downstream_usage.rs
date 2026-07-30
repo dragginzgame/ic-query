@@ -31,14 +31,12 @@ mod host {
     use ic_query::{
         QueryProgress, QueryProgressEvent, QueryProgressState,
         icrc::{
-            DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcError, IcrcTokenRequest, build_icrc_token_report,
+            DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcError, IcrcLedgerRequest, build_icrc_token_report,
             icrc_token_report_text,
         },
-        nns::NnsSourceRequest,
         nns::node::{
-            DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION,
-            NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListRequest, build_nns_node_list_report,
-            nns_node_list_report_text,
+            DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeHostError,
+            NnsNodeListRequest, build_nns_node_list_report, nns_node_list_report_text,
         },
         nns::proposals::{
             NnsProposalHostError, NnsProposalRefreshReport, NnsProposalRefreshRequest,
@@ -55,11 +53,12 @@ mod host {
             NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
             refresh_nns_subnet_topology,
         },
+        nns::{NnsInventoryCacheRequest, NnsSourceRequest},
         sns::{
-            DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsCacheStatusRequest,
+            DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError,
             SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort,
-            SnsProposalSortDirection, SnsProposalsCacheStatusRequest, SnsProposalsRefreshReport,
-            SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+            SnsProposalSortDirection, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
+            SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
             build_sns_neurons_cache_status_report, build_sns_neurons_report,
             build_sns_proposals_cache_status_report, build_sns_proposals_report,
             build_sns_proposals_report_with_progress, refresh_sns_neurons_cache_with_progress,
@@ -93,11 +92,11 @@ mod host {
     }
 
     fn render_subnet_info(
-        project_root: &Path,
+        cache_root: &Path,
         canister_or_subnet: &str,
         now_unix_secs: u64,
     ) -> Result<String, SubnetCatalogHostError> {
-        let cache = SubnetCatalogCacheRequest::new(project_root, "ic");
+        let cache = SubnetCatalogCacheRequest::new(cache_root, "ic");
         let request = SubnetCatalogInfoRequest::new(
             cache,
             DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
@@ -142,10 +141,10 @@ mod host {
     }
 
     fn render_application_nodes(
-        project_root: &Path,
+        cache_root: &Path,
         now_unix_secs: u64,
     ) -> Result<String, NnsNodeHostError> {
-        let cache = NnsNodeCacheRequest::new(project_root, "ic");
+        let cache = NnsInventoryCacheRequest::new(cache_root, "ic");
         let request =
             NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
                 .with_subnet_kind(NNS_NODE_SUBNET_KIND_APPLICATION);
@@ -155,7 +154,7 @@ mod host {
     }
 
     fn render_token(ledger_canister_id: &str, now_unix_secs: u64) -> Result<String, IcrcError> {
-        let request = IcrcTokenRequest::new(
+        let request = IcrcLedgerRequest::new(
             DEFAULT_ICRC_SOURCE_ENDPOINT,
             now_unix_secs,
             ledger_canister_id,
@@ -174,7 +173,7 @@ mod host {
     }
 
     fn render_recent_sns_proposals(
-        project_root: &Path,
+        cache_root: &Path,
         sns_input: &str,
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
@@ -185,7 +184,7 @@ mod host {
             sns_input,
             25,
         )
-        .with_icp_root(project_root)
+        .with_cache_root(cache_root)
         .with_sort(SnsProposalsSort::Created)
         .with_sort_direction(SnsProposalSortDirection::Desc);
 
@@ -194,11 +193,11 @@ mod host {
     }
 
     fn refresh_subnet_topology(
-        project_root: &Path,
+        cache_root: &Path,
         now_unix_secs: u64,
     ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
         let request = NnsSubnetTopologyRefreshRequest::new(
-            NnsSubnetTopologyCacheRequest::new(project_root, "ic"),
+            NnsSubnetTopologyCacheRequest::new(cache_root, "ic"),
             DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
             now_unix_secs,
             DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
@@ -207,7 +206,7 @@ mod host {
     }
 
     fn render_cached_sns_neurons(
-        project_root: &Path,
+        cache_root: &Path,
         sns_input: &str,
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
@@ -218,21 +217,18 @@ mod host {
             sns_input,
             500,
         )
-        .with_icp_root(project_root)
+        .with_cache_root(cache_root)
         .with_sort(SnsNeuronsSort::Stake);
 
         let report = build_sns_neurons_report(&request)?;
         Ok(sns_neurons_report_text(&report))
     }
 
-    fn render_sns_cache_status(
-        project_root: &Path,
-        sns_input: &str,
-    ) -> Result<String, SnsHostError> {
-        let proposals = SnsProposalsCacheStatusRequest::new(project_root, "ic", sns_input);
+    fn render_sns_cache_status(cache_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {
+        let proposals = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
         let proposals_report = build_sns_proposals_cache_status_report(&proposals)?;
 
-        let neurons = SnsNeuronsCacheStatusRequest::new(project_root, "ic", sns_input);
+        let neurons = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
         let neurons_report = build_sns_neurons_cache_status_report(&neurons)?;
 
         Ok(format!(

@@ -11,9 +11,10 @@ pub(in crate::icrc) mod test_support;
 
 pub use dispatch::run;
 use options::{
-    IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
-    IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
-    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
+    IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
+    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 
 use crate::cli::{

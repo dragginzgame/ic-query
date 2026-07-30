@@ -4,7 +4,7 @@ mod refresh;
 
 use super::commands::{subnet_command, subnet_usage};
 use crate::{
-    nns::{NnsCommandError, command_args, command_icp_root, parse_nns_required_subcommand},
+    nns::{NnsCommandError, command_args, command_cache_root, parse_nns_required_subcommand},
     progress::announce_missing_mainnet_cache,
 };
 use ic_query::subnet_catalog::{SubnetCatalogCacheRequest, subnet_catalog_path};
@@ -28,10 +28,13 @@ where
 }
 
 fn cache_request(network: &str) -> Result<SubnetCatalogCacheRequest, NnsCommandError> {
-    Ok(SubnetCatalogCacheRequest::new(command_icp_root()?, network))
+    Ok(SubnetCatalogCacheRequest::new(
+        command_cache_root()?,
+        network,
+    ))
 }
 
 fn announce_missing_catalog(cache: &SubnetCatalogCacheRequest, source_endpoint: &str) {
-    let path = subnet_catalog_path(&cache.icp_root, &cache.network);
+    let path = subnet_catalog_path(&cache.cache_root, &cache.network);
     announce_missing_mainnet_cache(&cache.network, "subnet catalog", &path, source_endpoint);
 }

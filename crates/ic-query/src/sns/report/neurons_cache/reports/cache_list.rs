@@ -5,8 +5,8 @@
 //! Boundary: projects cache summaries into stable id-ordered report output.
 
 use crate::sns::report::{
-    SnsCacheListFamily, SnsHostError, SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest,
-    SnsNeuronsCacheSummary, build_sns_cache_list_lookup,
+    SnsCacheListFamily, SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
+    build_sns_cache_list_lookup,
     neurons_cache::{
         SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::sns_network_cache_dir,
         storage::list_sns_neurons_cache_summaries,
@@ -15,13 +15,13 @@ use crate::sns::report::{
 use std::path::{Path, PathBuf};
 
 pub fn build_sns_neurons_cache_list_report(
-    request: &SnsNeuronsCacheListRequest,
-) -> Result<SnsNeuronsCacheListReport, SnsHostError> {
+    request: &SnsCacheListRequest,
+) -> Result<SnsCacheListReport, SnsHostError> {
     let lookup = build_sns_cache_list_lookup::<SnsNeuronsCacheListFamily>(
         &request.network,
-        &request.icp_root,
+        &request.cache_root,
     )?;
-    Ok(SnsNeuronsCacheListReport {
+    Ok(SnsCacheListReport {
         schema_version: SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
         cache_root: lookup.cache_root,
@@ -33,16 +33,16 @@ pub fn build_sns_neurons_cache_list_report(
 struct SnsNeuronsCacheListFamily;
 
 impl SnsCacheListFamily for SnsNeuronsCacheListFamily {
-    type Summary = SnsNeuronsCacheSummary;
+    type Summary = SnsCacheSummary;
 
-    fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
-        sns_network_cache_dir(icp_root, network)
+    fn network_cache_dir(cache_root: &Path, network: &str) -> PathBuf {
+        sns_network_cache_dir(cache_root, network)
     }
 
     fn list_cache_summaries(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
     ) -> Result<Vec<Self::Summary>, SnsHostError> {
-        list_sns_neurons_cache_summaries(icp_root, network)
+        list_sns_neurons_cache_summaries(cache_root, network)
     }
 }

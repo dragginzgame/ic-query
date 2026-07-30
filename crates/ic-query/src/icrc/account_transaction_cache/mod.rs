@@ -28,7 +28,8 @@ use super::{
 use crate::{
     HostCacheError, QueryProgress,
     cache_file::{
-        JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache,
+        HostJsonCacheErrorMapper, JsonCacheReport, LoadJsonCacheRequest, load_json_cache,
+        load_or_refresh_missing_cache, load_or_refresh_stale_cache,
     },
     freshness::freshness_facts,
     progress::IgnoreQueryProgress,
@@ -42,7 +43,6 @@ use crate::{
 use candid::Principal;
 use sha2::{Digest, Sha256};
 use std::{
-    io,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -175,14 +175,14 @@ pub fn load_or_refresh_missing_icrc_account_transactions_with_source(
     request: &IcrcAccountTransactionRefreshRequest,
     source: &dyn super::IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    match load_cached_icrc_account_transactions(&request.cache) {
-        Ok(snapshot) => Ok(snapshot),
-        Err(IcrcAccountTransactionError::Cache(HostCacheError::MissingCache { .. })) => {
+    load_or_refresh_missing_cache(
+        || load_cached_icrc_account_transactions(&request.cache),
+        missing_account_transaction_cache_path,
+        |_| {
             refresh_icrc_account_transaction_cache_with_source(request, source)?;
-            load_cached_icrc_account_transactions(&request.cache)
-        }
-        Err(error) => Err(error),
-    }
+            Ok(())
+        },
+    )
 }
 
 /// Load a complete cache, refreshing when it is missing or stale.
@@ -203,22 +203,21 @@ pub fn load_or_refresh_stale_icrc_account_transactions_with_source(
     stale_after_seconds: u64,
     source: &dyn super::IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    match load_cached_icrc_account_transactions(&request.cache) {
-        Ok(snapshot)
-            if !snapshot_is_stale(
+    load_or_refresh_stale_cache(
+        || load_cached_icrc_account_transactions(&request.cache),
+        |snapshot| {
+            snapshot_is_stale(
                 &snapshot.snapshot,
                 request.now_unix_secs,
                 stale_after_seconds,
-            ) =>
-        {
-            Ok(snapshot)
-        }
-        Ok(_) | Err(IcrcAccountTransactionError::Cache(HostCacheError::MissingCache { .. })) => {
+            )
+        },
+        missing_account_transaction_cache_path,
+        |_| {
             refresh_icrc_account_transaction_cache_with_source(request, source)?;
-            load_cached_icrc_account_transactions(&request.cache)
-        }
-        Err(error) => Err(error),
-    }
+            Ok(())
+        },
+    )
 }
 
 /// Build a cache-only transaction list view.
@@ -233,11 +232,18 @@ pub fn build_icrc_account_transaction_list_report(
     let cached = load_cached_icrc_account_transactions(&request.cache)?;
     let snapshot = cached.snapshot;
     let total_transaction_count = snapshot.transactions.len();
-    let mut transactions = snapshot.transactions.clone();
-    if request.sort == IcrcAccountTransactionSort::Oldest {
-        transactions.reverse();
-    }
-    transactions.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
+    let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
+    let transactions: Vec<_> = match request.sort {
+        IcrcAccountTransactionSort::Newest => {
+            snapshot.transactions.into_iter().take(limit).collect()
+        }
+        IcrcAccountTransactionSort::Oldest => snapshot
+            .transactions
+            .into_iter()
+            .rev()
+            .take(limit)
+            .collect(),
+    };
     let returned_transaction_count = transactions.len();
 
     Ok(IcrcAccountTransactionListReport {
@@ -300,7 +306,7 @@ fn publish_complete_snapshot(
     replaced_existing_cache: bool,
     complete: IcrcAccountTransactionCollectionData,
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
-    validate_collection_data(&complete)?;
+    validate_collection_data(request, &complete)?;
     let collection_started_at = format_utc_timestamp_secs(request.now_unix_secs);
     let collection_completed_at =
         crate::snapshot_cache::current_attempt_timestamp(&collection_started_at);
@@ -400,8 +406,9 @@ fn load_snapshot_at(
             network: MAINNET_NETWORK,
             expected_schema_version: ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION,
         },
-        AccountTransactionCacheLoadErrors,
-    )?;
+        HostJsonCacheErrorMapper::new(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT),
+    )
+    .map_err(IcrcAccountTransactionError::from)?;
     validate_snapshot(path, &cached.report, request)?;
     Ok(CachedIcrcAccountTransactionSnapshot {
         path: cached.path,
@@ -478,28 +485,39 @@ fn validate_snapshot(
 }
 
 fn validate_collection_data(
+    request: &IcrcAccountTransactionRefreshRequest,
     complete: &IcrcAccountTransactionCollectionData,
 ) -> Result<(), IcrcAccountTransactionError> {
     if complete.page_count == 0 {
         return Err(IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id: Some(complete.index_canister_id.clone()),
             pages_fetched: 0,
             rows_fetched: complete.transactions.len(),
             last_cursor: complete.last_cursor.clone(),
             reason: "source returned a complete collection with zero pages".to_string(),
         });
     }
-    Principal::from_text(&complete.index_canister_id).map_err(|error| {
+    let actual_index = Principal::from_text(&complete.index_canister_id).map_err(|error| {
         IcrcError::InvalidPrincipal {
             field: "index_canister_id",
             reason: error.to_string(),
         }
     })?;
+    if let Some(expected_index) = request.index_canister_id.as_deref()
+        && expected_index != actual_index.to_text()
+    {
+        return Err(IcrcAccountTransactionError::CollectionIndexMismatch {
+            expected_index_canister_id: expected_index.to_string(),
+            actual_index_canister_id: actual_index.to_text(),
+        });
+    }
     let expected_last_cursor = complete
         .transactions
         .last()
         .map(|transaction| transaction.id.as_str());
     if complete.last_cursor.as_deref() != expected_last_cursor {
         return Err(IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id: Some(complete.index_canister_id.clone()),
             pages_fetched: complete.page_count,
             rows_fetched: complete.transactions.len(),
             last_cursor: complete.last_cursor.clone(),
@@ -508,6 +526,7 @@ fn validate_collection_data(
     }
     validate_canonical_transactions(&complete.transactions).map_err(|reason| {
         IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id: Some(complete.index_canister_id.clone()),
             pages_fetched: complete.page_count,
             rows_fetched: complete.transactions.len(),
             last_cursor: complete.last_cursor.clone(),
@@ -564,7 +583,7 @@ fn normalize_cache_request(
         }
     })?;
     Ok(IcrcAccountTransactionCacheRequest {
-        icp_root: request.icp_root.clone(),
+        cache_root: request.cache_root.clone(),
         source_endpoint: request.source_endpoint.clone(),
         ledger_canister_id: ledger_canister_id.to_text(),
         account_owner: account_owner.to_text(),
@@ -610,7 +629,7 @@ fn normalize_refresh_request(
 
 fn cache_paths(request: &IcrcAccountTransactionCacheRequest) -> SnapshotJsonPaths {
     SnapshotJsonPaths::for_key(
-        &request.icp_root,
+        &request.cache_root,
         &SnapshotKey::full(
             ICRC_ACCOUNT_TRANSACTION_CACHE_DOMAIN,
             MAINNET_NETWORK,
@@ -690,38 +709,11 @@ fn cache_operation_error(source: crate::CacheFileError) -> IcrcAccountTransactio
     HostCacheError::operation(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, source).into()
 }
 
-struct AccountTransactionCacheLoadErrors;
-
-impl LoadJsonCacheErrorMapper for AccountTransactionCacheLoadErrors {
-    type Error = IcrcAccountTransactionError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        HostCacheError::missing_cache(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, path).into()
-    }
-
-    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        HostCacheError::read_cache(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, path, source).into()
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        HostCacheError::parse_cache(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, path, source).into()
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        HostCacheError::unsupported_cache_schema_version(
-            ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
-            version,
-            expected,
-        )
-        .into()
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        HostCacheError::network_mismatch(
-            ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
-            requested,
-            actual,
-        )
-        .into()
+fn missing_account_transaction_cache_path(
+    error: IcrcAccountTransactionError,
+) -> Result<PathBuf, IcrcAccountTransactionError> {
+    match error {
+        IcrcAccountTransactionError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
+        error => Err(error),
     }
 }

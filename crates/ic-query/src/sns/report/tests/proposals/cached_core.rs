@@ -7,7 +7,7 @@ fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     refresh_sns_proposals_cache_with_source(&refresh_request, &FixtureSnsProposalsSource)
         .expect("refresh proposals cache");
     let mut request = proposal_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
 
     let report = build_sns_proposal_report_with_source(&request, &NoLiveSnsProposalsSource)
         .expect("cached proposal detail");
@@ -35,7 +35,7 @@ fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
 fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = Some(99);
@@ -55,9 +55,9 @@ fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
             .is_some_and(|path| path.ends_with("/proposals/full.json"))
     );
 
-    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+    let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         input: "1".to_string(),
     })
     .expect("proposal cache status");

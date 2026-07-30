@@ -5,67 +5,7 @@
 //! Boundary: carries validated neuron inputs into SNS report builders.
 
 use crate::sns::report::SnsNeuronsSort;
-use std::path::{Path, PathBuf};
-
-///
-/// SnsNeuronsCacheListRequest
-///
-/// Request accepted by the local SNS neuron cache list report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnsNeuronsCacheListRequest {
-    pub network: String,
-    pub icp_root: PathBuf,
-}
-
-impl SnsNeuronsCacheListRequest {
-    #[must_use]
-    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
-        Self {
-            network: network.into(),
-            icp_root: icp_root.into(),
-        }
-    }
-
-    #[must_use]
-    pub fn icp_root(&self) -> &Path {
-        &self.icp_root
-    }
-}
-
-///
-/// SnsNeuronsCacheStatusRequest
-///
-/// Request accepted by the local SNS neuron cache status report builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnsNeuronsCacheStatusRequest {
-    pub network: String,
-    pub icp_root: PathBuf,
-    pub input: String,
-}
-
-impl SnsNeuronsCacheStatusRequest {
-    #[must_use]
-    pub fn new(
-        icp_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        input: impl Into<String>,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            icp_root: icp_root.into(),
-            input: input.into(),
-        }
-    }
-
-    #[must_use]
-    pub fn icp_root(&self) -> &Path {
-        &self.icp_root
-    }
-}
+use std::path::PathBuf;
 
 ///
 /// SnsNeuronsRequest
@@ -82,7 +22,7 @@ pub struct SnsNeuronsRequest {
     pub limit: u32,
     pub owner_principal_id: Option<String>,
     pub sort: SnsNeuronsSort,
-    pub icp_root: Option<PathBuf>,
+    pub cache_root: Option<PathBuf>,
     pub verbose: bool,
 }
 
@@ -103,7 +43,7 @@ impl SnsNeuronsRequest {
             limit,
             owner_principal_id: None,
             sort: SnsNeuronsSort::default(),
-            icp_root: None,
+            cache_root: None,
             verbose: false,
         }
     }
@@ -121,8 +61,8 @@ impl SnsNeuronsRequest {
     }
 
     #[must_use]
-    pub fn with_icp_root(mut self, icp_root: impl Into<PathBuf>) -> Self {
-        self.icp_root = Some(icp_root.into());
+    pub fn with_cache_root(mut self, cache_root: impl Into<PathBuf>) -> Self {
+        self.cache_root = Some(cache_root.into());
         self
     }
 
@@ -145,7 +85,7 @@ pub struct SnsNeuronsRefreshRequest {
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub input: String,
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub page_size: u32,
     pub max_pages: Option<u32>,
 }
@@ -153,7 +93,7 @@ pub struct SnsNeuronsRefreshRequest {
 impl SnsNeuronsRefreshRequest {
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         network: impl Into<String>,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
@@ -165,7 +105,7 @@ impl SnsNeuronsRefreshRequest {
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
             input: input.into(),
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             page_size,
             max_pages: None,
         }

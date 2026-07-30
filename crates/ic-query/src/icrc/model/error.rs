@@ -155,9 +155,11 @@ pub enum IcrcAccountTransactionError {
         "incomplete ICRC account transaction collection after {pages_fetched} page(s) and {rows_fetched} row(s): {reason}"
     )]
     IncompleteCollection {
+        /// Verified index used for collection when resolution completed.
+        index_canister_id: Option<String>,
         /// Successfully fetched pages.
         pages_fetched: u32,
-        /// Unique rows retained.
+        /// Rows retained.
         rows_fetched: usize,
         /// Last exclusive cursor when present.
         last_cursor: Option<String>,
@@ -170,15 +172,28 @@ pub enum IcrcAccountTransactionError {
         "ICRC account transaction collection failed after {pages_fetched} page(s) and {rows_fetched} row(s): {source}"
     )]
     CollectionPage {
+        /// Verified index used for collection when resolution completed.
+        index_canister_id: Option<String>,
         /// Successfully fetched pages before the failure.
         pages_fetched: u32,
-        /// Unique rows retained before the failure.
+        /// Rows retained before the failure.
         rows_fetched: usize,
         /// Last exclusive cursor when present.
         last_cursor: Option<String>,
         /// Underlying typed page failure.
         #[source]
         source: Box<Self>,
+    },
+
+    /// A custom collection source returned evidence for a different explicit index.
+    #[error(
+        "ICRC account transaction source returned index {actual_index_canister_id}, expected explicitly requested index {expected_index_canister_id}"
+    )]
+    CollectionIndexMismatch {
+        /// Index explicitly requested by the caller.
+        expected_index_canister_id: String,
+        /// Index claimed by the completed collection.
+        actual_index_canister_id: String,
     },
 
     /// A complete cache failed semantic validation.

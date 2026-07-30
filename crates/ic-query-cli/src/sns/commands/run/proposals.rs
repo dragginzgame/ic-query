@@ -25,13 +25,12 @@ use crate::{
     },
 };
 use ic_query::sns::{
-    SnsProposalRequest, SnsProposalsCacheListRequest, SnsProposalsCacheStatusRequest,
-    SnsProposalsRefreshRequest, SnsProposalsRequest, build_sns_proposal_report,
-    build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
-    build_sns_proposals_report_with_progress, refresh_sns_proposals_cache_with_progress,
-    sns_proposal_report_text, sns_proposals_cache_list_report_text,
-    sns_proposals_cache_status_report_text, sns_proposals_refresh_report_text,
-    sns_proposals_report_text,
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsProposalRequest, SnsProposalsRefreshRequest,
+    SnsProposalsRequest, build_sns_proposal_report, build_sns_proposals_cache_list_report,
+    build_sns_proposals_cache_status_report, build_sns_proposals_report_with_progress,
+    refresh_sns_proposals_cache_with_progress, sns_proposal_report_text,
+    sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
+    sns_proposals_refresh_report_text, sns_proposals_report_text,
 };
 use std::ffi::OsString;
 
@@ -68,7 +67,7 @@ where
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
         proposal_id: options.proposal_id,
-        icp_root: Some(parts.icp_root),
+        cache_root: Some(parts.cache_root),
         verbose: options.verbose,
         show_ballots: options.show_ballots,
     };
@@ -100,7 +99,7 @@ where
         query: options.query,
         sort: options.sort.into(),
         sort_direction: options.sort_direction,
-        icp_root: Some(parts.icp_root),
+        cache_root: Some(parts.cache_root),
         verbose: options.verbose,
     };
     let mut progress = StderrQueryProgress::new();
@@ -123,7 +122,7 @@ where
         source_endpoint: parts.source_endpoint,
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
-        icp_root: parts.icp_root,
+        cache_root: parts.cache_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
@@ -157,9 +156,9 @@ where
     };
     let options = SnsProposalsCacheListOptions::parse(args)?;
     let parts = cache_command_parts(options.format, options.network)?;
-    let request = SnsProposalsCacheListRequest {
+    let request = SnsCacheListRequest {
         network: parts.network,
-        icp_root: parts.icp_root,
+        cache_root: parts.cache_root,
     };
     let report = build_sns_proposals_cache_list_report(&request)?;
     write_text_or_json(parts.format, &report, sns_proposals_cache_list_report_text)
@@ -174,9 +173,9 @@ where
     };
     let options = SnsProposalsCacheStatusOptions::parse(args)?;
     let parts = cache_command_parts(options.format, options.network)?;
-    let request = SnsProposalsCacheStatusRequest {
+    let request = SnsCacheStatusRequest {
         network: parts.network,
-        icp_root: parts.icp_root,
+        cache_root: parts.cache_root,
         input: options.input,
     };
     let report = build_sns_proposals_cache_status_report(&request)?;

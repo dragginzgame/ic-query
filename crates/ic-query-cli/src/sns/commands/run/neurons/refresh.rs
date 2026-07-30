@@ -35,7 +35,7 @@ where
         source_endpoint: parts.source_endpoint,
         now_unix_secs: parts.now_unix_secs,
         input: parts.input,
-        icp_root: parts.icp_root,
+        cache_root: parts.cache_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };

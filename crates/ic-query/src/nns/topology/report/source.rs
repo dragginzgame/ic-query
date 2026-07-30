@@ -3,10 +3,9 @@ use std::path::{Path, PathBuf};
 use super::{
     NnsTopologyHostError,
     request::{
-        TopologyRefreshParts, TopologyRequestParts, data_center_list_request,
-        data_center_refresh_request, node_list_request, node_operator_list_request,
-        node_operator_refresh_request, node_provider_list_request, node_provider_refresh_request,
-        node_refresh_request, subnet_catalog_list_request, subnet_catalog_refresh_request,
+        TopologyRefreshParts, TopologyRequestParts, inventory_list_request,
+        inventory_refresh_request, node_list_request, subnet_catalog_list_request,
+        subnet_catalog_refresh_request,
     },
 };
 use crate::{
@@ -43,7 +42,7 @@ use crate::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologySourceRequest {
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub network: String,
     pub endpoint: String,
     pub now_unix_secs: u64,
@@ -54,13 +53,13 @@ pub struct NnsTopologySourceRequest {
 impl NnsTopologySourceRequest {
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         network: impl Into<String>,
         endpoint: impl Into<String>,
         now_unix_secs: u64,
     ) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             network: network.into(),
             endpoint: endpoint.into(),
             now_unix_secs,
@@ -71,8 +70,8 @@ impl NnsTopologySourceRequest {
 }
 
 impl TopologyRequestParts for NnsTopologySourceRequest {
-    fn icp_root(&self) -> &Path {
-        &self.icp_root
+    fn cache_root(&self) -> &Path {
+        &self.cache_root
     }
 
     fn network(&self) -> &str {
@@ -96,7 +95,7 @@ impl TopologyRequestParts for NnsTopologySourceRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologyRefreshSourceRequest {
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub network: String,
     pub endpoint: String,
     pub now_unix_secs: u64,
@@ -109,14 +108,14 @@ pub struct NnsTopologyRefreshSourceRequest {
 impl NnsTopologyRefreshSourceRequest {
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         network: impl Into<String>,
         endpoint: impl Into<String>,
         now_unix_secs: u64,
         lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             network: network.into(),
             endpoint: endpoint.into(),
             now_unix_secs,
@@ -135,8 +134,8 @@ impl NnsTopologyRefreshSourceRequest {
 }
 
 impl TopologyRequestParts for NnsTopologyRefreshSourceRequest {
-    fn icp_root(&self) -> &Path {
-        &self.icp_root
+    fn cache_root(&self) -> &Path {
+        &self.cache_root
     }
 
     fn network(&self) -> &str {
@@ -250,7 +249,7 @@ impl NnsTopologySource for LiveNnsSource {
         request: &NnsTopologySourceRequest,
     ) -> Result<NnsNodeProviderListReport, NnsTopologyHostError> {
         Ok(build_nns_node_provider_list_report(
-            &node_provider_list_request(request),
+            &inventory_list_request(request),
         )?)
     }
 
@@ -259,7 +258,7 @@ impl NnsTopologySource for LiveNnsSource {
         request: &NnsTopologySourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsTopologyHostError> {
         Ok(build_nns_node_operator_list_report(
-            &node_operator_list_request(request),
+            &inventory_list_request(request),
         )?)
     }
 
@@ -267,9 +266,9 @@ impl NnsTopologySource for LiveNnsSource {
         &self,
         request: &NnsTopologySourceRequest,
     ) -> Result<NnsDataCenterListReport, NnsTopologyHostError> {
-        Ok(build_nns_data_center_list_report(
-            &data_center_list_request(request),
-        )?)
+        Ok(build_nns_data_center_list_report(&inventory_list_request(
+            request,
+        ))?)
     }
 }
 
@@ -287,7 +286,9 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
         &self,
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeRefreshReport, NnsTopologyHostError> {
-        Ok(refresh_nns_node_report(&node_refresh_request(request))?)
+        Ok(refresh_nns_node_report(&inventory_refresh_request(
+            request,
+        ))?)
     }
 
     fn refresh_node_provider_report(
@@ -295,7 +296,7 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeProviderRefreshReport, NnsTopologyHostError> {
         Ok(refresh_nns_node_provider_report(
-            &node_provider_refresh_request(request),
+            &inventory_refresh_request(request),
         )?)
     }
 
@@ -304,7 +305,7 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError> {
         Ok(refresh_nns_node_operator_report(
-            &node_operator_refresh_request(request),
+            &inventory_refresh_request(request),
         )?)
     }
 
@@ -312,9 +313,9 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
         &self,
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsDataCenterRefreshReport, NnsTopologyHostError> {
-        Ok(refresh_nns_data_center_report(
-            &data_center_refresh_request(request),
-        )?)
+        Ok(refresh_nns_data_center_report(&inventory_refresh_request(
+            request,
+        ))?)
     }
 }
 
@@ -322,7 +323,7 @@ pub(super) fn topology_source_request_from(
     request: &impl TopologyRequestParts,
 ) -> NnsTopologySourceRequest {
     NnsTopologySourceRequest::new(
-        request.icp_root(),
+        request.cache_root(),
         request.network(),
         request.source_endpoint(),
         request.now_unix_secs(),
@@ -333,7 +334,7 @@ pub(super) fn topology_refresh_source_request_from(
     request: &impl TopologyRefreshParts,
 ) -> NnsTopologyRefreshSourceRequest {
     NnsTopologyRefreshSourceRequest::new(
-        request.icp_root(),
+        request.cache_root(),
         request.network(),
         request.source_endpoint(),
         request.now_unix_secs(),

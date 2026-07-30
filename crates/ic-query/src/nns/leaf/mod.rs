@@ -10,8 +10,7 @@ use std::path::{Path, PathBuf};
 ///
 
 pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
-    fn from_root_network(icp_root: &Path, network: &str) -> Self;
-    fn icp_root(&self) -> &Path;
+    fn cache_root(&self) -> &Path;
     fn network(&self) -> &str;
 }
 
@@ -46,12 +45,12 @@ pub(in crate::nns) struct NnsLeafCachePaths {
 impl NnsLeafCachePaths {
     #[must_use]
     pub(in crate::nns) fn for_component(
-        icp_root: &Path,
+        cache_root: &Path,
         component_dir: &str,
         network: &str,
         cache_file: &str,
     ) -> Self {
-        let cache_dir = icp_root.join(".icq").join(component_dir).join(network);
+        let cache_dir = cache_root.join(component_dir).join(network);
         Self {
             cache_path: cache_dir.join(cache_file),
             lock_path: cache_dir.join("refresh.lock"),

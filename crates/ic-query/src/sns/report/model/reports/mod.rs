@@ -6,6 +6,8 @@
 
 #[cfg(feature = "host")]
 mod attempt;
+#[cfg(feature = "host")]
+mod cache;
 mod governance;
 mod list;
 #[cfg(feature = "host")]
@@ -16,17 +18,18 @@ mod token;
 
 #[cfg(feature = "host")]
 pub use attempt::SnsRefreshAttemptStatus;
+#[cfg(feature = "host")]
+pub use cache::{SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary};
 pub use governance::{
     SnsCustomProposalCriticality, SnsGovernanceParameters, SnsNeuronPermissionList,
     SnsVotingRewardsParameters,
 };
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
 #[cfg(feature = "host")]
-pub use neurons::{
-    SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheStatusReport, SnsNeuronsCacheSummary,
-    SnsNeuronsRefreshReport, SnsNeuronsReport,
-};
+pub use neurons::{SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsReport};
 pub use params::SnsParamsReport;
+#[cfg(feature = "host")]
+pub use proposals::SnsProposalsRefreshReport;
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use proposals::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
@@ -35,10 +38,5 @@ pub(in crate::sns::report) use proposals::{
 pub use proposals::{
     SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
     SnsProposalTally, SnsProposalsReport,
-};
-#[cfg(feature = "host")]
-pub use proposals::{
-    SnsProposalsCacheListReport, SnsProposalsCacheStatusReport, SnsProposalsCacheSummary,
-    SnsProposalsRefreshReport,
 };
 pub use token::{SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow};

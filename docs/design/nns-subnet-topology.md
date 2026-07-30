@@ -4,7 +4,7 @@
 
 - Status: implemented in 0.11.0
 - Scope: host-side, read-only public-IC Registry observation
-- Cache: one joined snapshot under the shared `.icq` root
+- Cache: one joined snapshot under the caller-provided shared cache root
 
 ## Decision
 
@@ -53,7 +53,7 @@ No missing relation is silently omitted.
 The joined report is published atomically at:
 
 ```text
-.icq/subnet-topology/<network>/report.json
+<cache-root>/subnet-topology/<network>/report.json
 ```
 
 One sibling `refresh.lock` covers version resolution, the complete joined

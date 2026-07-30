@@ -25,22 +25,22 @@ fn snapshot_json_paths_encode_full_collection_scope() {
 
     assert_eq!(
         paths.snapshot_path,
-        Path::new("/repo/.icq/sns/ic/root-principal/neurons/full.json")
+        Path::new("/repo/sns/ic/root-principal/neurons/full.json")
     );
     assert_eq!(
         paths.refresh_lock_path,
-        Path::new("/repo/.icq/sns/ic/root-principal/neurons/full.refresh.lock")
+        Path::new("/repo/sns/ic/root-principal/neurons/full.refresh.lock")
     );
     assert_eq!(
         paths.refresh_attempt_path,
-        Path::new("/repo/.icq/sns/ic/root-principal/neurons/full.refresh-attempt.json")
+        Path::new("/repo/sns/ic/root-principal/neurons/full.refresh-attempt.json")
     );
 }
 
 #[test]
 fn collect_full_collection_snapshot_paths_lists_sorted_entity_snapshots() {
     let root = temp_dir("ic-query-snapshot-cache-path-scan");
-    let network_dir = root.join(".icq").join("sns").join("ic");
+    let network_dir = root.join("sns").join("ic");
     let b_path = network_dir.join("b-root").join("neurons").join("full.json");
     let a_path = network_dir.join("a-root").join("neurons").join("full.json");
     let ignored_path = network_dir.join("c-root").join("tokens").join("full.json");
@@ -385,7 +385,6 @@ fn failed_snapshot_publication_does_not_finalize_the_attempt() {
 fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock() {
     let root = temp_dir("ic-query-snapshot-cache-locked-refresh");
     let snapshot_path = root
-        .join(".icq")
         .join("sns")
         .join("ic")
         .join("root")

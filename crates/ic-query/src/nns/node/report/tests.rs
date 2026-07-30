@@ -1,5 +1,5 @@
 use super::{
-    NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
+    NnsInventoryCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
     NnsNodeListRequest, NnsNodeRow, NnsNodeSource, build_nns_node_list_report_with_source,
     filter_node_list_report, nns_node_list_report_text, resolve_node,
 };
@@ -143,9 +143,9 @@ fn node_fixture() -> MainnetNode {
     }
 }
 
-fn test_cache_request(network: &str, name: &str) -> NnsNodeCacheRequest {
-    NnsNodeCacheRequest {
-        icp_root: temp_dir(&format!("ic-query-nns-node-{name}")),
+fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
+    NnsInventoryCacheRequest {
+        cache_root: temp_dir(&format!("ic-query-nns-node-{name}")),
         network: network.to_string(),
     }
 }

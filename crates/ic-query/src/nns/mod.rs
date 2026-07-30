@@ -4,6 +4,7 @@
 #[macro_use]
 mod macros;
 pub mod data_center;
+mod inventory_request;
 #[cfg(feature = "host")]
 mod leaf;
 pub mod node;
@@ -16,5 +17,10 @@ pub mod render;
 pub(crate) mod source;
 pub mod topology;
 
+#[cfg(feature = "host")]
+pub use inventory_request::NnsInventoryRefreshRequest;
+pub use inventory_request::{
+    NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
+};
 #[cfg(feature = "host")]
 pub use source::{LiveNnsSource, NnsSourceRequest};

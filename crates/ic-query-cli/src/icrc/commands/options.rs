@@ -130,6 +130,31 @@ impl IcrcAllowanceOptions {
 }
 
 ///
+/// IcrcAccountTargetOptions
+///
+/// Shared parsed ledger, account, subaccount, and endpoint identity for account-history commands.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAccountTargetOptions {
+    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) account_owner: String,
+    pub(in crate::icrc) subaccount_hex: Option<String>,
+    pub(in crate::icrc) source_endpoint: String,
+}
+
+impl IcrcAccountTargetOptions {
+    fn from_matches(matches: &clap::ArgMatches) -> Self {
+        Self {
+            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            account_owner: required_string(matches, PRINCIPAL_ARG),
+            subaccount_hex: string_option(matches, SUBACCOUNT_ARG),
+            source_endpoint: source_endpoint_from_matches(matches),
+        }
+    }
+}
+
+///
 /// IcrcAccountTransactionPageOptions
 ///
 /// Clap-parsed options for one live ICRC index account-history page.
@@ -137,14 +162,11 @@ impl IcrcAllowanceOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAccountTransactionPageOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) target: IcrcAccountTargetOptions,
     pub(in crate::icrc) index_canister_id: Option<String>,
-    pub(in crate::icrc) account_owner: String,
-    pub(in crate::icrc) subaccount_hex: Option<String>,
     pub(in crate::icrc) start: Option<String>,
     pub(in crate::icrc) limit: u32,
     pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcAccountTransactionPageOptions {
@@ -159,14 +181,11 @@ impl IcrcAccountTransactionPageOptions {
         )
         .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
+            target: IcrcAccountTargetOptions::from_matches(&matches),
             index_canister_id: string_option(&matches, INDEX_CANISTER_ID_ARG),
-            account_owner: required_string(&matches, PRINCIPAL_ARG),
-            subaccount_hex: string_option(&matches, SUBACCOUNT_ARG),
             start: string_option(&matches, START_ARG),
             limit: required_typed(&matches, LIMIT_ARG),
             format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
         })
     }
 }
@@ -179,13 +198,10 @@ impl IcrcAccountTransactionPageOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAccountTransactionListOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) account_owner: String,
-    pub(in crate::icrc) subaccount_hex: Option<String>,
+    pub(in crate::icrc) target: IcrcAccountTargetOptions,
     pub(in crate::icrc) limit: u32,
     pub(in crate::icrc) sort: IcrcAccountTransactionSort,
     pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcAccountTransactionListOptions {
@@ -205,13 +221,10 @@ impl IcrcAccountTransactionListOptions {
             _ => unreachable!("Clap restricts account transaction sort values"),
         };
         Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            account_owner: required_string(&matches, PRINCIPAL_ARG),
-            subaccount_hex: string_option(&matches, SUBACCOUNT_ARG),
+            target: IcrcAccountTargetOptions::from_matches(&matches),
             limit: required_typed(&matches, LIMIT_ARG),
             sort,
             format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
         })
     }
 }
@@ -224,14 +237,11 @@ impl IcrcAccountTransactionListOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAccountTransactionRefreshOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) target: IcrcAccountTargetOptions,
     pub(in crate::icrc) index_canister_id: Option<String>,
-    pub(in crate::icrc) account_owner: String,
-    pub(in crate::icrc) subaccount_hex: Option<String>,
     pub(in crate::icrc) page_size: u32,
     pub(in crate::icrc) max_pages: Option<u32>,
     pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcAccountTransactionRefreshOptions {
@@ -246,14 +256,11 @@ impl IcrcAccountTransactionRefreshOptions {
         )
         .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
+            target: IcrcAccountTargetOptions::from_matches(&matches),
             index_canister_id: string_option(&matches, INDEX_CANISTER_ID_ARG),
-            account_owner: required_string(&matches, PRINCIPAL_ARG),
-            subaccount_hex: string_option(&matches, SUBACCOUNT_ARG),
             page_size: required_typed(&matches, PAGE_SIZE_ARG),
             max_pages: typed_option(&matches, MAX_PAGES_ARG),
             format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
         })
     }
 }
@@ -266,11 +273,8 @@ impl IcrcAccountTransactionRefreshOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAccountTransactionCacheOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
-    pub(in crate::icrc) account_owner: String,
-    pub(in crate::icrc) subaccount_hex: Option<String>,
+    pub(in crate::icrc) target: IcrcAccountTargetOptions,
     pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcAccountTransactionCacheOptions {
@@ -285,11 +289,8 @@ impl IcrcAccountTransactionCacheOptions {
         )
         .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            account_owner: required_string(&matches, PRINCIPAL_ARG),
-            subaccount_hex: string_option(&matches, SUBACCOUNT_ARG),
+            target: IcrcAccountTargetOptions::from_matches(&matches),
             format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
         })
     }
 }

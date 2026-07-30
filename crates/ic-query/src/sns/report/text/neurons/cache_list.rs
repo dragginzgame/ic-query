@@ -5,15 +5,13 @@
 //! Boundary: formats discovered neuron snapshots into a human-readable table.
 
 use crate::{
-    sns::report::{
-        SnsNeuronsCacheListReport, short_principal, text::common::push_cache_error_lines,
-    },
+    sns::report::{SnsCacheListReport, short_principal, text::common::push_cache_error_lines},
     table::{ColumnAlign, render_table},
     text_value::{sanitize_text, yes_no},
 };
 
 #[must_use]
-pub fn sns_neurons_cache_list_report_text(report: &SnsNeuronsCacheListReport) -> String {
+pub fn sns_neurons_cache_list_report_text(report: &SnsCacheListReport) -> String {
     let mut lines = vec![
         format!("network: {}", sanitize_text(&report.network)),
         format!("cache_root: {}", sanitize_text(&report.cache_root)),

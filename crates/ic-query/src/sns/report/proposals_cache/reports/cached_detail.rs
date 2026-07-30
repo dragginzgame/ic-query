@@ -17,10 +17,10 @@ use std::path::{Path, PathBuf};
 /// Build a proposal detail report from a complete local proposal snapshot.
 pub(in crate::sns::report) fn build_sns_proposal_report_from_cache(
     request: &SnsProposalRequest,
-    icp_root: &Path,
+    cache_root: &Path,
 ) -> Result<Option<SnsProposalReport>, SnsHostError> {
     let (cache_path, cache) = match load_sns_proposals_cache_for_input_with_path(
-        icp_root,
+        cache_root,
         &request.network,
         &request.input,
     ) {

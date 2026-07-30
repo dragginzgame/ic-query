@@ -6,17 +6,15 @@ use super::{
 };
 use crate::{
     cache_file::{
-        HostCacheError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshLockRequest,
-        create_parent_directory, load_json_cache, with_refresh_lock, write_text_atomically,
+        HostCacheError, HostJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshLockRequest,
+        create_parent_directory, load_json_cache, load_or_refresh_missing_cache,
+        load_or_refresh_stale_cache, with_refresh_lock, write_text_atomically,
     },
     freshness::freshness_facts,
     nns::LiveNnsSource,
     subnet_catalog::{MAINNET_REGISTRY_CANISTER_ID, parse_utc_timestamp_secs},
 };
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 const CACHE_DIR: &str = "subnet-topology";
 const CACHE_FILE: &str = "report.json";
@@ -24,18 +22,18 @@ const CACHE_COMPONENT: &str = "Subnet topology";
 
 /// Return the canonical joined Subnet topology cache path.
 #[must_use]
-pub fn nns_subnet_topology_cache_path(icp_root: &Path, network: &str) -> PathBuf {
-    cache_dir(icp_root, network).join(CACHE_FILE)
+pub fn nns_subnet_topology_cache_path(cache_root: &Path, network: &str) -> PathBuf {
+    cache_dir(cache_root, network).join(CACHE_FILE)
 }
 
 /// Return the canonical joined Subnet topology refresh-lock path.
 #[must_use]
-pub fn nns_subnet_topology_refresh_lock_path(icp_root: &Path, network: &str) -> PathBuf {
-    cache_dir(icp_root, network).join("refresh.lock")
+pub fn nns_subnet_topology_refresh_lock_path(cache_root: &Path, network: &str) -> PathBuf {
+    cache_dir(cache_root, network).join("refresh.lock")
 }
 
-fn cache_dir(icp_root: &Path, network: &str) -> PathBuf {
-    icp_root.join(".icq").join(CACHE_DIR).join(network)
+fn cache_dir(cache_root: &Path, network: &str) -> PathBuf {
+    cache_root.join(CACHE_DIR).join(network)
 }
 
 /// Load and validate the joined cache without making a live network call.
@@ -45,12 +43,13 @@ pub fn load_cached_nns_subnet_topology(
     enforce_mainnet_network(&request.network)?;
     let cached = load_json_cache(
         LoadJsonCacheRequest {
-            path: nns_subnet_topology_cache_path(&request.icp_root, &request.network),
+            path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
             network: &request.network,
             expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
         },
-        SubnetTopologyLoadErrors,
-    )?;
+        HostJsonCacheErrorMapper::new(CACHE_COMPONENT),
+    )
+    .map_err(NnsSubnetTopologyHostError::from)?;
     validate_report_identity(&cached.report, &request.network, None)?;
     Ok(CachedNnsSubnetTopologyReport {
         path: cached.path,
@@ -72,9 +71,9 @@ pub fn refresh_nns_subnet_topology_with_source(
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     enforce_mainnet_network(&request.cache.network)?;
     let cache_path =
-        nns_subnet_topology_cache_path(&request.cache.icp_root, &request.cache.network);
+        nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
     let lock_path =
-        nns_subnet_topology_refresh_lock_path(&request.cache.icp_root, &request.cache.network);
+        nns_subnet_topology_refresh_lock_path(&request.cache.cache_root, &request.cache.network);
     create_parent_directory(&cache_path)
         .map_err(|error| HostCacheError::operation(CACHE_COMPONENT, error))?;
     with_refresh_lock(
@@ -123,13 +122,14 @@ pub fn load_or_refresh_missing_nns_subnet_topology_with_source(
     request: &NnsSubnetTopologyRefreshRequest,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    match load_cached_nns_subnet_topology(&request.cache) {
-        Ok(cached) => Ok(cached),
-        Err(NnsSubnetTopologyHostError::Cache(HostCacheError::MissingCache { .. })) => {
-            refresh_nns_subnet_topology_with_source(request, source)
-        }
-        Err(error) => Err(error),
-    }
+    load_or_refresh_missing_cache(
+        || load_cached_nns_subnet_topology(&request.cache),
+        missing_subnet_topology_cache_path,
+        |_| {
+            refresh_nns_subnet_topology_with_source(request, source)?;
+            Ok(())
+        },
+    )
 }
 
 /// Load the joined cache, refreshing when it is missing or stale.
@@ -150,22 +150,22 @@ pub fn load_or_refresh_stale_nns_subnet_topology_with_source(
     stale_after_seconds: u64,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    match load_cached_nns_subnet_topology(&request.cache) {
-        Ok(cached)
-            if !nns_subnet_topology_freshness(
+    load_or_refresh_stale_cache(
+        || load_cached_nns_subnet_topology(&request.cache),
+        |cached| {
+            nns_subnet_topology_freshness(
                 &cached.report,
                 request.now_unix_secs,
                 stale_after_seconds,
             )
-            .stale =>
-        {
-            Ok(cached)
-        }
-        Ok(_) | Err(NnsSubnetTopologyHostError::Cache(HostCacheError::MissingCache { .. })) => {
-            refresh_nns_subnet_topology_with_source(request, source)
-        }
-        Err(error) => Err(error),
-    }
+            .stale
+        },
+        missing_subnet_topology_cache_path,
+        |_| {
+            refresh_nns_subnet_topology_with_source(request, source)?;
+            Ok(())
+        },
+    )
 }
 
 /// Derive caller-relative cache freshness without changing or refreshing state.
@@ -218,28 +218,11 @@ fn validate_report_identity(
     Ok(())
 }
 
-struct SubnetTopologyLoadErrors;
-
-impl LoadJsonCacheErrorMapper for SubnetTopologyLoadErrors {
-    type Error = NnsSubnetTopologyHostError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        HostCacheError::missing_cache(CACHE_COMPONENT, path).into()
-    }
-
-    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        HostCacheError::read_cache(CACHE_COMPONENT, path, source).into()
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        HostCacheError::parse_cache(CACHE_COMPONENT, path, source).into()
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        HostCacheError::unsupported_cache_schema_version(CACHE_COMPONENT, version, expected).into()
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        HostCacheError::network_mismatch(CACHE_COMPONENT, requested, actual).into()
+fn missing_subnet_topology_cache_path(
+    error: NnsSubnetTopologyHostError,
+) -> Result<PathBuf, NnsSubnetTopologyHostError> {
+    match error {
+        NnsSubnetTopologyHostError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
+        error => Err(error),
     }
 }

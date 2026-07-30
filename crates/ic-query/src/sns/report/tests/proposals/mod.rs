@@ -16,9 +16,9 @@ fn refresh_fixture_sns_proposals_cache(root: &std::path::Path) -> std::path::Pat
 }
 
 fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_error: &str) {
-    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+    let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
         input: ROOT_A.to_string(),
     })
     .expect("proposal cache status");
@@ -36,9 +36,9 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
     assert!(status_text.contains("cache_status: invalid"));
     assert!(status_text.contains("cache_error:"));
 
-    let list = build_sns_proposals_cache_list_report(&SnsProposalsCacheListRequest {
+    let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
     })
     .expect("proposal cache list");
     assert_eq!(list.cache_count, 1);
@@ -170,7 +170,7 @@ fn assert_cached_proposal_sort(
 ) {
     let root = temp_dir(&format!("ic-query-sns-proposals-sort-{}", sort.as_str()));
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
@@ -194,7 +194,7 @@ fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposa
         status.as_str()
     ));
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = status;
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
@@ -227,7 +227,7 @@ fn assert_cached_eligibility_filter(
         eligibility.as_str()
     ));
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.eligibility = eligibility;
@@ -260,7 +260,7 @@ fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids
         "ic-query-sns-proposals-proposer-{proposer_neuron_id}"
     ));
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.proposer_neuron_id = Some(proposer_neuron_id.to_string());
@@ -291,7 +291,7 @@ fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids
 fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) {
     let root = temp_dir(&format!("ic-query-sns-proposals-query-{query}"));
     let mut request = proposals_request("1");
-    request.icp_root = Some(root.clone());
+    request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
     request.query = Some(query.to_string());

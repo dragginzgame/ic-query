@@ -6,7 +6,7 @@
 
 use super::{
     NNS_PROPOSAL_CACHE_SCHEMA_VERSION, NNS_PROPOSAL_REFRESH_REPORT_SCHEMA_VERSION,
-    attempt::{NnsProposalAttemptProgress, write_complete_attempt},
+    attempt::write_complete_attempt,
     model::{
         CompleteNnsProposalCollection, NnsProposalCache, NnsProposalCacheMetadata,
         NnsProposalCacheRows, NnsProposalRefreshReport, NnsProposalRefreshRequest,
@@ -17,7 +17,8 @@ use crate::{
         MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
     },
     snapshot_cache::{
-        SnapshotCompleteness, SnapshotJsonPaths, publish_snapshot_with_attempt, write_snapshot_json,
+        SnapshotCompleteness, SnapshotJsonPaths, SnapshotRefreshProgress,
+        publish_snapshot_with_attempt, write_snapshot_json,
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
@@ -69,7 +70,7 @@ pub(super) fn publish_complete_nns_proposal_cache(
             write_complete_attempt(
                 &paths.refresh_attempt_path,
                 request,
-                NnsProposalAttemptProgress::new(page_count, proposal_count, last_cursor),
+                SnapshotRefreshProgress::new(page_count, proposal_count, last_cursor),
             )
         },
     )?;

@@ -62,7 +62,7 @@ fn refresh_sns_neurons_cache_with_source_and_progress(
     );
     let lookup = resolve_sns_lookup(&lookup_request, source)?;
     let paths = SnsNeuronsCachePaths::for_root(
-        &request.icp_root,
+        &request.cache_root,
         &request.network,
         &lookup.sns.root_canister_id,
     );

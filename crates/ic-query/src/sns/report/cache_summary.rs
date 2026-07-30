@@ -92,9 +92,9 @@ pub(in crate::sns::report) use project_sns_cache_summary;
 pub(in crate::sns::report) trait SnsCacheListFamily {
     type Summary: SnsCacheSummarySortKey;
 
-    fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf;
+    fn network_cache_dir(cache_root: &Path, network: &str) -> PathBuf;
     fn list_cache_summaries(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
     ) -> Result<Vec<Self::Summary>, SnsHostError>;
 }
@@ -102,18 +102,21 @@ pub(in crate::sns::report) trait SnsCacheListFamily {
 /// Build a deterministic cache-list lookup for one SNS cache family.
 pub(in crate::sns::report) fn build_sns_cache_list_lookup<Family>(
     network: &str,
-    icp_root: &Path,
+    cache_root: &Path,
 ) -> Result<SnsCacheListLookup<Family::Summary>, SnsHostError>
 where
     Family: SnsCacheListFamily,
 {
     enforce_mainnet_network(network)?;
-    let cache_root = Family::network_cache_dir(icp_root, network)
+    let network_cache_root = Family::network_cache_dir(cache_root, network)
         .display()
         .to_string();
-    let mut caches = Family::list_cache_summaries(icp_root, network)?;
+    let mut caches = Family::list_cache_summaries(cache_root, network)?;
     sort_sns_cache_summaries(&mut caches);
-    Ok(SnsCacheListLookup { cache_root, caches })
+    Ok(SnsCacheListLookup {
+        cache_root: network_cache_root,
+        caches,
+    })
 }
 
 /// Parse and normalize an SNS root canister principal input.

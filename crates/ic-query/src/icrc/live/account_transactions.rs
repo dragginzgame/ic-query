@@ -25,7 +25,7 @@ use crate::{
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_agent::Agent;
 use serde_json::{Map as JsonMap, Value as JsonValue};
-use std::{cmp::Reverse, collections::HashSet, str::FromStr};
+use std::{cmp::Ordering, str::FromStr};
 
 const INDEX_LEDGER_ID_METHOD: &str = "ledger_id";
 const INDEX_ACCOUNT_TRANSACTIONS_METHOD: &str = "get_account_transactions";
@@ -67,7 +67,7 @@ pub(super) async fn fetch_complete_account_transactions_async(
         request.cache.subaccount_hex.as_deref(),
     )
     .await?;
-    let mut state = AccountTransactionCollectionState::default();
+    let mut state = AccountTransactionCollectionState::new(context.index_canister.to_text());
 
     report_collection_progress(progress, &state, QueryProgressState::Running);
     loop {
@@ -108,11 +108,7 @@ pub(super) async fn fetch_complete_account_transactions_async(
     }
     report_collection_progress(progress, &state, QueryProgressState::Complete);
 
-    Ok(state.into_complete(
-        context.index_canister.to_text(),
-        context.token_symbol,
-        context.decimals,
-    ))
+    state.into_complete(context.token_symbol, context.decimals)
 }
 
 struct AccountTransactionQueryContext {
@@ -199,19 +195,29 @@ fn parse_transaction_cursor(value: &str) -> Result<Nat, IcrcAccountTransactionEr
     })
 }
 
-#[derive(Default)]
 struct AccountTransactionCollectionState {
+    index_canister_id: String,
     balance: Option<String>,
     oldest_transaction_id: Option<String>,
     oldest_transaction_id_initialized: bool,
     transactions: Vec<IcrcAccountTransactionRow>,
-    seen_transaction_ids: HashSet<String>,
-    seen_cursors: HashSet<String>,
     page_count: u32,
     next_cursor: Option<String>,
 }
 
 impl AccountTransactionCollectionState {
+    const fn new(index_canister_id: String) -> Self {
+        Self {
+            index_canister_id,
+            balance: None,
+            oldest_transaction_id: None,
+            oldest_transaction_id_initialized: false,
+            transactions: Vec::new(),
+            page_count: 0,
+            next_cursor: None,
+        }
+    }
+
     fn ingest(
         &mut self,
         page: AccountTransactionsPage,
@@ -237,10 +243,10 @@ impl AccountTransactionCollectionState {
         }
 
         for transaction in page.transactions {
-            normalize_transaction_cursor(&transaction.id)
+            let normalized = normalize_transaction_cursor(&transaction.id)
                 .map_err(|error| self.incomplete(error.to_string()))?;
-            if !self.seen_transaction_ids.insert(transaction.id.clone()) {
-                return Err(self.incomplete("index returned a duplicate transaction id"));
+            if normalized != transaction.id {
+                return Err(self.incomplete("index returned a non-canonical transaction id"));
             }
             self.transactions.push(transaction);
         }
@@ -259,9 +265,6 @@ impl AccountTransactionCollectionState {
             {
                 return Err(self.incomplete("index cursor did not move toward older transactions"));
             }
-            if !self.seen_cursors.insert(next_cursor.to_string()) {
-                return Err(self.incomplete("index repeated an account-history cursor"));
-            }
         }
         self.next_cursor = page.next_start;
 
@@ -277,6 +280,7 @@ impl AccountTransactionCollectionState {
 
     fn incomplete(&self, reason: impl Into<String>) -> IcrcAccountTransactionError {
         IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id: Some(self.index_canister_id.clone()),
             pages_fetched: self.page_count,
             rows_fetched: self.transactions.len(),
             last_cursor: self.next_cursor.clone(),
@@ -286,6 +290,7 @@ impl AccountTransactionCollectionState {
 
     fn page_error(&self, source: IcrcAccountTransactionError) -> IcrcAccountTransactionError {
         IcrcAccountTransactionError::CollectionPage {
+            index_canister_id: Some(self.index_canister_id.clone()),
             pages_fetched: self.page_count,
             rows_fetched: self.transactions.len(),
             last_cursor: self.next_cursor.clone(),
@@ -295,25 +300,32 @@ impl AccountTransactionCollectionState {
 
     fn into_complete(
         mut self,
-        index_canister_id: String,
         token_symbol: String,
         decimals: u8,
-    ) -> IcrcAccountTransactionCollectionData {
-        self.transactions.sort_by(|left, right| {
-            let left = parse_transaction_cursor(&left.id).expect("validated transaction id");
-            let right = parse_transaction_cursor(&right.id).expect("validated transaction id");
-            Reverse(left).cmp(&Reverse(right))
-        });
-        IcrcAccountTransactionCollectionData {
-            index_canister_id,
+    ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
+        self.transactions
+            .sort_unstable_by(|left, right| compare_canonical_decimal(&right.id, &left.id));
+        if self
+            .transactions
+            .windows(2)
+            .any(|rows| rows[0].id == rows[1].id)
+        {
+            return Err(self.incomplete("index returned a duplicate transaction id"));
+        }
+        Ok(IcrcAccountTransactionCollectionData {
+            index_canister_id: self.index_canister_id,
             balance: self.balance.unwrap_or_else(|| "0".to_string()),
             token_symbol,
             decimals,
             transactions: self.transactions,
             page_count: self.page_count,
             last_cursor: self.next_cursor,
-        }
+        })
     }
+}
+
+fn compare_canonical_decimal(left: &str, right: &str) -> Ordering {
+    left.len().cmp(&right.len()).then_with(|| left.cmp(right))
 }
 
 fn report_collection_progress(
@@ -1211,7 +1223,8 @@ mod tests {
 
     #[test]
     fn collection_state_requires_stable_exhausting_unique_pages() {
-        let mut state = AccountTransactionCollectionState::default();
+        let mut state =
+            AccountTransactionCollectionState::new(Principal::management_canister().to_text());
 
         assert!(
             !state
@@ -1223,11 +1236,9 @@ mod tests {
                 .ingest(page(&["8"], Some("8"), Some("8")), 2)
                 .expect("exhausting page")
         );
-        let complete = state.into_complete(
-            Principal::management_canister().to_text(),
-            "TEST".to_string(),
-            8,
-        );
+        let complete = state
+            .into_complete("TEST".to_string(), 8)
+            .expect("unique complete collection");
 
         assert_eq!(complete.page_count, 2);
         assert_eq!(
@@ -1242,12 +1253,16 @@ mod tests {
 
     #[test]
     fn collection_state_rejects_duplicate_rows_and_changed_oldest_id() {
-        let mut duplicate = AccountTransactionCollectionState::default();
+        let mut duplicate =
+            AccountTransactionCollectionState::new(Principal::management_canister().to_text());
         duplicate
             .ingest(page(&["10", "9"], Some("8"), Some("9")), 2)
             .expect("first page");
-        let duplicate_error = duplicate
+        duplicate
             .ingest(page(&["9", "8"], Some("8"), Some("8")), 2)
+            .expect("duplicate is detected after canonical sorting");
+        let duplicate_error = duplicate
+            .into_complete("TEST".to_string(), 8)
             .expect_err("duplicate transaction id");
         assert!(matches!(
             duplicate_error,
@@ -1257,7 +1272,8 @@ mod tests {
             } if reason.contains("duplicate")
         ));
 
-        let mut changed_oldest = AccountTransactionCollectionState::default();
+        let mut changed_oldest =
+            AccountTransactionCollectionState::new(Principal::management_canister().to_text());
         changed_oldest
             .ingest(page(&["10", "9"], Some("1"), Some("9")), 2)
             .expect("first page");
@@ -1270,6 +1286,28 @@ mod tests {
                 reason,
                 ..
             } if reason.contains("oldest transaction id changed")
+        ));
+    }
+
+    #[test]
+    fn collection_page_error_retains_the_resolved_index() {
+        let index_canister_id = Principal::management_canister().to_text();
+        let state = AccountTransactionCollectionState::new(index_canister_id.clone());
+
+        let error = state.page_error(IcrcAccountTransactionError::InvalidCursor {
+            value: "bad".to_string(),
+            reason: "fixture".to_string(),
+        });
+
+        assert!(matches!(
+            error,
+            IcrcAccountTransactionError::CollectionPage {
+                index_canister_id: Some(actual),
+                pages_fetched: 0,
+                rows_fetched: 0,
+                last_cursor: None,
+                ..
+            } if actual == index_canister_id
         ));
     }
 

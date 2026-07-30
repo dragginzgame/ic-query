@@ -349,25 +349,25 @@ fn validate_principal(
 ///
 /// NnsSubnetTopologyCacheRequest
 ///
-/// Project root and network identity for a joined Subnet topology cache.
+/// Cache-root and network identity for a joined Subnet topology cache.
 ///
 
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsSubnetTopologyCacheRequest {
-    /// Project root containing the shared `.icq` directory.
-    pub icp_root: PathBuf,
+    /// Root directory containing the shared cache.
+    pub cache_root: PathBuf,
     /// Network cache namespace.
     pub network: String,
 }
 
 #[cfg(feature = "host")]
 impl NnsSubnetTopologyCacheRequest {
-    /// Create a cache request for a project root and network.
+    /// Create a cache request for a cache root and network.
     #[must_use]
-    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             network: network.into(),
         }
     }

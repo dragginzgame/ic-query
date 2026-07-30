@@ -45,7 +45,7 @@ pub(in crate::sns::report::tests) fn proposal_request(input: &str) -> SnsProposa
         now_unix_secs: 1_780_531_200,
         input: input.to_string(),
         proposal_id: 42,
-        icp_root: None,
+        cache_root: None,
         verbose: false,
         show_ballots: true,
     }
@@ -66,7 +66,7 @@ pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsPropos
         query: None,
         sort: SnsProposalsSort::Api,
         sort_direction: SnsProposalSortDirection::Desc,
-        icp_root: None,
+        cache_root: None,
         verbose: false,
     }
 }
@@ -80,7 +80,7 @@ pub(in crate::sns::report::tests) fn sns_proposals_refresh_request(
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
         input: "1".to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
         page_size: 100,
         max_pages,
     }
@@ -95,7 +95,7 @@ pub(in crate::sns::report::tests) fn neurons_request(input: &str) -> SnsNeuronsR
         limit: 10,
         owner_principal_id: None,
         sort: SnsNeuronsSort::Api,
-        icp_root: None,
+        cache_root: None,
         verbose: false,
     }
 }
@@ -109,7 +109,7 @@ pub(in crate::sns::report::tests) fn sns_neurons_refresh_request(
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
         input: "1".to_string(),
-        icp_root: root.to_path_buf(),
+        cache_root: root.to_path_buf(),
         page_size: 2,
         max_pages,
     }

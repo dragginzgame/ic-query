@@ -72,8 +72,11 @@ implementation details but are not available to downstream crates.
 The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
 SNS info, token, and parameter builders share `SnsLookupRequest`; all read-only
-NNS topology builders share `NnsTopologyReadRequest`; SNS cache status reports
-share `SnsRefreshAttemptStatus`. There are no per-report aliases for those
+NNS topology builders share `NnsTopologyReadRequest`; Registry-derived NNS
+inventory families share the `NnsInventory*Request` contracts; SNS neuron and
+proposal cache inspection shares the `SnsCache*` request and report contracts
+plus `SnsRefreshAttemptStatus`; simple ledger-wide ICRC metadata and capability
+builders share `IcrcLedgerRequest`. There are no per-report aliases for those
 canonical types.
 The examples below are covered by the `downstream_usage` integration test.
 
@@ -84,7 +87,9 @@ need to reuse `ic-query` report assembly with data that does not come from the
 built-in live adapters. The generic ICRC, subnet catalog, NNS registry, NNS
 inventory, NNS proposal, NNS topology, SNS
 list/info/token/params, SNS proposal, and SNS neuron host APIs expose this
-pattern with `IcrcSource`, `build_icrc_*_report_with_source`,
+pattern with narrow ICRC capabilities such as `IcrcTokenSource`,
+`IcrcBalanceSource`, and `IcrcTransactionsSource`,
+`build_icrc_*_report_with_source`,
 `SubnetCatalogSource`, subnet catalog `*_with_source` builders,
 `NnsRegistrySource`, the NNS inventory source traits, `NnsProposalSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
@@ -195,11 +200,11 @@ use ic_query::subnet_catalog::{
 };
 
 fn render_subnet_info(
-    project_root: &Path,
+    cache_root: &Path,
     canister_or_subnet: &str,
     now_unix_secs: u64,
 ) -> Result<String, SubnetCatalogHostError> {
-    let cache = SubnetCatalogCacheRequest::new(project_root, "ic");
+    let cache = SubnetCatalogCacheRequest::new(cache_root, "ic");
     let request = SubnetCatalogInfoRequest::new(
         cache,
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
@@ -236,11 +241,11 @@ use ic_query::nns::topology::{
 };
 
 fn refresh_subnet_topology(
-    project_root: &Path,
+    cache_root: &Path,
     now_unix_secs: u64,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     let request = NnsSubnetTopologyRefreshRequest::new(
-        NnsSubnetTopologyCacheRequest::new(project_root, "ic"),
+        NnsSubnetTopologyCacheRequest::new(cache_root, "ic"),
         DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
         now_unix_secs,
         DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
@@ -271,13 +276,13 @@ use ic_query::icrc::{
 };
 
 fn refresh_account_history(
-    project_root: &Path,
+    cache_root: &Path,
     now_unix_secs: u64,
     ledger_canister_id: &str,
     account_owner: &str,
 ) -> Result<IcrcAccountTransactionRefreshReport, ic_query::icrc::IcrcAccountTransactionError> {
     let cache = IcrcAccountTransactionCacheRequest::new(
-        project_root,
+        cache_root,
         "https://icp-api.io",
         ledger_canister_id,
         account_owner,
@@ -298,6 +303,9 @@ live crawl, and `load_or_refresh_stale_icrc_account_transactions` only when a
 caller-supplied age policy authorizes it. Complete account snapshots prove
 index API exhaustion but carry `point_in_time_guaranteed: false`: the index
 interface does not expose a snapshot version that can be held across pages.
+Custom collection sources must return the explicitly requested index canister
+when one is supplied. Failed refresh attempts retain the resolved index and
+page/row/cursor evidence when collection reached that point.
 
 ## Native Report Example
 
@@ -307,17 +315,20 @@ builders, refresh helpers, and renderers under `features = ["host"]`:
 ```rust
 use std::path::Path;
 
-use ic_query::nns::node::{
-    DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION,
-    NnsNodeCacheRequest, NnsNodeHostError, NnsNodeListRequest,
-    build_nns_node_list_report, nns_node_list_report_text,
+use ic_query::nns::{
+    NnsInventoryCacheRequest,
+    node::{
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION,
+        NnsNodeHostError, NnsNodeListRequest,
+        build_nns_node_list_report, nns_node_list_report_text,
+    },
 };
 
 fn render_application_nodes(
-    project_root: &Path,
+    cache_root: &Path,
     now_unix_secs: u64,
 ) -> Result<String, NnsNodeHostError> {
-    let cache = NnsNodeCacheRequest::new(project_root, "ic");
+    let cache = NnsInventoryCacheRequest::new(cache_root, "ic");
     let request =
         NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
             .with_subnet_kind(NNS_NODE_SUBNET_KIND_APPLICATION);
@@ -345,7 +356,7 @@ use ic_query::sns::{
 };
 
 fn render_recent_sns_proposals(
-    project_root: &Path,
+    cache_root: &Path,
     sns_input: &str,
     now_unix_secs: u64,
 ) -> Result<String, SnsHostError> {
@@ -356,7 +367,7 @@ fn render_recent_sns_proposals(
         sns_input,
         25,
     )
-    .with_icp_root(project_root)
+    .with_cache_root(cache_root)
     .with_sort(SnsProposalsSort::Created)
     .with_sort_direction(SnsProposalSortDirection::Desc);
 
@@ -365,7 +376,7 @@ fn render_recent_sns_proposals(
 }
 
 fn render_cached_sns_neurons(
-    project_root: &Path,
+    cache_root: &Path,
     sns_input: &str,
     now_unix_secs: u64,
 ) -> Result<String, SnsHostError> {
@@ -376,7 +387,7 @@ fn render_cached_sns_neurons(
         sns_input,
         500,
     )
-    .with_icp_root(project_root)
+    .with_cache_root(cache_root)
     .with_sort(SnsNeuronsSort::Stake);
 
     let report = build_sns_neurons_report(&request)?;
@@ -390,16 +401,16 @@ Local cache inspection remains available without making live calls:
 use std::path::Path;
 
 use ic_query::sns::{
-    SnsHostError, SnsNeuronsCacheStatusRequest, SnsProposalsCacheStatusRequest,
+    SnsCacheStatusRequest, SnsHostError,
     build_sns_neurons_cache_status_report, build_sns_proposals_cache_status_report,
     sns_neurons_cache_status_report_text, sns_proposals_cache_status_report_text,
 };
 
-fn render_sns_cache_status(project_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {
-    let proposals = SnsProposalsCacheStatusRequest::new(project_root, "ic", sns_input);
+fn render_sns_cache_status(cache_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {
+    let proposals = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
     let proposals_report = build_sns_proposals_cache_status_report(&proposals)?;
 
-    let neurons = SnsNeuronsCacheStatusRequest::new(project_root, "ic", sns_input);
+    let neurons = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
     let neurons_report = build_sns_neurons_cache_status_report(&neurons)?;
 
     Ok(format!(
@@ -416,7 +427,7 @@ Generic ICRC builders are live-only and keep the queried endpoint explicit:
 
 ```rust
 use ic_query::icrc::{
-    DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcError, IcrcTokenRequest,
+    DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcError, IcrcLedgerRequest,
     build_icrc_token_report, icrc_token_report_text,
 };
 
@@ -425,7 +436,7 @@ fn render_token(
     now_unix_secs: u64,
 ) -> Result<String, IcrcError> {
     let request =
-        IcrcTokenRequest::new(DEFAULT_ICRC_SOURCE_ENDPOINT, now_unix_secs, ledger_canister_id);
+        IcrcLedgerRequest::new(DEFAULT_ICRC_SOURCE_ENDPOINT, now_unix_secs, ledger_canister_id);
     let report = build_icrc_token_report(&request)?;
     Ok(icrc_token_report_text(&report))
 }

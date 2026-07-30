@@ -23,7 +23,7 @@ const NODE_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns node refresh
   icq --network ic nns node refresh --format json
-  icq nns node refresh --dry-run --output .icq/node/ic/nodes.preview.json";
+  icq nns node refresh --dry-run --output /tmp/icq-nodes.preview.json";
 
 pub(in crate::nns::node) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "node",

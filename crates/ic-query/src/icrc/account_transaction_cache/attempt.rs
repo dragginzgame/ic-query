@@ -13,7 +13,7 @@ use crate::{
     },
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        SnapshotRefreshAttemptReadError, current_attempt_timestamp,
+        SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
         read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
         write_snapshot_refresh_attempt,
     },
@@ -82,7 +82,7 @@ pub(super) fn write_starting_attempt(
         request,
         "running",
         request.index_canister_id.clone(),
-        AttemptProgress::default(),
+        SnapshotRefreshProgress::default(),
         None,
     )
 }
@@ -100,11 +100,7 @@ pub(super) fn write_complete_attempt(
         request,
         "complete",
         Some(index_canister_id.to_string()),
-        AttemptProgress {
-            pages_fetched,
-            rows_fetched,
-            last_cursor,
-        },
+        SnapshotRefreshProgress::new(pages_fetched, rows_fetched, last_cursor),
         None,
     )
 }
@@ -114,43 +110,39 @@ pub(super) fn write_failed_attempt(
     request: &IcrcAccountTransactionRefreshRequest,
     error: &IcrcAccountTransactionError,
 ) {
-    let progress = collection_error_progress(error);
+    let (index_canister_id, progress) = collection_error_evidence(error);
     let _ = write_attempt(
         path,
         request,
         "failed",
-        request.index_canister_id.clone(),
+        index_canister_id.or_else(|| request.index_canister_id.clone()),
         progress,
         Some(error.to_string()),
     );
 }
 
-#[derive(Default)]
-struct AttemptProgress {
-    pages_fetched: u32,
-    rows_fetched: usize,
-    last_cursor: Option<String>,
-}
-
-fn collection_error_progress(error: &IcrcAccountTransactionError) -> AttemptProgress {
+fn collection_error_evidence(
+    error: &IcrcAccountTransactionError,
+) -> (Option<String>, SnapshotRefreshProgress) {
     match error {
         IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id,
             pages_fetched,
             rows_fetched,
             last_cursor,
             ..
         }
         | IcrcAccountTransactionError::CollectionPage {
+            index_canister_id,
             pages_fetched,
             rows_fetched,
             last_cursor,
             ..
-        } => AttemptProgress {
-            pages_fetched: *pages_fetched,
-            rows_fetched: *rows_fetched,
-            last_cursor: last_cursor.clone(),
-        },
-        _ => AttemptProgress::default(),
+        } => (
+            index_canister_id.clone(),
+            SnapshotRefreshProgress::new(*pages_fetched, *rows_fetched, last_cursor.clone()),
+        ),
+        _ => (None, SnapshotRefreshProgress::default()),
     }
 }
 
@@ -159,7 +151,7 @@ fn write_attempt(
     request: &IcrcAccountTransactionRefreshRequest,
     status: &'static str,
     index_canister_id: Option<String>,
-    progress: AttemptProgress,
+    progress: SnapshotRefreshProgress,
     last_error: Option<String>,
 ) -> Result<(), IcrcAccountTransactionError> {
     let started_at = format_utc_timestamp_secs(request.now_unix_secs);

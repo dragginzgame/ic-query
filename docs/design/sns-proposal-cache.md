@@ -91,13 +91,13 @@ View options such as `--limit`, `--before`, `--sort`, `--asc`, `--desc`,
 Published cache files remain complete-only:
 
 ```text
-.icq/sns/ic/<root-principal>/proposals/full.json
+<cache-root>/sns/ic/<root-principal>/proposals/full.json
 ```
 
 Refresh attempts remain separate:
 
 ```text
-.icq/sns/ic/<root-principal>/proposals/full.refresh-attempt.json
+<cache-root>/sns/ic/<root-principal>/proposals/full.refresh-attempt.json
 ```
 
 If a refresh fails, the previous complete snapshot remains authoritative.

@@ -5,13 +5,13 @@
 //! Boundary: formats discovered proposal snapshots for humans.
 
 use crate::{
-    sns::report::{SnsProposalsCacheListReport, text::common::push_cache_error_lines},
+    sns::report::{SnsCacheListReport, text::common::push_cache_error_lines},
     table::{ColumnAlign, render_table},
     text_value::sanitize_text,
 };
 
 #[must_use]
-pub fn sns_proposals_cache_list_report_text(report: &SnsProposalsCacheListReport) -> String {
+pub fn sns_proposals_cache_list_report_text(report: &SnsCacheListReport) -> String {
     let mut lines = vec![
         format!("network: {}", sanitize_text(&report.network)),
         format!("cache_root: {}", sanitize_text(&report.cache_root)),

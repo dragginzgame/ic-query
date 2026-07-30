@@ -4,6 +4,9 @@ This note describes the shared cache behavior expected across `ic-query`.
 
 ## Goals
 
+- CLI cache identity is user-level rather than repository-level. The CLI
+  resolves one root from `ICQ_CACHE_ROOT`, `XDG_CACHE_HOME`, or `HOME`; library
+  requests receive the actual root and never append a hidden `.icq` directory.
 - Cache reads should be invisible when a complete current-schema snapshot
   exists.
 - A missing cache should be created automatically only for read commands whose
@@ -92,4 +95,6 @@ ICRC account transaction lists also require an explicit complete refresh.
 that explicitly want read-through behavior can choose the separate
 refresh-if-missing or refresh-if-stale APIs. Endpoint, ledger, owner, and
 subaccount form cache identity, while page size, cursor, list limit, and sort
-do not.
+do not. Failed refresh-attempt evidence retains the resolved index canister
+when discovery or collection reached one, plus the latest page, row, and
+cursor progress. It never publishes partial rows.

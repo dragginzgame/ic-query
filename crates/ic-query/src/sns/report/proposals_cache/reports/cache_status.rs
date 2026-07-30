@@ -5,13 +5,10 @@
 //! Boundary: routes id/root status lookups into public status report DTOs.
 
 use crate::sns::report::{
-    SnsHostError, SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest,
-    SnsProposalsCacheSummary, SnsRefreshAttemptStatus,
+    SnsCacheStatusReport, SnsCacheStatusRequest, SnsCacheSummary, SnsHostError,
+    SnsRefreshAttemptStatus,
     cache_attempt::read_sns_refresh_attempt_status_strict,
-    cache_status::{
-        SnsCacheStatusFamily, SnsCacheStatusPaths, SnsCacheStatusSummaryView,
-        build_sns_cache_status_lookup,
-    },
+    cache_status::{SnsCacheStatusFamily, SnsCacheStatusPaths, build_sns_cache_status_lookup},
     find_sns_cache_summary_by_id,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
@@ -26,11 +23,11 @@ use std::path::{Path, PathBuf};
 
 /// Build a local SNS proposal cache status report.
 pub fn build_sns_proposals_cache_status_report(
-    request: &SnsProposalsCacheStatusRequest,
-) -> Result<SnsProposalsCacheStatusReport, SnsHostError> {
+    request: &SnsCacheStatusRequest,
+) -> Result<SnsCacheStatusReport, SnsHostError> {
     let lookup = build_sns_cache_status_lookup::<SnsProposalsCacheStatusFamily>(
         &request.network,
-        &request.icp_root,
+        &request.cache_root,
         &request.input,
     )?;
     Ok(cache_status_report(
@@ -44,14 +41,14 @@ pub fn build_sns_proposals_cache_status_report(
 }
 
 fn cache_status_report(
-    request: &SnsProposalsCacheStatusRequest,
+    request: &SnsCacheStatusRequest,
     cache_root: String,
-    cache: Option<SnsProposalsCacheSummary>,
+    cache: Option<SnsCacheSummary>,
     expected_cache_path: Option<String>,
     refresh_attempt_path: Option<String>,
     latest_attempt: Option<SnsRefreshAttemptStatus>,
-) -> SnsProposalsCacheStatusReport {
-    SnsProposalsCacheStatusReport {
+) -> SnsCacheStatusReport {
+    SnsCacheStatusReport {
         schema_version: SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
         cache_root,
@@ -68,21 +65,21 @@ struct SnsProposalsCacheStatusFamily;
 
 impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
     type Attempt = SnsRefreshAttemptStatus;
-    type Summary = SnsProposalsCacheSummary;
+    type Summary = SnsCacheSummary;
 
     const COLLECTION: &'static str = "proposals";
 
-    fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
-        sns_network_cache_dir(icp_root, network)
+    fn network_cache_dir(cache_root: &Path, network: &str) -> PathBuf {
+        sns_network_cache_dir(cache_root, network)
     }
 
     fn find_cache_by_id(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
         id: usize,
     ) -> Result<Option<Self::Summary>, SnsHostError> {
         find_sns_cache_summary_by_id(
-            collect_sns_proposals_cache_paths(icp_root, network)?,
+            collect_sns_proposals_cache_paths(cache_root, network)?,
             id,
             |path| read_sns_proposals_cache_header(path, network).map(|header| header.metadata.id),
             |path| load_sns_proposals_cache_summary_at(path, network),
@@ -90,11 +87,11 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
     }
 
     fn root_cache_paths(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
         root_canister_id: &str,
     ) -> SnsCacheStatusPaths {
-        let paths = SnsProposalsCachePaths::for_root(icp_root, network, root_canister_id);
+        let paths = SnsProposalsCachePaths::for_root(cache_root, network, root_canister_id);
         SnsCacheStatusPaths {
             cache_path: paths.cache_path,
             attempt_path: paths.attempt_path,
@@ -113,11 +110,5 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
         network: &str,
     ) -> Result<Option<Self::Attempt>, SnsHostError> {
         read_sns_refresh_attempt_status_strict(attempt_path, network)
-    }
-}
-
-impl SnsCacheStatusSummaryView for SnsProposalsCacheSummary {
-    fn refresh_attempt_path(&self) -> &str {
-        &self.refresh_attempt_path
     }
 }

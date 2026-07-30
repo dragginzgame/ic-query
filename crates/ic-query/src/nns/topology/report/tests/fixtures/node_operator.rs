@@ -10,8 +10,8 @@ pub(in crate::nns::topology::report::tests) fn node_operator_refresh_report_fixt
     NnsNodeOperatorRefreshReport {
         schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
-        cache_path: ".icq/node-operator/ic/operators.json".to_string(),
-        refresh_lock_path: ".icq/node-operator/ic/refresh.lock".to_string(),
+        cache_path: "/cache/node-operator/ic/operators.json".to_string(),
+        refresh_lock_path: "/cache/node-operator/ic/refresh.lock".to_string(),
         output_path: None,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 45,

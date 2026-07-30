@@ -1,14 +1,14 @@
 use super::*;
 
 #[test]
-fn catalog_path_lives_outside_deployment_state() {
-    let root = PathBuf::from("/tmp/ic-query-project");
+fn catalog_path_lives_under_cache_root() {
+    let root = PathBuf::from("/tmp/ic-query-cache");
 
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
 
     assert_eq!(
         path,
-        PathBuf::from("/tmp/ic-query-project/.icq/subnet-catalog/ic/catalog.json")
+        PathBuf::from("/tmp/ic-query-cache/subnet-catalog/ic/catalog.json")
     );
     assert!(!path.display().to_string().contains("/deployments/"));
     assert!(!path.display().to_string().contains("/fleets/"));
@@ -18,7 +18,7 @@ fn catalog_path_lives_outside_deployment_state() {
 fn load_cached_catalog_rejects_non_mainnet_network() {
     let root = temp_dir("ic-query-subnet-network");
     let request = SubnetCatalogCacheRequest {
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         network: "local".to_string(),
     };
 
@@ -35,7 +35,7 @@ fn load_cached_catalog_rejects_non_mainnet_network() {
 fn missing_catalog_error_explains_cached_only_slice() {
     let root = temp_dir("ic-query-subnet-missing");
     let request = SubnetCatalogCacheRequest {
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         network: MAINNET_NETWORK.to_string(),
     };
 

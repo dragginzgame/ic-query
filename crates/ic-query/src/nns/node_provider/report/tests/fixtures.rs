@@ -88,9 +88,9 @@ impl NnsNodeProviderSource for FailingNodeProviderSource {
     }
 }
 
-pub(super) fn test_cache_request(network: &str, name: &str) -> NnsNodeProviderCacheRequest {
-    NnsNodeProviderCacheRequest {
-        icp_root: temp_dir(&format!("ic-query-nns-node-provider-{name}")),
+pub(super) fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
+    NnsInventoryCacheRequest {
+        cache_root: temp_dir(&format!("ic-query-nns-node-provider-{name}")),
         network: network.to_string(),
     }
 }

@@ -5,14 +5,12 @@
 //! Boundary: formats proposal snapshot status and latest refresh attempt.
 
 use crate::{
-    sns::report::{
-        SnsProposalsCacheStatusReport, SnsRefreshAttemptStatus, text::common::optional_text,
-    },
+    sns::report::{SnsCacheStatusReport, SnsRefreshAttemptStatus, text::common::optional_text},
     text_value::{sanitize_text, yes_no},
 };
 
 #[must_use]
-pub fn sns_proposals_cache_status_report_text(report: &SnsProposalsCacheStatusReport) -> String {
+pub fn sns_proposals_cache_status_report_text(report: &SnsCacheStatusReport) -> String {
     let mut lines = vec![
         format!("network: {}", sanitize_text(&report.network)),
         format!("cache_root: {}", sanitize_text(&report.cache_root)),

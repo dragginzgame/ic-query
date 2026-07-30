@@ -1,7 +1,7 @@
 use super::{
     DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION,
-    NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,
-    NnsNodeProviderListReport, NnsNodeProviderListRequest, NnsNodeProviderRefreshRequest,
+    NnsInventoryInfoRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest,
+    NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
     cache::load_cached_nns_node_provider_report,
     refresh::refresh_nns_node_provider_cache_with_source, resolve::resolve_node_provider,
     source::NnsNodeProviderSource,
@@ -9,19 +9,19 @@ use super::{
 use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
 
 pub fn build_nns_node_provider_list_report(
-    request: &NnsNodeProviderListRequest,
+    request: &NnsInventoryListRequest,
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
     build_nns_node_provider_list_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_provider_info_report(
-    request: &NnsNodeProviderInfoRequest,
+    request: &NnsInventoryInfoRequest,
 ) -> Result<NnsNodeProviderInfoReport, NnsNodeProviderHostError> {
     build_nns_node_provider_info_report_with_source(request, &LiveNnsSource)
 }
 
 pub fn build_nns_node_provider_list_report_with_source(
-    request: &NnsNodeProviderListRequest,
+    request: &NnsInventoryListRequest,
     source: &dyn NnsNodeProviderSource,
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
     load_or_refresh_missing_cache(
@@ -31,7 +31,7 @@ pub fn build_nns_node_provider_list_report_with_source(
             err => Err(err),
         },
         |_| {
-            let refresh_request = NnsNodeProviderRefreshRequest::new(
+            let refresh_request = NnsInventoryRefreshRequest::new(
                 request.cache.clone(),
                 request.source_endpoint.clone(),
                 request.now_unix_secs,
@@ -43,10 +43,10 @@ pub fn build_nns_node_provider_list_report_with_source(
 }
 
 pub fn build_nns_node_provider_info_report_with_source(
-    request: &NnsNodeProviderInfoRequest,
+    request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeProviderSource,
 ) -> Result<NnsNodeProviderInfoReport, NnsNodeProviderHostError> {
-    let list_request = NnsNodeProviderListRequest {
+    let list_request = NnsInventoryListRequest {
         cache: request.cache.clone(),
         source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,

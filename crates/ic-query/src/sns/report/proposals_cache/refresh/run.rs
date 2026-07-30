@@ -66,7 +66,7 @@ pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progre
     );
     let lookup = resolve_sns_lookup(&lookup_request, source)?;
     let paths = SnsProposalsCachePaths::for_root(
-        &request.icp_root,
+        &request.cache_root,
         &request.network,
         &lookup.sns.root_canister_id,
     );

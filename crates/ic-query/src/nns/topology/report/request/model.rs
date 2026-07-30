@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 #[cfg(feature = "host")]
 pub(in crate::nns::topology::report) trait TopologyRequestParts {
-    fn icp_root(&self) -> &Path;
+    fn cache_root(&self) -> &Path;
     fn network(&self) -> &str;
     fn source_endpoint(&self) -> &str;
     fn now_unix_secs(&self) -> u64;
@@ -38,7 +38,7 @@ pub(in crate::nns::topology::report) trait TopologyRefreshParts:
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologyReadRequest {
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub network: String,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
@@ -47,13 +47,13 @@ pub struct NnsTopologyReadRequest {
 impl NnsTopologyReadRequest {
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         network: impl Into<String>,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
     ) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             network: network.into(),
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
@@ -63,8 +63,8 @@ impl NnsTopologyReadRequest {
 
 #[cfg(feature = "host")]
 impl TopologyRequestParts for NnsTopologyReadRequest {
-    fn icp_root(&self) -> &Path {
-        &self.icp_root
+    fn cache_root(&self) -> &Path {
+        &self.cache_root
     }
 
     fn network(&self) -> &str {
@@ -88,7 +88,7 @@ impl TopologyRequestParts for NnsTopologyReadRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologyRefreshRequest {
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub network: String,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
@@ -99,14 +99,14 @@ pub struct NnsTopologyRefreshRequest {
 impl NnsTopologyRefreshRequest {
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         network: impl Into<String>,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
         lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             network: network.into(),
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
@@ -124,8 +124,8 @@ impl NnsTopologyRefreshRequest {
 
 #[cfg(feature = "host")]
 impl TopologyRequestParts for NnsTopologyRefreshRequest {
-    fn icp_root(&self) -> &Path {
-        &self.icp_root
+    fn cache_root(&self) -> &Path {
+        &self.cache_root
     }
 
     fn network(&self) -> &str {
@@ -157,7 +157,7 @@ pub(in crate::nns::topology::report) fn summary_request_from(
     request: &impl TopologyRequestParts,
 ) -> NnsTopologyReadRequest {
     NnsTopologyReadRequest::new(
-        request.icp_root(),
+        request.cache_root(),
         request.network(),
         request.source_endpoint(),
         request.now_unix_secs(),

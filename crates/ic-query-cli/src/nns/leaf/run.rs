@@ -9,7 +9,7 @@ use super::{
 use crate::{
     cli::common::write_text_or_json_verbose,
     nns::{
-        NnsCommandError, command_args, command_icp_root, now_unix_secs,
+        NnsCommandError, command_args, command_cache_root, now_unix_secs,
         parse_nns_required_subcommand, write_text_or_json,
     },
     progress::announce_missing_mainnet_cache,
@@ -71,9 +71,9 @@ fn leaf_runtime_parts<Cache>(network: &str) -> Result<LeafRuntimeParts<Cache>, N
 where
     Cache: NnsLeafCacheRequest,
 {
-    let icp_root = command_icp_root()?;
+    let cache_root = command_cache_root()?;
     Ok(LeafRuntimeParts {
-        cache: Cache::from_root_network(&icp_root, network),
+        cache: Cache::from_root_network(&cache_root, network),
         now_unix_secs: now_unix_secs()?,
     })
 }
@@ -92,7 +92,12 @@ where
     };
     let options = NnsLeafListOptions::parse(args, spec, default_source_endpoint)?;
     let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
-    announce_missing_leaf_cache(&parts.cache, spec.command_name, &options.source_endpoint);
+    announce_missing_leaf_cache(
+        &parts.cache,
+        reports,
+        spec.command_name,
+        &options.source_endpoint,
+    );
     let request = <Reports::ListRequest as NnsLeafListRequest>::from_leaf_parts(
         parts.cache,
         options.source_endpoint,
@@ -122,7 +127,12 @@ where
     };
     let options = NnsLeafInfoOptions::parse(args, spec, default_source_endpoint)?;
     let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
-    announce_missing_leaf_cache(&parts.cache, spec.command_name, &options.source_endpoint);
+    announce_missing_leaf_cache(
+        &parts.cache,
+        reports,
+        spec.command_name,
+        &options.source_endpoint,
+    );
     let request = <Reports::InfoRequest as NnsLeafInfoRequest>::from_leaf_parts(
         parts.cache,
         options.source_endpoint,
@@ -164,10 +174,14 @@ where
     })
 }
 
-fn announce_missing_leaf_cache<Cache>(cache: &Cache, component: &str, source_endpoint: &str)
-where
-    Cache: NnsLeafCacheRequest,
+fn announce_missing_leaf_cache<Reports>(
+    cache: &Reports::Cache,
+    reports: &Reports,
+    component: &str,
+    source_endpoint: &str,
+) where
+    Reports: NnsLeafReports,
 {
-    let path = cache.cache_path();
+    let path = reports.cache_path(cache);
     announce_missing_mainnet_cache(cache.network(), component, &path, source_endpoint);
 }

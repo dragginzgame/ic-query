@@ -15,8 +15,6 @@
 /deps/
 /.dfx/
 /.icp/
-/.icq/
-/.ic-query/
 *.wasm
 
 # Local environment and scratch space

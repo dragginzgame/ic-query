@@ -24,7 +24,13 @@ adapter implements only the capabilities it can supply, while the built-in
 adapter implements all capabilities supported for its authority. Identical
 network and collection provenance use a shared source request instead of
 per-report request DTOs. NNS capabilities use
-`ic_query::nns::NnsSourceRequest`.
+`ic_query::nns::NnsSourceRequest`. Registry-derived NNS inventory operations
+share `NnsInventoryCacheRequest`, `NnsInventoryListRequest`,
+`NnsInventoryInfoRequest`, and `NnsInventoryRefreshRequest`. Simple
+ledger-wide ICRC capabilities share `IcrcLedgerRequest`. SNS neuron and
+proposal cache inspection shares the `SnsCache*` request and report contracts;
+the collection-specific builders still own their distinct cache paths and
+rendering.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report.
@@ -62,7 +68,13 @@ without creating a concrete live-source type for every report.
   collection resolves and verifies that context once, exhausts the same index,
   and atomically publishes one endpoint/ledger/account snapshot. It records
   API exhaustion but no point-in-time guarantee because the index exposes no
-  snapshot version.
+  snapshot version. A custom complete-collection source must return the
+  explicitly requested index canister when supplied. Failed collection
+  attempts retain a resolved index canister and page/row/cursor progress when
+  that evidence exists. The collector canonicalizes transaction ids and checks
+  adjacent duplicates after the final ordering pass, avoiding a second
+  full-history id set; local list projection consumes the loaded row vector
+  rather than cloning the complete snapshot before truncation.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.

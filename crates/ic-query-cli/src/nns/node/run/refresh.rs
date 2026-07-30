@@ -4,8 +4,9 @@ use crate::nns::{
     node::{commands::node_refresh_usage, options::node_refresh_options},
     now_unix_secs, write_text_or_json,
 };
-use ic_query::nns::node::{
-    NnsNodeRefreshRequest, nns_node_refresh_report_text, refresh_nns_node_report,
+use ic_query::nns::{
+    NnsInventoryRefreshRequest,
+    node::{nns_node_refresh_report_text, refresh_nns_node_report},
 };
 use std::ffi::OsString;
 
@@ -15,7 +16,7 @@ pub(super) fn run_node_refresh(args: Vec<OsString>) -> Result<(), NnsCommandErro
     };
     let options = node_refresh_options(args)?;
     let format = options.format;
-    let mut request = NnsNodeRefreshRequest::new(
+    let mut request = NnsInventoryRefreshRequest::new(
         cache_request(&options.network)?,
         options.source_endpoint,
         now_unix_secs()?,

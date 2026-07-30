@@ -7,7 +7,7 @@
 use crate::{
     snapshot_cache::collect_full_collection_attempt_paths,
     sns::report::{
-        SnsHostError, SnsRefreshAttemptStatus, enforce_mainnet_network,
+        SnsCacheSummary, SnsHostError, SnsRefreshAttemptStatus, enforce_mainnet_network,
         parse_sns_root_canister_input,
     },
 };
@@ -48,6 +48,12 @@ pub(in crate::sns::report) trait SnsCacheStatusSummaryView {
     fn refresh_attempt_path(&self) -> &str;
 }
 
+impl SnsCacheStatusSummaryView for SnsCacheSummary {
+    fn refresh_attempt_path(&self) -> &str {
+        &self.refresh_attempt_path
+    }
+}
+
 ///
 /// SnsCacheStatusAttemptView
 ///
@@ -70,14 +76,14 @@ pub(in crate::sns::report) trait SnsCacheStatusFamily {
 
     const COLLECTION: &'static str;
 
-    fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf;
+    fn network_cache_dir(cache_root: &Path, network: &str) -> PathBuf;
     fn find_cache_by_id(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
         id: usize,
     ) -> Result<Option<Self::Summary>, SnsHostError>;
     fn root_cache_paths(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
         root_canister_id: &str,
     ) -> SnsCacheStatusPaths;
@@ -94,39 +100,39 @@ pub(in crate::sns::report) trait SnsCacheStatusFamily {
 /// Build a cache-status lookup for an SNS cache family by list id or root principal.
 pub(in crate::sns::report) fn build_sns_cache_status_lookup<Family>(
     network: &str,
-    icp_root: &Path,
+    cache_root: &Path,
     input: &str,
 ) -> Result<SnsCacheStatusLookup<Family::Summary, Family::Attempt>, SnsHostError>
 where
     Family: SnsCacheStatusFamily,
 {
     enforce_mainnet_network(network)?;
-    let cache_root = Family::network_cache_dir(icp_root, network)
+    let network_cache_root = Family::network_cache_dir(cache_root, network)
         .display()
         .to_string();
     if let Ok(id) = input.parse::<usize>() {
-        return build_id_cache_status_lookup::<Family>(network, icp_root, cache_root, id);
+        return build_id_cache_status_lookup::<Family>(network, cache_root, network_cache_root, id);
     }
-    build_root_cache_status_lookup::<Family>(network, icp_root, input, cache_root)
+    build_root_cache_status_lookup::<Family>(network, cache_root, input, network_cache_root)
 }
 
 fn build_id_cache_status_lookup<Family>(
     network: &str,
-    icp_root: &Path,
-    cache_root: String,
+    cache_root: &Path,
+    network_cache_root: String,
     id: usize,
 ) -> Result<SnsCacheStatusLookup<Family::Summary, Family::Attempt>, SnsHostError>
 where
     Family: SnsCacheStatusFamily,
 {
-    let cache = Family::find_cache_by_id(icp_root, network, id)?;
+    let cache = Family::find_cache_by_id(cache_root, network, id)?;
     let (refresh_attempt_path, latest_attempt) = match cache.as_ref() {
         Some(cache) => {
             let path = cache.refresh_attempt_path().to_string();
             let attempt = Family::read_attempt_status(Path::new(&path), network)?;
             (Some(path), attempt)
         }
-        None => match find_attempt_by_id::<Family>(network, icp_root, id)? {
+        None => match find_attempt_by_id::<Family>(network, cache_root, id)? {
             Some((path, attempt)) => (Some(path.display().to_string()), Some(attempt)),
             None => (None, None),
         },
@@ -141,7 +147,7 @@ where
         })
         .flatten();
     Ok(SnsCacheStatusLookup {
-        cache_root,
+        cache_root: network_cache_root,
         cache,
         expected_cache_path,
         refresh_attempt_path,
@@ -151,13 +157,13 @@ where
 
 fn find_attempt_by_id<Family>(
     network: &str,
-    icp_root: &Path,
+    cache_root: &Path,
     id: usize,
 ) -> Result<Option<(PathBuf, Family::Attempt)>, SnsHostError>
 where
     Family: SnsCacheStatusFamily,
 {
-    let network_dir = Family::network_cache_dir(icp_root, network);
+    let network_dir = Family::network_cache_dir(cache_root, network);
     let attempt_paths = collect_full_collection_attempt_paths(&network_dir, Family::COLLECTION)
         .map_err(|source| SnsHostError::ReadCache {
             path: network_dir,
@@ -180,15 +186,15 @@ where
 
 fn build_root_cache_status_lookup<Family>(
     network: &str,
-    icp_root: &Path,
+    cache_root: &Path,
     input: &str,
-    cache_root: String,
+    network_cache_root: String,
 ) -> Result<SnsCacheStatusLookup<Family::Summary, Family::Attempt>, SnsHostError>
 where
     Family: SnsCacheStatusFamily,
 {
     let root_canister_id = parse_sns_root_canister_input(input)?;
-    let paths = Family::root_cache_paths(icp_root, network, &root_canister_id);
+    let paths = Family::root_cache_paths(cache_root, network, &root_canister_id);
     let cache = if paths.cache_path.is_file() {
         Some(Family::load_root_cache_summary(
             paths.cache_path.clone(),
@@ -199,7 +205,7 @@ where
     };
     let latest_attempt = Family::read_attempt_status(&paths.attempt_path, network)?;
     Ok(SnsCacheStatusLookup {
-        cache_root,
+        cache_root: network_cache_root,
         cache,
         expected_cache_path: Some(paths.cache_path.display().to_string()),
         refresh_attempt_path: Some(paths.attempt_path.display().to_string()),

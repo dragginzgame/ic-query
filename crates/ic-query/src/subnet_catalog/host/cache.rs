@@ -17,15 +17,15 @@ use std::{fs, path::PathBuf};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogCacheRequest {
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub network: String,
 }
 
 impl SubnetCatalogCacheRequest {
     #[must_use]
-    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
+    pub fn new(cache_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
         Self {
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             network: network.into(),
         }
     }
@@ -48,7 +48,7 @@ pub fn load_cached_subnet_catalog(
     request: &SubnetCatalogCacheRequest,
 ) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
     enforce_mainnet_network(&request.network)?;
-    let path = subnet_catalog_path(&request.icp_root, &request.network);
+    let path = subnet_catalog_path(&request.cache_root, &request.network);
     if !path.is_file() {
         return Err(SubnetCatalogHostError::MissingCatalog { path });
     }

@@ -32,7 +32,9 @@ pub use account_transaction_cache::{
 #[cfg(feature = "host")]
 pub use live::{
     ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCollectionSource,
-    IcrcAccountTransactionPageSource, IcrcSource, LiveIcrcSource,
+    IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource, IcrcBalanceSource,
+    IcrcBlockTypesSource, IcrcCapabilitiesSource, IcrcIndexSource, IcrcTipCertificateSource,
+    IcrcTokenSource, IcrcTransactionsSource, LiveIcrcSource,
     build_icrc_account_transaction_page_report,
     build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
     build_icrc_allowance_report_with_source, build_icrc_archives_report,
@@ -64,10 +66,9 @@ pub use model::{
     IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
     IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
     IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
-    IcrcBlockTypesRequest, IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
-    IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest,
-    IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport,
-    IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
+    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcError, IcrcFollowedArchiveBlockRow,
+    IcrcIndexReport, IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenMetadataRow,
+    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
     IcrcTransactionsRequest,
 };
 pub use text::{

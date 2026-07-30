@@ -81,9 +81,9 @@ fn sns_proposals_failed_refresh_preserves_page_progress() {
     assert_eq!(attempt["rows_fetched"], 1);
     assert_eq!(attempt["last_cursor"], "42");
 
-    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+    let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         input: "1".to_string(),
     })
     .expect("numeric failed-attempt status");
@@ -136,9 +136,9 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     assert!(cache.get("metadata").is_none());
     assert!(cache.get("data").is_none());
 
-    let list = build_sns_proposals_cache_list_report(&SnsProposalsCacheListRequest {
+    let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
     })
     .expect("proposal cache list");
     assert_eq!(list.cache_count, 1);
@@ -147,9 +147,9 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     assert_eq!(list.caches[0].cache_error, None);
     assert_eq!(list.caches[0].row_count, 1);
 
-    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+    let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         input: "1".to_string(),
     })
     .expect("proposal cache status");
@@ -177,9 +177,9 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
 fn sns_proposals_cache_status_reports_missing_cache() {
     let root = temp_dir("ic-query-sns-proposals-cache-missing-status");
 
-    let status = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest {
+    let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
         input: ROOT_A.to_string(),
     })
     .expect("proposal cache status");
@@ -191,9 +191,9 @@ fn sns_proposals_cache_status_reports_missing_cache() {
     assert!(text.contains("found: no"));
     assert!(text.contains("refresh_hint: icq sns proposal refresh"));
 
-    let list = build_sns_proposals_cache_list_report(&SnsProposalsCacheListRequest {
+    let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
-        icp_root: root.clone(),
+        cache_root: root.clone(),
     })
     .expect("proposal cache list");
     assert_eq!(list.cache_count, 0);
@@ -210,7 +210,7 @@ fn sns_proposals_cache_status_surfaces_malformed_attempt_sidecar() {
         .expect("create attempt parent");
     fs::write(&attempt_path, "{").expect("write malformed attempt");
 
-    let err = build_sns_proposals_cache_status_report(&SnsProposalsCacheStatusRequest::new(
+    let err = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest::new(
         &root,
         MAINNET_NETWORK,
         ROOT_A,

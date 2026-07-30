@@ -20,7 +20,7 @@ const DATA_CENTER_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns data-center refresh
   icq --network ic nns data-center refresh --format json
-  icq nns data-center refresh --dry-run --output .icq/data-center/ic/data-centers.preview.json";
+  icq nns data-center refresh --dry-run --output /tmp/icq-data-centers.preview.json";
 
 pub(super) const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "data-center",

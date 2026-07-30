@@ -5,7 +5,9 @@ use super::{
         Icrc3SupportedBlockType, Icrc3Value,
     },
     live::{
-        IcrcAccountTransactionPageSource, IcrcSource,
+        IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource,
+        IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource, IcrcIndexSource,
+        IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource,
         build_icrc_account_transaction_page_report_with_source,
         build_icrc_allowance_report_with_source, build_icrc_archives_report_with_source,
         build_icrc_balance_report_with_source, build_icrc_block_types_report_with_source,
@@ -18,10 +20,9 @@ use super::{
         IcrcAccountTransactionPageRequest, IcrcAccountTransactionRow, IcrcAllowanceData,
         IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
         IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
-        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest,
-        IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcError,
-        IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexRequest, IcrcTipCertificateData,
-        IcrcTipCertificateRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest,
+        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcCapabilitiesData,
+        IcrcCapabilityRow, IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexData,
+        IcrcLedgerRequest, IcrcTipCertificateData, IcrcTokenData, IcrcTokenMetadataRow,
         IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
         IcrcTransactionsRequest,
     },
@@ -48,8 +49,8 @@ const LOWER_SUBACCOUNT_HEX: &str =
 
 struct FixtureIcrcSource;
 
-impl IcrcSource for FixtureIcrcSource {
-    fn fetch_token(&self, request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
+impl IcrcTokenSource for FixtureIcrcSource {
+    fn fetch_token(&self, request: &IcrcLedgerRequest) -> Result<IcrcTokenData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
@@ -90,7 +91,9 @@ impl IcrcSource for FixtureIcrcSource {
             ],
         })
     }
+}
 
+impl IcrcBalanceSource for FixtureIcrcSource {
     fn fetch_balance(&self, request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.account_owner, ACCOUNT_OWNER);
@@ -105,7 +108,9 @@ impl IcrcSource for FixtureIcrcSource {
             balance: "123456789".to_string(),
         })
     }
+}
 
+impl IcrcAllowanceSource for FixtureIcrcSource {
     fn fetch_allowance(
         &self,
         request: &IcrcAllowanceRequest,
@@ -129,8 +134,10 @@ impl IcrcSource for FixtureIcrcSource {
             expires_at_unix_nanos: Some("1700000000123456789".to_string()),
         })
     }
+}
 
-    fn fetch_index(&self, request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+impl IcrcIndexSource for FixtureIcrcSource {
+    fn fetch_index(&self, request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
@@ -139,7 +146,9 @@ impl IcrcSource for FixtureIcrcSource {
             index_error: None,
         })
     }
+}
 
+impl IcrcTransactionsSource for FixtureIcrcSource {
     fn fetch_transactions(
         &self,
         request: &IcrcTransactionsRequest,
@@ -229,10 +238,12 @@ impl IcrcSource for FixtureIcrcSource {
             }],
         })
     }
+}
 
+impl IcrcBlockTypesSource for FixtureIcrcSource {
     fn fetch_block_types(
         &self,
-        request: &IcrcBlockTypesRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcBlockTypesData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
@@ -250,7 +261,9 @@ impl IcrcSource for FixtureIcrcSource {
             ],
         })
     }
+}
 
+impl IcrcArchivesSource for FixtureIcrcSource {
     fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
@@ -267,10 +280,12 @@ impl IcrcSource for FixtureIcrcSource {
             }],
         })
     }
+}
 
+impl IcrcTipCertificateSource for FixtureIcrcSource {
     fn fetch_tip_certificate(
         &self,
-        request: &IcrcTipCertificateRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcTipCertificateData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
@@ -282,10 +297,12 @@ impl IcrcSource for FixtureIcrcSource {
             hash_tree_bytes: Some(2),
         })
     }
+}
 
+impl IcrcCapabilitiesSource for FixtureIcrcSource {
     fn fetch_capabilities(
         &self,
-        request: &IcrcCapabilitiesRequest,
+        request: &IcrcLedgerRequest,
     ) -> Result<IcrcCapabilitiesData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
@@ -404,59 +421,18 @@ impl IcrcAccountTransactionPageSource for PanickingAccountTransactionsSource {
 
 struct PanickingIcrcSource;
 
-impl IcrcSource for PanickingIcrcSource {
-    fn fetch_token(&self, _request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
-        panic!("token source should not be called")
-    }
-
+impl IcrcBalanceSource for PanickingIcrcSource {
     fn fetch_balance(&self, _request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
         panic!("balance source should not be called")
     }
+}
 
+impl IcrcAllowanceSource for PanickingIcrcSource {
     fn fetch_allowance(
         &self,
         _request: &IcrcAllowanceRequest,
     ) -> Result<IcrcAllowanceData, IcrcError> {
         panic!("allowance source should not be called")
-    }
-
-    fn fetch_index(&self, _request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
-        panic!("index source should not be called")
-    }
-
-    fn fetch_transactions(
-        &self,
-        _request: &IcrcTransactionsRequest,
-    ) -> Result<IcrcTransactionsData, IcrcError> {
-        panic!("transactions source should not be called")
-    }
-
-    fn fetch_block_types(
-        &self,
-        _request: &IcrcBlockTypesRequest,
-    ) -> Result<IcrcBlockTypesData, IcrcError> {
-        panic!("block types source should not be called")
-    }
-
-    fn fetch_archives(
-        &self,
-        _request: &IcrcArchivesRequest,
-    ) -> Result<IcrcArchivesData, IcrcError> {
-        panic!("archives source should not be called")
-    }
-
-    fn fetch_tip_certificate(
-        &self,
-        _request: &IcrcTipCertificateRequest,
-    ) -> Result<IcrcTipCertificateData, IcrcError> {
-        panic!("tip certificate source should not be called")
-    }
-
-    fn fetch_capabilities(
-        &self,
-        _request: &IcrcCapabilitiesRequest,
-    ) -> Result<IcrcCapabilitiesData, IcrcError> {
-        panic!("capabilities source should not be called")
     }
 }
 #[test]
@@ -555,7 +531,7 @@ fn icrc3_tip_certificate_shape_round_trips_through_candid() {
 
 #[test]
 fn token_report_builds_text_and_json_friendly_fields() {
-    let request = IcrcTokenRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -659,7 +635,7 @@ fn allowance_report_builds_text_and_json_friendly_fields() {
 
 #[test]
 fn index_report_builds_text_and_json_friendly_fields() {
-    let request = IcrcIndexRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -821,7 +797,7 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
 
 #[test]
 fn block_types_report_builds_text_and_json_friendly_fields() {
-    let request = IcrcBlockTypesRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -886,7 +862,7 @@ fn archives_report_builds_text_and_json_friendly_fields() {
 
 #[test]
 fn tip_certificate_report_builds_text_and_json_friendly_fields() {
-    let request = IcrcTipCertificateRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -920,7 +896,7 @@ fn tip_certificate_report_builds_text_and_json_friendly_fields() {
 
 #[test]
 fn capabilities_report_builds_text_and_json_friendly_fields() {
-    let request = IcrcCapabilitiesRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
@@ -960,75 +936,16 @@ fn capabilities_report_builds_text_and_json_friendly_fields() {
 fn index_report_renders_index_error_when_not_set() {
     struct MissingIndexSource;
 
-    impl IcrcSource for MissingIndexSource {
-        fn fetch_token(&self, _request: &IcrcTokenRequest) -> Result<IcrcTokenData, IcrcError> {
-            panic!("token source should not be called")
-        }
-
-        fn fetch_balance(
-            &self,
-            _request: &IcrcBalanceRequest,
-        ) -> Result<IcrcBalanceData, IcrcError> {
-            panic!("balance source should not be called")
-        }
-
-        fn fetch_allowance(
-            &self,
-            _request: &IcrcAllowanceRequest,
-        ) -> Result<IcrcAllowanceData, IcrcError> {
-            panic!("allowance source should not be called")
-        }
-
-        fn fetch_index(&self, _request: &IcrcIndexRequest) -> Result<IcrcIndexData, IcrcError> {
+    impl IcrcIndexSource for MissingIndexSource {
+        fn fetch_index(&self, _request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError> {
             Ok(IcrcIndexData {
                 index_canister_id: None,
                 index_error: Some("index principal not set".to_string()),
             })
         }
-
-        fn fetch_transactions(
-            &self,
-            _request: &IcrcTransactionsRequest,
-        ) -> Result<IcrcTransactionsData, IcrcError> {
-            Ok(IcrcTransactionsData {
-                log_length: None,
-                blocks: Vec::new(),
-                archived_blocks: Vec::new(),
-                followed_archive_blocks: Vec::new(),
-                archive_follow_errors: Vec::new(),
-            })
-        }
-
-        fn fetch_block_types(
-            &self,
-            _request: &IcrcBlockTypesRequest,
-        ) -> Result<IcrcBlockTypesData, IcrcError> {
-            panic!("block types source should not be called")
-        }
-
-        fn fetch_archives(
-            &self,
-            _request: &IcrcArchivesRequest,
-        ) -> Result<IcrcArchivesData, IcrcError> {
-            panic!("archives source should not be called")
-        }
-
-        fn fetch_tip_certificate(
-            &self,
-            _request: &IcrcTipCertificateRequest,
-        ) -> Result<IcrcTipCertificateData, IcrcError> {
-            panic!("tip certificate source should not be called")
-        }
-
-        fn fetch_capabilities(
-            &self,
-            _request: &IcrcCapabilitiesRequest,
-        ) -> Result<IcrcCapabilitiesData, IcrcError> {
-            panic!("capabilities source should not be called")
-        }
     }
 
-    let request = IcrcIndexRequest {
+    let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),

@@ -21,15 +21,14 @@ use crate::{
             IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
             IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest,
             IcrcBalanceData, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData,
-            IcrcBlockTypesRequest, IcrcCapabilitiesData, IcrcCapabilitiesRequest,
-            IcrcCapabilityRow, IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexData,
-            IcrcIndexRequest, IcrcTipCertificateData, IcrcTipCertificateRequest, IcrcTokenData,
-            IcrcTokenMetadataRow, IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+            IcrcCapabilitiesData, IcrcCapabilityRow, IcrcError, IcrcFollowedArchiveBlockRow,
+            IcrcIndexData, IcrcLedgerRequest, IcrcTipCertificateData, IcrcTokenData,
+            IcrcTokenMetadataRow, IcrcTokenStandardRow, IcrcTransactionBlockRow,
             IcrcTransactionsData, IcrcTransactionsRequest, subaccount_bytes_from_hex,
         },
     },
 };
-use candid::{Nat, Principal};
+use candid::{CandidType, Nat, Principal};
 use ic_agent::Agent;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 
@@ -45,7 +44,7 @@ const ICRC3_GET_ARCHIVES_METHOD: &str = "icrc3_get_archives";
 const ICRC3_GET_TIP_CERTIFICATE_METHOD: &str = "icrc3_get_tip_certificate";
 
 pub(super) async fn fetch_token_async(
-    request: &IcrcTokenRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcTokenData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
@@ -120,7 +119,7 @@ pub(super) async fn fetch_allowance_async(
 }
 
 pub(super) async fn fetch_index_async(
-    request: &IcrcIndexRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcIndexData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
@@ -147,13 +146,7 @@ pub(super) async fn fetch_transactions_async(
         start: Nat::from(request.start),
         length: Nat::from(request.limit),
     }];
-    let result = query_ledger_arg::<Vec<Icrc3GetBlocksRequest>, Icrc3GetBlocksResult, IcrcError>(
-        &agent,
-        &ledger_canister,
-        "icrc3_get_blocks",
-        &block_args,
-    )
-    .await?;
+    let result = query_blocks(&agent, &ledger_canister, &block_args).await?;
     let followed_archives = if request.follow_archives {
         fetch_archive_blocks(&agent, &result.archived_blocks).await
     } else {
@@ -187,14 +180,7 @@ async fn fetch_archive_blocks(
             continue;
         }
 
-        match query_ledger_arg::<Vec<Icrc3GetBlocksRequest>, Icrc3GetBlocksResult, IcrcError>(
-            agent,
-            &archive.callback.0.principal,
-            ICRC3_GET_BLOCKS_METHOD,
-            &archive.args,
-        )
-        .await
-        {
+        match query_blocks(agent, &archive.callback.0.principal, &archive.args).await {
             Ok(blocks) => {
                 result.blocks.extend(blocks.blocks.into_iter().map(|block| {
                     followed_archive_block_row_from_wire(&canister_id, &method, block)
@@ -209,16 +195,11 @@ async fn fetch_archive_blocks(
 }
 
 pub(super) async fn fetch_block_types_async(
-    request: &IcrcBlockTypesRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcBlockTypesData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
-    let block_types = query_ledger::<Vec<Icrc3SupportedBlockType>, IcrcError>(
-        &agent,
-        &ledger_canister,
-        ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
-    )
-    .await?;
+    let block_types = query_block_types(&agent, &ledger_canister).await?;
 
     Ok(IcrcBlockTypesData {
         block_types: block_types
@@ -240,13 +221,7 @@ pub(super) async fn fetch_archives_async(
             .map(|from| principal_from_text::<IcrcError>(from, "from_canister_id"))
             .transpose()?,
     };
-    let archives = query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, IcrcError>(
-        &agent,
-        &ledger_canister,
-        ICRC3_GET_ARCHIVES_METHOD,
-        &args,
-    )
-    .await?;
+    let archives = query_archives(&agent, &ledger_canister, &args).await?;
 
     Ok(IcrcArchivesData {
         archives: archives.into_iter().map(archive_row_from_wire).collect(),
@@ -254,22 +229,15 @@ pub(super) async fn fetch_archives_async(
 }
 
 pub(super) async fn fetch_tip_certificate_async(
-    request: &IcrcTipCertificateRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcTipCertificateData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
-    let certificate = query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
-        &agent,
-        &ledger_canister,
-        ICRC3_GET_TIP_CERTIFICATE_METHOD,
-    )
-    .await?;
-
-    verified_tip_certificate_data(&agent, &ledger_canister, certificate)
+    query_tip_certificate(&agent, &ledger_canister).await
 }
 
 pub(super) async fn fetch_capabilities_async(
-    request: &IcrcCapabilitiesRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcCapabilitiesData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
@@ -338,14 +306,7 @@ async fn fetch_blocks_capability(agent: &Agent, ledger_canister: &Principal) -> 
         start: Nat::from(0_u64),
         length: Nat::from(1_u64),
     }];
-    match query_ledger_arg::<Vec<Icrc3GetBlocksRequest>, Icrc3GetBlocksResult, IcrcError>(
-        agent,
-        ledger_canister,
-        ICRC3_GET_BLOCKS_METHOD,
-        &block_args,
-    )
-    .await
-    {
+    match query_blocks(agent, ledger_canister, &block_args).await {
         Ok(result) => available_capability_row(
             "ICRC-3 block history",
             ICRC3_GET_BLOCKS_METHOD,
@@ -364,13 +325,7 @@ async fn fetch_block_types_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    match query_ledger::<Vec<Icrc3SupportedBlockType>, IcrcError>(
-        agent,
-        ledger_canister,
-        ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
-    )
-    .await
-    {
+    match query_block_types(agent, ledger_canister).await {
         Ok(block_types) => available_capability_row(
             "ICRC-3 supported block types",
             ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
@@ -394,14 +349,7 @@ async fn fetch_archives_capability(
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
     let args = Icrc3GetArchivesArgs { from: None };
-    match query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, IcrcError>(
-        agent,
-        ledger_canister,
-        ICRC3_GET_ARCHIVES_METHOD,
-        &args,
-    )
-    .await
-    {
+    match query_archives(agent, ledger_canister, &args).await {
         Ok(archives) => available_capability_row(
             "ICRC-3 archive discovery",
             ICRC3_GET_ARCHIVES_METHOD,
@@ -417,16 +365,7 @@ async fn fetch_tip_certificate_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    let certificate = query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
-        agent,
-        ledger_canister,
-        ICRC3_GET_TIP_CERTIFICATE_METHOD,
-    )
-    .await;
-
-    match certificate
-        .and_then(|certificate| verified_tip_certificate_data(agent, ledger_canister, certificate))
-    {
+    match query_tip_certificate(agent, ledger_canister).await {
         Ok(IcrcTipCertificateData {
             certificate_bytes: Some(certificate_bytes),
             hash_tree_bytes: Some(hash_tree_bytes),
@@ -449,6 +388,62 @@ async fn fetch_tip_certificate_capability(
             err,
         ),
     }
+}
+
+async fn query_blocks<Args>(
+    agent: &Agent,
+    canister: &Principal,
+    args: &Args,
+) -> Result<Icrc3GetBlocksResult, IcrcError>
+where
+    Args: CandidType + Sync,
+{
+    query_ledger_arg::<Args, Icrc3GetBlocksResult, IcrcError>(
+        agent,
+        canister,
+        ICRC3_GET_BLOCKS_METHOD,
+        args,
+    )
+    .await
+}
+
+async fn query_block_types(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> Result<Vec<Icrc3SupportedBlockType>, IcrcError> {
+    query_ledger::<Vec<Icrc3SupportedBlockType>, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
+    )
+    .await
+}
+
+async fn query_archives(
+    agent: &Agent,
+    ledger_canister: &Principal,
+    args: &Icrc3GetArchivesArgs,
+) -> Result<Vec<Icrc3ArchiveInfo>, IcrcError> {
+    query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC3_GET_ARCHIVES_METHOD,
+        args,
+    )
+    .await
+}
+
+async fn query_tip_certificate(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> Result<IcrcTipCertificateData, IcrcError> {
+    let certificate = query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC3_GET_TIP_CERTIFICATE_METHOD,
+    )
+    .await?;
+    verified_tip_certificate_data(agent, ledger_canister, certificate)
 }
 
 pub(super) async fn query_index_principal(

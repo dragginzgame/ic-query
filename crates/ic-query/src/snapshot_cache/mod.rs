@@ -15,7 +15,7 @@ mod refresh;
 
 pub use attempt::{
     SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-    SnapshotRefreshAttemptReadError, current_attempt_timestamp,
+    SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
     read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
     write_snapshot_refresh_attempt,
 };

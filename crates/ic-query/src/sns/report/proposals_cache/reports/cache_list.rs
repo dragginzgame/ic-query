@@ -5,8 +5,8 @@
 //! Boundary: shapes complete proposal cache summaries into public report DTOs.
 
 use crate::sns::report::{
-    SnsCacheListFamily, SnsHostError, SnsProposalsCacheListReport, SnsProposalsCacheListRequest,
-    SnsProposalsCacheSummary, build_sns_cache_list_lookup,
+    SnsCacheListFamily, SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
+    build_sns_cache_list_lookup,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::sns_network_cache_dir,
         storage::list_sns_proposals_cache_summaries,
@@ -16,13 +16,13 @@ use std::path::{Path, PathBuf};
 
 /// Build a local SNS proposal cache list report.
 pub fn build_sns_proposals_cache_list_report(
-    request: &SnsProposalsCacheListRequest,
-) -> Result<SnsProposalsCacheListReport, SnsHostError> {
+    request: &SnsCacheListRequest,
+) -> Result<SnsCacheListReport, SnsHostError> {
     let lookup = build_sns_cache_list_lookup::<SnsProposalsCacheListFamily>(
         &request.network,
-        &request.icp_root,
+        &request.cache_root,
     )?;
-    Ok(SnsProposalsCacheListReport {
+    Ok(SnsCacheListReport {
         schema_version: SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
         cache_root: lookup.cache_root,
@@ -34,16 +34,16 @@ pub fn build_sns_proposals_cache_list_report(
 struct SnsProposalsCacheListFamily;
 
 impl SnsCacheListFamily for SnsProposalsCacheListFamily {
-    type Summary = SnsProposalsCacheSummary;
+    type Summary = SnsCacheSummary;
 
-    fn network_cache_dir(icp_root: &Path, network: &str) -> PathBuf {
-        sns_network_cache_dir(icp_root, network)
+    fn network_cache_dir(cache_root: &Path, network: &str) -> PathBuf {
+        sns_network_cache_dir(cache_root, network)
     }
 
     fn list_cache_summaries(
-        icp_root: &Path,
+        cache_root: &Path,
         network: &str,
     ) -> Result<Vec<Self::Summary>, SnsHostError> {
-        list_sns_proposals_cache_summaries(icp_root, network)
+        list_sns_proposals_cache_summaries(cache_root, network)
     }
 }

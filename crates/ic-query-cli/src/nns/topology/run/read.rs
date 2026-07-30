@@ -2,7 +2,7 @@ use crate::{
     nns::topology::{commands as topology_commands, options as topology_options},
     nns::write_text_or_json,
     nns::{
-        NnsCommandError, command_args, command_icp_root, now_unix_secs,
+        NnsCommandError, command_args, command_cache_root, now_unix_secs,
         topology::options::TopologyReadOptions,
     },
 };
@@ -107,8 +107,8 @@ where
     };
     let options = Options::parse_args(args)?;
     let format = options.format();
-    let icp_root = command_icp_root()?;
-    let request = options.into_request(icp_root, now_unix_secs()?);
+    let cache_root = command_cache_root()?;
+    let request = options.into_request(cache_root, now_unix_secs()?);
     let report = build_report(&request)?;
     write_text_or_json(format, &report, render_text)
 }

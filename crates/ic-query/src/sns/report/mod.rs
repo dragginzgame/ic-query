@@ -77,6 +77,13 @@ pub(in crate::sns::report) use model::{
 pub(in crate::sns::report) use model::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
+#[cfg(feature = "host")]
+pub use model::{
+    SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
+    SnsCacheSummary, SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
+    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsProposalsRefreshReport,
+    SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
+};
 pub use model::{
     SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
     SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList,
@@ -85,15 +92,6 @@ pub use model::{
     SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
     SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
     SnsTokenStandardRow, SnsVotingRewardsParameters,
-};
-#[cfg(feature = "host")]
-pub use model::{
-    SnsHostError, SnsNeuronRow, SnsNeuronsCacheListReport, SnsNeuronsCacheListRequest,
-    SnsNeuronsCacheStatusReport, SnsNeuronsCacheStatusRequest, SnsNeuronsCacheSummary,
-    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
-    SnsNeuronsSort, SnsProposalsCacheListReport, SnsProposalsCacheListRequest,
-    SnsProposalsCacheStatusReport, SnsProposalsCacheStatusRequest, SnsProposalsCacheSummary,
-    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
 };
 #[cfg(feature = "host")]
 pub use neurons_cache::{

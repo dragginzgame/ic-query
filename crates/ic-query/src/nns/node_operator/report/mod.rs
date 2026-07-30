@@ -12,6 +12,11 @@ mod source;
 mod text;
 
 #[cfg(feature = "host")]
+use crate::nns::NnsInventoryRefreshRequest;
+#[cfg(feature = "host")]
+use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
+
+#[cfg(feature = "host")]
 pub use build::{
     build_nns_node_operator_info_report, build_nns_node_operator_info_report_with_source,
     build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_source,
@@ -25,14 +30,9 @@ use resolve::resolve_node_operator;
 #[cfg(feature = "host")]
 pub use source::NnsNodeOperatorSource;
 
-pub use model::{
-    NnsNodeOperatorCacheRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,
-    NnsNodeOperatorListReport, NnsNodeOperatorListRequest, NnsNodeOperatorRow,
-};
 #[cfg(feature = "host")]
-pub use model::{
-    NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
-};
+pub use model::{NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport};
+pub use model::{NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRow};
 #[cfg(feature = "host")]
 pub use text::nns_node_operator_refresh_report_text;
 pub use text::{

@@ -8,73 +8,7 @@ use crate::sns::report::{
     SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
     SnsProposalTopicFilter, SnsProposalsSort,
 };
-#[cfg(feature = "host")]
-use std::path::Path;
 use std::path::PathBuf;
-
-///
-/// SnsProposalsCacheListRequest
-///
-/// Request accepted by the local SNS proposal cache list report builder.
-///
-
-#[cfg(feature = "host")]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnsProposalsCacheListRequest {
-    pub network: String,
-    pub icp_root: PathBuf,
-}
-
-#[cfg(feature = "host")]
-impl SnsProposalsCacheListRequest {
-    #[must_use]
-    pub fn new(icp_root: impl Into<PathBuf>, network: impl Into<String>) -> Self {
-        Self {
-            network: network.into(),
-            icp_root: icp_root.into(),
-        }
-    }
-
-    #[must_use]
-    pub fn icp_root(&self) -> &Path {
-        &self.icp_root
-    }
-}
-
-///
-/// SnsProposalsCacheStatusRequest
-///
-/// Request accepted by the local SNS proposal cache status report builder.
-///
-
-#[cfg(feature = "host")]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnsProposalsCacheStatusRequest {
-    pub network: String,
-    pub icp_root: PathBuf,
-    pub input: String,
-}
-
-#[cfg(feature = "host")]
-impl SnsProposalsCacheStatusRequest {
-    #[must_use]
-    pub fn new(
-        icp_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        input: impl Into<String>,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            icp_root: icp_root.into(),
-            input: input.into(),
-        }
-    }
-
-    #[must_use]
-    pub fn icp_root(&self) -> &Path {
-        &self.icp_root
-    }
-}
 
 ///
 /// SnsProposalRequest
@@ -89,7 +23,7 @@ pub struct SnsProposalRequest {
     pub now_unix_secs: u64,
     pub input: String,
     pub proposal_id: u64,
-    pub icp_root: Option<PathBuf>,
+    pub cache_root: Option<PathBuf>,
     pub verbose: bool,
     pub show_ballots: bool,
 }
@@ -109,15 +43,15 @@ impl SnsProposalRequest {
             now_unix_secs,
             input: input.into(),
             proposal_id,
-            icp_root: None,
+            cache_root: None,
             verbose: false,
             show_ballots: false,
         }
     }
 
     #[must_use]
-    pub fn with_icp_root(mut self, icp_root: impl Into<PathBuf>) -> Self {
-        self.icp_root = Some(icp_root.into());
+    pub fn with_cache_root(mut self, cache_root: impl Into<PathBuf>) -> Self {
+        self.cache_root = Some(cache_root.into());
         self
     }
 
@@ -155,7 +89,7 @@ pub struct SnsProposalsRequest {
     pub query: Option<String>,
     pub sort: SnsProposalsSort,
     pub sort_direction: SnsProposalSortDirection,
-    pub icp_root: Option<PathBuf>,
+    pub cache_root: Option<PathBuf>,
     pub verbose: bool,
 }
 
@@ -182,7 +116,7 @@ impl SnsProposalsRequest {
             query: None,
             sort: SnsProposalsSort::default(),
             sort_direction: SnsProposalSortDirection::default(),
-            icp_root: None,
+            cache_root: None,
             verbose: false,
         }
     }
@@ -237,8 +171,8 @@ impl SnsProposalsRequest {
     }
 
     #[must_use]
-    pub fn with_icp_root(mut self, icp_root: impl Into<PathBuf>) -> Self {
-        self.icp_root = Some(icp_root.into());
+    pub fn with_cache_root(mut self, cache_root: impl Into<PathBuf>) -> Self {
+        self.cache_root = Some(cache_root.into());
         self
     }
 
@@ -262,7 +196,7 @@ pub struct SnsProposalsRefreshRequest {
     pub source_endpoint: String,
     pub now_unix_secs: u64,
     pub input: String,
-    pub icp_root: PathBuf,
+    pub cache_root: PathBuf,
     pub page_size: u32,
     pub max_pages: Option<u32>,
 }
@@ -271,7 +205,7 @@ pub struct SnsProposalsRefreshRequest {
 impl SnsProposalsRefreshRequest {
     #[must_use]
     pub fn new(
-        icp_root: impl Into<PathBuf>,
+        cache_root: impl Into<PathBuf>,
         network: impl Into<String>,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
@@ -283,7 +217,7 @@ impl SnsProposalsRefreshRequest {
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
             input: input.into(),
-            icp_root: icp_root.into(),
+            cache_root: cache_root.into(),
             page_size,
             max_pages: None,
         }

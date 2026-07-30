@@ -1,7 +1,7 @@
 use super::{
-    DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NnsNodeHostError,
-    NnsNodeInfoReport, NnsNodeInfoRequest, NnsNodeListFilters, NnsNodeListReport,
-    NnsNodeListRequest, NnsNodeRefreshRequest, cache::load_cached_nns_node_report,
+    DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_INFO_REPORT_SCHEMA_VERSION,
+    NnsInventoryInfoRequest, NnsInventoryRefreshRequest, NnsNodeHostError, NnsNodeInfoReport,
+    NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, cache::load_cached_nns_node_report,
     filters::filter_node_list_report, refresh::refresh_nns_node_cache_with_source,
     resolve::resolve_node, source::NnsNodeSource,
 };
@@ -14,7 +14,7 @@ pub fn build_nns_node_list_report(
 }
 
 pub fn build_nns_node_info_report(
-    request: &NnsNodeInfoRequest,
+    request: &NnsInventoryInfoRequest,
 ) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
     build_nns_node_info_report_with_source(request, &LiveNnsSource)
 }
@@ -30,7 +30,7 @@ pub fn build_nns_node_list_report_with_source(
             err => Err(err),
         },
         |_| {
-            let refresh_request = NnsNodeRefreshRequest::new(
+            let refresh_request = NnsInventoryRefreshRequest::new(
                 request.cache.clone(),
                 request.source_endpoint.clone(),
                 request.now_unix_secs,
@@ -43,7 +43,7 @@ pub fn build_nns_node_list_report_with_source(
 }
 
 pub fn build_nns_node_info_report_with_source(
-    request: &NnsNodeInfoRequest,
+    request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeSource,
 ) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
     let list_request = NnsNodeListRequest {

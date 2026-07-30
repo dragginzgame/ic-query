@@ -120,13 +120,13 @@ pub(in crate::sns::report) struct SnsCacheHeaderMetadata {
 
 /// Collect complete SNS snapshot paths for one cache collection.
 pub(in crate::sns::report) fn collect_sns_cache_paths<Collection>(
-    icp_root: &Path,
+    cache_root: &Path,
     network: &str,
 ) -> Result<Vec<PathBuf>, SnsHostError>
 where
     Collection: SnsCacheCollection,
 {
-    let root = sns_snapshot_network_cache_dir(icp_root, network);
+    let root = sns_snapshot_network_cache_dir(cache_root, network);
     collect_full_collection_snapshot_paths(&root, Collection::COLLECTION)
         .map_err(|source| SnsHostError::ReadCache { path: root, source })
 }

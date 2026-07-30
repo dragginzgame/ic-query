@@ -3,8 +3,8 @@ mod icrc;
 mod nns;
 mod output;
 mod progress;
-mod project;
 mod sns;
+mod storage;
 
 #[cfg(test)]
 mod test_support;

@@ -1,63 +1,58 @@
 #[cfg(feature = "host")]
-use ic_query::nns::NnsSourceRequest;
-#[cfg(feature = "host")]
 use ic_query::nns::data_center::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-    NnsDataCenterHostError, NnsDataCenterRefreshReport, NnsDataCenterRefreshRequest,
-    NnsDataCenterSource, build_nns_data_center_info_report,
-    build_nns_data_center_info_report_with_source, build_nns_data_center_list_report,
-    build_nns_data_center_list_report_with_source, nns_data_center_cache_path,
-    nns_data_center_refresh_lock_path, nns_data_center_refresh_report_text,
-    refresh_nns_data_center_report, refresh_nns_data_center_report_with_source,
+    NnsDataCenterHostError, NnsDataCenterRefreshReport, NnsDataCenterSource,
+    build_nns_data_center_info_report, build_nns_data_center_info_report_with_source,
+    build_nns_data_center_list_report, build_nns_data_center_list_report_with_source,
+    nns_data_center_cache_path, nns_data_center_refresh_lock_path,
+    nns_data_center_refresh_report_text, refresh_nns_data_center_report,
+    refresh_nns_data_center_report_with_source,
 };
 use ic_query::nns::data_center::{
-    NnsDataCenterCacheRequest, NnsDataCenterInfoReport, NnsDataCenterInfoRequest,
-    NnsDataCenterListReport, NnsDataCenterListRequest, NnsDataCenterRow,
+    NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterRow,
     nns_data_center_info_report_text, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::node::{
     DEFAULT_NNS_NODE_SOURCE_ENDPOINT, DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NnsNodeHostError,
-    NnsNodeRefreshReport, NnsNodeRefreshRequest, NnsNodeSource, build_nns_node_info_report,
+    NnsNodeRefreshReport, NnsNodeSource, build_nns_node_info_report,
     build_nns_node_info_report_with_source, build_nns_node_list_report,
     build_nns_node_list_report_with_source, nns_node_cache_path, nns_node_refresh_lock_path,
     nns_node_refresh_report_text, refresh_nns_node_report, refresh_nns_node_report_with_source,
 };
 use ic_query::nns::node::{
-    NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeCacheRequest, NnsNodeInfoReport, NnsNodeInfoRequest,
-    NnsNodeListReport, NnsNodeListRequest, NnsNodeRow, nns_node_info_report_text,
-    nns_node_list_report_text, nns_node_list_report_verbose_text,
+    NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest,
+    NnsNodeRow, nns_node_info_report_text, nns_node_list_report_text,
+    nns_node_list_report_verbose_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::node_operator::{
     DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT, DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS,
-    NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport, NnsNodeOperatorRefreshRequest,
-    NnsNodeOperatorSource, build_nns_node_operator_info_report,
-    build_nns_node_operator_info_report_with_source, build_nns_node_operator_list_report,
-    build_nns_node_operator_list_report_with_source, nns_node_operator_cache_path,
-    nns_node_operator_refresh_lock_path, nns_node_operator_refresh_report_text,
-    refresh_nns_node_operator_report, refresh_nns_node_operator_report_with_source,
+    NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport, NnsNodeOperatorSource,
+    build_nns_node_operator_info_report, build_nns_node_operator_info_report_with_source,
+    build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_source,
+    nns_node_operator_cache_path, nns_node_operator_refresh_lock_path,
+    nns_node_operator_refresh_report_text, refresh_nns_node_operator_report,
+    refresh_nns_node_operator_report_with_source,
 };
 use ic_query::nns::node_operator::{
-    NnsNodeOperatorCacheRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorInfoRequest,
-    NnsNodeOperatorListReport, NnsNodeOperatorListRequest, NnsNodeOperatorRow,
+    NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRow,
     nns_node_operator_info_report_text, nns_node_operator_list_report_text,
     nns_node_operator_list_report_verbose_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::node_provider::{
     DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT, DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
-    NnsNodeProviderHostError, NnsNodeProviderRefreshReport, NnsNodeProviderRefreshRequest,
-    NnsNodeProviderSource, build_nns_node_provider_info_report,
-    build_nns_node_provider_info_report_with_source, build_nns_node_provider_list_report,
-    build_nns_node_provider_list_report_with_source, nns_node_provider_cache_path,
-    nns_node_provider_refresh_lock_path, nns_node_provider_refresh_report_text,
-    refresh_nns_node_provider_report, refresh_nns_node_provider_report_with_source,
+    NnsNodeProviderHostError, NnsNodeProviderRefreshReport, NnsNodeProviderSource,
+    build_nns_node_provider_info_report, build_nns_node_provider_info_report_with_source,
+    build_nns_node_provider_list_report, build_nns_node_provider_list_report_with_source,
+    nns_node_provider_cache_path, nns_node_provider_refresh_lock_path,
+    nns_node_provider_refresh_report_text, refresh_nns_node_provider_report,
+    refresh_nns_node_provider_report_with_source,
 };
 use ic_query::nns::node_provider::{
-    NnsNodeProviderCacheRequest, NnsNodeProviderInfoReport, NnsNodeProviderInfoRequest,
-    NnsNodeProviderListReport, NnsNodeProviderListRequest, NnsNodeProviderRow,
+    NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderRow,
     nns_node_provider_info_report_text, nns_node_provider_list_report_text,
     nns_node_provider_list_report_verbose_text,
 };
@@ -111,6 +106,9 @@ use ic_query::nns::topology::{
     nns_topology_refresh_report_text, nns_topology_regions_report_text,
     nns_topology_summary_report_text, nns_topology_versions_report_text,
 };
+use ic_query::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
+#[cfg(feature = "host")]
+use ic_query::nns::{NnsInventoryRefreshRequest, NnsSourceRequest};
 #[cfg(feature = "host")]
 use ic_query::subnet_catalog::{
     ClassificationSource, GeographicScope, SubnetCatalogListReport, SubnetCatalogRefreshReport,
@@ -185,7 +183,7 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
 
 #[test]
 fn public_nns_node_api_is_constructible_and_renderable() {
-    let cache = NnsNodeCacheRequest::new(".", "ic");
+    let cache = NnsInventoryCacheRequest::new(".", "ic");
     let list_request = NnsNodeListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000)
         .with_subnet("tdb26-jop6g")
         .with_subnet_kind(NNS_NODE_SUBNET_KIND_APPLICATION)
@@ -217,7 +215,7 @@ fn public_nns_node_api_is_constructible_and_renderable() {
     assert!(verbose_text.contains("source_endpoint: https://icp-api.io"));
     assert!(verbose_text.contains("tdb26-jop6g-7sc54-foywl"));
 
-    let info_request = NnsNodeInfoRequest::new(
+    let info_request = NnsInventoryInfoRequest::new(
         cache,
         "https://icp-api.io",
         node.node_principal.clone(),
@@ -249,8 +247,8 @@ fn public_nns_node_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_nns_data_center_api_is_constructible_and_renderable() {
-    let cache = NnsDataCenterCacheRequest::new(".", "ic");
-    let request = NnsDataCenterListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
+    let cache = NnsInventoryCacheRequest::new(".", "ic");
+    let request = NnsInventoryListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
     let data_center = sample_nns_data_center_row();
     let list = NnsDataCenterListReport {
         schema_version: 1,
@@ -271,7 +269,7 @@ fn public_nns_data_center_api_is_constructible_and_renderable() {
     assert!(text.contains("Zurich"));
     assert!(verbose_text.contains("REGISTRY_VERSION"));
 
-    let info_request = NnsDataCenterInfoRequest::new(
+    let info_request = NnsInventoryInfoRequest::new(
         cache,
         "https://icp-api.io",
         data_center.data_center_id.clone(),
@@ -305,9 +303,8 @@ fn public_nns_data_center_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_nns_node_provider_api_is_constructible_and_renderable() {
-    let cache = NnsNodeProviderCacheRequest::new(".", "ic");
-    let request =
-        NnsNodeProviderListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
+    let cache = NnsInventoryCacheRequest::new(".", "ic");
+    let request = NnsInventoryListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
     let provider = sample_nns_node_provider_row();
     let list = NnsNodeProviderListReport {
         schema_version: 1,
@@ -329,7 +326,7 @@ fn public_nns_node_provider_api_is_constructible_and_renderable() {
     assert!(text.contains("12"));
     assert!(verbose_text.contains("deadbeef"));
 
-    let info_request = NnsNodeProviderInfoRequest::new(
+    let info_request = NnsInventoryInfoRequest::new(
         cache,
         "https://icp-api.io",
         provider.node_provider_principal.clone(),
@@ -360,9 +357,8 @@ fn public_nns_node_provider_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_nns_node_operator_api_is_constructible_and_renderable() {
-    let cache = NnsNodeOperatorCacheRequest::new(".", "ic");
-    let request =
-        NnsNodeOperatorListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
+    let cache = NnsInventoryCacheRequest::new(".", "ic");
+    let request = NnsInventoryListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
     let operator = sample_nns_node_operator_row();
     let list = NnsNodeOperatorListReport {
         schema_version: 1,
@@ -383,7 +379,7 @@ fn public_nns_node_operator_api_is_constructible_and_renderable() {
     assert!(text.contains("zh1"));
     assert!(verbose_text.contains("tdb26-jop6g-7sc54-foywl"));
 
-    let info_request = NnsNodeOperatorInfoRequest::new(
+    let info_request = NnsInventoryInfoRequest::new(
         cache,
         "https://icp-api.io",
         operator.node_operator_principal.clone(),
@@ -441,19 +437,19 @@ fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_node_custom_source_api(root: &Path) {
-    let node_cache = NnsNodeCacheRequest::new(root.join("node"), "ic");
+    let node_cache = NnsInventoryCacheRequest::new(root.join("node"), "ic");
     let node_list_request = NnsNodeListRequest::new(
         node_cache.clone(),
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let node_info_request = NnsNodeInfoRequest::new(
+    let node_info_request = NnsInventoryInfoRequest::new(
         node_cache.clone(),
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         sample_nns_node_row().node_principal,
         1_700_000_000,
     );
-    let node_refresh_request = NnsNodeRefreshRequest::new(
+    let node_refresh_request = NnsInventoryRefreshRequest::new(
         node_cache,
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -480,19 +476,19 @@ fn assert_public_nns_node_custom_source_api(root: &Path) {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_data_center_custom_source_api(root: &Path) {
-    let data_center_cache = NnsDataCenterCacheRequest::new(root.join("data-center"), "ic");
-    let data_center_list_request = NnsDataCenterListRequest::new(
+    let data_center_cache = NnsInventoryCacheRequest::new(root.join("data-center"), "ic");
+    let data_center_list_request = NnsInventoryListRequest::new(
         data_center_cache.clone(),
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let data_center_info_request = NnsDataCenterInfoRequest::new(
+    let data_center_info_request = NnsInventoryInfoRequest::new(
         data_center_cache.clone(),
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         sample_nns_data_center_row().data_center_id,
         1_700_000_000,
     );
-    let data_center_refresh_request = NnsDataCenterRefreshRequest::new(
+    let data_center_refresh_request = NnsInventoryRefreshRequest::new(
         data_center_cache,
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -525,19 +521,19 @@ fn assert_public_nns_data_center_custom_source_api(root: &Path) {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
-    let node_provider_cache = NnsNodeProviderCacheRequest::new(root.join("node-provider"), "ic");
-    let node_provider_list_request = NnsNodeProviderListRequest::new(
+    let node_provider_cache = NnsInventoryCacheRequest::new(root.join("node-provider"), "ic");
+    let node_provider_list_request = NnsInventoryListRequest::new(
         node_provider_cache.clone(),
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let node_provider_info_request = NnsNodeProviderInfoRequest::new(
+    let node_provider_info_request = NnsInventoryInfoRequest::new(
         node_provider_cache.clone(),
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         sample_nns_node_provider_row().node_provider_principal,
         1_700_000_000,
     );
-    let node_provider_refresh_request = NnsNodeProviderRefreshRequest::new(
+    let node_provider_refresh_request = NnsInventoryRefreshRequest::new(
         node_provider_cache,
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -570,19 +566,19 @@ fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
-    let node_operator_cache = NnsNodeOperatorCacheRequest::new(root.join("node-operator"), "ic");
-    let node_operator_list_request = NnsNodeOperatorListRequest::new(
+    let node_operator_cache = NnsInventoryCacheRequest::new(root.join("node-operator"), "ic");
+    let node_operator_list_request = NnsInventoryListRequest::new(
         node_operator_cache.clone(),
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let node_operator_info_request = NnsNodeOperatorInfoRequest::new(
+    let node_operator_info_request = NnsInventoryInfoRequest::new(
         node_operator_cache.clone(),
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         sample_nns_node_operator_row().node_operator_principal,
         1_700_000_000,
     );
-    let node_operator_refresh_request = NnsNodeOperatorRefreshRequest::new(
+    let node_operator_refresh_request = NnsInventoryRefreshRequest::new(
         node_operator_cache,
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -749,7 +745,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         source_endpoint: request.source_endpoint,
         fetched_by: "ic-query".to_string(),
         data_source: "cache".to_string(),
-        cache_path: Some(".icq/nns/ic/governance/proposals/full.json".to_string()),
+        cache_path: Some("/cache/nns/ic/governance/proposals/full.json".to_string()),
         cache_complete: Some(true),
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
@@ -1019,8 +1015,8 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
         replaced_existing_cache_count: 0,
         components: vec![NnsTopologyRefreshRow {
             source: "subnet_catalog".to_string(),
-            cache_path: ".icq/subnet-catalog/ic/catalog.json".to_string(),
-            refresh_lock_path: ".icq/subnet-catalog/ic/refresh.lock".to_string(),
+            cache_path: "/cache/subnet-catalog/ic/catalog.json".to_string(),
+            refresh_lock_path: "/cache/subnet-catalog/ic/refresh.lock".to_string(),
             registry_version: 42,
             fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: "https://icp-api.io".to_string(),
@@ -1225,7 +1221,7 @@ impl NnsTopologyRefreshSource for FixtureNnsTopologySource {
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeRefreshReport, NnsTopologyHostError> {
         assert_topology_refresh_source_request(request);
-        Ok(sample_nns_node_refresh_report(&request.icp_root))
+        Ok(sample_nns_node_refresh_report(&request.cache_root))
     }
 
     fn refresh_node_provider_report(
@@ -1233,7 +1229,7 @@ impl NnsTopologyRefreshSource for FixtureNnsTopologySource {
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeProviderRefreshReport, NnsTopologyHostError> {
         assert_topology_refresh_source_request(request);
-        Ok(sample_nns_node_provider_refresh_report(&request.icp_root))
+        Ok(sample_nns_node_provider_refresh_report(&request.cache_root))
     }
 
     fn refresh_node_operator_report(
@@ -1241,7 +1237,7 @@ impl NnsTopologyRefreshSource for FixtureNnsTopologySource {
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError> {
         assert_topology_refresh_source_request(request);
-        Ok(sample_nns_node_operator_refresh_report(&request.icp_root))
+        Ok(sample_nns_node_operator_refresh_report(&request.cache_root))
     }
 
     fn refresh_data_center_report(
@@ -1249,7 +1245,7 @@ impl NnsTopologyRefreshSource for FixtureNnsTopologySource {
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsDataCenterRefreshReport, NnsTopologyHostError> {
         assert_topology_refresh_source_request(request);
-        Ok(sample_nns_data_center_refresh_report(&request.icp_root))
+        Ok(sample_nns_data_center_refresh_report(&request.cache_root))
     }
 }
 
@@ -1265,7 +1261,7 @@ fn stamp_topology_component_report(
 
 #[cfg(feature = "host")]
 fn assert_topology_source_request(request: &NnsTopologySourceRequest) {
-    assert_eq!(request.icp_root, PathBuf::from("."));
+    assert_eq!(request.cache_root, PathBuf::from("."));
     assert_eq!(request.network, "ic");
     assert_eq!(request.endpoint, DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT);
     assert_eq!(request.now_unix_secs, 1_700_000_000);
@@ -1275,7 +1271,7 @@ fn assert_topology_source_request(request: &NnsTopologySourceRequest) {
 
 #[cfg(feature = "host")]
 fn assert_topology_refresh_source_request(request: &NnsTopologyRefreshSourceRequest) {
-    assert_eq!(request.icp_root, PathBuf::from("."));
+    assert_eq!(request.cache_root, PathBuf::from("."));
     assert_eq!(request.network, "ic");
     assert_eq!(request.endpoint, DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT);
     assert_eq!(request.now_unix_secs, 1_700_000_000);
@@ -1340,8 +1336,8 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
         .expect("cached detail report");
     let refresh_report = sample_nns_proposal_refresh_report(&root);
 
-    assert_eq!(cache_list_request.icp_root(), root.as_path());
-    assert_eq!(cache_status_request.icp_root(), root.as_path());
+    assert_eq!(cache_list_request.cache_root(), root.as_path());
+    assert_eq!(cache_status_request.cache_root(), root.as_path());
     assert_eq!(cache_list.cache_count, 1);
     assert!(cache_status.found);
     assert_eq!(proposal_list.data_source, "cache");
@@ -1514,14 +1510,14 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_node_host_api(root: &Path) {
-    let cache = NnsNodeCacheRequest::new(root, "ic");
+    let cache = NnsInventoryCacheRequest::new(root, "ic");
     let request = NnsNodeListRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         1_700_000_000,
     );
     let list = build_nns_node_list_report(&request).expect("build node list from cache");
-    let info = build_nns_node_info_report(&NnsNodeInfoRequest::new(
+    let info = build_nns_node_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         sample_nns_node_row().node_principal,
@@ -1529,7 +1525,7 @@ fn assert_public_nns_node_host_api(root: &Path) {
     ))
     .expect("build node info from cache");
     let refresh = sample_nns_node_refresh_report(root);
-    let refresh_request = NnsNodeRefreshRequest::new(
+    let refresh_request = NnsInventoryRefreshRequest::new(
         cache,
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -1550,15 +1546,15 @@ fn assert_public_nns_node_host_api(root: &Path) {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_data_center_host_api(root: &Path) {
-    let cache = NnsDataCenterCacheRequest::new(root, "ic");
-    let request = NnsDataCenterListRequest::new(
+    let cache = NnsInventoryCacheRequest::new(root, "ic");
+    let request = NnsInventoryListRequest::new(
         cache.clone(),
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         1_700_000_000,
     );
     let list =
         build_nns_data_center_list_report(&request).expect("build data-center list from cache");
-    let info = build_nns_data_center_info_report(&NnsDataCenterInfoRequest::new(
+    let info = build_nns_data_center_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         sample_nns_data_center_row().data_center_id,
@@ -1566,7 +1562,7 @@ fn assert_public_nns_data_center_host_api(root: &Path) {
     ))
     .expect("build data-center info from cache");
     let refresh = sample_nns_data_center_refresh_report(root);
-    let refresh_request = NnsDataCenterRefreshRequest::new(
+    let refresh_request = NnsInventoryRefreshRequest::new(
         cache,
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -1590,15 +1586,15 @@ fn assert_public_nns_data_center_host_api(root: &Path) {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_node_provider_host_api(root: &Path) {
-    let cache = NnsNodeProviderCacheRequest::new(root, "ic");
-    let request = NnsNodeProviderListRequest::new(
+    let cache = NnsInventoryCacheRequest::new(root, "ic");
+    let request = NnsInventoryListRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
     );
     let list =
         build_nns_node_provider_list_report(&request).expect("build node-provider list from cache");
-    let info = build_nns_node_provider_info_report(&NnsNodeProviderInfoRequest::new(
+    let info = build_nns_node_provider_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         sample_nns_node_provider_row().node_provider_principal,
@@ -1606,7 +1602,7 @@ fn assert_public_nns_node_provider_host_api(root: &Path) {
     ))
     .expect("build node-provider info from cache");
     let refresh = sample_nns_node_provider_refresh_report(root);
-    let refresh_request = NnsNodeProviderRefreshRequest::new(
+    let refresh_request = NnsInventoryRefreshRequest::new(
         cache,
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -1630,15 +1626,15 @@ fn assert_public_nns_node_provider_host_api(root: &Path) {
 
 #[cfg(feature = "host")]
 fn assert_public_nns_node_operator_host_api(root: &Path) {
-    let cache = NnsNodeOperatorCacheRequest::new(root, "ic");
-    let request = NnsNodeOperatorListRequest::new(
+    let cache = NnsInventoryCacheRequest::new(root, "ic");
+    let request = NnsInventoryListRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         1_700_000_000,
     );
     let list =
         build_nns_node_operator_list_report(&request).expect("build node-operator list from cache");
-    let info = build_nns_node_operator_info_report(&NnsNodeOperatorInfoRequest::new(
+    let info = build_nns_node_operator_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         sample_nns_node_operator_row().node_operator_principal,
@@ -1646,7 +1642,7 @@ fn assert_public_nns_node_operator_host_api(root: &Path) {
     ))
     .expect("build node-operator info from cache");
     let refresh = sample_nns_node_operator_refresh_report(root);
-    let refresh_request = NnsNodeOperatorRefreshRequest::new(
+    let refresh_request = NnsInventoryRefreshRequest::new(
         cache,
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -1713,7 +1709,7 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
     SubnetCatalogListReport {
         schema_version: 1,
         network: "ic".to_string(),
-        catalog_path: ".icq/subnet-catalog/ic/catalog.json".to_string(),
+        catalog_path: "/cache/subnet-catalog/ic/catalog.json".to_string(),
         catalog_schema_version: 1,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
@@ -1730,8 +1726,8 @@ fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
         schema_version: 1,
         network: "ic".to_string(),
-        catalog_path: ".icq/subnet-catalog/ic/catalog.json".to_string(),
-        refresh_lock_path: ".icq/subnet-catalog/ic/refresh.lock".to_string(),
+        catalog_path: "/cache/subnet-catalog/ic/catalog.json".to_string(),
+        refresh_lock_path: "/cache/subnet-catalog/ic/refresh.lock".to_string(),
         output_path: None,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,

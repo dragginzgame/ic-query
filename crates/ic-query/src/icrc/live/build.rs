@@ -10,7 +10,9 @@ use super::{
     ICRC_BALANCE_REPORT_SCHEMA_VERSION, ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
     ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION, ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION,
     ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION, ICRC_TOKEN_REPORT_SCHEMA_VERSION,
-    ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION, IcrcAccountTransactionPageSource, IcrcSource,
+    ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION, IcrcAccountTransactionPageSource, IcrcAllowanceSource,
+    IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource,
+    IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource,
     LiveIcrcSource, account_transactions::normalize_transaction_cursor,
 };
 use crate::{
@@ -20,16 +22,15 @@ use crate::{
             IcrcAccountTransactionError, IcrcAccountTransactionPageReport,
             IcrcAccountTransactionPageRequest, IcrcAllowanceReport, IcrcAllowanceRequest,
             IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
-            IcrcBlockTypesReport, IcrcBlockTypesRequest, IcrcCapabilitiesReport,
-            IcrcCapabilitiesRequest, IcrcError, IcrcIndexReport, IcrcIndexRequest,
-            IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenReport, IcrcTokenRequest,
-            IcrcTransactionsReport, IcrcTransactionsRequest, normalize_subaccount_hex,
+            IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcError, IcrcIndexReport,
+            IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionsReport,
+            IcrcTransactionsRequest, normalize_subaccount_hex,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
 };
 
-pub fn build_icrc_token_report(request: &IcrcTokenRequest) -> Result<IcrcTokenReport, IcrcError> {
+pub fn build_icrc_token_report(request: &IcrcLedgerRequest) -> Result<IcrcTokenReport, IcrcError> {
     build_icrc_token_report_with_source(request, &LiveIcrcSource)
 }
 
@@ -52,7 +53,7 @@ pub fn build_icrc_account_transaction_page_report(
     build_icrc_account_transaction_page_report_with_source(request, &LiveIcrcSource)
 }
 
-pub fn build_icrc_index_report(request: &IcrcIndexRequest) -> Result<IcrcIndexReport, IcrcError> {
+pub fn build_icrc_index_report(request: &IcrcLedgerRequest) -> Result<IcrcIndexReport, IcrcError> {
     build_icrc_index_report_with_source(request, &LiveIcrcSource)
 }
 
@@ -63,7 +64,7 @@ pub fn build_icrc_transactions_report(
 }
 
 pub fn build_icrc_block_types_report(
-    request: &IcrcBlockTypesRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcBlockTypesReport, IcrcError> {
     build_icrc_block_types_report_with_source(request, &LiveIcrcSource)
 }
@@ -75,20 +76,20 @@ pub fn build_icrc_archives_report(
 }
 
 pub fn build_icrc_tip_certificate_report(
-    request: &IcrcTipCertificateRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
     build_icrc_tip_certificate_report_with_source(request, &LiveIcrcSource)
 }
 
 pub fn build_icrc_capabilities_report(
-    request: &IcrcCapabilitiesRequest,
+    request: &IcrcLedgerRequest,
 ) -> Result<IcrcCapabilitiesReport, IcrcError> {
     build_icrc_capabilities_report_with_source(request, &LiveIcrcSource)
 }
 
 pub fn build_icrc_token_report_with_source(
-    request: &IcrcTokenRequest,
-    source: &dyn IcrcSource,
+    request: &IcrcLedgerRequest,
+    source: &dyn IcrcTokenSource,
 ) -> Result<IcrcTokenReport, IcrcError> {
     let token = source.fetch_token(request)?;
     Ok(IcrcTokenReport {
@@ -111,7 +112,7 @@ pub fn build_icrc_token_report_with_source(
 
 pub fn build_icrc_balance_report_with_source(
     request: &IcrcBalanceRequest,
-    source: &dyn IcrcSource,
+    source: &dyn IcrcBalanceSource,
 ) -> Result<IcrcBalanceReport, IcrcError> {
     let request = IcrcBalanceRequest {
         subaccount_hex: request
@@ -138,7 +139,7 @@ pub fn build_icrc_balance_report_with_source(
 
 pub fn build_icrc_allowance_report_with_source(
     request: &IcrcAllowanceRequest,
-    source: &dyn IcrcSource,
+    source: &dyn IcrcAllowanceSource,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
     let request = IcrcAllowanceRequest {
         account_subaccount_hex: request
@@ -231,8 +232,8 @@ pub fn build_icrc_account_transaction_page_report_with_source(
 }
 
 pub fn build_icrc_index_report_with_source(
-    request: &IcrcIndexRequest,
-    source: &dyn IcrcSource,
+    request: &IcrcLedgerRequest,
+    source: &dyn IcrcIndexSource,
 ) -> Result<IcrcIndexReport, IcrcError> {
     let index = source.fetch_index(request)?;
     Ok(IcrcIndexReport {
@@ -248,7 +249,7 @@ pub fn build_icrc_index_report_with_source(
 
 pub fn build_icrc_transactions_report_with_source(
     request: &IcrcTransactionsRequest,
-    source: &dyn IcrcSource,
+    source: &dyn IcrcTransactionsSource,
 ) -> Result<IcrcTransactionsReport, IcrcError> {
     let transactions = source.fetch_transactions(request)?;
     Ok(IcrcTransactionsReport {
@@ -269,8 +270,8 @@ pub fn build_icrc_transactions_report_with_source(
 }
 
 pub fn build_icrc_block_types_report_with_source(
-    request: &IcrcBlockTypesRequest,
-    source: &dyn IcrcSource,
+    request: &IcrcLedgerRequest,
+    source: &dyn IcrcBlockTypesSource,
 ) -> Result<IcrcBlockTypesReport, IcrcError> {
     let block_types = source.fetch_block_types(request)?;
     Ok(IcrcBlockTypesReport {
@@ -285,7 +286,7 @@ pub fn build_icrc_block_types_report_with_source(
 
 pub fn build_icrc_archives_report_with_source(
     request: &IcrcArchivesRequest,
-    source: &dyn IcrcSource,
+    source: &dyn IcrcArchivesSource,
 ) -> Result<IcrcArchivesReport, IcrcError> {
     let request = IcrcArchivesRequest {
         from_canister_id: request
@@ -311,8 +312,8 @@ pub fn build_icrc_archives_report_with_source(
 }
 
 pub fn build_icrc_tip_certificate_report_with_source(
-    request: &IcrcTipCertificateRequest,
-    source: &dyn IcrcSource,
+    request: &IcrcLedgerRequest,
+    source: &dyn IcrcTipCertificateSource,
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
     let certificate = source.fetch_tip_certificate(request)?;
     Ok(IcrcTipCertificateReport {
@@ -330,8 +331,8 @@ pub fn build_icrc_tip_certificate_report_with_source(
 }
 
 pub fn build_icrc_capabilities_report_with_source(
-    request: &IcrcCapabilitiesRequest,
-    source: &dyn IcrcSource,
+    request: &IcrcLedgerRequest,
+    source: &dyn IcrcCapabilitiesSource,
 ) -> Result<IcrcCapabilitiesReport, IcrcError> {
     let capabilities = source.fetch_capabilities(request)?;
     Ok(IcrcCapabilitiesReport {
