@@ -9,7 +9,7 @@ use crate::sns::report::{
     assemble::sns_list_report_from_list,
     live::LiveSnsSource,
     lookup::{assign_sns_ids_in_current_order, sns_list_fetch_request},
-    source::SnsListSource,
+    source::{SnsListSource, validate_mainnet_sns_list},
     view::sort_mainnet_sns_instances,
 };
 
@@ -23,6 +23,7 @@ pub fn build_sns_list_report_with_source(
 ) -> Result<SnsListReport, SnsHostError> {
     let fetch_request = sns_list_fetch_request(request)?;
     let mut list = source.fetch_deployed_snses(&fetch_request)?;
+    validate_mainnet_sns_list(&fetch_request, &list)?;
     assign_sns_ids_in_current_order(&mut list.sns_instances);
     sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
     Ok(sns_list_report_from_list(

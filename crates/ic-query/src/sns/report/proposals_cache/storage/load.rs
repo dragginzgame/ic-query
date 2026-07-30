@@ -9,7 +9,8 @@ use crate::sns::report::{
     SnsHostError,
     cache_storage::{SnsCacheLoadErrors, load_sns_complete_cache, validate_sns_cache_metadata},
     proposals_cache::{
-        SNS_PROPOSALS_CACHE_SCHEMA_VERSION, model::SnsProposalsCache,
+        SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
+        model::{SNS_PROPOSALS_CACHE_FIELDS, SnsProposalsCache},
         paths::sns_proposals_cache_key_for_cache_path,
     },
 };
@@ -30,6 +31,7 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_at(
         network,
         SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
         &key,
+        SNS_PROPOSALS_CACHE_FIELDS,
         errors,
         |completeness| errors.incomplete_cache_error(completeness),
     )?;
@@ -47,6 +49,11 @@ fn validate_sns_proposals_cache(
     };
     validate_snapshot_completeness(&cache.completeness, cache.data.proposals.len())
         .map_err(invalid)?;
+    if cache.completeness.point_in_time_guaranteed {
+        return Err(invalid(
+            "SNS Governance proposal pagination cannot claim a point-in-time guarantee".to_string(),
+        ));
+    }
     validate_sns_cache_metadata(path, &cache.metadata, &cache.entity)?;
     let mut proposal_ids = HashSet::new();
     if let Some(duplicate) = cache

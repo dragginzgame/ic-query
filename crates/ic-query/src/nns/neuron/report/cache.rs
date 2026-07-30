@@ -19,7 +19,7 @@ use super::{
 };
 use crate::{
     HostCacheError, QueryProgress,
-    cache_file::{HostJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache},
+    cache_file::{HostJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache_strict},
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
         LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus,
@@ -50,6 +50,20 @@ const CACHE_COMPONENT: &str = "NNS neuron";
 const CACHE_DOMAIN: &str = "nns";
 const CACHE_ENTITY: &str = "governance";
 const CACHE_COLLECTION: &str = "neurons";
+const NNS_NEURON_CACHE_FIELDS: &[&str] = &[
+    "schema_version",
+    "network",
+    "source_endpoint",
+    "fetched_at",
+    "fetched_by",
+    "domain",
+    "entity",
+    "collection",
+    "scope",
+    "governance_canister_id",
+    "completeness",
+    "neurons",
+];
 
 /// Default age after which an NNS neuron refresh lock is reported as stale.
 pub const DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
@@ -530,12 +544,13 @@ fn publish_complete_cache(
 }
 
 fn load_cache_at(path: &Path, network: &str) -> Result<NnsNeuronCache, NnsNeuronHostError> {
-    let cached = load_json_cache::<NnsNeuronCache, _>(
+    let cached = load_json_cache_strict::<NnsNeuronCache, _>(
         LoadJsonCacheRequest {
             path: path.to_path_buf(),
             network,
             expected_schema_version: NNS_NEURON_CACHE_SCHEMA_VERSION,
         },
+        NNS_NEURON_CACHE_FIELDS,
         HostJsonCacheErrorMapper::new(CACHE_COMPONENT),
     )
     .map_err(NnsNeuronHostError::Cache)?;

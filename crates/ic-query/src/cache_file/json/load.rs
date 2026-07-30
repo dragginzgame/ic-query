@@ -8,11 +8,72 @@ use super::{
     errors::LoadJsonCacheErrorMapper,
     model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest},
 };
-use serde::de::DeserializeOwned;
-use std::fs;
+use serde::de::{DeserializeOwned, Error as _, IgnoredAny, MapAccess, Visitor};
+use std::{collections::BTreeSet, fmt, fs};
+
+struct TopLevelKeys(BTreeSet<String>);
+
+impl<'de> serde::Deserialize<'de> for TopLevelKeys {
+    fn deserialize<Deserializer>(deserializer: Deserializer) -> Result<Self, Deserializer::Error>
+    where
+        Deserializer: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_map(TopLevelKeysVisitor)
+    }
+}
+
+struct TopLevelKeysVisitor;
+
+impl<'de> Visitor<'de> for TopLevelKeysVisitor {
+    type Value = TopLevelKeys;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a JSON cache object")
+    }
+
+    fn visit_map<Map>(self, mut map: Map) -> Result<Self::Value, Map::Error>
+    where
+        Map: MapAccess<'de>,
+    {
+        let mut keys = BTreeSet::new();
+        while let Some(key) = map.next_key::<String>()? {
+            map.next_value::<IgnoredAny>()?;
+            if !keys.insert(key.clone()) {
+                return Err(Map::Error::custom(format!(
+                    "duplicate top-level cache field {key:?}"
+                )));
+            }
+        }
+        Ok(TopLevelKeys(keys))
+    }
+}
 
 pub fn load_json_cache<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
+    errors: Errors,
+) -> Result<CachedJsonReport<T>, Errors::Error>
+where
+    T: DeserializeOwned + JsonCacheReport,
+    Errors: LoadJsonCacheErrorMapper,
+{
+    load_json_cache_inner(request, None, errors)
+}
+
+pub fn load_json_cache_strict<T, Errors>(
+    request: LoadJsonCacheRequest<'_>,
+    supported_fields: &'static [&'static str],
+    errors: Errors,
+) -> Result<CachedJsonReport<T>, Errors::Error>
+where
+    T: DeserializeOwned + JsonCacheReport,
+    Errors: LoadJsonCacheErrorMapper,
+{
+    load_json_cache_inner(request, Some(supported_fields), errors)
+}
+
+fn load_json_cache_inner<T, Errors>(
+    request: LoadJsonCacheRequest<'_>,
+    supported_fields: Option<&'static [&'static str]>,
     errors: Errors,
 ) -> Result<CachedJsonReport<T>, Errors::Error>
 where
@@ -25,6 +86,20 @@ where
     }
     let data =
         fs::read_to_string(&path).map_err(|source| errors.read_cache(path.clone(), source))?;
+    if let Some(supported_fields) = supported_fields {
+        let top_level = serde_json::from_str::<TopLevelKeys>(&data)
+            .map_err(|source| errors.parse_cache(path.clone(), source))?;
+        if let Some(field) = top_level
+            .0
+            .iter()
+            .find(|field| !supported_fields.contains(&field.as_str()))
+        {
+            let source = <serde_json::Error as serde::de::Error>::custom(format!(
+                "unknown top-level cache field {field:?}"
+            ));
+            return Err(errors.parse_cache(path, source));
+        }
+    }
     let report = serde_json::from_str::<T>(&data)
         .map_err(|source| errors.parse_cache(path.clone(), source))?;
     let actual_schema_version = report.schema_version();

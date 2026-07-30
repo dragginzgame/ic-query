@@ -44,7 +44,13 @@ collection provenance. SNS Root inventory and health use one
 adapters for the Root inventory query and read-only health ingress.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
-without creating a concrete live-source type for every report.
+without creating a concrete live-source type for every report. Report builders
+still treat capability results as untrusted boundary data: returned provenance,
+canonical identifiers, requested limits, ordering, uniqueness, relation
+consistency, and authority claims are validated before projection. Live
+adapters validate HTTP(S) endpoint syntax before agent construction so
+malformed endpoint text returns a typed build error rather than reaching an
+infallible parser path.
 
 ## Collection Rules
 
@@ -99,7 +105,9 @@ without creating a concrete live-source type for every report.
   that evidence exists. The collector canonicalizes transaction ids and checks
   adjacent duplicates after the final ordering pass, avoiding a second
   full-history id set; local list projection consumes the loaded row vector
-  rather than cloning the complete snapshot before truncation.
+  rather than cloning the complete snapshot before truncation. The bounded page
+  builder applies the same explicit-index, canonical-cursor, requested-limit,
+  uniqueness, and newest-first checks to custom page sources.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.

@@ -365,6 +365,24 @@ fn nns_proposal_cache_status_reports_unsupported_schema() {
 }
 
 #[test]
+fn nns_proposal_cache_rejects_false_point_in_time_authority() {
+    let root = temp_dir("ic-query-nns-proposal-point-in-time");
+    let cache_path = refresh_fixture_nns_proposal_cache(&root);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
+    cache["completeness"]["point_in_time_guaranteed"] = serde_json::json!(true);
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+    )
+    .expect("write cache");
+
+    assert_invalid_nns_proposal_cache_status(&root, "point-in-time guarantee");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn nns_proposal_cache_status_reports_malformed_json() {
     let root = temp_dir("ic-query-nns-proposal-malformed-json");
     let cache_path = refresh_fixture_nns_proposal_cache(&root);

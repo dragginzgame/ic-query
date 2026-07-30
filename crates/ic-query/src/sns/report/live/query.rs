@@ -6,6 +6,7 @@
 
 use super::SnsHostError;
 use crate::{
+    agent::build_ic_agent,
     icrc::ledger::IcrcLedgerError,
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
@@ -104,13 +105,10 @@ where
 /// Build an IC agent after enforcing one explicit SNS source request.
 pub(super) fn sns_agent(request: &SnsSourceRequest) -> Result<Agent, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
-    Agent::builder()
-        .with_url(&request.endpoint)
-        .build()
-        .map_err(|err| SnsHostError::AgentBuild {
-            endpoint: request.endpoint.clone(),
-            reason: err.to_string(),
-        })
+    build_ic_agent(&request.endpoint, |reason| SnsHostError::AgentBuild {
+        endpoint: request.endpoint.clone(),
+        reason,
+    })
 }
 
 /// Parse a principal text field into a typed principal or host error.

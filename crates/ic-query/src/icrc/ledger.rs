@@ -4,7 +4,7 @@
 //! Does not own: CLI parsing, command-specific reports, SNS lookup, or text rendering.
 //! Boundary: keeps reusable ICRC ledger mechanics independent from report DTOs.
 
-use crate::hex::hex_bytes;
+use crate::{agent::build_ic_agent, hex::hex_bytes};
 use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal, types::reference::Func};
 use ic_agent::Agent;
 use serde_json::Value as JsonValue;
@@ -294,10 +294,7 @@ pub fn ic_agent<E>(endpoint: &str) -> Result<Agent, E>
 where
     E: IcrcLedgerError,
 {
-    Agent::builder()
-        .with_url(endpoint)
-        .build()
-        .map_err(|err| E::agent_build(endpoint, err.to_string()))
+    build_ic_agent(endpoint, |reason| E::agent_build(endpoint, reason))
 }
 
 pub fn principal_from_text<E>(value: &str, field: &'static str) -> Result<Principal, E>

@@ -9,7 +9,8 @@ use crate::sns::report::{
     SnsHostError,
     cache_storage::{SnsCacheLoadErrors, load_sns_complete_cache, validate_sns_cache_metadata},
     neurons_cache::{
-        SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCache,
+        SNS_NEURONS_CACHE_SCHEMA_VERSION,
+        model::{SNS_NEURONS_CACHE_FIELDS, SnsNeuronsCache},
         paths::sns_neurons_cache_key_for_cache_path,
     },
 };
@@ -29,6 +30,7 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
         network,
         SNS_NEURONS_CACHE_SCHEMA_VERSION,
         &key,
+        SNS_NEURONS_CACHE_FIELDS,
         errors,
         |completeness| errors.incomplete_cache_error(completeness),
     )?;
@@ -43,6 +45,11 @@ fn validate_sns_neurons_cache(path: &Path, cache: &SnsNeuronsCache) -> Result<()
     };
     validate_snapshot_completeness(&cache.completeness, cache.data.neurons.len())
         .map_err(invalid)?;
+    if cache.completeness.point_in_time_guaranteed {
+        return Err(invalid(
+            "SNS Governance neuron pagination cannot claim a point-in-time guarantee".to_string(),
+        ));
+    }
     validate_sns_cache_metadata(path, &cache.metadata, &cache.entity)?;
     let mut neuron_ids = HashSet::new();
     for neuron in &cache.data.neurons {

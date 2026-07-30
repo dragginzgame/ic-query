@@ -13,14 +13,14 @@ use crate::{
             CanisterStatusResult, CanisterStatusType, CanisterSummary,
             GetSnsCanistersSummaryResponse, ListSnsCanistersResponse,
         },
+        source::{
+            SNS_CANISTER_HEALTH_CALL_TYPE, SNS_CANISTER_HEALTH_METHOD,
+            SNS_CANISTER_INVENTORY_METHOD,
+        },
     },
 };
 use candid::Principal;
 use std::collections::BTreeMap;
-
-const INVENTORY_METHOD: &str = "list_sns_canisters";
-const HEALTH_METHOD: &str = "get_sns_canisters_summary";
-const HEALTH_CALL_TYPE: &str = "ingress_update";
 
 pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
     inventory: ListSnsCanistersResponse,
@@ -99,9 +99,9 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
     }
 
     let mut inventory = MainnetSnsCanisterInventory {
-        inventory_method: INVENTORY_METHOD.to_string(),
-        health_method: HEALTH_METHOD.to_string(),
-        health_call_type: HEALTH_CALL_TYPE.to_string(),
+        inventory_method: SNS_CANISTER_INVENTORY_METHOD.to_string(),
+        health_method: SNS_CANISTER_HEALTH_METHOD.to_string(),
+        health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE.to_string(),
         health_update_canister_list: false,
         point_in_time_guaranteed: false,
         canisters,
@@ -203,15 +203,20 @@ fn push_many(
             ));
             continue;
         };
-        let summary = summaries.remove(0);
-        push_matched_summary(
-            role,
-            inventory_canister_id.clone(),
-            summary.status,
-            canisters,
-            gaps,
-        );
-        for _ in summaries {
+        if summaries.len() == 1 {
+            let summary = summaries.remove(0);
+            push_matched_summary(
+                role,
+                inventory_canister_id.clone(),
+                summary.status,
+                canisters,
+                gaps,
+            );
+            continue;
+        }
+
+        canisters.push(canister_row(role, inventory_canister_id.clone(), None));
+        for _ in 1..summaries.len() {
             gaps.push(gap(
                 SnsCanisterGapKind::DuplicateSummary,
                 role,
@@ -446,6 +451,40 @@ mod tests {
                 ..
             } if first_role == "root" && duplicate_role == "dapp"
         ));
+    }
+
+    #[test]
+    fn duplicate_health_summaries_do_not_select_response_order_status() {
+        let inventory = inventory_response();
+        let mut health = health_response();
+        health.archives = vec![
+            summary(principal(6), Some(status(CanisterStatusType::Running))),
+            summary(principal(6), Some(status(CanisterStatusType::Stopped))),
+        ];
+
+        let projected =
+            mainnet_sns_canister_inventory(inventory, health).expect("project inventory");
+        let archive = projected
+            .canisters
+            .iter()
+            .find(|canister| canister.role == SnsCanisterRole::Archive)
+            .expect("archive inventory row");
+
+        assert_eq!(archive.status, None);
+        assert_eq!(
+            projected
+                .gaps
+                .iter()
+                .filter(|gap| {
+                    gap.role == SnsCanisterRole::Archive
+                        && gap.kind == SnsCanisterGapKind::DuplicateSummary
+                })
+                .count(),
+            1
+        );
+        assert!(!projected.gaps.iter().any(|gap| {
+            gap.role == SnsCanisterRole::Archive && gap.kind == SnsCanisterGapKind::StatusMissing
+        }));
     }
 
     fn inventory_response() -> ListSnsCanistersResponse {

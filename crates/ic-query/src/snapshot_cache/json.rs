@@ -9,13 +9,14 @@ use super::{
 };
 use crate::cache_file::{
     CacheFileError, CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-    load_json_cache, write_text_atomically,
+    load_json_cache_strict, write_text_atomically,
 };
 use serde::{Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
 
 pub fn load_complete_snapshot<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
+    supported_fields: &'static [&'static str],
     errors: Errors,
     incomplete_error: impl FnOnce(&SnapshotCompleteness) -> Errors::Error,
 ) -> Result<T, Errors::Error>
@@ -23,7 +24,7 @@ where
     T: DeserializeOwned + SnapshotReport,
     Errors: LoadJsonCacheErrorMapper,
 {
-    let cached: CachedJsonReport<T> = load_json_cache(request, errors)?;
+    let cached: CachedJsonReport<T> = load_json_cache_strict(request, supported_fields, errors)?;
     if !cached.report.completeness().is_api_exhausted() {
         return Err(incomplete_error(cached.report.completeness()));
     }
@@ -33,6 +34,7 @@ where
 pub fn load_complete_snapshot_for_key<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     key: &SnapshotKey,
+    supported_fields: &'static [&'static str],
     errors: Errors,
     incomplete_error: impl FnOnce(&SnapshotCompleteness) -> Errors::Error,
     identity_error: impl FnOnce(SnapshotIdentityMismatch) -> Errors::Error,
@@ -41,7 +43,7 @@ where
     T: DeserializeOwned + SnapshotReport,
     Errors: LoadJsonCacheErrorMapper,
 {
-    let snapshot = load_complete_snapshot(request, errors, incomplete_error)?;
+    let snapshot = load_complete_snapshot(request, supported_fields, errors, incomplete_error)?;
     if let Some(mismatch) = snapshot_identity_mismatch(&snapshot, key) {
         return Err(identity_error(mismatch));
     }
@@ -50,13 +52,15 @@ where
 
 pub fn load_snapshot_header<Metadata, Errors>(
     request: LoadJsonCacheRequest<'_>,
+    supported_fields: &'static [&'static str],
     errors: Errors,
 ) -> Result<SnapshotHeader<Metadata>, Errors::Error>
 where
     Metadata: DeserializeOwned,
     Errors: LoadJsonCacheErrorMapper,
 {
-    let cached: CachedJsonReport<SnapshotHeader<Metadata>> = load_json_cache(request, errors)?;
+    let cached: CachedJsonReport<SnapshotHeader<Metadata>> =
+        load_json_cache_strict(request, supported_fields, errors)?;
     Ok(cached.report)
 }
 

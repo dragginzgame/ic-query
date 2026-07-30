@@ -14,6 +14,8 @@
 //! and process IO belong to the separate `ic-query-cli` crate.
 
 #[cfg(feature = "host")]
+mod agent;
+#[cfg(feature = "host")]
 mod cache_file;
 pub mod duration;
 #[cfg(feature = "host")]

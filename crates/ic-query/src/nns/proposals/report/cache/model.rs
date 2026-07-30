@@ -16,6 +16,21 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 pub(super) type NnsProposalCache =
     SnapshotEnvelope<NnsGovernanceCacheMetadata, NnsProposalCacheRows>;
 
+pub(super) const NNS_PROPOSAL_CACHE_FIELDS: &[&str] = &[
+    "schema_version",
+    "network",
+    "source_endpoint",
+    "fetched_at",
+    "fetched_by",
+    "domain",
+    "entity",
+    "collection",
+    "scope",
+    "governance_canister_id",
+    "completeness",
+    "proposals",
+];
+
 pub(super) type NnsProposalRefreshAttempt = SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>;
 
 ///

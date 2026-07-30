@@ -12,10 +12,13 @@ mod proposals;
 mod token;
 
 pub use canisters::MainnetSnsCanisterInventory;
-pub(in crate::sns::report) use canisters::canonicalize_mainnet_sns_canister_inventory;
+pub(in crate::sns::report) use canisters::{
+    SNS_CANISTER_HEALTH_CALL_TYPE, SNS_CANISTER_HEALTH_METHOD, SNS_CANISTER_INVENTORY_METHOD,
+    canonicalize_mainnet_sns_canister_inventory,
+};
 pub use fetch::SnsSourceRequest;
-pub(in crate::sns::report) use list::MainnetSnsCanisters;
 pub use list::{MainnetSns, MainnetSnsList};
+pub(in crate::sns::report) use list::{MainnetSnsCanisters, validate_mainnet_sns_list};
 pub use neurons::{MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
 pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
 pub use token::MainnetSnsToken;

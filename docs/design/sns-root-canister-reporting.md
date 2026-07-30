@@ -63,6 +63,10 @@ Missing or inconsistent relations are retained as typed
 - matched summaries without status; and
 - roles for which the health response has no status surface.
 
+When more than one health summary claims the same inventory canister and role,
+the row carries no operational status. The report retains a
+`duplicate_summary` gap and never chooses health from response order.
+
 The current Root summary response does not include Extension status. Extension
 membership remains in the inventory and each Extension receives an explicit
 `health_unsupported` gap.
@@ -72,7 +76,11 @@ membership remains in the inventory and each Extension receives an explicit
 `SnsCanisterSource` extends `SnsListSource` and is implemented by the existing
 `LiveSnsSource`. Custom fixture, mirror, proxy, or pre-collected sources return
 the same source-layer inventory and gap model. Report builders canonicalize and
-validate custom-source rows as well as built-in live rows.
+validate custom-source rows as well as built-in live rows. Validation requires
+request-matching SNS-W provenance, canonical and unique discovery identities,
+the exact Root method/call contract, `update_canister_list = false`, no claimed
+point-in-time guarantee, canonical principals and numeric fields, and
+internally consistent optional health fields.
 
 `SnsSourceRequest` carries network, endpoint, collection timestamp, and
 collector. Direct built-in source calls reject a non-`ic` network before

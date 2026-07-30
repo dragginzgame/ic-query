@@ -29,6 +29,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::AgentBuild { .. }
         | SnsHostError::AgentUpdateCall { .. }
         | SnsHostError::InvalidPrincipal { .. }
+        | SnsHostError::InvalidSourceData { .. }
         | SnsHostError::MissingProposalId
         | SnsHostError::MissingNeuronId
         | SnsHostError::InvalidNeuronId

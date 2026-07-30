@@ -64,6 +64,10 @@ deterministic across command families.
 Complete snapshot caches carry required logical identity fields and are
 validated against the expected cache key on load. Identity-less snapshots are
 unsupported and require an explicit refresh.
+Complete snapshot loaders also reject unknown top-level fields and authority
+claims that the owning source cannot make, including a true point-in-time
+guarantee for paginated Governance or index histories. Current-shape loading
+therefore cannot silently reinterpret a foreign or newer flattened snapshot.
 Cache status and cache list commands should render malformed, unsupported, or
 identity-mismatched local snapshot files as invalid local cache rows instead of
 silently ignoring them or making live calls. Normal cache-backed report reads

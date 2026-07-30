@@ -16,7 +16,7 @@ pub use error::{CacheFileError, HostCacheError};
 pub use json::HostJsonCacheErrorMapper;
 pub use json::{
     CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-    load_json_cache,
+    load_json_cache, load_json_cache_strict,
 };
 pub use lock::{RefreshLockRequest, with_refresh_lock};
 pub use policy::load_or_refresh_missing_cache;

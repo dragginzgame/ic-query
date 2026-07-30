@@ -136,6 +136,7 @@ pub(in crate::sns::report) fn read_sns_cache_header<Metadata, Errors>(
     path: &Path,
     network: &str,
     expected_schema_version: u32,
+    supported_fields: &'static [&'static str],
     errors: Errors,
 ) -> Result<SnapshotHeader<Metadata>, SnsHostError>
 where
@@ -148,6 +149,7 @@ where
             network,
             expected_schema_version,
         },
+        supported_fields,
         errors,
     )
 }
@@ -176,6 +178,7 @@ pub(in crate::sns::report) fn load_sns_complete_cache<Cache, Errors>(
     network: &str,
     expected_schema_version: u32,
     expected_key: &SnapshotKey,
+    supported_fields: &'static [&'static str],
     errors: Errors,
     incomplete_error: impl FnOnce(&SnapshotCompleteness) -> SnsHostError,
 ) -> Result<Cache, SnsHostError>
@@ -190,6 +193,7 @@ where
             expected_schema_version,
         },
         expected_key,
+        supported_fields,
         errors,
         incomplete_error,
         |mismatch| sns_identity_mismatch_error(path, mismatch),

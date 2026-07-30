@@ -54,3 +54,67 @@ fn live_sns_canister_source_rejects_non_mainnet_before_agent_construction() {
         SnsHostError::UnsupportedNetwork { network } if network == "local"
     ));
 }
+
+#[test]
+fn sns_canister_report_rejects_invalid_custom_source_evidence() {
+    for (mutate, expected_reason) in [
+        (
+            wrong_inventory_method as fn(&mut MainnetSnsCanisterInventory),
+            "inventory_method",
+        ),
+        (
+            enable_health_inventory_update,
+            "health_update_canister_list",
+        ),
+        (invalidate_controller, "controller"),
+    ] {
+        let error = build_sns_canister_report_with_source(
+            &info_request("1"),
+            &MutatingSnsCanisterSource(mutate),
+        )
+        .expect_err("invalid custom Root inventory must fail");
+
+        assert!(matches!(
+            error,
+            SnsHostError::InvalidSourceData {
+                capability: "SNS Root canister inventory",
+                reason,
+            } if reason.contains(expected_reason)
+        ));
+    }
+}
+
+struct MutatingSnsCanisterSource(fn(&mut MainnetSnsCanisterInventory));
+
+impl SnsListSource for MutatingSnsCanisterSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsSourceRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        FixtureSnsListSource.fetch_deployed_snses(request)
+    }
+}
+
+impl SnsCanisterSource for MutatingSnsCanisterSource {
+    fn fetch_sns_canisters(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
+        let mut inventory = FixtureSnsCanisterSource.fetch_sns_canisters(request, sns)?;
+        self.0(&mut inventory);
+        Ok(inventory)
+    }
+}
+
+fn wrong_inventory_method(inventory: &mut MainnetSnsCanisterInventory) {
+    inventory.inventory_method = "wrong_method".to_string();
+}
+
+const fn enable_health_inventory_update(inventory: &mut MainnetSnsCanisterInventory) {
+    inventory.health_update_canister_list = true;
+}
+
+fn invalidate_controller(inventory: &mut MainnetSnsCanisterInventory) {
+    inventory.canisters[1].controllers = vec!["not a principal".to_string()];
+}

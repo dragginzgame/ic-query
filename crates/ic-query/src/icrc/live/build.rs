@@ -13,7 +13,8 @@ use super::{
     ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION, IcrcAccountTransactionPageSource, IcrcAllowanceSource,
     IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource,
     IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource,
-    LiveIcrcSource, account_transactions::normalize_transaction_cursor,
+    LiveIcrcSource,
+    account_transactions::{normalize_transaction_cursor, validate_canonical_account_transactions},
 };
 use crate::{
     icrc::{
@@ -211,16 +212,52 @@ pub fn build_icrc_account_transaction_page_report_with_source(
         ..request.clone()
     };
     let transactions = source.fetch_account_transaction_page(&request)?;
+    let actual_index =
+        principal_from_text::<IcrcError>(&transactions.index_canister_id, "index_canister_id")?
+            .to_text();
+    if let Some(expected_index) = request.index_canister_id.as_deref()
+        && expected_index != actual_index
+    {
+        return Err(IcrcAccountTransactionError::CollectionIndexMismatch {
+            expected_index_canister_id: expected_index.to_string(),
+            actual_index_canister_id: actual_index,
+        });
+    }
+    if transactions.transactions.len() > usize::try_from(request.limit).unwrap_or(usize::MAX) {
+        return Err(IcrcAccountTransactionError::InvalidPage {
+            reason: format!(
+                "source returned {} transactions for requested limit {}",
+                transactions.transactions.len(),
+                request.limit
+            ),
+        });
+    }
+    let next_start = validate_source_cursor(transactions.next_start.as_deref(), "next_start")?;
+    let oldest_transaction_id = validate_source_cursor(
+        transactions.oldest_transaction_id.as_deref(),
+        "oldest_transaction_id",
+    )?;
+    validate_canonical_account_transactions(&transactions.transactions)
+        .map_err(|reason| IcrcAccountTransactionError::InvalidPage { reason })?;
+    let expected_next_start = transactions
+        .transactions
+        .last()
+        .map(|transaction| transaction.id.as_str());
+    if next_start.as_deref() != expected_next_start {
+        return Err(IcrcAccountTransactionError::InvalidPage {
+            reason: "next cursor does not match the oldest returned transaction".to_string(),
+        });
+    }
     Ok(IcrcAccountTransactionPageReport {
         schema_version: ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id,
-        index_canister_id: transactions.index_canister_id,
+        index_canister_id: actual_index,
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
         requested_start: request.start,
         requested_limit: request.limit,
-        next_start: transactions.next_start,
-        oldest_transaction_id: transactions.oldest_transaction_id,
+        next_start,
+        oldest_transaction_id,
         balance: transactions.balance,
         token_symbol: transactions.token_symbol,
         decimals: transactions.decimals,
@@ -229,6 +266,23 @@ pub fn build_icrc_account_transaction_page_report_with_source(
         fetched_by: ICRC_FETCHED_BY.to_string(),
         transactions: transactions.transactions,
     })
+}
+
+fn validate_source_cursor(
+    value: Option<&str>,
+    field: &'static str,
+) -> Result<Option<String>, IcrcAccountTransactionError> {
+    value
+        .map(|value| {
+            let normalized = normalize_transaction_cursor(value)?;
+            if normalized != value {
+                return Err(IcrcAccountTransactionError::InvalidPage {
+                    reason: format!("{field} {value:?} is not canonical unsigned decimal text"),
+                });
+            }
+            Ok(normalized)
+        })
+        .transpose()
 }
 
 pub fn build_icrc_index_report_with_source(

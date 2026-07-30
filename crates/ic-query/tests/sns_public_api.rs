@@ -46,13 +46,13 @@ use std::{
 };
 
 const SAMPLE_SNS_ROOT_CANISTER_ID: &str = "be2us-64aaa-aaaaa-qaabq-cai";
-const SAMPLE_SNS_GOVERNANCE_CANISTER_ID: &str = "csyra-haaaa-aaaaa-qaaeq-cai";
+const SAMPLE_SNS_GOVERNANCE_CANISTER_ID: &str = "bkyz2-fmaaa-aaaaa-qaaaq-cai";
 #[cfg(feature = "host")]
 const SAMPLE_SNS_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 #[cfg(feature = "host")]
-const SAMPLE_SNS_SWAP_CANISTER_ID: &str = "ca6gz-lqaaa-aaaaa-qaacu-cai";
+const SAMPLE_SNS_SWAP_CANISTER_ID: &str = "br5f7-7uaaa-aaaaa-qaaca-cai";
 #[cfg(feature = "host")]
-const SAMPLE_SNS_INDEX_CANISTER_ID: &str = "qhbym-qaaaa-aaaaa-aaafq-cai";
+const SAMPLE_SNS_INDEX_CANISTER_ID: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
 const SAMPLE_SNS_FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 
 #[cfg(feature = "host")]
@@ -180,10 +180,10 @@ fn public_sns_info_api_is_constructible_and_renderable() {
         description: Some("Example description".to_string()),
         url: None,
         root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "csyra-haaaa-aaaaa-qaaeq-cai".to_string(),
+        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
         ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
-        swap_canister_id: "ca6gz-lqaaa-aaaaa-qaacu-cai".to_string(),
-        index_canister_id: "qhbym-qaaaa-aaaaa-aaafq-cai".to_string(),
+        swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
+        index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
         metadata_error: None,
     };
 
@@ -261,7 +261,7 @@ fn public_sns_token_api_is_constructible_and_renderable() {
         name: "Example SNS".to_string(),
         root_canister_id: request.input,
         ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
-        sns_index_canister_id: "qhbym-qaaaa-aaaaa-aaafq-cai".to_string(),
+        sns_index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
         token_name: "Example Token".to_string(),
         token_symbol: "EXT".to_string(),
         decimals: 8,
@@ -309,7 +309,7 @@ fn public_sns_params_api_is_constructible_and_renderable() {
         id: 1,
         name: "Example SNS".to_string(),
         root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "csyra-haaaa-aaaaa-qaaeq-cai".to_string(),
+        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
         parameters: sample_sns_governance_parameters(),
     };
 
@@ -359,7 +359,7 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
         id: 1,
         name: "Example SNS".to_string(),
         root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "csyra-haaaa-aaaaa-qaaeq-cai".to_string(),
+        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status_filter: request.status.as_str().to_string(),
@@ -411,7 +411,7 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
         id: 1,
         name: "Example SNS".to_string(),
         root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "csyra-haaaa-aaaaa-qaaeq-cai".to_string(),
+        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,

@@ -1,4 +1,5 @@
 use crate::{
+    agent::build_ic_agent,
     ic_registry::{
         MAINNET_GOVERNANCE_CANISTER_ID, MainnetRegistryFetchRequest, RegistryFetchError,
     },
@@ -10,13 +11,10 @@ use ic_agent::Agent;
 pub(in crate::ic_registry::source) fn mainnet_agent(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<Agent, RegistryFetchError> {
-    Agent::builder()
-        .with_url(&request.endpoint)
-        .build()
-        .map_err(|err| RegistryFetchError::AgentBuild {
-            endpoint: request.endpoint.clone(),
-            reason: err.to_string(),
-        })
+    build_ic_agent(&request.endpoint, |reason| RegistryFetchError::AgentBuild {
+        endpoint: request.endpoint.clone(),
+        reason,
+    })
 }
 
 pub(in crate::ic_registry::source) fn mainnet_registry_canister()

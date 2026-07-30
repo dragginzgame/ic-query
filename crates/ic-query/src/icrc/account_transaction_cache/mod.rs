@@ -13,6 +13,7 @@ use self::attempt::{
     write_starting_attempt,
 };
 pub(super) use super::live::account_transactions::normalize_transaction_cursor;
+use super::live::account_transactions::validate_canonical_account_transactions;
 use super::{
     ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE,
     model::{
@@ -28,7 +29,7 @@ use super::{
 use crate::{
     HostCacheError, QueryProgress,
     cache_file::{
-        HostJsonCacheErrorMapper, JsonCacheReport, LoadJsonCacheRequest, load_json_cache,
+        HostJsonCacheErrorMapper, JsonCacheReport, LoadJsonCacheRequest, load_json_cache_strict,
         load_or_refresh_missing_cache, load_or_refresh_stale_cache,
     },
     freshness::freshness_facts,
@@ -42,10 +43,7 @@ use crate::{
 };
 use candid::Principal;
 use sha2::{Digest, Sha256};
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::path::{Path, PathBuf};
 
 /// Default age after which a complete account-history refresh lock is stale.
 pub const DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
@@ -59,6 +57,24 @@ const ICRC_ACCOUNT_TRANSACTION_CACHE_DOMAIN: &str = "icrc";
 const ICRC_ACCOUNT_TRANSACTION_CACHE_COLLECTION: &str = "transactions";
 const ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS: &str = "api_exhausted";
 const ICRC_ACCOUNT_TRANSACTION_FETCHED_BY: &str = "ic-query";
+const ICRC_ACCOUNT_TRANSACTION_CACHE_FIELDS: &[&str] = &[
+    "schema_version",
+    "source_endpoint",
+    "collection_started_at",
+    "collection_completed_at",
+    "fetched_by",
+    "ledger_canister_id",
+    "index_canister_id",
+    "account_owner",
+    "subaccount_hex",
+    "balance",
+    "token_symbol",
+    "decimals",
+    "newest_transaction_id",
+    "oldest_transaction_id",
+    "completeness",
+    "transactions",
+];
 
 impl JsonCacheReport for IcrcAccountTransactionSnapshot {
     fn schema_version(&self) -> u32 {
@@ -400,12 +416,13 @@ fn load_snapshot_at(
     path: &Path,
     request: &IcrcAccountTransactionCacheRequest,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    let cached = load_json_cache(
+    let cached = load_json_cache_strict(
         LoadJsonCacheRequest {
             path: path.to_path_buf(),
             network: MAINNET_NETWORK,
             expected_schema_version: ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION,
         },
+        ICRC_ACCOUNT_TRANSACTION_CACHE_FIELDS,
         HostJsonCacheErrorMapper::new(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT),
     )
     .map_err(IcrcAccountTransactionError::from)?;
@@ -458,7 +475,7 @@ fn validate_snapshot(
             "index account history cannot claim a point-in-time guarantee".to_string(),
         ));
     }
-    validate_canonical_transactions(&snapshot.transactions).map_err(invalid)?;
+    validate_canonical_account_transactions(&snapshot.transactions).map_err(invalid)?;
     let newest = snapshot
         .transactions
         .first()
@@ -524,7 +541,7 @@ fn validate_collection_data(
             reason: "final cursor does not match the oldest collected transaction".to_string(),
         });
     }
-    validate_canonical_transactions(&complete.transactions).map_err(|reason| {
+    validate_canonical_account_transactions(&complete.transactions).map_err(|reason| {
         IcrcAccountTransactionError::IncompleteCollection {
             index_canister_id: Some(complete.index_canister_id.clone()),
             pages_fetched: complete.page_count,
@@ -533,31 +550,6 @@ fn validate_collection_data(
             reason,
         }
     })
-}
-
-fn validate_canonical_transactions(
-    transactions: &[super::model::IcrcAccountTransactionRow],
-) -> Result<(), String> {
-    let mut previous = None;
-    for transaction in transactions {
-        let normalized =
-            normalize_transaction_cursor(&transaction.id).map_err(|error| error.to_string())?;
-        if normalized != transaction.id {
-            return Err(format!(
-                "transaction id {} is not canonical decimal text",
-                transaction.id
-            ));
-        }
-        let current = candid::Nat::from_str(&transaction.id)
-            .map_err(|error| format!("invalid transaction id {}: {error}", transaction.id))?;
-        if let Some(previous) = previous.as_ref()
-            && current >= *previous
-        {
-            return Err("transactions are not unique newest-first rows".to_string());
-        }
-        previous = Some(current);
-    }
-    Ok(())
 }
 
 fn normalize_cache_request(

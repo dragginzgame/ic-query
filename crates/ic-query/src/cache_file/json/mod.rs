@@ -10,5 +10,5 @@ mod model;
 
 pub use errors::HostJsonCacheErrorMapper;
 pub use errors::LoadJsonCacheErrorMapper;
-pub use load::load_json_cache;
+pub use load::{load_json_cache, load_json_cache_strict};
 pub use model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest};

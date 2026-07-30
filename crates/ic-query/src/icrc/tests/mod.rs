@@ -358,53 +358,68 @@ impl IcrcAccountTransactionPageSource for FixtureAccountTransactionsSource {
         assert_eq!(request.start.as_deref(), Some("42"));
         assert_eq!(request.limit, 2);
 
-        let account = IcrcAccountRow {
-            owner: Some(ACCOUNT_OWNER.to_string()),
-            subaccount_hex: Some(LOWER_SUBACCOUNT_HEX.to_string()),
-            account_identifier: None,
-        };
-        Ok(IcrcAccountTransactionPageData {
-            index_canister_id: INDEX_CANISTER_ID.to_string(),
-            balance: "250000000".to_string(),
-            oldest_transaction_id: Some("7".to_string()),
-            next_start: Some("40".to_string()),
-            token_symbol: "FIX".to_string(),
-            decimals: 8,
-            transactions: vec![IcrcAccountTransactionRow {
-                id: "40".to_string(),
-                kind: "transfer".to_string(),
-                timestamp_unix_nanos: Some("1700000000123456789".to_string()),
-                amount_base_units: Some("125000000".to_string()),
-                fee_base_units: Some("10000".to_string()),
-                from: Some(account),
-                to: Some(IcrcAccountRow {
-                    owner: Some(INDEX_CANISTER_ID.to_string()),
-                    subaccount_hex: None,
-                    account_identifier: None,
-                }),
-                spender: None,
-                memo_hex: Some("aabb".to_string()),
-                created_at_time_unix_nanos: Some("1700000000000000000".to_string()),
-                expires_at_unix_nanos: None,
-                expected_allowance_base_units: None,
-                raw_transaction: json!({
-                    "kind": "transfer",
-                    "timestamp_unix_nanos": "1700000000123456789",
-                    "transfer": {
-                        "amount_base_units": "125000000",
-                        "fee_base_units": "10000",
-                        "from": {
-                            "owner": ACCOUNT_OWNER,
-                            "subaccount_hex": LOWER_SUBACCOUNT_HEX
-                        },
-                        "to": {
-                            "owner": INDEX_CANISTER_ID,
-                            "subaccount_hex": null
-                        }
+        Ok(fixture_account_transaction_page())
+    }
+}
+
+struct AccountTransactionsDataSource(IcrcAccountTransactionPageData);
+
+impl IcrcAccountTransactionPageSource for AccountTransactionsDataSource {
+    fn fetch_account_transaction_page(
+        &self,
+        _request: &IcrcAccountTransactionPageRequest,
+    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
+        Ok(self.0.clone())
+    }
+}
+
+fn fixture_account_transaction_page() -> IcrcAccountTransactionPageData {
+    let account = IcrcAccountRow {
+        owner: Some(ACCOUNT_OWNER.to_string()),
+        subaccount_hex: Some(LOWER_SUBACCOUNT_HEX.to_string()),
+        account_identifier: None,
+    };
+    IcrcAccountTransactionPageData {
+        index_canister_id: INDEX_CANISTER_ID.to_string(),
+        balance: "250000000".to_string(),
+        oldest_transaction_id: Some("7".to_string()),
+        next_start: Some("40".to_string()),
+        token_symbol: "FIX".to_string(),
+        decimals: 8,
+        transactions: vec![IcrcAccountTransactionRow {
+            id: "40".to_string(),
+            kind: "transfer".to_string(),
+            timestamp_unix_nanos: Some("1700000000123456789".to_string()),
+            amount_base_units: Some("125000000".to_string()),
+            fee_base_units: Some("10000".to_string()),
+            from: Some(account),
+            to: Some(IcrcAccountRow {
+                owner: Some(INDEX_CANISTER_ID.to_string()),
+                subaccount_hex: None,
+                account_identifier: None,
+            }),
+            spender: None,
+            memo_hex: Some("aabb".to_string()),
+            created_at_time_unix_nanos: Some("1700000000000000000".to_string()),
+            expires_at_unix_nanos: None,
+            expected_allowance_base_units: None,
+            raw_transaction: json!({
+                "kind": "transfer",
+                "timestamp_unix_nanos": "1700000000123456789",
+                "transfer": {
+                    "amount_base_units": "125000000",
+                    "fee_base_units": "10000",
+                    "from": {
+                        "owner": ACCOUNT_OWNER,
+                        "subaccount_hex": LOWER_SUBACCOUNT_HEX
+                    },
+                    "to": {
+                        "owner": INDEX_CANISTER_ID,
+                        "subaccount_hex": null
                     }
-                }),
-            }],
-        })
+                }
+            }),
+        }],
     }
 }
 
@@ -726,6 +741,108 @@ fn account_transaction_page_report_rejects_zero_limit_before_source_call() {
             page_size: 0,
             max_page_size: 100,
         }
+    ));
+}
+
+#[test]
+fn account_transaction_page_report_rejects_explicit_index_mismatch() {
+    let request = IcrcAccountTransactionPageRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        2,
+    )
+    .with_index_canister_id(INDEX_CANISTER_ID);
+    let mut page = fixture_account_transaction_page();
+    page.index_canister_id = ARCHIVE_CANISTER_ID.to_string();
+
+    let error = build_icrc_account_transaction_page_report_with_source(
+        &request,
+        &AccountTransactionsDataSource(page),
+    )
+    .expect_err("source index mismatch must fail");
+
+    assert!(matches!(
+        error,
+        IcrcAccountTransactionError::CollectionIndexMismatch {
+            expected_index_canister_id,
+            actual_index_canister_id,
+        } if expected_index_canister_id == INDEX_CANISTER_ID
+            && actual_index_canister_id == ARCHIVE_CANISTER_ID
+    ));
+}
+
+#[test]
+fn account_transaction_page_report_rejects_noncanonical_source_cursor() {
+    let request = IcrcAccountTransactionPageRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        2,
+    );
+    let mut page = fixture_account_transaction_page();
+    page.next_start = Some("040".to_string());
+
+    let error = build_icrc_account_transaction_page_report_with_source(
+        &request,
+        &AccountTransactionsDataSource(page),
+    )
+    .expect_err("noncanonical source cursor must fail");
+
+    assert!(matches!(
+        error,
+        IcrcAccountTransactionError::InvalidPage { reason }
+            if reason.contains("next_start") && reason.contains("not canonical")
+    ));
+}
+
+#[test]
+fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
+    let request = IcrcAccountTransactionPageRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        1,
+    );
+    let mut excessive = fixture_account_transaction_page();
+    excessive
+        .transactions
+        .push(excessive.transactions[0].clone());
+
+    let error = build_icrc_account_transaction_page_report_with_source(
+        &request,
+        &AccountTransactionsDataSource(excessive),
+    )
+    .expect_err("excessive page must fail");
+    assert!(matches!(
+        error,
+        IcrcAccountTransactionError::InvalidPage { .. }
+    ));
+
+    let mut unordered = fixture_account_transaction_page();
+    let mut older = unordered.transactions[0].clone();
+    older.id = "41".to_string();
+    unordered.transactions.push(older);
+    unordered.next_start = Some("41".to_string());
+    let request = IcrcAccountTransactionPageRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        2,
+    );
+
+    let error = build_icrc_account_transaction_page_report_with_source(
+        &request,
+        &AccountTransactionsDataSource(unordered),
+    )
+    .expect_err("unordered page must fail");
+    assert!(matches!(
+        error,
+        IcrcAccountTransactionError::InvalidPage { .. }
     ));
 }
 

@@ -46,6 +46,28 @@ fn registry_version_report_uses_live_source_shape() {
 }
 
 #[test]
+fn registry_version_report_rejects_custom_source_provenance_mismatch() {
+    let request = NnsRegistryVersionRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_780_531_200,
+    };
+
+    let error =
+        build_nns_registry_version_report_with_source(&request, &MismatchedNnsRegistrySource)
+            .expect_err("source provenance mismatch must fail");
+
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::SourceMismatch {
+            field: "source_endpoint",
+            expected,
+            actual,
+        } if expected == "https://icp-api.io" && actual == "https://wrong.example"
+    ));
+}
+
+#[test]
 fn registry_version_text_is_key_value_output() {
     let report = NnsRegistryVersionReport {
         schema_version: 1,
@@ -79,6 +101,24 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
             fetched_at: request.fetched_at.clone(),
             fetched_by: request.fetched_by.clone(),
             source_endpoint: request.endpoint.clone(),
+        })
+    }
+}
+
+struct MismatchedNnsRegistrySource;
+
+impl NnsRegistrySource for MismatchedNnsRegistrySource {
+    fn fetch_registry_version(
+        &self,
+        request: &NnsSourceRequest,
+    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
+        Ok(NnsRegistryVersionData {
+            network: request.network.clone(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 42,
+            fetched_at: request.fetched_at.clone(),
+            fetched_by: request.fetched_by.clone(),
+            source_endpoint: "https://wrong.example".to_string(),
         })
     }
 }

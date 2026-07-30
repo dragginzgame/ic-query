@@ -14,6 +14,17 @@ pub enum NnsRegistryHostError {
     )]
     UnsupportedNetwork { network: String },
 
+    /// A custom Registry source returned provenance for a different request.
+    #[error("NNS Registry source {field} mismatch: expected {expected:?}, got {actual:?}")]
+    SourceMismatch {
+        /// Provenance field that did not match.
+        field: &'static str,
+        /// Request-derived value.
+        expected: String,
+        /// Source-returned value.
+        actual: String,
+    },
+
     #[error("live NNS registry query failed: {0}")]
     NnsQuery(#[from] RegistryFetchError),
 }

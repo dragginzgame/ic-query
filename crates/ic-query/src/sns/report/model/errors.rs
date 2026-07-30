@@ -30,6 +30,15 @@ pub enum SnsHostError {
     #[error("invalid {field}: {reason}")]
     InvalidPrincipal { field: &'static str, reason: String },
 
+    /// A source capability returned data that violates its public result contract.
+    #[error("invalid {capability} source data: {reason}")]
+    InvalidSourceData {
+        /// Source capability whose result was rejected.
+        capability: &'static str,
+        /// Deterministic invariant failure.
+        reason: String,
+    },
+
     #[error("failed to encode Candid request for {message}: {reason}")]
     CandidEncode {
         message: &'static str,

@@ -8,7 +8,8 @@ use crate::sns::report::{
     SnsHostError,
     cache_storage::{SnsCacheLoadErrors, collect_sns_cache_paths, read_sns_cache_header},
     neurons_cache::{
-        SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCacheHeader,
+        SNS_NEURONS_CACHE_SCHEMA_VERSION,
+        model::{SNS_NEURONS_CACHE_FIELDS, SnsNeuronsCacheHeader},
         paths::SnsNeuronsCacheCollection,
     },
 };
@@ -29,6 +30,7 @@ pub(in crate::sns::report) fn read_sns_neurons_cache_header(
         path,
         network,
         SNS_NEURONS_CACHE_SCHEMA_VERSION,
+        SNS_NEURONS_CACHE_FIELDS,
         SnsCacheLoadErrors::neurons(),
     )
 }

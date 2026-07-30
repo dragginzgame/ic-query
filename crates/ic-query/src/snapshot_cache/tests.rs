@@ -168,6 +168,42 @@ fn load_complete_snapshot_rejects_identity_mismatch() {
 }
 
 #[test]
+fn load_complete_snapshot_rejects_unknown_top_level_fields() {
+    let root = temp_dir("ic-query-snapshot-unknown-field");
+    let path = root.join("full.json");
+    write_snapshot_fixture(
+        &path,
+        serde_json::json!({
+            "schema_version": 1,
+            "network": "ic",
+            "source_endpoint": "https://icp-api.io",
+            "fetched_at": "2026-06-15T00:00:00Z",
+            "fetched_by": "ic-query",
+            "domain": "sns",
+            "entity": "root",
+            "collection": "neurons",
+            "scope": "full",
+            "id": 7,
+            "completeness": {
+                "status": "api_exhausted",
+                "page_size": 100,
+                "page_count": 1,
+                "row_count": 1,
+                "point_in_time_guaranteed": false
+            },
+            "rows": ["row"],
+            "unexpected": true
+        }),
+    );
+
+    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
+    let error = load_fixture_snapshot(&path, &key).expect_err("unknown field is rejected");
+
+    assert_eq!(error, SnapshotLoadTestError::Parse(path));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn snapshot_refresh_attempt_serializes_flat_metadata() {
     #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
     struct Metadata {
@@ -485,6 +521,21 @@ struct FixtureSnapshotRows {
 
 type FixtureSnapshot = SnapshotEnvelope<FixtureSnapshotMetadata, FixtureSnapshotRows>;
 
+const FIXTURE_SNAPSHOT_FIELDS: &[&str] = &[
+    "schema_version",
+    "network",
+    "source_endpoint",
+    "fetched_at",
+    "fetched_by",
+    "domain",
+    "entity",
+    "collection",
+    "scope",
+    "id",
+    "completeness",
+    "rows",
+];
+
 fn load_fixture_snapshot(
     path: &Path,
     key: &SnapshotKey,
@@ -496,6 +547,7 @@ fn load_fixture_snapshot(
             expected_schema_version: 1,
         },
         key,
+        FIXTURE_SNAPSHOT_FIELDS,
         SnapshotLoadTestErrors,
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,

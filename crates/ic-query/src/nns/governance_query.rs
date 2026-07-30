@@ -4,9 +4,10 @@
 //! Does not own: report-specific errors, wire projections, or cache policy.
 //! Boundary: centralizes agent construction, Candid encoding, transport, decoding, and errors.
 
-use crate::{ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, nns::NnsSourceRequest};
+use crate::{
+    agent::build_ic_agent, ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, nns::NnsSourceRequest,
+};
 use candid::{CandidType, Deserialize, Principal};
-use ic_agent::Agent;
 use thiserror::Error as ThisError;
 
 ///
@@ -91,13 +92,12 @@ async fn query_nns_governance_bytes(
     method: &'static str,
     arg: Vec<u8>,
 ) -> Result<Vec<u8>, NnsGovernanceQueryError> {
-    let agent = Agent::builder()
-        .with_url(&request.endpoint)
-        .build()
-        .map_err(|error| NnsGovernanceQueryError::AgentBuild {
+    let agent = build_ic_agent(&request.endpoint, |reason| {
+        NnsGovernanceQueryError::AgentBuild {
             endpoint: request.endpoint.clone(),
-            reason: error.to_string(),
-        })?;
+            reason,
+        }
+    })?;
     let canister = Principal::from_text(MAINNET_GOVERNANCE_CANISTER_ID).map_err(|error| {
         NnsGovernanceQueryError::CandidDecode {
             message: "governance_canister_id",

@@ -317,31 +317,16 @@ fn command_family(name: &str) -> Option<&'static CommandFamily> {
     COMMAND_FAMILIES.iter().find(|family| family.name == name)
 }
 
-fn nns_accepts_global_network(tail: &[OsString]) -> bool {
-    matches!(
-        tail.first().and_then(|arg| arg.to_str()),
-        Some(
-            "data-center"
-                | "node"
-                | "node-operator"
-                | "node-provider"
-                | "proposal"
-                | "registry"
-                | "subnet"
-                | "topology"
-        )
-    )
+const fn nns_accepts_global_network(_tail: &[OsString]) -> bool {
+    true
 }
 
 const fn icrc_accepts_global_network(_tail: &[OsString]) -> bool {
     false
 }
 
-fn sns_accepts_global_network(tail: &[OsString]) -> bool {
-    matches!(
-        tail.first().and_then(|arg| arg.to_str()),
-        Some("list" | "info" | "token" | "params" | "proposal" | "neuron")
-    )
+const fn sns_accepts_global_network(_tail: &[OsString]) -> bool {
+    true
 }
 
 #[cfg(test)]
@@ -512,49 +497,40 @@ Run `icq <command> help` for command-specific help.
 
     #[test]
     fn global_network_is_forwarded_to_networked_leaf_commands() {
-        let mut nns_tail = vec![OsString::from("data-center"), OsString::from("list")];
+        for (command, leaf) in [
+            ("nns", "data-center"),
+            ("nns", "governance"),
+            ("nns", "neuron"),
+            ("nns", "node"),
+            ("nns", "node-operator"),
+            ("nns", "node-provider"),
+            ("nns", "proposal"),
+            ("nns", "registry"),
+            ("nns", "subnet"),
+            ("nns", "topology"),
+            ("sns", "canister"),
+            ("sns", "info"),
+            ("sns", "list"),
+            ("sns", "neuron"),
+            ("sns", "params"),
+            ("sns", "proposal"),
+            ("sns", "token"),
+        ] {
+            let mut tail = vec![OsString::from(leaf), OsString::from("list")];
 
-        apply_global_network("nns", &mut nns_tail, Some("ic".to_string()))
-            .expect("NNS data-center supports global network");
+            apply_global_network(command, &mut tail, Some("ic".to_string()))
+                .expect("NNS and SNS families support the global network");
 
-        assert_eq!(
-            nns_tail,
-            vec![
-                OsString::from("data-center"),
-                OsString::from("list"),
-                OsString::from(INTERNAL_NETWORK_OPTION),
-                OsString::from("ic")
-            ]
-        );
-
-        let mut sns_tail = vec![OsString::from("list")];
-
-        apply_global_network("sns", &mut sns_tail, Some("ic".to_string()))
-            .expect("SNS list supports global network");
-
-        assert_eq!(
-            sns_tail,
-            vec![
-                OsString::from("list"),
-                OsString::from(INTERNAL_NETWORK_OPTION),
-                OsString::from("ic")
-            ]
-        );
-
-        let mut nns_proposal_tail = vec![OsString::from("proposal"), OsString::from("list")];
-
-        apply_global_network("nns", &mut nns_proposal_tail, Some("ic".to_string()))
-            .expect("NNS proposal supports global network");
-
-        assert_eq!(
-            nns_proposal_tail,
-            vec![
-                OsString::from("proposal"),
-                OsString::from("list"),
-                OsString::from(INTERNAL_NETWORK_OPTION),
-                OsString::from("ic")
-            ]
-        );
+            assert_eq!(
+                tail,
+                vec![
+                    OsString::from(leaf),
+                    OsString::from("list"),
+                    OsString::from(INTERNAL_NETWORK_OPTION),
+                    OsString::from("ic")
+                ]
+            );
+        }
     }
 
     #[test]
@@ -596,8 +572,30 @@ Run `icq <command> help` for command-specific help.
             vec![
                 OsString::from("--network"),
                 OsString::from("local"),
+                OsString::from("nns"),
+                OsString::from("governance"),
+                OsString::from("economics"),
+            ],
+            vec![
+                OsString::from("--network"),
+                OsString::from("local"),
+                OsString::from("nns"),
+                OsString::from("neuron"),
+                OsString::from("list"),
+            ],
+            vec![
+                OsString::from("--network"),
+                OsString::from("local"),
                 OsString::from("sns"),
                 OsString::from("list"),
+            ],
+            vec![
+                OsString::from("--network"),
+                OsString::from("local"),
+                OsString::from("sns"),
+                OsString::from("canister"),
+                OsString::from("list"),
+                OsString::from("1"),
             ],
         ] {
             let command = args[2].to_string_lossy().into_owned();
@@ -667,6 +665,23 @@ Run `icq <command> help` for command-specific help.
             .is_ok(),
             "help must remain available without dispatching a query"
         );
+    }
+
+    #[test]
+    fn malformed_source_endpoint_returns_typed_error_without_network_io() {
+        let error = run([
+            OsString::from("icrc"),
+            OsString::from("ledger"),
+            OsString::from("token"),
+            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
+            OsString::from("--source-endpoint"),
+            OsString::from(":::"),
+        ])
+        .expect_err("malformed endpoint must return an error");
+
+        assert_eq!(error.exit_code(), 1);
+        assert!(error.to_string().contains("failed to build IC agent"));
+        assert!(error.to_string().contains(":::"));
     }
 
     #[test]

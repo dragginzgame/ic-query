@@ -9,8 +9,8 @@ use super::{
     NNS_PROPOSAL_CACHE_SCHEMA_VERSION, NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
     attempt::{read_attempt_status, read_attempt_status_strict},
     model::{
-        NnsProposalCache, NnsProposalCacheListReport, NnsProposalCacheStatusReport,
-        NnsProposalCacheSummary,
+        NNS_PROPOSAL_CACHE_FIELDS, NnsProposalCache, NnsProposalCacheListReport,
+        NnsProposalCacheStatusReport, NnsProposalCacheSummary,
     },
     paths::{nns_proposal_cache_paths, nns_proposal_cache_root},
 };
@@ -161,6 +161,7 @@ fn load_nns_proposal_cache(
             expected_schema_version: NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
         },
         &key,
+        NNS_PROPOSAL_CACHE_FIELDS,
         NnsProposalCacheErrors,
         incomplete_snapshot_error,
         |mismatch| nns_identity_mismatch_error(cache_path.clone(), mismatch),
@@ -179,6 +180,11 @@ fn validate_nns_proposal_cache(
     };
     validate_snapshot_completeness(&cache.completeness, cache.data.proposals.len())
         .map_err(invalid)?;
+    if cache.completeness.point_in_time_guaranteed {
+        return Err(invalid(
+            "Governance proposal pagination cannot claim a point-in-time guarantee".to_string(),
+        ));
+    }
     validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
     let mut proposal_ids = HashSet::new();
     for proposal in &cache.data.proposals {

@@ -80,6 +80,13 @@ pub enum IcrcAccountTransactionError {
         max_page_size: u32,
     },
 
+    /// A custom page source returned data that violates the public page contract.
+    #[error("invalid ICRC account transaction page: {reason}")]
+    InvalidPage {
+        /// Source-result invariant that failed.
+        reason: String,
+    },
+
     /// A cache view requested no rows.
     #[error("invalid ICRC account transaction list limit {limit}; expected at least 1")]
     InvalidListLimit {
@@ -185,7 +192,7 @@ pub enum IcrcAccountTransactionError {
         source: Box<Self>,
     },
 
-    /// A custom collection source returned evidence for a different explicit index.
+    /// A custom account-transaction source returned evidence for a different explicit index.
     #[error(
         "ICRC account transaction source returned index {actual_index_canister_id}, expected explicitly requested index {expected_index_canister_id}"
     )]

@@ -16,6 +16,25 @@ use std::path::PathBuf;
 
 pub(super) type SnsNeuronsCache = SnapshotEnvelope<SnsCacheMetadata, SnsNeuronsCacheRows>;
 
+pub(super) const SNS_NEURONS_CACHE_FIELDS: &[&str] = &[
+    "schema_version",
+    "network",
+    "source_endpoint",
+    "fetched_at",
+    "fetched_by",
+    "domain",
+    "entity",
+    "collection",
+    "scope",
+    "sns_wasm_canister_id",
+    "id",
+    "name",
+    "root_canister_id",
+    "governance_canister_id",
+    "completeness",
+    "neurons",
+];
+
 ///
 /// SnsNeuronsCacheRows
 ///

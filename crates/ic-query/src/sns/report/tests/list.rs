@@ -29,6 +29,30 @@ fn sns_list_report_uses_names_and_compact_ids_by_default() {
 }
 
 #[test]
+fn sns_list_report_rejects_custom_source_provenance_and_identity_failures() {
+    for (mutate, expected_reason) in [
+        (
+            wrong_list_endpoint as fn(&mut MainnetSnsList),
+            "source_endpoint",
+        ),
+        (invalid_list_root, "root_canister_id"),
+        (duplicate_list_root, "duplicate root canister id"),
+    ] {
+        let error =
+            build_sns_list_report_with_source(&list_request(false), &MutatingSnsListSource(mutate))
+                .expect_err("invalid custom SNS list must fail");
+
+        assert!(matches!(
+            error,
+            SnsHostError::InvalidSourceData {
+                capability: "SNS-W deployed SNS list",
+                reason,
+            } if reason.contains(expected_reason)
+        ));
+    }
+}
+
+#[test]
 fn sns_list_report_verbose_text_keeps_full_ids() {
     let request = list_request(true);
 
@@ -149,6 +173,31 @@ fn sns_info_rejects_unknown_id() {
             sns_count: 1
         }
     ));
+}
+
+struct MutatingSnsListSource(fn(&mut MainnetSnsList));
+
+impl SnsListSource for MutatingSnsListSource {
+    fn fetch_deployed_snses(
+        &self,
+        request: &SnsSourceRequest,
+    ) -> Result<MainnetSnsList, SnsHostError> {
+        let mut list = FixtureSnsListSource.fetch_deployed_snses(request)?;
+        self.0(&mut list);
+        Ok(list)
+    }
+}
+
+fn wrong_list_endpoint(list: &mut MainnetSnsList) {
+    list.source_endpoint = "https://wrong.example".to_string();
+}
+
+fn invalid_list_root(list: &mut MainnetSnsList) {
+    list.sns_instances[0].root_canister_id = "not a principal".to_string();
+}
+
+fn duplicate_list_root(list: &mut MainnetSnsList) {
+    list.sns_instances.push(list.sns_instances[0].clone());
 }
 
 #[test]

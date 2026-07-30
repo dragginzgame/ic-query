@@ -11,7 +11,7 @@ use crate::sns::report::lookup::{
 };
 use crate::sns::report::{
     SnsHostError, SnsLookupRequest, enforce_mainnet_network,
-    source::{MainnetSns, SnsListSource},
+    source::{MainnetSns, SnsListSource, validate_mainnet_sns_list},
 };
 use candid::Principal;
 
@@ -28,6 +28,7 @@ pub(in crate::sns::report) fn resolve_sns_lookup(
         "ic-query".to_string(),
     );
     let mut list = source.fetch_deployed_snses(&fetch_request)?;
+    validate_mainnet_sns_list(&fetch_request, &list)?;
     assign_sns_ids_in_current_order(&mut list.sns_instances);
     sort_sns_by_assigned_id(&mut list.sns_instances);
     let (id, sns) = resolve_sns(&list.sns_instances, &request.input)?;

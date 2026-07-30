@@ -258,6 +258,41 @@ fn sns_proposals_cache_status_reports_unsupported_schema() {
 }
 
 #[test]
+fn sns_proposals_cache_status_rejects_unknown_fields_and_false_authority() {
+    for (field, value, expected_error) in [
+        (
+            "unexpected",
+            serde_json::json!(true),
+            "unknown top-level cache field",
+        ),
+        (
+            "point_in_time_guaranteed",
+            serde_json::json!(true),
+            "point-in-time guarantee",
+        ),
+    ] {
+        let root = temp_dir(&format!("ic-query-sns-proposals-status-{field}"));
+        let cache_path = refresh_fixture_sns_proposals_cache(&root);
+        let mut cache: serde_json::Value =
+            serde_json::from_slice(&fs::read(&cache_path).expect("read cache"))
+                .expect("parse cache");
+        if field == "unexpected" {
+            cache[field] = value;
+        } else {
+            cache["completeness"][field] = value;
+        }
+        fs::write(
+            &cache_path,
+            serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+        )
+        .expect("write cache");
+
+        assert_invalid_sns_proposals_cache_status(&root, expected_error);
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
 fn sns_proposals_cache_status_reports_malformed_json() {
     let root = temp_dir("ic-query-sns-proposals-status-malformed-json");
     let cache_path = refresh_fixture_sns_proposals_cache(&root);
