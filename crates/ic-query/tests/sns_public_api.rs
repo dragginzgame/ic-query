@@ -2,16 +2,17 @@
 use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
-    MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsCacheListRequest,
-    SnsCacheStatusRequest, SnsHostError, SnsListSource, SnsNeuronId, SnsNeuronRow,
-    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
-    SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsSource, SnsSourceRequest,
-    SnsTokenSource, build_sns_info_report, build_sns_info_report_with_source,
-    build_sns_list_report, build_sns_list_report_with_source, build_sns_neurons_cache_list_report,
-    build_sns_neurons_cache_status_report, build_sns_neurons_report,
-    build_sns_neurons_report_with_source, build_sns_params_report,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
+    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsToken, SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsHostError,
+    SnsListSource, SnsNeuronId, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
+    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource,
+    SnsProposalSource, SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsSource,
+    SnsSourceRequest, SnsTokenSource, build_sns_canister_report,
+    build_sns_canister_report_with_source, build_sns_info_report,
+    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
+    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
+    build_sns_neurons_report, build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, build_sns_proposals_report,
@@ -26,15 +27,16 @@ use ic_query::sns::{
     sns_proposals_refresh_lock_path, sns_proposals_refresh_report_text,
 };
 use ic_query::sns::{
+    SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
     SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
     SnsListRequest, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList, SnsParamsReport,
     SnsProposalBallotRow, SnsProposalEligibilityFilter, SnsProposalFailureReason,
     SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
     SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
     SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
-    SnsTokenStandardRow, SnsVotingRewardsParameters, sns_info_report_text, sns_list_report_text,
-    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
-    sns_token_report_text,
+    SnsTokenStandardRow, SnsVotingRewardsParameters, sns_canister_report_text,
+    sns_info_report_text, sns_list_report_text, sns_params_report_text, sns_proposal_report_text,
+    sns_proposals_report_text, sns_token_report_text,
 };
 use serde_json::json;
 #[cfg(feature = "host")]
@@ -43,9 +45,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[cfg(feature = "host")]
 const SAMPLE_SNS_ROOT_CANISTER_ID: &str = "be2us-64aaa-aaaaa-qaabq-cai";
-#[cfg(feature = "host")]
 const SAMPLE_SNS_GOVERNANCE_CANISTER_ID: &str = "csyra-haaaa-aaaaa-qaaeq-cai";
 #[cfg(feature = "host")]
 const SAMPLE_SNS_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
@@ -53,13 +53,14 @@ const SAMPLE_SNS_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const SAMPLE_SNS_SWAP_CANISTER_ID: &str = "ca6gz-lqaaa-aaaaa-qaacu-cai";
 #[cfg(feature = "host")]
 const SAMPLE_SNS_INDEX_CANISTER_ID: &str = "qhbym-qaaaa-aaaaa-aaafq-cai";
-#[cfg(feature = "host")]
 const SAMPLE_SNS_FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 
 #[cfg(feature = "host")]
 type SnsListBuilder = fn(&SnsListRequest) -> Result<SnsListReport, SnsHostError>;
 #[cfg(feature = "host")]
 type SnsInfoBuilder = fn(&SnsLookupRequest) -> Result<SnsInfoReport, SnsHostError>;
+#[cfg(feature = "host")]
+type SnsCanisterBuilder = fn(&SnsLookupRequest) -> Result<SnsCanisterReport, SnsHostError>;
 #[cfg(feature = "host")]
 type SnsTokenBuilder = fn(&SnsLookupRequest) -> Result<SnsTokenReport, SnsHostError>;
 #[cfg(feature = "host")]
@@ -193,6 +194,51 @@ fn public_sns_info_api_is_constructible_and_renderable() {
     assert!(text.contains("sns_id: 1"));
     assert!(text.contains("description: Example description"));
     assert!(text.contains("url: -"));
+}
+
+#[test]
+fn public_sns_canister_api_is_constructible_and_renderable() {
+    let report = SnsCanisterReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        fetched_by: "ic-query".to_string(),
+        id: 1,
+        name: "Example SNS".to_string(),
+        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        inventory_method: "list_sns_canisters".to_string(),
+        health_method: "get_sns_canisters_summary".to_string(),
+        health_call_type: "ingress_update".to_string(),
+        health_update_canister_list: false,
+        point_in_time_guaranteed: false,
+        canister_count: 1,
+        health_status_count: 1,
+        gap_count: 0,
+        canisters: vec![SnsCanisterRow {
+            role: SnsCanisterRole::Root,
+            canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+            status: Some(SnsCanisterStatus::Running),
+            module_hash_hex: Some("01020304".to_string()),
+            cycles: Some("1000000".to_string()),
+            memory_size: Some("2000000".to_string()),
+            idle_cycles_burned_per_day: Some("3000".to_string()),
+            controllers: vec![SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()],
+        }],
+        gaps: Vec::new(),
+    };
+
+    let text = sns_canister_report_text(&report);
+
+    assert_eq!(SnsCanisterRole::Governance.as_str(), "governance");
+    assert_eq!(SnsCanisterStatus::Stopped.as_str(), "stopped");
+    assert_eq!(
+        SnsCanisterGapKind::SummaryMissing.as_str(),
+        "summary_missing"
+    );
+    assert!(text.contains("health_call_type: ingress_update"));
+    assert!(text.contains("running"));
 }
 
 #[test]
@@ -388,6 +434,7 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
 fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsListBuilder>(build_sns_list_report);
     accepts_public_function::<SnsInfoBuilder>(build_sns_info_report);
+    accepts_public_function::<SnsCanisterBuilder>(build_sns_canister_report);
     accepts_public_function::<SnsTokenBuilder>(build_sns_token_report);
     accepts_public_function::<SnsParamsBuilder>(build_sns_params_report);
     accepts_public_function::<SnsProposalsBuilder>(build_sns_proposals_report);
@@ -406,11 +453,13 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
 fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
     let source_request = SnsSourceRequest::new(
+        "ic",
         DEFAULT_SNS_SOURCE_ENDPOINT,
         SAMPLE_SNS_FETCHED_AT,
         "fixture",
     );
     assert_eq!(source_request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+    assert_eq!(source_request.network, "ic");
 
     let list_request = SnsListRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000);
     let list = build_sns_list_report_with_source(&list_request, &source)?;
@@ -420,6 +469,10 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
     let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
     let info = build_sns_info_report_with_source(&info_request, &source)?;
     assert_eq!(info.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
+
+    let canisters = build_sns_canister_report_with_source(&info_request, &source)?;
+    assert_eq!(canisters.canister_count, 1);
+    assert_eq!(canisters.canisters[0].role, SnsCanisterRole::Root);
 
     let token_request = SnsLookupRequest::new(
         "ic",
@@ -682,6 +735,34 @@ impl SnsListSource for FixtureSnsSource {
     ) -> Result<MainnetSnsList, SnsHostError> {
         assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
         Ok(sample_mainnet_sns_list(request))
+    }
+}
+
+#[cfg(feature = "host")]
+impl SnsCanisterSource for FixtureSnsSource {
+    fn fetch_sns_canisters(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
+        Ok(MainnetSnsCanisterInventory {
+            inventory_method: "list_sns_canisters".to_string(),
+            health_method: "get_sns_canisters_summary".to_string(),
+            health_call_type: "ingress_update".to_string(),
+            health_update_canister_list: false,
+            point_in_time_guaranteed: false,
+            canisters: vec![SnsCanisterRow {
+                role: SnsCanisterRole::Root,
+                canister_id: sns.root_canister_id.clone(),
+                status: Some(SnsCanisterStatus::Running),
+                module_hash_hex: Some("01020304".to_string()),
+                cycles: Some("1000000".to_string()),
+                memory_size: Some("2000000".to_string()),
+                idle_cycles_burned_per_day: Some("3000".to_string()),
+                controllers: vec![sns.governance_canister_id.clone()],
+            }],
+            gaps: Vec::new(),
+        })
     }
 }
 

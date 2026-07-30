@@ -4,6 +4,7 @@
 //! Does not own: command parsing, source/cache reads, view transforms, or text rendering.
 //! Boundary: converts resolved source/cache data into serializable report DTOs.
 
+mod canisters;
 mod list;
 mod neurons;
 mod params;
@@ -11,6 +12,7 @@ mod proposals;
 mod provenance;
 mod token;
 
+pub(super) use canisters::sns_canister_report_from_parts;
 pub(super) use list::{sns_info_report_from_list, sns_list_report_from_list};
 pub(super) use neurons::{SnsNeuronsLiveReportParts, sns_neurons_report_from_parts};
 pub(super) use params::sns_params_report_from_parts;

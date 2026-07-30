@@ -62,7 +62,7 @@ pub(in crate::sns::commands) fn sns_params_command() -> ClapCommand {
     )
 }
 
-fn sns_lookup_command(
+pub(super) fn sns_lookup_command(
     name: &'static str,
     bin_name: &'static str,
     about: &'static str,

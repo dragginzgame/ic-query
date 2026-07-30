@@ -43,6 +43,7 @@ pub(in crate::sns::report) fn sns_list_fetch_request(
 ) -> Result<SnsSourceRequest, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     Ok(fetch_request_from_parts(
+        &request.network,
         &request.source_endpoint,
         request.now_unix_secs,
         "ic-query".to_string(),
@@ -51,11 +52,13 @@ pub(in crate::sns::report) fn sns_list_fetch_request(
 
 /// Build a live fetch request from already-validated source fields.
 pub(super) fn fetch_request_from_parts(
+    network: &str,
     source_endpoint: &str,
     now_unix_secs: u64,
     fetched_by: String,
 ) -> SnsSourceRequest {
     SnsSourceRequest::new(
+        network,
         source_endpoint,
         format_utc_timestamp_secs(now_unix_secs),
         fetched_by,

@@ -7,6 +7,8 @@ fn sns_help_is_advertised() {
     let info = sns_info_usage();
     let token = sns_token_usage();
     let params = sns_params_usage();
+    let canister = sns_canister_usage();
+    let canister_list = sns_canister_list_usage();
     let proposal = sns_proposal_usage();
     let proposal_info = sns_proposal_info_usage();
     let proposal_list = sns_proposal_list_usage();
@@ -24,12 +26,14 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("info"));
     assert!(sns.contains("token"));
     assert!(sns.contains("params"));
+    assert!(sns.contains("canister"));
     assert!(sns.contains("proposal"));
     assert!(sns.contains("neuron"));
     assert!(sns.contains("List deployed mainnet SNS instances"));
     assert!(sns.contains("Resolve a deployed SNS"));
     assert!(sns.contains("Show SNS ledger token metadata"));
     assert!(sns.contains("Show SNS governance nervous system parameters"));
+    assert!(sns.contains("Inspect SNS Root canister inventory and operational health"));
     assert!(sns.contains("List, inspect, and refresh SNS governance proposals"));
     assert!(sns.contains("List and refresh SNS governance neurons"));
     assert!(list.contains("icq sns list"));
@@ -44,6 +48,13 @@ fn sns_help_is_advertised() {
     assert!(token.contains("id|root-principal"));
     assert!(params.contains("icq sns params"));
     assert!(params.contains("id|root-principal"));
+    assert!(canister.contains("icq sns canister"));
+    assert!(canister.contains("list"));
+    assert!(canister_list.contains("icq sns canister list"));
+    assert!(canister_list.contains("Collection mode: Live query"));
+    assert!(canister_list.contains("id|root-principal"));
+    assert!(canister_list.contains("update_canister_list=false"));
+    assert!(canister_list.contains("--source-endpoint"));
     assert!(proposal.contains("icq sns proposal"));
     assert!(proposal.contains("list"));
     assert!(proposal.contains("info"));

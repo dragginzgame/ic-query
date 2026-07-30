@@ -290,6 +290,17 @@ fn binary_sns_list_help_smoke() {
 }
 
 #[test]
+fn binary_sns_canister_list_help_smoke() {
+    let output = run_icq(&["sns", "canister", "list", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq sns canister list [OPTIONS] <id|root-principal>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("update_canister_list=false"));
+}
+
+#[test]
 fn binary_nns_topology_help_smoke() {
     let output = run_icq(&["nns", "topology", "help"]);
 

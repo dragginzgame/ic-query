@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.16", default-features = false, features = ["host"] }
+ic-query = { version = "0.17", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.16", default-features = false }
+ic-query = { version = "0.17", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -73,8 +73,9 @@ implementation details but are not available to downstream crates.
 
 The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
-SNS info, token, and parameter builders share `SnsLookupRequest`; all read-only
-NNS topology builders share `NnsTopologyReadRequest`; Registry-derived NNS
+SNS info, token, parameter, and Root-canister builders share
+`SnsLookupRequest`; all read-only NNS topology builders share
+`NnsTopologyReadRequest`; Registry-derived NNS
 inventory families share the `NnsInventory*Request` contracts; SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts
 plus `SnsRefreshAttemptStatus`; complete NNS Governance proposal and neuron
@@ -92,7 +93,7 @@ The public API exposes source adapters for host-only downstream crates that
 need to reuse `ic-query` report assembly with data that does not come from the
 built-in live adapters. The generic ICRC, subnet catalog, NNS registry, NNS
 inventory, NNS proposal, NNS neuron, NNS topology, SNS
-list/info/token/params, SNS proposal, and SNS neuron host APIs expose this
+list/info/token/params/canister, SNS proposal, and SNS neuron host APIs expose this
 pattern with narrow ICRC capabilities such as `IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,
 `build_icrc_*_report_with_source`,
@@ -101,9 +102,8 @@ pattern with narrow ICRC capabilities such as `IcrcTokenSource`,
 `NnsNeuronSource`, `NnsGovernanceSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
-`SnsListSource`,
-`SnsTokenSource`, `SnsParamsSource`, `SnsProposalSource`, `SnsProposalsSource`,
-and `SnsNeuronsSource`.
+`SnsListSource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
+`SnsProposalSource`, `SnsProposalsSource`, and `SnsNeuronsSource`.
 
 The built-in implementations are deliberately less fragmented than the
 capability traits. `ic_query::nns::LiveNnsSource` implements every supported
@@ -112,7 +112,9 @@ NNS and subnet-catalog source capability, while
 respective live families. NNS capabilities share
 `ic_query::nns::NnsSourceRequest`; adding a new NNS report should normally add
 a capability implementation to that adapter instead of introducing another
-live-source type or another copy of the same provenance request.
+live-source type or another copy of the same provenance request. SNS
+capabilities likewise share `SnsSourceRequest`, including explicit network and
+collection provenance.
 
 Use a custom source when a downstream tool needs to read from a mirror,
 fixture, proxy, or pre-collected snapshot while still using `ic-query` report

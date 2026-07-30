@@ -8,11 +8,13 @@ mod model;
 mod traits;
 
 pub(in crate::sns::report) use model::MainnetSnsCanisters;
+pub(in crate::sns::report) use model::canonicalize_mainnet_sns_canister_inventory;
 pub use model::{
-    MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsNeuronId, SnsSourceRequest,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
+    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsToken, SnsNeuronId, SnsSourceRequest,
 };
 pub use traits::{
-    SnsListSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
-    SnsTokenSource,
+    SnsCanisterSource, SnsListSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalsSource, SnsTokenSource,
 };

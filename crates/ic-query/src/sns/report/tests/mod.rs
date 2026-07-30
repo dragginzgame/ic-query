@@ -1,5 +1,6 @@
 use super::*;
 
+mod canisters;
 mod fixtures;
 mod list;
 mod neurons;

@@ -38,6 +38,10 @@ renderer. Direct Governance economics, metrics, latest reward-event, and
 maturity-modulation reports share one `NnsGovernanceSource` capability and the
 same `NnsSourceRequest`; they remain live point-value reports rather than
 creating another complete-collection cache.
+SNS capabilities share `SnsSourceRequest`, including explicit network and
+collection provenance. SNS Root inventory and health use one
+`SnsCanisterSource` capability on `LiveSnsSource` rather than separate
+adapters for the Root inventory query and read-only health ingress.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report.
@@ -63,6 +67,10 @@ without creating a concrete live-source type for every report.
 - NNS exact topology follows Subnet membership through nodes and operators to
   providers at one Registry version.
 - SNS discovery follows SNS-W results with per-SNS metadata calls.
+- SNS Root reporting resolves one deployed SNS, uses `list_sns_canisters` as
+  membership authority, and joins `get_sns_canisters_summary` health with
+  `update_canister_list = false`. The sequential reads retain typed gaps and
+  explicitly carry no point-in-time guarantee.
 - NNS and SNS complete collections page until exhausted.
 - NNS neuron reporting follows the native ascending `get_neuron_index`
   cursor, preserves publicly readable `NeuronInfo` fields, and atomically
@@ -106,7 +114,7 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Fuller SNS neuron state, SNS root inventory, and health | Extend the relevant SNS capability traits on `LiveSnsSource` |
+| 1 | Fuller SNS neuron state, swap lifecycle, blessed upgrade-path comparison, and treasury evidence | Extend focused SNS capability traits on `LiveSnsSource` |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Canister, boundary-node, replica-version, and network metrics | Add an official Dashboard family adapter with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |

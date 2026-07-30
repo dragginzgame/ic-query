@@ -23,8 +23,9 @@ pub use reports::{
     SnsNeuronsRefreshReport, SnsNeuronsReport, SnsProposalsRefreshReport, SnsRefreshAttemptStatus,
 };
 pub use reports::{
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
-    SnsListRow, SnsNeuronPermissionList, SnsParamsReport, SnsProposalBallotRow,
+    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
+    SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
+    SnsListReport, SnsListRow, SnsNeuronPermissionList, SnsParamsReport, SnsProposalBallotRow,
     SnsProposalFailureReason, SnsProposalReport, SnsProposalRow, SnsProposalTally,
     SnsProposalsReport, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
     SnsVotingRewardsParameters,

@@ -63,7 +63,7 @@ where
     )
 }
 
-fn run_sns_lookup<I, Report>(
+pub(super) fn run_sns_lookup<I, Report>(
     args: I,
     command: fn() -> ClapCommand,
     usage: fn() -> String,

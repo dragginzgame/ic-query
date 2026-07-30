@@ -1,3 +1,4 @@
+mod canisters;
 mod neurons;
 mod params;
 mod proposals;
@@ -5,6 +6,7 @@ mod requests;
 mod sns;
 mod token;
 
+pub(in crate::sns::report::tests) use canisters::FixtureSnsCanisterSource;
 pub(in crate::sns::report::tests) use neurons::{
     FixtureSnsNeuronsSource, NoLiveSnsNeuronsSource, PagedFixtureSnsNeuronsSource,
 };

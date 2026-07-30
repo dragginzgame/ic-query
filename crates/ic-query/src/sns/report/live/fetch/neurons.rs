@@ -68,7 +68,7 @@ async fn fetch_mainnet_sns_neuron_page_async(
     start_page_at: Option<&SnsNeuronId>,
     owner_principal_id: Option<&str>,
 ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
-    let agent = sns_agent(&request.endpoint)?;
+    let agent = sns_agent(request)?;
     let governance_canister = governance_canister(sns)?;
     let owner_principal = owner_principal_id
         .map(|principal| principal_from_text(principal, "owner_principal_id"))

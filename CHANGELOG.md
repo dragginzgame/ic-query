@@ -7,6 +7,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.17.x] - 2026-07-30 - SNS Root inventory and health
+
+Detailed release notes: [docs/changelog/0.17.md](docs/changelog/0.17.md)
+
+- `0.17.0` adds `SnsCanisterSource` on the existing `LiveSnsSource` and a
+  typed live SNS Root inventory and operational-health report. Root's
+  `list_sns_canisters` query remains the membership authority; the health
+  ingress always sends `update_canister_list = false`. Reports preserve native
+  roles and status, raw module hashes and operational values, canonical
+  ordering, explicit typed relation gaps, and the lack of a point-in-time
+  guarantee. The shared `SnsSourceRequest` now carries network identity, a
+  breaking pre-1.0 hard cut that lets direct built-in SNS source calls reject
+  non-mainnet networks before constructing an agent. The report is live-only
+  and does not alter existing caches.
+
+  ```bash
+  icq sns canister list 1
+  icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai --format json
+  ```
+
 ## [0.16.x] - 2026-07-30 - Native NNS Governance reports
 
 Detailed release notes: [docs/changelog/0.16.md](docs/changelog/0.16.md)

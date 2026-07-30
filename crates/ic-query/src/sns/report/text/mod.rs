@@ -4,6 +4,7 @@
 //! Does not own: report construction, source/cache reads, or JSON output.
 //! Boundary: converts already-built report DTOs into human-readable text.
 
+mod canisters;
 mod common;
 mod info;
 mod list;
@@ -13,6 +14,7 @@ mod params;
 mod proposals;
 mod token;
 
+pub use canisters::sns_canister_report_text;
 #[cfg(all(test, feature = "host"))]
 pub(super) use common::optional_e8s_decimal_text;
 pub use info::sns_info_report_text;

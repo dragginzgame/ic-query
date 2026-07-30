@@ -22,6 +22,7 @@ pub(in crate::sns::report) fn resolve_sns_lookup(
 ) -> Result<SnsLookup, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetch_request = fetch_request_from_parts(
+        &request.network,
         &request.source_endpoint,
         request.now_unix_secs,
         "ic-query".to_string(),

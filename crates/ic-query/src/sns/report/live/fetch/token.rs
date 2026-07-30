@@ -27,7 +27,7 @@ async fn fetch_mainnet_sns_token_async(
     request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsToken, SnsHostError> {
-    let agent = sns_agent(&request.endpoint)?;
+    let agent = sns_agent(request)?;
     let ledger_canister = principal_from_text(&sns.ledger_canister_id, "ledger_canister_id")?;
     let token = Box::pin(fetch_icrc1_token_metadata::<SnsHostError>(
         &agent,

@@ -4,6 +4,7 @@
 //! Does not own: Candid wire definitions, report assembly, cache IO, or rendering.
 //! Boundary: wraps async IC queries behind synchronous report-source helpers.
 
+mod canisters;
 mod list;
 mod neurons;
 mod params;
@@ -17,6 +18,7 @@ use super::{
 use candid::Principal;
 use std::future::Future;
 
+pub(super) use canisters::fetch_mainnet_sns_canisters;
 pub(super) use list::fetch_mainnet_sns_list;
 pub(super) use neurons::{fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons};
 pub(super) use params::fetch_mainnet_sns_params;

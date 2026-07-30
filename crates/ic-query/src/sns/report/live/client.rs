@@ -5,14 +5,15 @@
 //! Boundary: implements source traits by delegating to live fetch helpers.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsGovernanceParameters,
-    SnsHostError, SnsListSource, SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalTopicFilter, SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
+    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsToken, SnsCanisterSource, SnsGovernanceParameters, SnsHostError, SnsListSource,
+    SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalTopicFilter,
+    SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
     live::fetch::{
-        fetch_mainnet_sns_list, fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons,
-        fetch_mainnet_sns_params, fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page,
-        fetch_mainnet_sns_proposals, fetch_mainnet_sns_token,
+        fetch_mainnet_sns_canisters, fetch_mainnet_sns_list, fetch_mainnet_sns_neuron_page,
+        fetch_mainnet_sns_neurons, fetch_mainnet_sns_params, fetch_mainnet_sns_proposal,
+        fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals, fetch_mainnet_sns_token,
     },
 };
 
@@ -30,6 +31,16 @@ impl SnsListSource for LiveSnsSource {
         request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError> {
         fetch_mainnet_sns_list(request)
+    }
+}
+
+impl SnsCanisterSource for LiveSnsSource {
+    fn fetch_sns_canisters(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
+        fetch_mainnet_sns_canisters(request, sns)
     }
 }
 

@@ -4,12 +4,14 @@
 //! Does not own: live transport, Candid wire type definitions, cache IO, or rendering.
 //! Boundary: re-exports converters used by live fetch and report builders.
 
+mod canisters;
 mod common;
 mod metadata;
 mod neurons;
 mod proposals;
 mod sns;
 
+pub(super) use canisters::mainnet_sns_canister_inventory;
 pub(super) use metadata::metadata_error_summary;
 pub(super) use neurons::sns_neuron_row;
 pub(super) use proposals::sns_proposal_row;

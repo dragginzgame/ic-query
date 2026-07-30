@@ -4,6 +4,7 @@
 //! Does not own: clap command shape, report construction, or text rendering.
 //! Boundary: maps command-line options into report requests.
 
+mod canisters;
 mod common;
 mod lookup;
 mod neurons;
@@ -35,6 +36,7 @@ where
         "info" => lookup::run_sns_info(args),
         "token" => lookup::run_sns_token(args),
         "params" => lookup::run_sns_params(args),
+        "canister" => canisters::run_sns_canister(args),
         "proposal" => proposals::run_sns_proposal(args),
         "neuron" => neurons::run_sns_neuron(args),
         _ => unreachable!("sns dispatch command only defines known commands"),

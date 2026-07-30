@@ -5,6 +5,7 @@
 //! Boundary: defines command shape and help examples only.
 
 mod args;
+mod canisters;
 mod lookup;
 mod neurons;
 mod proposals;
@@ -20,6 +21,7 @@ use crate::{
 use clap::Command as ClapCommand;
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
 
+pub(in crate::sns::commands) use canisters::{sns_canister_command, sns_canister_list_command};
 pub(in crate::sns::commands) use lookup::{
     sns_info_command, sns_params_command, sns_token_command,
 };
@@ -57,6 +59,9 @@ pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
         )))
         .subcommand(passthrough_subcommand(ClapCommand::new("params").about(
             "Show SNS governance nervous system parameters by list id or root principal",
+        )))
+        .subcommand(passthrough_subcommand(ClapCommand::new("canister").about(
+            "Inspect SNS Root canister inventory and operational health",
         )))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("proposal")

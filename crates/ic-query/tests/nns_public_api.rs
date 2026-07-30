@@ -14,13 +14,14 @@ use ic_query::nns::data_center::{
     nns_data_center_list_report_verbose_text,
 };
 use ic_query::nns::governance::{
-    DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceEconomics,
-    NnsGovernanceMaturityModulation, NnsGovernanceMaturityModulationReport,
-    NnsGovernanceReportContext, nns_governance_maturity_modulation_report_text,
+    DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceMaturityModulation,
+    NnsGovernanceMaturityModulationReport, NnsGovernanceReportContext,
+    nns_governance_maturity_modulation_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::governance::{
-    NnsGovernanceHostError, NnsGovernanceSource, build_nns_governance_economics_report_with_source,
+    NnsGovernanceEconomics, NnsGovernanceHostError, NnsGovernanceSource,
+    build_nns_governance_economics_report_with_source,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::neuron::{

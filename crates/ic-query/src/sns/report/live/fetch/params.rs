@@ -23,7 +23,7 @@ async fn fetch_mainnet_sns_params_async(
     request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<SnsGovernanceParameters, SnsHostError> {
-    let agent = sns_agent(&request.endpoint)?;
+    let agent = sns_agent(request)?;
     let governance_canister = governance_canister(sns)?;
     query_canister(
         &agent,

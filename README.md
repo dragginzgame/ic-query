@@ -12,9 +12,10 @@
 version, subnet catalog lookup, node/provider/operator/data-center inventory,
 topology reports, NNS proposals and publicly readable neuron views, deployed
 SNS reports, native NNS Governance economics, metrics, reward-event, and
-maturity-modulation reports, and ICRC ledger capabilities, token, balance,
-allowance, index discovery, ledger and account transaction history, block
-type, archive, and tip certificate reports.
+maturity-modulation reports, SNS Root canister inventory and operational
+health, and ICRC ledger capabilities, token, balance, allowance, index
+discovery, ledger and account transaction history, block type, archive, and
+tip certificate reports.
 
 ## Install
 
@@ -40,7 +41,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.16", default-features = false }
+ic-query = { version = "0.17", default-features = false }
 ```
 
 Feature boundary:
@@ -58,7 +59,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.16", default-features = false, features = ["host"] }
+ic-query = { version = "0.17", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -72,8 +73,9 @@ library feature.
 Built-in host calls use one concrete adapter per authority family:
 `ic_query::nns::LiveNnsSource`, `ic_query::sns::LiveSnsSource`, and
 `ic_query::icrc::LiveIcrcSource`. Small report-specific capability traits keep
-custom adapters narrow, while all NNS capability traits share
-`ic_query::nns::NnsSourceRequest` for network and collection provenance.
+custom adapters narrow. NNS capability traits share
+`ic_query::nns::NnsSourceRequest`, and SNS capability traits share
+`ic_query::sns::SnsSourceRequest`, for network and collection provenance.
 
 Ordinary library builders and refresh functions are silent. Native consumers
 that want live paged-refresh updates can use the matching `*_with_progress`
@@ -114,7 +116,8 @@ icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|provide
 icq icrc ledger [capabilities|token|index|transactions|block-types|archives|tip-certificate]
 icq icrc account [balance|allowance|transaction]
 icq icrc account transaction [page|list|refresh|cache]
-icq sns [list|info|token|params|proposal|neuron]
+icq sns [list|info|token|params|canister|proposal|neuron]
+icq sns canister list <id|root-principal>
 icq sns proposal [list|info|refresh|cache]
 icq sns neuron [list|refresh|cache]
 ```
@@ -310,6 +313,26 @@ icq sns params 1
 icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
 
+SNS Root canister membership and operational health can be queried by list id
+or Root principal:
+
+```bash
+icq sns canister list 1
+icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai --format json
+```
+
+Inventory comes from Root's `list_sns_canisters` query. Operational status
+comes from the read-only `get_sns_canisters_summary` ingress method with
+`update_canister_list=false`; the command never asks Root to update its stored
+archive inventory. Reports preserve native roles and
+`running | stopping | stopped` state, full module hashes and raw operational
+values in JSON, and typed gaps for missing or inconsistent relations.
+Extension canisters remain inventory members with an explicit unsupported
+health gap because the current Root summary does not expose Extension status.
+The two Root calls do not share an authoritative version, so the report states
+`point_in_time_guaranteed: false`. See
+[SNS Root Canister Inventory and Health](docs/design/sns-root-canister-reporting.md).
+
 Native NNS Governance economics, cached metrics, the latest voting reward
 event, and maturity modulation are available as direct live reports:
 
@@ -500,8 +523,8 @@ The command namespace is intentionally small:
   walk, and `nns neuron cache status` inspects it without a live call.
 - `nns governance economics|metrics|reward-event|maturity-modulation` exposes
   focused live reports from the native mainnet Governance canister.
-- `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
-  `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
+- `sns list`, `sns info`, `sns token`, `sns params`, `sns canister`,
+  `sns proposal`, and `sns neuron` are implemented for deployed mainnet SNS
   instances.
 - `sns proposals` auto-creates and reuses complete proposal snapshots for
   cache-backed list views.

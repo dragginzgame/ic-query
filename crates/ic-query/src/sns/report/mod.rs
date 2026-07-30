@@ -52,9 +52,9 @@ use source::MainnetSnsCanisters;
 
 #[cfg(feature = "host")]
 pub use build::{
-    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
-    build_sns_list_report_with_source, build_sns_neurons_report,
-    build_sns_neurons_report_with_source, build_sns_params_report,
+    build_sns_canister_report, build_sns_canister_report_with_source, build_sns_info_report,
+    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
+    build_sns_neurons_report, build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_report,
     build_sns_proposals_report_with_progress, build_sns_proposals_report_with_source,
@@ -85,12 +85,13 @@ pub use model::{
     SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
 };
 pub use model::{
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
-    SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList,
-    SnsParamsReport, SnsProposalBallotRow, SnsProposalEligibilityFilter, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
-    SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
+    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
+    SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
+    SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
+    SnsNeuronPermissionList, SnsParamsReport, SnsProposalBallotRow, SnsProposalEligibilityFilter,
+    SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest, SnsProposalRow,
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
+    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
     SnsTokenStandardRow, SnsVotingRewardsParameters,
 };
 #[cfg(feature = "host")]
@@ -109,14 +110,14 @@ pub use proposals_cache::{
 };
 #[cfg(feature = "host")]
 pub use source::{
-    MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsListSource, SnsNeuronId,
-    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsSourceRequest,
-    SnsTokenSource,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
+    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsToken, SnsCanisterSource, SnsListSource, SnsNeuronId, SnsNeuronsSource,
+    SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
 };
 pub use text::{
-    sns_info_report_text, sns_list_report_text, sns_params_report_text, sns_proposal_report_text,
-    sns_proposals_report_text, sns_token_report_text,
+    sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_params_report_text,
+    sns_proposal_report_text, sns_proposals_report_text, sns_token_report_text,
 };
 #[cfg(feature = "host")]
 pub use text::{
@@ -133,6 +134,8 @@ pub const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
 #[cfg(feature = "host")]
 const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
+const SNS_CANISTER_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]

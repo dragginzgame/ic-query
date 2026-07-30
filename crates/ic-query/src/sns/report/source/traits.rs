@@ -5,9 +5,10 @@
 //! Boundary: defines source contracts used by report builders and tests.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsList, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsToken, SnsGovernanceParameters,
-    SnsHostError, SnsNeuronId, SnsProposalTopicFilter, SnsSourceRequest,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
+    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsToken, SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter,
+    SnsSourceRequest,
 };
 
 ///
@@ -22,6 +23,21 @@ pub trait SnsListSource {
         &self,
         request: &SnsSourceRequest,
     ) -> Result<MainnetSnsList, SnsHostError>;
+}
+
+///
+/// SnsCanisterSource
+///
+/// Source contract for fetching SNS Root canister inventory and health.
+///
+
+pub trait SnsCanisterSource: SnsListSource {
+    /// Fetch Root inventory and operational health for one resolved SNS.
+    fn fetch_sns_canisters(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsCanisterInventory, SnsHostError>;
 }
 
 ///

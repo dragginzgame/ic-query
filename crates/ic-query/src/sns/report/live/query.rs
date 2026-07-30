@@ -5,7 +5,10 @@
 //! Boundary: builds agents, parses principals, and maps query failures to typed errors.
 
 use super::SnsHostError;
-use crate::icrc::ledger::IcrcLedgerError;
+use crate::{
+    icrc::ledger::IcrcLedgerError,
+    sns::report::{SnsSourceRequest, enforce_mainnet_network},
+};
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Agent;
 
@@ -66,13 +69,46 @@ where
     })
 }
 
-/// Build an IC agent for one explicit SNS source endpoint.
-pub(super) fn sns_agent(endpoint: &str) -> Result<Agent, SnsHostError> {
+/// Call one Candid canister ingress method and wait for its response.
+pub(super) async fn update_canister<Arg, Response>(
+    agent: &Agent,
+    canister: &Principal,
+    method: &'static str,
+    request_message: &'static str,
+    response_message: &'static str,
+    arg: &Arg,
+) -> Result<Response, SnsHostError>
+where
+    Arg: CandidType + Sync,
+    Response: for<'de> Deserialize<'de> + CandidType,
+{
+    let arg = candid::encode_one(arg).map_err(|err| SnsHostError::CandidEncode {
+        message: request_message,
+        reason: err.to_string(),
+    })?;
+    let bytes = agent
+        .update(canister, method)
+        .with_arg(arg)
+        .call_and_wait()
+        .await
+        .map_err(|err| SnsHostError::AgentUpdateCall {
+            method,
+            reason: err.to_string(),
+        })?;
+    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
+        message: response_message,
+        reason: err.to_string(),
+    })
+}
+
+/// Build an IC agent after enforcing one explicit SNS source request.
+pub(super) fn sns_agent(request: &SnsSourceRequest) -> Result<Agent, SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
     Agent::builder()
-        .with_url(endpoint)
+        .with_url(&request.endpoint)
         .build()
         .map_err(|err| SnsHostError::AgentBuild {
-            endpoint: endpoint.to_string(),
+            endpoint: request.endpoint.clone(),
             reason: err.to_string(),
         })
 }

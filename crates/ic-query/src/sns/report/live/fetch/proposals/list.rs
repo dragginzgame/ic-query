@@ -26,7 +26,7 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
     include_status: &[i32],
     topic: SnsProposalTopicFilter,
 ) -> Result<MainnetSnsProposals, SnsHostError> {
-    let agent = sns_agent(&request.endpoint)?;
+    let agent = sns_agent(request)?;
     let governance_canister = governance_canister(sns)?;
     let response: ListProposalsResponse = query_canister(
         &agent,

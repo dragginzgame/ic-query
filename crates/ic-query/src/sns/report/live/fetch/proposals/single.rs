@@ -21,7 +21,7 @@ pub(super) async fn fetch_mainnet_sns_proposal_async(
     sns: &MainnetSns,
     proposal_id: u64,
 ) -> Result<MainnetSnsProposal, SnsHostError> {
-    let agent = sns_agent(&request.endpoint)?;
+    let agent = sns_agent(request)?;
     let governance_canister = governance_canister(sns)?;
     let response: GetProposalResponse = query_canister(
         &agent,

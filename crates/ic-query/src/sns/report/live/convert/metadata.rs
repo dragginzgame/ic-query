@@ -27,6 +27,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         SnsHostError::UnsupportedNetwork { .. }
         | SnsHostError::Runtime(_)
         | SnsHostError::AgentBuild { .. }
+        | SnsHostError::AgentUpdateCall { .. }
         | SnsHostError::InvalidPrincipal { .. }
         | SnsHostError::MissingProposalId
         | SnsHostError::MissingNeuronId
@@ -51,6 +52,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::IncompleteRefresh { .. }
         | SnsHostError::InvalidRefreshPageSize { .. }
         | SnsHostError::MissingCacheRoot
-        | SnsHostError::UnsupportedProposalView { .. } => None,
+        | SnsHostError::UnsupportedProposalView { .. }
+        | SnsHostError::DuplicateCanisterId { .. } => None,
     }
 }

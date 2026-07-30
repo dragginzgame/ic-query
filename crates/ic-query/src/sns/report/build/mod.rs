@@ -4,6 +4,7 @@
 //! Does not own: command parsing, cache file primitives, source models, or rendering.
 //! Boundary: exposes builders that coordinate lookup/source/cache reads and assembly.
 
+mod canisters;
 mod info;
 mod list;
 mod neurons;
@@ -11,6 +12,7 @@ mod params;
 mod proposals;
 mod token;
 
+pub use canisters::{build_sns_canister_report, build_sns_canister_report_with_source};
 pub use info::{build_sns_info_report, build_sns_info_report_with_source};
 pub use list::{build_sns_list_report, build_sns_list_report_with_source};
 pub use neurons::{build_sns_neurons_report, build_sns_neurons_report_with_source};

@@ -42,6 +42,15 @@ pub enum SnsHostError {
         reason: String,
     },
 
+    /// A read-only SNS ingress call failed.
+    #[error("SNS ingress method {method} failed: {reason}")]
+    AgentUpdateCall {
+        /// SNS method being called.
+        method: &'static str,
+        /// Agent call failure.
+        reason: String,
+    },
+
     #[error("SNS governance method {method} returned error {error_type}: {message}")]
     GovernanceError {
         method: &'static str,
@@ -158,4 +167,17 @@ pub enum SnsHostError {
 
     #[error("unsupported SNS proposal view: {reason}")]
     UnsupportedProposalView { reason: String },
+
+    /// Root inventory assigned one canister principal to more than one role.
+    #[error(
+        "SNS Root inventory contains canister {canister_id} in both {first_role} and {duplicate_role} roles"
+    )]
+    DuplicateCanisterId {
+        /// Duplicated canister principal.
+        canister_id: String,
+        /// First native role containing the canister.
+        first_role: String,
+        /// Later native role containing the canister.
+        duplicate_role: String,
+    },
 }

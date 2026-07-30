@@ -35,7 +35,7 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_list(
 async fn fetch_mainnet_sns_list_async(
     request: &SnsSourceRequest,
 ) -> Result<MainnetSnsList, SnsHostError> {
-    let agent = sns_agent(&request.endpoint)?;
+    let agent = sns_agent(request)?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
     let response: ListDeployedSnsesResponse = query_canister(

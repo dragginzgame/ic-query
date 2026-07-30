@@ -8,6 +8,7 @@
 mod attempt;
 #[cfg(feature = "host")]
 mod cache;
+mod canisters;
 mod governance;
 mod list;
 #[cfg(feature = "host")]
@@ -20,6 +21,10 @@ mod token;
 pub use attempt::SnsRefreshAttemptStatus;
 #[cfg(feature = "host")]
 pub use cache::{SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary};
+pub use canisters::{
+    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
+    SnsCanisterStatus,
+};
 pub use governance::{
     SnsCustomProposalCriticality, SnsGovernanceParameters, SnsNeuronPermissionList,
     SnsVotingRewardsParameters,
