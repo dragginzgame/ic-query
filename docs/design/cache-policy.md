@@ -88,6 +88,11 @@ complete snapshot. The public Governance index is ordered by neuron id and
 supports bounded live pages; a full walk may be expensive and has no stable
 point-in-time version. `icq nns neuron cache status` is local-only.
 
+NNS Governance economics, cached metrics, latest reward-event, and
+maturity-modulation reports are bounded live point-value queries. They do not
+read or write the proposal or neuron complete-collection caches and do not
+create another implicit cache or freshness policy.
+
 SNS neuron complete snapshots intentionally stay on explicit refresh before
 cache-backed sorts. A full neuron refresh can require many governance pages and
 the refresh command exposes `--page-size` and `--max-pages`; silently starting

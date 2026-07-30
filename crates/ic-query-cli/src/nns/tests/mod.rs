@@ -5,6 +5,12 @@ use super::{
         data_center_list_usage, data_center_refresh_options, data_center_refresh_usage,
         data_center_usage,
     },
+    governance::{
+        NnsGovernanceOptions, governance_economics_command, governance_economics_usage,
+        governance_maturity_modulation_command, governance_maturity_modulation_usage,
+        governance_metrics_command, governance_metrics_usage, governance_reward_event_command,
+        governance_reward_event_usage, governance_usage,
+    },
     neuron::{
         NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
         neuron_cache_status_usage, neuron_cache_usage, neuron_info_usage, neuron_list_usage,
@@ -73,6 +79,7 @@ use ic_query::subnet_catalog::{
 use std::{ffi::OsString, path::PathBuf};
 
 mod data_center;
+mod governance;
 mod neuron;
 mod node;
 mod node_operator;

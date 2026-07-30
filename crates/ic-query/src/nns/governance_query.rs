@@ -62,6 +62,35 @@ where
     Arg: CandidType + Sync,
     Response: for<'de> Deserialize<'de> + CandidType,
 {
+    let arg = candid::encode_one(arg).map_err(|error| NnsGovernanceQueryError::CandidEncode {
+        message: request_message,
+        reason: error.to_string(),
+    })?;
+    let bytes = query_nns_governance_bytes(request, method, arg).await?;
+    decode_response(&bytes, response_message)
+}
+
+pub async fn query_nns_governance_no_args<Response>(
+    request: &NnsSourceRequest,
+    method: &'static str,
+    response_message: &'static str,
+) -> Result<Response, NnsGovernanceQueryError>
+where
+    Response: for<'de> Deserialize<'de> + CandidType,
+{
+    let arg = candid::encode_args(()).map_err(|error| NnsGovernanceQueryError::CandidEncode {
+        message: "()",
+        reason: error.to_string(),
+    })?;
+    let bytes = query_nns_governance_bytes(request, method, arg).await?;
+    decode_response(&bytes, response_message)
+}
+
+async fn query_nns_governance_bytes(
+    request: &NnsSourceRequest,
+    method: &'static str,
+    arg: Vec<u8>,
+) -> Result<Vec<u8>, NnsGovernanceQueryError> {
     let agent = Agent::builder()
         .with_url(&request.endpoint)
         .build()
@@ -75,11 +104,7 @@ where
             reason: error.to_string(),
         }
     })?;
-    let arg = candid::encode_one(arg).map_err(|error| NnsGovernanceQueryError::CandidEncode {
-        message: request_message,
-        reason: error.to_string(),
-    })?;
-    let bytes = agent
+    agent
         .query(&canister, method)
         .with_arg(arg)
         .call()
@@ -87,8 +112,17 @@ where
         .map_err(|error| NnsGovernanceQueryError::AgentCall {
             method,
             reason: error.to_string(),
-        })?;
-    candid::decode_one(&bytes).map_err(|error| NnsGovernanceQueryError::CandidDecode {
+        })
+}
+
+fn decode_response<Response>(
+    bytes: &[u8],
+    response_message: &'static str,
+) -> Result<Response, NnsGovernanceQueryError>
+where
+    Response: for<'de> Deserialize<'de> + CandidType,
+{
+    candid::decode_one(bytes).map_err(|error| NnsGovernanceQueryError::CandidDecode {
         message: response_message,
         reason: error.to_string(),
     })

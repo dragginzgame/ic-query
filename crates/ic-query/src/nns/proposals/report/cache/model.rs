@@ -5,8 +5,10 @@
 //! Boundary: defines complete proposal snapshot metadata, rows, and reports.
 
 use crate::{
-    nns::governance::{NnsGovernanceCacheMetadata, NnsGovernanceRefreshAttemptStatus},
-    nns::proposals::report::model::NnsProposalRow,
+    nns::{
+        NnsGovernanceRefreshAttemptStatus, governance::NnsGovernanceCacheMetadata,
+        proposals::report::model::NnsProposalRow,
+    },
     snapshot_cache::{SnapshotEnvelope, SnapshotRefreshAttempt},
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};

@@ -3,6 +3,7 @@
 #[macro_use]
 mod macros;
 mod data_center;
+mod governance;
 mod leaf;
 mod neuron;
 mod node;
@@ -30,7 +31,8 @@ use crate::{
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::{
     nns::{
-        data_center::NnsDataCenterHostError, neuron::NnsNeuronHostError, node::NnsNodeHostError,
+        data_center::NnsDataCenterHostError, governance::NnsGovernanceHostError,
+        neuron::NnsNeuronHostError, node::NnsNodeHostError,
         node_operator::NnsNodeOperatorHostError, node_provider::NnsNodeProviderHostError,
         proposals::NnsProposalHostError, registry::NnsRegistryHostError,
         topology::NnsTopologyHostError,
@@ -54,6 +56,8 @@ pub enum NnsCommandError {
     SubnetHost(#[from] SubnetCatalogHostError),
     #[error(transparent)]
     DataCenterHost(#[from] NnsDataCenterHostError),
+    #[error(transparent)]
+    GovernanceHost(#[from] NnsGovernanceHostError),
     #[error(transparent)]
     NodeHost(#[from] NnsNodeHostError),
     #[error(transparent)]
@@ -87,6 +91,7 @@ where
     match command.as_str() {
         "subnet" => subnet::run(args),
         "data-center" => data_center::run(args),
+        "governance" => governance::run(args),
         "node" => node::run(args),
         "neuron" => neuron::run(args),
         "node-provider" => node_provider::run(args),
@@ -141,6 +146,10 @@ fn nns_command() -> ClapCommand {
     let families = [
         ("subnet", "Inspect and refresh NNS subnet metadata"),
         ("data-center", "Inspect NNS data-center metadata"),
+        (
+            "governance",
+            "Inspect NNS Governance economics, metrics, and rewards",
+        ),
         ("node", "Inspect NNS node metadata"),
         ("neuron", "Inspect public NNS Governance neuron views"),
         ("node-provider", "Inspect NNS node-provider metadata"),

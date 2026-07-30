@@ -1,4 +1,4 @@
-//! Module: nns::governance
+//! Module: nns::governance::collection
 //!
 //! Responsibility: shared host contracts for complete NNS Governance collections.
 //! Does not own: proposal or neuron paging, cache paths, or report rendering.
@@ -12,7 +12,8 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// Refresh-attempt fields owned by NNS Governance collection metadata.
-pub(super) const NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS: &[&str] = &["governance_canister_id"];
+pub(in crate::nns) const NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS: &[&str] =
+    &["governance_canister_id"];
 
 ///
 /// NnsGovernanceRefreshRequest
@@ -128,21 +129,21 @@ pub struct NnsGovernanceRefreshAttemptStatus {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct NnsGovernanceCacheMetadata {
+pub(in crate::nns) struct NnsGovernanceCacheMetadata {
     /// NNS Governance canister principal.
-    pub(super) governance_canister_id: String,
+    pub(in crate::nns) governance_canister_id: String,
 }
 
 /// Construct canonical mainnet NNS Governance cache metadata.
 #[must_use]
-pub(super) fn mainnet_governance_cache_metadata() -> NnsGovernanceCacheMetadata {
+pub(in crate::nns) fn mainnet_governance_cache_metadata() -> NnsGovernanceCacheMetadata {
     NnsGovernanceCacheMetadata {
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
     }
 }
 
 /// Validate the Governance canister identity in shared cache metadata.
-pub(super) fn validate_governance_cache_metadata(
+pub(in crate::nns) fn validate_governance_cache_metadata(
     metadata: &NnsGovernanceCacheMetadata,
 ) -> Result<(), String> {
     if metadata.governance_canister_id == MAINNET_GOVERNANCE_CANISTER_ID {
@@ -156,7 +157,7 @@ pub(super) fn validate_governance_cache_metadata(
 
 /// Project a stored refresh attempt into its report-safe lifecycle fields.
 #[must_use]
-pub(super) fn governance_refresh_attempt_status<Metadata>(
+pub(in crate::nns) fn governance_refresh_attempt_status<Metadata>(
     attempt: SnapshotRefreshAttempt<Metadata>,
 ) -> NnsGovernanceRefreshAttemptStatus {
     NnsGovernanceRefreshAttemptStatus {
@@ -173,7 +174,7 @@ pub(super) fn governance_refresh_attempt_status<Metadata>(
 
 /// Recover collection progress from one stored NNS Governance attempt.
 #[must_use]
-pub(super) fn governance_refresh_progress<Metadata>(
+pub(in crate::nns) fn governance_refresh_progress<Metadata>(
     attempt: SnapshotRefreshAttempt<Metadata>,
 ) -> SnapshotRefreshProgress {
     SnapshotRefreshProgress::new(

@@ -7,6 +7,27 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.16.x] - 2026-07-30 - Native NNS Governance reports
+
+Detailed release notes: [docs/changelog/0.16.md](docs/changelog/0.16.md)
+
+- `0.16.0` adds live native NNS Governance economics, cached-metrics, latest
+  reward-event, and maturity-modulation reports. The library exposes one
+  focused `NnsGovernanceSource` capability on `LiveNnsSource`, typed public
+  payloads and errors, shared flattened query provenance, and text renderers.
+  JSON preserves current Governance fields and raw numeric values, including
+  named `key`/`value` projections for unlabeled Candid metric buckets. Every
+  entry point rejects non-mainnet networks before a source or agent call.
+  These bounded point-value reports are explicitly live-only and do not read
+  or write the proposal or neuron caches.
+
+  ```bash
+  icq nns governance economics
+  icq nns governance metrics --format json
+  icq nns governance reward-event
+  icq nns governance maturity-modulation
+  ```
+
 ## [0.15.x] - 2026-07-30 - Public NNS neuron reporting
 
 Detailed release notes: [docs/changelog/0.15.md](docs/changelog/0.15.md)

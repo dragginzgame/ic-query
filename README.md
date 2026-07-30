@@ -11,9 +11,10 @@
 `icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
 version, subnet catalog lookup, node/provider/operator/data-center inventory,
 topology reports, NNS proposals and publicly readable neuron views, deployed
-SNS reports, and ICRC ledger capabilities, token, balance, allowance, index
-discovery, ledger and account transaction history, block type, archive, and
-tip certificate reports.
+SNS reports, native NNS Governance economics, metrics, reward-event, and
+maturity-modulation reports, and ICRC ledger capabilities, token, balance,
+allowance, index discovery, ledger and account transaction history, block
+type, archive, and tip certificate reports.
 
 ## Install
 
@@ -39,7 +40,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.15", default-features = false }
+ic-query = { version = "0.16", default-features = false }
 ```
 
 Feature boundary:
@@ -57,7 +58,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.15", default-features = false, features = ["host"] }
+ic-query = { version = "0.16", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -101,6 +102,7 @@ the stability bar for 1.0. Adapter ownership and provenance rules remain in
 ```bash
 icq nns help
 icq nns registry version
+icq nns governance [economics|metrics|reward-event|maturity-modulation]
 icq nns subnet [list|info|refresh]
 icq nns node [list|info|refresh]
 icq nns node-provider [list|info|refresh]
@@ -308,6 +310,25 @@ icq sns params 1
 icq sns params 23ten-uaaaa-aaaaq-aabia-cai --format json
 ```
 
+Native NNS Governance economics, cached metrics, the latest voting reward
+event, and maturity modulation are available as direct live reports:
+
+```bash
+icq nns governance economics
+icq nns governance metrics --format json
+icq nns governance reward-event
+icq nns governance maturity-modulation
+```
+
+Each command makes one mainnet Governance query and records the Governance
+canister, source endpoint, collection timestamp, and collector. JSON preserves
+the native response fields and numeric values; unlabeled Candid metric bucket
+pairs are exposed as named `key`/`value` rows. These reports are live-only and
+do not read or write the proposal or neuron caches. The reward-event report is
+the latest event, not complete reward history. See
+[NNS Governance Economics, Metrics, and Rewards](docs/design/nns-governance-reporting.md)
+for the authority, provenance, and cache contract.
+
 NNS governance proposals can be queried from the mainnet NNS governance
 canister. Without a complete local snapshot, list views are bounded live
 queries; status filters are sent to governance where supported, topic filters
@@ -477,6 +498,8 @@ The command namespace is intentionally small:
   Governance neuron views.
 - `nns neuron refresh` atomically caches a complete ordered public neuron-index
   walk, and `nns neuron cache status` inspects it without a live call.
+- `nns governance economics|metrics|reward-event|maturity-modulation` exposes
+  focused live reports from the native mainnet Governance canister.
 - `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
   `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
   instances.

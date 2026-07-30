@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.15", default-features = false, features = ["host"] }
+ic-query = { version = "0.16", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.15", default-features = false }
+ic-query = { version = "0.16", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -61,6 +61,7 @@ The CLI module layout is intentionally mirrored at the family level:
 - `icq icrc ...` maps to `ic_query::icrc`.
 - `icq nns proposal ...` maps to `ic_query::nns::proposals`.
 - `icq nns neuron ...` maps to `ic_query::nns::neuron`.
+- `icq nns governance ...` maps to `ic_query::nns::governance`.
 - `icq nns subnet ...` maps to `ic_query::subnet_catalog`.
 - `icq nns node ...`, `data-center`, `node-provider`, and `node-operator` map
   to the matching `ic_query::nns::*` modules.
@@ -78,9 +79,11 @@ inventory families share the `NnsInventory*Request` contracts; SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts
 plus `SnsRefreshAttemptStatus`; complete NNS Governance proposal and neuron
 collections share `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
-and `NnsGovernanceRefreshAttemptStatus`; simple ledger-wide ICRC metadata and
-capability builders share `IcrcLedgerRequest`. There are no per-report aliases
-for those canonical types.
+and `NnsGovernanceRefreshAttemptStatus`; direct NNS Governance point-value
+reports share `NnsSourceRequest` and one `NnsGovernanceSource` capability;
+simple ledger-wide ICRC metadata and capability builders share
+`IcrcLedgerRequest`. There are no per-report aliases for those canonical
+types.
 The examples below are covered by the `downstream_usage` integration test.
 
 ## Source Adapters
@@ -95,7 +98,7 @@ pattern with narrow ICRC capabilities such as `IcrcTokenSource`,
 `build_icrc_*_report_with_source`,
 `SubnetCatalogSource`, subnet catalog `*_with_source` builders,
 `NnsRegistrySource`, the NNS inventory source traits, `NnsProposalSource`,
-`NnsNeuronSource`,
+`NnsNeuronSource`, `NnsGovernanceSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
 `SnsListSource`,

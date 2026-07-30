@@ -13,6 +13,15 @@ use ic_query::nns::data_center::{
     nns_data_center_info_report_text, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text,
 };
+use ic_query::nns::governance::{
+    DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceEconomics,
+    NnsGovernanceMaturityModulation, NnsGovernanceMaturityModulationReport,
+    NnsGovernanceReportContext, nns_governance_maturity_modulation_report_text,
+};
+#[cfg(feature = "host")]
+use ic_query::nns::governance::{
+    NnsGovernanceHostError, NnsGovernanceSource, build_nns_governance_economics_report_with_source,
+};
 #[cfg(feature = "host")]
 use ic_query::nns::neuron::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsNeuronHostError, NnsNeuronInfoRequest, NnsNeuronPage,
@@ -167,6 +176,92 @@ fn public_nns_governance_collection_contracts_are_shared() {
             ..
         })
     ));
+}
+
+#[test]
+fn public_nns_governance_report_api_is_constructible_and_renderable() {
+    let report = NnsGovernanceMaturityModulationReport {
+        context: NnsGovernanceReportContext {
+            schema_version: 1,
+            network: "ic".to_string(),
+            governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+            fetched_at: "2026-07-30T00:00:00Z".to_string(),
+            source_endpoint: DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT.to_string(),
+            fetched_by: "fixture".to_string(),
+        },
+        maturity_modulation: Some(NnsGovernanceMaturityModulation {
+            current_value_permyriad: Some(-125),
+            updated_at_timestamp_seconds: Some(1_700_000_000),
+        }),
+    };
+
+    let text = nns_governance_maturity_modulation_report_text(&report);
+    assert!(text.contains("current_value_permyriad: -125"));
+    let json = serde_json::to_value(report).expect("serialize public report");
+    assert_eq!(json["network"], "ic");
+    assert_eq!(json["maturity_modulation"]["current_value_permyriad"], -125);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_nns_governance_host_api_accepts_custom_source() {
+    let request = NnsSourceRequest::from_unix_secs(
+        "ic",
+        DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT,
+        1_700_000_000,
+        "fixture",
+    );
+    let report =
+        build_nns_governance_economics_report_with_source(&request, &FixtureGovernanceSource)
+            .expect("custom Governance source");
+
+    assert_eq!(report.economics.transaction_fee_e8s, 10_000);
+    assert_eq!(report.context.fetched_at, "2023-11-14T22:13:20Z");
+}
+
+#[cfg(feature = "host")]
+struct FixtureGovernanceSource;
+
+#[cfg(feature = "host")]
+impl NnsGovernanceSource for FixtureGovernanceSource {
+    fn fetch_economics(
+        &self,
+        _request: &NnsSourceRequest,
+    ) -> Result<NnsGovernanceEconomics, NnsGovernanceHostError> {
+        Ok(NnsGovernanceEconomics {
+            neuron_minimum_stake_e8s: 100_000_000,
+            max_proposals_to_keep_per_topic: 100,
+            neuron_management_fee_per_proposal_e8s: 10_000,
+            reject_cost_e8s: 1_000_000_000,
+            transaction_fee_e8s: 10_000,
+            neuron_spawn_dissolve_delay_seconds: 604_800,
+            minimum_icp_xdr_rate: 100,
+            maximum_node_provider_rewards_e8s: 200_000_000,
+            neurons_fund_economics: None,
+            voting_power_economics: None,
+        })
+    }
+
+    fn fetch_metrics(
+        &self,
+        _request: &NnsSourceRequest,
+    ) -> Result<ic_query::nns::governance::NnsGovernanceMetrics, NnsGovernanceHostError> {
+        unreachable!("not used by this public API fixture")
+    }
+
+    fn fetch_reward_event(
+        &self,
+        _request: &NnsSourceRequest,
+    ) -> Result<ic_query::nns::governance::NnsGovernanceRewardEvent, NnsGovernanceHostError> {
+        unreachable!("not used by this public API fixture")
+    }
+
+    fn fetch_maturity_modulation(
+        &self,
+        _request: &NnsSourceRequest,
+    ) -> Result<Option<NnsGovernanceMaturityModulation>, NnsGovernanceHostError> {
+        unreachable!("not used by this public API fixture")
+    }
 }
 
 #[test]

@@ -4,8 +4,7 @@
 #[macro_use]
 mod macros;
 pub mod data_center;
-#[cfg(feature = "host")]
-mod governance;
+pub mod governance;
 #[cfg(feature = "host")]
 mod governance_query;
 mod inventory_request;
@@ -23,7 +22,7 @@ pub(crate) mod source;
 pub mod topology;
 
 #[cfg(feature = "host")]
-pub use governance::{
+pub use governance::collection::{
     NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus, NnsGovernanceRefreshRequest,
 };
 #[cfg(feature = "host")]

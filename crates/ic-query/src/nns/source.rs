@@ -4,7 +4,10 @@
 //! Does not own: source capability traits, report projection, or cache policy.
 //! Boundary: one adapter implements the capability traits owned by each NNS report family.
 
-use crate::{ic_registry::MainnetRegistryFetchRequest, network::enforce_mainnet_network_with};
+use crate::{
+    ic_registry::MainnetRegistryFetchRequest, network::enforce_mainnet_network_with,
+    subnet_catalog::format_utc_timestamp_secs,
+};
 
 ///
 /// LiveNnsSource
@@ -48,6 +51,22 @@ impl NnsSourceRequest {
             fetched_at: fetched_at.into(),
             fetched_by: fetched_by.into(),
         }
+    }
+
+    /// Create source settings from a Unix collection timestamp.
+    #[must_use]
+    pub fn from_unix_secs(
+        network: impl Into<String>,
+        endpoint: impl Into<String>,
+        fetched_at_unix_secs: u64,
+        fetched_by: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            network,
+            endpoint,
+            format_utc_timestamp_secs(fetched_at_unix_secs),
+            fetched_by,
+        )
     }
 }
 

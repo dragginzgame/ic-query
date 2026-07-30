@@ -34,7 +34,10 @@ rendering. Complete NNS Governance proposal and neuron collections share
 `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 `NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceQueryError`, while each
 capability retains its own page validation, cache identity, report, and
-renderer.
+renderer. Direct Governance economics, metrics, latest reward-event, and
+maturity-modulation reports share one `NnsGovernanceSource` capability and the
+same `NnsSourceRequest`; they remain live point-value reports rather than
+creating another complete-collection cache.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report.
@@ -67,6 +70,10 @@ without creating a concrete live-source type for every report.
   stable collection version, so this evidence explicitly carries no
   point-in-time guarantee. List/detail reads prefer that snapshot and use
   bounded native Governance calls when it cannot satisfy the request.
+- NNS Governance economics, cached metrics, latest reward event, and maturity
+  modulation each preserve one native canister response plus endpoint and
+  collection provenance. They do not inherit Registry versions or claim
+  reward-history completeness.
 - ICRC block collection can follow ledger-supplied archive callbacks.
 - ICRC tip-certificate collection authenticates the certificate and proves the
   ledger tip witness against the canister's certified-data value.
@@ -100,7 +107,7 @@ Expansion should proceed in layers:
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
 | 1 | Fuller SNS neuron state, SNS root inventory, and health | Extend the relevant SNS capability traits on `LiveSnsSource` |
-| 1 | NNS economics, rewards, delegation, and governance metrics beyond the implemented public neuron views | Extend focused NNS capability traits on `LiveNnsSource` |
+| 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Canister, boundary-node, replica-version, and network metrics | Add an official Dashboard family adapter with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |
 | 3 | CMC/XDR, Internet Identity, Bitcoin, and other protocol-canister reports | Add one authority-family adapter only when multiple coherent reports justify it |
