@@ -11,6 +11,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.17.md](docs/changelog/0.17.md)
 
+- `0.17.1` hardens live and custom-source boundaries. Malformed or non-HTTP(S)
+  endpoints now return typed agent-build errors instead of reaching
+  `ic-agent` parser panics, and the global mainnet option is forwarded
+  consistently to every NNS and SNS command family. ICRC account-transaction
+  pages, SNS discovery and Root inventory, and NNS Registry version results
+  now validate returned identity, provenance, limits, ordering, and authority
+  claims before projection. Duplicate SNS health summaries no longer select
+  status by response order. Complete NNS Governance, SNS Governance, and ICRC
+  index caches reject unknown or duplicate top-level fields and impossible
+  point-in-time claims. This is a pre-1.0 Rust-API and cache-validation hard
+  cut: new typed error variants are added, previously tolerated invalid custom
+  results and extra cache fields are rejected, and no compatibility path is
+  retained.
+
+  ```bash
+  icq --network ic nns governance economics
+  icq --network ic nns neuron list --limit 25
+  icq --network ic sns canister list 1
+  ```
+
 - `0.17.0` adds `SnsCanisterSource` on the existing `LiveSnsSource` and a
   typed live SNS Root inventory and operational-health report. Root's
   `list_sns_canisters` query remains the membership authority; the health
