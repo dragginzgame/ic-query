@@ -52,6 +52,11 @@ without creating a concrete live-source type for every report.
 - SNS discovery follows SNS-W results with per-SNS metadata calls.
 - NNS and SNS complete collections page until exhausted.
 - ICRC block collection can follow ledger-supplied archive callbacks.
+- ICRC account history resolves an index through ICRC-106 or an explicit
+  canister id, verifies the index's ledger identity, and paginates backward
+  with an exclusive transaction-id cursor. The same capability decodes the
+  official generic index-ng and deployed ICP index interfaces without
+  conflating structured ICRC accounts with ICP account identifiers.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -66,7 +71,7 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | ICRC index account history and verified tip certificates | Extend `IcrcSource`; preserve ledger/index identity separately |
+| 1 | Verified ICRC tip certificates and complete account-history caching | Extend the focused ICRC capabilities; preserve ledger/index identity separately |
 | 1 | Fuller SNS neuron state, SNS root inventory, and health | Extend the relevant SNS capability traits on `LiveSnsSource` |
 | 1 | NNS neuron, economics, rewards, and governance metrics | Add focused NNS capability traits on `LiveNnsSource` |
 | 2 | Canister, boundary-node, replica-version, and network metrics | Add an official Dashboard family adapter with API endpoint/timestamp provenance |

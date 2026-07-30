@@ -11,6 +11,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.13.md](docs/changelog/0.13.md)
 
+- `0.13.1` adds typed, live ICRC index account-history queries. The command
+  discovers the index through ICRC-106 unless one is supplied, verifies the
+  index reports the requested ledger, preserves ledger/index/account/endpoint
+  provenance and the full typed transaction payload in JSON, and exposes an
+  exclusive backward-pagination cursor. It supports both generic index-ng and
+  the deployed ICP index interface. Account-history caching remains a roadmap
+  item.
+
+  ```bash
+  icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --limit 25
+  icq icrc account transactions ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai --format json
+  ```
+
 - `0.13.0` makes the roadmap command hierarchy current: SNS governance uses
   singular `proposal` and `neuron` families with explicit operations, while
   generic ICRC queries are separated into ledger-wide and account-scoped

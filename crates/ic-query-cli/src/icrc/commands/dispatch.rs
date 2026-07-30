@@ -5,9 +5,10 @@
 //! Boundary: converts command options to public requests and writes one report.
 
 use super::{
-    IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
-    IcrcTransactionsOptions, icrc_account_command, icrc_account_usage, icrc_allowance_usage,
-    icrc_archives_usage, icrc_balance_usage, icrc_block_types_command, icrc_block_types_usage,
+    IcrcAccountTransactionsOptions, IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions,
+    IcrcLedgerOptions, IcrcTransactionsOptions, icrc_account_command,
+    icrc_account_transactions_usage, icrc_account_usage, icrc_allowance_usage, icrc_archives_usage,
+    icrc_balance_usage, icrc_block_types_command, icrc_block_types_usage,
     icrc_capabilities_command, icrc_capabilities_usage, icrc_command, icrc_index_command,
     icrc_index_usage, icrc_ledger_command, icrc_ledger_usage, icrc_tip_certificate_command,
     icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage, icrc_transactions_usage,
@@ -23,12 +24,13 @@ use crate::{
     version_text,
 };
 use ic_query::icrc::{
-    IcrcAllowanceRequest, IcrcArchivesRequest, IcrcBalanceRequest, IcrcBlockTypesRequest,
-    IcrcCapabilitiesRequest, IcrcIndexRequest, IcrcTipCertificateRequest, IcrcTokenRequest,
-    IcrcTransactionsRequest, build_icrc_allowance_report, build_icrc_archives_report,
-    build_icrc_balance_report, build_icrc_block_types_report, build_icrc_capabilities_report,
-    build_icrc_index_report, build_icrc_tip_certificate_report, build_icrc_token_report,
-    build_icrc_transactions_report, icrc_allowance_report_text, icrc_archives_report_text,
+    IcrcAccountTransactionsRequest, IcrcAllowanceRequest, IcrcArchivesRequest, IcrcBalanceRequest,
+    IcrcBlockTypesRequest, IcrcCapabilitiesRequest, IcrcIndexRequest, IcrcTipCertificateRequest,
+    IcrcTokenRequest, IcrcTransactionsRequest, build_icrc_account_transactions_report,
+    build_icrc_allowance_report, build_icrc_archives_report, build_icrc_balance_report,
+    build_icrc_block_types_report, build_icrc_capabilities_report, build_icrc_index_report,
+    build_icrc_tip_certificate_report, build_icrc_token_report, build_icrc_transactions_report,
+    icrc_account_transactions_report_text, icrc_allowance_report_text, icrc_archives_report_text,
     icrc_balance_report_text, icrc_block_types_report_text, icrc_capabilities_report_text,
     icrc_index_report_text, icrc_tip_certificate_report_text, icrc_token_report_text,
     icrc_transactions_report_text,
@@ -89,6 +91,7 @@ where
     match command.as_str() {
         "balance" => run_icrc_balance(args),
         "allowance" => run_icrc_allowance(args),
+        "transactions" => run_icrc_account_transactions(args),
         _ => unreachable!("ICRC account command only defines known subcommands"),
     }
 }
@@ -153,6 +156,36 @@ where
     };
     let report = build_icrc_allowance_report(&request)?;
     write_text_or_json(options.format, &report, icrc_allowance_report_text)
+}
+
+fn run_icrc_account_transactions<I>(args: I) -> Result<(), IcrcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = collect_args_or_print_help_or_version(
+        args,
+        icrc_account_transactions_usage,
+        version_text(),
+    ) else {
+        return Ok(());
+    };
+    let options = IcrcAccountTransactionsOptions::parse(args)?;
+    let request = IcrcAccountTransactionsRequest {
+        source_endpoint: options.source_endpoint,
+        now_unix_secs: current_unix_secs()?,
+        ledger_canister_id: options.ledger_canister_id,
+        index_canister_id: options.index_canister_id,
+        account_owner: options.account_owner,
+        subaccount_hex: options.subaccount_hex,
+        start: options.start,
+        limit: options.limit,
+    };
+    let report = build_icrc_account_transactions_report(&request)?;
+    write_text_or_json(
+        options.format,
+        &report,
+        icrc_account_transactions_report_text,
+    )
 }
 
 fn run_icrc_index<I>(args: I) -> Result<(), IcrcCommandError>

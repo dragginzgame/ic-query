@@ -398,6 +398,7 @@ Run `icq <command> help` for command-specific help.
             &["icrc", "account", "help"],
             &["icrc", "account", "balance", "help"],
             &["icrc", "account", "allowance", "help"],
+            &["icrc", "account", "transactions", "help"],
             &["icrc", "ledger", "index", "help"],
             &["nns", "help"][..],
             &["nns", "data-center", "help"],

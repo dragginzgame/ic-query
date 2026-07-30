@@ -131,6 +131,76 @@ impl IcrcAllowanceRequest {
 }
 
 ///
+/// IcrcAccountTransactionsRequest
+///
+/// Request accepted by the generic ICRC index account-transaction report builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcrcAccountTransactionsRequest {
+    /// IC API endpoint used for ledger and index queries.
+    pub source_endpoint: String,
+    /// Collection time as Unix seconds.
+    pub now_unix_secs: u64,
+    /// Ledger canister whose account history is requested.
+    pub ledger_canister_id: String,
+    /// Optional explicit index canister; otherwise ICRC-106 discovery is used.
+    pub index_canister_id: Option<String>,
+    /// Account owner principal.
+    pub account_owner: String,
+    /// Optional normalized 32-byte subaccount hex.
+    pub subaccount_hex: Option<String>,
+    /// Optional exclusive block-index cursor for backward pagination.
+    pub start: Option<u64>,
+    /// Maximum number of account transactions to request.
+    pub limit: u32,
+}
+
+impl IcrcAccountTransactionsRequest {
+    /// Constructs an account-history request that discovers the index through the ledger.
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+        account_owner: impl Into<String>,
+        limit: u32,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+            index_canister_id: None,
+            account_owner: account_owner.into(),
+            subaccount_hex: None,
+            start: None,
+            limit,
+        }
+    }
+
+    /// Uses an explicit index canister instead of ICRC-106 discovery.
+    #[must_use]
+    pub fn with_index_canister_id(mut self, index_canister_id: impl Into<String>) -> Self {
+        self.index_canister_id = Some(index_canister_id.into());
+        self
+    }
+
+    /// Selects a 32-byte ICRC subaccount encoded as hex.
+    #[must_use]
+    pub fn with_subaccount_hex(mut self, subaccount_hex: impl Into<String>) -> Self {
+        self.subaccount_hex = Some(subaccount_hex.into());
+        self
+    }
+
+    /// Starts after the given transaction block index when paginating backward.
+    #[must_use]
+    pub const fn with_start(mut self, start: u64) -> Self {
+        self.start = Some(start);
+        self
+    }
+}
+
+///
 /// IcrcIndexRequest
 ///
 /// Request accepted by the generic ICRC index discovery report builder.
@@ -388,6 +458,48 @@ pub struct IcrcAllowanceReport {
 }
 
 ///
+/// IcrcAccountTransactionsReport
+///
+/// Serializable report for a backward page of ICRC index account transactions.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionsReport {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Ledger canister whose transactions were indexed.
+    pub ledger_canister_id: String,
+    /// Index canister that answered the account-history query.
+    pub index_canister_id: String,
+    /// Queried account owner principal.
+    pub account_owner: String,
+    /// Queried subaccount as normalized hex.
+    pub subaccount_hex: Option<String>,
+    /// Exclusive block-index cursor supplied by the caller.
+    pub requested_start: Option<String>,
+    /// Maximum number of transactions requested.
+    pub requested_limit: u32,
+    /// Cursor to pass as `start` to request the next older page.
+    pub next_start: Option<String>,
+    /// Oldest transaction id known for this account.
+    pub oldest_transaction_id: Option<String>,
+    /// Account balance reported by the index at its synchronized tip.
+    pub balance: String,
+    /// Ledger token symbol used for text rendering.
+    pub token_symbol: String,
+    /// Ledger token decimals used for text rendering.
+    pub decimals: u8,
+    /// Collection timestamp in UTC text form.
+    pub fetched_at: String,
+    /// IC API endpoint used for ledger and index calls.
+    pub source_endpoint: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Transactions returned by the index in its native page order.
+    pub transactions: Vec<IcrcAccountTransactionRow>,
+}
+
+///
 /// IcrcIndexReport
 ///
 /// Serializable report for one generic ICRC-106 index discovery lookup.
@@ -535,6 +647,58 @@ pub struct IcrcTokenMetadataRow {
     pub key: String,
     pub value_type: String,
     pub value: JsonValue,
+}
+
+///
+/// IcrcAccountRow
+///
+/// Serializable ICRC account identity used in account-transaction rows.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountRow {
+    /// ICRC account owner principal when the index uses structured accounts.
+    pub owner: Option<String>,
+    /// Optional 32-byte subaccount as lowercase hex.
+    pub subaccount_hex: Option<String>,
+    /// Legacy ICP account identifier when the index returns identifier text.
+    pub account_identifier: Option<String>,
+}
+
+///
+/// IcrcAccountTransactionRow
+///
+/// Serializable projected and lossless JSON representation of one index transaction.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionRow {
+    /// Ledger block index of the transaction.
+    pub id: String,
+    /// Index-reported transaction kind.
+    pub kind: String,
+    /// Ledger transaction timestamp as Unix nanoseconds when present.
+    pub timestamp_unix_nanos: Option<String>,
+    /// Operation amount in ledger base units when the operation carries one.
+    pub amount_base_units: Option<String>,
+    /// Operation fee in ledger base units when the operation carries one.
+    pub fee_base_units: Option<String>,
+    /// Source account when present.
+    pub from: Option<IcrcAccountRow>,
+    /// Destination account when present.
+    pub to: Option<IcrcAccountRow>,
+    /// Spender account when present.
+    pub spender: Option<IcrcAccountRow>,
+    /// Operation memo as lowercase hex when present.
+    pub memo_hex: Option<String>,
+    /// Caller-supplied creation time as Unix nanoseconds when present.
+    pub created_at_time_unix_nanos: Option<String>,
+    /// Approval expiry as Unix nanoseconds when present.
+    pub expires_at_unix_nanos: Option<String>,
+    /// Expected prior allowance in base units when present.
+    pub expected_allowance_base_units: Option<String>,
+    /// Lossless JSON projection of every typed transaction field returned by the index.
+    pub raw_transaction: JsonValue,
 }
 
 ///

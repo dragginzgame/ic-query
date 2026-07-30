@@ -401,8 +401,23 @@ where
     E: IcrcLedgerError,
     Response: for<'de> Deserialize<'de> + CandidType,
 {
+    let bytes = query_ledger_arg_bytes(agent, ledger_canister, method, arg).await?;
+    candid::decode_one(&bytes).map_err(|err| E::candid_decode(method, err.to_string()))
+}
+
+/// Queries one Candid method while leaving response decoding to the caller.
+pub async fn query_ledger_arg_bytes<Arg, E>(
+    agent: &Agent,
+    ledger_canister: &Principal,
+    method: &'static str,
+    arg: &Arg,
+) -> Result<Vec<u8>, E>
+where
+    Arg: CandidType + Sync,
+    E: IcrcLedgerError,
+{
     let arg = candid::encode_one(arg).map_err(|err| E::candid_encode(method, err.to_string()))?;
-    query_encoded(agent, ledger_canister, method, arg).await
+    query_encoded_bytes(agent, ledger_canister, method, arg).await
 }
 
 pub fn metadata_row(key: String, value: IcrcMetadataValue) -> IcrcLedgerMetadataRow {
@@ -440,11 +455,23 @@ where
     E: IcrcLedgerError,
     T: for<'de> Deserialize<'de> + CandidType,
 {
-    let bytes = agent
+    let bytes = query_encoded_bytes(agent, ledger_canister, method, arg).await?;
+    candid::decode_one(&bytes).map_err(|err| E::candid_decode(method, err.to_string()))
+}
+
+async fn query_encoded_bytes<E>(
+    agent: &Agent,
+    ledger_canister: &Principal,
+    method: &'static str,
+    arg: Vec<u8>,
+) -> Result<Vec<u8>, E>
+where
+    E: IcrcLedgerError,
+{
+    agent
         .query(ledger_canister, method)
         .with_arg(arg)
         .call()
         .await
-        .map_err(|err| E::agent_call(method, err.to_string()))?;
-    candid::decode_one(&bytes).map_err(|err| E::candid_decode(method, err.to_string()))
+        .map_err(|err| E::agent_call(method, err.to_string()))
 }

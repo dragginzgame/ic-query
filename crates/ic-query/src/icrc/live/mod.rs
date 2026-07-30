@@ -4,11 +4,13 @@
 //! Does not own: command parsing, text rendering, or cache behavior.
 //! Boundary: keeps report assembly, source adaptation, and host calls in separate owners.
 
+mod account_transactions;
 mod build;
 mod fetch;
 mod source;
 
 pub use build::{
+    build_icrc_account_transactions_report, build_icrc_account_transactions_report_with_source,
     build_icrc_allowance_report, build_icrc_allowance_report_with_source,
     build_icrc_archives_report, build_icrc_archives_report_with_source, build_icrc_balance_report,
     build_icrc_balance_report_with_source, build_icrc_block_types_report,
@@ -19,13 +21,14 @@ pub use build::{
     build_icrc_token_report_with_source, build_icrc_transactions_report,
     build_icrc_transactions_report_with_source,
 };
-pub use source::{IcrcSource, LiveIcrcSource};
+pub use source::{IcrcAccountTransactionsSource, IcrcSource, LiveIcrcSource};
 
 use crate::icrc::{ledger::IcrcLedgerError, model::IcrcError};
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(in crate::icrc) const ICRC_ACCOUNT_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_INDEX_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION: u32 = 1;

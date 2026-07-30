@@ -5,9 +5,9 @@
 //! Boundary: carries raw source results into report assembly without display conversion.
 
 use super::contracts::{
-    IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcBlockTypeRow,
-    IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcTokenMetadataRow, IcrcTokenStandardRow,
-    IcrcTransactionBlockRow,
+    IcrcAccountTransactionRow, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
+    IcrcBlockTypeRow, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcTokenMetadataRow,
+    IcrcTokenStandardRow, IcrcTransactionBlockRow,
 };
 
 ///
@@ -54,6 +54,30 @@ pub struct IcrcAllowanceData {
     pub decimals: u8,
     pub allowance: String,
     pub expires_at_unix_nanos: Option<String>,
+}
+
+///
+/// IcrcAccountTransactionsData
+///
+/// Source-layer account-history page returned by an ICRC index canister.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcrcAccountTransactionsData {
+    /// Index canister that answered the query.
+    pub index_canister_id: String,
+    /// Account balance reported by the index.
+    pub balance: String,
+    /// Oldest transaction id known for the account.
+    pub oldest_transaction_id: Option<String>,
+    /// Cursor for requesting the next older page.
+    pub next_start: Option<String>,
+    /// Ledger token symbol.
+    pub token_symbol: String,
+    /// Ledger token decimals.
+    pub decimals: u8,
+    /// Account transactions in index response order.
+    pub transactions: Vec<IcrcAccountTransactionRow>,
 }
 
 ///

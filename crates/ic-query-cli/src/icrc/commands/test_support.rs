@@ -5,12 +5,13 @@
 //! Boundary: keeps test-only access out of the production command surface.
 
 use super::{
-    IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
-    IcrcTransactionsOptions, icrc_account_usage, icrc_allowance_usage, icrc_archives_usage,
-    icrc_balance_usage, icrc_block_types_command, icrc_block_types_usage,
-    icrc_capabilities_command, icrc_capabilities_usage, icrc_index_command, icrc_index_usage,
-    icrc_ledger_usage, icrc_tip_certificate_command, icrc_tip_certificate_usage,
-    icrc_token_command, icrc_token_usage, icrc_transactions_usage, usage,
+    IcrcAccountTransactionsOptions, IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions,
+    IcrcLedgerOptions, IcrcTransactionsOptions, icrc_account_transactions_usage,
+    icrc_account_usage, icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage,
+    icrc_block_types_command, icrc_block_types_usage, icrc_capabilities_command,
+    icrc_capabilities_usage, icrc_index_command, icrc_index_usage, icrc_ledger_usage,
+    icrc_tip_certificate_command, icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage,
+    icrc_transactions_usage, usage,
 };
 
 pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcLedgerOptions {
@@ -39,6 +40,13 @@ pub(in crate::icrc) fn parse_balance_options(args: &[&str]) -> IcrcBalanceOption
 pub(in crate::icrc) fn parse_allowance_options(args: &[&str]) -> IcrcAllowanceOptions {
     IcrcAllowanceOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
         .expect("parse ICRC allowance options")
+}
+
+pub(in crate::icrc) fn parse_account_transactions_options(
+    args: &[&str],
+) -> IcrcAccountTransactionsOptions {
+    IcrcAccountTransactionsOptions::parse(args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC account transactions options")
 }
 
 pub(in crate::icrc) fn parse_index_options(args: &[&str]) -> IcrcLedgerOptions {
@@ -118,6 +126,10 @@ pub(in crate::icrc) fn balance_usage() -> String {
 
 pub(in crate::icrc) fn allowance_usage() -> String {
     icrc_allowance_usage()
+}
+
+pub(in crate::icrc) fn account_transactions_usage() -> String {
+    icrc_account_transactions_usage()
 }
 
 pub(in crate::icrc) fn index_usage() -> String {

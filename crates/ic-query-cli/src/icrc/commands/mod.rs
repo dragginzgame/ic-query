@@ -11,8 +11,8 @@ pub(in crate::icrc) mod test_support;
 
 pub use dispatch::run;
 use options::{
-    IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
-    IcrcTransactionsOptions,
+    IcrcAccountTransactionsOptions, IcrcAllowanceOptions, IcrcArchivesOptions, IcrcBalanceOptions,
+    IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 
 use crate::cli::{
@@ -33,6 +33,7 @@ use ic_query::icrc::{DEFAULT_ICRC_SOURCE_ENDPOINT, normalize_subaccount_hex};
 const DEFAULT_ICRC_TRANSACTIONS_LIMIT: &str = "25";
 const MAX_ICRC_TRANSACTIONS_LIMIT: u64 = 100;
 const LEDGER_CANISTER_ID_ARG: &str = "ledger-canister-id";
+const INDEX_CANISTER_ID_ARG: &str = "index-canister-id";
 const PRINCIPAL_ARG: &str = "principal";
 const OWNER_PRINCIPAL_ARG: &str = "owner-principal";
 const SPENDER_PRINCIPAL_ARG: &str = "spender-principal";
@@ -55,9 +56,9 @@ fn icrc_command() -> ClapCommand {
         .subcommand(passthrough_subcommand(
             ClapCommand::new("ledger").about("Inspect ledger-wide ICRC metadata and transactions"),
         ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("account").about("Inspect ICRC account balances and allowances"),
-        ))
+        .subcommand(passthrough_subcommand(ClapCommand::new("account").about(
+            "Inspect ICRC account balances, allowances, and transaction history",
+        )))
 }
 
 fn icrc_ledger_command() -> ClapCommand {
@@ -96,13 +97,17 @@ fn icrc_ledger_command() -> ClapCommand {
 fn icrc_account_command() -> ClapCommand {
     ClapCommand::new("account")
         .bin_name("icq icrc account")
-        .about("Inspect ICRC account balances and allowances")
+        .about("Inspect ICRC account balances, allowances, and transaction history")
         .disable_help_flag(true)
         .subcommand(passthrough_subcommand(
             ClapCommand::new("balance").about("Show a generic ICRC account balance"),
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("allowance").about("Show a generic ICRC account allowance"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("transactions")
+                .about("Show an ICRC account transaction-history page from its index"),
         ))
 }
 
@@ -168,6 +173,48 @@ fn icrc_allowance_command() -> ClapCommand {
             SPENDER_SUBACCOUNT_ARG,
             "Optional 32-byte spender account subaccount as hex",
         ));
+    with_common_icrc_options(command)
+}
+
+fn icrc_account_transactions_command() -> ClapCommand {
+    let command = ClapCommand::new("transactions")
+        .bin_name("icq icrc account transactions")
+        .about("Show an ICRC account transaction-history page from its index")
+        .after_help(collection_help(
+            COLLECTION_MODE_LIVE,
+            "Examples:\n  icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 100 --limit 25 --format json\n  icq icrc account transactions ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai",
+        ))
+        .disable_help_flag(true)
+        .arg(ledger_canister_id_arg())
+        .arg(principal_arg(PRINCIPAL_ARG, "Account owner principal"))
+        .arg(subaccount_arg(
+            SUBACCOUNT_ARG,
+            "Optional 32-byte ICRC subaccount as hex",
+        ))
+        .arg(
+            value_arg(INDEX_CANISTER_ID_ARG)
+                .long(INDEX_CANISTER_ID_ARG)
+                .value_name("canister-id")
+                .value_parser(principal_text_value_parser())
+                .help("Explicit index canister; otherwise discover it from the ledger via ICRC-106"),
+        )
+        .arg(
+            value_arg(START_ARG)
+                .long(START_ARG)
+                .value_name("block-index")
+                .value_parser(clap::value_parser!(u64))
+                .help("Exclusive transaction id cursor returned as next_start by the prior page"),
+        )
+        .arg(
+            value_arg(LIMIT_ARG)
+                .long(LIMIT_ARG)
+                .value_name("count")
+                .default_value(DEFAULT_ICRC_TRANSACTIONS_LIMIT)
+                .value_parser(
+                    RangedU64ValueParser::<u32>::new().range(1..=MAX_ICRC_TRANSACTIONS_LIMIT),
+                )
+                .help("Maximum account transactions to request from the index"),
+        );
     with_common_icrc_options(command)
 }
 
@@ -295,6 +342,10 @@ fn icrc_balance_usage() -> String {
 
 fn icrc_allowance_usage() -> String {
     render_help(icrc_allowance_command())
+}
+
+fn icrc_account_transactions_usage() -> String {
+    render_help(icrc_account_transactions_command())
 }
 
 fn icrc_index_usage() -> String {

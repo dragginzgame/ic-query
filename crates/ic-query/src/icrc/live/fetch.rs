@@ -123,12 +123,7 @@ pub(super) async fn fetch_index_async(
 ) -> Result<IcrcIndexData, IcrcError> {
     let (agent, ledger_canister) =
         live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
-    let result = query_ledger::<GetIndexPrincipalResult, IcrcError>(
-        &agent,
-        &ledger_canister,
-        ICRC106_GET_INDEX_PRINCIPAL_METHOD,
-    )
-    .await?;
+    let result = query_index_principal(&agent, &ledger_canister).await?;
 
     Ok(match result {
         GetIndexPrincipalResult::Ok(principal) => IcrcIndexData {
@@ -318,13 +313,7 @@ pub(super) async fn fetch_capabilities_async(
 }
 
 async fn fetch_index_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
-    match query_ledger::<GetIndexPrincipalResult, IcrcError>(
-        agent,
-        ledger_canister,
-        ICRC106_GET_INDEX_PRINCIPAL_METHOD,
-    )
-    .await
-    {
+    match query_index_principal(agent, ledger_canister).await {
         Ok(GetIndexPrincipalResult::Ok(principal)) => available_capability_row(
             "ICRC-106 index discovery",
             ICRC106_GET_INDEX_PRINCIPAL_METHOD,
@@ -456,7 +445,19 @@ async fn fetch_tip_certificate_capability(
     }
 }
 
-fn live_query_context(
+pub(super) async fn query_index_principal(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> Result<GetIndexPrincipalResult, IcrcError> {
+    query_ledger::<GetIndexPrincipalResult, IcrcError>(
+        agent,
+        ledger_canister,
+        ICRC106_GET_INDEX_PRINCIPAL_METHOD,
+    )
+    .await
+}
+
+pub(super) fn live_query_context(
     source_endpoint: &str,
     ledger_canister_id: &str,
 ) -> Result<(Agent, Principal), IcrcError> {
@@ -466,7 +467,7 @@ fn live_query_context(
     ))
 }
 
-async fn query_token_display_fields(
+pub(super) async fn query_token_display_fields(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> Result<(String, u8), IcrcError> {
@@ -477,7 +478,7 @@ async fn query_token_display_fields(
     Ok((token_symbol, decimals))
 }
 
-fn account_from_parts(
+pub(super) fn account_from_parts(
     owner: &str,
     subaccount_hex: Option<&str>,
     owner_field: &'static str,

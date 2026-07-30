@@ -11,8 +11,8 @@
 `icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
 version, subnet catalog lookup, node/provider/operator/data-center inventory,
 topology reports, deployed SNS reports, and ICRC ledger capabilities, token,
-balance, allowance, index, transaction history, block type, archive, and tip
-certificate reports.
+balance, allowance, index discovery, ledger and account transaction history,
+block type, archive, and tip certificate reports.
 
 ## Install
 
@@ -108,7 +108,7 @@ icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq icrc ledger [capabilities|token|index|transactions|block-types|archives|tip-certificate]
-icq icrc account [balance|allowance]
+icq icrc account [balance|allowance|transactions]
 icq sns [list|info|token|params|proposal|neuron]
 icq sns proposal [list|info|refresh|cache]
 icq sns neuron [list|refresh|cache]
@@ -150,6 +150,9 @@ icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
 icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000
 icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa
 icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000
+icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa
+icq icrc account transactions mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 12345 --limit 25 --format json
+icq icrc account transactions ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai
 icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai --format json
 icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai
@@ -159,6 +162,15 @@ icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json
 icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 ```
+
+Account-history queries discover the index through ICRC-106 unless
+`--index-canister-id` is supplied and verify that the selected index reports
+the requested ledger. Reports retain ledger, index, account, endpoint, and
+pagination provenance. Pass the reported `next_start` value back through
+`--start` to fetch the next older page. The ICP ledger does not export
+ICRC-106, so its official index must be supplied explicitly as shown above.
+Both generic ICRC index-ng and deployed ICP index transactions are supported.
+This query is currently live-only.
 
 ## Cache
 

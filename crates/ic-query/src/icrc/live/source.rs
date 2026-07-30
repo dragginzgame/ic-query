@@ -4,13 +4,17 @@
 //! Does not own: Candid host calls, report construction, or text rendering.
 //! Boundary: isolates the synchronous public source API from async live fetching.
 
-use super::fetch::{
-    fetch_allowance_async, fetch_archives_async, fetch_balance_async, fetch_block_types_async,
-    fetch_capabilities_async, fetch_index_async, fetch_tip_certificate_async, fetch_token_async,
-    fetch_transactions_async,
+use super::{
+    account_transactions::fetch_account_transactions_async,
+    fetch::{
+        fetch_allowance_async, fetch_archives_async, fetch_balance_async, fetch_block_types_async,
+        fetch_capabilities_async, fetch_index_async, fetch_tip_certificate_async,
+        fetch_token_async, fetch_transactions_async,
+    },
 };
 use crate::{
     icrc::model::{
+        IcrcAccountTransactionsData, IcrcAccountTransactionsError, IcrcAccountTransactionsRequest,
         IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchivesData, IcrcArchivesRequest,
         IcrcBalanceData, IcrcBalanceRequest, IcrcBlockTypesData, IcrcBlockTypesRequest,
         IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcError, IcrcIndexData, IcrcIndexRequest,
@@ -59,6 +63,20 @@ pub trait IcrcSource {
         &self,
         request: &IcrcCapabilitiesRequest,
     ) -> Result<IcrcCapabilitiesData, IcrcError>;
+}
+
+///
+/// IcrcAccountTransactionsSource
+///
+/// Source capability for resolving an ICRC index and fetching account history.
+///
+
+pub trait IcrcAccountTransactionsSource {
+    /// Fetches one backward page of transactions for the requested account.
+    fn fetch_account_transactions(
+        &self,
+        request: &IcrcAccountTransactionsRequest,
+    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError>;
 }
 
 ///
@@ -119,5 +137,15 @@ impl IcrcSource for LiveIcrcSource {
         request: &IcrcCapabilitiesRequest,
     ) -> Result<IcrcCapabilitiesData, IcrcError> {
         block_on_current_thread(fetch_capabilities_async(request))?
+    }
+}
+
+impl IcrcAccountTransactionsSource for LiveIcrcSource {
+    fn fetch_account_transactions(
+        &self,
+        request: &IcrcAccountTransactionsRequest,
+    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
+        block_on_current_thread(fetch_account_transactions_async(request))
+            .map_err(IcrcError::from)?
     }
 }

@@ -5,26 +5,31 @@ use super::{
         Icrc3SupportedBlockType, Icrc3Value,
     },
     live::{
-        IcrcSource, build_icrc_allowance_report_with_source,
-        build_icrc_archives_report_with_source, build_icrc_balance_report_with_source,
-        build_icrc_block_types_report_with_source, build_icrc_capabilities_report_with_source,
-        build_icrc_index_report_with_source, build_icrc_tip_certificate_report_with_source,
-        build_icrc_token_report_with_source, build_icrc_transactions_report_with_source,
+        IcrcAccountTransactionsSource, IcrcSource,
+        build_icrc_account_transactions_report_with_source,
+        build_icrc_allowance_report_with_source, build_icrc_archives_report_with_source,
+        build_icrc_balance_report_with_source, build_icrc_block_types_report_with_source,
+        build_icrc_capabilities_report_with_source, build_icrc_index_report_with_source,
+        build_icrc_tip_certificate_report_with_source, build_icrc_token_report_with_source,
+        build_icrc_transactions_report_with_source,
     },
     model::{
-        IcrcAllowanceData, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
-        IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest,
-        IcrcBalanceData, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData,
-        IcrcBlockTypesRequest, IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcCapabilityRow,
-        IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexRequest,
-        IcrcTipCertificateData, IcrcTipCertificateRequest, IcrcTokenData, IcrcTokenMetadataRow,
-        IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
+        IcrcAccountRow, IcrcAccountTransactionRow, IcrcAccountTransactionsData,
+        IcrcAccountTransactionsError, IcrcAccountTransactionsRequest, IcrcAllowanceData,
+        IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
+        IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
+        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcBlockTypesRequest,
+        IcrcCapabilitiesData, IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcError,
+        IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexRequest, IcrcTipCertificateData,
+        IcrcTipCertificateRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenRequest,
+        IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
         IcrcTransactionsRequest,
     },
     text::{
-        icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-        icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
-        icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
+        icrc_account_transactions_report_text, icrc_allowance_report_text,
+        icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
+        icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
+        icrc_token_report_text, icrc_transactions_report_text,
     },
 };
 use candid::{Nat, Principal, types::reference::Func};
@@ -316,6 +321,87 @@ impl IcrcSource for FixtureIcrcSource {
     }
 }
 
+struct FixtureAccountTransactionsSource;
+
+impl IcrcAccountTransactionsSource for FixtureAccountTransactionsSource {
+    fn fetch_account_transactions(
+        &self,
+        request: &IcrcAccountTransactionsRequest,
+    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
+        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+        assert_eq!(
+            request.index_canister_id.as_deref(),
+            Some(INDEX_CANISTER_ID)
+        );
+        assert_eq!(request.account_owner, ACCOUNT_OWNER);
+        assert_eq!(
+            request.subaccount_hex.as_deref(),
+            Some(LOWER_SUBACCOUNT_HEX)
+        );
+        assert_eq!(request.start, Some(42));
+        assert_eq!(request.limit, 2);
+
+        let account = IcrcAccountRow {
+            owner: Some(ACCOUNT_OWNER.to_string()),
+            subaccount_hex: Some(LOWER_SUBACCOUNT_HEX.to_string()),
+            account_identifier: None,
+        };
+        Ok(IcrcAccountTransactionsData {
+            index_canister_id: INDEX_CANISTER_ID.to_string(),
+            balance: "250000000".to_string(),
+            oldest_transaction_id: Some("7".to_string()),
+            next_start: Some("40".to_string()),
+            token_symbol: "FIX".to_string(),
+            decimals: 8,
+            transactions: vec![IcrcAccountTransactionRow {
+                id: "40".to_string(),
+                kind: "transfer".to_string(),
+                timestamp_unix_nanos: Some("1700000000123456789".to_string()),
+                amount_base_units: Some("125000000".to_string()),
+                fee_base_units: Some("10000".to_string()),
+                from: Some(account),
+                to: Some(IcrcAccountRow {
+                    owner: Some(INDEX_CANISTER_ID.to_string()),
+                    subaccount_hex: None,
+                    account_identifier: None,
+                }),
+                spender: None,
+                memo_hex: Some("aabb".to_string()),
+                created_at_time_unix_nanos: Some("1700000000000000000".to_string()),
+                expires_at_unix_nanos: None,
+                expected_allowance_base_units: None,
+                raw_transaction: json!({
+                    "kind": "transfer",
+                    "timestamp_unix_nanos": "1700000000123456789",
+                    "transfer": {
+                        "amount_base_units": "125000000",
+                        "fee_base_units": "10000",
+                        "from": {
+                            "owner": ACCOUNT_OWNER,
+                            "subaccount_hex": LOWER_SUBACCOUNT_HEX
+                        },
+                        "to": {
+                            "owner": INDEX_CANISTER_ID,
+                            "subaccount_hex": null
+                        }
+                    }
+                }),
+            }],
+        })
+    }
+}
+
+struct PanickingAccountTransactionsSource;
+
+impl IcrcAccountTransactionsSource for PanickingAccountTransactionsSource {
+    fn fetch_account_transactions(
+        &self,
+        _request: &IcrcAccountTransactionsRequest,
+    ) -> Result<IcrcAccountTransactionsData, IcrcAccountTransactionsError> {
+        panic!("account transactions source should not be called")
+    }
+}
+
 struct PanickingIcrcSource;
 
 impl IcrcSource for PanickingIcrcSource {
@@ -594,6 +680,74 @@ fn index_report_builds_text_and_json_friendly_fields() {
     let json = serde_json::to_value(&report).expect("serialize ICRC index report");
     assert_eq!(json["index_canister_id"], json!(INDEX_CANISTER_ID));
     assert_eq!(json["index_error"], JsonValue::Null);
+}
+
+#[test]
+fn account_transactions_report_preserves_index_provenance_and_cursor() {
+    let request = IcrcAccountTransactionsRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        2,
+    )
+    .with_index_canister_id(INDEX_CANISTER_ID)
+    .with_subaccount_hex(UPPER_SUBACCOUNT_HEX)
+    .with_start(42);
+
+    let report = build_icrc_account_transactions_report_with_source(
+        &request,
+        &FixtureAccountTransactionsSource,
+    )
+    .expect("build ICRC account transactions report");
+
+    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.index_canister_id, INDEX_CANISTER_ID);
+    assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
+    assert_eq!(report.requested_start.as_deref(), Some("42"));
+    assert_eq!(report.next_start.as_deref(), Some("40"));
+    assert_eq!(report.oldest_transaction_id.as_deref(), Some("7"));
+    assert_eq!(report.balance, "250000000");
+    assert_eq!(report.transactions[0].memo_hex.as_deref(), Some("aabb"));
+
+    let text = icrc_account_transactions_report_text(&report);
+    assert!(text.contains(&format!("index_canister_id: {INDEX_CANISTER_ID}")));
+    assert!(text.contains("requested_start: 42"));
+    assert!(text.contains("next_start: 40"));
+    assert!(text.contains("balance: 2.50 FIX"));
+    assert!(text.contains("transfer"));
+
+    let json = serde_json::to_value(&report).expect("serialize account transactions report");
+    assert_eq!(json["index_canister_id"], json!(INDEX_CANISTER_ID));
+    assert_eq!(json["requested_start"], json!("42"));
+    assert_eq!(json["next_start"], json!("40"));
+    assert_eq!(
+        json["transactions"][0]["raw_transaction"]["transfer"]["amount_base_units"],
+        json!("125000000")
+    );
+}
+
+#[test]
+fn account_transactions_report_rejects_zero_limit_before_source_call() {
+    let request = IcrcAccountTransactionsRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        0,
+    );
+
+    let error = build_icrc_account_transactions_report_with_source(
+        &request,
+        &PanickingAccountTransactionsSource,
+    )
+    .expect_err("zero limit must fail");
+
+    assert!(matches!(
+        error,
+        IcrcAccountTransactionsError::InvalidLimit { limit: 0 }
+    ));
 }
 
 #[test]

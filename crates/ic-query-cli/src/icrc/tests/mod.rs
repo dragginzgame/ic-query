@@ -1,6 +1,7 @@
 use super::commands::test_support::{
-    account_usage, allowance_usage, archives_usage, balance_usage, block_types_usage,
-    capabilities_usage, index_usage, ledger_usage, parse_allowance_options, parse_archives_options,
+    account_transactions_usage, account_usage, allowance_usage, archives_usage, balance_usage,
+    block_types_usage, capabilities_usage, index_usage, ledger_usage,
+    parse_account_transactions_options, parse_allowance_options, parse_archives_options,
     parse_balance_options, parse_block_types_options, parse_capabilities_options,
     parse_index_options, parse_tip_certificate_options, parse_token_options,
     parse_transactions_options, root_usage, tip_certificate_usage, token_usage, transactions_usage,
@@ -72,6 +73,38 @@ fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
 }
 
 #[test]
+fn account_transactions_options_parse_through_clap() {
+    let options = parse_account_transactions_options(&[
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        "--index-canister-id",
+        INDEX_CANISTER_ID,
+        "--subaccount",
+        SUBACCOUNT,
+        "--start",
+        "17",
+        "--limit",
+        "42",
+        "--format",
+        "json",
+        "--source-endpoint",
+        SOURCE_ENDPOINT,
+    ]);
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(
+        options.index_canister_id.as_deref(),
+        Some(INDEX_CANISTER_ID)
+    );
+    assert_eq!(options.account_owner, ACCOUNT_OWNER);
+    assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
+    assert_eq!(options.start, Some(17));
+    assert_eq!(options.limit, 42);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+}
+
+#[test]
 fn index_options_parse_through_clap() {
     let options = parse_index_options(&[LEDGER_CANISTER_ID, "--format", "json"]);
 
@@ -135,10 +168,12 @@ fn usage_mentions_icrc_command_surface() {
         (ledger_usage(), "transactions"),
         (account_usage(), "balance"),
         (account_usage(), "allowance"),
+        (account_usage(), "transactions"),
         (token_usage(), "ledger-canister-id"),
         (capabilities_usage(), "ledger-canister-id"),
         (balance_usage(), "principal"),
         (allowance_usage(), "spender-principal"),
+        (account_transactions_usage(), "--index-canister-id"),
         (index_usage(), "ledger-canister-id"),
         (transactions_usage(), "follow-archives"),
         (block_types_usage(), "ledger-canister-id"),
@@ -150,12 +185,14 @@ fn usage_mentions_icrc_command_surface() {
 
     assert!(token_usage().contains("icq icrc ledger token"));
     assert!(balance_usage().contains("icq icrc account balance"));
+    assert!(account_transactions_usage().contains("icq icrc account transactions"));
 
     for usage in [
         token_usage(),
         capabilities_usage(),
         balance_usage(),
         allowance_usage(),
+        account_transactions_usage(),
         index_usage(),
         transactions_usage(),
         block_types_usage(),

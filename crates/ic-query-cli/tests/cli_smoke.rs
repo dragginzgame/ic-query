@@ -115,6 +115,23 @@ fn binary_icrc_allowance_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_account_transactions_help_smoke() {
+    let output = run_icq(&["icrc", "account", "transactions", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains(
+        "Usage: icq icrc account transactions [OPTIONS] <ledger-canister-id> <principal>"
+    ));
+    assert!(stdout.contains("--index-canister-id <canister-id>"));
+    assert!(stdout.contains("--subaccount <hex>"));
+    assert!(stdout.contains("--start <block-index>"));
+    assert!(stdout.contains("--limit <count>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--format <text|json>"));
+}
+
+#[test]
 fn binary_icrc_index_help_smoke() {
     let output = run_icq(&["icrc", "ledger", "index", "help"]);
 

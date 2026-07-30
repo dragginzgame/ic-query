@@ -3,7 +3,7 @@
 //! Responsibility: expose generic ICRC ledger request and report APIs.
 //! Does not own: SNS lookup, NNS registry cache behavior, or release flow.
 //! Boundary: exposes live read-only token metadata, account balance, allowance,
-//! index discovery, transaction history, block type, and archive reports.
+//! index discovery, account and ledger transaction history, block type, and archive reports.
 
 #[cfg(feature = "host")]
 pub(crate) mod ledger;
@@ -16,9 +16,10 @@ pub const DEFAULT_ICRC_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 #[cfg(feature = "host")]
 pub use live::{
-    IcrcSource, LiveIcrcSource, build_icrc_allowance_report,
-    build_icrc_allowance_report_with_source, build_icrc_archives_report,
-    build_icrc_archives_report_with_source, build_icrc_balance_report,
+    IcrcAccountTransactionsSource, IcrcSource, LiveIcrcSource,
+    build_icrc_account_transactions_report, build_icrc_account_transactions_report_with_source,
+    build_icrc_allowance_report, build_icrc_allowance_report_with_source,
+    build_icrc_archives_report, build_icrc_archives_report_with_source, build_icrc_balance_report,
     build_icrc_balance_report_with_source, build_icrc_block_types_report,
     build_icrc_block_types_report_with_source, build_icrc_capabilities_report,
     build_icrc_capabilities_report_with_source, build_icrc_index_report,
@@ -28,25 +29,28 @@ pub use live::{
     build_icrc_transactions_report_with_source,
 };
 pub use model::normalize_subaccount_hex;
+pub use model::{
+    IcrcAccountRow, IcrcAccountTransactionRow, IcrcAccountTransactionsError,
+    IcrcAccountTransactionsReport, IcrcAccountTransactionsRequest, IcrcAllowanceReport,
+    IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
+    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
+    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcBlockTypesRequest,
+    IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcError,
+    IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateReport,
+    IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
+    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+};
 #[cfg(feature = "host")]
 pub use model::{
-    IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData,
-    IcrcIndexData, IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData,
-};
-pub use model::{
-    IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
-    IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
-    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
-    IcrcBlockTypesRequest, IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
-    IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest,
-    IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport,
-    IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
-    IcrcTransactionsRequest,
+    IcrcAccountTransactionsData, IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData,
+    IcrcBlockTypesData, IcrcCapabilitiesData, IcrcIndexData, IcrcTipCertificateData, IcrcTokenData,
+    IcrcTransactionsData,
 };
 pub use text::{
-    icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-    icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
-    icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
+    icrc_account_transactions_report_text, icrc_allowance_report_text, icrc_archives_report_text,
+    icrc_balance_report_text, icrc_block_types_report_text, icrc_capabilities_report_text,
+    icrc_index_report_text, icrc_tip_certificate_report_text, icrc_token_report_text,
+    icrc_transactions_report_text,
 };
 
 #[cfg(all(test, feature = "host"))]

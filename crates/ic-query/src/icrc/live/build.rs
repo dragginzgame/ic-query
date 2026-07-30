@@ -5,22 +5,24 @@
 //! Boundary: validates request-local values and projects raw source data into reports.
 
 use super::{
-    ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION, ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
-    ICRC_BALANCE_REPORT_SCHEMA_VERSION, ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
-    ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION, ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION,
-    ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION, ICRC_TOKEN_REPORT_SCHEMA_VERSION,
-    ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION, IcrcSource, LiveIcrcSource,
+    ICRC_ACCOUNT_TRANSACTIONS_REPORT_SCHEMA_VERSION, ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
+    ICRC_ARCHIVES_REPORT_SCHEMA_VERSION, ICRC_BALANCE_REPORT_SCHEMA_VERSION,
+    ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION, ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
+    ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION, ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
+    ICRC_TOKEN_REPORT_SCHEMA_VERSION, ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
+    IcrcAccountTransactionsSource, IcrcSource, LiveIcrcSource,
 };
 use crate::{
     icrc::{
         ledger::principal_from_text,
         model::{
-            IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchivesReport, IcrcArchivesRequest,
-            IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypesReport, IcrcBlockTypesRequest,
-            IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcError, IcrcIndexReport,
-            IcrcIndexRequest, IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenReport,
-            IcrcTokenRequest, IcrcTransactionsReport, IcrcTransactionsRequest,
-            normalize_subaccount_hex,
+            IcrcAccountTransactionsError, IcrcAccountTransactionsReport,
+            IcrcAccountTransactionsRequest, IcrcAllowanceReport, IcrcAllowanceRequest,
+            IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
+            IcrcBlockTypesReport, IcrcBlockTypesRequest, IcrcCapabilitiesReport,
+            IcrcCapabilitiesRequest, IcrcError, IcrcIndexReport, IcrcIndexRequest,
+            IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenReport, IcrcTokenRequest,
+            IcrcTransactionsReport, IcrcTransactionsRequest, normalize_subaccount_hex,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -40,6 +42,13 @@ pub fn build_icrc_allowance_report(
     request: &IcrcAllowanceRequest,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
     build_icrc_allowance_report_with_source(request, &LiveIcrcSource)
+}
+
+/// Resolves an ICRC index and builds one account-transaction page.
+pub fn build_icrc_account_transactions_report(
+    request: &IcrcAccountTransactionsRequest,
+) -> Result<IcrcAccountTransactionsReport, IcrcAccountTransactionsError> {
+    build_icrc_account_transactions_report_with_source(request, &LiveIcrcSource)
 }
 
 pub fn build_icrc_index_report(request: &IcrcIndexRequest) -> Result<IcrcIndexReport, IcrcError> {
@@ -158,6 +167,45 @@ pub fn build_icrc_allowance_report_with_source(
         decimals: allowance.decimals,
         allowance: allowance.allowance,
         expires_at_unix_nanos: allowance.expires_at_unix_nanos,
+    })
+}
+
+/// Builds one account-transaction page from a caller-supplied index capability.
+pub fn build_icrc_account_transactions_report_with_source(
+    request: &IcrcAccountTransactionsRequest,
+    source: &dyn IcrcAccountTransactionsSource,
+) -> Result<IcrcAccountTransactionsReport, IcrcAccountTransactionsError> {
+    if request.limit == 0 {
+        return Err(IcrcAccountTransactionsError::InvalidLimit {
+            limit: request.limit,
+        });
+    }
+    let request = IcrcAccountTransactionsRequest {
+        subaccount_hex: request
+            .subaccount_hex
+            .as_deref()
+            .map(normalize_subaccount_hex)
+            .transpose()?,
+        ..request.clone()
+    };
+    let transactions = source.fetch_account_transactions(&request)?;
+    Ok(IcrcAccountTransactionsReport {
+        schema_version: ICRC_ACCOUNT_TRANSACTIONS_REPORT_SCHEMA_VERSION,
+        ledger_canister_id: request.ledger_canister_id,
+        index_canister_id: transactions.index_canister_id,
+        account_owner: request.account_owner,
+        subaccount_hex: request.subaccount_hex,
+        requested_start: request.start.map(|start| start.to_string()),
+        requested_limit: request.limit,
+        next_start: transactions.next_start,
+        oldest_transaction_id: transactions.oldest_transaction_id,
+        balance: transactions.balance,
+        token_symbol: transactions.token_symbol,
+        decimals: transactions.decimals,
+        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
+        source_endpoint: request.source_endpoint,
+        fetched_by: ICRC_FETCHED_BY.to_string(),
+        transactions: transactions.transactions,
     })
 }
 

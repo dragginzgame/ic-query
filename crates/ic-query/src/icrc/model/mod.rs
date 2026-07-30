@@ -11,20 +11,23 @@ mod error;
 mod subaccount;
 
 pub use contracts::{
-    IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
-    IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
-    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
-    IcrcBlockTypesRequest, IcrcCapabilitiesReport, IcrcCapabilitiesRequest, IcrcCapabilityRow,
-    IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcIndexRequest, IcrcTipCertificateReport,
-    IcrcTipCertificateRequest, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenRequest,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcAccountRow, IcrcAccountTransactionRow, IcrcAccountTransactionsReport,
+    IcrcAccountTransactionsRequest, IcrcAllowanceReport, IcrcAllowanceRequest,
+    IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
+    IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
+    IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcBlockTypesRequest, IcrcCapabilitiesReport,
+    IcrcCapabilitiesRequest, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
+    IcrcIndexRequest, IcrcTipCertificateReport, IcrcTipCertificateRequest, IcrcTokenMetadataRow,
+    IcrcTokenReport, IcrcTokenRequest, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+    IcrcTransactionsReport, IcrcTransactionsRequest,
 };
 #[cfg(feature = "host")]
 pub use data::{
-    IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData, IcrcBlockTypesData, IcrcCapabilitiesData,
-    IcrcIndexData, IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData,
+    IcrcAccountTransactionsData, IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData,
+    IcrcBlockTypesData, IcrcCapabilitiesData, IcrcIndexData, IcrcTipCertificateData, IcrcTokenData,
+    IcrcTransactionsData,
 };
-pub use error::IcrcError;
+pub use error::{IcrcAccountTransactionsError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;
 #[cfg(feature = "host")]
 pub(in crate::icrc) use subaccount::subaccount_bytes_from_hex;
