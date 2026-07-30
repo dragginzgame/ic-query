@@ -7,8 +7,9 @@
 use crate::{
     nns::{
         LiveNnsSource, NnsSourceRequest,
+        governance_query::{NnsGovernanceQueryError, query_nns_governance},
         proposals::report::{
-            MAINNET_GOVERNANCE_CANISTER_ID, NnsProposalHostError, enforce_mainnet_network,
+            NnsProposalHostError, enforce_mainnet_network,
             model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
             source::{NnsProposalSource, nns_proposal_row_from_info},
             wire::{
@@ -19,8 +20,6 @@ use crate::{
     },
     runtime::block_on_current_thread,
 };
-use candid::{CandidType, Deserialize, Principal};
-use ic_agent::Agent;
 
 impl NnsProposalSource for LiveNnsSource {
     fn fetch_proposals(
@@ -74,11 +73,8 @@ async fn fetch_nns_proposal_list_async(
     include_status: &[i32],
     include_reward_status: &[i32],
 ) -> Result<Vec<NnsProposalInfo>, NnsProposalHostError> {
-    let agent = nns_agent(&request.endpoint)?;
-    let governance_canister = governance_canister()?;
-    let response: NnsListProposalInfoResponse = query_canister(
-        &agent,
-        &governance_canister,
+    let response: NnsListProposalInfoResponse = query_nns_governance(
+        request,
         "list_proposals",
         "ListProposalInfoRequest",
         "ListProposalInfoResponse",
@@ -93,7 +89,8 @@ async fn fetch_nns_proposal_list_async(
             return_self_describing_action: Some(false),
         },
     )
-    .await?;
+    .await
+    .map_err(map_governance_query_error)?;
     Ok(response.proposal_info)
 }
 
@@ -101,66 +98,31 @@ async fn fetch_nns_proposal_async(
     request: &NnsSourceRequest,
     proposal_id: u64,
 ) -> Result<NnsProposalInfo, NnsProposalHostError> {
-    let agent = nns_agent(&request.endpoint)?;
-    let governance_canister = governance_canister()?;
-    let proposal: Option<NnsProposalInfo> = query_canister(
-        &agent,
-        &governance_canister,
+    let proposal: Option<NnsProposalInfo> = query_nns_governance(
+        request,
         "get_proposal_info",
         "ProposalId",
         "ProposalInfo",
         &proposal_id,
     )
-    .await?;
+    .await
+    .map_err(map_governance_query_error)?;
     proposal.ok_or(NnsProposalHostError::ProposalNotFound { proposal_id })
 }
 
-async fn query_canister<Arg, Response>(
-    agent: &Agent,
-    canister: &Principal,
-    method: &'static str,
-    request_message: &'static str,
-    response_message: &'static str,
-    arg: &Arg,
-) -> Result<Response, NnsProposalHostError>
-where
-    Arg: CandidType + Sync,
-    Response: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = candid::encode_one(arg).map_err(|err| NnsProposalHostError::CandidEncode {
-        message: request_message,
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| NnsProposalHostError::AgentCall {
-            method,
-            reason: err.to_string(),
-        })?;
-    candid::decode_one(&bytes).map_err(|err| NnsProposalHostError::CandidDecode {
-        message: response_message,
-        reason: err.to_string(),
-    })
-}
-
-fn nns_agent(endpoint: &str) -> Result<Agent, NnsProposalHostError> {
-    Agent::builder()
-        .with_url(endpoint)
-        .build()
-        .map_err(|err| NnsProposalHostError::AgentBuild {
-            endpoint: endpoint.to_string(),
-            reason: err.to_string(),
-        })
-}
-
-fn governance_canister() -> Result<Principal, NnsProposalHostError> {
-    Principal::from_text(MAINNET_GOVERNANCE_CANISTER_ID).map_err(|err| {
-        NnsProposalHostError::CandidDecode {
-            message: "governance_canister_id",
-            reason: err.to_string(),
+fn map_governance_query_error(error: NnsGovernanceQueryError) -> NnsProposalHostError {
+    match error {
+        NnsGovernanceQueryError::AgentBuild { endpoint, reason } => {
+            NnsProposalHostError::AgentBuild { endpoint, reason }
         }
-    })
+        NnsGovernanceQueryError::AgentCall { method, reason } => {
+            NnsProposalHostError::AgentCall { method, reason }
+        }
+        NnsGovernanceQueryError::CandidEncode { message, reason } => {
+            NnsProposalHostError::CandidEncode { message, reason }
+        }
+        NnsGovernanceQueryError::CandidDecode { message, reason } => {
+            NnsProposalHostError::CandidDecode { message, reason }
+        }
+    }
 }

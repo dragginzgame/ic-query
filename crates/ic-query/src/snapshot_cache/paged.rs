@@ -114,6 +114,16 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
 }
 
 impl PagedCollectionPage {
+    /// Describe one fetched page for the shared refresh runner.
+    #[must_use]
+    pub const fn new(page_len: usize, new_rows: usize, last_cursor_text: Option<String>) -> Self {
+        Self {
+            page_len,
+            new_rows,
+            last_cursor_text,
+        }
+    }
+
     pub fn exhausts_collection(&self, page_size: u32, has_next_cursor: bool) -> bool {
         self.page_len < usize::try_from(page_size).unwrap_or(usize::MAX) || !has_next_cursor
     }

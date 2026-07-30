@@ -7,6 +7,28 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.15.x] - 2026-07-30 - Public NNS neuron reporting
+
+Detailed release notes: [docs/changelog/0.15.md](docs/changelog/0.15.md)
+
+- `0.15.0` adds native public NNS neuron list and detail queries, complete
+  atomic refreshes, cache-preferred reads, and cache-only status reporting.
+  Reports preserve raw Governance neuron state, visibility, type, vote,
+  stake, staked maturity, voting-power, known-neuron, ballot, endpoint, and
+  collection provenance. Complete collections validate canonical neuron-id
+  pagination and API exhaustion while explicitly recording
+  `point_in_time_guaranteed: false` because Governance exposes no stable
+  collection version. The existing `LiveNnsSource` gains the focused
+  `NnsNeuronSource` capability, and proposal and neuron calls now share one
+  internal Governance transport.
+
+  ```bash
+  icq nns neuron list --limit 25
+  icq nns neuron info 123456789 --verbose
+  icq nns neuron refresh --page-size 300
+  icq nns neuron cache status --format json
+  ```
+
 ## [0.14.x] - 2026-07-30 - Complete snapshots and shared cache contracts
 
 Detailed release notes: [docs/changelog/0.14.md](docs/changelog/0.14.md)

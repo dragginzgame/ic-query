@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.14", default-features = false, features = ["host"] }
+ic-query = { version = "0.15", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.14", default-features = false }
+ic-query = { version = "0.15", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -29,7 +29,7 @@ other normal `std`-using crates.
 ## Progress Ownership
 
 Normal report builders and refresh entry points do not write to stdout or
-stderr. Paged NNS proposal and SNS neuron/proposal refreshes also expose
+stderr. Paged NNS proposal/neuron and SNS neuron/proposal refreshes also expose
 `*_with_progress` entry points. These accept a `QueryProgress` sink and emit
 typed `QueryProgressEvent` values for cache creation and refresh lifecycle
 updates. ICRC complete account-history refreshes expose the same pattern.
@@ -60,6 +60,7 @@ The CLI module layout is intentionally mirrored at the family level:
 
 - `icq icrc ...` maps to `ic_query::icrc`.
 - `icq nns proposal ...` maps to `ic_query::nns::proposals`.
+- `icq nns neuron ...` maps to `ic_query::nns::neuron`.
 - `icq nns subnet ...` maps to `ic_query::subnet_catalog`.
 - `icq nns node ...`, `data-center`, `node-provider`, and `node-operator` map
   to the matching `ic_query::nns::*` modules.
@@ -85,13 +86,14 @@ The examples below are covered by the `downstream_usage` integration test.
 The public API exposes source adapters for host-only downstream crates that
 need to reuse `ic-query` report assembly with data that does not come from the
 built-in live adapters. The generic ICRC, subnet catalog, NNS registry, NNS
-inventory, NNS proposal, NNS topology, SNS
+inventory, NNS proposal, NNS neuron, NNS topology, SNS
 list/info/token/params, SNS proposal, and SNS neuron host APIs expose this
 pattern with narrow ICRC capabilities such as `IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,
 `build_icrc_*_report_with_source`,
 `SubnetCatalogSource`, subnet catalog `*_with_source` builders,
 `NnsRegistrySource`, the NNS inventory source traits, `NnsProposalSource`,
+`NnsNeuronSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
 `SnsListSource`,

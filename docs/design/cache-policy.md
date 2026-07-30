@@ -82,6 +82,12 @@ proposal snapshot when the requested proposal row is present, then fall back to
 the live detail API when the snapshot or row is missing. Cache parse, schema,
 network, and IO errors remain visible instead of being hidden by fallback.
 
+NNS neuron list and detail lookups follow the same cache-preferred,
+live-fallback policy, but only an explicit `icq nns neuron refresh` writes the
+complete snapshot. The public Governance index is ordered by neuron id and
+supports bounded live pages; a full walk may be expensive and has no stable
+point-in-time version. `icq nns neuron cache status` is local-only.
+
 SNS neuron complete snapshots intentionally stay on explicit refresh before
 cache-backed sorts. A full neuron refresh can require many governance pages and
 the refresh command exposes `--page-size` and `--max-pages`; silently starting

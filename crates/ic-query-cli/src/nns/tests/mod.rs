@@ -5,6 +5,11 @@ use super::{
         data_center_list_usage, data_center_refresh_options, data_center_refresh_usage,
         data_center_usage,
     },
+    neuron::{
+        NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
+        neuron_cache_status_usage, neuron_cache_usage, neuron_info_usage, neuron_list_usage,
+        neuron_refresh_usage, neuron_usage,
+    },
     node::{
         node_info_options, node_info_usage, node_list_options, node_list_usage,
         node_refresh_options, node_refresh_usage, node_usage,
@@ -68,6 +73,7 @@ use ic_query::subnet_catalog::{
 use std::{ffi::OsString, path::PathBuf};
 
 mod data_center;
+mod neuron;
 mod node;
 mod node_operator;
 mod node_provider;

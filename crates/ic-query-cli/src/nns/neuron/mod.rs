@@ -1,0 +1,16 @@
+//! NNS neuron command-line parsing and dispatch.
+
+mod commands;
+mod options;
+mod run;
+
+#[cfg(test)]
+pub(in crate::nns) use commands::{
+    neuron_cache_status_usage, neuron_cache_usage, neuron_info_usage, neuron_list_usage,
+    neuron_refresh_usage, neuron_usage,
+};
+#[cfg(test)]
+pub(in crate::nns) use options::{
+    NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
+};
+pub(in crate::nns) use run::run;

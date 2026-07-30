@@ -57,6 +57,12 @@ without creating a concrete live-source type for every report.
   providers at one Registry version.
 - SNS discovery follows SNS-W results with per-SNS metadata calls.
 - NNS and SNS complete collections page until exhausted.
+- NNS neuron reporting follows the native ascending `get_neuron_index`
+  cursor, preserves publicly readable `NeuronInfo` fields, and atomically
+  publishes only an API-exhausted ordered collection. Governance exposes no
+  stable collection version, so this evidence explicitly carries no
+  point-in-time guarantee. List/detail reads prefer that snapshot and use
+  bounded native Governance calls when it cannot satisfy the request.
 - ICRC block collection can follow ledger-supplied archive callbacks.
 - ICRC tip-certificate collection authenticates the certificate and proves the
   ledger tip witness against the canister's certified-data value.
@@ -90,7 +96,7 @@ Expansion should proceed in layers:
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
 | 1 | Fuller SNS neuron state, SNS root inventory, and health | Extend the relevant SNS capability traits on `LiveSnsSource` |
-| 1 | NNS neuron, economics, rewards, and governance metrics | Add focused NNS capability traits on `LiveNnsSource` |
+| 1 | NNS economics, rewards, delegation, and governance metrics beyond the implemented public neuron views | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Canister, boundary-node, replica-version, and network metrics | Add an official Dashboard family adapter with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |
 | 3 | CMC/XDR, Internet Identity, Bitcoin, and other protocol-canister reports | Add one authority-family adapter only when multiple coherent reports justify it |

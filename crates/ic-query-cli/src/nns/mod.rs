@@ -4,6 +4,7 @@
 mod macros;
 mod data_center;
 mod leaf;
+mod neuron;
 mod node;
 mod node_operator;
 mod node_provider;
@@ -29,7 +30,7 @@ use crate::{
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::{
     nns::{
-        data_center::NnsDataCenterHostError, node::NnsNodeHostError,
+        data_center::NnsDataCenterHostError, neuron::NnsNeuronHostError, node::NnsNodeHostError,
         node_operator::NnsNodeOperatorHostError, node_provider::NnsNodeProviderHostError,
         proposals::NnsProposalHostError, registry::NnsRegistryHostError,
         topology::NnsTopologyHostError,
@@ -55,6 +56,8 @@ pub enum NnsCommandError {
     DataCenterHost(#[from] NnsDataCenterHostError),
     #[error(transparent)]
     NodeHost(#[from] NnsNodeHostError),
+    #[error(transparent)]
+    NeuronHost(#[from] NnsNeuronHostError),
     #[error(transparent)]
     NodeProviderHost(#[from] NnsNodeProviderHostError),
     #[error(transparent)]
@@ -85,6 +88,7 @@ where
         "subnet" => subnet::run(args),
         "data-center" => data_center::run(args),
         "node" => node::run(args),
+        "neuron" => neuron::run(args),
         "node-provider" => node_provider::run(args),
         "node-operator" => node_operator::run(args),
         "proposal" => proposals::run(args),
@@ -138,6 +142,7 @@ fn nns_command() -> ClapCommand {
         ("subnet", "Inspect and refresh NNS subnet metadata"),
         ("data-center", "Inspect NNS data-center metadata"),
         ("node", "Inspect NNS node metadata"),
+        ("neuron", "Inspect public NNS Governance neuron views"),
         ("node-provider", "Inspect NNS node-provider metadata"),
         ("node-operator", "Inspect NNS node-operator metadata"),
         ("proposal", "Inspect NNS governance proposals"),

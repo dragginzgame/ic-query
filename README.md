@@ -10,9 +10,10 @@
 
 `icq` currently supports NNS, SNS, and generic ICRC metadata queries: registry
 version, subnet catalog lookup, node/provider/operator/data-center inventory,
-topology reports, deployed SNS reports, and ICRC ledger capabilities, token,
-balance, allowance, index discovery, ledger and account transaction history,
-block type, archive, and tip certificate reports.
+topology reports, NNS proposals and publicly readable neuron views, deployed
+SNS reports, and ICRC ledger capabilities, token, balance, allowance, index
+discovery, ledger and account transaction history, block type, archive, and
+tip certificate reports.
 
 ## Install
 
@@ -38,7 +39,7 @@ wrapper. The default feature set is empty:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.14", default-features = false }
+ic-query = { version = "0.15", default-features = false }
 ```
 
 Feature boundary:
@@ -56,7 +57,7 @@ helpers, or custom source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.14", default-features = false, features = ["host"] }
+ic-query = { version = "0.15", default-features = false, features = ["host"] }
 ```
 
 Use `ic_query::icrc`, `ic_query::nns`, `ic_query::sns`, and
@@ -106,6 +107,7 @@ icq nns node-provider [list|info|refresh]
 icq nns node-operator [list|info|refresh]
 icq nns data-center [list|info|refresh]
 icq nns proposal [list|info|refresh|cache]
+icq nns neuron [list|info|refresh|cache]
 icq nns topology [summary|coverage|versions|health|gaps|capacity|regions|providers|refresh]
 icq icrc ledger [capabilities|token|index|transactions|block-types|archives|tip-certificate]
 icq icrc account [balance|allowance|transaction]
@@ -239,8 +241,7 @@ fresh fetch and replace the matching cache.
 
 Complete NNS and SNS proposal/neuron snapshots likewise use cache schema
 version 1 and require `domain`, `entity`, `collection`, and `scope` identity
-fields. Snapshot
-files that do not match the current shape are unsupported and must be
+fields. Snapshot files that do not match the current shape are unsupported and must be
 refreshed; there is no version bridge or migration path. Snapshot row counts,
 required row ids, uniqueness, and embedded identity are validated when loaded.
 Refresh locks and attempt sidecars accept only their exact current fields and
@@ -283,6 +284,7 @@ icq sns neuron cache status 1
 
 Cache list and status commands are local-only; malformed, unsupported, or
 identity-mismatched snapshot files are shown as invalid local cache rows.
+
 Numeric cache lookup scans snapshot headers and loads only the matching
 complete snapshot. If duplicate caches claim an id, use the root principal to
 select the intended cache explicitly.
@@ -359,6 +361,29 @@ list and detail lookups reuse an existing complete snapshot when it can satisfy
 the request, then fall back to live governance lookup.
 Cache list and status commands are local-only; malformed, unsupported, or
 identity-mismatched snapshot files are shown as invalid local cache rows.
+
+Publicly readable NNS neuron views come directly from the mainnet Governance
+canister. They preserve raw state, visibility, neuron-type, and vote values
+alongside stake, staked maturity, voting power, dissolve state, known-neuron
+metadata, and recent ballots. They do not expose authenticated owner state
+such as controllers, followees, or private unstaked maturity:
+
+```bash
+icq nns neuron list --limit 25
+icq nns neuron list --start-neuron-id 123456789 --format json
+icq nns neuron info 123456789 --verbose
+icq nns neuron refresh
+icq nns neuron cache status
+```
+
+List and detail reads prefer
+`<cache-root>/nns/ic/governance/neurons/full.json` when a valid complete
+snapshot can satisfy the request, then fall back to a bounded live query.
+Only `neuron refresh` writes the snapshot; `neuron cache status` is local-only.
+Refresh walks the ascending Governance index through API exhaustion under one
+lock and publishes atomically. Because Governance exposes no stable version
+for the collection, reports and caches state
+`point_in_time_guaranteed: false`.
 
 SNS governance proposals can be queried as cached list views or direct live
 detail lookups. Normal proposal list views auto-create a complete local
@@ -448,6 +473,10 @@ The command namespace is intentionally small:
   snapshots.
 - `nns proposal cache list|status` inspects local complete NNS proposal
   snapshots and refresh-attempt metadata without live calls.
+- `nns neuron list|info` provides cache-preferred publicly readable mainnet
+  Governance neuron views.
+- `nns neuron refresh` atomically caches a complete ordered public neuron-index
+  walk, and `nns neuron cache status` inspects it without a live call.
 - `sns list`, `sns info`, `sns token`, `sns params`, `sns proposal`,
   `sns proposals`, and `sns neurons` are implemented for deployed mainnet SNS
   instances.

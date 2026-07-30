@@ -14,6 +14,18 @@ use ic_query::nns::data_center::{
     nns_data_center_list_report_verbose_text,
 };
 #[cfg(feature = "host")]
+use ic_query::nns::neuron::{
+    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsNeuronCacheStatusRequest, NnsNeuronHostError,
+    NnsNeuronInfoRequest, NnsNeuronPage, NnsNeuronRefreshRequest, NnsNeuronSource,
+    build_nns_neuron_cache_status_report, build_nns_neuron_info_report_with_source,
+    build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
+    nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
+};
+use ic_query::nns::neuron::{
+    NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData, NnsNeuronListRequest, NnsNeuronRow,
+    nns_neuron_info_report_text, nns_neuron_list_report_text,
+};
+#[cfg(feature = "host")]
 use ic_query::nns::node::{
     DEFAULT_NNS_NODE_SOURCE_ENDPOINT, DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NnsNodeHostError,
     NnsNodeRefreshReport, NnsNodeSource, build_nns_node_info_report,
@@ -121,6 +133,142 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+
+#[test]
+fn public_nns_neuron_api_is_constructible_and_renderable() {
+    let request = NnsNeuronListRequest::new("ic", "https://icp-api.io", 1_700_000_000, 25)
+        .with_exclusive_start_neuron_id(10)
+        .with_verbose(true);
+    assert_eq!(request.limit, 25);
+    assert_eq!(request.exclusive_start_neuron_id, Some(10));
+    assert_eq!(NNS_NEURON_MAX_PAGE_SIZE, 300);
+
+    let row = sample_public_neuron(11);
+    let report = ic_query::nns::neuron::NnsNeuronListReport {
+        schema_version: 1,
+        network: request.network,
+        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: request.source_endpoint,
+        fetched_by: "ic-query".to_string(),
+        cache_path: None,
+        from_cache: false,
+        requested_limit: request.limit,
+        exclusive_start_neuron_id: request.exclusive_start_neuron_id,
+        next_start_neuron_id: None,
+        total_neuron_count: None,
+        point_in_time_guaranteed: false,
+        returned_neuron_count: 1,
+        verbose: request.verbose,
+        neurons: vec![row.clone()],
+    };
+    assert!(nns_neuron_list_report_text(&report).contains("Neuron 11"));
+
+    let info = ic_query::nns::neuron::NnsNeuronInfoReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        fetched_by: "ic-query".to_string(),
+        cache_path: None,
+        from_cache: false,
+        verbose: true,
+        neuron: row,
+    };
+    assert!(nns_neuron_info_report_text(&info).contains("neuron_id: 11"));
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_nns_neuron_host_api_accepts_custom_source_and_cache_requests() {
+    let list_request =
+        NnsNeuronListRequest::new("ic", DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, 1_700_000_000, 1);
+    let list = build_nns_neuron_list_report_with_source(&list_request, &FixtureNnsNeuronSource)
+        .expect("custom neuron source");
+    assert_eq!(list.neurons[0].neuron_id, 7);
+
+    let info_request =
+        NnsNeuronInfoRequest::new("ic", DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, 1_700_000_000, 7);
+    let info = build_nns_neuron_info_report_with_source(&info_request, &FixtureNnsNeuronSource)
+        .expect("custom neuron detail");
+    assert_eq!(info.neuron.neuron_id, 7);
+
+    let root = PathBuf::from("/tmp/ic-query-public-neuron-api");
+    let refresh = NnsNeuronRefreshRequest::new(
+        &root,
+        "ic",
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        1_700_000_000,
+        1,
+    );
+    assert_eq!(refresh.page_size, 1);
+    assert!(nns_neuron_cache_path(&root, "ic").ends_with("full.json"));
+    assert!(nns_neuron_refresh_lock_path(&root, "ic").ends_with("full.refresh.lock"));
+    assert!(nns_neuron_refresh_attempt_path(&root, "ic").ends_with("full.refresh-attempt.json"));
+
+    let status =
+        build_nns_neuron_cache_status_report(&NnsNeuronCacheStatusRequest::new(root, "ic"))
+            .expect("missing cache status");
+    assert!(!status.found);
+}
+
+#[cfg(feature = "host")]
+struct FixtureNnsNeuronSource;
+
+#[cfg(feature = "host")]
+impl NnsNeuronSource for FixtureNnsNeuronSource {
+    fn fetch_neuron_page(
+        &self,
+        _request: &NnsSourceRequest,
+        _exclusive_start_neuron_id: Option<u64>,
+        page_size: u32,
+    ) -> Result<NnsNeuronPage, NnsNeuronHostError> {
+        let neurons = vec![sample_public_neuron(7)];
+        Ok(NnsNeuronPage {
+            next_start_neuron_id: (page_size == 1).then_some(7),
+            neurons,
+        })
+    }
+
+    fn fetch_neuron(
+        &self,
+        _request: &NnsSourceRequest,
+        neuron_id: u64,
+    ) -> Result<NnsNeuronRow, NnsNeuronHostError> {
+        Ok(sample_public_neuron(neuron_id))
+    }
+}
+
+fn sample_public_neuron(neuron_id: u64) -> NnsNeuronRow {
+    NnsNeuronRow {
+        neuron_id,
+        state: 1,
+        state_text: "not-dissolving".to_string(),
+        visibility: Some(2),
+        visibility_text: "public".to_string(),
+        neuron_type: None,
+        neuron_type_text: "unknown".to_string(),
+        stake_e8s: 100_000_000,
+        staked_maturity_e8s_equivalent: None,
+        dissolve_delay_seconds: 31_536_000,
+        age_seconds: 86_400,
+        created_timestamp_seconds: 1_600_000_000,
+        retrieved_at_timestamp_seconds: 1_700_000_000,
+        voting_power: 100_000_000,
+        deciding_voting_power: Some(100_000_000),
+        potential_voting_power: Some(100_000_000),
+        voting_power_refreshed_timestamp_seconds: Some(1_699_999_000),
+        joined_community_fund_timestamp_seconds: None,
+        eight_year_gang_bonus_base_e8s: None,
+        known_neuron_data: Some(NnsKnownNeuronData {
+            name: format!("Neuron {neuron_id}"),
+            description: None,
+            links: Vec::new(),
+        }),
+        recent_ballots: Vec::new(),
+    }
+}
 
 #[test]
 fn public_nns_registry_api_is_constructible_and_renderable() {
