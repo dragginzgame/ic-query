@@ -4,6 +4,7 @@
 //! Does not own: report assembly, custom-source validation, command parsing, or rendering.
 //! Boundary: performs one read-only REST lookup and retains request provenance.
 
+use crate::http_endpoint::parse_http_endpoint;
 use crate::ic::{
     IcCanisterSource, IcCanisterSourceData, IcCanisterUpgrade, IcHostError, IcSourceRequest,
 };
@@ -75,36 +76,19 @@ async fn fetch_canister(
 }
 
 fn canister_url(endpoint: &str, canister_id: &str) -> Result<Url, IcHostError> {
-    let mut url = Url::parse(endpoint).map_err(|error| invalid_endpoint(endpoint, error))?;
-    if !matches!(url.scheme(), "http" | "https") {
-        return Err(IcHostError::InvalidEndpoint {
-            endpoint: endpoint.to_string(),
-            reason: format!(
-                "unsupported URL scheme {:?}; expected http or https",
-                url.scheme()
-            ),
-        });
-    }
-    if url.host_str().is_none() {
-        return Err(IcHostError::InvalidEndpoint {
-            endpoint: endpoint.to_string(),
-            reason: "endpoint URL must include a host".to_string(),
-        });
-    }
+    let mut url =
+        parse_http_endpoint(endpoint).map_err(|reason| invalid_endpoint(endpoint, reason))?;
     if url.query().is_some() || url.fragment().is_some() {
-        return Err(IcHostError::InvalidEndpoint {
-            endpoint: endpoint.to_string(),
-            reason: "base endpoint must not include a query or fragment".to_string(),
-        });
+        return Err(invalid_endpoint(
+            endpoint,
+            "base endpoint must not include a query or fragment",
+        ));
     }
 
     {
-        let mut segments = url
-            .path_segments_mut()
-            .map_err(|()| IcHostError::InvalidEndpoint {
-                endpoint: endpoint.to_string(),
-                reason: "base endpoint cannot accept path segments".to_string(),
-            })?;
+        let mut segments = url.path_segments_mut().map_err(|()| {
+            invalid_endpoint(endpoint, "base endpoint cannot accept path segments")
+        })?;
         segments.pop_if_empty();
         segments.push("canisters");
         segments.push(canister_id);
@@ -112,10 +96,10 @@ fn canister_url(endpoint: &str, canister_id: &str) -> Result<Url, IcHostError> {
     Ok(url)
 }
 
-fn invalid_endpoint(endpoint: &str, error: url::ParseError) -> IcHostError {
+fn invalid_endpoint(endpoint: &str, reason: impl Into<String>) -> IcHostError {
     IcHostError::InvalidEndpoint {
         endpoint: endpoint.to_string(),
-        reason: error.to_string(),
+        reason: reason.into(),
     }
 }
 
@@ -191,6 +175,19 @@ mod tests {
                     .as_str(),
                 "https://ic-api.internetcomputer.org/api/v3/canisters/ryjl3-tyaaa-aaaaa-aaaba-cai"
             );
+        }
+    }
+
+    #[test]
+    fn canister_url_rejects_query_and_fragment_components() {
+        for endpoint in [
+            "https://ic-api.internetcomputer.org/api/v3?limit=1",
+            "https://ic-api.internetcomputer.org/api/v3#canisters",
+        ] {
+            assert!(matches!(
+                canister_url(endpoint, "ryjl3-tyaaa-aaaaa-aaaba-cai"),
+                Err(IcHostError::InvalidEndpoint { .. })
+            ));
         }
     }
 

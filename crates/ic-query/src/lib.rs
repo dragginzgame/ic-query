@@ -21,6 +21,8 @@ pub mod duration;
 #[cfg(feature = "host")]
 mod freshness;
 mod hex;
+#[cfg(feature = "host")]
+mod http_endpoint;
 pub mod ic;
 #[cfg(feature = "host")]
 mod ic_registry;

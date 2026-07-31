@@ -97,6 +97,12 @@ maturity-modulation reports are bounded live point-value queries. They do not
 read or write the proposal or neuron complete-collection caches and do not
 create another implicit cache or freshness policy.
 
+Official Dashboard canister detail is also a bounded live lookup. It does not
+read or write a cache, because one current REST row is neither an expensive
+complete collection nor durable point-in-time evidence. A future Dashboard
+collection or time-series report may define its own timestamped snapshot, but
+it must not reuse Registry or canister-authority caches.
+
 SNS neuron complete snapshots intentionally stay on explicit refresh before
 cache-backed sorts. A full neuron refresh can require many governance pages and
 the refresh command exposes `--page-size` and `--max-pages`; silently starting

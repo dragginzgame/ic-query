@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.18.md](docs/changelog/0.18.md)
 
+- `0.18.1` consolidates live HTTP(S) endpoint parsing across `ic-agent` and
+  official Dashboard sources, while retaining Dashboard-specific base-URL
+  validation and typed errors. Top-level CLI error handling now owns usage
+  exit codes and broken-pipe detection consistently for every command family.
+  The README and supporting guides are reorganized around authority,
+  collection mode, cache behavior, the current command hierarchy, and the
+  distinction between CLI topology diagnostics and the exact-version joined
+  topology library API. Command behavior, report JSON, cache schemas, and the
+  public Rust API are unchanged.
+
 - `0.18.0` adds the official Dashboard authority family and a bounded live
   canister detail report. Text and JSON preserve raw canister classification,
   name, controllers, Subnet, language, module hash, Dashboard update time, and

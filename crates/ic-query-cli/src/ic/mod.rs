@@ -59,16 +59,6 @@ pub enum IcCommandError {
     Json(#[from] serde_json::Error),
 }
 
-impl IcCommandError {
-    pub(crate) fn is_broken_pipe(&self) -> bool {
-        matches!(self, Self::Io(error) if error.kind() == io::ErrorKind::BrokenPipe)
-    }
-
-    pub(crate) const fn exit_code(&self) -> i32 {
-        if matches!(self, Self::Usage(_)) { 2 } else { 1 }
-    }
-}
-
 pub fn run<I>(args: I) -> Result<(), IcCommandError>
 where
     I: IntoIterator<Item = OsString>,

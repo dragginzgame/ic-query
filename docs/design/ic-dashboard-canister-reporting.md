@@ -49,6 +49,21 @@ The live JSON decoder accepts additional response fields so an additive
 Dashboard extension does not break existing reports, while required current
 fields and their value types remain enforced.
 
+## User-Facing Usage
+
+```bash
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai \
+  --source-endpoint https://ic-api.internetcomputer.org/api/v3
+```
+
+Text output is a compact current-state view. JSON preserves raw nullable
+classification and upgrade history, full principals and hashes, Dashboard and
+retrieval timestamps, and the explicit authority guarantees. Command help is
+the definitive option reference; the broader command map is in
+[CLI Usage](../cli-usage.md).
+
 ## Endpoint and Network Contract
 
 The default endpoint is:

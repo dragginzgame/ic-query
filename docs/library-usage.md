@@ -168,6 +168,40 @@ fn render_registry_version_with_source(
 See [IC Reporting Adapters](design/ic-reporting-adapters.md) for the extension
 rules and prioritized reporting backlog.
 
+## Official Dashboard Canister Example
+
+Native tools can build the same bounded official Dashboard report as
+`icq ic canister info` without spawning the CLI:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcCanisterRequest, IcHostError,
+    build_ic_canister_report, ic_canister_report_text,
+};
+
+fn render_canister(
+    canister_id: &str,
+    now_unix_secs: u64,
+) -> Result<String, IcHostError> {
+    let request = IcCanisterRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        now_unix_secs,
+        canister_id,
+    );
+    let report = build_ic_canister_report(&request)?;
+    Ok(ic_canister_report_text(&report))
+}
+```
+
+This builder is host-only and always performs one live REST lookup. The report
+identifies `official_ic_dashboard_api` as its authority and deliberately
+states `certified: false` and `point_in_time_guaranteed: false`. It does not
+read or write a cache, inherit a Registry version, or prove current
+controller/module state.
+
+No-default consumers can still construct and render `IcCanisterReport` values
+without pulling in the live HTTP adapter.
+
 ## Pure Rendering Example
 
 No-default consumers can use report DTOs and text renderers without native

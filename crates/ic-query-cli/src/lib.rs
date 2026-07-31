@@ -55,13 +55,13 @@ impl IcqCliError {
     #[must_use]
     pub fn is_broken_pipe(&self) -> bool {
         match self {
-            Self::Ic(error) if error.is_broken_pipe() => true,
-            Self::Nns(nns::NnsCommandError::Io(err))
+            Self::Ic(ic::IcCommandError::Io(err))
+            | Self::Nns(nns::NnsCommandError::Io(err))
             | Self::Icrc(icrc::IcrcCommandError::Io(err))
             | Self::Sns(sns::SnsCommandError::Io(err)) => {
                 err.kind() == std::io::ErrorKind::BrokenPipe
             }
-            Self::Usage(_) | Self::Ic(_) | Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => false,
+            Self::Usage(_) | Self::Nns(_) | Self::Icrc(_) | Self::Ic(_) | Self::Sns(_) => false,
         }
     }
 
@@ -74,8 +74,7 @@ impl IcqCliError {
             | Self::Nns(nns::NnsCommandError::Usage(_))
             | Self::Icrc(icrc::IcrcCommandError::Usage(_))
             | Self::Sns(sns::SnsCommandError::Usage(_)) => 2,
-            Self::Ic(error) => error.exit_code(),
-            Self::Nns(_) | Self::Icrc(_) | Self::Sns(_) => 1,
+            Self::Nns(_) | Self::Icrc(_) | Self::Ic(_) | Self::Sns(_) => 1,
         }
     }
 }
@@ -508,15 +507,25 @@ Run `icq <command> help` for command-specific help.
 
     #[test]
     fn typed_cli_errors_preserve_exit_and_broken_pipe_semantics() {
-        let usage = IcqCliError::Icrc(icrc::IcrcCommandError::Usage("bad input".to_string()));
-        assert_eq!(usage.exit_code(), 2);
-        assert!(!usage.is_broken_pipe());
+        for usage in [
+            IcqCliError::Ic(ic::IcCommandError::Usage("bad input".to_string())),
+            IcqCliError::Icrc(icrc::IcrcCommandError::Usage("bad input".to_string())),
+        ] {
+            assert_eq!(usage.exit_code(), 2);
+            assert!(!usage.is_broken_pipe());
+        }
 
-        let broken_pipe = IcqCliError::Icrc(icrc::IcrcCommandError::Io(std::io::Error::from(
-            std::io::ErrorKind::BrokenPipe,
-        )));
-        assert_eq!(broken_pipe.exit_code(), 1);
-        assert!(broken_pipe.is_broken_pipe());
+        for broken_pipe in [
+            IcqCliError::Ic(ic::IcCommandError::Io(std::io::Error::from(
+                std::io::ErrorKind::BrokenPipe,
+            ))),
+            IcqCliError::Icrc(icrc::IcrcCommandError::Io(std::io::Error::from(
+                std::io::ErrorKind::BrokenPipe,
+            ))),
+        ] {
+            assert_eq!(broken_pipe.exit_code(), 1);
+            assert!(broken_pipe.is_broken_pipe());
+        }
     }
 
     #[test]

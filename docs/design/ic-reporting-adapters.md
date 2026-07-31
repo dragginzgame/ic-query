@@ -9,6 +9,8 @@
 Product coverage, priorities, and the completion bar are tracked in the
 living [Roadmap to 1.0](../roadmap/1.0.md). This document owns the adapter and
 collection architecture rather than duplicating milestone status.
+User-facing command and collection-mode guidance lives in
+[CLI Usage](../cli-usage.md).
 
 ## Decision
 

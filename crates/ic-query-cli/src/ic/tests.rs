@@ -71,14 +71,3 @@ fn invalid_principal_fails_before_endpoint_or_network_use() {
         })
     ));
 }
-
-#[test]
-fn usage_errors_and_broken_pipes_have_stable_exit_semantics() {
-    let usage = IcCommandError::Usage("bad input".to_string());
-    assert_eq!(usage.exit_code(), 2);
-    assert!(!usage.is_broken_pipe());
-
-    let broken_pipe = IcCommandError::Io(io::Error::from(io::ErrorKind::BrokenPipe));
-    assert_eq!(broken_pipe.exit_code(), 1);
-    assert!(broken_pipe.is_broken_pipe());
-}
