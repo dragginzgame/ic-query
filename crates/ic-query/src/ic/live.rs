@@ -34,7 +34,7 @@ impl IcCanisterSource for LiveIcSource {
     ) -> Result<IcCanisterSourceData, IcHostError> {
         let canister_id = super::source::canonical_canister_id(canister_id)?;
         let url = canister_url(&request.endpoint, &canister_id)?;
-        let wire = block_on_current_thread(fetch_json(http_client()?, url))??;
+        let wire = fetch_live(url)?;
         Ok(DashboardCanister::into_source_data(wire, request))
     }
 }
@@ -47,13 +47,11 @@ impl IcCanisterCollectionSource for LiveIcSource {
     ) -> Result<IcCanisterCountSourceData, IcHostError> {
         let filters = super::source::normalized_filters(filters)?;
         let url = canister_collection_url(&request.endpoint, &filters, CollectionOperation::Count)?;
-        let wire = block_on_current_thread(fetch_json(http_client()?, url))??;
+        let wire: DashboardCanisterCount = fetch_live(url)?;
         Ok(IcCanisterCountSourceData {
-            source_endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
+            source: request.clone(),
             filters,
-            total: DashboardCanisterCount::into_total(wire),
+            total: wire.total,
         })
     }
 
@@ -84,7 +82,7 @@ impl IcCanisterCollectionSource for LiveIcSource {
                 before: before.as_deref(),
             },
         )?;
-        let wire = block_on_current_thread(fetch_json(http_client()?, url))??;
+        let wire = fetch_live(url)?;
         Ok(DashboardCanisterPage::into_source_data(
             wire,
             request,
@@ -94,6 +92,13 @@ impl IcCanisterCollectionSource for LiveIcSource {
             before.as_deref(),
         ))
     }
+}
+
+fn fetch_live<T>(url: Url) -> Result<T, IcHostError>
+where
+    T: DeserializeOwned + Send,
+{
+    block_on_current_thread(fetch_json(http_client()?, url))?
 }
 
 fn http_client() -> Result<Client, IcHostError> {
@@ -246,9 +251,7 @@ struct DashboardCanister {
 impl DashboardCanister {
     fn into_source_data(self, request: &IcSourceRequest) -> IcCanisterSourceData {
         IcCanisterSourceData {
-            source_endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
+            source: request.clone(),
             canister_id: self.canister_id,
             dashboard_id: self.id,
             canister_type: self.canister_type,
@@ -273,12 +276,6 @@ struct DashboardCanisterCount {
     total: u64,
 }
 
-impl DashboardCanisterCount {
-    const fn into_total(self) -> u64 {
-        self.total
-    }
-}
-
 #[derive(SerdeDeserialize)]
 struct DashboardCanisterPage {
     data: Vec<DashboardCanisterPageRow>,
@@ -296,9 +293,7 @@ impl DashboardCanisterPage {
         before: Option<&str>,
     ) -> IcCanisterPageSourceData {
         IcCanisterPageSourceData {
-            source_endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
+            source: request.clone(),
             filters: filters.clone(),
             requested_limit,
             after: after.map(str::to_string),

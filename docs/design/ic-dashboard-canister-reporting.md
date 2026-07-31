@@ -32,6 +32,13 @@ authority and state both:
 Dashboard fields never inherit a Registry version or certified canister
 authority.
 
+All three report DTOs own one `IcDashboardReportProvenance`. It is flattened
+when serialized, so JSON retains the top-level `schema_version`, `network`,
+`authority`, endpoint, retrieval, certification, and point-in-time fields.
+Rust consumers access those values through `.provenance`. Source-data DTOs
+echo the shared `IcSourceRequest` through `.source`, allowing one equality
+validation path for endpoint, timestamp, and collector provenance.
+
 ## Detail Report Contract
 
 The report preserves:

@@ -8,7 +8,8 @@ use crate::ic::{
     IC_CANISTER_REPORT_SCHEMA_VERSION, IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK,
     IcCanisterCountReport, IcCanisterCountSourceData, IcCanisterFilters, IcCanisterPageReport,
     IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterReport, IcCanisterSourceData,
-    IcCanisterUpgrade, IcHostError, IcSourceRequest, MAX_IC_CANISTER_PAGE_LIMIT,
+    IcCanisterUpgrade, IcDashboardReportProvenance, IcHostError, IcSourceRequest,
+    MAX_IC_CANISTER_PAGE_LIMIT,
 };
 use candid::Principal;
 use std::collections::HashSet;
@@ -127,12 +128,7 @@ pub(super) fn report_from_source(
     requested_canister_id: &str,
     mut source: IcCanisterSourceData,
 ) -> Result<IcCanisterReport, IcHostError> {
-    validate_provenance(
-        request,
-        &source.source_endpoint,
-        &source.fetched_at,
-        &source.fetched_by,
-    )?;
+    validate_provenance(request, &source.source)?;
     validate_principal_match("canister_id", requested_canister_id, &source.canister_id)?;
     validate_canonical_principal("subnet_id", &source.subnet_id)?;
 
@@ -162,14 +158,7 @@ pub(super) fn report_from_source(
     }
 
     Ok(IcCanisterReport {
-        schema_version: IC_CANISTER_REPORT_SCHEMA_VERSION,
-        network: IC_DASHBOARD_NETWORK.to_string(),
-        authority: IC_DASHBOARD_AUTHORITY.to_string(),
-        source_endpoint: source.source_endpoint,
-        fetched_at: source.fetched_at,
-        fetched_by: source.fetched_by,
-        certified: false,
-        point_in_time_guaranteed: false,
+        provenance: report_provenance(source.source),
         canister_id: source.canister_id,
         dashboard_id: source.dashboard_id,
         canister_type: source.canister_type,
@@ -189,23 +178,11 @@ pub(super) fn count_report_from_source(
     filters: &IcCanisterFilters,
     source: IcCanisterCountSourceData,
 ) -> Result<IcCanisterCountReport, IcHostError> {
-    validate_provenance(
-        request,
-        &source.source_endpoint,
-        &source.fetched_at,
-        &source.fetched_by,
-    )?;
+    validate_provenance(request, &source.source)?;
     validate_filter_match(filters, &source.filters)?;
 
     Ok(IcCanisterCountReport {
-        schema_version: IC_CANISTER_REPORT_SCHEMA_VERSION,
-        network: IC_DASHBOARD_NETWORK.to_string(),
-        authority: IC_DASHBOARD_AUTHORITY.to_string(),
-        source_endpoint: source.source_endpoint,
-        fetched_at: source.fetched_at,
-        fetched_by: source.fetched_by,
-        certified: false,
-        point_in_time_guaranteed: false,
+        provenance: report_provenance(source.source),
         filters: source.filters,
         total: source.total,
     })
@@ -219,12 +196,7 @@ pub(super) fn page_report_from_source(
     before: Option<&str>,
     mut source: IcCanisterPageSourceData,
 ) -> Result<IcCanisterPageReport, IcHostError> {
-    validate_provenance(
-        request,
-        &source.source_endpoint,
-        &source.fetched_at,
-        &source.fetched_by,
-    )?;
+    validate_provenance(request, &source.source)?;
     validate_filter_match(filters, &source.filters)?;
     if source.requested_limit != limit {
         return invalid_source(format!(
@@ -256,14 +228,7 @@ pub(super) fn page_report_from_source(
     )?;
 
     Ok(IcCanisterPageReport {
-        schema_version: IC_CANISTER_REPORT_SCHEMA_VERSION,
-        network: IC_DASHBOARD_NETWORK.to_string(),
-        authority: IC_DASHBOARD_AUTHORITY.to_string(),
-        source_endpoint: source.source_endpoint,
-        fetched_at: source.fetched_at,
-        fetched_by: source.fetched_by,
-        certified: false,
-        point_in_time_guaranteed: false,
+        provenance: report_provenance(source.source),
         filters: source.filters,
         requested_limit: source.requested_limit,
         returned_count: source.rows.len(),
@@ -276,19 +241,25 @@ pub(super) fn page_report_from_source(
 }
 
 fn validate_provenance(
-    request: &IcSourceRequest,
-    source_endpoint: &str,
-    fetched_at: &str,
-    fetched_by: &str,
+    expected: &IcSourceRequest,
+    actual: &IcSourceRequest,
 ) -> Result<(), IcHostError> {
     for (field, expected, actual) in [
         (
             "source_endpoint",
-            request.endpoint.as_str(),
-            source_endpoint,
+            expected.endpoint.as_str(),
+            actual.endpoint.as_str(),
         ),
-        ("fetched_at", request.fetched_at.as_str(), fetched_at),
-        ("fetched_by", request.fetched_by.as_str(), fetched_by),
+        (
+            "fetched_at",
+            expected.fetched_at.as_str(),
+            actual.fetched_at.as_str(),
+        ),
+        (
+            "fetched_by",
+            expected.fetched_by.as_str(),
+            actual.fetched_by.as_str(),
+        ),
     ] {
         if actual != expected {
             return invalid_source(format!(
@@ -297,6 +268,19 @@ fn validate_provenance(
         }
     }
     Ok(())
+}
+
+fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
+    IcDashboardReportProvenance {
+        schema_version: IC_CANISTER_REPORT_SCHEMA_VERSION,
+        network: IC_DASHBOARD_NETWORK.to_string(),
+        authority: IC_DASHBOARD_AUTHORITY.to_string(),
+        source_endpoint: source.endpoint,
+        fetched_at: source.fetched_at,
+        fetched_by: source.fetched_by,
+        certified: false,
+        point_in_time_guaranteed: false,
+    }
 }
 
 fn validate_filter_match(

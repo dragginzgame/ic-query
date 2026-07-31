@@ -121,7 +121,7 @@ where
     let Some(args) = command_args(args, canister_count_usage) else {
         return Ok(());
     };
-    let options = CanisterCountOptions::parse(args)?;
+    let options = parse_canister_count_options(args)?;
     let request = IcCanisterCountRequest::new(options.source_endpoint, current_unix_secs()?)
         .with_filters(options.filters);
     let report = build_ic_canister_count_report(&request)?;
@@ -136,13 +136,18 @@ where
         return Ok(());
     };
     let options = CanisterPageOptions::parse(args)?;
-    let mut request = IcCanisterPageRequest::new(options.source_endpoint, current_unix_secs()?)
-        .with_filters(options.filters)
-        .with_limit(options.limit);
+    let mut request =
+        IcCanisterPageRequest::new(options.collection.source_endpoint, current_unix_secs()?)
+            .with_filters(options.collection.filters)
+            .with_limit(options.limit);
     request.after = options.after;
     request.before = options.before;
     let report = build_ic_canister_page_report(&request)?;
-    write_text_or_json(options.format, &report, ic_canister_page_report_text)
+    write_text_or_json(
+        options.collection.format,
+        &report,
+        ic_canister_page_report_text,
+    )
 }
 
 fn run_canister_info<I>(args: I) -> Result<(), IcCommandError>
@@ -196,16 +201,11 @@ fn canister_command() -> ClapCommand {
 }
 
 fn canister_count_command() -> ClapCommand {
-    canister_filter_args(
+    canister_collection_args(
         ClapCommand::new("count")
             .bin_name("icq ic canister count")
             .about("Count canisters through one official Dashboard API request")
             .disable_help_flag(true),
-    )
-    .arg(format_arg())
-    .arg(
-        source_endpoint_arg(DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API v4 base endpoint"),
     )
     .after_help(collection_help(
         COLLECTION_MODE_LIVE,
@@ -214,7 +214,7 @@ fn canister_count_command() -> ClapCommand {
 }
 
 fn canister_page_command() -> ClapCommand {
-    canister_filter_args(
+    canister_collection_args(
         ClapCommand::new("page")
             .bin_name("icq ic canister page")
             .about("Show one bounded official Dashboard canister page")
@@ -244,15 +244,17 @@ fn canister_page_command() -> ClapCommand {
             .conflicts_with("after")
             .help("Exclusive backward cursor returned by a prior page"),
     )
-    .arg(format_arg())
-    .arg(
-        source_endpoint_arg(DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API v4 base endpoint"),
-    )
     .after_help(collection_help(
         COLLECTION_MODE_LIVE,
         CANISTER_PAGE_HELP_AFTER,
     ))
+}
+
+fn canister_collection_args(command: ClapCommand) -> ClapCommand {
+    canister_filter_args(command).arg(format_arg()).arg(
+        source_endpoint_arg(DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v4 base endpoint"),
+    )
 }
 
 fn canister_filter_args(command: ClapCommand) -> ClapCommand {
@@ -363,35 +365,37 @@ impl CanisterInfoOptions {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct CanisterCountOptions {
+struct CanisterCollectionOptions {
     filters: IcCanisterFilters,
     format: OutputFormat,
     source_endpoint: String,
 }
 
-impl CanisterCountOptions {
-    fn parse<I>(args: I) -> Result<Self, IcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(canister_count_command(), args, canister_count_usage)
-            .map_err(IcCommandError::Usage)?;
-        Ok(Self {
-            filters: canister_filters(&matches),
-            format: required_typed(&matches, "format"),
-            source_endpoint: required_string(&matches, "source-endpoint"),
-        })
+impl CanisterCollectionOptions {
+    fn from_matches(matches: &clap::ArgMatches) -> Self {
+        Self {
+            filters: canister_filters(matches),
+            format: required_typed(matches, "format"),
+            source_endpoint: required_string(matches, "source-endpoint"),
+        }
     }
+}
+
+fn parse_canister_count_options<I>(args: I) -> Result<CanisterCollectionOptions, IcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let matches = parse_matches_or_usage(canister_count_command(), args, canister_count_usage)
+        .map_err(IcCommandError::Usage)?;
+    Ok(CanisterCollectionOptions::from_matches(&matches))
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct CanisterPageOptions {
-    filters: IcCanisterFilters,
+    collection: CanisterCollectionOptions,
     limit: u16,
     after: Option<String>,
     before: Option<String>,
-    format: OutputFormat,
-    source_endpoint: String,
 }
 
 impl CanisterPageOptions {
@@ -402,12 +406,10 @@ impl CanisterPageOptions {
         let matches = parse_matches_or_usage(canister_page_command(), args, canister_page_usage)
             .map_err(IcCommandError::Usage)?;
         Ok(Self {
-            filters: canister_filters(&matches),
+            collection: CanisterCollectionOptions::from_matches(&matches),
             limit: required_typed(&matches, "limit"),
             after: string_option(&matches, "after"),
             before: string_option(&matches, "before"),
-            format: required_typed(&matches, "format"),
-            source_endpoint: required_string(&matches, "source-endpoint"),
         })
     }
 }

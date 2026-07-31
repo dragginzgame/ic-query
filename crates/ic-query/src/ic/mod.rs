@@ -21,7 +21,7 @@ pub use live::LiveIcSource;
 pub use model::{
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade,
+    IcCanisterRequest, IcCanisterUpgrade, IcDashboardReportProvenance,
 };
 #[cfg(feature = "host")]
 pub use model::{

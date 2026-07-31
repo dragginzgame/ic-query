@@ -2,7 +2,7 @@ use ic_query::ic::{
     DEFAULT_IC_CANISTER_PAGE_LIMIT, DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, MAX_IC_CANISTER_PAGE_LIMIT,
+    IcCanisterRequest, IcCanisterUpgrade, IcDashboardReportProvenance, MAX_IC_CANISTER_PAGE_LIMIT,
     ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
 };
 #[cfg(feature = "host")]
@@ -25,14 +25,7 @@ fn public_ic_canister_api_is_constructible_and_renderable() {
         CANISTER_ID,
     );
     let report = IcCanisterReport {
-        schema_version: 1,
-        network: "ic".to_string(),
-        authority: "official_ic_dashboard_api".to_string(),
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        fetched_by: "ic-query".to_string(),
-        certified: false,
-        point_in_time_guaranteed: false,
+        provenance: public_provenance(request.source_endpoint.clone()),
         canister_id: request.canister_id.clone(),
         dashboard_id: 226_973,
         canister_type: Some("ledger".to_string()),
@@ -52,10 +45,14 @@ fn public_ic_canister_api_is_constructible_and_renderable() {
     };
 
     let text = ic_canister_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serializable canister report");
 
     assert_eq!(request.now_unix_secs, 1_700_000_000);
     assert!(text.contains("canister_id: ryjl3-tyaaa-aaaaa-aaaba-cai"));
     assert!(text.contains("authority: official_ic_dashboard_api"));
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["source_endpoint"], request.source_endpoint);
+    assert!(json.get("provenance").is_none());
 }
 
 #[test]
@@ -78,26 +75,12 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
     .with_limit(25)
     .with_after(CANISTER_ID);
     let count = IcCanisterCountReport {
-        schema_version: 1,
-        network: "ic".to_string(),
-        authority: "official_ic_dashboard_api".to_string(),
-        source_endpoint: count_request.source_endpoint,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        fetched_by: "ic-query".to_string(),
-        certified: false,
-        point_in_time_guaranteed: false,
+        provenance: public_provenance(count_request.source_endpoint),
         filters: filters.clone(),
         total: 649,
     };
     let page = IcCanisterPageReport {
-        schema_version: 1,
-        network: "ic".to_string(),
-        authority: "official_ic_dashboard_api".to_string(),
-        source_endpoint: page_request.source_endpoint,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        fetched_by: "ic-query".to_string(),
-        certified: false,
-        point_in_time_guaranteed: false,
+        provenance: public_provenance(page_request.source_endpoint),
         filters,
         requested_limit: page_request.limit,
         returned_count: 1,
@@ -112,6 +95,9 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
     assert_eq!(MAX_IC_CANISTER_PAGE_LIMIT, 100);
     assert!(ic_canister_count_report_text(&count).contains("total: 649"));
     assert!(ic_canister_page_report_text(&page).contains("returned_count: 1"));
+    let page_json = serde_json::to_value(page).expect("serializable page report");
+    assert_eq!(page_json["authority"], "official_ic_dashboard_api");
+    assert!(page_json.get("provenance").is_none());
 }
 
 #[cfg(feature = "host")]
@@ -181,9 +167,7 @@ impl IcCanisterSource for FixtureSource {
         canister_id: &str,
     ) -> Result<IcCanisterSourceData, IcHostError> {
         Ok(IcCanisterSourceData {
-            source_endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
+            source: request.clone(),
             canister_id: canister_id.to_string(),
             dashboard_id: 1,
             canister_type: None,
@@ -206,9 +190,7 @@ impl IcCanisterCollectionSource for FixtureSource {
         filters: &IcCanisterFilters,
     ) -> Result<IcCanisterCountSourceData, IcHostError> {
         Ok(IcCanisterCountSourceData {
-            source_endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
+            source: request.clone(),
             filters: filters.clone(),
             total: 1,
         })
@@ -223,9 +205,7 @@ impl IcCanisterCollectionSource for FixtureSource {
         before: Option<&str>,
     ) -> Result<IcCanisterPageSourceData, IcHostError> {
         Ok(IcCanisterPageSourceData {
-            source_endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
+            source: request.clone(),
             filters: filters.clone(),
             requested_limit: limit,
             after: after.map(str::to_string),
@@ -234,6 +214,19 @@ impl IcCanisterCollectionSource for FixtureSource {
             next_cursor: Some(CANISTER_ID.to_string()),
             rows: vec![public_page_row()],
         })
+    }
+}
+
+fn public_provenance(source_endpoint: impl Into<String>) -> IcDashboardReportProvenance {
+    IcDashboardReportProvenance {
+        schema_version: 1,
+        network: "ic".to_string(),
+        authority: "official_ic_dashboard_api".to_string(),
+        source_endpoint: source_endpoint.into(),
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        fetched_by: "ic-query".to_string(),
+        certified: false,
+        point_in_time_guaranteed: false,
     }
 }
 

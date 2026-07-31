@@ -5,16 +5,18 @@
 //! Boundary: keeps raw values intact in JSON while making nullable text fields readable.
 
 use crate::{
-    ic::{IcCanisterCountReport, IcCanisterFilters, IcCanisterPageReport, IcCanisterReport},
+    ic::{
+        IcCanisterCountReport, IcCanisterFilters, IcCanisterPageReport, IcCanisterReport,
+        IcDashboardReportProvenance,
+    },
     text_value::{sanitize_text, yes_no},
 };
 
 /// Render one official Dashboard canister report as human-facing text.
 #[must_use]
 pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("authority: {}", sanitize_text(&report.authority)),
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
         format!("canister_id: {}", report.canister_id),
         format!("dashboard_id: {}", report.dashboard_id),
         format!("name: {}", text_or_dash(&report.name)),
@@ -43,17 +45,8 @@ pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
                 .upgrade_count
                 .map_or_else(|| "-".to_string(), |count| count.to_string())
         ),
-        format!("certified: {}", yes_no(report.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
-        ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
-        ),
-    ];
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
 
     if !report.controllers.is_empty() {
         lines.push(String::new());
@@ -87,33 +80,18 @@ pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
 /// Render one official Dashboard canister-count report as human-facing text.
 #[must_use]
 pub fn ic_canister_count_report_text(report: &IcCanisterCountReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("authority: {}", sanitize_text(&report.authority)),
-        format!("total: {}", report.total),
-    ];
+    let mut lines = report_header(&report.provenance);
+    lines.push(format!("total: {}", report.total));
     append_filters(&mut lines, &report.filters);
-    lines.extend([
-        format!("certified: {}", yes_no(report.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
-        ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
-        ),
-    ]);
+    append_report_footer(&mut lines, &report.provenance);
     lines.join("\n")
 }
 
 /// Render one bounded official Dashboard canister page as human-facing text.
 #[must_use]
 pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("authority: {}", sanitize_text(&report.authority)),
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
         format!("returned_count: {}", report.returned_count),
         format!("requested_limit: {}", report.requested_limit),
         format!(
@@ -132,20 +110,9 @@ pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
             "next_cursor: {}",
             report.next_cursor.as_deref().map_or("-", |value| value)
         ),
-    ];
-    append_filters(&mut lines, &report.filters);
-    lines.extend([
-        format!("certified: {}", yes_no(report.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
-        ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
-        ),
     ]);
+    append_filters(&mut lines, &report.filters);
+    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -166,6 +133,28 @@ pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
         }));
     }
     lines.join("\n")
+}
+
+fn report_header(provenance: &IcDashboardReportProvenance) -> Vec<String> {
+    vec![
+        format!("network: {}", sanitize_text(&provenance.network)),
+        format!("authority: {}", sanitize_text(&provenance.authority)),
+    ]
+}
+
+fn append_report_footer(lines: &mut Vec<String>, provenance: &IcDashboardReportProvenance) {
+    lines.extend([
+        format!("certified: {}", yes_no(provenance.certified)),
+        format!(
+            "point_in_time_guaranteed: {}",
+            yes_no(provenance.point_in_time_guaranteed)
+        ),
+        format!("fetched_at: {}", sanitize_text(&provenance.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&provenance.source_endpoint)
+        ),
+    ]);
 }
 
 fn append_filters(lines: &mut Vec<String>, filters: &IcCanisterFilters) {

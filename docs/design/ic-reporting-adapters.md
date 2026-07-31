@@ -49,6 +49,10 @@ Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
 focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
 `LiveIcSource`; future Dashboard network and metric reports should extend that
 adapter rather than introduce one live source per REST endpoint.
+Dashboard source-data DTOs echo that request as their source provenance, and
+detail/count/page reports share one flattened
+`IcDashboardReportProvenance`, avoiding parallel field and validation flows
+without nesting the public report JSON.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report. Report builders

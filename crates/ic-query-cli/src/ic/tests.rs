@@ -52,7 +52,7 @@ fn canister_info_options_require_a_canister_id() {
 
 #[test]
 fn canister_count_options_preserve_official_filters() {
-    let options = CanisterCountOptions::parse([
+    let options = parse_canister_count_options([
         OsString::from("--has-name"),
         OsString::from("true"),
         OsString::from("--subnet-id"),

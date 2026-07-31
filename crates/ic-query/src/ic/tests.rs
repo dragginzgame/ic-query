@@ -16,11 +16,14 @@ fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
         .expect("Dashboard canister report");
     let text = ic_canister_report_text(&report);
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.network, "ic");
-    assert_eq!(report.authority, "official_ic_dashboard_api");
-    assert_eq!(report.source_endpoint, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT);
-    assert_eq!(report.fetched_at, FETCHED_AT);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.network, "ic");
+    assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
+    assert_eq!(
+        report.provenance.source_endpoint,
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT
+    );
+    assert_eq!(report.provenance.fetched_at, FETCHED_AT);
     assert_eq!(report.canister_id, CANISTER_ID);
     assert_eq!(report.canister_type.as_deref(), Some("ledger"));
     assert_eq!(report.controllers, [CONTROLLER_ID]);
@@ -29,8 +32,8 @@ fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
         report.upgrades.as_ref().expect("history")[0].proposal_id,
         138_271
     );
-    assert!(!report.certified);
-    assert!(!report.point_in_time_guaranteed);
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
     assert!(text.contains("authority: official_ic_dashboard_api"));
     assert!(text.contains("latest_upgrade:"));
     assert!(text.contains("certified: no"));
@@ -205,8 +208,8 @@ fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
     assert_eq!(source.page_calls.get(), 0);
     assert_eq!(report.total, 649);
     assert_eq!(report.filters.languages, ["motoko", "rust"]);
-    assert!(!report.certified);
-    assert!(!report.point_in_time_guaranteed);
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
     assert!(ic_canister_count_report_text(&report).contains("total: 649"));
 }
 
@@ -370,9 +373,7 @@ impl IcCanisterCollectionSource for CollectionFixture {
     ) -> Result<IcCanisterCountSourceData, IcHostError> {
         self.count_calls.set(self.count_calls.get() + 1);
         Ok(IcCanisterCountSourceData {
-            source_endpoint: request.endpoint.clone(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
+            source: request.clone(),
             filters: filters.clone(),
             total: 649,
         })
@@ -406,9 +407,7 @@ fn page_source_data(
     before: Option<&str>,
 ) -> IcCanisterPageSourceData {
     IcCanisterPageSourceData {
-        source_endpoint: request.endpoint.clone(),
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
+        source: request.clone(),
         filters: filters.clone(),
         requested_limit,
         after: after.map(str::to_string),
@@ -458,9 +457,7 @@ fn invalid_page_cursor(request: &mut IcCanisterPageRequest) {
 
 fn source_data(request: &IcSourceRequest, canister_id: &str) -> IcCanisterSourceData {
     IcCanisterSourceData {
-        source_endpoint: request.endpoint.clone(),
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
+        source: request.clone(),
         canister_id: canister_id.to_string(),
         dashboard_id: 226_973,
         canister_type: Some("ledger".to_string()),
@@ -490,7 +487,7 @@ fn wrong_canister(data: &mut IcCanisterSourceData) {
 }
 
 fn wrong_endpoint(data: &mut IcCanisterSourceData) {
-    data.source_endpoint = "https://example.com/api/v3".to_string();
+    data.source.endpoint = "https://example.com/api/v3".to_string();
 }
 
 fn duplicate_controller(data: &mut IcCanisterSourceData) {

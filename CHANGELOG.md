@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.19.md](docs/changelog/0.19.md)
 
+- `0.19.1` consolidates repeated Dashboard source and report provenance into
+  the existing `IcSourceRequest` and one flattened
+  `IcDashboardReportProvenance`, and shares collection option parsing,
+  transport execution, and text provenance rendering. Report JSON, CLI
+  grammar and output, validation, live request counts, and cache behavior are
+  unchanged. This is a breaking pre-1.0 Rust-API hard cut: Dashboard report
+  provenance is now accessed through `.provenance`, and source-data DTOs echo
+  the source request through `.source`; the replaced fields are removed
+  without aliases.
+
 - `0.19.0` adds filtered canister counts and one-page canister discovery
   through the official Dashboard v4 API. Count fetches no rows; page is fixed
   to canister-id order, defaults to 50 rows, is capped at 100, and never follows

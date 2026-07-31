@@ -181,13 +181,13 @@ pub struct IcCanisterUpgrade {
 }
 
 ///
-/// IcCanisterReport
+/// IcDashboardReportProvenance
 ///
-/// One live canister metadata report from the official Dashboard API.
+/// Shared off-chain provenance and authority guarantees for Dashboard reports.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcCanisterReport {
+pub struct IcDashboardReportProvenance {
     /// Report schema version.
     pub schema_version: u32,
     /// Network represented by the official Dashboard API.
@@ -204,6 +204,19 @@ pub struct IcCanisterReport {
     pub certified: bool,
     /// Whether every returned value is guaranteed to describe one point in time.
     pub point_in_time_guaranteed: bool,
+}
+
+///
+/// IcCanisterReport
+///
+/// One live canister metadata report from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcCanisterReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
     /// Canonical canister principal.
     pub canister_id: String,
     /// Dashboard database row identifier.
@@ -236,22 +249,9 @@ pub struct IcCanisterReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcCanisterCountReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Network represented by the official Dashboard API.
-    pub network: String,
-    /// Authority that supplied the report fields.
-    pub authority: String,
-    /// Dashboard API v4 base endpoint queried by the source.
-    pub source_endpoint: String,
-    /// Time this report was collected.
-    pub fetched_at: String,
-    /// Collector identity.
-    pub fetched_by: String,
-    /// Whether the API response is cryptographically certified IC state.
-    pub certified: bool,
-    /// Whether every returned value is guaranteed to describe one point in time.
-    pub point_in_time_guaranteed: bool,
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
     /// Filters applied by the Dashboard.
     pub filters: IcCanisterFilters,
     /// Number of matching Dashboard canister records.
@@ -308,22 +308,9 @@ pub struct IcCanisterPageRow {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcCanisterPageReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Network represented by the official Dashboard API.
-    pub network: String,
-    /// Authority that supplied the report fields.
-    pub authority: String,
-    /// Dashboard API v4 base endpoint queried by the source.
-    pub source_endpoint: String,
-    /// Time this report was collected.
-    pub fetched_at: String,
-    /// Collector identity.
-    pub fetched_by: String,
-    /// Whether the API response is cryptographically certified IC state.
-    pub certified: bool,
-    /// Whether every returned value is guaranteed to describe one point in time.
-    pub point_in_time_guaranteed: bool,
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
     /// Filters applied by the Dashboard.
     pub filters: IcCanisterFilters,
     /// Maximum rows requested from the API.
@@ -345,7 +332,7 @@ pub struct IcCanisterPageReport {
 ///
 /// IcSourceRequest
 ///
-/// Shared endpoint and collection provenance for IC Dashboard source calls.
+/// Shared endpoint and collection provenance for IC Dashboard source calls and results.
 ///
 
 #[cfg(feature = "host")]
@@ -385,12 +372,8 @@ impl IcSourceRequest {
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcCanisterSourceData {
-    /// Dashboard API base endpoint used by the source.
-    pub source_endpoint: String,
-    /// Collection timestamp supplied in the source request.
-    pub fetched_at: String,
-    /// Collector identity supplied in the source request.
-    pub fetched_by: String,
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
     /// Canister principal returned by the Dashboard.
     pub canister_id: String,
     /// Dashboard database row identifier.
@@ -422,12 +405,8 @@ pub struct IcCanisterSourceData {
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcCanisterCountSourceData {
-    /// Dashboard API v4 base endpoint used by the source.
-    pub source_endpoint: String,
-    /// Collection timestamp supplied in the source request.
-    pub fetched_at: String,
-    /// Collector identity supplied in the source request.
-    pub fetched_by: String,
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
     /// Filters applied by the source.
     pub filters: IcCanisterFilters,
     /// Number of matching Dashboard canister records.
@@ -443,12 +422,8 @@ pub struct IcCanisterCountSourceData {
 #[cfg(feature = "host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcCanisterPageSourceData {
-    /// Dashboard API v4 base endpoint used by the source.
-    pub source_endpoint: String,
-    /// Collection timestamp supplied in the source request.
-    pub fetched_at: String,
-    /// Collector identity supplied in the source request.
-    pub fetched_by: String,
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
     /// Filters applied by the source.
     pub filters: IcCanisterFilters,
     /// Maximum rows requested from the source.
