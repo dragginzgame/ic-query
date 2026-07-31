@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.18", default-features = false, features = ["host"] }
+ic-query = { version = "0.19", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.18", default-features = false }
+ic-query = { version = "0.19", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -95,7 +95,8 @@ need to reuse `ic-query` report assembly with data that does not come from the
 built-in live adapters. The official Dashboard, generic ICRC, subnet catalog,
 NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
 list/info/token/params/canister, SNS proposal, and SNS neuron host APIs expose
-this pattern with `IcCanisterSource` and narrow ICRC capabilities such as
+this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`, and narrow
+ICRC capabilities such as
 `IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,
 `build_icrc_*_report_with_source`,
@@ -168,7 +169,7 @@ fn render_registry_version_with_source(
 See [IC Reporting Adapters](design/ic-reporting-adapters.md) for the extension
 rules and prioritized reporting backlog.
 
-## Official Dashboard Canister Example
+## Official Dashboard Canister Examples
 
 Native tools can build the same bounded official Dashboard report as
 `icq ic canister info` without spawning the CLI:
@@ -201,6 +202,38 @@ controller/module state.
 
 No-default consumers can still construct and render `IcCanisterReport` values
 without pulling in the live HTTP adapter.
+
+Filtered discovery stays explicitly bounded. A count performs one REST request
+and fetches no rows. A page performs one REST request for at most 100 rows and
+does not follow the returned cursor or write a cache:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+    IcCanisterFilters, IcCanisterPageRequest, IcHostError,
+    build_ic_canister_page_report,
+};
+
+fn discover_named_canisters(
+    now_unix_secs: u64,
+) -> Result<Vec<String>, IcHostError> {
+    let filters = IcCanisterFilters {
+        has_name: Some(true),
+        ..IcCanisterFilters::default()
+    };
+    let request = IcCanisterPageRequest::new(
+        DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+        now_unix_secs,
+    )
+    .with_filters(filters)
+    .with_limit(25);
+    let report = build_ic_canister_page_report(&request)?;
+    Ok(report.rows.into_iter().map(|row| row.canister_id).collect())
+}
+```
+
+Callers may supply `report.next_cursor` to `with_after` on a later request.
+There is intentionally no automatic whole-catalog collection builder.
 
 ## Pure Rendering Example
 

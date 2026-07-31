@@ -1,5 +1,5 @@
 use super::*;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const CONTROLLER_ID: &str = "r7inp-6aaaa-aaaaa-aaabq-cai";
@@ -7,6 +7,8 @@ const SUBNET_ID: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-v
 const MODULE_HASH: &str = "51f4be010f23064137defacd627ffbec024c5133210c68ca3b80ab8f257101d6";
 const OLDER_MODULE_HASH: &str = "324bfd929805a930cbf6b5f29b4a858ea84452bb551771df7303c769aecb1439";
 const FETCHED_AT: &str = "2023-11-14T22:13:20Z";
+const PAGE_CANISTER_ID: &str = "2223e-iaaaa-aaaac-awyra-cai";
+const PAGE_NEXT_CANISTER_ID: &str = "2223u-yaaaa-aaaal-qutrq-cai";
 
 #[test]
 fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
@@ -143,6 +145,171 @@ fn live_source_rejects_invalid_principal_before_endpoint_or_http_request() {
     ));
 }
 
+#[test]
+fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
+    let source_request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
+
+    let count_error = LiveIcSource
+        .fetch_canister_count(
+            &source_request,
+            &IcCanisterFilters {
+                query: Some("x".to_string()),
+                ..IcCanisterFilters::default()
+            },
+        )
+        .expect_err("invalid count filter must fail first");
+    let page_error = LiveIcSource
+        .fetch_canister_page(
+            &source_request,
+            &IcCanisterFilters::default(),
+            MAX_IC_CANISTER_PAGE_LIMIT + 1,
+            None,
+            None,
+        )
+        .expect_err("invalid page limit must fail first");
+
+    assert!(matches!(
+        count_error,
+        IcHostError::InvalidRequest {
+            field: "filters.query",
+            ..
+        }
+    ));
+    assert!(matches!(
+        page_error,
+        IcHostError::InvalidRequest { field: "limit", .. }
+    ));
+}
+
+#[test]
+fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
+    let source = CollectionFixture::default();
+    let filters = IcCanisterFilters {
+        has_name: Some(true),
+        subnet_id: Some(SUBNET_ID.to_string()),
+        controller_id: None,
+        languages: vec!["rust".to_string(), "motoko".to_string()],
+        canister_types: vec!["ledger".to_string()],
+        query: Some("ICP Ledger".to_string()),
+    };
+    let request = IcCanisterCountRequest::new(
+        DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+        1_700_000_000,
+    )
+    .with_filters(filters);
+
+    let report = build_ic_canister_count_report_with_source(&request, &source)
+        .expect("bounded Dashboard count");
+
+    assert_eq!(source.count_calls.get(), 1);
+    assert_eq!(source.page_calls.get(), 0);
+    assert_eq!(report.total, 649);
+    assert_eq!(report.filters.languages, ["motoko", "rust"]);
+    assert!(!report.certified);
+    assert!(!report.point_in_time_guaranteed);
+    assert!(ic_canister_count_report_text(&report).contains("total: 649"));
+}
+
+#[test]
+fn canister_page_returns_one_validated_slice_without_following_cursor() {
+    let source = CollectionFixture::default();
+    let request = IcCanisterPageRequest::new(
+        DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+        1_700_000_000,
+    )
+    .with_limit(2);
+
+    let report = build_ic_canister_page_report_with_source(&request, &source)
+        .expect("bounded Dashboard page");
+
+    assert_eq!(source.page_calls.get(), 1);
+    assert_eq!(source.count_calls.get(), 0);
+    assert_eq!(report.requested_limit, 2);
+    assert_eq!(report.returned_count, 2);
+    assert_eq!(report.rows[0].canister_id, PAGE_CANISTER_ID);
+    assert_eq!(report.next_cursor.as_deref(), Some(PAGE_NEXT_CANISTER_ID));
+    assert_eq!(
+        report.rows[0].controllers[0].raw_metadata.as_deref(),
+        Some("")
+    );
+    assert!(ic_canister_page_report_text(&report).contains("returned_count: 2"));
+}
+
+#[test]
+fn canister_page_validates_bound_and_cursor_contract_before_source_call() {
+    for mutate in [
+        zero_page_limit as fn(&mut IcCanisterPageRequest),
+        excessive_page_limit,
+        both_page_cursors,
+        invalid_page_cursor,
+    ] {
+        let source = CollectionFixture::default();
+        let mut request = IcCanisterPageRequest::new(
+            DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+            1_700_000_000,
+        );
+        mutate(&mut request);
+
+        let error = build_ic_canister_page_report_with_source(&request, &source)
+            .expect_err("invalid page request must fail");
+
+        assert!(matches!(
+            error,
+            IcHostError::InvalidRequest { .. } | IcHostError::InvalidPrincipal { .. }
+        ));
+        assert_eq!(source.page_calls.get(), 0);
+    }
+}
+
+#[test]
+fn canister_collection_filters_are_validated_before_source_calls() {
+    let source = CollectionFixture::default();
+    let request = IcCanisterCountRequest::new(
+        DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+        1_700_000_000,
+    )
+    .with_filters(IcCanisterFilters {
+        query: Some("x".to_string()),
+        ..IcCanisterFilters::default()
+    });
+
+    let error = build_ic_canister_count_report_with_source(&request, &source)
+        .expect_err("short Dashboard query must fail");
+
+    assert!(matches!(
+        error,
+        IcHostError::InvalidRequest {
+            field: "filters.query",
+            ..
+        }
+    ));
+    assert_eq!(source.count_calls.get(), 0);
+}
+
+#[test]
+fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
+    for mutation in [
+        PageSourceMutation::ReverseRows,
+        PageSourceMutation::WrongFilters,
+        PageSourceMutation::WrongLimit,
+    ] {
+        let source = CollectionFixture {
+            page_mutation: RefCell::new(Some(mutation)),
+            ..CollectionFixture::default()
+        };
+        let request = IcCanisterPageRequest::new(
+            DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+            1_700_000_000,
+        )
+        .with_limit(2);
+
+        let error = build_ic_canister_page_report_with_source(&request, &source)
+            .expect_err("invalid source page must fail");
+
+        assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+    }
+}
+
 fn request() -> IcCanisterRequest {
     IcCanisterRequest::new(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
@@ -179,6 +346,114 @@ impl IcCanisterSource for MutatingSource {
         self.0(&mut data);
         Ok(data)
     }
+}
+
+#[derive(Clone, Copy)]
+enum PageSourceMutation {
+    ReverseRows,
+    WrongFilters,
+    WrongLimit,
+}
+
+#[derive(Default)]
+struct CollectionFixture {
+    count_calls: Cell<usize>,
+    page_calls: Cell<usize>,
+    page_mutation: RefCell<Option<PageSourceMutation>>,
+}
+
+impl IcCanisterCollectionSource for CollectionFixture {
+    fn fetch_canister_count(
+        &self,
+        request: &IcSourceRequest,
+        filters: &IcCanisterFilters,
+    ) -> Result<IcCanisterCountSourceData, IcHostError> {
+        self.count_calls.set(self.count_calls.get() + 1);
+        Ok(IcCanisterCountSourceData {
+            source_endpoint: request.endpoint.clone(),
+            fetched_at: request.fetched_at.clone(),
+            fetched_by: request.fetched_by.clone(),
+            filters: filters.clone(),
+            total: 649,
+        })
+    }
+
+    fn fetch_canister_page(
+        &self,
+        request: &IcSourceRequest,
+        filters: &IcCanisterFilters,
+        limit: u16,
+        after: Option<&str>,
+        before: Option<&str>,
+    ) -> Result<IcCanisterPageSourceData, IcHostError> {
+        self.page_calls.set(self.page_calls.get() + 1);
+        let mut data = page_source_data(request, filters, limit, after, before);
+        match self.page_mutation.borrow_mut().take() {
+            Some(PageSourceMutation::ReverseRows) => data.rows.reverse(),
+            Some(PageSourceMutation::WrongFilters) => data.filters.has_name = Some(true),
+            Some(PageSourceMutation::WrongLimit) => data.requested_limit += 1,
+            None => {}
+        }
+        Ok(data)
+    }
+}
+
+fn page_source_data(
+    request: &IcSourceRequest,
+    filters: &IcCanisterFilters,
+    requested_limit: u16,
+    after: Option<&str>,
+    before: Option<&str>,
+) -> IcCanisterPageSourceData {
+    IcCanisterPageSourceData {
+        source_endpoint: request.endpoint.clone(),
+        fetched_at: request.fetched_at.clone(),
+        fetched_by: request.fetched_by.clone(),
+        filters: filters.clone(),
+        requested_limit,
+        after: after.map(str::to_string),
+        before: before.map(str::to_string),
+        previous_cursor: None,
+        next_cursor: Some(PAGE_NEXT_CANISTER_ID.to_string()),
+        rows: vec![
+            page_row(PAGE_CANISTER_ID, 918_419, Some("")),
+            page_row(PAGE_NEXT_CANISTER_ID, 1_091_549, None),
+        ],
+    }
+}
+
+fn page_row(canister_id: &str, dashboard_id: u64, raw_metadata: Option<&str>) -> IcCanisterPageRow {
+    IcCanisterPageRow {
+        canister_id: canister_id.to_string(),
+        dashboard_id,
+        canister_type: None,
+        name: String::new(),
+        subnet_id: SUBNET_ID.to_string(),
+        controllers: vec![IcCanisterPageController {
+            principal_id: CONTROLLER_ID.to_string(),
+            raw_metadata: raw_metadata.map(str::to_string),
+        }],
+        language: String::new(),
+        module_hash: String::new(),
+        dashboard_updated_at: "2026-07-31T05:13:38.882316".to_string(),
+    }
+}
+
+const fn zero_page_limit(request: &mut IcCanisterPageRequest) {
+    request.limit = 0;
+}
+
+const fn excessive_page_limit(request: &mut IcCanisterPageRequest) {
+    request.limit = MAX_IC_CANISTER_PAGE_LIMIT + 1;
+}
+
+fn both_page_cursors(request: &mut IcCanisterPageRequest) {
+    request.after = Some(PAGE_CANISTER_ID.to_string());
+    request.before = Some(PAGE_NEXT_CANISTER_ID.to_string());
+}
+
+fn invalid_page_cursor(request: &mut IcCanisterPageRequest) {
+    request.after = Some("not a principal".to_string());
 }
 
 fn source_data(request: &IcSourceRequest, canister_id: &str) -> IcCanisterSourceData {

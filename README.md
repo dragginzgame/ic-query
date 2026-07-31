@@ -16,7 +16,7 @@ live calls, cache reads, refreshes, and local-only inspection visibly distinct.
 
 | Family | Current surface |
 | --- | --- |
-| Official IC Dashboard | Deployed canister metadata and proposal-linked upgrade history |
+| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata, and proposal-linked upgrade history |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Discovery, metadata, token and nervous-system parameters, Root canister inventory and health, proposals, and neurons |
@@ -47,6 +47,8 @@ cargo install ic-query-cli
 ```bash
 # Official Dashboard canister metadata
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
+icq ic canister count --has-name true
+icq ic canister page --query ledger --limit 25
 
 # NNS Registry and cached topology diagnostics
 icq nns registry version
@@ -105,7 +107,7 @@ authority model and follow-up query rules.
 ## Command families
 
 ```text
-icq ic canister info
+icq ic canister info|count|page
 
 icq nns registry version
 icq nns subnet list|info|refresh
@@ -148,8 +150,11 @@ Every data-producing command follows one documented collection mode:
 | Local-only inspection | Never | Never |
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
 
-Paged proposal, neuron, and account-history collections retain refresh attempt
-state. Failed or capped refreshes do not replace the last complete snapshot.
+Dashboard count and page commands always make exactly one REST request. A page
+returns at most 100 canister summaries and never follows its cursors
+automatically or creates a cache. Paged proposal, neuron, and account-history
+collections retain refresh attempt state. Failed or capped refreshes do not
+replace the last complete snapshot.
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do
@@ -175,7 +180,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.18", default-features = false }
+ic-query = { version = "0.19", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -183,7 +188,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.18", default-features = false, features = ["host"] }
+ic-query = { version = "0.19", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,

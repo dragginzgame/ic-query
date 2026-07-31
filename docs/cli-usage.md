@@ -42,16 +42,26 @@ option instead of silently ignoring it.
 ```bash
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq ic canister count --has-name true
+icq ic canister page --query ledger --limit 25 --format json
+icq ic canister page --after ryjl3-tyaaa-aaaaa-aaaba-cai --limit 25
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai \
   --source-endpoint https://ic-api.internetcomputer.org/api/v3
 ```
 
-The report preserves the Dashboard canister id, raw optional classification,
-name, Subnet, controllers, language, module hash, update timestamp, and
-nullable proposal-linked upgrade history.
+`info` preserves the Dashboard canister id, raw optional classification, name,
+Subnet, controllers, language, module hash, update timestamp, and nullable
+proposal-linked upgrade history. `count` applies the official Dashboard
+filters and returns only the matching total. `page` returns canister-id-ordered
+discovery rows plus the raw preceding/following cursors; use a discovered
+canister principal with `info` for proposal-linked upgrade history.
 
-This is a bounded live REST lookup. It never reads or writes a cache. The
-official Dashboard is an off-chain analytics authority, so the report states
+Each command is a bounded live REST lookup that makes exactly one request. A
+page defaults to 50 rows and is capped at the official API maximum of 100.
+Cursors are followed only when a user explicitly supplies `--after` or
+`--before` to another command. There is no automatic enumeration and these
+commands never read or write a cache. The official Dashboard is an off-chain
+analytics authority, so every report states
 `certified: false` and `point_in_time_guaranteed: false`. It does not inherit a
 Registry version or prove current controller/module state.
 

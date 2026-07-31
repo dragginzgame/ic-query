@@ -27,7 +27,7 @@ icq icrc account transaction help
 | --- | --- |
 | [IC Reporting Adapters](design/ic-reporting-adapters.md) | Authority families, provenance, validation, and typed follow-up queries |
 | [Cache Policy](design/cache-policy.md) | Cache identity, refresh behavior, locking, and local inspection |
-| [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and live canister detail report |
+| [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [Exact-Version NNS Subnet Topology](design/nns-subnet-topology.md) | One-version Registry join and atomic topology cache |
 | [NNS Governance Reporting](design/nns-governance-reporting.md) | Economics, metrics, reward event, and maturity modulation |
 | [NNS Neuron Reporting](design/nns-neuron-reporting.md) | Public neuron views and complete collection behavior |

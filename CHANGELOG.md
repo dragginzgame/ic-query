@@ -7,6 +7,23 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.19.x] - 2026-07-31 - Bounded Dashboard canister discovery
+
+Detailed release notes: [docs/changelog/0.19.md](docs/changelog/0.19.md)
+
+- `0.19.0` adds filtered canister counts and one-page canister discovery
+  through the official Dashboard v4 API. Count fetches no rows; page is fixed
+  to canister-id order, defaults to 50 rows, is capped at 100, and never follows
+  a cursor or writes a cache automatically. Typed library requests, reports,
+  capability traits, custom-source validation, and renderers preserve raw
+  Dashboard values and explicit off-chain provenance.
+
+  ```bash
+  icq ic canister count --has-name true
+  icq ic canister page --query ledger --limit 25 --format json
+  icq ic canister page --after ryjl3-tyaaa-aaaaa-aaaba-cai --limit 25
+  ```
+
 ## [0.18.x] - 2026-07-30 - Official Dashboard canister reporting
 
 Detailed release notes: [docs/changelog/0.18.md](docs/changelog/0.18.md)

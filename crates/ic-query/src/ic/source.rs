@@ -6,7 +6,9 @@
 
 use crate::ic::{
     IC_CANISTER_REPORT_SCHEMA_VERSION, IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK,
-    IcCanisterReport, IcCanisterSourceData, IcCanisterUpgrade, IcHostError, IcSourceRequest,
+    IcCanisterCountReport, IcCanisterCountSourceData, IcCanisterFilters, IcCanisterPageReport,
+    IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterReport, IcCanisterSourceData,
+    IcCanisterUpgrade, IcHostError, IcSourceRequest, MAX_IC_CANISTER_PAGE_LIMIT,
 };
 use candid::Principal;
 use std::collections::HashSet;
@@ -26,13 +28,98 @@ pub trait IcCanisterSource {
     ) -> Result<IcCanisterSourceData, IcHostError>;
 }
 
+///
+/// IcCanisterCollectionSource
+///
+/// Source contract for bounded IC Dashboard canister discovery.
+///
+
+pub trait IcCanisterCollectionSource {
+    /// Fetch one filtered canister count with explicit collection provenance.
+    fn fetch_canister_count(
+        &self,
+        request: &IcSourceRequest,
+        filters: &IcCanisterFilters,
+    ) -> Result<IcCanisterCountSourceData, IcHostError>;
+
+    /// Fetch at most `limit` rows without automatically following a cursor.
+    fn fetch_canister_page(
+        &self,
+        request: &IcSourceRequest,
+        filters: &IcCanisterFilters,
+        limit: u16,
+        after: Option<&str>,
+        before: Option<&str>,
+    ) -> Result<IcCanisterPageSourceData, IcHostError>;
+}
+
 pub(super) fn canonical_canister_id(value: &str) -> Result<String, IcHostError> {
+    canonical_request_principal("canister_id", value)
+}
+
+pub(super) fn normalized_filters(
+    filters: &IcCanisterFilters,
+) -> Result<IcCanisterFilters, IcHostError> {
+    let mut filters = filters.clone();
+    filters.subnet_id = filters
+        .subnet_id
+        .as_deref()
+        .map(|value| canonical_request_principal("filters.subnet_id", value))
+        .transpose()?;
+    filters.controller_id = filters
+        .controller_id
+        .as_deref()
+        .map(|value| canonical_request_principal("filters.controller_id", value))
+        .transpose()?;
+    normalize_string_filters("filters.languages", &mut filters.languages)?;
+    normalize_string_filters("filters.canister_types", &mut filters.canister_types)?;
+
+    if let Some(query) = filters.query.as_deref() {
+        let length = query.chars().count();
+        if !(2..=100).contains(&length) {
+            return invalid_request("filters.query", "must contain between 2 and 100 characters");
+        }
+    }
+    Ok(filters)
+}
+
+pub(super) fn canonical_page_cursor(
+    field: &'static str,
+    cursor: Option<&str>,
+) -> Result<Option<String>, IcHostError> {
+    cursor
+        .map(|value| canonical_request_principal(field, value))
+        .transpose()
+}
+
+pub(super) fn validate_page_limit(limit: u16) -> Result<(), IcHostError> {
+    if (1..=MAX_IC_CANISTER_PAGE_LIMIT).contains(&limit) {
+        return Ok(());
+    }
+    invalid_request(
+        "limit",
+        format!("must be between 1 and {MAX_IC_CANISTER_PAGE_LIMIT}"),
+    )
+}
+
+fn canonical_request_principal(field: &'static str, value: &str) -> Result<String, IcHostError> {
     Principal::from_text(value)
         .map(|principal| principal.to_text())
         .map_err(|error| IcHostError::InvalidPrincipal {
-            field: "canister_id",
+            field,
             reason: error.to_string(),
         })
+}
+
+fn normalize_string_filters(field: &'static str, values: &mut [String]) -> Result<(), IcHostError> {
+    if values.iter().any(String::is_empty) {
+        return invalid_request(field, "values must not be empty");
+    }
+    values.sort_unstable();
+    if values.windows(2).any(|pair| pair[0] == pair[1]) {
+        return invalid_request(field, "values must be unique");
+    }
+    Ok(())
 }
 
 pub(super) fn report_from_source(
@@ -40,7 +127,12 @@ pub(super) fn report_from_source(
     requested_canister_id: &str,
     mut source: IcCanisterSourceData,
 ) -> Result<IcCanisterReport, IcHostError> {
-    validate_provenance(request, &source)?;
+    validate_provenance(
+        request,
+        &source.source_endpoint,
+        &source.fetched_at,
+        &source.fetched_by,
+    )?;
     validate_principal_match("canister_id", requested_canister_id, &source.canister_id)?;
     validate_canonical_principal("subnet_id", &source.subnet_id)?;
 
@@ -92,32 +184,210 @@ pub(super) fn report_from_source(
     })
 }
 
+pub(super) fn count_report_from_source(
+    request: &IcSourceRequest,
+    filters: &IcCanisterFilters,
+    source: IcCanisterCountSourceData,
+) -> Result<IcCanisterCountReport, IcHostError> {
+    validate_provenance(
+        request,
+        &source.source_endpoint,
+        &source.fetched_at,
+        &source.fetched_by,
+    )?;
+    validate_filter_match(filters, &source.filters)?;
+
+    Ok(IcCanisterCountReport {
+        schema_version: IC_CANISTER_REPORT_SCHEMA_VERSION,
+        network: IC_DASHBOARD_NETWORK.to_string(),
+        authority: IC_DASHBOARD_AUTHORITY.to_string(),
+        source_endpoint: source.source_endpoint,
+        fetched_at: source.fetched_at,
+        fetched_by: source.fetched_by,
+        certified: false,
+        point_in_time_guaranteed: false,
+        filters: source.filters,
+        total: source.total,
+    })
+}
+
+pub(super) fn page_report_from_source(
+    request: &IcSourceRequest,
+    filters: &IcCanisterFilters,
+    limit: u16,
+    after: Option<&str>,
+    before: Option<&str>,
+    mut source: IcCanisterPageSourceData,
+) -> Result<IcCanisterPageReport, IcHostError> {
+    validate_provenance(
+        request,
+        &source.source_endpoint,
+        &source.fetched_at,
+        &source.fetched_by,
+    )?;
+    validate_filter_match(filters, &source.filters)?;
+    if source.requested_limit != limit {
+        return invalid_source(format!(
+            "requested_limit is {}, expected requested value {limit}",
+            source.requested_limit
+        ));
+    }
+    validate_optional_match("after", after, source.after.as_deref())?;
+    validate_optional_match("before", before, source.before.as_deref())?;
+    if source.rows.len() > usize::from(limit) {
+        return invalid_source(format!(
+            "source returned {} rows for requested limit {limit}",
+            source.rows.len()
+        ));
+    }
+
+    validate_page_rows(&mut source.rows)?;
+    validate_source_cursor("previous_cursor", source.previous_cursor.as_deref())?;
+    validate_source_cursor("next_cursor", source.next_cursor.as_deref())?;
+    validate_page_boundary_cursor(
+        "previous_cursor",
+        source.previous_cursor.as_deref(),
+        source.rows.first(),
+    )?;
+    validate_page_boundary_cursor(
+        "next_cursor",
+        source.next_cursor.as_deref(),
+        source.rows.last(),
+    )?;
+
+    Ok(IcCanisterPageReport {
+        schema_version: IC_CANISTER_REPORT_SCHEMA_VERSION,
+        network: IC_DASHBOARD_NETWORK.to_string(),
+        authority: IC_DASHBOARD_AUTHORITY.to_string(),
+        source_endpoint: source.source_endpoint,
+        fetched_at: source.fetched_at,
+        fetched_by: source.fetched_by,
+        certified: false,
+        point_in_time_guaranteed: false,
+        filters: source.filters,
+        requested_limit: source.requested_limit,
+        returned_count: source.rows.len(),
+        after: source.after,
+        before: source.before,
+        previous_cursor: source.previous_cursor,
+        next_cursor: source.next_cursor,
+        rows: source.rows,
+    })
+}
+
 fn validate_provenance(
     request: &IcSourceRequest,
-    source: &IcCanisterSourceData,
+    source_endpoint: &str,
+    fetched_at: &str,
+    fetched_by: &str,
 ) -> Result<(), IcHostError> {
     for (field, expected, actual) in [
         (
             "source_endpoint",
             request.endpoint.as_str(),
-            source.source_endpoint.as_str(),
+            source_endpoint,
         ),
-        (
-            "fetched_at",
-            request.fetched_at.as_str(),
-            source.fetched_at.as_str(),
-        ),
-        (
-            "fetched_by",
-            request.fetched_by.as_str(),
-            source.fetched_by.as_str(),
-        ),
+        ("fetched_at", request.fetched_at.as_str(), fetched_at),
+        ("fetched_by", request.fetched_by.as_str(), fetched_by),
     ] {
         if actual != expected {
             return invalid_source(format!(
                 "{field} is {actual:?}, expected requested value {expected:?}"
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_filter_match(
+    expected: &IcCanisterFilters,
+    actual: &IcCanisterFilters,
+) -> Result<(), IcHostError> {
+    if actual == expected {
+        return Ok(());
+    }
+    invalid_source(format!(
+        "filters are {actual:?}, expected requested filters {expected:?}"
+    ))
+}
+
+fn validate_optional_match(
+    field: &'static str,
+    expected: Option<&str>,
+    actual: Option<&str>,
+) -> Result<(), IcHostError> {
+    if actual == expected {
+        return Ok(());
+    }
+    invalid_source(format!(
+        "{field} is {actual:?}, expected requested value {expected:?}"
+    ))
+}
+
+fn validate_page_rows(rows: &mut [IcCanisterPageRow]) -> Result<(), IcHostError> {
+    let mut seen_canisters = HashSet::with_capacity(rows.len());
+    let mut seen_dashboard_ids = HashSet::with_capacity(rows.len());
+    let mut previous_canister_id: Option<&str> = None;
+
+    for row in rows {
+        validate_canonical_principal("row.canister_id", &row.canister_id)?;
+        validate_canonical_principal("row.subnet_id", &row.subnet_id)?;
+        if !seen_canisters.insert(row.canister_id.clone()) {
+            return invalid_source(format!("duplicate canister_id {}", row.canister_id));
+        }
+        if !seen_dashboard_ids.insert(row.dashboard_id) {
+            return invalid_source(format!("duplicate dashboard_id {}", row.dashboard_id));
+        }
+        if previous_canister_id.is_some_and(|previous| previous >= row.canister_id.as_str()) {
+            return invalid_source("rows must be strictly ordered by canister_id");
+        }
+        previous_canister_id = Some(&row.canister_id);
+
+        let mut seen_controllers = HashSet::with_capacity(row.controllers.len());
+        for controller in &row.controllers {
+            validate_canonical_principal("row.controller", &controller.principal_id)?;
+            if !seen_controllers.insert(controller.principal_id.clone()) {
+                return invalid_source(format!(
+                    "duplicate controller principal {} for canister {}",
+                    controller.principal_id, row.canister_id
+                ));
+            }
+        }
+        row.controllers.sort_unstable_by(|left, right| {
+            left.principal_id
+                .cmp(&right.principal_id)
+                .then_with(|| left.raw_metadata.cmp(&right.raw_metadata))
+        });
+        validate_optional_module_hash("row.module_hash", &row.module_hash)?;
+        if row.dashboard_updated_at.is_empty() {
+            return invalid_source(format!(
+                "dashboard_updated_at must not be empty for canister {}",
+                row.canister_id
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_source_cursor(field: &'static str, cursor: Option<&str>) -> Result<(), IcHostError> {
+    if let Some(cursor) = cursor {
+        validate_canonical_principal(field, cursor)?;
+    }
+    Ok(())
+}
+
+fn validate_page_boundary_cursor(
+    field: &'static str,
+    cursor: Option<&str>,
+    boundary: Option<&IcCanisterPageRow>,
+) -> Result<(), IcHostError> {
+    if let (Some(cursor), Some(boundary)) = (cursor, boundary)
+        && cursor != boundary.canister_id
+    {
+        return invalid_source(format!(
+            "{field} is {cursor:?}, expected page boundary {:?}",
+            boundary.canister_id
+        ));
     }
     Ok(())
 }
@@ -190,4 +460,11 @@ fn invalid_source_value(reason: impl Into<String>) -> IcHostError {
     IcHostError::InvalidSourceData {
         reason: reason.into(),
     }
+}
+
+fn invalid_request<T>(field: &'static str, reason: impl Into<String>) -> Result<T, IcHostError> {
+    Err(IcHostError::InvalidRequest {
+        field,
+        reason: reason.into(),
+    })
 }

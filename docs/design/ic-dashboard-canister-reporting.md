@@ -4,15 +4,22 @@
 
 - Status: implemented
 - Authority: official IC Dashboard REST API
-- Collection mode: bounded live lookup
+- Collection mode: bounded live lookup, count, or cursor page
 - Public family: `ic_query::ic`
 
 ## Decision
 
-`icq ic canister info <canister-id>` queries the official Dashboard
-`/api/v3/canisters/{canister_id}` resource through the `LiveIcSource` adapter.
-The public `IcCanisterSource` capability lets fixtures, mirrors, and proxies
-reuse the same validation, projection, and rendering path.
+The `icq ic canister` family queries official Dashboard resources through one
+`LiveIcSource` adapter:
+
+- `info <canister-id>` uses `/api/v3/canisters/{canister_id}`;
+- `count` uses `/api/v4/canisters/count`;
+- `page` uses `/api/v4/canisters` with fixed canister-id ordering and an
+  explicit limit of at most 100.
+
+The public `IcCanisterSource` and `IcCanisterCollectionSource` capabilities let
+fixtures, mirrors, and proxies reuse the same validation, projection, and
+rendering paths.
 
 The Dashboard is an official read-only analytics authority. It is not the
 Registry, a certified canister response, or a management-canister status
@@ -25,7 +32,7 @@ authority and state both:
 Dashboard fields never inherit a Registry version or certified canister
 authority.
 
-## Report Contract
+## Detail Report Contract
 
 The report preserves:
 
@@ -49,11 +56,37 @@ The live JSON decoder accepts additional response fields so an additive
 Dashboard extension does not break existing reports, while required current
 fields and their value types remain enforced.
 
+## Count and Page Contract
+
+Count and page share the official `has_name`, Subnet, controller, language,
+canister-type, and text-query filters. Filter principals are canonicalized;
+repeated raw language and canister-type values are ordered and must be unique;
+and Dashboard text search is restricted to the documented two-through-100
+character range before a source call.
+
+Count returns only the filtered total. Page returns a discovery projection of
+at most 100 rows with raw Dashboard classification, name, language, module
+hash, update timestamp, Subnet, and controller tuple metadata. It deliberately
+does not copy per-row upgrade history; the stable canister principal drives an
+explicit `info` follow-up when that detail is required.
+
+Page ordering is fixed to `canister_id`, so `after`, `before`,
+`previous_cursor`, and `next_cursor` are canonical canister principals. The
+two input directions are mutually exclusive. Custom sources must preserve the
+requested filters, limit, cursor, endpoint, and collection provenance; return
+no more than the requested rows; and return unique canister and Dashboard ids
+in strict canister-id order. Row principals, controller uniqueness, non-empty
+timestamps, optional module hashes, and boundary cursors are validated before
+projection.
+
 ## User-Facing Usage
 
 ```bash
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq ic canister count --has-name true
+icq ic canister page --query ledger --limit 25 --format json
+icq ic canister page --after ryjl3-tyaaa-aaaaa-aaaba-cai --limit 25
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai \
   --source-endpoint https://ic-api.internetcomputer.org/api/v3
 ```
@@ -66,10 +99,16 @@ the definitive option reference; the broader command map is in
 
 ## Endpoint and Network Contract
 
-The default endpoint is:
+The default detail endpoint is:
 
 ```text
 https://ic-api.internetcomputer.org/api/v3
+```
+
+The default count/page endpoint is:
+
+```text
+https://ic-api.internetcomputer.org/api/v4
 ```
 
 The base endpoint must be an HTTP(S) URL with a host and without a query or
@@ -83,16 +122,19 @@ explicit through `--source-endpoint`.
 
 ## Cache Contract
 
-Canister detail is one bounded current-state REST lookup, so this slice is
-live-only. It does not read, write, invalidate, or migrate cache files. A
-future Dashboard collection or time-series report may add timestamped
-snapshots under its own identity and must not reuse Registry topology caches.
+Every canister operation makes exactly one bounded current-state REST lookup.
+Count fetches no rows. Page defaults to 50 rows, is capped at 100, and never
+automatically follows a returned cursor. The family is live-only and does not
+read, write, invalidate, or migrate cache files. A future explicitly requested
+complete Dashboard collection or time-series report would need a separate
+design, operational cap, timestamped snapshot identity, and API endpoint
+provenance; it must not reuse Registry topology caches.
 
 ## Scope
 
 This report does not:
 
-- enumerate or search the complete canister collection;
+- enumerate, automatically page, or cache the complete canister collection;
 - call the management canister;
 - prove controller or module state cryptographically;
 - infer a canister type when the Dashboard returns `null`;

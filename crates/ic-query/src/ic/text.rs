@@ -5,7 +5,7 @@
 //! Boundary: keeps raw values intact in JSON while making nullable text fields readable.
 
 use crate::{
-    ic::IcCanisterReport,
+    ic::{IcCanisterCountReport, IcCanisterFilters, IcCanisterPageReport, IcCanisterReport},
     text_value::{sanitize_text, yes_no},
 };
 
@@ -82,6 +82,127 @@ pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
     }
 
     lines.join("\n")
+}
+
+/// Render one official Dashboard canister-count report as human-facing text.
+#[must_use]
+pub fn ic_canister_count_report_text(report: &IcCanisterCountReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", sanitize_text(&report.network)),
+        format!("authority: {}", sanitize_text(&report.authority)),
+        format!("total: {}", report.total),
+    ];
+    append_filters(&mut lines, &report.filters);
+    lines.extend([
+        format!("certified: {}", yes_no(report.certified)),
+        format!(
+            "point_in_time_guaranteed: {}",
+            yes_no(report.point_in_time_guaranteed)
+        ),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
+    ]);
+    lines.join("\n")
+}
+
+/// Render one bounded official Dashboard canister page as human-facing text.
+#[must_use]
+pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", sanitize_text(&report.network)),
+        format!("authority: {}", sanitize_text(&report.authority)),
+        format!("returned_count: {}", report.returned_count),
+        format!("requested_limit: {}", report.requested_limit),
+        format!(
+            "after: {}",
+            report.after.as_deref().map_or("-", |value| value)
+        ),
+        format!(
+            "before: {}",
+            report.before.as_deref().map_or("-", |value| value)
+        ),
+        format!(
+            "previous_cursor: {}",
+            report.previous_cursor.as_deref().map_or("-", |value| value)
+        ),
+        format!(
+            "next_cursor: {}",
+            report.next_cursor.as_deref().map_or("-", |value| value)
+        ),
+    ];
+    append_filters(&mut lines, &report.filters);
+    lines.extend([
+        format!("certified: {}", yes_no(report.certified)),
+        format!(
+            "point_in_time_guaranteed: {}",
+            yes_no(report.point_in_time_guaranteed)
+        ),
+        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&report.source_endpoint)
+        ),
+    ]);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push("canisters:".to_string());
+        lines.extend(report.rows.iter().map(|row| {
+            format!(
+                "  {}  name={}  type={}  subnet={}  controllers={}  language={}  updated={}",
+                row.canister_id,
+                text_or_dash(&row.name),
+                row.canister_type
+                    .as_deref()
+                    .map_or_else(|| "-".to_string(), text_or_dash),
+                row.subnet_id,
+                row.controllers.len(),
+                text_or_dash(&row.language),
+                sanitize_text(&row.dashboard_updated_at),
+            )
+        }));
+    }
+    lines.join("\n")
+}
+
+fn append_filters(lines: &mut Vec<String>, filters: &IcCanisterFilters) {
+    if let Some(has_name) = filters.has_name {
+        lines.push(format!("filter.has_name: {}", yes_no(has_name)));
+    }
+    if let Some(subnet_id) = filters.subnet_id.as_deref() {
+        lines.push(format!("filter.subnet_id: {subnet_id}"));
+    }
+    if let Some(controller_id) = filters.controller_id.as_deref() {
+        lines.push(format!("filter.controller_id: {controller_id}"));
+    }
+    if !filters.languages.is_empty() {
+        lines.push(format!(
+            "filter.languages: {}",
+            filters
+                .languages
+                .iter()
+                .map(|value| sanitize_text(value))
+                .collect::<Vec<_>>()
+                .join(",")
+        ));
+    }
+    if !filters.canister_types.is_empty() {
+        lines.push(format!(
+            "filter.canister_types: {}",
+            filters
+                .canister_types
+                .iter()
+                .map(|value| sanitize_text(value))
+                .collect::<Vec<_>>()
+                .join(",")
+        ));
+    }
+    if let Some(query) = filters.query.as_deref() {
+        lines.push(format!("filter.query: {}", sanitize_text(query)));
+    }
 }
 
 fn text_or_dash(value: &str) -> String {

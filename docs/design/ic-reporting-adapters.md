@@ -46,9 +46,9 @@ collection provenance. SNS Root inventory and health use one
 `SnsCanisterSource` capability on `LiveSnsSource` rather than separate
 adapters for the Root inventory query and read-only health ingress.
 Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
-the focused `IcCanisterSource` capability on `LiveIcSource`; future Dashboard
-network and metric reports should extend that adapter rather than introduce
-one live source per REST endpoint.
+focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
+`LiveIcSource`; future Dashboard network and metric reports should extend that
+adapter rather than introduce one live source per REST endpoint.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report. Report builders
@@ -116,10 +116,13 @@ than reaching an infallible parser path.
   builder applies the same explicit-index, canonical-cursor, requested-limit,
   uniqueness, and newest-first checks to custom page sources.
 - Official Dashboard canister reporting follows one canonical canister
-  principal to the bounded `/canisters/{canister_id}` REST resource. It keeps
-  the API endpoint, retrieval timestamp, Dashboard update timestamp, and raw
-  nullable classification/history distinct, and explicitly claims neither
-  certification nor point-in-time consistency.
+  principal to the bounded `/canisters/{canister_id}` REST resource, or makes
+  one filtered count/page request through the official v4 collection API. A
+  page is fixed to canister-id order, capped at 100 rows, and never follows a
+  cursor implicitly; a returned canister principal drives the normal typed
+  detail follow-up. Reports keep the API endpoint, retrieval timestamp,
+  Dashboard update timestamp, and raw nullable values distinct, and explicitly
+  claim neither certification nor point-in-time consistency.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
