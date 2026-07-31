@@ -1,14 +1,178 @@
 //! Module: ic::model
 //!
-//! Responsibility: public IC Dashboard canister requests, source data, reports, and errors.
+//! Responsibility: public IC Dashboard requests, source data, reports, and errors.
 //! Does not own: HTTP transport, source validation, report assembly, or rendering.
 //! Boundary: preserves raw Dashboard values and explicit off-chain provenance.
 
 #[cfg(feature = "host")]
 use crate::runtime::RuntimeError;
 use serde::Serialize;
+use std::{fmt, str::FromStr};
 #[cfg(feature = "host")]
 use thiserror::Error as ThisError;
+
+///
+/// IcMetricKind
+///
+/// One bounded network metric exposed by the official Dashboard Metrics API.
+///
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum IcMetricKind {
+    /// Network instruction execution rate.
+    InstructionRate,
+    /// Network message execution rate.
+    MessageExecutionRate,
+    /// Network cycle burn rate.
+    CycleBurnRate,
+    /// Network block ingestion rate.
+    BlockRate,
+    /// Total and currently up node counts.
+    IcNodeCount,
+    /// Total Subnet count.
+    IcSubnetTotal,
+    /// Running and stopped canister counts.
+    RegisteredCanistersCount,
+    /// Total estimated IC energy-consumption rate in kWh.
+    TotalIcEnergyConsumptionRateKwh,
+    /// Active boundary-node count.
+    BoundaryNodesCount,
+}
+
+impl IcMetricKind {
+    /// Return every metric supported by the bounded report adapter.
+    #[must_use]
+    pub const fn all() -> [Self; 9] {
+        [
+            Self::InstructionRate,
+            Self::MessageExecutionRate,
+            Self::CycleBurnRate,
+            Self::BlockRate,
+            Self::IcNodeCount,
+            Self::IcSubnetTotal,
+            Self::RegisteredCanistersCount,
+            Self::TotalIcEnergyConsumptionRateKwh,
+            Self::BoundaryNodesCount,
+        ]
+    }
+
+    /// Return the official Dashboard Metrics API path name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InstructionRate => "instruction-rate",
+            Self::MessageExecutionRate => "message-execution-rate",
+            Self::CycleBurnRate => "cycle-burn-rate",
+            Self::BlockRate => "block-rate",
+            Self::IcNodeCount => "ic-node-count",
+            Self::IcSubnetTotal => "ic-subnet-total",
+            Self::RegisteredCanistersCount => "registered-canisters-count",
+            Self::TotalIcEnergyConsumptionRateKwh => "total-ic-energy-consumption-rate-kwh",
+            Self::BoundaryNodesCount => "boundary-nodes-count",
+        }
+    }
+
+    #[cfg(feature = "host")]
+    pub(crate) const fn series_names(self) -> &'static [&'static str] {
+        match self {
+            Self::InstructionRate => &["instruction_rate"],
+            Self::MessageExecutionRate => &["message_execution_rate"],
+            Self::CycleBurnRate => &["cycle_burn_rate"],
+            Self::BlockRate => &["block_rate"],
+            Self::IcNodeCount => &["total_nodes", "up_nodes"],
+            Self::IcSubnetTotal => &["ic_subnet_total"],
+            Self::RegisteredCanistersCount => &["running_canisters", "stopped_canisters"],
+            Self::TotalIcEnergyConsumptionRateKwh => &["energy_consumption_rate"],
+            Self::BoundaryNodesCount => &["boundary_nodes_count"],
+        }
+    }
+}
+
+impl fmt::Display for IcMetricKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl FromStr for IcMetricKind {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::all()
+            .into_iter()
+            .find(|metric| metric.as_str() == value)
+            .ok_or_else(|| format!("unsupported IC Dashboard metric {value:?}"))
+    }
+}
+
+///
+/// IcMetricQuery
+///
+/// One explicitly bounded official Dashboard metric time-series query.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcMetricQuery {
+    /// Official Dashboard metric to retrieve.
+    pub metric: IcMetricKind,
+    /// Inclusive query start as Unix seconds.
+    pub start_unix_secs: u64,
+    /// Inclusive query end as Unix seconds.
+    pub end_unix_secs: u64,
+    /// Requested observation interval in seconds.
+    pub step_secs: u32,
+}
+
+impl IcMetricQuery {
+    /// Construct one explicit metric query window.
+    #[must_use]
+    pub const fn new(
+        metric: IcMetricKind,
+        start_unix_secs: u64,
+        end_unix_secs: u64,
+        step_secs: u32,
+    ) -> Self {
+        Self {
+            metric,
+            start_unix_secs,
+            end_unix_secs,
+            step_secs,
+        }
+    }
+}
+
+///
+/// IcMetricRequest
+///
+/// Request accepted by the bounded official Dashboard metric report builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcMetricRequest {
+    /// Dashboard Metrics API base endpoint.
+    pub source_endpoint: String,
+    /// Collection time as Unix seconds.
+    pub now_unix_secs: u64,
+    /// Explicitly bounded metric query.
+    pub query: IcMetricQuery,
+}
+
+impl IcMetricRequest {
+    /// Construct one bounded live Dashboard metric request.
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        query: IcMetricQuery,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            query,
+        }
+    }
+}
 
 ///
 /// IcCanisterRequest
@@ -204,6 +368,56 @@ pub struct IcDashboardReportProvenance {
     pub certified: bool,
     /// Whether every returned value is guaranteed to describe one point in time.
     pub point_in_time_guaranteed: bool,
+}
+
+///
+/// IcMetricObservation
+///
+/// One raw timestamp and value returned by the Dashboard Metrics API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcMetricObservation {
+    /// Observation timestamp as Unix seconds.
+    pub timestamp_unix_secs: u64,
+    /// Raw value string returned by the Dashboard.
+    pub value: String,
+}
+
+///
+/// IcMetricSeries
+///
+/// One named raw series in a Dashboard metric response.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcMetricSeries {
+    /// Raw Dashboard response field that names this series.
+    pub name: String,
+    /// Observations in strictly increasing timestamp order.
+    pub observations: Vec<IcMetricObservation>,
+}
+
+///
+/// IcMetricReport
+///
+/// One bounded time-series response from the official Dashboard Metrics API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcMetricReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Metric and explicit time-series bounds, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcMetricQuery,
+    /// Number of named series returned by the API.
+    pub returned_series_count: usize,
+    /// Total number of observations across all returned series.
+    pub returned_observation_count: usize,
+    /// Raw named time series in canonical series-name order.
+    pub series: Vec<IcMetricSeries>,
 }
 
 ///
@@ -441,6 +655,23 @@ pub struct IcCanisterPageSourceData {
 }
 
 ///
+/// IcMetricSourceData
+///
+/// Raw bounded metric series and provenance returned by a Dashboard source.
+///
+
+#[cfg(feature = "host")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcMetricSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Metric query applied by the source.
+    pub query: IcMetricQuery,
+    /// Raw named time series returned by the source.
+    pub series: Vec<IcMetricSeries>,
+}
+
+///
 /// IcHostError
 ///
 /// Typed error returned by IC Dashboard report builders and live sources.
@@ -515,7 +746,7 @@ pub enum IcHostError {
     },
 
     /// A source capability returned data that violates its public result contract.
-    #[error("invalid IC Dashboard canister source data: {reason}")]
+    #[error("invalid IC Dashboard source data: {reason}")]
     InvalidSourceData {
         /// Deterministic invariant failure.
         reason: String,

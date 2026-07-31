@@ -9,9 +9,11 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
     let info = canister_info_usage();
     let count = canister_count_usage();
     let page = canister_page_usage();
+    let metrics = metrics_usage();
 
     assert!(root.contains("Usage: icq ic [COMMAND]"));
     assert!(root.contains("canister"));
+    assert!(root.contains("metrics"));
     assert!(canister.contains("Usage: icq ic canister [COMMAND]"));
     assert!(canister.contains("info"));
     assert!(canister.contains("count"));
@@ -25,6 +27,53 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
     assert!(page.contains("Usage: icq ic canister page [OPTIONS]"));
     assert!(page.contains("limit is capped at 100"));
     assert!(page.contains("No cache is used"));
+    assert!(metrics.contains("Usage: icq ic metrics [OPTIONS] <metric>"));
+    assert!(metrics.contains("exactly one official Dashboard Metrics API request"));
+    assert!(metrics.contains("capped at 1000 observations"));
+    assert!(metrics.contains("off-chain, non-certified API"));
+}
+
+#[test]
+fn metric_options_preserve_official_kind_bounds_and_endpoint() {
+    let options = MetricOptions::parse([
+        OsString::from("cycle-burn-rate"),
+        OsString::from("--start"),
+        OsString::from("1700000000"),
+        OsString::from("--end"),
+        OsString::from("1700003600"),
+        OsString::from("--step"),
+        OsString::from("600"),
+        OsString::from("--format"),
+        OsString::from("json"),
+        OsString::from("--source-endpoint"),
+        OsString::from("https://example.com/api/v1"),
+    ])
+    .expect("metric options");
+
+    assert_eq!(options.metric, IcMetricKind::CycleBurnRate);
+    assert_eq!(options.start_unix_secs, Some(1_700_000_000));
+    assert_eq!(options.end_unix_secs, Some(1_700_003_600));
+    assert_eq!(options.step_secs, 600);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, "https://example.com/api/v1");
+}
+
+#[test]
+fn metric_options_use_bounded_defaults_and_reject_unknown_kinds() {
+    let options =
+        MetricOptions::parse([OsString::from("instruction-rate")]).expect("default metric options");
+
+    assert_eq!(options.step_secs, DEFAULT_IC_METRIC_STEP_SECS);
+    assert_eq!(
+        options.source_endpoint,
+        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT
+    );
+    assert_eq!(options.start_unix_secs, None);
+    assert_eq!(options.end_unix_secs, None);
+
+    let error = MetricOptions::parse([OsString::from("made-up-rate")])
+        .expect_err("unknown metric must fail");
+    assert!(matches!(error, IcCommandError::Usage(_)));
 }
 
 #[test]
@@ -121,6 +170,7 @@ fn family_and_nested_help_return_without_network_calls() {
         &["canister", "info", "help"],
         &["canister", "count", "help"],
         &["canister", "page", "help"],
+        &["metrics", "help"],
     ] {
         assert!(run(args.iter().map(OsString::from)).is_ok());
     }

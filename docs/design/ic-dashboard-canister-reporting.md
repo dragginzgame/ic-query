@@ -133,9 +133,10 @@ Every canister operation makes exactly one bounded current-state REST lookup.
 Count fetches no rows. Page defaults to 50 rows, is capped at 100, and never
 automatically follows a returned cursor. The family is live-only and does not
 read, write, invalidate, or migrate cache files. A future explicitly requested
-complete Dashboard collection or time-series report would need a separate
-design, operational cap, timestamped snapshot identity, and API endpoint
-provenance; it must not reuse Registry topology caches.
+complete Dashboard collection would need a separate design, operational cap,
+timestamped snapshot identity, and API endpoint provenance; it must not reuse
+Registry topology caches. The separately bounded live metric contract is
+defined in [IC Dashboard Network Metrics](ic-dashboard-network-metrics.md).
 
 ## Scope
 

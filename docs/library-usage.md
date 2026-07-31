@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.19", default-features = false, features = ["host"] }
+ic-query = { version = "0.20", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.19", default-features = false }
+ic-query = { version = "0.20", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -95,8 +95,8 @@ need to reuse `ic-query` report assembly with data that does not come from the
 built-in live adapters. The official Dashboard, generic ICRC, subnet catalog,
 NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
 list/info/token/params/canister, SNS proposal, and SNS neuron host APIs expose
-this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`, and narrow
-ICRC capabilities such as
+this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
+`IcMetricSource`, and narrow ICRC capabilities such as
 `IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,
 `build_icrc_*_report_with_source`,
@@ -234,6 +234,46 @@ fn discover_named_canisters(
 
 Callers may supply `report.next_cursor` to `with_after` on a later request.
 There is intentionally no automatic whole-catalog collection builder.
+
+The same live adapter owns bounded network metrics through one focused source
+capability. A request selects one official metric and an explicit window; it
+cannot fan out over the metric catalog or create a cache:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS,
+    IcHostError, IcMetricKind, IcMetricQuery, IcMetricRequest,
+    build_ic_metric_report,
+};
+
+fn instruction_rate(
+    start_unix_secs: u64,
+    end_unix_secs: u64,
+) -> Result<Vec<String>, IcHostError> {
+    let query = IcMetricQuery::new(
+        IcMetricKind::InstructionRate,
+        start_unix_secs,
+        end_unix_secs,
+        DEFAULT_IC_METRIC_STEP_SECS,
+    );
+    let request = IcMetricRequest::new(
+        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+        end_unix_secs,
+        query,
+    );
+    let report = build_ic_metric_report(&request)?;
+    Ok(report.series[0]
+        .observations
+        .iter()
+        .map(|observation| observation.value.clone())
+        .collect())
+}
+```
+
+Metric values remain raw strings. The builder validates the official
+time bounds and step, caps each requested series at 1,000 observations, and
+records the same explicit non-certified Dashboard provenance as the canister
+reports.
 
 ## Pure Rendering Example
 

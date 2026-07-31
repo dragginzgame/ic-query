@@ -1,21 +1,66 @@
 use ic_query::ic::{
     DEFAULT_IC_CANISTER_PAGE_LIMIT, DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS,
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, IcDashboardReportProvenance, MAX_IC_CANISTER_PAGE_LIMIT,
-    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
+    IcCanisterRequest, IcCanisterUpgrade, IcDashboardReportProvenance, IcMetricKind,
+    IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
+    MAX_IC_CANISTER_PAGE_LIMIT, ic_canister_count_report_text, ic_canister_page_report_text,
+    ic_canister_report_text, ic_metric_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::ic::{
     DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcCanisterCollectionSource, IcCanisterCountSourceData,
-    IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcHostError, IcSourceRequest,
-    LiveIcSource, build_ic_canister_count_report, build_ic_canister_count_report_with_source,
-    build_ic_canister_page_report, build_ic_canister_page_report_with_source,
-    build_ic_canister_report, build_ic_canister_report_with_source,
+    IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcHostError, IcMetricSource,
+    IcMetricSourceData, IcSourceRequest, LiveIcSource, build_ic_canister_count_report,
+    build_ic_canister_count_report_with_source, build_ic_canister_page_report,
+    build_ic_canister_page_report_with_source, build_ic_canister_report,
+    build_ic_canister_report_with_source, build_ic_metric_report,
+    build_ic_metric_report_with_source,
 };
 
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const SUBNET_ID: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
+
+#[test]
+fn public_ic_metric_api_is_constructible_serializable_and_renderable() {
+    let query = IcMetricQuery::new(
+        IcMetricKind::InstructionRate,
+        1_699_996_400,
+        1_700_000_000,
+        DEFAULT_IC_METRIC_STEP_SECS,
+    );
+    let request = IcMetricRequest::new(
+        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        query.clone(),
+    );
+    let report = IcMetricReport {
+        provenance: public_provenance(request.source_endpoint),
+        query,
+        returned_series_count: 1,
+        returned_observation_count: 1,
+        series: vec![IcMetricSeries {
+            name: "instruction_rate".to_string(),
+            observations: vec![IcMetricObservation {
+                timestamp_unix_secs: 1_700_000_000,
+                value: "21089992048.10834".to_string(),
+            }],
+        }],
+    };
+
+    let text = ic_metric_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serializable metric report");
+
+    assert!(text.contains("metric: instruction-rate"));
+    assert_eq!(json["metric"], "instruction-rate");
+    assert_eq!(
+        json["series"][0]["observations"][0]["value"],
+        "21089992048.10834"
+    );
+    assert!(json.get("provenance").is_none());
+    assert!(json.get("query").is_none());
+}
 
 #[test]
 fn public_ic_canister_api_is_constructible_and_renderable() {
@@ -121,6 +166,9 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
         &IcCanisterPageRequest,
         &dyn IcCanisterCollectionSource,
     ) -> Result<IcCanisterPageReport, IcHostError> = build_ic_canister_page_report_with_source;
+    let _: fn(&IcMetricRequest) -> Result<IcMetricReport, IcHostError> = build_ic_metric_report;
+    let _: fn(&IcMetricRequest, &dyn IcMetricSource) -> Result<IcMetricReport, IcHostError> =
+        build_ic_metric_report_with_source;
     let _: LiveIcSource = LiveIcSource;
     assert_eq!(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
@@ -154,6 +202,20 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
     let page = build_ic_canister_page_report_with_source(&page_request, &source)
         .expect("custom page source report");
     assert_eq!(page.returned_count, 1);
+
+    let metric_request = IcMetricRequest::new(
+        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        IcMetricQuery::new(
+            IcMetricKind::InstructionRate,
+            1_699_996_400,
+            1_700_000_000,
+            DEFAULT_IC_METRIC_STEP_SECS,
+        ),
+    );
+    let metric = build_ic_metric_report_with_source(&metric_request, &source)
+        .expect("custom metric source report");
+    assert_eq!(metric.returned_observation_count, 1);
 }
 
 #[cfg(feature = "host")]
@@ -213,6 +275,27 @@ impl IcCanisterCollectionSource for FixtureSource {
             previous_cursor: None,
             next_cursor: Some(CANISTER_ID.to_string()),
             rows: vec![public_page_row()],
+        })
+    }
+}
+
+#[cfg(feature = "host")]
+impl IcMetricSource for FixtureSource {
+    fn fetch_metric(
+        &self,
+        request: &IcSourceRequest,
+        query: &IcMetricQuery,
+    ) -> Result<IcMetricSourceData, IcHostError> {
+        Ok(IcMetricSourceData {
+            source: request.clone(),
+            query: query.clone(),
+            series: vec![IcMetricSeries {
+                name: "instruction_rate".to_string(),
+                observations: vec![IcMetricObservation {
+                    timestamp_unix_secs: query.end_unix_secs,
+                    value: "21089992048.10834".to_string(),
+                }],
+            }],
         })
     }
 }

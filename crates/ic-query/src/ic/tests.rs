@@ -9,6 +9,90 @@ const OLDER_MODULE_HASH: &str = "324bfd929805a930cbf6b5f29b4a858ea84452bb551771d
 const FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 const PAGE_CANISTER_ID: &str = "2223e-iaaaa-aaaac-awyra-cai";
 const PAGE_NEXT_CANISTER_ID: &str = "2223u-yaaaa-aaaal-qutrq-cai";
+const METRIC_START: u64 = 1_699_996_400;
+const METRIC_END: u64 = 1_700_000_000;
+
+#[test]
+fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
+    let source = MetricFixture::default();
+    let request = metric_request();
+
+    let report = build_ic_metric_report_with_source(&request, &source)
+        .expect("bounded Dashboard metric report");
+    let text = ic_metric_report_text(&report);
+
+    assert_eq!(source.calls.get(), 1);
+    assert_eq!(report.query, request.query);
+    assert_eq!(report.returned_series_count, 1);
+    assert_eq!(report.returned_observation_count, 2);
+    assert_eq!(report.series[0].name, "instruction_rate");
+    assert_eq!(report.series[0].observations[0].value, "21089992048.10834");
+    assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
+    assert!(text.contains("metric: instruction-rate"));
+    assert!(text.contains("1699996400  21089992048.10834"));
+}
+
+#[test]
+fn metric_request_bounds_are_validated_before_source_calls() {
+    let source = MetricFixture::default();
+    let mut request = metric_request();
+    request.query.step_secs = 1;
+
+    let error = build_ic_metric_report_with_source(&request, &source)
+        .expect_err("oversized metric window must fail");
+
+    assert!(matches!(
+        error,
+        IcHostError::InvalidRequest { field: "query", .. }
+    ));
+    assert_eq!(source.calls.get(), 0);
+}
+
+#[test]
+fn metric_custom_source_must_echo_query_and_valid_series() {
+    for mutation in [
+        MetricMutation::WrongQuery,
+        MetricMutation::WrongSeries,
+        MetricMutation::TooManyObservations,
+        MetricMutation::EmptyValue,
+    ] {
+        let source = MetricFixture {
+            mutation: RefCell::new(Some(mutation)),
+            ..MetricFixture::default()
+        };
+        let error = build_ic_metric_report_with_source(&metric_request(), &source)
+            .expect_err("invalid metric source data must fail");
+
+        assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+    }
+}
+
+#[test]
+fn metric_kind_uses_exact_official_path_names() {
+    for (name, kind) in [
+        ("instruction-rate", IcMetricKind::InstructionRate),
+        ("message-execution-rate", IcMetricKind::MessageExecutionRate),
+        ("cycle-burn-rate", IcMetricKind::CycleBurnRate),
+        ("block-rate", IcMetricKind::BlockRate),
+        ("ic-node-count", IcMetricKind::IcNodeCount),
+        ("ic-subnet-total", IcMetricKind::IcSubnetTotal),
+        (
+            "registered-canisters-count",
+            IcMetricKind::RegisteredCanistersCount,
+        ),
+        (
+            "total-ic-energy-consumption-rate-kwh",
+            IcMetricKind::TotalIcEnergyConsumptionRateKwh,
+        ),
+        ("boundary-nodes-count", IcMetricKind::BoundaryNodesCount),
+    ] {
+        assert_eq!(kind.to_string(), name);
+        assert_eq!(name.parse::<IcMetricKind>(), Ok(kind));
+        assert_eq!(serde_json::to_value(kind).expect("metric JSON"), name);
+    }
+}
 
 #[test]
 fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
@@ -128,6 +212,29 @@ fn live_source_rejects_invalid_endpoint_before_http_request() {
     assert!(matches!(
         error,
         IcHostError::InvalidEndpoint { endpoint, .. } if endpoint == "not a URL"
+    ));
+}
+
+#[test]
+fn live_metric_source_validates_bounds_before_endpoint_or_http_request() {
+    let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
+    let query = IcMetricQuery::new(
+        IcMetricKind::InstructionRate,
+        MIN_IC_METRIC_TIMESTAMP - 1,
+        MIN_IC_METRIC_TIMESTAMP,
+        DEFAULT_IC_METRIC_STEP_SECS,
+    );
+
+    let error = LiveIcSource
+        .fetch_metric(&request, &query)
+        .expect_err("invalid metric bounds must fail first");
+
+    assert!(matches!(
+        error,
+        IcHostError::InvalidRequest {
+            field: "query.start_unix_secs",
+            ..
+        }
     ));
 }
 
@@ -319,6 +426,77 @@ fn request() -> IcCanisterRequest {
         1_700_000_000,
         CANISTER_ID,
     )
+}
+
+fn metric_request() -> IcMetricRequest {
+    IcMetricRequest::new(
+        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+        METRIC_END,
+        IcMetricQuery::new(
+            IcMetricKind::InstructionRate,
+            METRIC_START,
+            METRIC_END,
+            DEFAULT_IC_METRIC_STEP_SECS,
+        ),
+    )
+}
+
+#[derive(Clone, Copy)]
+enum MetricMutation {
+    WrongQuery,
+    WrongSeries,
+    TooManyObservations,
+    EmptyValue,
+}
+
+#[derive(Default)]
+struct MetricFixture {
+    calls: Cell<usize>,
+    mutation: RefCell<Option<MetricMutation>>,
+}
+
+impl IcMetricSource for MetricFixture {
+    fn fetch_metric(
+        &self,
+        request: &IcSourceRequest,
+        query: &IcMetricQuery,
+    ) -> Result<IcMetricSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        let mut data = IcMetricSourceData {
+            source: request.clone(),
+            query: query.clone(),
+            series: vec![IcMetricSeries {
+                name: "instruction_rate".to_string(),
+                observations: vec![
+                    IcMetricObservation {
+                        timestamp_unix_secs: METRIC_START,
+                        value: "21089992048.10834".to_string(),
+                    },
+                    IcMetricObservation {
+                        timestamp_unix_secs: METRIC_END,
+                        value: "21100000000".to_string(),
+                    },
+                ],
+            }],
+        };
+        match self.mutation.borrow_mut().take() {
+            Some(MetricMutation::WrongQuery) => data.query.step_secs += 1,
+            Some(MetricMutation::WrongSeries) => data.series[0].name = "block_rate".to_string(),
+            Some(MetricMutation::TooManyObservations) => {
+                data.series[0].observations = (0..14)
+                    .map(|offset| IcMetricObservation {
+                        timestamp_unix_secs: METRIC_START + offset,
+                        value: "1".to_string(),
+                    })
+                    .collect();
+            }
+            Some(MetricMutation::EmptyValue) => {
+                data.series[0].observations[0].value.clear();
+            }
+            None => {}
+        }
+        Ok(data)
+    }
 }
 
 #[derive(Default)]

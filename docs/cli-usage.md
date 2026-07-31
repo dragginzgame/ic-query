@@ -33,9 +33,10 @@ icq --network ic sns list
 The built-in sources and caches currently support only mainnet, named `ic`.
 A different network is rejected before a live adapter is constructed.
 
-Official Dashboard and ICRC commands identify their target using an entity
-principal plus `--source-endpoint`. They reject the top-level `--network`
-option instead of silently ignoring it.
+Official Dashboard canister and ICRC commands identify their target using an
+entity principal plus `--source-endpoint`. Dashboard metric commands use an
+official metric name, time bounds, and `--source-endpoint`. These families
+reject the top-level `--network` option instead of silently ignoring it.
 
 ## Official IC Dashboard
 
@@ -47,6 +48,11 @@ icq ic canister page --query ledger --limit 25 --format json
 icq ic canister page --after ryjl3-tyaaa-aaaaa-aaaba-cai --limit 25
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai \
   --source-endpoint https://ic-api.internetcomputer.org/api/v3
+
+icq ic metrics instruction-rate
+icq ic metrics cycle-burn-rate \
+  --start 1700000000 --end 1700003600 --step 300
+icq ic metrics ic-node-count --format json
 ```
 
 `info` preserves the Dashboard canister id, raw optional classification, name,
@@ -59,15 +65,22 @@ canister principal with `info` for proposal-linked upgrade history.
 Each command is a bounded live REST lookup that makes exactly one request. A
 page defaults to 50 rows and is capped at the official API maximum of 100.
 Cursors are followed only when a user explicitly supplies `--after` or
-`--before` to another command. There is no automatic enumeration and these
-commands never read or write a cache. The official Dashboard is an off-chain
-analytics authority, so every report states
-`certified: false` and `point_in_time_guaranteed: false`. It does not inherit a
-Registry version or prove current controller/module state.
+`--before` to another command. `metrics` selects one documented aggregate
+network metric and preserves its raw named series, Unix timestamps, and
+value strings. Its default window is the preceding hour at a
+five-minute step; explicit windows are capped at 1,000 observations per
+series. It does not fan out over metrics or Subnets.
 
-See
-[IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md)
-for the exact report and validation contract.
+There is no automatic enumeration and these commands never read or write a
+cache. The official Dashboard is an off-chain analytics authority, so every
+report states
+`certified: false` and `point_in_time_guaranteed: false`. It does not inherit a
+Registry version. Canister reports also do not prove current controller or
+module state.
+
+See [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md)
+and [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) for
+the exact report and validation contracts.
 
 ## NNS
 

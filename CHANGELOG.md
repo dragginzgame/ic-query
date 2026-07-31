@@ -7,6 +7,29 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.20.x] - 2026-07-31 - Bounded Dashboard network metrics
+
+Detailed release notes: [docs/changelog/0.20.md](docs/changelog/0.20.md)
+
+- `0.20.0` adds one-request bounded time-series reports for nine official
+  Dashboard network metrics: instruction and message execution rates, cycle
+  burn, block rate, node and Subnet counts, registered canister counts, total
+  energy-consumption rate, and boundary-node count. Queries default to the
+  preceding hour at a five-minute step and are capped at 1,000 observations
+  per returned series. Reports preserve raw value strings, explicit query
+  bounds, endpoint/retrieval provenance, and the Dashboard's non-certified,
+  no-point-in-time guarantees. The public library adds typed metric
+  request/report/source DTOs, `IcMetricSource` on `LiveIcSource`, custom-source
+  validation, and text rendering. Metrics are live-only and never fan out,
+  paginate, or create a cache. The shared invalid-source error prefix is
+  generalized so metric failures are not mislabeled as canister failures.
+
+  ```bash
+  icq ic metrics instruction-rate
+  icq ic metrics cycle-burn-rate --start 1700000000 --end 1700003600 --step 300
+  icq ic metrics ic-node-count --format json
+  ```
+
 ## [0.19.x] - 2026-07-31 - Bounded Dashboard canister discovery
 
 Detailed release notes: [docs/changelog/0.19.md](docs/changelog/0.19.md)

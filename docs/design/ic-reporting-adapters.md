@@ -47,10 +47,11 @@ collection provenance. SNS Root inventory and health use one
 adapters for the Root inventory query and read-only health ingress.
 Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
 focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
-`LiveIcSource`; future Dashboard network and metric reports should extend that
-adapter rather than introduce one live source per REST endpoint.
+`LiveIcSource`; bounded aggregate network time series use one `IcMetricSource`
+capability on that same adapter rather than one live source per metric REST
+endpoint.
 Dashboard source-data DTOs echo that request as their source provenance, and
-detail/count/page reports share one flattened
+canister and metric reports share one flattened
 `IcDashboardReportProvenance`, avoiding parallel field and validation flows
 without nesting the public report JSON.
 
@@ -127,6 +128,11 @@ than reaching an infallible parser path.
   detail follow-up. Reports keep the API endpoint, retrieval timestamp,
   Dashboard update timestamp, and raw nullable values distinct, and explicitly
   claim neither certification nor point-in-time consistency.
+- Official Dashboard metric reporting selects one documented aggregate metric,
+  sends one explicit start/end/step request, caps the requested result at 1,000
+  observations per series, and preserves raw named series and decimal strings.
+  It does not fan out over metrics or Subnets, write a cache, or inherit
+  Registry or certified-state authority.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -143,7 +149,7 @@ Expansion should proceed in layers:
 | --- | --- | --- |
 | 1 | Fuller SNS neuron state, swap lifecycle, blessed upgrade-path comparison, and treasury evidence | Extend focused SNS capability traits on `LiveSnsSource` |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
-| 2 | Boundary-node, replica-version, and network metrics beyond the implemented canister detail report | Extend `LiveIcSource` with focused capabilities and API endpoint/timestamp provenance |
+| 2 | Boundary-node location/detail, replica-version, daily-throughput, and trustworthy metrics beyond the implemented aggregate metric set | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |
 | 3 | CMC/XDR, Internet Identity, Bitcoin, and other protocol-canister reports | Add one authority-family adapter only when multiple coherent reports justify it |
 

@@ -2,7 +2,7 @@
 //!
 //! Responsibility: parse and dispatch official IC Dashboard command families.
 //! Does not own: REST transport, report construction, or text rendering.
-//! Boundary: exposes live-only canister command wiring to the top-level CLI.
+//! Boundary: exposes bounded live Dashboard command wiring to the top-level CLI.
 
 use crate::{
     cli::{
@@ -20,11 +20,14 @@ use crate::{
 };
 use clap::{ArgAction, Command as ClapCommand, builder::RangedU64ValueParser};
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-    IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest,
-    IcHostError, MAX_IC_CANISTER_PAGE_LIMIT, build_ic_canister_count_report,
-    build_ic_canister_page_report, build_ic_canister_report, ic_canister_count_report_text,
-    ic_canister_page_report_text, ic_canister_report_text,
+    DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+    DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_METRIC_WINDOW_SECS, IcCanisterCountRequest,
+    IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest, IcHostError, IcMetricKind,
+    IcMetricQuery, IcMetricRequest, MAX_IC_CANISTER_PAGE_LIMIT, MAX_IC_METRIC_STEP_SECS,
+    MIN_IC_METRIC_TIMESTAMP, build_ic_canister_count_report, build_ic_canister_page_report,
+    build_ic_canister_report, build_ic_metric_report, ic_canister_count_report_text,
+    ic_canister_page_report_text, ic_canister_report_text, ic_metric_report_text,
 };
 use std::{ffi::OsString, io};
 use thiserror::Error as ThisError;
@@ -56,6 +59,18 @@ Examples:
 This command makes exactly one official Dashboard page request. Results are
 ordered by canister id, the limit is capped at 100, and returned cursors are
 followed only when supplied explicitly to a later command. No cache is used.";
+
+const METRICS_HELP_AFTER: &str = "\
+Examples:
+  icq ic metrics instruction-rate
+  icq ic metrics cycle-burn-rate --start 1700000000 --end 1700003600 --step 300
+  icq ic metrics ic-node-count --format json
+
+This command makes exactly one official Dashboard Metrics API request for an
+explicitly bounded window. It never follows up, paginates, or creates a cache.
+The default is the preceding hour at a five-minute step, and every request is
+capped at 1000 observations per returned series. Values are preserved as the
+raw value strings returned by this off-chain, non-certified API.";
 
 ///
 /// IcCommandError
@@ -92,8 +107,36 @@ where
         .map_err(IcCommandError::Usage)?;
     match command.as_str() {
         "canister" => run_canister(args),
+        "metrics" => run_metrics(args),
         _ => unreachable!("ic dispatch command only defines known commands"),
     }
+}
+
+fn run_metrics<I>(args: I) -> Result<(), IcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = command_args(args, metrics_usage) else {
+        return Ok(());
+    };
+    let options = MetricOptions::parse(args)?;
+    let now_unix_secs = current_unix_secs()?;
+    let end_unix_secs = options.end_unix_secs.unwrap_or(now_unix_secs);
+    let start_unix_secs = options
+        .start_unix_secs
+        .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_METRIC_WINDOW_SECS));
+    let request = IcMetricRequest::new(
+        options.source_endpoint,
+        now_unix_secs,
+        IcMetricQuery::new(
+            options.metric,
+            start_unix_secs,
+            end_unix_secs,
+            options.step_secs,
+        ),
+    );
+    let report = build_ic_metric_report(&request)?;
+    write_text_or_json(options.format, &report, ic_metric_report_text)
 }
 
 fn run_canister<I>(args: I) -> Result<(), IcCommandError>
@@ -177,11 +220,58 @@ where
 fn ic_command() -> ClapCommand {
     ClapCommand::new("ic")
         .bin_name("icq ic")
-        .about("Inspect official IC Dashboard metadata")
+        .about("Inspect official IC Dashboard data")
         .disable_help_flag(true)
         .subcommand(passthrough_subcommand(
             ClapCommand::new("canister").about("Inspect deployed canister metadata"),
         ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("metrics").about("Query one bounded network metric time series"),
+        ))
+}
+
+fn metrics_command() -> ClapCommand {
+    ClapCommand::new("metrics")
+        .bin_name("icq ic metrics")
+        .about("Query one bounded official Dashboard network metric time series")
+        .disable_help_flag(true)
+        .arg(
+            value_arg("metric")
+                .required(true)
+                .value_name("metric")
+                .value_parser(IcMetricKind::all().map(IcMetricKind::as_str))
+                .help("Official Dashboard metric path name"),
+        )
+        .arg(
+            value_arg("start")
+                .long("start")
+                .value_name("unix-seconds")
+                .value_parser(RangedU64ValueParser::<u64>::new().range(MIN_IC_METRIC_TIMESTAMP..))
+                .help("Inclusive start; defaults to one hour before end"),
+        )
+        .arg(
+            value_arg("end")
+                .long("end")
+                .value_name("unix-seconds")
+                .value_parser(RangedU64ValueParser::<u64>::new().range(MIN_IC_METRIC_TIMESTAMP..))
+                .help("Inclusive end; defaults to the current time"),
+        )
+        .arg(
+            value_arg("step")
+                .long("step")
+                .value_name("seconds")
+                .value_parser(
+                    RangedU64ValueParser::<u32>::new()
+                        .range(1..=u64::from(MAX_IC_METRIC_STEP_SECS)),
+                )
+                .help("Observation step in seconds; defaults to 300"),
+        )
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT)
+                .help("Official IC Dashboard Metrics API base endpoint"),
+        )
+        .after_help(collection_help(COLLECTION_MODE_LIVE, METRICS_HELP_AFTER))
 }
 
 fn canister_command() -> ClapCommand {
@@ -342,6 +432,10 @@ fn canister_page_usage() -> String {
     render_help(canister_page_command())
 }
 
+fn metrics_usage() -> String {
+    render_help(metrics_command())
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct CanisterInfoOptions {
     canister_id: String,
@@ -358,6 +452,37 @@ impl CanisterInfoOptions {
             .map_err(IcCommandError::Usage)?;
         Ok(Self {
             canister_id: required_string(&matches, "canister-id"),
+            format: required_typed(&matches, "format"),
+            source_endpoint: required_string(&matches, "source-endpoint"),
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct MetricOptions {
+    metric: IcMetricKind,
+    start_unix_secs: Option<u64>,
+    end_unix_secs: Option<u64>,
+    step_secs: u32,
+    format: OutputFormat,
+    source_endpoint: String,
+}
+
+impl MetricOptions {
+    fn parse<I>(args: I) -> Result<Self, IcCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches_or_usage(metrics_command(), args, metrics_usage)
+            .map_err(IcCommandError::Usage)?;
+        let metric = required_string(&matches, "metric")
+            .parse()
+            .expect("clap restricts official metric names");
+        Ok(Self {
+            metric,
+            start_unix_secs: typed_option(&matches, "start"),
+            end_unix_secs: typed_option(&matches, "end"),
+            step_secs: typed_option(&matches, "step").unwrap_or(DEFAULT_IC_METRIC_STEP_SECS),
             format: required_typed(&matches, "format"),
             source_endpoint: required_string(&matches, "source-endpoint"),
         })

@@ -16,7 +16,7 @@ live calls, cache reads, refreshes, and local-only inspection visibly distinct.
 
 | Family | Current surface |
 | --- | --- |
-| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata, and proposal-linked upgrade history |
+| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, and bounded network metric time series |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Discovery, metadata, token and nervous-system parameters, Root canister inventory and health, proposals, and neurons |
@@ -49,6 +49,10 @@ cargo install ic-query-cli
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
 icq ic canister count --has-name true
 icq ic canister page --query ledger --limit 25
+
+# Official Dashboard network metrics
+icq ic metrics instruction-rate
+icq ic metrics ic-node-count --format json
 
 # NNS Registry and cached topology diagnostics
 icq nns registry version
@@ -108,6 +112,7 @@ authority model and follow-up query rules.
 
 ```text
 icq ic canister info|count|page
+icq ic metrics <metric>
 
 icq nns registry version
 icq nns subnet list|info|refresh
@@ -134,9 +139,11 @@ The top-level `--network` option supplies network identity to NNS and SNS
 commands. Built-in sources and caches currently accept only the mainnet `ic`
 identity.
 
-Dashboard and ICRC commands identify their target using a stable entity id and
-an explicit API endpoint. They reject the global `--network` option; use the
-command’s `--source-endpoint` option when an endpoint override is needed.
+Dashboard canister and ICRC commands identify their target using a stable
+entity id and an explicit API endpoint; Dashboard metrics use an official
+metric name, explicit time bounds, and an endpoint. These families reject the
+global `--network` option; use the command’s `--source-endpoint` option when an
+endpoint override is needed.
 
 ## Collection and cache behavior
 
@@ -150,11 +157,13 @@ Every data-producing command follows one documented collection mode:
 | Local-only inspection | Never | Never |
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
 
-Dashboard count and page commands always make exactly one REST request. A page
-returns at most 100 canister summaries and never follows its cursors
-automatically or creates a cache. Paged proposal, neuron, and account-history
-collections retain refresh attempt state. Failed or capped refreshes do not
-replace the last complete snapshot.
+Dashboard count, page, and metric commands always make exactly one REST
+request. A page returns at most 100 canister summaries and never follows its
+cursors automatically. A metric query defaults to one hour at a five-minute
+step and is capped at 1,000 observations per series. None of these commands
+creates a cache. Paged proposal, neuron, and account-history collections retain
+refresh attempt state. Failed or capped refreshes do not replace the last
+complete snapshot.
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do
@@ -180,7 +189,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.19", default-features = false }
+ic-query = { version = "0.20", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -188,7 +197,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.19", default-features = false, features = ["host"] }
+ic-query = { version = "0.20", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -222,6 +231,7 @@ guidance.
 - [Library usage](docs/library-usage.md)
 - [Roadmap to 1.0](docs/roadmap/1.0.md)
 - [IC Dashboard canister reporting](docs/design/ic-dashboard-canister-reporting.md)
+- [IC Dashboard network metrics](docs/design/ic-dashboard-network-metrics.md)
 - [Exact-version NNS Subnet topology](docs/design/nns-subnet-topology.md)
 - [SNS Root canister inventory and health](docs/design/sns-root-canister-reporting.md)
 - [Release ledger](CHANGELOG.md)

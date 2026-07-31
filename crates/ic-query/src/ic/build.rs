@@ -1,6 +1,6 @@
 //! Module: ic::build
 //!
-//! Responsibility: build IC Dashboard canister reports through source capabilities.
+//! Responsibility: build IC Dashboard reports through focused source capabilities.
 //! Does not own: HTTP transport, source result validation, command parsing, or rendering.
 //! Boundary: validates request identity before any live source call.
 
@@ -8,14 +8,32 @@ use crate::{
     ic::{
         IcCanisterCollectionSource, IcCanisterCountReport, IcCanisterCountRequest,
         IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport, IcCanisterRequest,
-        IcCanisterSource, IcHostError, IcSourceRequest, LiveIcSource,
+        IcCanisterSource, IcHostError, IcMetricReport, IcMetricRequest, IcMetricSource,
+        IcSourceRequest, LiveIcSource,
         source::{
             canonical_canister_id, canonical_page_cursor, count_report_from_source,
-            normalized_filters, page_report_from_source, report_from_source, validate_page_limit,
+            metric_report_from_source, normalized_filters, page_report_from_source,
+            report_from_source, validate_metric_request, validate_page_limit,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
 };
+
+/// Build one live, bounded metric report from the official Dashboard Metrics API.
+pub fn build_ic_metric_report(request: &IcMetricRequest) -> Result<IcMetricReport, IcHostError> {
+    build_ic_metric_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded metric report through a custom Dashboard source capability.
+pub fn build_ic_metric_report_with_source(
+    request: &IcMetricRequest,
+    source: &dyn IcMetricSource,
+) -> Result<IcMetricReport, IcHostError> {
+    validate_metric_request(request.now_unix_secs, &request.query)?;
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data = source.fetch_metric(&source_request, &request.query)?;
+    metric_report_from_source(&source_request, &request.query, source_data)
+}
 
 /// Build one live canister report from the official IC Dashboard API.
 pub fn build_ic_canister_report(

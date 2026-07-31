@@ -99,6 +99,19 @@ fn binary_ic_canister_info_help_smoke() {
 }
 
 #[test]
+fn binary_ic_metrics_help_smoke() {
+    let output = run_icq(&["ic", "metrics", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq ic metrics [OPTIONS] <metric>"));
+    assert!(stdout.contains("instruction-rate"));
+    assert!(stdout.contains("--start <unix-seconds>"));
+    assert!(stdout.contains("--step <seconds>"));
+    assert!(stdout.contains("one official Dashboard Metrics API request"));
+}
+
+#[test]
 fn binary_icrc_balance_help_smoke() {
     let output = run_icq(&["icrc", "account", "balance", "help"]);
 

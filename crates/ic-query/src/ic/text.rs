@@ -1,16 +1,47 @@
 //! Module: ic::text
 //!
-//! Responsibility: render IC Dashboard canister reports as human-facing text.
+//! Responsibility: render IC Dashboard reports as human-facing text.
 //! Does not own: REST calls, report construction, JSON serialization, or command output.
 //! Boundary: keeps raw values intact in JSON while making nullable text fields readable.
 
 use crate::{
     ic::{
         IcCanisterCountReport, IcCanisterFilters, IcCanisterPageReport, IcCanisterReport,
-        IcDashboardReportProvenance,
+        IcDashboardReportProvenance, IcMetricReport,
     },
     text_value::{sanitize_text, yes_no},
 };
+
+/// Render one bounded official Dashboard metric report as human-facing text.
+#[must_use]
+pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("metric: {}", report.query.metric),
+        format!("start_unix_secs: {}", report.query.start_unix_secs),
+        format!("end_unix_secs: {}", report.query.end_unix_secs),
+        format!("step_secs: {}", report.query.step_secs),
+        format!("returned_series_count: {}", report.returned_series_count),
+        format!(
+            "returned_observation_count: {}",
+            report.returned_observation_count
+        ),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    for series in &report.series {
+        lines.push(String::new());
+        lines.push(format!("{}:", sanitize_text(&series.name)));
+        lines.extend(series.observations.iter().map(|observation| {
+            format!(
+                "  {}  {}",
+                observation.timestamp_unix_secs,
+                sanitize_text(&observation.value)
+            )
+        }));
+    }
+    lines.join("\n")
+}
 
 /// Render one official Dashboard canister report as human-facing text.
 #[must_use]
