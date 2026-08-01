@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
 
+- `0.22.6` separates Dashboard source traits, request normalization, untrusted
+  source validation, and report projection into canister, metric, and
+  network-resource owners behind one shared provenance facade. Existing public
+  trait paths, typed errors, validation and canonical ordering, report fields,
+  and custom-source behavior are unchanged.
+
 - `0.22.5` separates the official Dashboard live adapter into canister,
   metric, and network-resource owners behind one shared HTTP transport facade.
   URL construction, wire decoding, and their focused tests now live with the
