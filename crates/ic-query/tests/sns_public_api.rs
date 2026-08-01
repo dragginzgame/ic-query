@@ -430,7 +430,7 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
         component_query_count: 2,
         successful_component_query_count: 2,
         component_gap_count: 0,
-        deployed_version: deployed_version.clone(),
+        deployed_version,
         pending_upgrade: Some(SnsPendingUpgrade {
             mark_failed_at_seconds: 1_700_086_400,
             checking_upgrade_lock: 7,

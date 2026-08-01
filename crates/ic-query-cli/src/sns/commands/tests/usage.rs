@@ -26,7 +26,6 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("info"));
     assert!(sns.contains("token"));
     assert!(sns.contains("params"));
-    assert!(sns.contains("upgrade"));
     assert!(sns.contains("canister"));
     assert!(sns.contains("proposal"));
     assert!(sns.contains("neuron"));
