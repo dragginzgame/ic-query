@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
 
+- `0.22.3` separates ICRC request contracts and constructors from serialized
+  report/row contracts behind one explicit internal facade. Existing public
+  `ic_query::icrc::*` paths, feature availability, type fields and derives,
+  constructors, report JSON, cache behavior, and network calls are unchanged.
+
 - `0.22.2` separates ICRC account-history live orchestration, arbitrary-size
   cursor validation, complete collection state, generic ICRC-index decoding,
   and deployed ICP-index decoding into cohesive internal owners. The generic
