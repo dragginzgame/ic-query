@@ -5,13 +5,11 @@ fn sns_canister_list_parses_lookup_and_json_format() {
     let options = SnsLookupOptions::parse(
         [
             OsString::from("1"),
-            OsString::from("--format"),
-            OsString::from("json"),
+            OsString::from("--json"),
             OsString::from("--source-endpoint"),
             OsString::from("https://icp-api.io"),
         ],
         sns_canister_list_command,
-        sns_canister_list_usage,
     )
     .expect("parse canister list");
 
@@ -27,7 +25,6 @@ fn sns_canister_list_rejects_invalid_lookup() {
         SnsLookupOptions::parse(
             [OsString::from("not-a-principal")],
             sns_canister_list_command,
-            sns_canister_list_usage,
         ),
         Err(SnsCommandError::Usage(_))
     ));

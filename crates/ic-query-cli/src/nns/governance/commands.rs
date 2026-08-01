@@ -20,22 +20,22 @@ Examples:
 const ECONOMICS_HELP_AFTER: &str = "\
 Examples:
   icq nns governance economics
-  icq nns governance economics --format json";
+  icq nns governance economics --json";
 
 const METRICS_HELP_AFTER: &str = "\
 Examples:
   icq nns governance metrics
-  icq nns governance metrics --format json";
+  icq nns governance metrics --json";
 
 const REWARD_EVENT_HELP_AFTER: &str = "\
 Examples:
   icq nns governance reward-event
-  icq nns governance reward-event --format json";
+  icq nns governance reward-event --json";
 
 const MATURITY_MODULATION_HELP_AFTER: &str = "\
 Examples:
   icq nns governance maturity-modulation
-  icq nns governance maturity-modulation --format json";
+  icq nns governance maturity-modulation --json";
 
 pub(super) fn governance_command() -> ClapCommand {
     ClapCommand::new("governance")
@@ -94,7 +94,7 @@ fn report_command(name: &'static str, about: &'static str, examples: &'static st
         .bin_name(format!("icq nns governance {name}"))
         .about(about)
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS Governance query"),

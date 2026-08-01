@@ -17,7 +17,7 @@ where
     let Some(args) = command_args(args, subnet_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_nns_required_subcommand(subnet_command(), args, subnet_usage)?;
+    let (command, args) = parse_nns_required_subcommand(subnet_command(), args)?;
 
     match command.as_str() {
         "list" => list::run_catalog_list(args),

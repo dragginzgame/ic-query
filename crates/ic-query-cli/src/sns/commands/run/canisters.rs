@@ -22,7 +22,7 @@ where
     let Some(args) = command_args(args, sns_canister_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_command(sns_canister_command(), args, sns_canister_usage)?;
+    let (command, args) = parse_required_command(sns_canister_command(), args)?;
     match command.as_str() {
         "list" => super::lookup::run_sns_lookup(
             args,

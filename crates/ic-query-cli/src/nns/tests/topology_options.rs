@@ -2,8 +2,7 @@ use super::*;
 
 fn json_source_args() -> Vec<OsString> {
     vec![
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
     ]

@@ -7,16 +7,14 @@
 use crate::{
     cli::{
         clap::{required_string, required_typed, typed_option},
-        common::OutputFormat,
+        common::{OutputFormat, output_format},
     },
     sns::commands::{
         SnsCommandError,
         options::{common::parse_sns_matches, lookup::SnsLookupOptions},
         spec::{
-            SnsNeuronsSortArg, sns_neuron_cache_list_command, sns_neuron_cache_list_usage,
-            sns_neuron_cache_status_command, sns_neuron_cache_status_usage,
-            sns_neuron_list_command, sns_neuron_list_usage, sns_neuron_refresh_command,
-            sns_neuron_refresh_usage,
+            SnsNeuronsSortArg, sns_neuron_cache_list_command, sns_neuron_cache_status_command,
+            sns_neuron_list_command, sns_neuron_refresh_command,
         },
     },
 };
@@ -83,7 +81,7 @@ impl SnsNeuronsOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_sns_matches(sns_neuron_list_command(), args, sns_neuron_list_usage)?;
+        let matches = parse_sns_matches(sns_neuron_list_command(), args)?;
         let options = Self {
             lookup: SnsLookupOptions::from_matches(&matches),
             limit: required_typed(&matches, "limit"),
@@ -116,14 +114,10 @@ impl SnsNeuronsCacheListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_sns_matches(
-            sns_neuron_cache_list_command(),
-            args,
-            sns_neuron_cache_list_usage,
-        )?;
+        let matches = parse_sns_matches(sns_neuron_cache_list_command(), args)?;
         Ok(Self {
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
+            format: output_format(&matches),
         })
     }
 }
@@ -133,15 +127,11 @@ impl SnsNeuronsCacheStatusOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_sns_matches(
-            sns_neuron_cache_status_command(),
-            args,
-            sns_neuron_cache_status_usage,
-        )?;
+        let matches = parse_sns_matches(sns_neuron_cache_status_command(), args)?;
         Ok(Self {
             input: required_string(&matches, "input"),
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
+            format: output_format(&matches),
         })
     }
 }
@@ -151,8 +141,7 @@ impl SnsNeuronsRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches =
-            parse_sns_matches(sns_neuron_refresh_command(), args, sns_neuron_refresh_usage)?;
+        let matches = parse_sns_matches(sns_neuron_refresh_command(), args)?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(&matches),
             page_size: required_typed(&matches, "page-size"),

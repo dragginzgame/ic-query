@@ -5,16 +5,13 @@
 //! Boundary: converts clap matches into command-local option structs.
 
 use super::commands::{
-    nns_proposal_cache_list_command, nns_proposal_cache_list_usage_for_error,
-    nns_proposal_cache_status_command, nns_proposal_cache_status_usage_for_error,
-    nns_proposal_info_command, nns_proposal_info_usage_for_error, nns_proposal_list_command,
-    nns_proposal_list_usage_for_error, nns_proposal_refresh_command,
-    nns_proposal_refresh_usage_for_error,
+    nns_proposal_cache_list_command, nns_proposal_cache_status_command, nns_proposal_info_command,
+    nns_proposal_list_command, nns_proposal_refresh_command,
 };
 use crate::{
     cli::{
         clap::{required_string, required_typed, string_option, typed_option},
-        common::FORMAT_ARG,
+        common::output_format,
     },
     nns::{
         NnsCommandError, OutputFormat,
@@ -65,22 +62,14 @@ impl NnsProposalListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        Self::parse_with(
-            args,
-            nns_proposal_list_command(),
-            nns_proposal_list_usage_for_error,
-        )
+        Self::parse_with(args, nns_proposal_list_command())
     }
 
-    fn parse_with<I>(
-        args: I,
-        command: ClapCommand,
-        usage: impl FnOnce() -> String,
-    ) -> Result<Self, NnsCommandError>
+    fn parse_with<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(command, args, usage)?;
+        let matches = parse_nns_matches(command, args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         let sort = required_typed::<NnsProposalListSortArg>(&matches, "sort");
         let sort_direction = proposal_sort_direction(&matches, sort)?;
@@ -162,22 +151,14 @@ impl NnsProposalOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        Self::parse_with(
-            args,
-            nns_proposal_info_command(),
-            nns_proposal_info_usage_for_error,
-        )
+        Self::parse_with(args, nns_proposal_info_command())
     }
 
-    fn parse_with<I>(
-        args: I,
-        command: ClapCommand,
-        usage: impl FnOnce() -> String,
-    ) -> Result<Self, NnsCommandError>
+    fn parse_with<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(command, args, usage)?;
+        let matches = parse_nns_matches(command, args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,
@@ -210,11 +191,7 @@ impl NnsProposalRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(
-            nns_proposal_refresh_command(),
-            args,
-            nns_proposal_refresh_usage_for_error,
-        )?;
+        let matches = parse_nns_matches(nns_proposal_refresh_command(), args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,
@@ -243,36 +220,24 @@ impl NnsProposalCacheOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        Self::parse_with(
-            args,
-            nns_proposal_cache_list_command(),
-            nns_proposal_cache_list_usage_for_error,
-        )
+        Self::parse_with(args, nns_proposal_cache_list_command())
     }
 
     pub(in crate::nns) fn parse_status<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        Self::parse_with(
-            args,
-            nns_proposal_cache_status_command(),
-            nns_proposal_cache_status_usage_for_error,
-        )
+        Self::parse_with(args, nns_proposal_cache_status_command())
     }
 
-    fn parse_with<I>(
-        args: I,
-        command: ClapCommand,
-        usage: impl FnOnce() -> String,
-    ) -> Result<Self, NnsCommandError>
+    fn parse_with<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(command, args, usage)?;
+        let matches = parse_nns_matches(command, args)?;
         Ok(Self {
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, FORMAT_ARG),
+            format: output_format(&matches),
         })
     }
 }

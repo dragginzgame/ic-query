@@ -11,7 +11,7 @@ use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
 const REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns subnet refresh
-  icq --network ic nns subnet refresh --format json
+  icq --network ic nns subnet refresh --json
   icq nns subnet refresh --dry-run --output /tmp/icq-subnet-catalog.preview.json";
 
 pub(in crate::nns::subnet) fn refresh_command() -> ClapCommand {
@@ -19,7 +19,7 @@ pub(in crate::nns::subnet) fn refresh_command() -> ClapCommand {
         .bin_name("icq nns subnet refresh")
         .about("Force-refresh and cache NNS subnet metadata")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the NNS registry query"),

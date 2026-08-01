@@ -9,7 +9,7 @@ use ic_query::nns::topology::NnsTopologyReadRequest;
 use std::{ffi::OsString, path::PathBuf};
 
 macro_rules! topology_read_options {
-    ($name:ident, $command:path, $usage:path) => {
+    ($name:ident, $command:path) => {
         #[doc = ""]
         #[doc = stringify!($name)]
         #[doc = ""]
@@ -27,7 +27,7 @@ macro_rules! topology_read_options {
             where
                 I: IntoIterator<Item = OsString>,
             {
-                let matches = parse_nns_matches($command(), args, $usage)?;
+                let matches = parse_nns_matches($command(), args)?;
                 let common = NnsCommonOptions::from_matches(&matches);
                 Ok(Self {
                     network: common.network,
@@ -76,41 +76,33 @@ pub(in crate::nns::topology) trait TopologyReadOptions: Sized {
 
 topology_read_options!(
     TopologySummaryOptions,
-    topology_commands::topology_summary_command,
-    topology_commands::topology_summary_usage
+    topology_commands::topology_summary_command
 );
 topology_read_options!(
     TopologyCoverageOptions,
-    topology_commands::topology_coverage_command,
-    topology_commands::topology_coverage_usage
+    topology_commands::topology_coverage_command
 );
 topology_read_options!(
     TopologyVersionsOptions,
-    topology_commands::topology_versions_command,
-    topology_commands::topology_versions_usage
+    topology_commands::topology_versions_command
 );
 topology_read_options!(
     TopologyHealthOptions,
-    topology_commands::topology_health_command,
-    topology_commands::topology_health_usage
+    topology_commands::topology_health_command
 );
 topology_read_options!(
     TopologyGapsOptions,
-    topology_commands::topology_gaps_command,
-    topology_commands::topology_gaps_usage
+    topology_commands::topology_gaps_command
 );
 topology_read_options!(
     TopologyCapacityOptions,
-    topology_commands::topology_capacity_command,
-    topology_commands::topology_capacity_usage
+    topology_commands::topology_capacity_command
 );
 topology_read_options!(
     TopologyRegionsOptions,
-    topology_commands::topology_regions_command,
-    topology_commands::topology_regions_usage
+    topology_commands::topology_regions_command
 );
 topology_read_options!(
     TopologyProvidersOptions,
-    topology_commands::topology_providers_command,
-    topology_commands::topology_providers_usage
+    topology_commands::topology_providers_command
 );

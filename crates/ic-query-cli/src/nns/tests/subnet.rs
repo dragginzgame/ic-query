@@ -23,8 +23,7 @@ fn list_parses_filters_and_json_format() {
         OsString::from("fiduciary"),
         OsString::from("--geo"),
         OsString::from("global"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--show-ranges"),
         OsString::from("--verbose"),
         OsString::from("--range-limit"),
@@ -97,8 +96,7 @@ fn list_and_info_help_hide_stale_policy_knobs() {
 #[test]
 fn refresh_parses_defaults_and_export_options() {
     let options = CatalogRefreshOptions::parse([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--lock-stale-after"),

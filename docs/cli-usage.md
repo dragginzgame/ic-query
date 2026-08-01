@@ -14,7 +14,7 @@ icq nns topology summary help
 ```
 
 Report commands use human-facing text by default and accept
-`--format json` for raw, script-friendly output. JSON reports retain stable
+`--json` for raw, script-friendly output. JSON reports retain stable
 identifiers, native numeric fields, source endpoints, collection timestamps,
 and authority guarantees.
 
@@ -44,9 +44,9 @@ ignoring it.
 
 ```bash
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
-icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --json
 icq ic canister count --has-name true
-icq ic canister page --query ledger --limit 25 --format json
+icq ic canister page --query ledger --limit 25 --json
 icq ic canister page --after ryjl3-tyaaa-aaaaa-aaaba-cai --limit 25
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai \
   --source-endpoint https://ic-api.internetcomputer.org/api/v3
@@ -54,10 +54,10 @@ icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai \
 icq ic metrics instruction-rate
 icq ic metrics cycle-burn-rate \
   --start 1700000000 --end 1700003600 --step 300
-icq ic metrics ic-node-count --format json
+icq ic metrics ic-node-count --json
 
 icq ic network boundary-node-data-centers
-icq ic network boundary-node-data-centers --format json
+icq ic network boundary-node-data-centers --json
 icq ic network daily-stats
 icq ic network daily-stats \
   --start 1784937600 --end 1785542400
@@ -155,7 +155,7 @@ Bounded point-value reports are live-only:
 
 ```bash
 icq nns governance economics
-icq nns governance metrics --format json
+icq nns governance metrics --json
 icq nns governance reward-event
 icq nns governance maturity-modulation
 ```
@@ -189,7 +189,7 @@ Cycle Minting Canister reports are bounded live point queries:
 
 ```bash
 icq system xdr
-icq system xdr --format json
+icq system xdr --json
 icq system cycles
 ```
 
@@ -227,7 +227,7 @@ Inspect Root membership and read-only operational health:
 
 ```bash
 icq sns canister list 1
-icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai --format json
+icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai --json
 ```
 
 Inventory comes from `list_sns_canisters`. Health comes from

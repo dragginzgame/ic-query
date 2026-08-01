@@ -30,7 +30,7 @@ where
     let Some(args) = command_args(args, sns_neuron_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_command(sns_neuron_command(), args, sns_neuron_usage)?;
+    let (command, args) = parse_required_command(sns_neuron_command(), args)?;
     match command.as_str() {
         "list" => run_sns_neuron_list(args),
         "refresh" => refresh::run_sns_neuron_refresh(args),

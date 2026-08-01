@@ -13,8 +13,7 @@ fn data_center_list_parses_defaults_and_json_format() {
     assert!(!defaults.verbose);
 
     let options = data_center_list_options([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--verbose"),
@@ -30,8 +29,7 @@ fn data_center_list_parses_defaults_and_json_format() {
 fn data_center_info_parses_input_and_json_format() {
     let options = data_center_info_options([
         OsString::from("an1"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
     ])
@@ -61,8 +59,7 @@ fn data_center_refresh_parses_defaults_and_export_options() {
     assert_eq!(defaults.output_path, None);
 
     let options = data_center_refresh_options([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--lock-stale-after"),
@@ -97,7 +94,7 @@ fn data_center_help_is_advertised_under_nns() {
     assert!(data_center.contains("Force-refresh and cache NNS data-center metadata"));
     assert!(list.contains("icq nns data-center list"));
     assert!(list.contains("--verbose"));
-    assert!(list.contains("--format json"));
+    assert!(list.contains("--json"));
     assert!(info.contains("icq nns data-center info"));
     assert!(info.contains("data-center|data-center-prefix"));
     assert!(refresh.contains("icq nns data-center refresh"));

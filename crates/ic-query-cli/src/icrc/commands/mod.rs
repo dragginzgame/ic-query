@@ -18,12 +18,10 @@ use options::{
 };
 
 use crate::cli::{
-    clap::{
-        flag_arg, passthrough_subcommand, render_help, required_string, required_typed, value_arg,
-    },
+    clap::{flag_arg, passthrough_subcommand, render_help, required_string, value_arg},
     common::{
         COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_FORCE_REFRESH, COLLECTION_MODE_LIVE,
-        OutputFormat, collection_help, format_arg, source_endpoint_arg,
+        OutputFormat, collection_help, json_arg, output_format, source_endpoint_arg,
     },
 };
 use candid::Principal;
@@ -53,7 +51,6 @@ const MAX_PAGES_ARG: &str = "max-pages";
 const SORT_ARG: &str = "sort";
 const FOLLOW_ARCHIVES_ARG: &str = "follow-archives";
 const FROM_CANISTER_ID_ARG: &str = "from";
-const FORMAT_ARG: &str = "format";
 const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
 const ICRC_SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for ICRC ledger queries";
 
@@ -125,7 +122,7 @@ fn icrc_token_command() -> ClapCommand {
         "token",
         "icq icrc ledger token",
         "Show generic ICRC token metadata by ledger canister id",
-        "Examples:\n  icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        "Examples:\n  icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai --json",
     )
 }
 
@@ -134,7 +131,7 @@ fn icrc_capabilities_command() -> ClapCommand {
         "capabilities",
         "icq icrc ledger capabilities",
         "Probe generic ICRC ledger endpoint capabilities",
-        "Examples:\n  icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai --format json",
+        "Examples:\n  icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai --json",
     )
 }
 
@@ -210,7 +207,7 @@ fn icrc_account_transaction_page_command() -> ClapCommand {
         .about("Show an ICRC account transaction-history page from its index")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 100 --limit 25 --format json\n  icq icrc account transaction page ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai",
+            "Examples:\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 100 --limit 25 --json\n  icq icrc account transaction page ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai",
         ))
         .disable_help_flag(true)
         .args(account_transaction_target_args())
@@ -247,7 +244,7 @@ fn icrc_account_transaction_list_command() -> ClapCommand {
         .about("List rows from a complete local ICRC account-history cache")
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
-            "Examples:\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --sort oldest --limit 100 --format json",
+            "Examples:\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --sort oldest --limit 100 --json",
         ))
         .disable_help_flag(true)
         .args(account_transaction_target_args())
@@ -276,7 +273,7 @@ fn icrc_account_transaction_refresh_command() -> ClapCommand {
         .about("Fetch and atomically cache complete ICRC account history")
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
-            "Examples:\n  icq icrc account transaction refresh mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction refresh ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai --page-size 100 --format json",
+            "Examples:\n  icq icrc account transaction refresh mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction refresh ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai --page-size 100 --json",
         ))
         .disable_help_flag(true)
         .args(account_transaction_target_args())
@@ -323,7 +320,7 @@ fn icrc_account_transaction_cache_status_command() -> ClapCommand {
         .about("Show local account-history cache and latest refresh-attempt status")
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
-            "Examples:\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --format json",
+            "Examples:\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --json",
         ))
         .disable_help_flag(true)
         .args(account_transaction_target_args());
@@ -335,7 +332,7 @@ fn icrc_index_command() -> ClapCommand {
         "index",
         "icq icrc ledger index",
         "Show a generic ICRC ledger index canister",
-        "Examples:\n  icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        "Examples:\n  icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai --json",
     )
 }
 
@@ -345,7 +342,7 @@ fn icrc_transactions_command() -> ClapCommand {
         .about("Show a generic ICRC ledger transaction history page")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --format json",
+            "Examples:\n  icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --json",
         ))
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -372,7 +369,7 @@ fn icrc_transactions_command() -> ClapCommand {
             .long(FOLLOW_ARCHIVES_ARG)
             .help("Follow returned ICRC-3 archive callbacks for the requested block page"),
     );
-    with_icrc_format_option(command)
+    with_icrc_json_option(command)
 }
 
 fn icrc_block_types_command() -> ClapCommand {
@@ -380,7 +377,7 @@ fn icrc_block_types_command() -> ClapCommand {
         "block-types",
         "icq icrc ledger block-types",
         "Show generic ICRC-3 ledger supported block types",
-        "Examples:\n  icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai --format json",
+        "Examples:\n  icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai --json",
     )
 }
 
@@ -390,7 +387,7 @@ fn icrc_archives_command() -> ClapCommand {
         .about("Show generic ICRC-3 ledger archive ranges")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
-            "Examples:\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --format json",
+            "Examples:\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --json",
         ))
         .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
@@ -409,7 +406,7 @@ fn icrc_tip_certificate_command() -> ClapCommand {
         "tip-certificate",
         "icq icrc ledger tip-certificate",
         "Show a generic ICRC-3 ledger tip certificate",
-        "Examples:\n  icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai --format json",
+        "Examples:\n  icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai --json",
     )
 }
 
@@ -513,15 +510,15 @@ fn account_transaction_target_args() -> [clap::Arg; 3] {
 }
 
 fn with_common_icrc_options(command: ClapCommand) -> ClapCommand {
-    with_icrc_format_option(with_icrc_source_endpoint_option(command))
+    with_icrc_json_option(with_icrc_source_endpoint_option(command))
 }
 
 fn with_icrc_source_endpoint_option(command: ClapCommand) -> ClapCommand {
     command.arg(icrc_source_endpoint_arg())
 }
 
-fn with_icrc_format_option(command: ClapCommand) -> ClapCommand {
-    command.arg(format_arg())
+fn with_icrc_json_option(command: ClapCommand) -> ClapCommand {
+    command.arg(json_arg())
 }
 
 fn icrc_source_endpoint_arg() -> clap::Arg {
@@ -545,7 +542,7 @@ fn subaccount_arg(id: &'static str, help: &'static str) -> clap::Arg {
 }
 
 fn format_from_matches(matches: &ArgMatches) -> OutputFormat {
-    required_typed(matches, FORMAT_ARG)
+    output_format(matches)
 }
 
 fn source_endpoint_from_matches(matches: &ArgMatches) -> String {

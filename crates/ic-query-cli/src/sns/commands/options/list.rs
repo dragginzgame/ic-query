@@ -7,12 +7,12 @@
 use crate::{
     cli::{
         clap::{required_string, required_typed},
-        common::OutputFormat,
+        common::{OutputFormat, output_format},
     },
     sns::commands::{
         SnsCommandError,
         options::common::parse_sns_matches,
-        spec::{SnsListSortArg, sns_list_command, sns_list_usage},
+        spec::{SnsListSortArg, sns_list_command},
     },
 };
 use std::ffi::OsString;
@@ -37,10 +37,10 @@ impl SnsListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_sns_matches(sns_list_command(), args, sns_list_usage)?;
+        let matches = parse_sns_matches(sns_list_command(), args)?;
         Ok(Self {
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
+            format: output_format(&matches),
             source_endpoint: required_string(&matches, "source-endpoint"),
             verbose: matches.get_flag("verbose"),
             sort: required_typed(&matches, "sort"),

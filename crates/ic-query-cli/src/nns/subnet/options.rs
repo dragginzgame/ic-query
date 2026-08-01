@@ -1,8 +1,7 @@
-use super::commands::{
-    info_command, info_usage, list_command, list_usage, refresh_command, refresh_usage,
-};
+use super::commands::{info_command, list_command, refresh_command};
 use crate::{
     cli::clap::{required_string, required_typed, typed_option},
+    cli::common::output_format,
     nns::{NnsCommandError, OutputFormat, parse_nns_matches},
 };
 use ic_query::subnet_catalog::{ResolveAs, SubnetCatalogFilters};
@@ -62,10 +61,10 @@ impl CatalogListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(list_command(), args, list_usage)?;
+        let matches = parse_nns_matches(list_command(), args)?;
         Ok(Self {
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
+            format: output_format(&matches),
             source_endpoint: required_string(&matches, "source-endpoint"),
             filters: SubnetCatalogFilters {
                 kind: typed_option(&matches, "kind"),
@@ -85,11 +84,11 @@ impl CatalogInfoOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(info_command(), args, info_usage)?;
+        let matches = parse_nns_matches(info_command(), args)?;
         Ok(Self {
             input: required_string(&matches, "input"),
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
+            format: output_format(&matches),
             source_endpoint: required_string(&matches, "source-endpoint"),
             forced: typed_option(&matches, "as"),
         })
@@ -101,10 +100,10 @@ impl CatalogRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(refresh_command(), args, refresh_usage)?;
+        let matches = parse_nns_matches(refresh_command(), args)?;
         Ok(Self {
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, "format"),
+            format: output_format(&matches),
             source_endpoint: required_string(&matches, "source-endpoint"),
             lock_stale_after_seconds: required_typed(&matches, "lock-stale-after"),
             dry_run: matches.get_flag("dry-run"),

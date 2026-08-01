@@ -3,12 +3,8 @@ use ic_query::nns::governance::DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT;
 
 #[test]
 fn nns_governance_options_are_shared_across_reports() {
-    let defaults = NnsGovernanceOptions::parse(
-        [],
-        governance_economics_command(),
-        governance_economics_usage,
-    )
-    .expect("economics defaults");
+    let defaults = NnsGovernanceOptions::parse([], governance_economics_command())
+        .expect("economics defaults");
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
     assert_eq!(
@@ -18,13 +14,11 @@ fn nns_governance_options_are_shared_across_reports() {
 
     let explicit = NnsGovernanceOptions::parse(
         [
-            OsString::from("--format"),
-            OsString::from("json"),
+            OsString::from("--json"),
             OsString::from("--source-endpoint"),
             OsString::from("https://example.test"),
         ],
         governance_metrics_command(),
-        governance_metrics_usage,
     )
     .expect("metrics options");
     assert_eq!(explicit.format, OutputFormat::Json);
@@ -48,7 +42,7 @@ fn nns_governance_help_advertises_native_live_reports() {
     ] {
         assert!(help.contains("Collection mode: Live query"));
         assert!(help.contains("--source-endpoint"));
-        assert!(help.contains("--format"));
+        assert!(help.contains("--json"));
     }
 }
 
@@ -76,30 +70,14 @@ fn nns_governance_non_mainnet_is_rejected_before_live_query() {
 
 #[test]
 fn nns_governance_each_report_command_accepts_common_options() {
-    for (command, usage) in [
-        (
-            governance_economics_command(),
-            governance_economics_usage as fn() -> String,
-        ),
-        (
-            governance_metrics_command(),
-            governance_metrics_usage as fn() -> String,
-        ),
-        (
-            governance_reward_event_command(),
-            governance_reward_event_usage as fn() -> String,
-        ),
-        (
-            governance_maturity_modulation_command(),
-            governance_maturity_modulation_usage as fn() -> String,
-        ),
+    for command in [
+        governance_economics_command(),
+        governance_metrics_command(),
+        governance_reward_event_command(),
+        governance_maturity_modulation_command(),
     ] {
-        let options = NnsGovernanceOptions::parse(
-            [OsString::from("--format"), OsString::from("json")],
-            command,
-            usage,
-        )
-        .expect("shared report options");
+        let options = NnsGovernanceOptions::parse([OsString::from("--json")], command)
+            .expect("shared report options");
         assert_eq!(options.format, OutputFormat::Json);
     }
 }

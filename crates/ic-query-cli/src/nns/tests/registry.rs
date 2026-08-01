@@ -12,8 +12,7 @@ fn registry_version_parses_defaults_and_json_format() {
     );
 
     let options = RegistryVersionOptions::parse([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
     ])
@@ -33,7 +32,7 @@ fn registry_help_is_advertised_under_nns() {
     assert!(registry.contains("Show the latest mainnet NNS registry version"));
     assert!(version.contains("icq nns registry version"));
     assert!(version.contains("Collection mode: Live query"));
-    assert!(version.contains("--format json"));
+    assert!(version.contains("--json"));
 }
 
 #[test]

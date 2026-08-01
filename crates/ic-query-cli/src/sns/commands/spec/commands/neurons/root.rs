@@ -8,7 +8,7 @@ use crate::{
     cli::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
         common::{
-            COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help, format_arg, source_endpoint_arg,
+            COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help, json_arg, source_endpoint_arg,
         },
         globals::internal_network_arg,
     },
@@ -32,7 +32,7 @@ Examples:
   icq sns neuron cache list
   icq sns neuron cache status 1
   icq sns neuron list 1 --limit 500 --sort stake
-  icq --network ic sns neuron list 1 --format json";
+  icq --network ic sns neuron list 1 --json";
 
 pub(in crate::sns::commands) fn sns_neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
@@ -56,7 +56,7 @@ pub(in crate::sns::commands) fn sns_neuron_list_command() -> ClapCommand {
         .about("List SNS governance neurons by SNS list id or root principal")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for SNS-W and governance queries"),

@@ -10,7 +10,7 @@ use crate::{
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             COLLECTION_MODE_CACHE_REFRESH_MISSING, COLLECTION_MODE_FORCE_REFRESH, collection_help,
-            format_arg, source_endpoint_arg,
+            json_arg, source_endpoint_arg,
         },
         globals::internal_network_arg,
     },
@@ -61,7 +61,7 @@ Examples:
   icq sns proposal cache status 1
   icq sns proposal list 1 --before 100 --limit 50
   icq sns proposal list 23ten-uaaaa-aaaaq-aabia-cai --verbose
-  icq --network ic sns proposal list 1 --format json";
+  icq --network ic sns proposal list 1 --json";
 
 const SNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
@@ -69,32 +69,32 @@ Examples:
   icq sns proposal info 23ten-uaaaa-aaaaq-aabia-cai 387
   icq sns proposal info 1 387 --ballots
   icq sns proposal info 1 387 --verbose
-  icq --network ic sns proposal info 1 387 --format json";
+  icq --network ic sns proposal info 1 387 --json";
 
 const SNS_PROPOSALS_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal refresh 1
   icq sns proposal refresh 23ten-uaaaa-aaaaq-aabia-cai
   icq sns proposal refresh 1 --page-size 100
-  icq --network ic sns proposal refresh 1 --format json";
+  icq --network ic sns proposal refresh 1 --json";
 
 const SNS_PROPOSALS_CACHE_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal cache list
   icq sns proposal cache status 1
   icq sns proposal cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns proposal cache status 1 --format json";
+  icq sns proposal cache status 1 --json";
 
 const SNS_PROPOSALS_CACHE_LIST_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal cache list
-  icq sns proposal cache list --format json";
+  icq sns proposal cache list --json";
 
 const SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal cache status 1
   icq sns proposal cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns proposal cache status 1 --format json";
+  icq sns proposal cache status 1 --json";
 
 pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
@@ -128,7 +128,7 @@ pub(in crate::sns::commands) fn sns_proposal_info_command() -> ClapCommand {
                 .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
                 .help("SNS governance proposal id"),
         )
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for SNS-W and governance queries"),
@@ -156,7 +156,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
         .about("List SNS governance proposals by list id or root principal")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for SNS-W and governance queries"),
@@ -231,7 +231,6 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
         .arg(
             flag_arg("desc")
                 .long("desc")
-                .conflicts_with("asc")
                 .help("Sort descending for local sort modes; this is the default for id/action-id/tally/tally-time/eligible/ballots/reject-cost/reward-round/timestamps"),
         )
         .arg(
@@ -252,7 +251,7 @@ pub(in crate::sns::commands) fn sns_proposal_refresh_command() -> ClapCommand {
         .about("Force-refresh and cache a complete SNS governance proposal snapshot")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for SNS-W and governance queries"),
@@ -304,7 +303,7 @@ pub(in crate::sns::commands) fn sns_proposal_cache_list_command() -> ClapCommand
         .bin_name("icq sns proposal cache list")
         .about("List local complete SNS proposal snapshots")
         .disable_help_flag(true)
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
@@ -318,7 +317,7 @@ pub(in crate::sns::commands) fn sns_proposal_cache_status_command() -> ClapComma
         .about("Show local SNS proposal snapshot and refresh-attempt status")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

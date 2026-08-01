@@ -29,7 +29,7 @@ where
     let Some(args) = command_args(args, usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_command(sns_command(), args, usage)?;
+    let (command, args) = parse_required_command(sns_command(), args)?;
 
     match command.as_str() {
         "list" => run_sns_list(args),

@@ -6,7 +6,7 @@
 
 use crate::{
     cli::{
-        common::{COLLECTION_MODE_LIVE, collection_help, format_arg, source_endpoint_arg},
+        common::{COLLECTION_MODE_LIVE, collection_help, json_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
@@ -18,19 +18,19 @@ const SNS_INFO_HELP_AFTER: &str = "\
 Examples:
   icq sns info 1
   icq sns info 23ten-uaaaa-aaaaq-aabia-cai
-  icq --network ic sns info 1 --format json";
+  icq --network ic sns info 1 --json";
 
 const SNS_TOKEN_HELP_AFTER: &str = "\
 Examples:
   icq sns token 1
   icq sns token 23ten-uaaaa-aaaaq-aabia-cai
-  icq --network ic sns token 1 --format json";
+  icq --network ic sns token 1 --json";
 
 const SNS_PARAMS_HELP_AFTER: &str = "\
 Examples:
   icq sns params 1
   icq sns params 23ten-uaaaa-aaaaq-aabia-cai
-  icq --network ic sns params 1 --format json";
+  icq --network ic sns params 1 --json";
 
 pub(in crate::sns::commands) fn sns_info_command() -> ClapCommand {
     sns_lookup_command(
@@ -74,7 +74,7 @@ pub(super) fn sns_lookup_command(
         .about(about)
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT).help(source_endpoint_help))
         .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(COLLECTION_MODE_LIVE, after_help))

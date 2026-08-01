@@ -68,7 +68,7 @@ that every physical boundary node is represented at one point in time.
 
 ```bash
 icq ic network boundary-node-data-centers
-icq ic network boundary-node-data-centers --format json
+icq ic network boundary-node-data-centers --json
 ```
 
 The command makes exactly one request and performs no per-location follow-up.

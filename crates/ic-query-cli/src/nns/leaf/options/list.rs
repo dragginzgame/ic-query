@@ -10,7 +10,7 @@ use crate::{
     nns::{
         NnsCommandError,
         leaf::{
-            commands::{VERBOSE_ARG, list_command, list_usage},
+            commands::{VERBOSE_ARG, list_command},
             model::NnsLeafCommandSpec,
         },
         parse_nns_matches,
@@ -41,9 +41,7 @@ impl NnsLeafListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(list_command(spec, default_source_endpoint), args, || {
-            list_usage(spec, default_source_endpoint)
-        })?;
+        let matches = parse_nns_matches(list_command(spec, default_source_endpoint), args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,

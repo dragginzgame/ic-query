@@ -75,5 +75,6 @@ icq nns governance reward-event
 icq nns governance maturity-modulation
 ```
 
-All four commands are explicit live queries, support `--format text|json` and
-`--source-endpoint`, and honor the global NNS network identity.
+All four commands are explicit live queries, render text by default, accept
+`--json` for raw JSON and `--source-endpoint` overrides, and honor the global
+NNS network identity.

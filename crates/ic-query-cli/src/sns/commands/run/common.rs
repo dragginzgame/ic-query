@@ -77,12 +77,11 @@ pub(super) fn command_cache_root() -> Result<PathBuf, SnsCommandError> {
 pub(super) fn parse_required_command<I>(
     command: ClapCommand,
     args: I,
-    usage: impl FnOnce() -> String,
 ) -> Result<(String, Vec<OsString>), SnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_required_subcommand_or_usage(command, args, usage).map_err(SnsCommandError::Usage)
+    parse_required_subcommand_or_usage(command, args).map_err(SnsCommandError::Usage)
 }
 
 pub(super) fn lookup_command_parts(

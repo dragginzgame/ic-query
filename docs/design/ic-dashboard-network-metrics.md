@@ -92,7 +92,7 @@ claim that distinct observations and series form one IC state snapshot.
 icq ic metrics instruction-rate
 icq ic metrics cycle-burn-rate \
   --start 1700000000 --end 1700003600 --step 300
-icq ic metrics ic-node-count --format json
+icq ic metrics ic-node-count --json
 ```
 
 Command help is the definitive option and metric-name reference.

@@ -23,8 +23,7 @@ const SUBACCOUNT: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a
 fn token_options_parse_through_clap() {
     let options = parse_token_options(&[
         LEDGER_CANISTER_ID,
-        "--format",
-        "json",
+        "--json",
         "--source-endpoint",
         SOURCE_ENDPOINT,
     ]);
@@ -36,7 +35,7 @@ fn token_options_parse_through_clap() {
 
 #[test]
 fn capabilities_options_parse_through_clap() {
-    let options = parse_capabilities_options(&[LEDGER_CANISTER_ID, "--format", "json"]);
+    let options = parse_capabilities_options(&[LEDGER_CANISTER_ID, "--json"]);
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -49,8 +48,7 @@ fn balance_options_parse_through_clap_and_normalize_subaccount() {
         ACCOUNT_OWNER,
         "--subaccount",
         SUBACCOUNT,
-        "--format",
-        "json",
+        "--json",
     ]);
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
@@ -90,8 +88,7 @@ fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
         "18446744073709551616",
         "--limit",
         "42",
-        "--format",
-        "json",
+        "--json",
         "--source-endpoint",
         SOURCE_ENDPOINT,
     ]);
@@ -161,7 +158,7 @@ fn account_transaction_cache_options_parse_identity() {
 
 #[test]
 fn index_options_parse_through_clap() {
-    let options = parse_index_options(&[LEDGER_CANISTER_ID, "--format", "json"]);
+    let options = parse_index_options(&[LEDGER_CANISTER_ID, "--json"]);
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -185,7 +182,7 @@ fn transactions_options_parse_through_clap() {
 
 #[test]
 fn block_types_options_parse_through_clap() {
-    let options = parse_block_types_options(&[LEDGER_CANISTER_ID, "--format", "json"]);
+    let options = parse_block_types_options(&[LEDGER_CANISTER_ID, "--json"]);
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -193,13 +190,8 @@ fn block_types_options_parse_through_clap() {
 
 #[test]
 fn archives_options_parse_through_clap() {
-    let options = parse_archives_options(&[
-        LEDGER_CANISTER_ID,
-        "--from",
-        INDEX_CANISTER_ID,
-        "--format",
-        "json",
-    ]);
+    let options =
+        parse_archives_options(&[LEDGER_CANISTER_ID, "--from", INDEX_CANISTER_ID, "--json"]);
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.from_canister_id.as_deref(), Some(INDEX_CANISTER_ID));
@@ -208,7 +200,7 @@ fn archives_options_parse_through_clap() {
 
 #[test]
 fn tip_certificate_options_parse_through_clap() {
-    let options = parse_tip_certificate_options(&[LEDGER_CANISTER_ID, "--format", "json"]);
+    let options = parse_tip_certificate_options(&[LEDGER_CANISTER_ID, "--json"]);
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);

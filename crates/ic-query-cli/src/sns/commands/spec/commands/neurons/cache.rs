@@ -7,7 +7,7 @@
 use crate::{
     cli::{
         clap::passthrough_subcommand,
-        common::{COLLECTION_MODE_CACHE_ONLY, collection_help, format_arg},
+        common::{COLLECTION_MODE_CACHE_ONLY, collection_help, json_arg},
         globals::internal_network_arg,
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
@@ -19,18 +19,18 @@ Examples:
   icq sns neuron cache list
   icq sns neuron cache status 1
   icq sns neuron cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns neuron cache status 1 --format json";
+  icq sns neuron cache status 1 --json";
 
 const SNS_NEURONS_CACHE_LIST_HELP_AFTER: &str = "\
 Examples:
   icq sns neuron cache list
-  icq sns neuron cache list --format json";
+  icq sns neuron cache list --json";
 
 const SNS_NEURONS_CACHE_STATUS_HELP_AFTER: &str = "\
 Examples:
   icq sns neuron cache status 1
   icq sns neuron cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns neuron cache status 1 --format json";
+  icq sns neuron cache status 1 --json";
 
 pub(in crate::sns::commands) fn sns_neuron_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
@@ -55,7 +55,7 @@ pub(in crate::sns::commands) fn sns_neuron_cache_list_command() -> ClapCommand {
         .bin_name("icq sns neuron cache list")
         .about("List local complete SNS neuron snapshots")
         .disable_help_flag(true)
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
@@ -69,7 +69,7 @@ pub(in crate::sns::commands) fn sns_neuron_cache_status_command() -> ClapCommand
         .about("Show local SNS neuron snapshot and refresh-attempt status")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

@@ -34,8 +34,7 @@ where
     let Some(args) = command_args(args, neuron_usage_for_error) else {
         return Ok(());
     };
-    let (command, args) =
-        parse_nns_required_subcommand(neuron_command(), args, neuron_usage_for_error)?;
+    let (command, args) = parse_nns_required_subcommand(neuron_command(), args)?;
     match command.as_str() {
         "list" => run_list(args),
         "info" => run_info(args),
@@ -116,8 +115,7 @@ where
     let Some(args) = command_args(args, neuron_cache_usage_for_error) else {
         return Ok(());
     };
-    let (command, args) =
-        parse_nns_required_subcommand(neuron_cache_command(), args, neuron_cache_usage_for_error)?;
+    let (command, args) = parse_nns_required_subcommand(neuron_cache_command(), args)?;
     match command.as_str() {
         "status" => run_cache_status(args),
         _ => unreachable!("nns neuron cache dispatch only defines known commands"),

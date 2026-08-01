@@ -7,49 +7,49 @@ use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 const TOPOLOGY_SUMMARY_HELP_AFTER: &str = "\
 Examples:
   icq nns topology summary
-  icq --network ic nns topology summary --format json
+  icq --network ic nns topology summary --json
   icq nns topology summary --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_COVERAGE_HELP_AFTER: &str = "\
 Examples:
   icq nns topology coverage
-  icq --network ic nns topology coverage --format json
+  icq --network ic nns topology coverage --json
   icq nns topology coverage --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_VERSIONS_HELP_AFTER: &str = "\
 Examples:
   icq nns topology versions
-  icq --network ic nns topology versions --format json
+  icq --network ic nns topology versions --json
   icq nns topology versions --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_HEALTH_HELP_AFTER: &str = "\
 Examples:
   icq nns topology health
-  icq --network ic nns topology health --format json
+  icq --network ic nns topology health --json
   icq nns topology health --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_GAPS_HELP_AFTER: &str = "\
 Examples:
   icq nns topology gaps
-  icq --network ic nns topology gaps --format json
+  icq --network ic nns topology gaps --json
   icq nns topology gaps --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_CAPACITY_HELP_AFTER: &str = "\
 Examples:
   icq nns topology capacity
-  icq --network ic nns topology capacity --format json
+  icq --network ic nns topology capacity --json
   icq nns topology capacity --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_REGIONS_HELP_AFTER: &str = "\
 Examples:
   icq nns topology regions
-  icq --network ic nns topology regions --format json
+  icq --network ic nns topology regions --json
   icq nns topology regions --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_PROVIDERS_HELP_AFTER: &str = "\
 Examples:
   icq nns topology providers
-  icq --network ic nns topology providers --format json
+  icq --network ic nns topology providers --json
   icq nns topology providers --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP: &str =
@@ -141,7 +141,7 @@ fn topology_read_command(
         .bin_name(format!("icq nns topology {name}"))
         .about(about)
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT).help(source_help))
         .arg(leaf::network_arg())
         .after_help(collection_help(

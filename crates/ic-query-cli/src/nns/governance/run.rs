@@ -34,8 +34,7 @@ where
     let Some(args) = command_args(args, governance_usage_for_error) else {
         return Ok(());
     };
-    let (command, args) =
-        parse_nns_required_subcommand(governance_command(), args, governance_usage_for_error)?;
+    let (command, args) = parse_nns_required_subcommand(governance_command(), args)?;
     match command.as_str() {
         "economics" => run_report(
             args,
@@ -83,7 +82,7 @@ where
     let Some(args) = command_args(args, usage) else {
         return Ok(());
     };
-    let options = NnsGovernanceOptions::parse(args, command, usage)?;
+    let options = NnsGovernanceOptions::parse(args, command)?;
     let request = NnsSourceRequest::from_unix_secs(
         options.network,
         options.source_endpoint,

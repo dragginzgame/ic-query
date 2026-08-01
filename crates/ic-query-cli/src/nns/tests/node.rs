@@ -10,8 +10,7 @@ fn node_list_parses_defaults_and_json_format() {
     assert!(!defaults.verbose);
 
     let options = node_list_options([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--verbose"),
@@ -42,8 +41,7 @@ fn node_list_parses_defaults_and_json_format() {
 fn node_info_parses_input_and_json_format() {
     let options = node_info_options([
         OsString::from("ryjl"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
     ])
@@ -70,8 +68,7 @@ fn node_refresh_parses_defaults_and_export_options() {
     assert_eq!(defaults.output_path, None);
 
     let options = node_refresh_options([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--lock-stale-after"),
@@ -107,7 +104,7 @@ fn node_help_is_advertised_under_nns() {
     assert!(list.contains("icq nns node list"));
     assert!(list.contains("Collection mode: Cache-backed read"));
     assert!(list.contains("--verbose"));
-    assert!(list.contains("--format json"));
+    assert!(list.contains("--json"));
     assert!(list.contains("--data-center"));
     assert!(list.contains("--node-provider"));
     assert!(list.contains("--node-operator"));

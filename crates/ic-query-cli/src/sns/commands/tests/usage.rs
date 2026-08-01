@@ -38,7 +38,7 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("List and refresh SNS governance neurons"));
     assert!(list.contains("icq sns list"));
     assert!(list.contains("Collection mode: Live query"));
-    assert!(list.contains("--format json"));
+    assert!(list.contains("--json"));
     assert!(list.contains("--source-endpoint"));
     assert!(list.contains("--sort"));
     assert!(list.contains("--verbose"));
@@ -94,7 +94,7 @@ fn sns_help_is_advertised() {
     assert!(neuron_cache_list.contains("icq sns neuron cache list"));
     assert!(neuron_cache_list.contains("Collection mode: Local cache inspection"));
     assert!(!neuron_cache_list.contains("--source-endpoint"));
-    assert!(neuron_cache_list.contains("--format json"));
+    assert!(neuron_cache_list.contains("--json"));
     assert!(neuron_cache_status.contains("icq sns neuron cache status"));
     assert!(neuron_cache_status.contains("id|root-principal"));
     assert!(neuron_cache_status.contains("Collection mode: Local cache inspection"));
@@ -113,7 +113,7 @@ List deployed mainnet SNS instances
 Usage: icq sns list [OPTIONS]
 
 Options:
-      --format <text|json>     Output format; defaults to text [default: text] [possible values: text, json]
+      --json                   Print raw JSON instead of human-readable text
       --source-endpoint <url>  IC API endpoint used for SNS-W and governance metadata queries [default: https://icp-api.io]
       --verbose                Show full canister IDs in text output
       --sort <id|name>         Text/JSON row order; ids follow the SNS-W response order [default: id] [possible values: id, name]
@@ -124,7 +124,7 @@ Examples:
   icq sns list
   icq sns list --sort name
   icq sns list --verbose
-  icq --network ic sns list --format json
+  icq --network ic sns list --json
   icq sns list --source-endpoint https://icp-api.io
 ";
 

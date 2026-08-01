@@ -13,7 +13,7 @@ mod proposals;
 use crate::{
     cli::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
-        common::{COLLECTION_MODE_LIVE, collection_help, format_arg, source_endpoint_arg},
+        common::{COLLECTION_MODE_LIVE, collection_help, json_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
     sns::commands::spec::values::SnsListSortArg,
@@ -40,7 +40,7 @@ Examples:
   icq sns list
   icq sns list --sort name
   icq sns list --verbose
-  icq --network ic sns list --format json
+  icq --network ic sns list --json
   icq sns list --source-endpoint https://icp-api.io";
 
 pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
@@ -77,7 +77,7 @@ pub(in crate::sns::commands) fn sns_list_command() -> ClapCommand {
         .bin_name("icq sns list")
         .about("List deployed mainnet SNS instances")
         .disable_help_flag(true)
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for SNS-W and governance metadata queries"),

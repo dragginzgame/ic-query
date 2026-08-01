@@ -77,7 +77,7 @@ where
     let Some(args) = command_args(args, usage) else {
         return Ok(());
     };
-    let options = SnsLookupOptions::parse(args, command, usage)?;
+    let options = SnsLookupOptions::parse(args, command)?;
     let parts = lookup_command_parts(options)?;
     let format = parts.format;
     let request = SnsLookupRequest {

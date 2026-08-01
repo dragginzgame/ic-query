@@ -13,9 +13,7 @@ use crate::{
     nns::{
         NnsCommandError,
         leaf::{
-            commands::{
-                DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, OUTPUT_ARG, refresh_command, refresh_usage,
-            },
+            commands::{DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, OUTPUT_ARG, refresh_command},
             model::NnsLeafCommandSpec,
         },
         parse_nns_matches,
@@ -48,10 +46,7 @@ impl NnsLeafRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches =
-            parse_nns_matches(refresh_command(spec, default_source_endpoint), args, || {
-                refresh_usage(spec, default_source_endpoint)
-            })?;
+        let matches = parse_nns_matches(refresh_command(spec, default_source_endpoint), args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,

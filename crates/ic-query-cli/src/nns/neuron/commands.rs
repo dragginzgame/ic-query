@@ -28,25 +28,25 @@ Examples:
   icq nns neuron list
   icq nns neuron list --limit 100 --start-neuron-id 123456789
   icq nns neuron list --verbose
-  icq nns neuron list --format json";
+  icq nns neuron list --json";
 
 const INFO_HELP_AFTER: &str = "\
 Examples:
   icq nns neuron info 123456789
   icq nns neuron info 123456789 --verbose
-  icq nns neuron info 123456789 --format json";
+  icq nns neuron info 123456789 --json";
 
 const REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns neuron refresh
   icq nns neuron refresh --page-size 300
   icq nns neuron refresh --max-pages 5
-  icq nns neuron refresh --format json";
+  icq nns neuron refresh --json";
 
 const CACHE_HELP_AFTER: &str = "\
 Examples:
   icq nns neuron cache status
-  icq nns neuron cache status --format json";
+  icq nns neuron cache status --json";
 
 pub(super) fn neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
@@ -73,7 +73,7 @@ pub(super) fn neuron_list_command() -> ClapCommand {
         .bin_name("icq nns neuron list")
         .about("List public NNS neurons")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS Governance query"),
@@ -120,7 +120,7 @@ pub(super) fn neuron_info_command() -> ClapCommand {
                 .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
                 .help("NNS Governance neuron id"),
         )
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS Governance query"),
@@ -142,7 +142,7 @@ pub(super) fn neuron_refresh_command() -> ClapCommand {
         .bin_name("icq nns neuron refresh")
         .about("Refresh the complete public NNS neuron snapshot")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for every native NNS Governance page"),
@@ -191,7 +191,7 @@ pub(super) fn neuron_cache_status_command() -> ClapCommand {
         .bin_name("icq nns neuron cache status")
         .about("Show public NNS neuron snapshot and refresh-attempt status")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

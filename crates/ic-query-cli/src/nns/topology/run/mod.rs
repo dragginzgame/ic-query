@@ -12,7 +12,7 @@ where
     let Some(args) = command_args(args, topology_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_nns_required_subcommand(topology_command(), args, topology_usage)?;
+    let (command, args) = parse_nns_required_subcommand(topology_command(), args)?;
 
     match command.as_str() {
         "summary" => read::run_topology_summary(args),

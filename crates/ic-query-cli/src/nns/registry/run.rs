@@ -17,8 +17,7 @@ where
     let Some(args) = command_args(args, registry_usage_for_error) else {
         return Ok(());
     };
-    let (command, args) =
-        parse_nns_required_subcommand(registry_command(), args, registry_usage_for_error)?;
+    let (command, args) = parse_nns_required_subcommand(registry_command(), args)?;
 
     match command.as_str() {
         "version" => run_registry_version(args),

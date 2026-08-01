@@ -54,7 +54,7 @@ icq ic canister page --query ledger --limit 25
 
 # Official Dashboard network metrics
 icq ic metrics instruction-rate
-icq ic metrics ic-node-count --format json
+icq ic metrics ic-node-count --json
 
 # Official Dashboard network resources
 icq ic network boundary-node-data-centers
@@ -81,15 +81,15 @@ icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
 
 # Native system-canister reports
 icq system xdr
-icq system cycles --format json
+icq system cycles --json
 ```
 
-Text is the default human-facing format. Use `--format json` on report commands
+Text is the default human-facing format. Use `--json` on report commands
 for raw, script-friendly fields:
 
 ```bash
-icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
-icq nns topology summary --format json
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --json
+icq nns topology summary --json
 ```
 
 Run `icq help`, `icq <family> help`, or append `help` to any nested command for

@@ -13,8 +13,7 @@ fn node_provider_list_parses_defaults_and_json_format() {
     assert!(!defaults.verbose);
 
     let options = node_provider_list_options([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--verbose"),
@@ -30,8 +29,7 @@ fn node_provider_list_parses_defaults_and_json_format() {
 fn node_provider_info_parses_input_and_json_format() {
     let options = node_provider_info_options([
         OsString::from("ryjl"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
     ])
@@ -61,8 +59,7 @@ fn node_provider_refresh_parses_defaults_and_export_options() {
     assert_eq!(defaults.output_path, None);
 
     let options = node_provider_refresh_options([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--lock-stale-after"),
@@ -97,7 +94,7 @@ fn node_provider_help_is_advertised_under_nns() {
     assert!(node_provider.contains("Force-refresh and cache NNS node-provider metadata"));
     assert!(list.contains("icq nns node-provider list"));
     assert!(list.contains("--verbose"));
-    assert!(list.contains("--format json"));
+    assert!(list.contains("--json"));
     assert!(info.contains("icq nns node-provider info"));
     assert!(info.contains("node-provider|node-provider-prefix"));
     assert!(refresh.contains("icq nns node-provider refresh"));

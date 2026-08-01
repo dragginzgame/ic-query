@@ -2,7 +2,7 @@ mod commands;
 pub(in crate::nns) mod model;
 mod options;
 mod run;
-pub(super) use crate::cli::common::{format_arg, source_endpoint_arg};
+pub(super) use crate::cli::common::{json_arg, source_endpoint_arg};
 pub(super) use commands::{
     info_usage, list_command, network_arg, output_path_arg, refresh_lock_stale_after_arg,
     refresh_usage,

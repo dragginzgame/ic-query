@@ -5,10 +5,9 @@
 //! Boundary: writes text/JSON reports and builds common CLI arguments.
 
 use crate::{
-    cli::clap::value_arg,
+    cli::clap::{flag_arg, value_arg},
     output::{write_pretty_json, write_text},
 };
-use clap::ValueEnum;
 use serde::Serialize;
 use std::{
     io,
@@ -16,7 +15,7 @@ use std::{
 };
 use thiserror::Error as ThisError;
 
-pub const FORMAT_ARG: &str = "format";
+pub const JSON_ARG: &str = "json";
 pub const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
 pub const COLLECTION_MODE_CACHE_ONLY: &str =
     "Local cache inspection; does not make a network request.";
@@ -27,15 +26,13 @@ pub const COLLECTION_MODE_FORCE_REFRESH: &str = "Forced live refresh; fetches an
 pub const COLLECTION_MODE_LIVE: &str = "Live query; does not read or write a report cache.";
 pub const COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW: &str = "View-dependent read; --sort api makes a bounded live query and other sorts use a complete local cache.";
 
-const DEFAULT_FORMAT: &str = "text";
-
 ///
 /// OutputFormat
 ///
 /// User-selected CLI output format for report rendering.
 ///
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OutputFormat {
     Text,
     Json,
@@ -98,13 +95,18 @@ pub fn current_unix_secs() -> Result<u64, CurrentUnixSecsError> {
         .map_err(|source| CurrentUnixSecsError::BeforeUnixEpoch { source })
 }
 
-pub fn format_arg() -> clap::Arg {
-    value_arg(FORMAT_ARG)
-        .long(FORMAT_ARG)
-        .value_name("text|json")
-        .default_value(DEFAULT_FORMAT)
-        .value_parser(clap::value_parser!(OutputFormat))
-        .help("Output format; defaults to text")
+pub fn json_arg() -> clap::Arg {
+    flag_arg(JSON_ARG)
+        .long(JSON_ARG)
+        .help("Print raw JSON instead of human-readable text")
+}
+
+pub fn output_format(matches: &clap::ArgMatches) -> OutputFormat {
+    if matches.get_flag(JSON_ARG) {
+        OutputFormat::Json
+    } else {
+        OutputFormat::Text
+    }
 }
 
 pub fn source_endpoint_arg(default_source_endpoint: &'static str) -> clap::Arg {

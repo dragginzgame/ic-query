@@ -4,7 +4,7 @@ const DATA_CENTER_LIST_HELP_AFTER: &str = "\
 Examples:
   icq nns data-center list
   icq nns data-center list --verbose
-  icq --network ic nns data-center list --format json
+  icq --network ic nns data-center list --json
 
 Force-refresh cached native NNS data:
   icq nns data-center refresh";
@@ -12,14 +12,14 @@ const DATA_CENTER_INFO_HELP_AFTER: &str = "\
 Examples:
   icq nns data-center info <data-center>
   icq nns data-center info <data-center-prefix>
-  icq --network ic nns data-center info <data-center> --format json
+  icq --network ic nns data-center info <data-center> --json
 
 Force-refresh cached native NNS data:
   icq nns data-center refresh";
 const DATA_CENTER_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns data-center refresh
-  icq --network ic nns data-center refresh --format json
+  icq --network ic nns data-center refresh --json
   icq nns data-center refresh --dry-run --output /tmp/icq-data-centers.preview.json";
 
 pub(super) const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {

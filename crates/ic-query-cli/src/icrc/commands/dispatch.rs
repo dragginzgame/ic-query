@@ -56,7 +56,7 @@ where
     let Some(args) = collect_args_or_print_help_or_version(args, usage, version_text()) else {
         return Ok(());
     };
-    let (command, args) = parse_required_subcommand_or_usage(icrc_command(), args, usage)
+    let (command, args) = parse_required_subcommand_or_usage(icrc_command(), args)
         .map_err(IcrcCommandError::Usage)?;
     match command.as_str() {
         "ledger" => run_icrc_ledger(args),
@@ -73,9 +73,8 @@ where
     else {
         return Ok(());
     };
-    let (command, args) =
-        parse_required_subcommand_or_usage(icrc_ledger_command(), args, icrc_ledger_usage)
-            .map_err(IcrcCommandError::Usage)?;
+    let (command, args) = parse_required_subcommand_or_usage(icrc_ledger_command(), args)
+        .map_err(IcrcCommandError::Usage)?;
     match command.as_str() {
         "token" => run_icrc_token(args),
         "index" => run_icrc_index(args),
@@ -97,9 +96,8 @@ where
     else {
         return Ok(());
     };
-    let (command, args) =
-        parse_required_subcommand_or_usage(icrc_account_command(), args, icrc_account_usage)
-            .map_err(IcrcCommandError::Usage)?;
+    let (command, args) = parse_required_subcommand_or_usage(icrc_account_command(), args)
+        .map_err(IcrcCommandError::Usage)?;
     match command.as_str() {
         "balance" => run_icrc_balance(args),
         "allowance" => run_icrc_allowance(args),
@@ -116,7 +114,7 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcLedgerOptions::parse(args, icrc_token_command, icrc_token_usage)?;
+    let options = IcrcLedgerOptions::parse(args, icrc_token_command)?;
     let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -179,12 +177,9 @@ where
     else {
         return Ok(());
     };
-    let (command, args) = parse_required_subcommand_or_usage(
-        icrc_account_transaction_command(),
-        args,
-        icrc_account_transaction_usage,
-    )
-    .map_err(IcrcCommandError::Usage)?;
+    let (command, args) =
+        parse_required_subcommand_or_usage(icrc_account_transaction_command(), args)
+            .map_err(IcrcCommandError::Usage)?;
     match command.as_str() {
         "page" => run_icrc_account_transaction_page(args),
         "list" => run_icrc_account_transaction_list(args),
@@ -290,12 +285,9 @@ where
     ) else {
         return Ok(());
     };
-    let (command, args) = parse_required_subcommand_or_usage(
-        icrc_account_transaction_cache_command(),
-        args,
-        icrc_account_transaction_cache_usage,
-    )
-    .map_err(IcrcCommandError::Usage)?;
+    let (command, args) =
+        parse_required_subcommand_or_usage(icrc_account_transaction_cache_command(), args)
+            .map_err(IcrcCommandError::Usage)?;
     match command.as_str() {
         "status" => run_icrc_account_transaction_cache_status(args),
         _ => unreachable!("ICRC account transaction cache command only defines known subcommands"),
@@ -343,7 +335,7 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcLedgerOptions::parse(args, icrc_index_command, icrc_index_usage)?;
+    let options = IcrcLedgerOptions::parse(args, icrc_index_command)?;
     let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -384,7 +376,7 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcLedgerOptions::parse(args, icrc_block_types_command, icrc_block_types_usage)?;
+    let options = IcrcLedgerOptions::parse(args, icrc_block_types_command)?;
     let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -423,11 +415,7 @@ where
     else {
         return Ok(());
     };
-    let options = IcrcLedgerOptions::parse(
-        args,
-        icrc_tip_certificate_command,
-        icrc_tip_certificate_usage,
-    )?;
+    let options = IcrcLedgerOptions::parse(args, icrc_tip_certificate_command)?;
     let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -446,8 +434,7 @@ where
     else {
         return Ok(());
     };
-    let options =
-        IcrcLedgerOptions::parse(args, icrc_capabilities_command, icrc_capabilities_usage)?;
+    let options = IcrcLedgerOptions::parse(args, icrc_capabilities_command)?;
     let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,

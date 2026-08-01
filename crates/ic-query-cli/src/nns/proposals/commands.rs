@@ -50,7 +50,7 @@ Examples:
   icq nns proposal list --sort voting-power
   icq nns proposal list --sort proposed
   icq nns proposal list --sort title --asc
-  icq nns proposal list --format json
+  icq nns proposal list --json
   icq nns proposal list --source-endpoint https://icp-api.io";
 
 const NNS_PROPOSAL_HELP_AFTER: &str = "\
@@ -61,7 +61,7 @@ Examples:
   icq nns proposal info 132411 --verbose
   icq nns proposal refresh
   icq nns proposal cache status
-  icq nns proposal info 132411 --format json
+  icq nns proposal info 132411 --json
   icq nns proposal info 132411 --source-endpoint https://icp-api.io";
 
 const NNS_PROPOSAL_INFO_HELP_AFTER: &str = "\
@@ -69,7 +69,7 @@ Examples:
   icq nns proposal info 132411
   icq nns proposal info 132411 --ballots
   icq nns proposal info 132411 --verbose
-  icq nns proposal info 132411 --format json
+  icq nns proposal info 132411 --json
   icq nns proposal info 132411 --source-endpoint https://icp-api.io";
 
 const NNS_PROPOSAL_REFRESH_HELP_AFTER: &str = "\
@@ -77,24 +77,24 @@ Examples:
   icq nns proposal refresh
   icq nns proposal refresh --page-size 100
   icq nns proposal refresh --max-pages 5
-  icq nns proposal refresh --format json
+  icq nns proposal refresh --json
   icq nns proposal refresh --source-endpoint https://icp-api.io";
 
 const NNS_PROPOSAL_CACHE_HELP_AFTER: &str = "\
 Examples:
   icq nns proposal cache list
   icq nns proposal cache status
-  icq nns proposal cache status --format json";
+  icq nns proposal cache status --json";
 
 const NNS_PROPOSAL_CACHE_LIST_HELP_AFTER: &str = "\
 Examples:
   icq nns proposal cache list
-  icq nns proposal cache list --format json";
+  icq nns proposal cache list --json";
 
 const NNS_PROPOSAL_CACHE_STATUS_HELP_AFTER: &str = "\
 Examples:
   icq nns proposal cache status
-  icq nns proposal cache status --format json";
+  icq nns proposal cache status --json";
 
 fn nns_proposal_list_command_with(
     name: &'static str,
@@ -105,7 +105,7 @@ fn nns_proposal_list_command_with(
         .bin_name(bin_name)
         .about("List NNS governance proposals")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS governance query"),
@@ -180,7 +180,6 @@ fn nns_proposal_list_command_with(
         .arg(
             flag_arg(NNS_PROPOSAL_SORT_DESC_LABEL)
                 .long(NNS_PROPOSAL_SORT_DESC_LABEL)
-                .conflicts_with(NNS_PROPOSAL_SORT_ASC_LABEL)
                 .help("Sort descending for local sort modes; this is the default for id/tally/tally-time/voting-power/ballots/reject-cost/reward-round/timestamps"),
         )
         .arg(
@@ -219,7 +218,7 @@ fn nns_proposal_detail_command_with(
                 .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
                 .help("NNS governance proposal id"),
         )
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS governance query"),
@@ -275,7 +274,7 @@ pub(in crate::nns::proposals) fn nns_proposal_refresh_command() -> ClapCommand {
         .bin_name("icq nns proposal refresh")
         .about("Force-refresh and cache a complete NNS governance proposal snapshot")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS governance query"),
@@ -327,7 +326,7 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_list_command() -> ClapComman
         .bin_name("icq nns proposal cache list")
         .about("List local complete NNS proposal snapshots")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
@@ -340,7 +339,7 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_status_command() -> ClapComm
         .bin_name("icq nns proposal cache status")
         .about("Show local NNS proposal snapshot and refresh-attempt status")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

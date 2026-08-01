@@ -6,8 +6,8 @@
 
 use crate::{
     cli::{
-        clap::{required_string, required_typed},
-        common::OutputFormat,
+        clap::required_string,
+        common::{OutputFormat, output_format},
     },
     sns::commands::{SnsCommandError, options::common::parse_sns_matches},
 };
@@ -32,12 +32,11 @@ impl SnsLookupOptions {
     pub(in crate::sns::commands) fn parse<I>(
         args: I,
         command: fn() -> ClapCommand,
-        usage: fn() -> String,
     ) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_sns_matches(command(), args, usage)?;
+        let matches = parse_sns_matches(command(), args)?;
         Ok(Self::from_matches(&matches))
     }
 
@@ -45,7 +44,7 @@ impl SnsLookupOptions {
         Self {
             input: required_string(matches, "input"),
             network: required_string(matches, "network"),
-            format: required_typed(matches, "format"),
+            format: output_format(matches),
             source_endpoint: required_string(matches, "source-endpoint"),
         }
     }

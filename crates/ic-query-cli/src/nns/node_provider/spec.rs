@@ -4,7 +4,7 @@ const NODE_PROVIDER_LIST_HELP_AFTER: &str = "\
 Examples:
   icq nns node-provider list
   icq nns node-provider list --verbose
-  icq --network ic nns node-provider list --format json
+  icq --network ic nns node-provider list --json
 
 Force-refresh cached native NNS data:
   icq nns node-provider refresh";
@@ -12,14 +12,14 @@ const NODE_PROVIDER_INFO_HELP_AFTER: &str = "\
 Examples:
   icq nns node-provider info <node-provider>
   icq nns node-provider info <node-provider-prefix>
-  icq --network ic nns node-provider info <node-provider> --format json
+  icq --network ic nns node-provider info <node-provider> --json
 
 Force-refresh cached native NNS data:
   icq nns node-provider refresh";
 const NODE_PROVIDER_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns node-provider refresh
-  icq --network ic nns node-provider refresh --format json
+  icq --network ic nns node-provider refresh --json
   icq nns node-provider refresh --dry-run --output /tmp/icq-node-providers.preview.json";
 
 pub(super) const NODE_PROVIDER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {

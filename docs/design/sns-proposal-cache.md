@@ -86,7 +86,7 @@ scope: full
 
 View options such as `--limit`, `--before`, `--sort`, `--asc`, `--desc`,
 `--status`, `--topic`, `--eligible`, `--proposer`, `--query`, `--verbose`, and
-`--format` do not change snapshot identity.
+`--json` do not change snapshot identity.
 
 Published cache files remain complete-only:
 

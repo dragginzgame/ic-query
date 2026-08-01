@@ -84,7 +84,7 @@ fn binary_system_report_help_smoke() {
         let stdout = stdout_text(&output);
         assert!(stdout.contains(&format!("Usage: icq system {command} [OPTIONS]")));
         assert!(stdout.contains("--source-endpoint <url>"));
-        assert!(stdout.contains("--format <text|json>"));
+        assert!(stdout.contains("--json"));
         assert!(stdout.contains(description));
         assert!(stdout.contains("Live query; does not read or write a report cache."));
     }
@@ -109,6 +109,25 @@ fn binary_invalid_value_preserves_clap_diagnostic() {
 }
 
 #[test]
+fn binary_invalid_network_precedes_help_like_option_values() {
+    let output = run_icq(&[
+        "--network",
+        "local",
+        "nns",
+        "governance",
+        "economics",
+        "--source-endpoint",
+        "help",
+    ]);
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = stderr_text(&output);
+    assert!(stderr.contains("invalid value 'local'"));
+    assert!(stderr.contains("possible values: ic"));
+    assert!(!stderr.contains("failed to build IC agent"));
+}
+
+#[test]
 fn binary_ic_canister_info_help_smoke() {
     let output = run_icq(&["ic", "canister", "info", "help"]);
 
@@ -116,7 +135,7 @@ fn binary_ic_canister_info_help_smoke() {
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq ic canister info [OPTIONS] <canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
     assert!(stdout.contains("off-chain analytics authority"));
 }
 
@@ -141,7 +160,7 @@ fn binary_ic_boundary_node_data_centers_help_smoke() {
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq ic network boundary-node-data-centers [OPTIONS]"));
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
     assert!(stdout.contains("one official Dashboard v4 request"));
 }
 
@@ -180,7 +199,7 @@ fn binary_icrc_capabilities_help_smoke() {
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq icrc ledger capabilities [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
 }
 
 #[test]
@@ -226,7 +245,7 @@ fn binary_icrc_account_transaction_help_smoke() {
         let stdout = stdout_text(&output);
         assert!(stdout.contains(usage), "missing {usage:?} in {stdout}");
         assert!(stdout.contains(option), "missing {option:?} in {stdout}");
-        assert!(stdout.contains("--format <text|json>"));
+        assert!(stdout.contains("--json"));
     }
 }
 
@@ -244,8 +263,7 @@ fn binary_icrc_account_transaction_cache_status_is_local_only() {
             "status",
             "ryjl3-tyaaa-aaaaa-aaaba-cai",
             "aaaaa-aa",
-            "--format",
-            "json",
+            "--json",
         ],
     );
 
@@ -268,7 +286,7 @@ fn binary_default_cache_root_uses_xdg_cache_home() {
     let output = run_icq_with_xdg_cache(
         &cwd,
         &xdg_cache_home,
-        &["nns", "proposal", "cache", "status", "--format", "json"],
+        &["nns", "proposal", "cache", "status", "--json"],
     );
 
     assert_success(&output);
@@ -298,7 +316,7 @@ fn binary_icrc_index_help_smoke() {
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq icrc ledger index [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
 }
 
 #[test]
@@ -312,7 +330,7 @@ fn binary_icrc_transactions_help_smoke() {
     assert!(stdout.contains("--limit <count>"));
     assert!(stdout.contains("--follow-archives"));
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
 }
 
 #[test]
@@ -323,7 +341,7 @@ fn binary_icrc_block_types_help_smoke() {
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq icrc ledger block-types [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
 }
 
 #[test]
@@ -335,7 +353,7 @@ fn binary_icrc_archives_help_smoke() {
     assert!(stdout.contains("Usage: icq icrc ledger archives [OPTIONS] <ledger-canister-id>"));
     assert!(stdout.contains("--from <canister-id>"));
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
 }
 
 #[test]
@@ -348,7 +366,7 @@ fn binary_icrc_tip_certificate_help_smoke() {
         stdout.contains("Usage: icq icrc ledger tip-certificate [OPTIONS] <ledger-canister-id>")
     );
     assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("--json"));
 }
 
 #[test]
@@ -400,28 +418,19 @@ fn binary_local_cache_commands_emit_json_without_live_calls() {
     let root = temp_cache_root("ic-query-cli-cache-json");
     fs::create_dir_all(&root).expect("create temporary cache root");
 
-    let nns_status = run_icq_in_root(
-        &root,
-        &["nns", "proposal", "cache", "status", "--format", "json"],
-    );
+    let nns_status = run_icq_in_root(&root, &["nns", "proposal", "cache", "status", "--json"]);
     assert_success(&nns_status);
     let nns_status: serde_json::Value =
         serde_json::from_str(&stdout_text(&nns_status)).expect("nns cache status json");
     assert_eq!(nns_status["found"], false);
 
-    let sns_proposals = run_icq_in_root(
-        &root,
-        &["sns", "proposal", "cache", "list", "--format", "json"],
-    );
+    let sns_proposals = run_icq_in_root(&root, &["sns", "proposal", "cache", "list", "--json"]);
     assert_success(&sns_proposals);
     let sns_proposals: serde_json::Value =
         serde_json::from_str(&stdout_text(&sns_proposals)).expect("sns proposals cache list json");
     assert_eq!(sns_proposals["cache_count"], 0);
 
-    let sns_neurons = run_icq_in_root(
-        &root,
-        &["sns", "neuron", "cache", "list", "--format", "json"],
-    );
+    let sns_neurons = run_icq_in_root(&root, &["sns", "neuron", "cache", "list", "--json"]);
     assert_success(&sns_neurons);
     let sns_neurons: serde_json::Value =
         serde_json::from_str(&stdout_text(&sns_neurons)).expect("sns neurons cache list json");

@@ -4,8 +4,7 @@ use super::*;
 fn sns_neurons_parses_owner_limit_and_json_format() {
     let options = SnsNeuronsOptions::parse([
         OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--limit"),
@@ -51,8 +50,7 @@ fn sns_neurons_allows_large_limits_for_cached_sorts() {
 fn sns_neurons_refresh_parses_page_controls() {
     let options = SnsNeuronsRefreshOptions::parse([
         OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--page-size"),
@@ -73,18 +71,14 @@ fn sns_neurons_refresh_parses_page_controls() {
 #[test]
 fn sns_neurons_cache_parses_list_and_status_options() {
     let list =
-        SnsNeuronsCacheListOptions::parse([OsString::from("--format"), OsString::from("json")])
-            .expect("parse cache list");
+        SnsNeuronsCacheListOptions::parse([OsString::from("--json")]).expect("parse cache list");
 
     assert_eq!(list.network, "ic");
     assert_eq!(list.format, OutputFormat::Json);
 
-    let status = SnsNeuronsCacheStatusOptions::parse([
-        OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
-    ])
-    .expect("parse cache status");
+    let status =
+        SnsNeuronsCacheStatusOptions::parse([OsString::from("1"), OsString::from("--json")])
+            .expect("parse cache status");
 
     assert_eq!(status.input, "1");
     assert_eq!(status.network, "ic");

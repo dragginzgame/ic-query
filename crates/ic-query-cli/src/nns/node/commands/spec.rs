@@ -4,7 +4,7 @@ const NODE_LIST_HELP_AFTER: &str = "\
 Examples:
   icq nns node list
   icq nns node list --verbose
-  icq --network ic nns node list --format json
+  icq --network ic nns node list --json
   icq nns node list --data-center zh2
   icq nns node list --node-provider 7at4h
   icq nns node list --subnet tdb26 --kind system
@@ -15,14 +15,14 @@ const NODE_INFO_HELP_AFTER: &str = "\
 Examples:
   icq nns node info <node>
   icq nns node info <node-prefix>
-  icq --network ic nns node info <node> --format json
+  icq --network ic nns node info <node> --json
 
 Force-refresh cached native NNS data:
   icq nns node refresh";
 const NODE_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns node refresh
-  icq --network ic nns node refresh --format json
+  icq --network ic nns node refresh --json
   icq nns node refresh --dry-run --output /tmp/icq-nodes.preview.json";
 
 pub(in crate::nns::node) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {

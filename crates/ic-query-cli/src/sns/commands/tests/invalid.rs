@@ -3,15 +3,11 @@ use super::*;
 #[test]
 fn sns_neurons_rejects_invalid_clap_values() {
     assert!(matches!(
-        SnsLookupOptions::parse(
-            [OsString::from("not-a-principal")],
-            sns_info_command,
-            sns_info_usage
-        ),
+        SnsLookupOptions::parse([OsString::from("not-a-principal")], sns_info_command,),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsLookupOptions::parse([OsString::from("0")], sns_token_command, sns_token_usage),
+        SnsLookupOptions::parse([OsString::from("0")], sns_token_command),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(

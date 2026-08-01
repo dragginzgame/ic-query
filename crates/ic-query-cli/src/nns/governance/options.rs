@@ -18,15 +18,11 @@ pub(in crate::nns) struct NnsGovernanceOptions {
 }
 
 impl NnsGovernanceOptions {
-    pub(in crate::nns) fn parse<I>(
-        args: I,
-        command: ClapCommand,
-        usage: impl FnOnce() -> String,
-    ) -> Result<Self, NnsCommandError>
+    pub(in crate::nns) fn parse<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(command, args, usage)?;
+        let matches = parse_nns_matches(command, args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,

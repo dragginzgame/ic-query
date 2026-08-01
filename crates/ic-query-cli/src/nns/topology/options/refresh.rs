@@ -4,9 +4,7 @@ use crate::{
         NnsCommandError,
         leaf::NnsCommonOptions,
         parse_nns_matches,
-        topology::commands::{
-            DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, topology_refresh_command, topology_refresh_usage,
-        },
+        topology::commands::{DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, topology_refresh_command},
     },
 };
 use std::ffi::OsString;
@@ -31,7 +29,7 @@ impl TopologyRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(topology_refresh_command(), args, topology_refresh_usage)?;
+        let matches = parse_nns_matches(topology_refresh_command(), args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,

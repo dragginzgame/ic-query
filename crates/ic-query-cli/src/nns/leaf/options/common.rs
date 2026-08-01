@@ -6,8 +6,8 @@
 
 use crate::{
     cli::{
-        clap::{required_string, required_typed},
-        common::{FORMAT_ARG, OutputFormat, SOURCE_ENDPOINT_ARG},
+        clap::required_string,
+        common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
     },
     nns::leaf::commands::NETWORK_ARG,
 };
@@ -30,7 +30,7 @@ impl NnsCommonOptions {
     pub(in crate::nns) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             network: required_string(matches, NETWORK_ARG),
-            format: required_typed(matches, FORMAT_ARG),
+            format: output_format(matches),
             source_endpoint: required_string(matches, SOURCE_ENDPOINT_ARG),
         }
     }

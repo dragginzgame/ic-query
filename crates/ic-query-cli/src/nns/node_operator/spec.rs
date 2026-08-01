@@ -4,7 +4,7 @@ const NODE_OPERATOR_LIST_HELP_AFTER: &str = "\
 Examples:
   icq nns node-operator list
   icq nns node-operator list --verbose
-  icq --network ic nns node-operator list --format json
+  icq --network ic nns node-operator list --json
 
 Force-refresh cached native NNS data:
   icq nns node-operator refresh";
@@ -12,14 +12,14 @@ const NODE_OPERATOR_INFO_HELP_AFTER: &str = "\
 Examples:
   icq nns node-operator info <node-operator>
   icq nns node-operator info <node-operator-prefix>
-  icq --network ic nns node-operator info <node-operator> --format json
+  icq --network ic nns node-operator info <node-operator> --json
 
 Force-refresh cached native NNS data:
   icq nns node-operator refresh";
 const NODE_OPERATOR_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns node-operator refresh
-  icq --network ic nns node-operator refresh --format json
+  icq --network ic nns node-operator refresh --json
   icq nns node-operator refresh --dry-run --output /tmp/icq-node-operators.preview.json";
 
 pub(super) const NODE_OPERATOR_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {

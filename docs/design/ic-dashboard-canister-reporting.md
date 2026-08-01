@@ -90,9 +90,9 @@ projection.
 
 ```bash
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai
-icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --format json
+icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --json
 icq ic canister count --has-name true
-icq ic canister page --query ledger --limit 25 --format json
+icq ic canister page --query ledger --limit 25 --json
 icq ic canister page --after ryjl3-tyaaa-aaaaa-aaaba-cai --limit 25
 icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai \
   --source-endpoint https://ic-api.internetcomputer.org/api/v3

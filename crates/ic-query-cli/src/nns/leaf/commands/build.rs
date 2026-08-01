@@ -6,7 +6,7 @@ use crate::{
         clap::{flag_arg, passthrough_subcommand, value_arg},
         common::{
             COLLECTION_MODE_CACHE_REFRESH_MISSING, COLLECTION_MODE_FORCE_REFRESH, collection_help,
-            format_arg, source_endpoint_arg,
+            json_arg, source_endpoint_arg,
         },
     },
     nns::leaf::model::NnsLeafCommandSpec,
@@ -37,7 +37,7 @@ pub(in crate::nns) fn list_command(
         .bin_name(format!("{} list", spec.bin_name))
         .about(spec.list_about)
         .disable_help_flag(true)
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.list_source_help))
         .arg(
             flag_arg(VERBOSE_ARG)
@@ -65,7 +65,7 @@ pub(in crate::nns) fn info_command(
                 .required(true)
                 .help(spec.input_help),
         )
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.info_source_help))
         .arg(network_arg())
         .after_help(collection_help(
@@ -82,7 +82,7 @@ pub(in crate::nns) fn refresh_command(
         .bin_name(format!("{} refresh", spec.bin_name))
         .about(spec.refresh_about)
         .disable_help_flag(true)
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.refresh_source_help))
         .arg(refresh_lock_stale_after_arg())
         .arg(

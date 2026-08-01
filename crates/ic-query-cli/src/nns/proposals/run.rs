@@ -90,11 +90,8 @@ where
     let Some(args) = command_args(args, super::commands::nns_proposal_usage_for_error) else {
         return Ok(());
     };
-    let (command, args) = parse_nns_required_subcommand(
-        super::commands::nns_proposal_command(),
-        args,
-        super::commands::nns_proposal_usage_for_error,
-    )?;
+    let (command, args) =
+        parse_nns_required_subcommand(super::commands::nns_proposal_command(), args)?;
     match command.as_str() {
         PROPOSAL_CACHE_COMMAND => run_nns_proposal_cache(args),
         PROPOSAL_LIST_COMMAND => run_nns_proposal_list(args),
@@ -158,11 +155,8 @@ where
     let Some(args) = command_args(args, super::commands::nns_proposal_cache_usage_for_error) else {
         return Ok(());
     };
-    let (command, args) = parse_nns_required_subcommand(
-        super::commands::nns_proposal_cache_command(),
-        args,
-        super::commands::nns_proposal_cache_usage_for_error,
-    )?;
+    let (command, args) =
+        parse_nns_required_subcommand(super::commands::nns_proposal_cache_command(), args)?;
     match command.as_str() {
         PROPOSAL_CACHE_LIST_COMMAND => run_nns_proposal_cache_list(args),
         PROPOSAL_CACHE_STATUS_COMMAND => run_nns_proposal_cache_status(args),

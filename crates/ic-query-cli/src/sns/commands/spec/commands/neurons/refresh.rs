@@ -7,7 +7,7 @@
 use crate::{
     cli::{
         clap::value_arg,
-        common::{COLLECTION_MODE_FORCE_REFRESH, collection_help, format_arg, source_endpoint_arg},
+        common::{COLLECTION_MODE_FORCE_REFRESH, collection_help, json_arg, source_endpoint_arg},
         globals::internal_network_arg,
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
@@ -22,7 +22,7 @@ Examples:
   icq sns neuron refresh 1
   icq sns neuron refresh 23ten-uaaaa-aaaaq-aabia-cai
   icq sns neuron refresh 1 --page-size 100
-  icq --network ic sns neuron refresh 1 --format json";
+  icq --network ic sns neuron refresh 1 --json";
 
 pub(in crate::sns::commands) fn sns_neuron_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
@@ -30,7 +30,7 @@ pub(in crate::sns::commands) fn sns_neuron_refresh_command() -> ClapCommand {
         .about("Force-refresh and cache a complete SNS governance neuron snapshot")
         .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for SNS-W and governance queries"),

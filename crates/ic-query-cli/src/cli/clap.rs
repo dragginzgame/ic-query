@@ -4,7 +4,7 @@
 //! Does not own: command-family specs, report requests, or runtime dispatch.
 //! Boundary: normalizes passthrough subcommands, required values, and help rendering.
 
-use clap::{Arg, ArgAction, ArgMatches, Command, error::ErrorKind};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
 
 const PASSTHROUGH_ARGS: &str = "args";
@@ -17,15 +17,12 @@ where
     command.try_get_matches_from(std::iter::once(OsString::from(name)).chain(args))
 }
 
-pub fn parse_matches_or_usage<I>(
-    command: Command,
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Result<ArgMatches, String>
+pub fn parse_matches_or_usage<I>(command: Command, args: I) -> Result<ArgMatches, String>
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_matches(command, args).map_err(|error| format!("{error}\n{}", usage()))
+    let mut help_command = command.clone();
+    parse_matches(command, args).map_err(|error| format!("{error}\n{}", help_command.render_help()))
 }
 
 pub fn passthrough_subcommand(command: Command) -> Command {
@@ -52,11 +49,10 @@ pub fn parse_required_subcommand<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    let mut command = command.subcommand_required(true);
-    let matches = parse_matches(command.clone(), args)?;
-    let Some((name, matches)) = matches.subcommand() else {
-        return Err(command.error(ErrorKind::MissingSubcommand, "a subcommand is required"));
-    };
+    let matches = parse_matches(command.subcommand_required(true), args)?;
+    let (name, matches) = matches
+        .subcommand()
+        .expect("clap requires one of the declared subcommands");
 
     Ok((name.to_string(), passthrough_args(matches)))
 }
@@ -64,12 +60,13 @@ where
 pub fn parse_required_subcommand_or_usage<I>(
     command: Command,
     args: I,
-    usage: impl FnOnce() -> String,
 ) -> Result<(String, Vec<OsString>), String>
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_required_subcommand(command, args).map_err(|error| format!("{error}\n{}", usage()))
+    let mut help_command = command.clone();
+    parse_required_subcommand(command, args)
+        .map_err(|error| format!("{error}\n{}", help_command.render_help()))
 }
 
 pub fn value_arg(id: &'static str) -> Arg {

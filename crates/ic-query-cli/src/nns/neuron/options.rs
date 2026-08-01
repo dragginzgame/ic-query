@@ -1,14 +1,12 @@
 //! Parsed options for public NNS neuron commands.
 
 use super::commands::{
-    neuron_cache_status_command, neuron_cache_status_usage_for_error, neuron_info_command,
-    neuron_info_usage_for_error, neuron_list_command, neuron_list_usage_for_error,
-    neuron_refresh_command, neuron_refresh_usage_for_error,
+    neuron_cache_status_command, neuron_info_command, neuron_list_command, neuron_refresh_command,
 };
 use crate::{
     cli::{
         clap::{required_string, required_typed, typed_option},
-        common::FORMAT_ARG,
+        common::output_format,
     },
     nns::{NnsCommandError, OutputFormat, leaf::NnsCommonOptions, parse_nns_matches},
 };
@@ -35,7 +33,7 @@ impl NnsNeuronListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(neuron_list_command(), args, neuron_list_usage_for_error)?;
+        let matches = parse_nns_matches(neuron_list_command(), args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,
@@ -68,7 +66,7 @@ impl NnsNeuronInfoOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(neuron_info_command(), args, neuron_info_usage_for_error)?;
+        let matches = parse_nns_matches(neuron_info_command(), args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,
@@ -100,11 +98,7 @@ impl NnsNeuronRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(
-            neuron_refresh_command(),
-            args,
-            neuron_refresh_usage_for_error,
-        )?;
+        let matches = parse_nns_matches(neuron_refresh_command(), args)?;
         let common = NnsCommonOptions::from_matches(&matches);
         Ok(Self {
             network: common.network,
@@ -133,14 +127,10 @@ impl NnsNeuronCacheOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(
-            neuron_cache_status_command(),
-            args,
-            neuron_cache_status_usage_for_error,
-        )?;
+        let matches = parse_nns_matches(neuron_cache_status_command(), args)?;
         Ok(Self {
             network: required_string(&matches, "network"),
-            format: required_typed(&matches, FORMAT_ARG),
+            format: output_format(&matches),
         })
     }
 }

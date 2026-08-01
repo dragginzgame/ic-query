@@ -13,7 +13,7 @@ const LIST_HELP_AFTER: &str = "\
 Examples:
   icq nns subnet list
   icq nns subnet list --verbose
-  icq --network ic nns subnet list --format json
+  icq --network ic nns subnet list --json
   icq nns subnet list --kind application --specialization fiduciary
 
 Refresh stale cache:
@@ -27,7 +27,7 @@ pub(in crate::nns::subnet) fn list_command() -> ClapCommand {
         .arg(kind_arg())
         .arg(specialization_arg())
         .arg(geo_arg())
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if the subnet catalog cache is missing"),

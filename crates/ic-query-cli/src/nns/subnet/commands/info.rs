@@ -35,7 +35,7 @@ pub(in crate::nns::subnet) fn info_command() -> ClapCommand {
                 .value_parser(clap::value_parser!(ResolveAs))
                 .help("Force principal interpretation"),
         )
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if the subnet catalog cache is missing"),

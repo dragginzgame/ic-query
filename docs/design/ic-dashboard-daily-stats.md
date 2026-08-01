@@ -90,7 +90,7 @@ daily rows are not presented as one IC state snapshot.
 icq ic network daily-stats
 icq ic network daily-stats \
   --start 1784937600 --end 1785542400
-icq ic network daily-stats --format json
+icq ic network daily-stats --json
 ```
 
 Command help is the definitive option reference.

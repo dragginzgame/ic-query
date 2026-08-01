@@ -9,12 +9,9 @@ use super::{
     LIMIT_ARG, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG,
     PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG, START_ARG,
     SUBACCOUNT_ARG, format_from_matches, icrc_account_transaction_cache_status_command,
-    icrc_account_transaction_cache_status_usage, icrc_account_transaction_list_command,
-    icrc_account_transaction_list_usage, icrc_account_transaction_page_command,
-    icrc_account_transaction_page_usage, icrc_account_transaction_refresh_command,
-    icrc_account_transaction_refresh_usage, icrc_allowance_command, icrc_allowance_usage,
-    icrc_archives_command, icrc_archives_usage, icrc_balance_command, icrc_balance_usage,
-    icrc_transactions_command, icrc_transactions_usage, source_endpoint_from_matches,
+    icrc_account_transaction_list_command, icrc_account_transaction_page_command,
+    icrc_account_transaction_refresh_command, icrc_allowance_command, icrc_archives_command,
+    icrc_balance_command, icrc_transactions_command, source_endpoint_from_matches,
 };
 use crate::{
     cli::{
@@ -43,16 +40,11 @@ pub(in crate::icrc) struct IcrcLedgerOptions {
 }
 
 impl IcrcLedgerOptions {
-    pub(super) fn parse<I>(
-        args: I,
-        command: fn() -> ClapCommand,
-        usage: fn() -> String,
-    ) -> Result<Self, IcrcCommandError>
+    pub(super) fn parse<I>(args: I, command: fn() -> ClapCommand) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches =
-            parse_matches_or_usage(command(), args, usage).map_err(IcrcCommandError::Usage)?;
+        let matches = parse_matches_or_usage(command(), args).map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
             format: format_from_matches(&matches),
@@ -81,7 +73,7 @@ impl IcrcBalanceOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(icrc_balance_command(), args, icrc_balance_usage)
+        let matches = parse_matches_or_usage(icrc_balance_command(), args)
             .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
@@ -115,7 +107,7 @@ impl IcrcAllowanceOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(icrc_allowance_command(), args, icrc_allowance_usage)
+        let matches = parse_matches_or_usage(icrc_allowance_command(), args)
             .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
@@ -174,12 +166,8 @@ impl IcrcAccountTransactionPageOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(
-            icrc_account_transaction_page_command(),
-            args,
-            icrc_account_transaction_page_usage,
-        )
-        .map_err(IcrcCommandError::Usage)?;
+        let matches = parse_matches_or_usage(icrc_account_transaction_page_command(), args)
+            .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             target: IcrcAccountTargetOptions::from_matches(&matches),
             index_canister_id: string_option(&matches, INDEX_CANISTER_ID_ARG),
@@ -209,12 +197,8 @@ impl IcrcAccountTransactionListOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(
-            icrc_account_transaction_list_command(),
-            args,
-            icrc_account_transaction_list_usage,
-        )
-        .map_err(IcrcCommandError::Usage)?;
+        let matches = parse_matches_or_usage(icrc_account_transaction_list_command(), args)
+            .map_err(IcrcCommandError::Usage)?;
         let sort = match required_string(&matches, SORT_ARG).as_str() {
             "newest" => IcrcAccountTransactionSort::Newest,
             "oldest" => IcrcAccountTransactionSort::Oldest,
@@ -249,12 +233,8 @@ impl IcrcAccountTransactionRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(
-            icrc_account_transaction_refresh_command(),
-            args,
-            icrc_account_transaction_refresh_usage,
-        )
-        .map_err(IcrcCommandError::Usage)?;
+        let matches = parse_matches_or_usage(icrc_account_transaction_refresh_command(), args)
+            .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             target: IcrcAccountTargetOptions::from_matches(&matches),
             index_canister_id: string_option(&matches, INDEX_CANISTER_ID_ARG),
@@ -282,12 +262,8 @@ impl IcrcAccountTransactionCacheOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(
-            icrc_account_transaction_cache_status_command(),
-            args,
-            icrc_account_transaction_cache_status_usage,
-        )
-        .map_err(IcrcCommandError::Usage)?;
+        let matches = parse_matches_or_usage(icrc_account_transaction_cache_status_command(), args)
+            .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             target: IcrcAccountTargetOptions::from_matches(&matches),
             format: format_from_matches(&matches),
@@ -316,9 +292,8 @@ impl IcrcTransactionsOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches =
-            parse_matches_or_usage(icrc_transactions_command(), args, icrc_transactions_usage)
-                .map_err(IcrcCommandError::Usage)?;
+        let matches = parse_matches_or_usage(icrc_transactions_command(), args)
+            .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
             start: required_typed(&matches, START_ARG),
@@ -349,7 +324,7 @@ impl IcrcArchivesOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_matches_or_usage(icrc_archives_command(), args, icrc_archives_usage)
+        let matches = parse_matches_or_usage(icrc_archives_command(), args)
             .map_err(IcrcCommandError::Usage)?;
         Ok(Self {
             ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),

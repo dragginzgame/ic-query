@@ -30,8 +30,7 @@ where
     let Some(args) = command_args(args, sns_neuron_cache_usage) else {
         return Ok(());
     };
-    let (command, args) =
-        parse_required_command(sns_neuron_cache_command(), args, sns_neuron_cache_usage)?;
+    let (command, args) = parse_required_command(sns_neuron_cache_command(), args)?;
     match command.as_str() {
         "list" => run_sns_neuron_cache_list(args),
         "status" => run_sns_neuron_cache_status(args),

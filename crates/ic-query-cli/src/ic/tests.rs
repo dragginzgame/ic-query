@@ -49,8 +49,7 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
 #[test]
 fn boundary_node_data_center_options_preserve_format_and_endpoint() {
     let options = NetworkReportOptions::parse_boundary_node_data_centers([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://example.com/api/v4"),
     ])
@@ -67,8 +66,7 @@ fn daily_stats_options_preserve_bounds_format_and_endpoint() {
         OsString::from("1784937600"),
         OsString::from("--end"),
         OsString::from("1785542400"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://example.com/api/v3"),
     ])
@@ -103,8 +101,7 @@ fn metric_options_preserve_official_kind_bounds_and_endpoint() {
         OsString::from("1700003600"),
         OsString::from("--step"),
         OsString::from("600"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://example.com/api/v1"),
     ])
@@ -140,8 +137,7 @@ fn metric_options_use_bounded_defaults_and_reject_unknown_kinds() {
 fn canister_info_options_preserve_principal_format_and_endpoint() {
     let options = CanisterInfoOptions::parse([
         OsString::from(CANISTER_ID),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://example.com/api/v3"),
     ])

@@ -14,7 +14,7 @@ const TOPOLOGY_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq nns topology refresh
   icq nns topology refresh --dry-run
-  icq --network ic nns topology refresh --format json
+  icq --network ic nns topology refresh --json
   icq nns topology refresh --source-endpoint https://icp-api.io";
 const TOPOLOGY_REFRESH_SOURCE_HELP: &str =
     "IC API endpoint used for NNS topology component refreshes";
@@ -24,7 +24,7 @@ pub(in crate::nns::topology) fn topology_refresh_command() -> clap::Command {
         .bin_name("icq nns topology refresh")
         .about("Refresh cached mainnet NNS topology component reports")
         .disable_help_flag(true)
-        .arg(leaf::format_arg())
+        .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT)
                 .help(TOPOLOGY_REFRESH_SOURCE_HELP),

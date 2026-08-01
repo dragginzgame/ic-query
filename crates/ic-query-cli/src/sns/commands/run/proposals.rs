@@ -41,7 +41,7 @@ where
     let Some(args) = command_args(args, sns_proposal_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_command(sns_proposal_command(), args, sns_proposal_usage)?;
+    let (command, args) = parse_required_command(sns_proposal_command(), args)?;
     match command.as_str() {
         "list" => run_sns_proposal_list(args),
         "info" => run_sns_proposal_info(args),
@@ -138,8 +138,7 @@ where
     let Some(args) = command_args(args, sns_proposal_cache_usage) else {
         return Ok(());
     };
-    let (command, args) =
-        parse_required_command(sns_proposal_cache_command(), args, sns_proposal_cache_usage)?;
+    let (command, args) = parse_required_command(sns_proposal_cache_command(), args)?;
     match command.as_str() {
         "list" => run_sns_proposal_cache_list(args),
         "status" => run_sns_proposal_cache_status(args),

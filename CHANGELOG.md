@@ -11,6 +11,23 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.21.md](docs/changelog/0.21.md)
 
+- `0.21.1` hard-cuts every report-producing CLI command from
+  `--format <text|json>` to text-by-default output with `--json` selecting raw,
+  script-friendly JSON. The shared flag and output-selection path now covers
+  all IC Dashboard, ICRC, NNS, SNS, and system-canister report leaves and
+  aligns the spelling with Canic. The removed `--format` form has no alias or
+  compatibility parser. Clap now also validates the finite mainnet-only
+  `--network ic` contract before staged command dispatch, so help-like option
+  values cannot bypass an invalid network or an unsupported family option.
+  Report JSON, text rendering, valid mainnet requests, cache identity and
+  contents, and the public Rust API are unchanged.
+
+  ```bash
+  icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --json
+  icq nns topology summary --json
+  icq system cycles --json
+  ```
+
 - `0.21.0` adds bounded live `system xdr` and `system cycles` reports backed
   by one native Cycle Minting Canister
   `get_icp_xdr_conversion_rate` query. The host adapter authenticates the

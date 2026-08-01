@@ -87,7 +87,7 @@ where
     let Some(args) = command_args(args, usage) else {
         return Ok(());
     };
-    let (command, args) = parse_nns_required_subcommand(nns_command(), args, usage)?;
+    let (command, args) = parse_nns_required_subcommand(nns_command(), args)?;
     match command.as_str() {
         "subnet" => subnet::run(args),
         "data-center" => data_center::run(args),
@@ -116,23 +116,21 @@ where
 pub(in crate::nns) fn parse_nns_matches<I>(
     command: ClapCommand,
     args: I,
-    usage: impl FnOnce() -> String,
 ) -> Result<ArgMatches, NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_matches_or_usage(command, args, usage).map_err(NnsCommandError::Usage)
+    parse_matches_or_usage(command, args).map_err(NnsCommandError::Usage)
 }
 
 pub(in crate::nns) fn parse_nns_required_subcommand<I>(
     command: ClapCommand,
     args: I,
-    usage: impl FnOnce() -> String,
 ) -> Result<(String, Vec<OsString>), NnsCommandError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_required_subcommand_or_usage(command, args, usage).map_err(NnsCommandError::Usage)
+    parse_required_subcommand_or_usage(command, args).map_err(NnsCommandError::Usage)
 }
 
 fn now_unix_secs() -> Result<u64, NnsCommandError> {

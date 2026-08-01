@@ -4,12 +4,11 @@ use crate::{
     cli::{
         clap::{
             parse_matches_or_usage, parse_required_subcommand_or_usage, passthrough_subcommand,
-            render_help, required_string, required_typed,
+            render_help, required_string,
         },
         common::{
-            COLLECTION_MODE_LIVE, CurrentUnixSecsError, FORMAT_ARG, OutputFormat,
-            SOURCE_ENDPOINT_ARG, collection_help, current_unix_secs, format_arg,
-            source_endpoint_arg, write_text_or_json,
+            COLLECTION_MODE_LIVE, CurrentUnixSecsError, SOURCE_ENDPOINT_ARG, collection_help,
+            current_unix_secs, json_arg, output_format, source_endpoint_arg, write_text_or_json,
         },
         globals::internal_network_arg,
         help::collect_args_or_print_help_or_version,
@@ -36,11 +35,11 @@ Examples:
 const XDR_HELP_AFTER: &str = "\
 Examples:
   icq system xdr
-  icq system xdr --format json";
+  icq system xdr --json";
 const CYCLES_HELP_AFTER: &str = "\
 Examples:
   icq system cycles
-  icq system cycles --format json";
+  icq system cycles --json";
 
 ///
 /// SystemCommandError
@@ -74,7 +73,7 @@ where
     let Some(args) = command_args(args, system_usage) else {
         return Ok(());
     };
-    let (command, args) = parse_required_subcommand_or_usage(system_command(), args, system_usage)
+    let (command, args) = parse_required_subcommand_or_usage(system_command(), args)
         .map_err(SystemCommandError::Usage)?;
     match command.as_str() {
         "xdr" => run_report(
@@ -117,15 +116,14 @@ where
     let Some(args) = command_args(args, usage) else {
         return Ok(());
     };
-    let matches =
-        parse_matches_or_usage(command, args, usage).map_err(SystemCommandError::Usage)?;
+    let matches = parse_matches_or_usage(command, args).map_err(SystemCommandError::Usage)?;
     let request = CmcSourceRequest::from_unix_secs(
         required_string(&matches, NETWORK_ARG),
         required_string(&matches, SOURCE_ENDPOINT_ARG),
         current_unix_secs()?,
         "ic-query",
     );
-    let format = required_typed::<OutputFormat>(&matches, FORMAT_ARG);
+    let format = output_format(&matches);
     let report = build(&request)?;
     write_text_or_json(format, &report, render_text)
 }
@@ -156,7 +154,7 @@ fn report_command(name: &'static str, about: &'static str, examples: &'static st
         .bin_name(format!("icq system {name}"))
         .about(about)
         .disable_help_flag(true)
-        .arg(format_arg())
+        .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_CMC_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native CMC query"),
@@ -198,7 +196,7 @@ mod tests {
 
         for text in [xdr_usage(), cycles_usage()] {
             assert!(text.contains("--source-endpoint <url>"));
-            assert!(text.contains("--format <text|json>"));
+            assert!(text.contains("--json"));
             assert!(text.contains(COLLECTION_MODE_LIVE));
         }
     }
@@ -220,7 +218,6 @@ mod tests {
         let matches = parse_matches_or_usage(
             report_command("xdr", "test", XDR_HELP_AFTER),
             Vec::<OsString>::new(),
-            xdr_usage,
         )
         .expect("parse default CMC options");
 
@@ -230,8 +227,8 @@ mod tests {
             DEFAULT_CMC_SOURCE_ENDPOINT
         );
         assert_eq!(
-            required_typed::<OutputFormat>(&matches, FORMAT_ARG),
-            OutputFormat::Text
+            output_format(&matches),
+            crate::cli::common::OutputFormat::Text
         );
     }
 }

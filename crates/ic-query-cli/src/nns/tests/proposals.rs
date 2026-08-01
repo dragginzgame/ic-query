@@ -33,8 +33,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert!(!defaults.verbose);
 
     let options = NnsProposalListOptions::parse_list([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--limit"),
@@ -171,8 +170,7 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
 fn nns_proposal_parses_id_and_json_format() {
     let options = NnsProposalOptions::parse_info([
         OsString::from("132411"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--ballots"),
@@ -213,8 +211,7 @@ fn nns_proposal_refresh_parses_cache_options() {
     assert_eq!(defaults.max_pages, None);
 
     let options = NnsProposalRefreshOptions::parse([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--page-size"),
@@ -233,11 +230,9 @@ fn nns_proposal_refresh_parses_cache_options() {
 #[test]
 fn nns_proposal_cache_options_parse_json_format() {
     let list =
-        NnsProposalCacheOptions::parse_list([OsString::from("--format"), OsString::from("json")])
-            .expect("parse cache list");
-    let status =
-        NnsProposalCacheOptions::parse_status([OsString::from("--format"), OsString::from("json")])
-            .expect("parse cache status");
+        NnsProposalCacheOptions::parse_list([OsString::from("--json")]).expect("parse cache list");
+    let status = NnsProposalCacheOptions::parse_status([OsString::from("--json")])
+        .expect("parse cache status");
 
     assert_eq!(list.network, MAINNET_NETWORK);
     assert_eq!(list.format, OutputFormat::Json);
@@ -294,7 +289,7 @@ fn nns_proposal_help_is_advertised_under_nns() {
     assert!(!proposal.contains("icq nns proposal 132411"));
     assert!(proposal_info.contains("--ballots"));
     assert!(proposal_info.contains("--verbose"));
-    assert!(proposal_info.contains("--format json"));
+    assert!(proposal_info.contains("--json"));
 }
 
 #[test]

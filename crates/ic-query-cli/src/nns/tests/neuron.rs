@@ -17,8 +17,7 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
         OsString::from("--start-neuron-id"),
         OsString::from("123"),
         OsString::from("--verbose"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
     ])
     .expect("explicit list options");
     assert_eq!(list.limit, NNS_NEURON_MAX_PAGE_SIZE);
@@ -41,8 +40,7 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     assert_eq!(refresh.page_size, 100);
     assert_eq!(refresh.max_pages, Some(2));
 
-    let cache = NnsNeuronCacheOptions::parse([OsString::from("--format"), OsString::from("json")])
-        .expect("cache options");
+    let cache = NnsNeuronCacheOptions::parse([OsString::from("--json")]).expect("cache options");
     assert_eq!(cache.network, MAINNET_NETWORK);
     assert_eq!(cache.format, OutputFormat::Json);
 }

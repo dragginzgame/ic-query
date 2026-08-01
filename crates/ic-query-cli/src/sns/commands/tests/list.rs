@@ -10,8 +10,7 @@ fn sns_list_parses_defaults_and_json_format() {
     assert!(!defaults.verbose);
 
     let options = SnsListOptions::parse([
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--sort"),

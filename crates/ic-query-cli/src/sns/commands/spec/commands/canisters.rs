@@ -13,7 +13,7 @@ const SNS_CANISTER_LIST_HELP_AFTER: &str = "\
 Examples:
   icq sns canister list 1
   icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai
-  icq --network ic sns canister list 1 --format json
+  icq --network ic sns canister list 1 --json
 
 Health collection calls SNS Root's read-only get_sns_canisters_summary ingress
 method with update_canister_list=false; it does not ask Root to update its

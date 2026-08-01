@@ -29,7 +29,7 @@ where
     let Some(args) = command_args(args, || usage(spec)) else {
         return Ok(());
     };
-    let (command_name, args) = parse_nns_required_subcommand(command(spec), args, || usage(spec))?;
+    let (command_name, args) = parse_nns_required_subcommand(command(spec), args)?;
 
     match command_name.as_str() {
         "list" => run_list(args),
@@ -52,7 +52,7 @@ where
     let Some(args) = command_args(args, || usage(spec)) else {
         return Ok(());
     };
-    let (command_name, args) = parse_nns_required_subcommand(command(spec), args, || usage(spec))?;
+    let (command_name, args) = parse_nns_required_subcommand(command(spec), args)?;
 
     match command_name.as_str() {
         "list" => run_cached_leaf_list(args, spec, default_source_endpoint, &reports),

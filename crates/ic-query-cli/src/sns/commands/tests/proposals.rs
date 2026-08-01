@@ -4,8 +4,7 @@ use super::*;
 fn sns_proposals_parses_filters_and_json_format() {
     let options = SnsProposalsOptions::parse([
         OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--limit"),
@@ -211,8 +210,7 @@ fn sns_proposal_parses_id_and_json_format() {
     let options = SnsProposalOptions::parse([
         OsString::from("1"),
         OsString::from("42"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--ballots"),
@@ -233,8 +231,7 @@ fn sns_proposal_parses_id_and_json_format() {
 fn sns_proposals_refresh_parses_page_controls() {
     let options = SnsProposalsRefreshOptions::parse([
         OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
+        OsString::from("--json"),
         OsString::from("--source-endpoint"),
         OsString::from("https://icp-api.io"),
         OsString::from("--page-size"),
@@ -254,18 +251,14 @@ fn sns_proposals_refresh_parses_page_controls() {
 
 #[test]
 fn sns_proposals_cache_parses_list_and_status_options() {
-    let list =
-        SnsProposalsCacheListOptions::parse([OsString::from("--format"), OsString::from("json")])
-            .expect("parse proposals cache list");
+    let list = SnsProposalsCacheListOptions::parse([OsString::from("--json")])
+        .expect("parse proposals cache list");
     assert_eq!(list.network, "ic");
     assert_eq!(list.format, OutputFormat::Json);
 
-    let status = SnsProposalsCacheStatusOptions::parse([
-        OsString::from("1"),
-        OsString::from("--format"),
-        OsString::from("json"),
-    ])
-    .expect("parse proposals cache status");
+    let status =
+        SnsProposalsCacheStatusOptions::parse([OsString::from("1"), OsString::from("--json")])
+            .expect("parse proposals cache status");
     assert_eq!(status.input, "1");
     assert_eq!(status.network, "ic");
     assert_eq!(status.format, OutputFormat::Json);

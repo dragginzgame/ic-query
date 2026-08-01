@@ -21,7 +21,7 @@ pub(super) fn append_range_lines(report: &SubnetCatalogListReport, lines: &mut V
         }
         if subnet.ranges_shown < subnet.range_count {
             lines.push(format!(
-                "  showing {} of {} ranges; use --range-limit or --format json",
+                "  showing {} of {} ranges; use --range-limit or --json",
                 subnet.ranges_shown, subnet.range_count
             ));
         }
@@ -49,7 +49,7 @@ pub(super) fn append_compact_range_lines(
         }
         if subnet.ranges_shown < subnet.range_count {
             lines.push(format!(
-                "  showing {} of {} ranges; use --range-limit or --format json",
+                "  showing {} of {} ranges; use --range-limit or --json",
                 subnet.ranges_shown, subnet.range_count
             ));
         }
