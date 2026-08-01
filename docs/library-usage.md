@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.23", default-features = false, features = ["host"] }
+ic-query = { version = "0.24", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -19,7 +19,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.23", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.24", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -31,7 +31,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.23", default-features = false }
+ic-query = { version = "0.24", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -88,8 +88,10 @@ implementation details but are not available to downstream crates.
 
 The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
-SNS info, token, parameter, and Root-canister builders share
-`SnsLookupRequest`; all read-only NNS topology builders share
+SNS info, token, parameter, swap, upgrade, and Root-canister builders share
+`SnsLookupRequest`; the bounded Governance metrics builder uses
+`SnsMetricsRequest` because its proposal-count window is part of collection
+intent. All read-only NNS topology builders share
 `NnsTopologyReadRequest`; Registry-derived NNS
 inventory families share the `NnsInventory*Request` contracts; SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts
@@ -108,7 +110,8 @@ The public API exposes source adapters for host-only downstream crates that
 need to reuse `ic-query` report assembly with data that does not come from the
 built-in live adapters. The official Dashboard, generic ICRC, subnet catalog,
 NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
-list/info/token/params/swap/upgrade/canister, SNS proposal, and SNS neuron host APIs expose
+list/info/token/params/metrics/swap/upgrade/canister, SNS proposal, and SNS
+neuron host APIs expose
 this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
 `IcMetricSource`, `IcNetworkSource`, and narrow ICRC capabilities such as
 `IcrcTokenSource`,
@@ -120,7 +123,7 @@ this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
 `SnsDiscoverySource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
-`SnsSwapSource`, `SnsUpgradeSource`,
+`SnsMetricsSource`, `SnsSwapSource`, `SnsUpgradeSource`,
 `SnsProposalSource`, `SnsProposalsSource`, and `SnsNeuronsSource`.
 `SnsDiscoverySource` keeps the authoritative SNS-W inventory separate from
 explicit metadata targets. Direct report builders enrich exactly one resolved
@@ -568,6 +571,36 @@ fn render_application_nodes(
 
     let report = build_nns_node_list_report(&request)?;
     Ok(nns_node_list_report_text(&report))
+}
+```
+
+## Live SNS Metrics Example
+
+The bounded SNS Governance metrics builder uses two-request targeted discovery
+and one metrics query. The window controls recent proposal counts; treasury
+and voting-power values remain explicitly cached Governance evidence with
+their own timestamps.
+
+```rust
+use ic_query::sns::{
+    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsMetricsRequest,
+    build_sns_metrics_report, sns_metrics_report_text,
+};
+
+fn render_sns_metrics(
+    sns_input: &str,
+    now_unix_secs: u64,
+) -> Result<String, SnsHostError> {
+    let request = SnsMetricsRequest::new(
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        sns_input,
+    )
+    .with_time_window_seconds(90 * 24 * 60 * 60);
+
+    let report = build_sns_metrics_report(&request)?;
+    Ok(sns_metrics_report_text(&report))
 }
 ```
 

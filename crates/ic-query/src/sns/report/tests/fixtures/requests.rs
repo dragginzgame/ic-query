@@ -38,6 +38,15 @@ pub(in crate::sns::report::tests) fn params_request(input: &str) -> SnsLookupReq
     }
 }
 
+pub(in crate::sns::report::tests) fn metrics_request(input: &str) -> SnsMetricsRequest {
+    SnsMetricsRequest::new(
+        MAINNET_NETWORK,
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        1_780_531_200,
+        input,
+    )
+}
+
 pub(in crate::sns::report::tests) fn swap_request(input: &str) -> SnsLookupRequest {
     SnsLookupRequest {
         network: MAINNET_NETWORK.to_string(),

@@ -6,6 +6,7 @@
 
 mod canisters;
 mod list;
+mod metrics;
 mod neurons;
 mod params;
 mod proposals;
@@ -22,6 +23,7 @@ use std::future::Future;
 
 pub(super) use canisters::fetch_mainnet_sns_canisters;
 pub(super) use list::{fetch_mainnet_sns_inventory, fetch_mainnet_sns_metadata};
+pub(super) use metrics::fetch_mainnet_sns_metrics;
 pub(super) use neurons::{fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons};
 pub(super) use params::fetch_mainnet_sns_params;
 pub(super) use proposals::{

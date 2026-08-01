@@ -6,17 +6,18 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCanisterSource, SnsDiscoverySource, SnsGovernanceParameters,
-    SnsHostError, SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalTopicFilter, SnsProposalsSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
-    SnsUpgradeSource,
+    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
+    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
+    MainnetSnsToken, MainnetSnsUpgrade, SnsCanisterSource, SnsDiscoverySource,
+    SnsGovernanceParameters, SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronsSource,
+    SnsParamsSource, SnsProposalSource, SnsProposalTopicFilter, SnsProposalsSource,
+    SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
     live::fetch::{
         fetch_mainnet_sns_canisters, fetch_mainnet_sns_inventory, fetch_mainnet_sns_metadata,
-        fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons, fetch_mainnet_sns_params,
-        fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
-        fetch_mainnet_sns_swap, fetch_mainnet_sns_token, fetch_mainnet_sns_upgrade,
+        fetch_mainnet_sns_metrics, fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons,
+        fetch_mainnet_sns_params, fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page,
+        fetch_mainnet_sns_proposals, fetch_mainnet_sns_swap, fetch_mainnet_sns_token,
+        fetch_mainnet_sns_upgrade,
     },
 };
 
@@ -82,6 +83,17 @@ impl SnsSwapSource for LiveSnsSource {
         sns: &MainnetSns,
     ) -> Result<MainnetSnsSwap, SnsHostError> {
         fetch_mainnet_sns_swap(request, sns)
+    }
+}
+
+impl SnsMetricsSource for LiveSnsSource {
+    fn fetch_sns_metrics(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        time_window_seconds: u64,
+    ) -> Result<MainnetSnsMetrics, SnsHostError> {
+        fetch_mainnet_sns_metrics(request, sns, time_window_seconds)
     }
 }
 

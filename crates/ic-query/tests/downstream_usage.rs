@@ -55,16 +55,16 @@ mod host {
         },
         nns::{NnsGovernanceRefreshRequest, NnsInventoryCacheRequest, NnsSourceRequest},
         sns::{
-            DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError,
+            DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError, SnsMetricsRequest,
             SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort,
             SnsProposalSortDirection, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
-            SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+            SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, build_sns_metrics_report,
             build_sns_neurons_cache_status_report, build_sns_neurons_report,
             build_sns_proposals_cache_status_report, build_sns_proposals_report,
             build_sns_proposals_report_with_progress, refresh_sns_neurons_cache_with_progress,
-            refresh_sns_proposals_cache_with_progress, sns_neurons_cache_status_report_text,
-            sns_neurons_report_text, sns_proposals_cache_status_report_text,
-            sns_proposals_report_text,
+            refresh_sns_proposals_cache_with_progress, sns_metrics_report_text,
+            sns_neurons_cache_status_report_text, sns_neurons_report_text,
+            sns_proposals_cache_status_report_text, sns_proposals_report_text,
         },
         subnet_catalog::{
             DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, ResolveAs,
@@ -81,6 +81,7 @@ mod host {
         accepts_icrc_example(render_token);
         accepts_custom_source_example(render_registry_version_with_source);
         accepts_subnet_topology_example(refresh_subnet_topology);
+        accepts_sns_metrics_example(render_sns_metrics);
         accepts_sns_proposals_example(render_recent_sns_proposals);
         accepts_sns_neurons_example(render_cached_sns_neurons);
         accepts_sns_cache_status_example(render_sns_cache_status);
@@ -192,6 +193,15 @@ mod host {
         Ok(sns_proposals_report_text(&report))
     }
 
+    fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<String, SnsHostError> {
+        let request =
+            SnsMetricsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, now_unix_secs, sns_input)
+                .with_time_window_seconds(90 * 24 * 60 * 60);
+
+        let report = build_sns_metrics_report(&request)?;
+        Ok(sns_metrics_report_text(&report))
+    }
+
     fn refresh_subnet_topology(
         cache_root: &Path,
         now_unix_secs: u64,
@@ -274,6 +284,8 @@ mod host {
         _example: fn(&Path, &str, u64) -> Result<String, SnsHostError>,
     ) {
     }
+
+    fn accepts_sns_metrics_example(_example: fn(&str, u64) -> Result<String, SnsHostError>) {}
 
     fn accepts_subnet_topology_example(
         _example: fn(

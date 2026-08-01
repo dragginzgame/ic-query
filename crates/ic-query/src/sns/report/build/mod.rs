@@ -7,6 +7,7 @@
 mod canisters;
 mod info;
 mod list;
+mod metrics;
 mod neurons;
 mod params;
 mod proposals;
@@ -17,6 +18,7 @@ mod upgrade;
 pub use canisters::{build_sns_canister_report, build_sns_canister_report_with_source};
 pub use info::{build_sns_info_report, build_sns_info_report_with_source};
 pub use list::{build_sns_list_report, build_sns_list_report_with_source};
+pub use metrics::{build_sns_metrics_report, build_sns_metrics_report_with_source};
 pub use neurons::{build_sns_neurons_report, build_sns_neurons_report_with_source};
 pub use params::{build_sns_params_report, build_sns_params_report_with_source};
 pub use proposals::{

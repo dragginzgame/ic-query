@@ -8,11 +8,13 @@
 mod common;
 mod list;
 mod lookup;
+mod metrics;
 mod neurons;
 mod proposals;
 
 pub(super) use list::SnsListOptions;
 pub(super) use lookup::SnsLookupOptions;
+pub(super) use metrics::SnsMetricsOptions;
 pub(super) use neurons::{
     SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions,
     SnsNeuronsRefreshOptions,

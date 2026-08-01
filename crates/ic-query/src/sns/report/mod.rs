@@ -58,7 +58,8 @@ pub(in crate::sns::report) use source::{
 pub use build::{
     build_sns_canister_report, build_sns_canister_report_with_source, build_sns_info_report,
     build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
-    build_sns_neurons_report, build_sns_neurons_report_with_source, build_sns_params_report,
+    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neurons_report,
+    build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_report,
     build_sns_proposals_report_with_progress, build_sns_proposals_report_with_source,
@@ -73,6 +74,21 @@ pub(in crate::sns::report) use cache_summary::{
 };
 #[cfg(feature = "host")]
 pub use live::LiveSnsSource;
+pub use model::{
+    DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsCanisterGap,
+    SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
+    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
+    SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsMetricsReport, SnsMetricsRequest,
+    SnsNeuronPermissionList, SnsParamsReport, SnsPendingUpgrade, SnsProposalBallotRow,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
+    SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
+    SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+};
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use model::{
     SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
@@ -89,19 +105,6 @@ pub use model::{
     SnsCacheSummary, SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
     SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsProposalsRefreshReport,
     SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
-};
-pub use model::{
-    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
-    SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
-    SnsNeuronPermissionList, SnsParamsReport, SnsPendingUpgrade, SnsProposalBallotRow,
-    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
-    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
-    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
-    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
-    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingRewardsParameters,
 };
 #[cfg(feature = "host")]
 pub use neurons_cache::{
@@ -120,16 +123,16 @@ pub use proposals_cache::{
 #[cfg(feature = "host")]
 pub use source::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCanisterSource, SnsDiscoverySource, SnsNeuronId, SnsNeuronsSource,
-    SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsSourceRequest, SnsSwapSource,
-    SnsTokenSource, SnsUpgradeSource,
+    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
+    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
+    MainnetSnsToken, MainnetSnsUpgrade, SnsCanisterSource, SnsDiscoverySource, SnsMetricsSource,
+    SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
 pub use text::{
-    sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_params_report_text,
-    sns_proposal_report_text, sns_proposals_report_text, sns_swap_report_text,
-    sns_token_report_text, sns_upgrade_report_text,
+    sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_metrics_report_text,
+    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
+    sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
 };
 #[cfg(feature = "host")]
 pub use text::{
@@ -150,6 +153,8 @@ const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_CANISTER_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
+const SNS_METRICS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]

@@ -7,14 +7,18 @@
 use crate::{
     cli::common::write_text_or_json,
     sns::commands::{
-        SnsCommandError, options::SnsLookupOptions, run::common::lookup_command_parts,
+        SnsCommandError,
+        options::{SnsLookupOptions, SnsMetricsOptions},
+        run::common::lookup_command_parts,
     },
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsHostError, SnsLookupRequest, build_sns_info_report, build_sns_params_report,
-    build_sns_swap_report, build_sns_token_report, build_sns_upgrade_report, sns_info_report_text,
-    sns_params_report_text, sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
+    SnsHostError, SnsLookupRequest, SnsMetricsRequest, build_sns_info_report,
+    build_sns_metrics_report, build_sns_params_report, build_sns_swap_report,
+    build_sns_token_report, build_sns_upgrade_report, sns_info_report_text,
+    sns_metrics_report_text, sns_params_report_text, sns_swap_report_text, sns_token_report_text,
+    sns_upgrade_report_text,
 };
 use serde::Serialize;
 pub(super) fn run_sns_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
@@ -33,6 +37,22 @@ pub(super) fn run_sns_token(matches: &ArgMatches, network: &str) -> Result<(), S
         build_sns_token_report,
         sns_token_report_text,
     )
+}
+
+pub(super) fn run_sns_metrics(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsMetricsOptions::from_matches(matches, network);
+    let time_window_seconds = options.time_window_seconds;
+    let parts = lookup_command_parts(options.lookup)?;
+    let format = parts.format;
+    let request = SnsMetricsRequest::new(
+        parts.network,
+        parts.source_endpoint,
+        parts.now_unix_secs,
+        parts.input,
+    )
+    .with_time_window_seconds(time_window_seconds);
+    let report = build_sns_metrics_report(&request)?;
+    write_text_or_json(format, &report, sns_metrics_report_text)
 }
 
 pub(super) fn run_sns_params(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {

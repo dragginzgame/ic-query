@@ -8,6 +8,7 @@
 mod cache;
 mod list;
 mod lookup;
+mod metrics;
 #[cfg(feature = "host")]
 mod neurons;
 mod proposals;
@@ -16,6 +17,13 @@ mod proposals;
 pub use cache::{SnsCacheListRequest, SnsCacheStatusRequest};
 pub use list::SnsListRequest;
 pub use lookup::SnsLookupRequest;
+pub use metrics::{
+    DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsMetricsRequest,
+};
+#[cfg(feature = "host")]
+pub(in crate::sns::report) use metrics::{
+    sns_metrics_lookup_request, validate_sns_metrics_request, validate_sns_metrics_time_window,
+};
 #[cfg(feature = "host")]
 pub use neurons::{SnsNeuronsRefreshRequest, SnsNeuronsRequest};
 #[cfg(feature = "host")]

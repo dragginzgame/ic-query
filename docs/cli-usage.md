@@ -221,9 +221,28 @@ icq sns list
 icq sns info 1
 icq sns token 1
 icq sns params 1
+icq sns metrics 1
+icq sns metrics 23ten-uaaaa-aaaaq-aabia-cai --window 90d --json
 icq sns swap 1
 icq sns upgrade 1
 ```
+
+`sns metrics` calls the Governance `get_metrics` composite query for the
+resolved SNS. Its recent submitted/executed proposal window accepts nonzero
+integer seconds, minutes, hours, or days, defaults to 30 days, and is capped
+at 365 days before any live access. The report also preserves the latest
+SNS-ledger block timestamp observed by Governance, genesis time, cached
+treasury ledger/accounts and current/original e8s amounts with their own
+timestamps, and cached voting-power metrics.
+
+Including targeted discovery, the client makes three requests: one SNS-W
+inventory query, one Governance metadata query for the resolved SNS, and the
+metrics query. Governance performs its own bounded latest-block lookup inside
+the composite query. The differently timestamped values do not form one
+point-in-time snapshot. `icq` does not enumerate ledger transactions, fan out
+to another SNS, or create a cache. See
+[Bounded SNS Governance Metrics](design/0.24/0.24-design.md) for the complete
+authority and validation contract.
 
 `sns swap` makes exactly three bounded native swap queries for the resolved
 SNS: `get_lifecycle`, `get_sale_parameters`, and `get_derived_state`. It keeps

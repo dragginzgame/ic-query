@@ -103,6 +103,15 @@ pub enum SnsHostError {
     #[error("SNS lookup input must be a list id or root principal: {input}")]
     InvalidLookup { input: String },
 
+    /// SNS metrics request used an unsupported proposal-count window.
+    #[error("invalid SNS metrics window {seconds}s; expected 1..={max_seconds} seconds")]
+    InvalidMetricsTimeWindow {
+        /// Requested time window in seconds.
+        seconds: u64,
+        /// Largest accepted time window in seconds.
+        max_seconds: u64,
+    },
+
     #[error("multiple SNS refresh attempts claim list id {id}; use a root principal instead")]
     AmbiguousRefreshAttemptId { id: usize },
 

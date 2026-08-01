@@ -412,6 +412,19 @@ fn binary_sns_upgrade_help_smoke() {
 }
 
 #[test]
+fn binary_sns_metrics_help_smoke() {
+    let output = run_icq(&["sns", "metrics", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq sns metrics [OPTIONS] <id|root-principal>"));
+    assert!(stdout.contains("--window <duration>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("get_metrics composite query"));
+}
+
+#[test]
 fn binary_sns_canister_list_help_smoke() {
     let output = run_icq(&["sns", "canister", "list", "--help"]);
 

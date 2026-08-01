@@ -6,10 +6,10 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter,
-    SnsSourceRequest,
+    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
+    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
+    MainnetSnsToken, MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError, SnsNeuronId,
+    SnsProposalTopicFilter, SnsSourceRequest,
 };
 
 ///
@@ -103,6 +103,22 @@ pub trait SnsSwapSource: SnsDiscoverySource {
         request: &SnsSourceRequest,
         sns: &MainnetSns,
     ) -> Result<MainnetSnsSwap, SnsHostError>;
+}
+
+///
+/// SnsMetricsSource
+///
+/// Source contract for one bounded SNS Governance metrics query.
+///
+
+pub trait SnsMetricsSource: SnsDiscoverySource {
+    /// Fetch native Governance metrics for one resolved SNS and proposal window.
+    fn fetch_sns_metrics(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        time_window_seconds: u64,
+    ) -> Result<MainnetSnsMetrics, SnsHostError>;
 }
 
 ///

@@ -121,6 +121,24 @@ fn sns_upgrade_help_is_advertised() {
 }
 
 #[test]
+fn sns_metrics_help_is_bounded_and_explicit() {
+    let sns = usage();
+    let metrics = sns_metrics_usage();
+
+    assert!(sns.contains("metrics"));
+    assert!(sns.contains("Show bounded native Governance metrics"));
+    assert!(metrics.contains("icq sns metrics"));
+    assert!(metrics.contains("id|root-principal"));
+    assert!(metrics.contains("--window <duration>"));
+    assert!(metrics.contains("[default: 30d]"));
+    assert!(metrics.contains("get_metrics composite query"));
+    assert!(metrics.contains("three live calls"));
+    assert!(metrics.contains("one internal"));
+    assert!(metrics.contains("Does not scan transactions"));
+    assert!(metrics.contains("--json"));
+}
+
+#[test]
 fn sns_swap_help_is_advertised() {
     let sns = usage();
     let swap = sns_swap_usage();

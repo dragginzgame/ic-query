@@ -25,19 +25,27 @@ pub use reports::{
 pub use reports::{
     SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
     SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRow, SnsNeuronPermissionList, SnsParamsReport, SnsPendingUpgrade,
-    SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
-    SnsProposalTally, SnsProposalsReport, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsListReport, SnsListRow, SnsMetricsReport, SnsNeuronPermissionList, SnsParamsReport,
+    SnsPendingUpgrade, SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport,
+    SnsProposalRow, SnsProposalTally, SnsProposalsReport, SnsSwapComponent, SnsSwapDerivedState,
+    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
-    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingRewardsParameters,
+    SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
+    SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+};
+pub use requests::{
+    DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsListRequest,
+    SnsLookupRequest, SnsMetricsRequest, SnsProposalRequest, SnsProposalsRequest,
 };
 #[cfg(feature = "host")]
 pub use requests::{
     SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronsRefreshRequest, SnsNeuronsRequest,
     SnsProposalsRefreshRequest,
 };
-pub use requests::{SnsListRequest, SnsLookupRequest, SnsProposalRequest, SnsProposalsRequest};
+#[cfg(feature = "host")]
+pub(in crate::sns::report) use requests::{
+    sns_metrics_lookup_request, validate_sns_metrics_request, validate_sns_metrics_time_window,
+};
 #[cfg(feature = "host")]
 pub use sorts::SnsNeuronsSort;
 #[cfg(feature = "host")]

@@ -1,4 +1,5 @@
 mod canisters;
+mod metrics;
 mod neurons;
 mod params;
 mod proposals;
@@ -9,6 +10,9 @@ mod token;
 mod upgrade;
 
 pub(in crate::sns::report::tests) use canisters::FixtureSnsCanisterSource;
+pub(in crate::sns::report::tests) use metrics::{
+    FixtureSnsMetricsSource, MutatingFixtureSnsMetricsSource, NoCallSnsMetricsSource,
+};
 pub(in crate::sns::report::tests) use neurons::{
     FixtureSnsNeuronsSource, NoLiveSnsNeuronsSource, PagedFixtureSnsNeuronsSource,
 };
@@ -18,7 +22,7 @@ pub(in crate::sns::report::tests) use proposals::{
     fixture_proposal_row,
 };
 pub(in crate::sns::report::tests) use requests::{
-    info_request, list_request, neurons_request, params_request, proposal_request,
+    info_request, list_request, metrics_request, neurons_request, params_request, proposal_request,
     proposals_request, sns_neurons_refresh_request, sns_proposals_refresh_request, swap_request,
     token_request, upgrade_request,
 };

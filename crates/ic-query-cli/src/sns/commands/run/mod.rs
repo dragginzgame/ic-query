@@ -26,6 +26,7 @@ pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SnsCommand
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_list(matches, network),
         Some(("info", matches)) => lookup::run_sns_info(matches, network),
+        Some(("metrics", matches)) => lookup::run_sns_metrics(matches, network),
         Some(("token", matches)) => lookup::run_sns_token(matches, network),
         Some(("params", matches)) => lookup::run_sns_params(matches, network),
         Some(("swap", matches)) => lookup::run_sns_swap(matches, network),

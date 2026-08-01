@@ -11,6 +11,7 @@ mod cache;
 mod canisters;
 mod governance;
 mod list;
+mod metrics;
 #[cfg(feature = "host")]
 mod neurons;
 mod params;
@@ -32,6 +33,7 @@ pub use governance::{
     SnsVotingRewardsParameters,
 };
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
+pub use metrics::{SnsMetricsReport, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
 #[cfg(feature = "host")]
 pub use neurons::{SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsReport};
 pub use params::SnsParamsReport;

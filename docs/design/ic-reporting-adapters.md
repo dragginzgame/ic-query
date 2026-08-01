@@ -51,6 +51,9 @@ Bounded swap lifecycle, sale parameters, and derived state similarly share one
 Bounded deployed/pending and next-blessed version evidence shares one
 `SnsUpgradeSource` capability across Governance and SNS-W rather than exposing
 one trait per query.
+Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp
+evidence shares one `SnsMetricsSource` capability for Governance `get_metrics`
+rather than reconstructing treasury state through ledger-history scans.
 Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
 focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
 `LiveIcSource`; bounded aggregate network time series use one `IcMetricSource`
@@ -118,6 +121,13 @@ than reaching an infallible parser path.
   from a typed next-version query gap. The flow makes at most four live calls
   including targeted discovery, does not read the upgrade journal, download
   Wasms, fan out, create a cache, or claim one point-in-time snapshot.
+- SNS metrics reporting resolves one deployed SNS and calls Governance
+  `get_metrics` with one bounded proposal-count window. The client makes three
+  requests including targeted discovery; Governance performs its bounded
+  latest-ledger-block lookup inside the composite query. The report preserves
+  cached treasury and voting-power timestamps, never treats them as current
+  ledger state, and does not enumerate transactions, fan out, create a cache,
+  or claim one point-in-time snapshot.
 - NNS and SNS complete collections page until exhausted.
 - NNS neuron reporting follows the native ascending `get_neuron_index`
   cursor, preserves publicly readable `NeuronInfo` fields, and atomically
@@ -190,7 +200,7 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Fuller SNS neuron state and treasury evidence beyond the implemented bounded swap and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` |
+| 1 | Fuller SNS neuron state plus transaction-level treasury history or current-ledger verification beyond the implemented bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |

@@ -7,44 +7,56 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.24.x] - 2026-08-01 - Bounded SNS governance metrics
+
+Detailed release notes: [docs/changelog/0.24.md](docs/changelog/0.24.md)
+
+- `0.24.0` adds `sns metrics` for one SNS resolved by list id or Root
+  principal. It uses the official Governance `get_metrics` composite query and
+  preserves raw treasury ledger/accounts, current and original e8s amounts,
+  per-treasury cached timestamps, voting-power metrics, proposal-window counts,
+  genesis time, and latest SNS-ledger block time.
+- The proposal-count window defaults to 30 days and is capped at 365 days.
+  Including targeted discovery, the command makes three client requests; the
+  Governance composite query performs its own bounded latest-block lookup.
+  `ic-query` does not enumerate transactions, fan out, create a cache, or claim
+  that differently timestamped metrics form one point-in-time snapshot.
+
+```bash
+icq sns metrics 1
+icq sns metrics 23ten-uaaaa-aaaaq-aabia-cai --window 90d --json
+```
+
 ## [0.23.x] - 2026-08-01 - Bounded SNS completeness
 
 Detailed release notes: [docs/changelog/0.23.md](docs/changelog/0.23.md)
 
-- `0.23.0` adds bounded live swap and upgrade reports for one SNS resolved by list id or
-  Root principal. It attempts exactly the native `get_lifecycle`,
-  `get_sale_parameters`, and `get_derived_state` queries; preserves raw
-  lifecycle, sale, participation, method, endpoint, and timestamp evidence;
-  and retains per-component failures as typed gaps without discarding sibling
-  results. The report explicitly has no point-in-time guarantee and never
-  calls the potentially large `get_state`, enumerates participants, applies
-  swap methods to any other SNS, or creates a cache. Direct resolution now
-  makes one SNS-W inventory query and enriches only the resolved SNS, for five
-  canister queries total including the three swap calls; unknown lookup makes
-  no metadata query, while `sns list` alone enriches the complete inventory.
-  The library adds the paired public report/source DTOs, `SnsSwapSource`, live
-  and custom-source builders, and text rendering with custom-source target and
-  evidence validation. As a pre-1.0 Rust API hard cut,
-  `SnsListSource::fetch_deployed_snses` and public `MainnetSnsList` are removed
-  in favor of `SnsDiscoverySource`, `MainnetSnsInventory`,
-  `MainnetSnsCanisters`, and `MainnetSnsMetadata`; there is no compatibility
-  alias or fallback discovery flow. The upgrade report uses native Governance
-  `get_running_sns_version` and SNS-W `get_next_sns_version`, preserves all six
-  deployed/next Wasm hashes plus pending-upgrade state, and distinguishes a
-  successful response with no blessed successor from a typed next-version
-  query gap. It performs at most four live calls including targeted discovery,
-  does not read the upgrade journal, download Wasms, fan out, or create a cache,
-  and does not claim the sequential evidence is one point-in-time snapshot.
-  Custom discovery metadata must now be trimmed and non-empty when present,
-  and cannot combine payload fields with an error; swap query counters are named
-  explicitly as component counters.
+- `0.23.0` adds `sns swap` for one SNS resolved by list id or Root principal.
+  It makes exactly three bounded native queries, retains component failures as
+  typed gaps, and never calls `get_state`, enumerates participants, or creates
+  a cache.
+- Adds `sns upgrade` using Governance `get_running_sns_version` and SNS-W
+  `get_next_sns_version`. It preserves all six Wasm hashes and pending-upgrade
+  state, distinguishes no blessed successor from a query failure, and makes at
+  most four live calls including targeted discovery.
+- Direct SNS lookup now enriches only the selected SNS; unknown lookup requests
+  no metadata, while `sns list` enriches the complete inventory. Sequential
+  swap and upgrade evidence explicitly has no point-in-time guarantee.
+- Hardens custom-source evidence and gives swap and upgrade reports focused
+  public source traits, DTOs, builders, and text renderers. Metadata text must
+  be trimmed and non-empty when present, and payload fields cannot coexist with
+  a metadata error.
+- As a pre-1.0 Rust API hard cut, replaces `SnsListSource` and
+  `MainnetSnsList` with `SnsDiscoverySource`, `MainnetSnsInventory`,
+  `MainnetSnsCanisters`, and `MainnetSnsMetadata`. No compatibility alias or
+  fallback discovery flow remains.
 
-  ```bash
-  icq sns swap 1
-  icq sns swap 23ten-uaaaa-aaaaq-aabia-cai --json
-  icq sns upgrade 1
-  icq sns upgrade 23ten-uaaaa-aaaaq-aabia-cai --json
-  ```
+```bash
+icq sns swap 1
+icq sns swap 23ten-uaaaa-aaaaq-aabia-cai --json
+icq sns upgrade 1
+icq sns upgrade 23ten-uaaaa-aaaaq-aabia-cai --json
+```
 
 ## [0.22.x] - 2026-08-01 - Structural consolidation
 

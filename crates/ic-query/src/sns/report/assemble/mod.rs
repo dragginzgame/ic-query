@@ -6,6 +6,7 @@
 
 mod canisters;
 mod list;
+mod metrics;
 mod neurons;
 mod params;
 mod proposals;
@@ -16,6 +17,7 @@ mod upgrade;
 
 pub(super) use canisters::sns_canister_report_from_parts;
 pub(super) use list::{sns_info_report_from_list, sns_list_report_from_list};
+pub(super) use metrics::sns_metrics_report_from_parts;
 pub(super) use neurons::{SnsNeuronsLiveReportParts, sns_neurons_report_from_parts};
 pub(super) use params::sns_params_report_from_parts;
 pub(super) use proposals::{

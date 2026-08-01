@@ -20,7 +20,7 @@ local-only inspection visibly distinct.
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, and boundary-node data-center aggregates |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
-| SNS | Discovery, metadata, token and nervous-system parameters, bounded swap and upgrade state, Root canister inventory and health, proposals, and neurons |
+| SNS | Discovery, metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, and neurons |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, and tip certificates |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
 
@@ -73,6 +73,7 @@ icq nns governance economics
 # Deployed SNS reports
 icq sns list
 icq sns canister list 1
+icq sns metrics 1
 icq sns upgrade 1
 icq sns proposal list 1 --limit 25
 
@@ -139,7 +140,7 @@ icq nns governance economics|metrics|reward-event|maturity-modulation
 icq nns proposal list|info|refresh|cache
 icq nns neuron list|info|refresh|cache
 
-icq sns list|info|token|params|swap|upgrade
+icq sns list|info|token|params|metrics|swap|upgrade
 icq sns canister list
 icq sns proposal list|info|refresh|cache
 icq sns neuron list|refresh|cache
@@ -180,9 +181,12 @@ defaults to one hour at a five-minute step and is capped at 1,000 observations
 per series. Daily statistics default to seven days and are capped at one year
 and 366 rows. The boundary-node report consumes one non-paginated data-center
 resource and makes no per-location calls. None of these commands creates a
-cache. Paged proposal, neuron, and account-history collections retain refresh
-attempt state. Failed or capped refreshes do not replace the last complete
-snapshot.
+cache. Successful SNS metrics queries default to a 30-day proposal-count
+window capped at 365 days. They make three targeted client requests, preserve
+Governance-cached treasury and voting-power timestamps, and do not scan
+transactions, fan out, or create a cache. Paged proposal, neuron, and
+account-history collections retain refresh attempt state. Failed or capped
+refreshes do not replace the last complete snapshot.
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do
@@ -208,7 +212,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.23", default-features = false }
+ic-query = { version = "0.24", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -216,7 +220,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.23", default-features = false, features = ["host"] }
+ic-query = { version = "0.24", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -259,6 +263,7 @@ guidance.
 - [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md)
 - [0.22 structural consolidation](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.22/0.22-design.md)
 - [0.23 bounded SNS completeness](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.23/0.23-design.md)
+- [0.24 bounded SNS Governance metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.24/0.24-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

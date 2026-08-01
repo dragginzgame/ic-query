@@ -7,6 +7,7 @@
 mod canisters;
 mod common;
 mod metadata;
+mod metrics;
 mod neurons;
 mod proposals;
 mod sns;
@@ -15,6 +16,7 @@ mod upgrade;
 
 pub(super) use canisters::mainnet_sns_canister_inventory;
 pub(super) use metadata::metadata_error_summary;
+pub(super) use metrics::mainnet_sns_metrics;
 pub(super) use neurons::sns_neuron_row;
 pub(super) use proposals::sns_proposal_row;
 pub(super) use sns::{mainnet_sns_canisters_from_deployed_sns, mainnet_sns_metadata_from_response};

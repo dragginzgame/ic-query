@@ -6,6 +6,7 @@
 
 mod canisters;
 mod deployed;
+mod metrics;
 mod neurons;
 mod proposals;
 mod swap;
@@ -21,13 +22,17 @@ pub(in crate::sns::report::live) use deployed::{
     DeployedSns, GetMetadataRequest, GetMetadataResponse, ListDeployedSnsesRequest,
     ListDeployedSnsesResponse,
 };
+pub(in crate::sns::report::live) use metrics::{
+    GetMetricsRequest, GetMetricsResponse, GetMetricsResult, MetricsWire, TreasuryMetricsWire,
+    VotingPowerMetricsWire,
+};
 pub(in crate::sns::report::live) use neurons::{
     ListNeuronsRequest, ListNeuronsResponse, SnsGovernanceNeuron,
 };
 pub(in crate::sns::report::live) use proposals::{
     GetProposalRequest, GetProposalResponse, GetProposalResult, ListProposalsRequest,
-    ListProposalsResponse, SnsGovernanceBallot, SnsGovernanceProposalData, SnsProposalId, SnsTopic,
-    SnsTopicSelector,
+    ListProposalsResponse, SnsGovernanceBallot, SnsGovernanceError, SnsGovernanceProposalData,
+    SnsProposalId, SnsTopic, SnsTopicSelector,
 };
 pub(in crate::sns::report::live) use swap::{
     GetDerivedStateResponse, GetLifecycleResponse, GetSaleParametersResponse, SnsSwapParams,

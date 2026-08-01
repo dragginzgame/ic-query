@@ -24,7 +24,8 @@ pub(in crate::sns::commands) use canisters::sns_canister_command;
 #[cfg(test)]
 pub(in crate::sns::commands) use canisters::sns_canister_list_command;
 pub(in crate::sns::commands) use lookup::{
-    sns_info_command, sns_params_command, sns_swap_command, sns_token_command, sns_upgrade_command,
+    sns_info_command, sns_metrics_command, sns_params_command, sns_swap_command, sns_token_command,
+    sns_upgrade_command,
 };
 pub(in crate::sns::commands) use neurons::sns_neuron_command;
 #[cfg(test)]
@@ -54,6 +55,7 @@ pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
         .subcommand_required(true)
         .subcommand(sns_list_command())
         .subcommand(sns_info_command())
+        .subcommand(sns_metrics_command())
         .subcommand(sns_token_command())
         .subcommand(sns_params_command())
         .subcommand(sns_swap_command())

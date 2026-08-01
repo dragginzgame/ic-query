@@ -8,6 +8,7 @@ mod canisters;
 mod common;
 mod info;
 mod list;
+mod metrics;
 #[cfg(feature = "host")]
 mod neurons;
 mod params;
@@ -21,6 +22,7 @@ pub use canisters::sns_canister_report_text;
 pub(super) use common::optional_e8s_decimal_text;
 pub use info::sns_info_report_text;
 pub use list::sns_list_report_text;
+pub use metrics::sns_metrics_report_text;
 #[cfg(feature = "host")]
 pub use neurons::{
     sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,

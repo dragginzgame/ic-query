@@ -1,18 +1,37 @@
+use ic_query::sns::{
+    DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
+    SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
+    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
+    SnsListRequest, SnsListSort, SnsLookupRequest, SnsMetricsReport, SnsMetricsRequest,
+    SnsNeuronPermissionList, SnsParamsReport, SnsPendingUpgrade, SnsProposalBallotRow,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
+    SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
+    SnsVotingPowerMetrics, SnsVotingRewardsParameters, sns_canister_report_text,
+    sns_info_report_text, sns_list_report_text, sns_metrics_report_text, sns_params_report_text,
+    sns_proposal_report_text, sns_proposals_report_text, sns_swap_report_text,
+    sns_token_report_text, sns_upgrade_report_text,
+};
 #[cfg(feature = "host")]
 use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource,
-    SnsDiscoverySource, SnsHostError, SnsNeuronId, SnsNeuronRow, SnsNeuronsRefreshReport,
-    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
-    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsRefreshReport,
-    SnsProposalsRefreshRequest, SnsProposalsSource, SnsSourceRequest, SnsSwapSource,
-    SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
+    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
+    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
+    MainnetSnsToken, MainnetSnsUpgrade, SnsCacheListRequest, SnsCacheStatusRequest,
+    SnsCanisterSource, SnsDiscoverySource, SnsHostError, SnsMetricsSource, SnsNeuronId,
+    SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport,
+    SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsSource, SnsSourceRequest,
+    SnsSwapSource, SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
     build_sns_canister_report_with_source, build_sns_info_report,
     build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
+    build_sns_metrics_report, build_sns_metrics_report_with_source,
     build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
     build_sns_neurons_report, build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
@@ -28,22 +47,6 @@ use ic_query::sns::{
     sns_proposals_cache_list_report_text, sns_proposals_cache_path,
     sns_proposals_cache_status_report_text, sns_proposals_refresh_attempt_path,
     sns_proposals_refresh_lock_path, sns_proposals_refresh_report_text,
-};
-use ic_query::sns::{
-    SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
-    SnsListRequest, SnsListSort, SnsLookupRequest, SnsNeuronPermissionList, SnsParamsReport,
-    SnsPendingUpgrade, SnsProposalBallotRow, SnsProposalEligibilityFilter,
-    SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsSwapComponent,
-    SnsSwapDerivedState, SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters,
-    SnsSwapQueryGap, SnsSwapReport, SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport,
-    SnsTokenStandardRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
-    SnsVotingRewardsParameters, sns_canister_report_text, sns_info_report_text,
-    sns_list_report_text, sns_params_report_text, sns_proposal_report_text,
-    sns_proposals_report_text, sns_swap_report_text, sns_token_report_text,
-    sns_upgrade_report_text,
 };
 use serde_json::json;
 #[cfg(feature = "host")]
@@ -66,6 +69,8 @@ const SAMPLE_SNS_FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 type SnsListBuilder = fn(&SnsListRequest) -> Result<SnsListReport, SnsHostError>;
 #[cfg(feature = "host")]
 type SnsInfoBuilder = fn(&SnsLookupRequest) -> Result<SnsInfoReport, SnsHostError>;
+#[cfg(feature = "host")]
+type SnsMetricsBuilder = fn(&SnsMetricsRequest) -> Result<SnsMetricsReport, SnsHostError>;
 #[cfg(feature = "host")]
 type SnsCanisterBuilder = fn(&SnsLookupRequest) -> Result<SnsCanisterReport, SnsHostError>;
 #[cfg(feature = "host")]
@@ -107,6 +112,12 @@ fn public_sns_request_constructors_set_expected_fields() {
         "be2us-64aaa-aaaaa-qaabq-cai",
     );
     assert_eq!(token.source_endpoint, "https://icp-api.io");
+
+    let metrics = SnsMetricsRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
+        .with_time_window_seconds(86_400);
+    assert_eq!(metrics.time_window_seconds, 86_400);
+    assert_eq!(DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, 30 * 86_400);
+    assert_eq!(MAX_SNS_METRICS_TIME_WINDOW_SECONDS, 365 * 86_400);
 
     let proposal = SnsProposalRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1", 42)
         .with_verbose(true)
@@ -205,6 +216,55 @@ fn public_sns_info_api_is_constructible_and_renderable() {
     assert!(text.contains("sns_id: 1"));
     assert!(text.contains("description: Example description"));
     assert!(text.contains("url: -"));
+}
+
+#[test]
+fn public_sns_metrics_api_is_constructible_and_renderable() {
+    let report = SnsMetricsReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        fetched_by: "ic-query".to_string(),
+        id: 1,
+        name: "Example SNS".to_string(),
+        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        method: "get_metrics".to_string(),
+        call_type: "composite_query".to_string(),
+        time_window_seconds: 86_400,
+        point_in_time_guaranteed: false,
+        treasury_metrics_cached: true,
+        num_recently_submitted_proposals: Some(3),
+        num_recently_executed_proposals: Some(2),
+        last_ledger_block_timestamp: Some(1_700_000_010),
+        genesis_timestamp_seconds: Some(1_600_000_000),
+        treasury_metric_count: 1,
+        treasury_metrics: vec![SnsTreasuryMetricRow {
+            treasury: 1,
+            treasury_kind: SnsTreasuryKind::Icp,
+            name: Some("ICP treasury".to_string()),
+            ledger_canister_id: None,
+            account_owner: None,
+            account_subaccount_hex: None,
+            amount_e8s: Some(100_000_000),
+            original_amount_e8s: Some(200_000_000),
+            timestamp_seconds: Some(1_700_000_000),
+        }],
+        voting_power_metrics: Some(SnsVotingPowerMetrics {
+            governance_total_potential_voting_power: Some(500_000_000),
+            timestamp_seconds: Some(1_700_000_001),
+        }),
+    };
+
+    let json = serde_json::to_value(&report).expect("serialize public SNS metrics report");
+    let text = sns_metrics_report_text(&report);
+
+    assert_eq!(json["treasury_metrics"][0]["treasury"], 1);
+    assert_eq!(json["treasury_metrics"][0]["treasury_kind"], "icp");
+    assert!(text.contains("treasury_metrics_cached: yes"));
+    assert!(text.contains("ICP treasury"));
 }
 
 #[test]
@@ -564,6 +624,7 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
 fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsListBuilder>(build_sns_list_report);
     accepts_public_function::<SnsInfoBuilder>(build_sns_info_report);
+    accepts_public_function::<SnsMetricsBuilder>(build_sns_metrics_report);
     accepts_public_function::<SnsCanisterBuilder>(build_sns_canister_report);
     accepts_public_function::<SnsTokenBuilder>(build_sns_token_report);
     accepts_public_function::<SnsParamsBuilder>(build_sns_params_report);
@@ -601,6 +662,12 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
     let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
     let info = build_sns_info_report_with_source(&info_request, &source)?;
     assert_eq!(info.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
+
+    let metrics_request =
+        SnsMetricsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
+    let metrics = build_sns_metrics_report_with_source(&metrics_request, &source)?;
+    assert_eq!(metrics.method, "get_metrics");
+    assert_eq!(metrics.treasury_metric_count, 1);
 
     let canisters = build_sns_canister_report_with_source(&info_request, &source)?;
     assert_eq!(canisters.canister_count, 1);
@@ -955,6 +1022,22 @@ impl SnsParamsSource for FixtureSnsSource {
 }
 
 #[cfg(feature = "host")]
+impl SnsMetricsSource for FixtureSnsSource {
+    fn fetch_sns_metrics(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        time_window_seconds: u64,
+    ) -> Result<MainnetSnsMetrics, SnsHostError> {
+        assert_eq!(
+            sns.governance_canister_id,
+            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+        );
+        Ok(sample_mainnet_sns_metrics(time_window_seconds))
+    }
+}
+
+#[cfg(feature = "host")]
 impl SnsSwapSource for FixtureSnsSource {
     fn fetch_sns_swap(
         &self,
@@ -1168,6 +1251,37 @@ fn sample_mainnet_sns_swap() -> MainnetSnsSwap {
             cf_neuron_count: None,
         }),
         gaps: Vec::new(),
+    }
+}
+
+#[cfg(feature = "host")]
+fn sample_mainnet_sns_metrics(time_window_seconds: u64) -> MainnetSnsMetrics {
+    MainnetSnsMetrics {
+        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        method: "get_metrics".to_string(),
+        call_type: "composite_query".to_string(),
+        time_window_seconds,
+        point_in_time_guaranteed: false,
+        treasury_metrics_cached: true,
+        num_recently_submitted_proposals: Some(3),
+        num_recently_executed_proposals: Some(2),
+        last_ledger_block_timestamp: Some(1_700_000_010),
+        genesis_timestamp_seconds: Some(1_600_000_000),
+        treasury_metrics: vec![SnsTreasuryMetricRow {
+            treasury: 1,
+            treasury_kind: SnsTreasuryKind::Icp,
+            name: Some("ICP treasury".to_string()),
+            ledger_canister_id: None,
+            account_owner: None,
+            account_subaccount_hex: None,
+            amount_e8s: Some(100_000_000),
+            original_amount_e8s: Some(200_000_000),
+            timestamp_seconds: Some(1_700_000_000),
+        }],
+        voting_power_metrics: Some(SnsVotingPowerMetrics {
+            governance_total_potential_voting_power: Some(500_000_000),
+            timestamp_seconds: Some(1_700_000_001),
+        }),
     }
 }
 

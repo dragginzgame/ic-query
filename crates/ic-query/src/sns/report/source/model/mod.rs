@@ -7,6 +7,7 @@
 mod canisters;
 mod fetch;
 mod list;
+mod metrics;
 mod neurons;
 mod proposals;
 mod swap;
@@ -23,6 +24,10 @@ pub(in crate::sns::report) use list::{
     JoinedMainnetSnsInventory, join_mainnet_sns_inventory, validate_mainnet_sns_inventory,
 };
 pub use list::{MainnetSns, MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsMetadata};
+pub use metrics::MainnetSnsMetrics;
+pub(in crate::sns::report) use metrics::{
+    SNS_METRICS_CALL_TYPE, SNS_METRICS_METHOD, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
+};
 pub use neurons::{MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
 pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
 pub use swap::MainnetSnsSwap;

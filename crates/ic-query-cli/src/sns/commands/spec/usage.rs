@@ -8,12 +8,12 @@ use crate::{
     cli::clap::render_help,
     sns::commands::spec::commands::{
         sns_canister_command, sns_canister_list_command, sns_command, sns_info_command,
-        sns_list_command, sns_neuron_cache_command, sns_neuron_cache_list_command,
-        sns_neuron_cache_status_command, sns_neuron_command, sns_neuron_list_command,
-        sns_neuron_refresh_command, sns_params_command, sns_proposal_cache_list_command,
-        sns_proposal_cache_status_command, sns_proposal_command, sns_proposal_info_command,
-        sns_proposal_list_command, sns_proposal_refresh_command, sns_swap_command,
-        sns_token_command, sns_upgrade_command,
+        sns_list_command, sns_metrics_command, sns_neuron_cache_command,
+        sns_neuron_cache_list_command, sns_neuron_cache_status_command, sns_neuron_command,
+        sns_neuron_list_command, sns_neuron_refresh_command, sns_params_command,
+        sns_proposal_cache_list_command, sns_proposal_cache_status_command, sns_proposal_command,
+        sns_proposal_info_command, sns_proposal_list_command, sns_proposal_refresh_command,
+        sns_swap_command, sns_token_command, sns_upgrade_command,
     },
 };
 
@@ -27,6 +27,10 @@ pub(in crate::sns::commands) fn sns_list_usage() -> String {
 
 pub(in crate::sns::commands) fn sns_info_usage() -> String {
     render_help(sns_info_command())
+}
+
+pub(in crate::sns::commands) fn sns_metrics_usage() -> String {
+    render_help(sns_metrics_command())
 }
 
 pub(in crate::sns::commands) fn sns_token_usage() -> String {

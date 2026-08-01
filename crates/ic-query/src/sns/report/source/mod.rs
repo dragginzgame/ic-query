@@ -9,20 +9,21 @@ mod traits;
 
 pub(in crate::sns::report) use model::{
     JoinedMainnetSnsInventory, SNS_CANISTER_HEALTH_CALL_TYPE, SNS_CANISTER_HEALTH_METHOD,
-    SNS_CANISTER_INVENTORY_METHOD, SNS_NEXT_VERSION_METHOD, SNS_RUNNING_VERSION_METHOD,
-    SNS_SWAP_DERIVED_STATE_METHOD, SNS_SWAP_LIFECYCLE_METHOD, SNS_SWAP_QUERY_COUNT,
-    SNS_SWAP_SALE_PARAMETERS_METHOD, SNS_UPGRADE_QUERY_COUNT,
-    canonicalize_mainnet_sns_canister_inventory, canonicalize_mainnet_sns_swap,
+    SNS_CANISTER_INVENTORY_METHOD, SNS_METRICS_CALL_TYPE, SNS_METRICS_METHOD,
+    SNS_NEXT_VERSION_METHOD, SNS_RUNNING_VERSION_METHOD, SNS_SWAP_DERIVED_STATE_METHOD,
+    SNS_SWAP_LIFECYCLE_METHOD, SNS_SWAP_QUERY_COUNT, SNS_SWAP_SALE_PARAMETERS_METHOD,
+    SNS_UPGRADE_QUERY_COUNT, canonicalize_mainnet_sns_canister_inventory,
+    canonicalize_mainnet_sns_metrics, canonicalize_mainnet_sns_swap,
     canonicalize_mainnet_sns_upgrade, join_mainnet_sns_inventory, sns_swap_component_method,
-    sns_swap_lifecycle_name, validate_mainnet_sns_inventory,
+    sns_swap_lifecycle_name, sns_treasury_kind, validate_mainnet_sns_inventory,
 };
 pub use model::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
-    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsNeuronId, SnsSourceRequest,
+    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
+    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
+    MainnetSnsToken, MainnetSnsUpgrade, SnsNeuronId, SnsSourceRequest,
 };
 pub use traits::{
-    SnsCanisterSource, SnsDiscoverySource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsSource, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
+    SnsCanisterSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronsSource, SnsParamsSource,
+    SnsProposalSource, SnsProposalsSource, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };

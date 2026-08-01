@@ -20,6 +20,32 @@ fn sns_info_parses_input_and_json_format() {
 }
 
 #[test]
+fn sns_metrics_parses_bounded_window_and_shared_lookup_options() {
+    let options = SnsMetricsOptions::parse([
+        OsString::from("1"),
+        OsString::from("--window"),
+        OsString::from("90d"),
+        OsString::from("--json"),
+        OsString::from("--source-endpoint"),
+        OsString::from("https://icp-api.io"),
+    ])
+    .expect("parse metrics");
+
+    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.network, "ic");
+    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.time_window_seconds, 90 * 86_400);
+}
+
+#[test]
+fn sns_metrics_uses_the_default_thirty_day_window() {
+    let options = SnsMetricsOptions::parse([OsString::from("1")]).expect("parse metrics");
+
+    assert_eq!(options.time_window_seconds, 30 * 86_400);
+}
+
+#[test]
 fn sns_token_parses_input_and_json_format() {
     let options = SnsLookupOptions::parse(
         [

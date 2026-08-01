@@ -7,7 +7,7 @@
 ///
 /// SnsLookupRequest
 ///
-/// Shared request accepted by direct SNS info, token, params, and swap builders.
+/// Shared request accepted by direct SNS info, token, params, swap, and upgrade builders.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]

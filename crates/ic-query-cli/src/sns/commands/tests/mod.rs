@@ -1,21 +1,22 @@
 use super::{
     error::SnsCommandError,
     options::{
-        SnsListOptions, SnsLookupOptions, SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions,
-        SnsNeuronsOptions, SnsNeuronsRefreshOptions, SnsProposalOptions,
-        SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions, SnsProposalsOptions,
-        SnsProposalsRefreshOptions,
+        SnsListOptions, SnsLookupOptions, SnsMetricsOptions, SnsNeuronsCacheListOptions,
+        SnsNeuronsCacheStatusOptions, SnsNeuronsOptions, SnsNeuronsRefreshOptions,
+        SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
+        SnsProposalsOptions, SnsProposalsRefreshOptions,
     },
     spec::{
         SnsListSortArg, SnsNeuronsSortArg, SnsProposalEligibilityArg, SnsProposalStatusArg,
         SnsProposalTopicArg, SnsProposalsSortArg, sns_canister_list_command,
         sns_canister_list_usage, sns_canister_usage, sns_info_command, sns_info_usage,
-        sns_list_usage, sns_neuron_cache_list_usage, sns_neuron_cache_status_usage,
-        sns_neuron_cache_usage, sns_neuron_list_usage, sns_neuron_refresh_usage, sns_neuron_usage,
-        sns_params_command, sns_params_usage, sns_proposal_cache_list_usage,
-        sns_proposal_cache_status_usage, sns_proposal_info_usage, sns_proposal_list_usage,
-        sns_proposal_refresh_usage, sns_proposal_usage, sns_swap_command, sns_swap_usage,
-        sns_token_command, sns_token_usage, sns_upgrade_command, sns_upgrade_usage, usage,
+        sns_list_usage, sns_metrics_usage, sns_neuron_cache_list_usage,
+        sns_neuron_cache_status_usage, sns_neuron_cache_usage, sns_neuron_list_usage,
+        sns_neuron_refresh_usage, sns_neuron_usage, sns_params_command, sns_params_usage,
+        sns_proposal_cache_list_usage, sns_proposal_cache_status_usage, sns_proposal_info_usage,
+        sns_proposal_list_usage, sns_proposal_refresh_usage, sns_proposal_usage, sns_swap_command,
+        sns_swap_usage, sns_token_command, sns_token_usage, sns_upgrade_command, sns_upgrade_usage,
+        usage,
     },
 };
 use crate::{cli::common::OutputFormat, test_support::assert_snapshot};

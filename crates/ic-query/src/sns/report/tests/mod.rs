@@ -24,6 +24,7 @@ macro_rules! delegate_sns_discovery {
 mod canisters;
 mod fixtures;
 mod list;
+mod metrics;
 mod neurons;
 mod params;
 mod proposals;

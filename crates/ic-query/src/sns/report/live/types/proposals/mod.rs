@@ -9,7 +9,8 @@ mod request;
 mod topic;
 
 pub(in crate::sns::report::live) use data::{
-    GetProposalResult, SnsGovernanceBallot, SnsGovernanceProposalData, SnsProposalId,
+    GetProposalResult, SnsGovernanceBallot, SnsGovernanceError, SnsGovernanceProposalData,
+    SnsProposalId,
 };
 pub(in crate::sns::report::live) use request::{
     GetProposalRequest, GetProposalResponse, ListProposalsRequest, ListProposalsResponse,
