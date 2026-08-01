@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
 
+- `0.22.7` replaces the mixed Dashboard model with explicit request/query,
+  serialized report/row, host source-data, and host error owners behind one
+  facade. Existing `ic_query::ic::*` paths, feature availability, constructors,
+  fields, derives, report JSON, typed errors, and source contracts are
+  unchanged. This completes the planned 0.22 cohesive-module boundary work.
+
 - `0.22.6` separates Dashboard source traits, request normalization, untrusted
   source validation, and report projection into canister, metric, and
   network-resource owners behind one shared provenance facade. Existing public
