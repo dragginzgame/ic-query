@@ -9,7 +9,7 @@ use crate::{
         NnsGovernanceRefreshAttemptStatus, governance::NnsGovernanceCacheMetadata,
         proposals::report::model::NnsProposalRow,
     },
-    snapshot_cache::{SnapshotEnvelope, SnapshotRefreshAttempt},
+    snapshot_cache::SnapshotEnvelope,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
@@ -30,8 +30,6 @@ pub(super) const NNS_PROPOSAL_CACHE_FIELDS: &[&str] = &[
     "completeness",
     "proposals",
 ];
-
-pub(super) type NnsProposalRefreshAttempt = SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>;
 
 ///
 /// NnsProposalRefreshReport

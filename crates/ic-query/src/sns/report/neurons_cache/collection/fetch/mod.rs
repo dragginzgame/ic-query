@@ -4,7 +4,6 @@
 //! Does not own: cache paths, snapshot publishing, report assembly, or CLI parsing.
 //! Boundary: adapts SNS neuron page fetching to the shared paged snapshot runner.
 
-mod attempt;
 mod state;
 
 use crate::{
@@ -14,6 +13,7 @@ use crate::{
     },
     sns::report::{
         SnsHostError, SnsNeuronsRefreshRequest,
+        cache_attempt::{SnsRefreshAttemptContext, write_running_sns_refresh_page},
         neurons_cache::model::CompleteSnsNeurons,
         source::{MainnetSns, SnsNeuronsSource, SnsSourceRequest},
     },
@@ -92,12 +92,15 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
-        attempt::write_running_attempt(
-            self.attempt_path,
-            self.request,
-            self.fetch_request,
-            self.sns,
-            &self.state,
+        write_running_sns_refresh_page(
+            SnsRefreshAttemptContext {
+                path: self.attempt_path,
+                request: self.request,
+                fetch_request: self.fetch_request,
+                sns: self.sns,
+            },
+            self.state.page_count(),
+            self.state.row_count(),
             page,
         )
     }

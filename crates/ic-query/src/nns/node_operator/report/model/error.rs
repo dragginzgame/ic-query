@@ -1,4 +1,7 @@
-use crate::{HostCacheError, ic_registry::RegistryFetchError};
+use crate::{
+    HostCacheError, ic_registry::RegistryFetchError, nns::inventory::NnsInventoryHostError,
+};
+use std::path::PathBuf;
 use thiserror::Error as ThisError;
 
 ///
@@ -28,4 +31,13 @@ pub enum NnsNodeOperatorHostError {
         prefix: String,
         matches: Vec<String>,
     },
+}
+
+impl NnsInventoryHostError for NnsNodeOperatorHostError {
+    fn missing_cache_path(self) -> Result<PathBuf, Self> {
+        match self {
+            Self::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
+            error => Err(error),
+        }
+    }
 }

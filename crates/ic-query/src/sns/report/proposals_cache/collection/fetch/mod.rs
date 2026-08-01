@@ -4,7 +4,6 @@
 //! Does not own: cache publication, command parsing, or report rendering.
 //! Boundary: drives proposal paging and refresh-attempt progress updates.
 
-mod attempt;
 mod state;
 
 use crate::{
@@ -14,6 +13,7 @@ use crate::{
     },
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest,
+        cache_attempt::{SnsRefreshAttemptContext, write_running_sns_refresh_page},
         proposals_cache::model::CompleteSnsProposals,
         source::{MainnetSns, SnsProposalsSource, SnsSourceRequest},
     },
@@ -91,12 +91,15 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
-        attempt::write_running_attempt(
-            self.attempt_path,
-            self.request,
-            self.fetch_request,
-            self.sns,
-            &self.state,
+        write_running_sns_refresh_page(
+            SnsRefreshAttemptContext {
+                path: self.attempt_path,
+                request: self.request,
+                fetch_request: self.fetch_request,
+                sns: self.sns,
+            },
+            self.state.page_count(),
+            self.state.row_count(),
             page,
         )
     }

@@ -4,10 +4,12 @@ mod annotations;
 mod catalog;
 mod client;
 mod error;
+#[cfg(feature = "host")]
 mod inventory;
 mod model;
 mod projection;
 pub mod proto;
+#[cfg(feature = "host")]
 mod relations;
 mod source;
 mod transport;
@@ -15,62 +17,66 @@ mod wire;
 
 use annotations::apply_mainnet_annotations;
 use candid::Principal;
+pub use client::fetch_mainnet_subnet_catalog;
+#[cfg(feature = "host")]
 pub use client::{
     fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
-    fetch_mainnet_node_provider_list, fetch_mainnet_registry_version, fetch_mainnet_subnet_catalog,
+    fetch_mainnet_node_provider_list, fetch_mainnet_registry_version,
     fetch_mainnet_subnet_topology,
 };
 pub use error::RegistryFetchError;
+pub use model::MainnetRegistryFetchRequest;
+#[cfg(feature = "host")]
 pub use model::{
     MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
-    MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList,
-    MainnetRegistryFetchRequest, MainnetRegistryVersion, MainnetSubnetTopology,
-    MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
+    MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList, MainnetRegistryVersion,
+    MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
 use proto::{CanisterId, SubnetId};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetCatalog};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use catalog::{routing_ranges_from_table, subnet_info_from_record};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use candid::{Decode, Encode};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use projection::{
     data_center_list_from_inventory, node_list_from_inventory, node_operator_list_from_inventory,
     node_provider_from_governance, node_provider_list_from_response,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use proto::{
     DataCenterRecord, NodeOperatorRecord, NodeRecord, RoutingTable, SubnetListRecord, SubnetRecord,
     SubnetType,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use relations::{
     RegistryRelationInventory, assigned_node_principals_from_subnets,
     node_provider_counts_from_records,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use std::collections::{BTreeMap, BTreeSet};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use transport::{
     append_validated_chunk, hex_bytes, registry_value_content_from_response, sha256_digest,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 use wire::{
     GovernanceAccountIdentifier, GovernanceNodeProvider, ListNodeProvidersResponse,
     RegistryGetChunkRequest, RegistryValueContent,
 };
 
 pub const DEFAULT_MAINNET_ENDPOINT: &str = "https://icp-api.io";
+#[cfg(feature = "host")]
 pub const MAINNET_GOVERNANCE_CANISTER_ID: &str = "rrkah-fqaaa-aaaaa-aaaaq-cai";
 
 const SUBNET_LIST_KEY: &str = "subnet_list";
@@ -106,6 +112,7 @@ fn principal_text_from_raw(raw: &[u8], field: &'static str) -> Result<String, Re
         })
 }
 
+#[cfg(feature = "host")]
 fn principal_text_from_required_raw(
     raw: &[u8],
     field: &'static str,
@@ -120,6 +127,7 @@ fn subnet_record_key(subnet_principal: &str) -> String {
     format!("{SUBNET_RECORD_KEY_PREFIX}{subnet_principal}")
 }
 
+#[cfg(feature = "host")]
 fn normalized_data_center_id(data_center_id: &str) -> Option<String> {
     let trimmed = data_center_id.trim();
     if trimmed.is_empty() {
@@ -129,5 +137,5 @@ fn normalized_data_center_id(data_center_id: &str) -> Option<String> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 mod tests;

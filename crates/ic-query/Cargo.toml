@@ -34,11 +34,14 @@ url = { version = "2.5.8", optional = true }
 [features]
 default = []
 host = [
+    "subnet-catalog-host",
+    "dep:reqwest",
+    "dep:serde_cbor",
+]
+subnet-catalog-host = [
     "dep:futures",
     "dep:ic-agent",
     "dep:prost",
-    "dep:reqwest",
-    "dep:serde_cbor",
     "dep:sha2",
     "dep:tokio",
     "dep:url",

@@ -1,5 +1,7 @@
 use super::proto::LargeValueChunkKeys;
-use candid::{CandidType, Deserialize, Principal};
+#[cfg(feature = "host")]
+use candid::Principal;
+use candid::{CandidType, Deserialize};
 
 ///
 /// RegistryValueContent
@@ -42,6 +44,7 @@ pub(super) struct RegistryChunk {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "host")]
 pub(super) struct ListNodeProvidersResponse {
     pub(super) node_providers: Vec<GovernanceNodeProvider>,
 }
@@ -53,6 +56,7 @@ pub(super) struct ListNodeProvidersResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "host")]
 pub(super) struct GovernanceNodeProvider {
     pub(super) id: Option<Principal>,
     pub(super) reward_account: Option<GovernanceAccountIdentifier>,
@@ -65,6 +69,7 @@ pub(super) struct GovernanceNodeProvider {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "host")]
 pub(super) struct GovernanceAccountIdentifier {
     pub(super) hash: Vec<u8>,
 }

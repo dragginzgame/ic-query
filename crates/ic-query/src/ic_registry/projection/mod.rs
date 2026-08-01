@@ -1,17 +1,27 @@
+#[cfg(feature = "host")]
 mod data_center;
+#[cfg(feature = "host")]
 mod node;
+#[cfg(feature = "host")]
 mod node_operator;
+#[cfg(feature = "host")]
 mod node_provider;
+#[cfg(feature = "host")]
 mod subnet_topology;
 
 use crate::{ic_registry::proto::SubnetType, subnet_catalog::SubnetKind};
 
+#[cfg(feature = "host")]
 pub(super) use data_center::data_center_list_from_inventory;
+#[cfg(feature = "host")]
 pub(super) use node::node_list_from_inventory;
+#[cfg(feature = "host")]
 pub(super) use node_operator::node_operator_list_from_inventory;
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 pub(super) use node_provider::node_provider_from_governance;
+#[cfg(feature = "host")]
 pub(super) use node_provider::node_provider_list_from_response;
+#[cfg(feature = "host")]
 pub(super) use subnet_topology::subnet_topology_from_inventory;
 
 pub(in crate::ic_registry) fn subnet_kind_from_registry(subnet_type: i32) -> SubnetKind {
@@ -23,7 +33,7 @@ pub(in crate::ic_registry) fn subnet_kind_from_registry(subnet_type: i32) -> Sub
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 mod tests {
     use super::*;
 

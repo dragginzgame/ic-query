@@ -1,11 +1,11 @@
 use super::{
     DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_INFO_REPORT_SCHEMA_VERSION,
-    NnsInventoryInfoRequest, NnsInventoryRefreshRequest, NnsNodeHostError, NnsNodeInfoReport,
-    NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, cache::load_cached_nns_node_report,
+    NnsInventoryInfoRequest, NnsNodeHostError, NnsNodeInfoReport, NnsNodeListFilters,
+    NnsNodeListReport, NnsNodeListRequest, cache::load_cached_nns_node_report,
     filters::filter_node_list_report, refresh::refresh_nns_node_cache_with_source,
     resolve::resolve_node, source::NnsNodeSource,
 };
-use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
+use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
 
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
@@ -23,21 +23,11 @@ pub fn build_nns_node_list_report_with_source(
     request: &NnsNodeListRequest,
     source: &dyn NnsNodeSource,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    let report = load_or_refresh_missing_cache(
-        || load_cached_nns_node_report(&request.cache).map(|cached| cached.report),
-        |err| match err {
-            NnsNodeHostError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
-            err => Err(err),
-        },
-        |_| {
-            let refresh_request = NnsInventoryRefreshRequest::new(
-                request.cache.clone(),
-                request.source_endpoint.clone(),
-                request.now_unix_secs,
-                DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
-            );
-            refresh_nns_node_cache_with_source(&refresh_request, source).map(|_| ())
-        },
+    let report = load_or_refresh_nns_inventory_report(
+        request,
+        DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
+        |cache| load_cached_nns_node_report(cache).map(|cached| cached.report),
+        |refresh_request| refresh_nns_node_cache_with_source(refresh_request, source).map(|_| ()),
     )?;
     Ok(filter_node_list_report(report, &request.filters))
 }

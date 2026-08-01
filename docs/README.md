@@ -27,6 +27,7 @@ icq icrc account transaction help
 | --- | --- |
 | [IC Reporting Adapters](design/ic-reporting-adapters.md) | Authority families, provenance, validation, and typed follow-up queries |
 | [Cache Policy](design/cache-policy.md) | Cache identity, refresh behavior, locking, and local inspection |
+| [0.22 Structural Consolidation](design/0.22/0.22-design.md) | Ordered CLI, inventory, snapshot, feature, and module-ownership cleanup |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
 | [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |
@@ -43,9 +44,10 @@ These documents describe the current contract. Detailed release notes under
 
 ## Historical material
 
-Numbered directories under [`docs/design/`](design/) preserve earlier design
-work and implementation handoffs. They are historical context, not a
-compatibility promise. The current code, current design contracts above,
+Completed numbered directories under [`docs/design/`](design/) preserve
+earlier design work and implementation handoffs. They are historical context,
+not a compatibility promise; a numbered document marked active remains a
+current implementation plan. The current code, current design contracts above,
 `AGENTS.md`, and the root changelog take precedence.
 
 Engineering audit material under [`docs/governance/`](governance/) records

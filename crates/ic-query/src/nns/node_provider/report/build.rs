@@ -1,12 +1,12 @@
 use super::{
     DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION,
-    NnsInventoryInfoRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest,
-    NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
+    NnsInventoryInfoRequest, NnsInventoryListRequest, NnsNodeProviderHostError,
+    NnsNodeProviderInfoReport, NnsNodeProviderListReport,
     cache::load_cached_nns_node_provider_report,
     refresh::refresh_nns_node_provider_cache_with_source, resolve::resolve_node_provider,
     source::NnsNodeProviderSource,
 };
-use crate::{HostCacheError, cache_file::load_or_refresh_missing_cache, nns::LiveNnsSource};
+use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
 
 pub fn build_nns_node_provider_list_report(
     request: &NnsInventoryListRequest,
@@ -24,20 +24,12 @@ pub fn build_nns_node_provider_list_report_with_source(
     request: &NnsInventoryListRequest,
     source: &dyn NnsNodeProviderSource,
 ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
-    load_or_refresh_missing_cache(
-        || load_cached_nns_node_provider_report(&request.cache).map(|cached| cached.report),
-        |err| match err {
-            NnsNodeProviderHostError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
-            err => Err(err),
-        },
-        |_| {
-            let refresh_request = NnsInventoryRefreshRequest::new(
-                request.cache.clone(),
-                request.source_endpoint.clone(),
-                request.now_unix_secs,
-                DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
-            );
-            refresh_nns_node_provider_cache_with_source(&refresh_request, source).map(|_| ())
+    load_or_refresh_nns_inventory_report(
+        request,
+        DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
+        |cache| load_cached_nns_node_provider_report(cache).map(|cached| cached.report),
+        |refresh_request| {
+            refresh_nns_node_provider_cache_with_source(refresh_request, source).map(|_| ())
         },
     )
 }

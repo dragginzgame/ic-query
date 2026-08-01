@@ -4,21 +4,13 @@
 //! Does not own: refresh locking, live proposal paging, or command parsing.
 //! Boundary: writes complete cache JSON and complete-attempt metadata atomically.
 
-use super::context::SnsProposalsRefreshContext;
-use crate::{
-    snapshot_cache::{
-        SnapshotCompleteness, SnapshotRefreshProgress, publish_snapshot_with_attempt,
-        write_snapshot_json,
-    },
-    sns::report::{
-        SnsHostError, SnsProposalRow, SnsProposalsRefreshReport,
-        cache_attempt::write_complete_sns_refresh_attempt,
-        cache_storage::SnsCacheMetadata,
-        proposals_cache::{
-            SNS_PROPOSALS_CACHE_SCHEMA_VERSION, SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,
-            model::{CompleteSnsProposals, SnsProposalsCache, SnsProposalsCacheRows},
-        },
-        source::{MainnetSns, MainnetSnsList},
+use super::SnsProposalsRefreshContext;
+use crate::sns::report::{
+    SnsHostError, SnsProposalsRefreshReport,
+    cache_refresh::publish_complete_sns_snapshot,
+    proposals_cache::{
+        SNS_PROPOSALS_CACHE_SCHEMA_VERSION, SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,
+        model::{CompleteSnsProposals, SnsProposalsCacheRows},
     },
 };
 
@@ -31,30 +23,14 @@ pub(super) fn publish_complete_sns_proposals_cache(
         page_count,
         last_cursor,
     } = complete;
-    let cache = sns_proposals_cache_from_parts(
-        &context.list,
-        context.id,
-        &context.sns,
-        context.request.page_size,
+    let proposal_count = proposals.len();
+    let attempt_finalization_error = publish_complete_sns_snapshot(
+        context,
+        SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
         page_count,
-        proposals,
-    );
-    let proposal_count = cache.data.proposals.len();
-    let attempt_finalization_error = publish_snapshot_with_attempt(
-        || {
-            write_snapshot_json(
-                &context.paths.cache_path,
-                &cache,
-                |path, source| SnsHostError::SerializeCache { path, source },
-                SnsHostError::Cache,
-            )
-        },
-        || {
-            write_complete_sns_refresh_attempt(
-                context.attempt_context(),
-                SnapshotRefreshProgress::new(page_count, proposal_count, last_cursor),
-            )
-        },
+        proposal_count,
+        last_cursor,
+        SnsProposalsCacheRows { proposals },
     )?;
     Ok(SnsProposalsRefreshReport {
         schema_version: SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,
@@ -78,39 +54,4 @@ pub(super) fn publish_complete_sns_proposals_cache(
         wrote_cache: true,
         attempt_finalization_error,
     })
-}
-
-fn sns_proposals_cache_from_parts(
-    list: &MainnetSnsList,
-    id: usize,
-    sns: &MainnetSns,
-    page_size: u32,
-    page_count: u32,
-    proposals: Vec<SnsProposalRow>,
-) -> SnsProposalsCache {
-    SnsProposalsCache {
-        schema_version: SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
-        network: list.network.clone(),
-        fetched_at: list.fetched_at.clone(),
-        source_endpoint: list.source_endpoint.clone(),
-        fetched_by: list.fetched_by.clone(),
-        domain: "sns".to_string(),
-        entity: sns.root_canister_id.clone(),
-        collection: "proposals".to_string(),
-        scope: "full".to_string(),
-        metadata: SnsCacheMetadata {
-            sns_wasm_canister_id: list.sns_wasm_canister_id.clone(),
-            id,
-            name: sns.name.clone(),
-            root_canister_id: sns.root_canister_id.clone(),
-            governance_canister_id: sns.governance_canister_id.clone(),
-        },
-        completeness: SnapshotCompleteness::api_exhausted(
-            page_size,
-            page_count,
-            proposals.len(),
-            false,
-        ),
-        data: SnsProposalsCacheRows { proposals },
-    }
 }

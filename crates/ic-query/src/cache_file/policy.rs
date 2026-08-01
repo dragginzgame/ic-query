@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(feature = "host")]
 pub enum CacheRefreshReason {
     Missing(PathBuf),
     Stale,
@@ -37,6 +38,7 @@ pub fn load_or_refresh_missing_cache<T, Error>(
 
 /// Load a cache, refresh it when missing or stale, then load the persisted
 /// result again.
+#[cfg(feature = "host")]
 pub fn load_or_refresh_stale_cache<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     stale: impl FnOnce(&T) -> bool,

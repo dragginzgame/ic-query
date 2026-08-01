@@ -24,7 +24,7 @@ local-only inspection visibly distinct.
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, and tip certificates |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
 
-The living [Roadmap to 1.0](docs/roadmap/1.0.md) records the broader reporting
+The living [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md) records the broader reporting
 surface, current coverage estimates, and the remaining work.
 
 ## Install
@@ -94,7 +94,7 @@ icq nns topology summary --json
 
 Run `icq help`, `icq <family> help`, or append `help` to any nested command for
 its current options and collection mode. The complete command map and cache
-behavior are documented in [CLI Usage](docs/cli-usage.md).
+behavior are documented in [CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
 
 ## Authority and freshness
 
@@ -116,7 +116,7 @@ and explicit provenance. Text output may shorten or format values for people.
 All current report `schema_version` values are `1`; before 1.0, incompatible
 report shapes are hard cuts rather than compatibility branches.
 
-See [IC Reporting Adapters](docs/design/ic-reporting-adapters.md) for the
+See [IC Reporting Adapters](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-reporting-adapters.md) for the
 authority model and follow-up query rules.
 
 ## Command families
@@ -196,7 +196,7 @@ the first non-empty source:
 
 It does not inspect project files or read and migrate former project-local
 `.icq` directories. Cache semantics and recovery rules are defined in
-[Cache Policy](docs/design/cache-policy.md).
+[Cache Policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md).
 
 ## Library
 
@@ -207,7 +207,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.21", default-features = false }
+ic-query = { version = "0.22", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -215,7 +215,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.21", default-features = false, features = ["host"] }
+ic-query = { version = "0.22", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -241,23 +241,30 @@ Library builders do not write to stdout or stderr. Paged refresh APIs can emit
 typed `QueryProgressEvent` values to a caller-provided sink; terminal rendering
 remains an `ic-query-cli` responsibility.
 
-See [Library Usage](docs/library-usage.md) for complete examples and feature
+Enable the narrower `subnet-catalog-host` feature when a native embedder needs
+only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
+decoding, runtime bridge, and cache dependencies required by that API while
+excluding Dashboard Reqwest transport and CBOR certification. The full `host`
+feature remains the choice for all reporting adapters and is a strict superset.
+
+See [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md) for complete examples and feature
 guidance.
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
-- [CLI usage and collection modes](docs/cli-usage.md)
-- [Library usage](docs/library-usage.md)
-- [Roadmap to 1.0](docs/roadmap/1.0.md)
-- [IC Dashboard canister reporting](docs/design/ic-dashboard-canister-reporting.md)
-- [IC Dashboard network metrics](docs/design/ic-dashboard-network-metrics.md)
-- [IC Dashboard daily statistics](docs/design/ic-dashboard-daily-stats.md)
-- [IC Dashboard boundary-node reporting](docs/design/ic-dashboard-boundary-node-reporting.md)
-- [Exact-version NNS Subnet topology](docs/design/nns-subnet-topology.md)
-- [SNS Root canister inventory and health](docs/design/sns-root-canister-reporting.md)
-- [Certified CMC system reporting](docs/design/cmc-system-reporting.md)
-- [Release ledger](CHANGELOG.md)
+- [Documentation index](https://github.com/dragginzgame/ic-query/blob/main/docs/README.md)
+- [CLI usage and collection modes](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md)
+- [Library usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
+- [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md)
+- [0.22 structural consolidation](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.22/0.22-design.md)
+- [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
+- [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
+- [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)
+- [IC Dashboard boundary-node reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-boundary-node-reporting.md)
+- [Exact-version NNS Subnet topology](https://github.com/dragginzgame/ic-query/blob/main/docs/design/nns-subnet-topology.md)
+- [SNS Root canister inventory and health](https://github.com/dragginzgame/ic-query/blob/main/docs/design/sns-root-canister-reporting.md)
+- [Certified CMC system reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cmc-system-reporting.md)
+- [Release ledger](https://github.com/dragginzgame/ic-query/blob/main/CHANGELOG.md)
 
 ## Scope
 

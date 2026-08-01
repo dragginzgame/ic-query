@@ -13,6 +13,8 @@ mod cache_attempt;
 #[cfg(feature = "host")]
 mod cache_paths;
 #[cfg(feature = "host")]
+mod cache_refresh;
+#[cfg(feature = "host")]
 mod cache_status;
 #[cfg(feature = "host")]
 mod cache_storage;

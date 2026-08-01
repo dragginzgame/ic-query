@@ -7,6 +7,8 @@ pub mod data_center;
 pub mod governance;
 #[cfg(feature = "host")]
 mod governance_query;
+#[cfg(feature = "host")]
+pub(crate) mod inventory;
 mod inventory_request;
 #[cfg(feature = "host")]
 mod leaf;
@@ -17,7 +19,7 @@ pub mod node_provider;
 pub mod proposals;
 pub mod registry;
 pub mod render;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 pub(crate) mod source;
 pub mod topology;
 
@@ -32,5 +34,5 @@ pub use inventory_request::NnsInventoryRefreshRequest;
 pub use inventory_request::{
     NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
 };
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 pub use source::{LiveNnsSource, NnsSourceRequest};

@@ -7,6 +7,28 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.22.x] - 2026-08-01 - Structural consolidation
+
+Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
+
+- `0.22.0` establishes the ordered structural-consolidation design for one
+  composed Clap grammar, shared NNS Registry inventory orchestration, shared
+  snapshot lifecycle mechanics, and cohesive module boundaries. The first
+  slice replaces the NNS neuron wildcard export with an explicit current API
+  list, table-drives repeated topology non-mainnet tests, makes published README
+  documentation links resolve through GitHub, and adds a focused
+  `subnet-catalog-host` feature without Dashboard Reqwest or CBOR dependencies.
+  The full `host` feature remains a superset. Registry node, provider, operator,
+  and data-center reports now share one cache-missing refresh driver and one
+  exact-or-unique-prefix resolver, plus common network/source-request/fetch/write
+  orchestration. NNS Governance proposal and neuron snapshots also share one
+  attempt-sidecar construction, validation, status, and failed-progress owner.
+  SNS proposal and neuron snapshots now share target lookup, lock acquisition,
+  complete-cache provenance, atomic publication, and attempt finalization while
+  retaining their distinct cursors and row validation. Public Rust paths, CLI
+  behavior, report JSON, cache schemas, refresh policy, and network calls are
+  unchanged.
+
 ## [0.21.x] - 2026-08-01 - Certified Cycle Minting Canister reporting
 
 Detailed release notes: [docs/changelog/0.21.md](docs/changelog/0.21.md)

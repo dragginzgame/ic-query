@@ -7,18 +7,31 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.21", default-features = false, features = ["host"] }
+ic-query = { version = "0.22", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
 operations, or cache-backed report builders. The library has no CLI feature;
 `icq` parsing and dispatch are owned by `ic-query-cli`.
 
+For a native embedder that needs only the live/cache Subnet catalog API, use
+the narrower feature:
+
+```toml
+[dependencies]
+ic-query = { version = "0.22", default-features = false, features = ["subnet-catalog-host"] }
+```
+
+`subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
+hashing, synchronous Tokio bridge, cache IO, and endpoint validation required
+by `ic_query::subnet_catalog`. It excludes Dashboard Reqwest transport and CBOR
+certification. The full `host` feature is a strict superset.
+
 For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.21", default-features = false }
+ic-query = { version = "0.22", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,

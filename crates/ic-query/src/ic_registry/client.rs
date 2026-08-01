@@ -1,12 +1,15 @@
+#[cfg(feature = "host")]
 use super::{
     MainnetDataCenterList, MainnetNodeList, MainnetNodeOperatorList, MainnetNodeProviderList,
-    MainnetRegistryFetchRequest, MainnetRegistryVersion, MainnetSubnetTopology, RegistryFetchError,
+    MainnetRegistryVersion, MainnetSubnetTopology,
     source::{
         fetch_mainnet_data_center_list_async, fetch_mainnet_node_list_async,
         fetch_mainnet_node_operator_list_async, fetch_mainnet_node_provider_list_async,
-        fetch_mainnet_registry_version_async, fetch_mainnet_subnet_catalog_async,
-        fetch_mainnet_subnet_topology_async,
+        fetch_mainnet_registry_version_async, fetch_mainnet_subnet_topology_async,
     },
+};
+use super::{
+    MainnetRegistryFetchRequest, RegistryFetchError, source::fetch_mainnet_subnet_catalog_async,
 };
 use crate::{runtime::block_on_current_thread, subnet_catalog::SubnetCatalog};
 
@@ -17,6 +20,7 @@ pub fn fetch_mainnet_subnet_catalog(
         .map_err(RegistryFetchError::Runtime)?
 }
 
+#[cfg(feature = "host")]
 pub fn fetch_mainnet_subnet_topology(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetSubnetTopology, RegistryFetchError> {
@@ -24,6 +28,7 @@ pub fn fetch_mainnet_subnet_topology(
         .map_err(RegistryFetchError::Runtime)?
 }
 
+#[cfg(feature = "host")]
 pub fn fetch_mainnet_registry_version(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetRegistryVersion, RegistryFetchError> {
@@ -31,6 +36,7 @@ pub fn fetch_mainnet_registry_version(
         .map_err(RegistryFetchError::Runtime)?
 }
 
+#[cfg(feature = "host")]
 pub fn fetch_mainnet_node_provider_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeProviderList, RegistryFetchError> {
@@ -38,6 +44,7 @@ pub fn fetch_mainnet_node_provider_list(
         .map_err(RegistryFetchError::Runtime)?
 }
 
+#[cfg(feature = "host")]
 pub fn fetch_mainnet_node_operator_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeOperatorList, RegistryFetchError> {
@@ -45,6 +52,7 @@ pub fn fetch_mainnet_node_operator_list(
         .map_err(RegistryFetchError::Runtime)?
 }
 
+#[cfg(feature = "host")]
 pub fn fetch_mainnet_node_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeList, RegistryFetchError> {
@@ -52,6 +60,7 @@ pub fn fetch_mainnet_node_list(
         .map_err(RegistryFetchError::Runtime)?
 }
 
+#[cfg(feature = "host")]
 pub fn fetch_mainnet_data_center_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetDataCenterList, RegistryFetchError> {

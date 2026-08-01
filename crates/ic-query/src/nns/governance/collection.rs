@@ -1,12 +1,19 @@
 //! Module: nns::governance::collection
 //!
-//! Responsibility: shared host contracts for complete NNS Governance collections.
+//! Responsibility: shared host contracts and attempt IO for NNS Governance collections.
 //! Does not own: proposal or neuron paging, cache paths, or report rendering.
-//! Boundary: centralizes identical refresh, cache-scope, attempt, and provenance DTOs.
+//! Boundary: centralizes shared DTOs plus attempt construction and validation.
 
 use crate::{
+    HostCacheError,
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
-    snapshot_cache::{SnapshotRefreshAttempt, SnapshotRefreshProgress},
+    snapshot_cache::{
+        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
+        SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
+        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+        write_snapshot_refresh_attempt,
+    },
+    subnet_catalog::format_utc_timestamp_secs,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -134,6 +141,25 @@ pub(in crate::nns) struct NnsGovernanceCacheMetadata {
     pub(in crate::nns) governance_canister_id: String,
 }
 
+///
+/// NnsGovernanceAttemptReadError
+///
+/// Shared internal failure from reading or validating Governance attempt evidence.
+///
+
+#[derive(Debug)]
+pub(in crate::nns) enum NnsGovernanceAttemptReadError {
+    /// Cache-file read or JSON parsing failed.
+    Cache(HostCacheError),
+    /// The sidecar did not describe the requested Governance collection.
+    Invalid {
+        /// Attempt sidecar path.
+        path: PathBuf,
+        /// Deterministic validation failure.
+        reason: String,
+    },
+}
+
 /// Construct canonical mainnet NNS Governance cache metadata.
 #[must_use]
 pub(in crate::nns) fn mainnet_governance_cache_metadata() -> NnsGovernanceCacheMetadata {
@@ -181,5 +207,111 @@ pub(in crate::nns) fn governance_refresh_progress<Metadata>(
         attempt.pages_fetched,
         attempt.rows_fetched,
         attempt.last_cursor,
+    )
+}
+
+/// Strictly read and validate one NNS Governance refresh-attempt sidecar.
+pub(in crate::nns) fn read_governance_refresh_attempt(
+    path: &Path,
+    expected_network: &str,
+    cache_component: &'static str,
+) -> Result<Option<SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>>, NnsGovernanceAttemptReadError>
+{
+    let attempt = read_snapshot_refresh_attempt_strict::<
+        SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>,
+    >(path, NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS)
+    .map_err(|error| match error {
+        SnapshotRefreshAttemptReadError::Read { path, source } => {
+            NnsGovernanceAttemptReadError::Cache(HostCacheError::read_cache(
+                cache_component,
+                path,
+                source,
+            ))
+        }
+        SnapshotRefreshAttemptReadError::Parse { path, source } => {
+            NnsGovernanceAttemptReadError::Cache(HostCacheError::parse_cache(
+                cache_component,
+                path,
+                source,
+            ))
+        }
+        SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
+            NnsGovernanceAttemptReadError::Invalid { path, reason }
+        }
+    })?;
+    attempt
+        .map(|attempt| {
+            let invalid = |reason| NnsGovernanceAttemptReadError::Invalid {
+                path: path.to_path_buf(),
+                reason,
+            };
+            validate_snapshot_refresh_attempt(&attempt, expected_network).map_err(invalid)?;
+            validate_governance_cache_metadata(&attempt.metadata).map_err(invalid)?;
+            Ok(attempt)
+        })
+        .transpose()
+}
+
+/// Strictly read one report-safe NNS Governance refresh-attempt status.
+pub(in crate::nns) fn read_governance_refresh_attempt_status(
+    path: &Path,
+    expected_network: &str,
+    cache_component: &'static str,
+) -> Result<Option<NnsGovernanceRefreshAttemptStatus>, NnsGovernanceAttemptReadError> {
+    read_governance_refresh_attempt(path, expected_network, cache_component)
+        .map(|attempt| attempt.map(governance_refresh_attempt_status))
+}
+
+/// Construct and write one validated-shape NNS Governance refresh-attempt sidecar.
+pub(in crate::nns) fn write_governance_refresh_attempt(
+    path: &Path,
+    request: &NnsGovernanceRefreshRequest,
+    cache_component: &'static str,
+    status: &'static str,
+    progress: SnapshotRefreshProgress,
+    last_error: Option<String>,
+) -> Result<(), HostCacheError> {
+    let started_at = format_utc_timestamp_secs(request.now_unix_secs);
+    let attempt = SnapshotRefreshAttempt {
+        schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
+        network: request.network.clone(),
+        source_endpoint: request.source_endpoint.clone(),
+        started_at: started_at.clone(),
+        updated_at: current_attempt_timestamp(&started_at),
+        metadata: mainnet_governance_cache_metadata(),
+        status: status.to_string(),
+        page_size: request.page_size,
+        pages_fetched: progress.pages_fetched,
+        rows_fetched: progress.rows_fetched,
+        last_cursor: progress.last_cursor,
+        last_error,
+    };
+    write_snapshot_refresh_attempt(
+        path,
+        &attempt,
+        |path, source| HostCacheError::serialize_cache(cache_component, path, source),
+        |error| HostCacheError::operation(cache_component, error),
+    )
+}
+
+/// Preserve valid progress and write failed NNS Governance refresh evidence.
+pub(in crate::nns) fn write_failed_governance_refresh_attempt(
+    path: &Path,
+    request: &NnsGovernanceRefreshRequest,
+    cache_component: &'static str,
+    last_error: String,
+) -> Result<(), HostCacheError> {
+    let progress = read_governance_refresh_attempt(path, &request.network, cache_component)
+        .ok()
+        .flatten()
+        .map(governance_refresh_progress)
+        .unwrap_or_default();
+    write_governance_refresh_attempt(
+        path,
+        request,
+        cache_component,
+        "failed",
+        progress,
+        Some(last_error),
     )
 }

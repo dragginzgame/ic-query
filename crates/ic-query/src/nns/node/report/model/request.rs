@@ -1,4 +1,6 @@
 use crate::nns::NnsInventoryCacheRequest;
+#[cfg(feature = "host")]
+use crate::nns::inventory::NnsInventoryListInput;
 
 ///
 /// NnsNodeListRequest
@@ -63,6 +65,21 @@ impl NnsNodeListRequest {
     pub fn with_node_operator(mut self, node_operator: impl Into<String>) -> Self {
         self.filters.node_operator = Some(node_operator.into());
         self
+    }
+}
+
+#[cfg(feature = "host")]
+impl NnsInventoryListInput for NnsNodeListRequest {
+    fn cache(&self) -> &NnsInventoryCacheRequest {
+        &self.cache
+    }
+
+    fn source_endpoint(&self) -> &str {
+        &self.source_endpoint
+    }
+
+    fn now_unix_secs(&self) -> u64 {
+        self.now_unix_secs
     }
 }
 

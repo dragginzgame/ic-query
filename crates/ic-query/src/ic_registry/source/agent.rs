@@ -1,8 +1,8 @@
+#[cfg(feature = "host")]
+use crate::ic_registry::MAINNET_GOVERNANCE_CANISTER_ID;
 use crate::{
     agent::build_ic_agent,
-    ic_registry::{
-        MAINNET_GOVERNANCE_CANISTER_ID, MainnetRegistryFetchRequest, RegistryFetchError,
-    },
+    ic_registry::{MainnetRegistryFetchRequest, RegistryFetchError},
     subnet_catalog::MAINNET_REGISTRY_CANISTER_ID,
 };
 use candid::Principal;
@@ -22,6 +22,7 @@ pub(in crate::ic_registry::source) fn mainnet_registry_canister()
     principal_from_text(MAINNET_REGISTRY_CANISTER_ID, "registry_canister_id")
 }
 
+#[cfg(feature = "host")]
 pub(in crate::ic_registry::source) fn mainnet_governance_canister()
 -> Result<Principal, RegistryFetchError> {
     principal_from_text(MAINNET_GOVERNANCE_CANISTER_ID, "governance_canister_id")

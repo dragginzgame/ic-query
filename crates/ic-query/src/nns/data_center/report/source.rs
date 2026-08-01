@@ -4,8 +4,10 @@ use super::{
 };
 use crate::{
     ic_registry::{MainnetDataCenterList, fetch_mainnet_data_center_list},
-    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
-    subnet_catalog::format_utc_timestamp_secs,
+    nns::{
+        LiveNnsSource, NnsSourceRequest, inventory::fetch_nns_inventory_source_report,
+        source::mainnet_registry_fetch_request,
+    },
 };
 
 ///
@@ -41,10 +43,13 @@ pub(super) fn fetch_nns_data_center_list_report_with_source(
     now_unix_secs: u64,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-    super::enforce_mainnet_network(network)?;
-    let fetched_at = format_utc_timestamp_secs(now_unix_secs);
-    let fetch_request = NnsSourceRequest::new(network, source_endpoint, fetched_at, "ic-query");
-    source.fetch_data_center_list_report(&fetch_request)
+    fetch_nns_inventory_source_report(
+        network,
+        source_endpoint,
+        now_unix_secs,
+        super::enforce_mainnet_network,
+        |request| source.fetch_data_center_list_report(request),
+    )
 }
 
 fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterListReport {

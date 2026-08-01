@@ -6,7 +6,7 @@
 
 use crate::{
     snapshot_cache::{
-        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
+        PagedCollectionPage, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
         SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
         read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
         write_snapshot_refresh_attempt,
@@ -49,6 +49,9 @@ pub(in crate::sns::report) type SnsRefreshAttempt =
 pub(in crate::sns::report) trait SnsRefreshRequestView {
     fn network(&self) -> &str;
     fn source_endpoint(&self) -> &str;
+    fn now_unix_secs(&self) -> u64;
+    fn input(&self) -> &str;
+    fn cache_root(&self) -> &Path;
     fn page_size(&self) -> u32;
 }
 
@@ -61,6 +64,18 @@ macro_rules! impl_sns_refresh_request_view {
 
             fn source_endpoint(&self) -> &str {
                 &self.source_endpoint
+            }
+
+            fn now_unix_secs(&self) -> u64 {
+                self.now_unix_secs
+            }
+
+            fn input(&self) -> &str {
+                &self.input
+            }
+
+            fn cache_root(&self) -> &Path {
+                &self.cache_root
             }
 
             fn page_size(&self) -> u32 {
@@ -126,6 +141,19 @@ pub(in crate::sns::report) fn write_running_sns_refresh_attempt(
     progress: SnapshotRefreshProgress,
 ) -> Result<(), SnsHostError> {
     write_sns_refresh_attempt_status(context, "running", progress, None)
+}
+
+/// Write the running attempt evidence produced by one retained SNS page.
+pub(in crate::sns::report) fn write_running_sns_refresh_page(
+    context: SnsRefreshAttemptContext<'_>,
+    page_count: u32,
+    row_count: usize,
+    page: &PagedCollectionPage,
+) -> Result<(), SnsHostError> {
+    write_running_sns_refresh_attempt(
+        context,
+        SnapshotRefreshProgress::new(page_count, row_count, page.last_cursor_text.clone()),
+    )
 }
 
 pub(in crate::sns::report) fn write_complete_sns_refresh_attempt(

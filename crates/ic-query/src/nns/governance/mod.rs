@@ -26,9 +26,9 @@ pub use build::{
 };
 #[cfg(feature = "host")]
 pub(super) use collection::{
-    NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS, NnsGovernanceCacheMetadata,
-    governance_refresh_attempt_status, governance_refresh_progress,
-    mainnet_governance_cache_metadata, validate_governance_cache_metadata,
+    NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata, mainnet_governance_cache_metadata,
+    read_governance_refresh_attempt_status, validate_governance_cache_metadata,
+    write_failed_governance_refresh_attempt, write_governance_refresh_attempt,
 };
 pub use model::{
     NnsGovernanceDecimal, NnsGovernanceEconomics, NnsGovernanceEconomicsReport,

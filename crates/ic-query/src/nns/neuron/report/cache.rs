@@ -25,21 +25,19 @@ use crate::{
         LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus,
         NnsGovernanceRefreshRequest, NnsSourceRequest,
         governance::{
-            NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS, NnsGovernanceCacheMetadata,
-            governance_refresh_attempt_status, governance_refresh_progress,
-            mainnet_governance_cache_metadata, validate_governance_cache_metadata,
+            NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata,
+            mainnet_governance_cache_metadata, read_governance_refresh_attempt_status,
+            validate_governance_cache_metadata, write_failed_governance_refresh_attempt,
+            write_governance_refresh_attempt,
         },
     },
     progress::IgnoreQueryProgress,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, PagedCollectionPage, PagedSnapshotRefresh,
-        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotCompleteness, SnapshotEnvelope,
-        SnapshotJsonPaths, SnapshotKey, SnapshotRefreshAttempt, SnapshotRefreshAttemptReadError,
-        SnapshotRefreshProgress, current_attempt_timestamp, publish_snapshot_with_attempt,
-        read_snapshot_refresh_attempt_strict, run_paged_snapshot_refresh_with_progress,
-        run_snapshot_refresh_with_attempts, validate_snapshot_completeness,
-        validate_snapshot_refresh_attempt, with_locked_snapshot_refresh, write_snapshot_json,
-        write_snapshot_refresh_attempt,
+        SnapshotCompleteness, SnapshotEnvelope, SnapshotJsonPaths, SnapshotKey,
+        SnapshotRefreshProgress, publish_snapshot_with_attempt,
+        run_paged_snapshot_refresh_with_progress, run_snapshot_refresh_with_attempts,
+        validate_snapshot_completeness, with_locked_snapshot_refresh, write_snapshot_json,
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
@@ -167,7 +165,6 @@ pub struct NnsNeuronCacheSummary {
 }
 
 type NnsNeuronCache = SnapshotEnvelope<NnsGovernanceCacheMetadata, NnsNeuronCacheRows>;
-type NnsNeuronRefreshAttempt = SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>;
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 struct NnsNeuronCacheRows {
@@ -645,34 +642,15 @@ fn write_attempt(
     progress: Option<SnapshotRefreshProgress>,
     last_error: Option<String>,
 ) -> Result<(), NnsNeuronHostError> {
-    let progress = progress.unwrap_or_default();
-    let started_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let attempt = NnsNeuronRefreshAttempt {
-        schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
-        network: request.network.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        started_at: started_at.clone(),
-        updated_at: current_attempt_timestamp(&started_at),
-        metadata: mainnet_governance_cache_metadata(),
-        status: status.to_string(),
-        page_size: request.page_size,
-        pages_fetched: progress.pages_fetched,
-        rows_fetched: progress.rows_fetched,
-        last_cursor: progress.last_cursor,
-        last_error,
-    };
-    write_snapshot_refresh_attempt(
+    write_governance_refresh_attempt(
         path,
-        &attempt,
-        |path, source| {
-            NnsNeuronHostError::Cache(HostCacheError::serialize_cache(
-                CACHE_COMPONENT,
-                path,
-                source,
-            ))
-        },
-        cache_operation,
+        request,
+        CACHE_COMPONENT,
+        status,
+        progress.unwrap_or_default(),
+        last_error,
     )
+    .map_err(NnsNeuronHostError::Cache)
 }
 
 fn write_failed_attempt(
@@ -680,55 +658,22 @@ fn write_failed_attempt(
     request: &NnsGovernanceRefreshRequest,
     error: &NnsNeuronHostError,
 ) -> Result<(), NnsNeuronHostError> {
-    let latest = read_attempt(path, &request.network).ok().flatten();
-    let progress = latest.map(governance_refresh_progress);
-    write_attempt(path, request, "failed", progress, Some(error.to_string()))
+    write_failed_governance_refresh_attempt(path, request, CACHE_COMPONENT, error.to_string())
+        .map_err(NnsNeuronHostError::Cache)
 }
 
 fn read_attempt_status(
     path: &Path,
     network: &str,
 ) -> Result<Option<NnsGovernanceRefreshAttemptStatus>, NnsNeuronHostError> {
-    read_attempt(path, network).map(|attempt| attempt.map(governance_refresh_attempt_status))
+    read_governance_refresh_attempt_status(path, network, CACHE_COMPONENT)
+        .map_err(map_attempt_read_error)
 }
 
-fn read_attempt(
-    path: &Path,
-    network: &str,
-) -> Result<Option<NnsNeuronRefreshAttempt>, NnsNeuronHostError> {
-    let attempt = read_snapshot_refresh_attempt_strict::<NnsNeuronRefreshAttempt>(
-        path,
-        NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS,
-    )
-    .map_err(map_attempt_read_error)?;
-    attempt
-        .map(|attempt| {
-            validate_snapshot_refresh_attempt(&attempt, network).map_err(|reason| {
-                NnsNeuronHostError::InvalidCache {
-                    path: path.to_path_buf(),
-                    reason,
-                }
-            })?;
-            validate_governance_cache_metadata(&attempt.metadata).map_err(|reason| {
-                NnsNeuronHostError::InvalidCache {
-                    path: path.to_path_buf(),
-                    reason,
-                }
-            })?;
-            Ok(attempt)
-        })
-        .transpose()
-}
-
-fn map_attempt_read_error(error: SnapshotRefreshAttemptReadError) -> NnsNeuronHostError {
+fn map_attempt_read_error(error: NnsGovernanceAttemptReadError) -> NnsNeuronHostError {
     match error {
-        SnapshotRefreshAttemptReadError::Read { path, source } => {
-            NnsNeuronHostError::Cache(HostCacheError::read_cache(CACHE_COMPONENT, path, source))
-        }
-        SnapshotRefreshAttemptReadError::Parse { path, source } => {
-            NnsNeuronHostError::Cache(HostCacheError::parse_cache(CACHE_COMPONENT, path, source))
-        }
-        SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
+        NnsGovernanceAttemptReadError::Cache(error) => NnsNeuronHostError::Cache(error),
+        NnsGovernanceAttemptReadError::Invalid { path, reason } => {
             NnsNeuronHostError::InvalidCache { path, reason }
         }
     }

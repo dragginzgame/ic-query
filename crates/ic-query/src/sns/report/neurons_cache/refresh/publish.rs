@@ -4,21 +4,13 @@
 //! Does not own: page fetching, lock acquisition, lookup, or text rendering.
 //! Boundary: writes the complete cache JSON and marks the refresh attempt complete.
 
-use super::context::SnsNeuronsRefreshContext;
-use crate::{
-    snapshot_cache::{
-        SnapshotCompleteness, SnapshotRefreshProgress, publish_snapshot_with_attempt,
-        write_snapshot_json,
-    },
-    sns::report::{
-        SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport,
-        cache_attempt::write_complete_sns_refresh_attempt,
-        cache_storage::SnsCacheMetadata,
-        neurons_cache::{
-            SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
-            model::{CompleteSnsNeurons, SnsNeuronsCache, SnsNeuronsCacheRows},
-        },
-        source::{MainnetSns, MainnetSnsList},
+use super::SnsNeuronsRefreshContext;
+use crate::sns::report::{
+    SnsHostError, SnsNeuronsRefreshReport,
+    cache_refresh::publish_complete_sns_snapshot,
+    neurons_cache::{
+        SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
+        model::{CompleteSnsNeurons, SnsNeuronsCacheRows},
     },
 };
 
@@ -31,30 +23,14 @@ pub(super) fn publish_complete_sns_neurons_cache(
         page_count,
         last_cursor,
     } = complete;
-    let cache = sns_neurons_cache_from_parts(
-        &context.list,
-        context.id,
-        &context.sns,
-        context.request.page_size,
+    let neuron_count = neurons.len();
+    let attempt_finalization_error = publish_complete_sns_snapshot(
+        context,
+        SNS_NEURONS_CACHE_SCHEMA_VERSION,
         page_count,
-        neurons,
-    );
-    let neuron_count = cache.data.neurons.len();
-    let attempt_finalization_error = publish_snapshot_with_attempt(
-        || {
-            write_snapshot_json(
-                &context.paths.cache_path,
-                &cache,
-                |path, source| SnsHostError::SerializeCache { path, source },
-                SnsHostError::Cache,
-            )
-        },
-        || {
-            write_complete_sns_refresh_attempt(
-                context.attempt_context(),
-                SnapshotRefreshProgress::new(page_count, neuron_count, last_cursor),
-            )
-        },
+        neuron_count,
+        last_cursor,
+        SnsNeuronsCacheRows { neurons },
     )?;
     Ok(SnsNeuronsRefreshReport {
         schema_version: SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
@@ -78,39 +54,4 @@ pub(super) fn publish_complete_sns_neurons_cache(
         wrote_cache: true,
         attempt_finalization_error,
     })
-}
-
-fn sns_neurons_cache_from_parts(
-    list: &MainnetSnsList,
-    id: usize,
-    sns: &MainnetSns,
-    page_size: u32,
-    page_count: u32,
-    neurons: Vec<SnsNeuronRow>,
-) -> SnsNeuronsCache {
-    SnsNeuronsCache {
-        schema_version: SNS_NEURONS_CACHE_SCHEMA_VERSION,
-        network: list.network.clone(),
-        fetched_at: list.fetched_at.clone(),
-        source_endpoint: list.source_endpoint.clone(),
-        fetched_by: list.fetched_by.clone(),
-        domain: "sns".to_string(),
-        entity: sns.root_canister_id.clone(),
-        collection: "neurons".to_string(),
-        scope: "full".to_string(),
-        metadata: SnsCacheMetadata {
-            sns_wasm_canister_id: list.sns_wasm_canister_id.clone(),
-            id,
-            name: sns.name.clone(),
-            root_canister_id: sns.root_canister_id.clone(),
-            governance_canister_id: sns.governance_canister_id.clone(),
-        },
-        completeness: SnapshotCompleteness::api_exhausted(
-            page_size,
-            page_count,
-            neurons.len(),
-            false,
-        ),
-        data: SnsNeuronsCacheRows { neurons },
-    }
 }

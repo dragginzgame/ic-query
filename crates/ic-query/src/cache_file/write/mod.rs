@@ -7,12 +7,14 @@
 mod atomic;
 mod output;
 mod path;
+#[cfg(feature = "host")]
 mod refresh;
 
 pub use atomic::write_text_atomically;
 pub use output::write_text_output;
 pub use path::create_parent_directory;
+#[cfg(feature = "host")]
 pub use refresh::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "host"))]
 mod tests;

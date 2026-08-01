@@ -10,31 +10,32 @@
 //! `ic-agent`, Reqwest, Tokio, or `futures`, but they may still use ordinary
 //! `std` types such as `String` and `Vec`.
 //!
-//! Enable `host` for native live-call adapters and runtime helpers. CLI parsing
+//! Enable `subnet-catalog-host` for the focused live/cache Subnet catalog API,
+//! or `host` for every native live-call adapter and runtime helper. CLI parsing
 //! and process IO belong to the separate `ic-query-cli` crate.
 
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 mod agent;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 mod cache_file;
 #[cfg(feature = "host")]
 mod certification;
 pub mod duration;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 mod freshness;
 mod hex;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 mod http_endpoint;
 pub mod ic;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 mod ic_registry;
 pub mod icrc;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 mod network;
 pub mod nns;
 #[cfg(feature = "host")]
 mod progress;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 mod runtime;
 #[cfg(feature = "host")]
 pub(crate) mod snapshot_cache;
@@ -42,7 +43,7 @@ pub mod sns;
 pub mod subnet_catalog;
 pub mod system;
 
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 pub use cache_file::{CacheFileError, HostCacheError};
 mod table;
 #[cfg(feature = "host")]
@@ -51,7 +52,7 @@ mod text_value;
 mod token_amount;
 mod token_metadata_text;
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, any(feature = "host", feature = "subnet-catalog-host")))]
 mod test_support;
 
 #[cfg(test)]
