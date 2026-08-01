@@ -92,9 +92,9 @@ icq ic canister info ryjl3-tyaaa-aaaaa-aaaba-cai --json
 icq nns topology summary --json
 ```
 
-Run `icq help`, `icq <family> help`, or append `help` to any nested command for
-its current options and collection mode. The complete command map and cache
-behavior are documented in [CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
+Run `icq help`, `icq help <path>`, or append `--help` to a command for its
+current options and collection mode. The complete command map and cache behavior
+are documented in [CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
 
 ## Authority and freshness
 

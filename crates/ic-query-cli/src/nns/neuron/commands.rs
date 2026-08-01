@@ -1,8 +1,10 @@
 //! Clap specifications for public NNS neuron commands.
 
+#[cfg(test)]
+use crate::cli::clap::render_help;
 use crate::{
     cli::{
-        clap::{flag_arg, passthrough_subcommand, render_help, value_arg},
+        clap::{flag_arg, value_arg},
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             COLLECTION_MODE_FORCE_REFRESH, collection_help,
@@ -52,19 +54,11 @@ pub(super) fn neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
         .bin_name("icq nns neuron")
         .about("Inspect public NNS Governance neuron views")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List public NNS neurons"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("info").about("Show one public NNS neuron"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("refresh").about("Refresh the complete public NNS neuron snapshot"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("cache").about("Inspect the local public NNS neuron snapshot"),
-        ))
+        .subcommand_required(true)
+        .subcommand(neuron_list_command())
+        .subcommand(neuron_info_command())
+        .subcommand(neuron_refresh_command())
+        .subcommand(neuron_cache_command())
         .after_help(NEURON_HELP_AFTER)
 }
 
@@ -72,7 +66,6 @@ pub(super) fn neuron_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq nns neuron list")
         .about("List public NNS neurons")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
@@ -101,7 +94,6 @@ pub(super) fn neuron_list_command() -> ClapCommand {
                 .long("verbose")
                 .help("Show expanded public neuron details in text output"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             LIST_HELP_AFTER,
@@ -112,7 +104,6 @@ pub(super) fn neuron_info_command() -> ClapCommand {
     ClapCommand::new("info")
         .bin_name("icq nns neuron info")
         .about("Show one public NNS neuron")
-        .disable_help_flag(true)
         .arg(
             value_arg("neuron-id")
                 .value_name("neuron-id")
@@ -130,7 +121,6 @@ pub(super) fn neuron_info_command() -> ClapCommand {
                 .long("verbose")
                 .help("Show expanded public neuron details in text output"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             INFO_HELP_AFTER,
@@ -141,7 +131,6 @@ pub(super) fn neuron_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq nns neuron refresh")
         .about("Refresh the complete public NNS neuron snapshot")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
@@ -165,7 +154,6 @@ pub(super) fn neuron_refresh_command() -> ClapCommand {
                 .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
                 .help("Stop without publishing if this cap precedes API exhaustion"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             REFRESH_HELP_AFTER,
@@ -176,10 +164,8 @@ pub(super) fn neuron_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq nns neuron cache")
         .about("Inspect the local complete public NNS neuron snapshot")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("status").about("Show snapshot and refresh-attempt status"),
-        ))
+        .subcommand_required(true)
+        .subcommand(neuron_cache_status_command())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             CACHE_HELP_AFTER,
@@ -190,35 +176,39 @@ pub(super) fn neuron_cache_status_command() -> ClapCommand {
     ClapCommand::new("status")
         .bin_name("icq nns neuron cache status")
         .about("Show public NNS neuron snapshot and refresh-attempt status")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             CACHE_HELP_AFTER,
         ))
 }
 
+#[cfg(test)]
 pub(super) fn neuron_usage_for_error() -> String {
     render_help(neuron_command())
 }
 
+#[cfg(test)]
 pub(super) fn neuron_list_usage_for_error() -> String {
     render_help(neuron_list_command())
 }
 
+#[cfg(test)]
 pub(super) fn neuron_info_usage_for_error() -> String {
     render_help(neuron_info_command())
 }
 
+#[cfg(test)]
 pub(super) fn neuron_refresh_usage_for_error() -> String {
     render_help(neuron_refresh_command())
 }
 
+#[cfg(test)]
 pub(super) fn neuron_cache_usage_for_error() -> String {
     render_help(neuron_cache_command())
 }
 
+#[cfg(test)]
 pub(super) fn neuron_cache_status_usage_for_error() -> String {
     render_help(neuron_cache_status_command())
 }

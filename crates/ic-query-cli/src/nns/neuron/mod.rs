@@ -13,4 +13,4 @@ pub(in crate::nns) use commands::{
 pub(in crate::nns) use options::{
     NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
 };
-pub(in crate::nns) use run::run;
+pub(in crate::nns) use run::{command, run};

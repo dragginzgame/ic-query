@@ -13,4 +13,4 @@ pub(in crate::nns) use options::{
     TopologyProvidersOptions, TopologyRefreshOptions, TopologyRegionsOptions,
     TopologySummaryOptions, TopologyVersionsOptions,
 };
-pub(super) use run::run;
+pub(super) use run::{command, run};

@@ -21,7 +21,6 @@ pub(in crate::nns::subnet) fn info_command() -> ClapCommand {
     ClapCommand::new("info")
         .bin_name("icq nns subnet info")
         .about("Resolve a subnet, canister, or subnet prefix to cached subnet info")
-        .disable_help_flag(true)
         .arg(
             value_arg("input")
                 .value_name(INFO_INPUT_VALUE_NAME)
@@ -40,7 +39,6 @@ pub(in crate::nns::subnet) fn info_command() -> ClapCommand {
             leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
                 .help("IC API endpoint used if the subnet catalog cache is missing"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_REFRESH_MISSING,
             INFO_HELP_AFTER,

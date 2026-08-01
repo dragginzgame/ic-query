@@ -11,6 +11,20 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
 
+- `0.22.1` replaces staged CLI parsing with one composed Clap command tree and
+  typed family/leaf dispatch. Clap now owns nested help, propagated version,
+  required-subcommand diagnostics, and top-level network validation; reduced
+  passthrough grammars, raw argument scans, and the hidden network-forwarding
+  option are removed. Native nested `icq help <path>` is supported, while the
+  old leaf-trailing positional shortcut (for example, `icq sns list help`) is
+  removed as a pre-1.0 hard cut; use `-h`, `--help`, or
+  `icq help <path>`. Command names, report options and output, network
+  authority, cache behavior, and live calls are unchanged.
+
+  ```bash
+  icq help nns topology
+  ```
+
 - `0.22.0` establishes the ordered structural-consolidation design for one
   composed Clap grammar, shared NNS Registry inventory orchestration, shared
   snapshot lifecycle mechanics, and cohesive module boundaries. The first

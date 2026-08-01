@@ -7,4 +7,4 @@ pub(in crate::nns) use commands::{
 };
 #[cfg(test)]
 pub(in crate::nns) use options::{node_info_options, node_list_options, node_refresh_options};
-pub(super) use run::run;
+pub(super) use run::{command, run};

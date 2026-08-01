@@ -5,7 +5,7 @@ mod commands;
 mod tests;
 
 use crate::cli::common::CurrentUnixSecsError;
-pub use commands::run;
+pub use commands::{command, run_matches};
 use std::io;
 use thiserror::Error as ThisError;
 

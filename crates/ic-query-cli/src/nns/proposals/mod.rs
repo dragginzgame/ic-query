@@ -17,7 +17,7 @@ pub(super) use ic_query::nns::proposals::{
 pub(super) use options::{
     NnsProposalCacheOptions, NnsProposalListOptions, NnsProposalOptions, NnsProposalRefreshOptions,
 };
-pub(super) use run::run;
+pub(super) use run::{command, run};
 #[cfg(test)]
 pub(super) use values::{
     NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,

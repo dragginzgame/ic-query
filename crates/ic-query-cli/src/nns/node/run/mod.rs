@@ -2,25 +2,25 @@ mod info;
 mod list;
 mod refresh;
 
-use super::commands::NODE_SPEC;
+use super::commands::node_command;
 use crate::{
-    nns::{NnsCommandError, command_cache_root, leaf},
+    nns::{NnsCommandError, command_cache_root},
     progress::announce_missing_mainnet_cache,
 };
+use clap::ArgMatches;
 use ic_query::nns::{NnsInventoryCacheRequest, node::nns_node_cache_path};
-use std::ffi::OsString;
 
-pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    leaf::run_leaf(
-        args,
-        &NODE_SPEC,
-        list::run_node_list,
-        info::run_node_info,
-        refresh::run_node_refresh,
-    )
+pub(in crate::nns) fn command() -> clap::Command {
+    node_command()
+}
+
+pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => list::run_node_list(matches, network),
+        Some(("info", matches)) => info::run_node_info(matches, network),
+        Some(("refresh", matches)) => refresh::run_node_refresh(matches, network),
+        _ => unreachable!("clap requires a known NNS node subcommand"),
+    }
 }
 
 fn cache_request(network: &str) -> Result<NnsInventoryCacheRequest, NnsCommandError> {

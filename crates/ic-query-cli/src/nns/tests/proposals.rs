@@ -100,17 +100,6 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
 }
 
 #[test]
-fn nns_proposal_list_accepts_the_forwarded_mainnet_network() {
-    let options = NnsProposalListOptions::parse_list([
-        OsString::from("--__icq-network"),
-        OsString::from("ic"),
-    ])
-    .expect("parse forwarded global network");
-
-    assert_eq!(options.network, "ic");
-}
-
-#[test]
 fn nns_proposal_list_parses_extended_local_sort_values() {
     let reward_status_sort = NnsProposalListOptions::parse_list([
         OsString::from("--sort"),
@@ -298,19 +287,4 @@ fn nns_proposal_list_rejects_direction_without_local_sort() {
         .expect_err("direction without local sort rejected");
 
     assert!(err.to_string().contains("--desc requires --sort"));
-}
-
-#[test]
-fn nns_proposal_list_local_is_rejected_with_pinned_message() {
-    let err = run([
-        OsString::from("proposal"),
-        OsString::from("list"),
-        OsString::from("--__icq-network"),
-        OsString::from("local"),
-    ])
-    .expect_err("local rejected");
-
-    let message = err.to_string();
-    assert!(message.contains("supports only the mainnet `ic` network"));
-    assert!(message.contains("icq --network ic nns proposal list"));
 }

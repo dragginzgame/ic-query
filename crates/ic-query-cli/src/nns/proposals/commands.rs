@@ -4,9 +4,11 @@
 //! Does not own: option validation, live governance calls, or report rendering.
 //! Boundary: defines the public `icq nns proposal` command shape.
 
+#[cfg(test)]
+use crate::cli::clap::render_help;
 use crate::{
     cli::{
-        clap::{flag_arg, passthrough_subcommand, render_help, value_arg},
+        clap::{flag_arg, value_arg},
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             COLLECTION_MODE_FORCE_REFRESH, collection_help,
@@ -104,7 +106,6 @@ fn nns_proposal_list_command_with(
     ClapCommand::new(name)
         .bin_name(bin_name)
         .about("List NNS governance proposals")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
@@ -187,7 +188,6 @@ fn nns_proposal_list_command_with(
                 .long(NNS_PROPOSAL_VERBOSE_FLAG)
                 .help("Show per-proposal detail lines in text output"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             help_after,
@@ -210,7 +210,6 @@ fn nns_proposal_detail_command_with(
     ClapCommand::new(name)
         .bin_name(bin_name)
         .about("Show one NNS governance proposal")
-        .disable_help_flag(true)
         .arg(
             value_arg(NNS_PROPOSAL_ID_ARG)
                 .value_name(NNS_PROPOSAL_ID_ARG)
@@ -233,7 +232,6 @@ fn nns_proposal_detail_command_with(
                 .long(NNS_PROPOSAL_VERBOSE_FLAG)
                 .help("Show full NNS proposal detail text"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             help_after,
@@ -244,20 +242,11 @@ pub(in crate::nns::proposals) fn nns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
         .bin_name("icq nns proposal")
         .about("Inspect NNS governance proposals")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List NNS governance proposals"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("info").about("Show one NNS governance proposal"),
-        ))
-        .subcommand(passthrough_subcommand(ClapCommand::new("refresh").about(
-            "Force-refresh and cache a complete NNS governance proposal snapshot",
-        )))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("cache")
-                .about("Inspect local complete NNS governance proposal snapshots"),
-        ))
+        .subcommand_required(true)
+        .subcommand(nns_proposal_list_command())
+        .subcommand(nns_proposal_info_command())
+        .subcommand(nns_proposal_refresh_command())
+        .subcommand(nns_proposal_cache_command())
         .after_help(NNS_PROPOSAL_HELP_AFTER)
 }
 
@@ -273,7 +262,6 @@ pub(in crate::nns::proposals) fn nns_proposal_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq nns proposal refresh")
         .about("Force-refresh and cache a complete NNS governance proposal snapshot")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
@@ -297,7 +285,6 @@ pub(in crate::nns::proposals) fn nns_proposal_refresh_command() -> ClapCommand {
                 .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             NNS_PROPOSAL_REFRESH_HELP_AFTER,
@@ -308,13 +295,9 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq nns proposal cache")
         .about("Inspect local complete NNS governance proposal snapshots")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List local complete NNS proposal snapshots"),
-        ))
-        .subcommand(passthrough_subcommand(ClapCommand::new("status").about(
-            "Show local NNS proposal snapshot and refresh-attempt status",
-        )))
+        .subcommand_required(true)
+        .subcommand(nns_proposal_cache_list_command())
+        .subcommand(nns_proposal_cache_status_command())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             NNS_PROPOSAL_CACHE_HELP_AFTER,
@@ -325,9 +308,7 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_list_command() -> ClapComman
     ClapCommand::new("list")
         .bin_name("icq nns proposal cache list")
         .about("List local complete NNS proposal snapshots")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             NNS_PROPOSAL_CACHE_LIST_HELP_AFTER,
@@ -338,9 +319,7 @@ pub(in crate::nns::proposals) fn nns_proposal_cache_status_command() -> ClapComm
     ClapCommand::new("status")
         .bin_name("icq nns proposal cache status")
         .about("Show local NNS proposal snapshot and refresh-attempt status")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             NNS_PROPOSAL_CACHE_STATUS_HELP_AFTER,
@@ -352,16 +331,8 @@ pub(in crate::nns) fn nns_proposal_list_usage() -> String {
     render_help(nns_proposal_list_command())
 }
 
-pub(in crate::nns::proposals) fn nns_proposal_list_usage_for_error() -> String {
-    render_help(nns_proposal_list_command())
-}
-
 #[cfg(test)]
 pub(in crate::nns) fn nns_proposal_usage() -> String {
-    render_help(nns_proposal_command())
-}
-
-pub(in crate::nns::proposals) fn nns_proposal_usage_for_error() -> String {
     render_help(nns_proposal_command())
 }
 
@@ -370,16 +341,8 @@ pub(in crate::nns) fn nns_proposal_info_usage() -> String {
     render_help(nns_proposal_info_command())
 }
 
-pub(in crate::nns::proposals) fn nns_proposal_info_usage_for_error() -> String {
-    render_help(nns_proposal_info_command())
-}
-
 #[cfg(test)]
 pub(in crate::nns) fn nns_proposal_refresh_usage() -> String {
-    render_help(nns_proposal_refresh_command())
-}
-
-pub(in crate::nns::proposals) fn nns_proposal_refresh_usage_for_error() -> String {
     render_help(nns_proposal_refresh_command())
 }
 
@@ -388,24 +351,12 @@ pub(in crate::nns) fn nns_proposal_cache_usage() -> String {
     render_help(nns_proposal_cache_command())
 }
 
-pub(in crate::nns::proposals) fn nns_proposal_cache_usage_for_error() -> String {
-    render_help(nns_proposal_cache_command())
-}
-
 #[cfg(test)]
 pub(in crate::nns) fn nns_proposal_cache_list_usage() -> String {
     render_help(nns_proposal_cache_list_command())
 }
 
-pub(in crate::nns::proposals) fn nns_proposal_cache_list_usage_for_error() -> String {
-    render_help(nns_proposal_cache_list_command())
-}
-
 #[cfg(test)]
 pub(in crate::nns) fn nns_proposal_cache_status_usage() -> String {
-    render_help(nns_proposal_cache_status_command())
-}
-
-pub(in crate::nns::proposals) fn nns_proposal_cache_status_usage_for_error() -> String {
     render_help(nns_proposal_cache_status_command())
 }

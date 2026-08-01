@@ -4,9 +4,7 @@
 //! Does not own: option parsing, Root calls, report construction, or rendering.
 //! Boundary: defines the singular canister command family and live-call disclosure.
 
-use crate::{
-    cli::clap::passthrough_subcommand, sns::commands::spec::commands::lookup::sns_lookup_command,
-};
+use crate::sns::commands::spec::commands::lookup::sns_lookup_command;
 use clap::Command as ClapCommand;
 
 const SNS_CANISTER_LIST_HELP_AFTER: &str = "\
@@ -23,10 +21,8 @@ pub(in crate::sns::commands) fn sns_canister_command() -> ClapCommand {
     ClapCommand::new("canister")
         .bin_name("icq sns canister")
         .about("Inspect SNS Root canister inventory and operational health")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List SNS Root canisters and operational health"),
-        ))
+        .subcommand_required(true)
+        .subcommand(sns_canister_list_command())
 }
 
 pub(in crate::sns::commands) fn sns_canister_list_command() -> ClapCommand {

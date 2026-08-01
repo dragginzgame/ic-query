@@ -5,21 +5,21 @@
 //! Boundary: converts refresh command arguments into command-runner options.
 
 use super::NnsCommonOptions;
+#[cfg(test)]
+use crate::nns::NnsCommandError;
+#[cfg(test)]
+use crate::nns::leaf::model::NnsLeafCommandSpec;
 use crate::{
     cli::{
         clap::{required_typed, typed_option},
         common::OutputFormat,
     },
-    nns::{
-        NnsCommandError,
-        leaf::{
-            commands::{DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, OUTPUT_ARG, refresh_command},
-            model::NnsLeafCommandSpec,
-        },
-        parse_nns_matches,
-    },
+    nns::leaf::commands::{DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, OUTPUT_ARG},
 };
-use std::{ffi::OsString, path::PathBuf};
+use clap::ArgMatches;
+#[cfg(test)]
+use std::ffi::OsString;
+use std::path::PathBuf;
 
 ///
 /// NnsLeafRefreshOptions
@@ -38,6 +38,19 @@ pub(in crate::nns) struct NnsLeafRefreshOptions {
 }
 
 impl NnsLeafRefreshOptions {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
+            network: common.network,
+            format: common.format,
+            source_endpoint: common.source_endpoint,
+            lock_stale_after_seconds: required_typed(matches, LOCK_STALE_AFTER_ARG),
+            dry_run: matches.get_flag(DRY_RUN_ARG),
+            output_path: typed_option(matches, OUTPUT_ARG),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::nns) fn parse<I>(
         args: I,
         spec: &NnsLeafCommandSpec,
@@ -46,15 +59,13 @@ impl NnsLeafRefreshOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(refresh_command(spec, default_source_endpoint), args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-            lock_stale_after_seconds: required_typed(&matches, LOCK_STALE_AFTER_ARG),
-            dry_run: matches.get_flag(DRY_RUN_ARG),
-            output_path: typed_option(&matches, OUTPUT_ARG),
-        })
+        let matches = crate::nns::parse_nns_matches(
+            crate::nns::leaf::commands::refresh_command(spec, default_source_endpoint),
+            args,
+        )?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }

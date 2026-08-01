@@ -9,43 +9,28 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::{SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions},
-        run::common::{cache_command_parts, command_args, parse_required_command},
-        spec::{
-            sns_neuron_cache_command, sns_neuron_cache_list_usage, sns_neuron_cache_status_usage,
-            sns_neuron_cache_usage,
-        },
+        run::common::cache_command_parts,
     },
 };
+use clap::ArgMatches;
 use ic_query::sns::{
     SnsCacheListRequest, SnsCacheStatusRequest, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, sns_neurons_cache_list_report_text,
     sns_neurons_cache_status_report_text,
 };
-use std::ffi::OsString;
-
-pub(super) fn run_sns_neuron_cache<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_neuron_cache_usage) else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_command(sns_neuron_cache_command(), args)?;
-    match command.as_str() {
-        "list" => run_sns_neuron_cache_list(args),
-        "status" => run_sns_neuron_cache_status(args),
-        _ => unreachable!("sns neuron cache dispatch command only defines known commands"),
+pub(super) fn run_sns_neuron_cache(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => run_sns_neuron_cache_list(matches, network),
+        Some(("status", matches)) => run_sns_neuron_cache_status(matches, network),
+        _ => unreachable!("clap requires a known SNS neuron cache subcommand"),
     }
 }
 
-fn run_sns_neuron_cache_list<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_neuron_cache_list_usage) else {
-        return Ok(());
-    };
-    let options = SnsNeuronsCacheListOptions::parse(args)?;
+fn run_sns_neuron_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsNeuronsCacheListOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheListRequest {
         network: parts.network,
@@ -55,14 +40,8 @@ where
     write_text_or_json(parts.format, &report, sns_neurons_cache_list_report_text)
 }
 
-fn run_sns_neuron_cache_status<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_neuron_cache_status_usage) else {
-        return Ok(());
-    };
-    let options = SnsNeuronsCacheStatusOptions::parse(args)?;
+fn run_sns_neuron_cache_status(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsNeuronsCacheStatusOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheStatusRequest {
         network: parts.network,

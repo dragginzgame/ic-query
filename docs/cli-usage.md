@@ -2,15 +2,15 @@
 
 `icq` exposes read-only reports grouped by the authority or protocol family
 that supplies them. This guide describes the stable command hierarchy and
-collection behavior. Run a command with `help` for its complete current option
-reference.
+collection behavior. Run a command with `--help`, or use `icq help <path>`, for
+its complete current option reference.
 
 ## Common behavior
 
 ```bash
 icq help
-icq nns help
-icq nns topology summary help
+icq help nns
+icq nns topology summary --help
 ```
 
 Report commands use human-facing text by default and accept

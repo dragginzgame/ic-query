@@ -13,4 +13,4 @@ pub(in crate::nns) use commands::{
 };
 #[cfg(test)]
 pub(in crate::nns) use options::NnsGovernanceOptions;
-pub(super) use run::run;
+pub(super) use run::{command, run};

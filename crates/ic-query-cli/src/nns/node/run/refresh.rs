@@ -1,20 +1,12 @@
 use super::cache_request;
-use crate::nns::{
-    NnsCommandError, command_args,
-    node::{commands::node_refresh_usage, options::node_refresh_options},
-    now_unix_secs, write_text_or_json,
-};
+use crate::nns::{NnsCommandError, leaf::NnsLeafRefreshOptions, now_unix_secs, write_text_or_json};
+use clap::ArgMatches;
 use ic_query::nns::{
     NnsInventoryRefreshRequest,
     node::{nns_node_refresh_report_text, refresh_nns_node_report},
 };
-use std::ffi::OsString;
-
-pub(super) fn run_node_refresh(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    let Some(args) = command_args(args, node_refresh_usage) else {
-        return Ok(());
-    };
-    let options = node_refresh_options(args)?;
+pub(super) fn run_node_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.format;
     let mut request = NnsInventoryRefreshRequest::new(
         cache_request(&options.network)?,

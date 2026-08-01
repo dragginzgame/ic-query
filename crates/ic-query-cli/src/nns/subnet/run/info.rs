@@ -1,22 +1,15 @@
 use super::{announce_missing_catalog, cache_request};
 use crate::{
     cli::common::write_text_or_json,
-    nns::{
-        NnsCommandError, command_args, now_unix_secs,
-        subnet::{commands::info_usage, options::CatalogInfoOptions},
-    },
+    nns::{NnsCommandError, now_unix_secs, subnet::options::CatalogInfoOptions},
 };
+use clap::ArgMatches;
 use ic_query::subnet_catalog::{
     DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogInfoRequest, build_subnet_catalog_info_report,
     subnet_catalog_info_report_text,
 };
-use std::ffi::OsString;
-
-pub(super) fn run_catalog_info(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    let Some(args) = command_args(args, info_usage) else {
-        return Ok(());
-    };
-    let options = CatalogInfoOptions::parse(args)?;
+pub(super) fn run_catalog_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = CatalogInfoOptions::from_matches(matches, network);
     let format = options.format;
     let cache = cache_request(&options.network)?;
     announce_missing_catalog(&cache, &options.source_endpoint);

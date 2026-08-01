@@ -5,10 +5,7 @@
 //! Boundary: defines shared lookup command shape and examples.
 
 use crate::{
-    cli::{
-        common::{COLLECTION_MODE_LIVE, collection_help, json_arg, source_endpoint_arg},
-        globals::internal_network_arg,
-    },
+    cli::common::{COLLECTION_MODE_LIVE, collection_help, json_arg, source_endpoint_arg},
     sns::commands::spec::commands::args::sns_lookup_input_arg,
 };
 use clap::Command as ClapCommand;
@@ -72,10 +69,8 @@ pub(super) fn sns_lookup_command(
     ClapCommand::new(name)
         .bin_name(bin_name)
         .about(about)
-        .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(json_arg())
         .arg(source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT).help(source_endpoint_help))
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(COLLECTION_MODE_LIVE, after_help))
 }

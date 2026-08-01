@@ -1,36 +1,26 @@
-use super::clap::{parse_required_subcommand, passthrough_subcommand};
-use clap::{Command, error::ErrorKind};
+use super::clap::{parse_matches, required_string, typed_option, value_arg};
+use clap::Command;
 use std::ffi::OsString;
 
 #[test]
-fn parse_required_subcommand_reports_missing_subcommand() {
-    let error = parse_required_subcommand(Command::new("icq"), []).expect_err("missing command");
-
-    assert_eq!(error.kind(), ErrorKind::MissingSubcommand);
-}
-
-#[test]
-fn parse_required_subcommand_returns_passthrough_args() {
-    let command = Command::new("icq").subcommand(passthrough_subcommand(Command::new("sns")));
-
-    let (name, args) = parse_required_subcommand(
+fn typed_helpers_read_values_from_one_clap_match_tree() {
+    let command = Command::new("icq")
+        .arg(value_arg("name").required(true))
+        .arg(
+            value_arg("count")
+                .long("count")
+                .value_parser(clap::value_parser!(u32)),
+        );
+    let matches = parse_matches(
         command,
         [
-            OsString::from("sns"),
-            OsString::from("neurons"),
-            OsString::from("--limit"),
-            OsString::from("50"),
+            OsString::from("report"),
+            OsString::from("--count"),
+            OsString::from("3"),
         ],
     )
-    .expect("parse command");
+    .expect("parse typed arguments");
 
-    assert_eq!(name, "sns");
-    assert_eq!(
-        args,
-        vec![
-            OsString::from("neurons"),
-            OsString::from("--limit"),
-            OsString::from("50"),
-        ],
-    );
+    assert_eq!(required_string(&matches, "name"), "report");
+    assert_eq!(typed_option::<u32>(&matches, "count"), Some(3));
 }

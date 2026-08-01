@@ -11,19 +11,13 @@ mod system;
 #[cfg(test)]
 mod test_support;
 
-use crate::cli::clap::{parse_matches, passthrough_args, passthrough_subcommand, string_option};
-use clap::{Arg, ArgAction, Command};
+use crate::cli::clap::{parse_matches, string_option};
+use clap::{Arg, Command, error::ErrorKind};
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::ffi::OsString;
 use thiserror::Error as ThisError;
 
 const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{usage-heading} {usage}\n\nCommands:\n{subcommands}\n\nOptions:\n{options}{after-help}\n";
-const VERSION_TEXT: &str = concat!("icq ", env!("CARGO_PKG_VERSION"));
-const INTERNAL_NETWORK_OPTION: &str = "--__icq-network";
-
-const fn version_text() -> &'static str {
-    VERSION_TEXT
-}
 
 ///
 /// IcqCliError
@@ -98,71 +92,53 @@ pub fn run<I>(args: I) -> Result<(), IcqCliError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let Some(args) = collect_args_or_print_help(args, usage) else {
-        return Ok(());
-    };
-    if let Some((command, option)) = command_local_global_option(&args) {
-        if matches!(command, "ic" | "icrc") {
-            return Err(unsupported_global_network_error(command));
+    let matches = match parse_matches(top_level_command(), args) {
+        Ok(matches) => matches,
+        Err(error)
+            if matches!(
+                error.kind(),
+                ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+            ) =>
+        {
+            print!("{error}");
+            return Ok(());
         }
-        return Err(IcqCliError::Usage(format!(
-            "{option} is a top-level option; put it before the command\n\n{}",
-            usage()
-        )));
-    }
+        Err(error) => return Err(IcqCliError::Usage(error.to_string())),
+    };
 
-    let matches = parse_matches(top_level_dispatch_command(), args)
-        .map_err(|error| IcqCliError::Usage(format!("{error}\n{}", usage())))?;
-    if matches.get_flag("version") {
-        println!("{VERSION_TEXT}");
-        return Ok(());
-    }
-    let global_network = string_option(&matches, "network");
-
-    let Some((command, subcommand_matches)) = matches.subcommand() else {
+    let selected_network = string_option(&matches, "network");
+    let network = selected_network.as_deref().unwrap_or(MAINNET_NETWORK);
+    let Some((command, matches)) = matches.subcommand() else {
         return Err(IcqCliError::Usage(usage()));
     };
-    let mut tail = passthrough_args(subcommand_matches);
-    apply_global_network(command, &mut tail, global_network)?;
-    let tail = tail.into_iter();
 
     match command {
-        "ic" => Ok(ic::run(tail)?),
-        "icrc" => Ok(icrc::run(tail)?),
-        "nns" => Ok(nns::run(tail)?),
-        "sns" => Ok(sns::run(tail)?),
-        "system" => Ok(system::run(tail)?),
-        _ => unreachable!("top-level dispatch command only defines known commands"),
+        "ic" => {
+            reject_network_for_endpoint_family(command, selected_network.as_deref())?;
+            Ok(ic::run_matches(matches)?)
+        }
+        "icrc" => {
+            reject_network_for_endpoint_family(command, selected_network.as_deref())?;
+            Ok(icrc::run_matches(matches)?)
+        }
+        "nns" => Ok(nns::run_matches(matches, network)?),
+        "sns" => Ok(sns::run_matches(matches, network)?),
+        "system" => Ok(system::run_matches(matches, network)?),
+        _ => unreachable!("clap only returns declared top-level commands"),
     }
 }
 
-fn collect_args_or_print_help<I>(args: I, usage: impl FnOnce() -> String) -> Option<Vec<OsString>>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let args = args.into_iter().collect::<Vec<_>>();
-    if top_level_help_requested(&args) {
-        println!("{}", usage());
-        return None;
+fn reject_network_for_endpoint_family(
+    command: &str,
+    selected_network: Option<&str>,
+) -> Result<(), IcqCliError> {
+    if selected_network.is_none() {
+        return Ok(());
     }
-    Some(args)
-}
-
-fn top_level_help_requested(args: &[OsString]) -> bool {
-    let mut index = 0;
-    while index < args.len() {
-        let Some(arg) = args[index].to_str() else {
-            return false;
-        };
-        if command_family(arg).is_some() {
-            return false;
-        }
-        if matches!(arg, "help" | "--help" | "-h") {
-            return true;
-        }
-        index += if arg == "--network" { 2 } else { 1 };
-    }
-    false
+    Err(IcqCliError::Usage(format!(
+        "--network is not supported by `icq {command}`; use the command's --source-endpoint option to select its API endpoint\n\n{}",
+        usage()
+    )))
 }
 
 fn network_arg() -> Arg {
@@ -177,45 +153,17 @@ fn network_arg() -> Arg {
 fn top_level_command() -> Command {
     Command::new("icq")
         .version(env!("CARGO_PKG_VERSION"))
+        .propagate_version(true)
         .about("Internet Computer metadata query CLI")
-        .disable_help_subcommand(true)
-        .disable_version_flag(true)
-        .arg(
-            Arg::new("version")
-                .short('V')
-                .long("version")
-                .action(ArgAction::SetTrue)
-                .help("Print version"),
-        )
-        .arg(network_arg().global(true))
+        .arg(network_arg())
         .subcommand_help_heading("Commands")
         .help_template(TOP_LEVEL_HELP_TEMPLATE)
-        .after_help("Run `icq <command> help` for command-specific help.")
-        .subcommands(
-            COMMAND_FAMILIES
-                .iter()
-                .map(|family| Command::new(family.name).about(family.about)),
-        )
-}
-
-fn top_level_dispatch_command() -> Command {
-    let command = Command::new("icq")
-        .disable_help_flag(true)
-        .disable_help_subcommand(true)
-        .disable_version_flag(true)
-        .arg(
-            Arg::new("version")
-                .short('V')
-                .long("version")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(network_arg().global(true));
-
-    COMMAND_FAMILIES.iter().fold(command, |command, family| {
-        command.subcommand(passthrough_subcommand(
-            Command::new(family.name).about(family.about),
-        ))
-    })
+        .after_help("Run `icq <command> --help` for command-specific help.")
+        .subcommand(ic::command())
+        .subcommand(icrc::command())
+        .subcommand(nns::command())
+        .subcommand(sns::command())
+        .subcommand(system::command())
 }
 
 fn usage() -> String {
@@ -223,294 +171,154 @@ fn usage() -> String {
     command.render_help().to_string()
 }
 
-fn command_local_global_option(args: &[OsString]) -> Option<(&'static str, &'static str)> {
-    let mut index = 0;
-    while index < args.len() {
-        let arg = args[index].to_str()?;
-        if let Some(family) = command_family(arg) {
-            return args[index + 1..]
-                .iter()
-                .filter_map(|arg| arg.to_str())
-                .find_map(global_option_name)
-                .map(|option| (family.name, option));
-        }
-        index += if arg == "--network" { 2 } else { 1 };
-    }
-    None
-}
-
-fn global_option_name(arg: &str) -> Option<&'static str> {
-    match arg {
-        "--network" => Some("--network"),
-        _ if arg.starts_with("--network=") => Some("--network"),
-        _ => None,
-    }
-}
-
-fn apply_global_network(
-    command: &str,
-    tail: &mut Vec<OsString>,
-    global_network: Option<String>,
-) -> Result<(), IcqCliError> {
-    let Some(global_network) = global_network else {
-        return Ok(());
-    };
-    if !command_accepts_global_network(command, tail) {
-        return Err(unsupported_global_network_error(command));
-    }
-    if tail_has_option(tail, INTERNAL_NETWORK_OPTION) {
-        return Ok(());
-    }
-
-    tail.push(OsString::from(INTERNAL_NETWORK_OPTION));
-    tail.push(OsString::from(global_network));
-    Ok(())
-}
-
-fn unsupported_global_network_error(command: &str) -> IcqCliError {
-    let guidance = if matches!(command, "ic" | "icrc") {
-        " use the command's --source-endpoint option to select its API endpoint"
-    } else {
-        ""
-    };
-    IcqCliError::Usage(format!(
-        "--network is not supported by `icq {command}`;{guidance}\n\n{}",
-        usage()
-    ))
-}
-
-fn command_accepts_global_network(command: &str, tail: &[OsString]) -> bool {
-    command_family(command).is_some_and(|family| (family.accepts_global_network)(tail))
-}
-
-fn tail_has_option(tail: &[OsString], name: &str) -> bool {
-    tail.iter().any(|arg| arg.to_str() == Some(name))
-}
-
-#[derive(Clone, Copy, Debug)]
-struct CommandFamily {
-    name: &'static str,
-    about: &'static str,
-    accepts_global_network: fn(&[OsString]) -> bool,
-}
-
-const COMMAND_FAMILIES: &[CommandFamily] = &[
-    CommandFamily {
-        name: "ic",
-        about: "Inspect official IC Dashboard metadata",
-        accepts_global_network: ic_accepts_global_network,
-    },
-    CommandFamily {
-        name: "icrc",
-        about: "Inspect generic ICRC ledger and account metadata",
-        accepts_global_network: icrc_accepts_global_network,
-    },
-    CommandFamily {
-        name: "nns",
-        about: "Inspect NNS metadata",
-        accepts_global_network: nns_accepts_global_network,
-    },
-    CommandFamily {
-        name: "sns",
-        about: "Inspect SNS metadata",
-        accepts_global_network: sns_accepts_global_network,
-    },
-    CommandFamily {
-        name: "system",
-        about: "Inspect native IC system-canister metadata",
-        accepts_global_network: system_accepts_global_network,
-    },
-];
-
-fn command_family(name: &str) -> Option<&'static CommandFamily> {
-    COMMAND_FAMILIES.iter().find(|family| family.name == name)
-}
-
-const fn nns_accepts_global_network(_tail: &[OsString]) -> bool {
-    true
-}
-
-const fn ic_accepts_global_network(_tail: &[OsString]) -> bool {
-    false
-}
-
-const fn icrc_accepts_global_network(_tail: &[OsString]) -> bool {
-    false
-}
-
-const fn sns_accepts_global_network(_tail: &[OsString]) -> bool {
-    true
-}
-
-const fn system_accepts_global_network(_tail: &[OsString]) -> bool {
-    true
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn usage_lists_query_families() {
+    fn usage_lists_query_families_and_native_help_guidance() {
         let text = usage();
 
         assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
         assert!(text.contains("ic"));
-        assert!(text.contains("Inspect official IC Dashboard metadata"));
+        assert!(text.contains("Inspect official IC Dashboard data"));
         assert!(text.contains("icrc"));
-        assert!(text.contains("Inspect generic ICRC ledger and account metadata"));
+        assert!(text.contains("Inspect generic ICRC ledgers"));
         assert!(text.contains("nns"));
         assert!(text.contains("Inspect NNS metadata"));
         assert!(text.contains("sns"));
         assert!(text.contains("Inspect SNS metadata"));
         assert!(text.contains("system"));
         assert!(text.contains("Inspect native IC system-canister metadata"));
-        assert!(text.contains("Run `icq <command> help`"));
+        assert!(text.contains("Run `icq <command> --help`"));
     }
 
     #[test]
-    fn top_level_usage_snapshot() {
-        let expected = format!(
-            "\
-icq {}
-Internet Computer metadata query CLI
-
-Usage: icq [OPTIONS] [COMMAND]
-
-Commands:
-  ic      Inspect official IC Dashboard metadata
-  icrc    Inspect generic ICRC ledger and account metadata
-  nns     Inspect NNS metadata
-  sns     Inspect SNS metadata
-  system  Inspect native IC system-canister metadata
-
-Options:
-  -V, --version         Print version
-      --network <name>  Network identity for NNS, SNS, and system commands; currently only ic [possible values: ic]
-  -h, --help            Print help
-
-Run `icq <command> help` for command-specific help.
-",
-            env!("CARGO_PKG_VERSION")
-        );
-
-        assert_eq!(usage(), expected);
-    }
-
-    #[test]
-    fn command_family_help_returns_ok() {
+    fn native_help_and_propagated_version_return_without_dispatch() {
         for args in [
-            &["ic", "help"][..],
-            &["ic", "canister", "help"],
-            &["ic", "canister", "info", "help"],
-            &["icrc", "help"],
-            &["icrc", "ledger", "help"],
-            &["icrc", "ledger", "token", "help"],
-            &["icrc", "account", "help"],
-            &["icrc", "account", "balance", "help"],
-            &["icrc", "account", "allowance", "help"],
-            &["icrc", "account", "transaction", "help"],
-            &["icrc", "account", "transaction", "page", "help"],
-            &["icrc", "account", "transaction", "list", "help"],
-            &["icrc", "account", "transaction", "refresh", "help"],
-            &["icrc", "account", "transaction", "cache", "help"],
-            &["icrc", "account", "transaction", "cache", "status", "help"],
-            &["icrc", "ledger", "index", "help"],
-            &["nns", "help"][..],
-            &["nns", "data-center", "help"],
-            &["nns", "data-center", "list", "help"],
-            &["nns", "data-center", "info", "help"],
-            &["nns", "data-center", "refresh", "help"],
-            &["nns", "node", "help"],
-            &["nns", "node", "list", "help"],
-            &["nns", "node", "info", "help"],
-            &["nns", "node", "refresh", "help"],
-            &["nns", "node-provider", "help"],
-            &["nns", "node-provider", "list", "help"],
-            &["nns", "node-provider", "info", "help"],
-            &["nns", "node-provider", "refresh", "help"],
-            &["nns", "node-operator", "help"],
-            &["nns", "node-operator", "list", "help"],
-            &["nns", "node-operator", "info", "help"],
-            &["nns", "node-operator", "refresh", "help"],
-            &["nns", "proposal", "help"],
-            &["nns", "proposal", "list", "help"],
-            &["nns", "proposal", "info", "help"],
-            &["nns", "registry", "help"],
-            &["nns", "registry", "version", "help"],
-            &["nns", "subnet", "help"],
-            &["nns", "subnet", "list", "help"],
-            &["nns", "subnet", "info", "help"],
-            &["nns", "subnet", "refresh", "help"],
-            &["nns", "topology", "help"],
-            &["nns", "topology", "summary", "help"],
-            &["nns", "topology", "coverage", "help"],
-            &["nns", "topology", "versions", "help"],
-            &["nns", "topology", "health", "help"],
-            &["nns", "topology", "gaps", "help"],
-            &["nns", "topology", "capacity", "help"],
-            &["nns", "topology", "regions", "help"],
-            &["nns", "topology", "providers", "help"],
-            &["nns", "topology", "refresh", "help"],
-            &["sns", "help"],
-            &["sns", "list", "help"],
-            &["sns", "info", "help"],
-            &["sns", "token", "help"],
-            &["sns", "params", "help"],
-            &["sns", "proposal", "help"],
-            &["sns", "proposal", "list", "help"],
-            &["sns", "proposal", "info", "help"],
-            &["sns", "proposal", "cache", "help"],
-            &["sns", "proposal", "cache", "list", "help"],
-            &["sns", "proposal", "cache", "status", "help"],
-            &["sns", "proposal", "refresh", "help"],
-            &["sns", "neuron", "help"],
-            &["sns", "neuron", "list", "help"],
-            &["sns", "neuron", "cache", "help"],
-            &["sns", "neuron", "cache", "list", "help"],
-            &["sns", "neuron", "cache", "status", "help"],
-            &["sns", "neuron", "refresh", "help"],
-            &["system", "help"],
-            &["system", "xdr", "help"],
-            &["system", "cycles", "help"],
+            &["--help"][..],
+            &["ic", "canister", "info", "--help"],
+            &[
+                "icrc",
+                "account",
+                "transaction",
+                "cache",
+                "status",
+                "--help",
+            ],
+            &["nns", "topology", "providers", "--help"],
+            &["sns", "proposal", "cache", "status", "--help"],
+            &["system", "cycles", "--help"],
+            &["--version"],
+            &["nns", "subnet", "list", "--version"],
         ] {
             assert_run_ok(args);
         }
     }
 
     #[test]
-    fn version_flags_return_ok() {
-        assert_eq!(VERSION_TEXT, concat!("icq ", env!("CARGO_PKG_VERSION")));
-        assert!(run([OsString::from("--version")]).is_ok());
-        assert!(run([OsString::from("ic"), OsString::from("--version")]).is_ok());
-        assert!(run([OsString::from("icrc"), OsString::from("--version")]).is_ok());
-        assert!(run([OsString::from("nns"), OsString::from("--version")]).is_ok());
-        assert!(run([OsString::from("sns"), OsString::from("--version")]).is_ok());
-        assert!(run([OsString::from("system"), OsString::from("--version")]).is_ok());
+    fn every_composed_command_path_supports_native_help() {
+        fn collect_paths(
+            command: &Command,
+            prefix: &mut Vec<OsString>,
+            paths: &mut Vec<Vec<OsString>>,
+        ) {
+            for subcommand in command.get_subcommands() {
+                prefix.push(OsString::from(subcommand.get_name()));
+                paths.push(prefix.clone());
+                collect_paths(subcommand, prefix, paths);
+                prefix.pop();
+            }
+        }
+
+        let mut paths = Vec::new();
+        collect_paths(&top_level_command(), &mut Vec::new(), &mut paths);
+        assert!(!paths.is_empty());
+
+        for mut path in paths {
+            path.push(OsString::from("--help"));
+            let error = parse_matches(top_level_command(), path.clone())
+                .expect_err("native help must stop before typed dispatch");
+            assert_eq!(
+                error.kind(),
+                ErrorKind::DisplayHelp,
+                "unexpected result for {path:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn every_report_leaf_exposes_the_shared_json_flag() {
+        fn assert_leaf_json(command: &Command, path: &mut Vec<String>) {
+            let subcommands = command.get_subcommands().collect::<Vec<_>>();
+            if subcommands.is_empty() {
+                assert!(
+                    command
+                        .get_arguments()
+                        .any(|argument| argument.get_id() == "json"),
+                    "missing --json on {}",
+                    path.join(" ")
+                );
+                return;
+            }
+
+            for subcommand in subcommands {
+                path.push(subcommand.get_name().to_string());
+                assert_leaf_json(subcommand, path);
+                path.pop();
+            }
+        }
+
+        assert_leaf_json(&top_level_command(), &mut vec!["icq".to_string()]);
+    }
+
+    #[test]
+    fn clap_rejects_non_mainnet_and_command_local_network_options() {
+        let error = run([
+            OsString::from("--network"),
+            OsString::from("local"),
+            OsString::from("nns"),
+            OsString::from("registry"),
+            OsString::from("version"),
+        ])
+        .expect_err("non-mainnet network must fail in Clap");
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("invalid value 'local'"));
+
+        let error = run([
+            OsString::from("nns"),
+            OsString::from("registry"),
+            OsString::from("version"),
+            OsString::from("--network"),
+            OsString::from("ic"),
+        ])
+        .expect_err("network remains a top-level option");
+        assert_eq!(error.exit_code(), 2);
         assert!(
-            run([
-                OsString::from("nns"),
-                OsString::from("subnet"),
-                OsString::from("list"),
-                OsString::from("--version")
-            ])
-            .is_ok()
+            error
+                .to_string()
+                .contains("unexpected argument '--network'")
         );
+    }
 
-        let mut sns_info_tail = vec![OsString::from("info"), OsString::from("1")];
-
-        apply_global_network("sns", &mut sns_info_tail, Some("ic".to_string()))
-            .expect("SNS supports global network");
-
-        assert_eq!(
-            sns_info_tail,
-            vec![
-                OsString::from("info"),
-                OsString::from("1"),
-                OsString::from(INTERNAL_NETWORK_OPTION),
-                OsString::from("ic")
-            ]
-        );
+    #[test]
+    fn network_is_rejected_for_endpoint_identified_families() {
+        for args in [
+            &["--network", "ic", "ic", "canister", "count"][..],
+            &[
+                "--network",
+                "ic",
+                "icrc",
+                "ledger",
+                "token",
+                "ryjl3-tyaaa-aaaaa-aaaba-cai",
+            ],
+        ] {
+            let error = run(args.iter().map(OsString::from))
+                .expect_err("endpoint-identified families must reject --network");
+            assert_eq!(error.exit_code(), 2);
+            assert!(error.to_string().contains("--source-endpoint"));
+        }
     }
 
     #[test]
@@ -538,240 +346,6 @@ Run `icq <command> help` for command-specific help.
             assert_eq!(broken_pipe.exit_code(), 1);
             assert!(broken_pipe.is_broken_pipe());
         }
-    }
-
-    #[test]
-    fn global_network_is_forwarded_to_networked_leaf_commands() {
-        for (command, leaf) in [
-            ("nns", "data-center"),
-            ("nns", "governance"),
-            ("nns", "neuron"),
-            ("nns", "node"),
-            ("nns", "node-operator"),
-            ("nns", "node-provider"),
-            ("nns", "proposal"),
-            ("nns", "registry"),
-            ("nns", "subnet"),
-            ("nns", "topology"),
-            ("sns", "canister"),
-            ("sns", "info"),
-            ("sns", "list"),
-            ("sns", "neuron"),
-            ("sns", "params"),
-            ("sns", "proposal"),
-            ("sns", "token"),
-            ("system", "xdr"),
-        ] {
-            let mut tail = vec![OsString::from(leaf), OsString::from("list")];
-
-            apply_global_network(command, &mut tail, Some("ic".to_string()))
-                .expect("NNS, SNS, and system families support the global network");
-
-            assert_eq!(
-                tail,
-                vec![
-                    OsString::from(leaf),
-                    OsString::from("list"),
-                    OsString::from(INTERNAL_NETWORK_OPTION),
-                    OsString::from("ic")
-                ]
-            );
-        }
-    }
-
-    #[test]
-    fn clap_rejects_non_mainnet_network_before_dispatch() {
-        for args in [
-            vec![
-                OsString::from("--network"),
-                OsString::from("local"),
-                OsString::from("nns"),
-                OsString::from("proposal"),
-                OsString::from("list"),
-            ],
-            vec![
-                OsString::from("--network"),
-                OsString::from("local"),
-                OsString::from("nns"),
-                OsString::from("governance"),
-                OsString::from("economics"),
-            ],
-            vec![
-                OsString::from("--network"),
-                OsString::from("local"),
-                OsString::from("nns"),
-                OsString::from("neuron"),
-                OsString::from("list"),
-            ],
-            vec![
-                OsString::from("--network"),
-                OsString::from("local"),
-                OsString::from("sns"),
-                OsString::from("list"),
-            ],
-            vec![
-                OsString::from("--network"),
-                OsString::from("local"),
-                OsString::from("sns"),
-                OsString::from("canister"),
-                OsString::from("list"),
-                OsString::from("1"),
-            ],
-            vec![
-                OsString::from("--network"),
-                OsString::from("local"),
-                OsString::from("system"),
-                OsString::from("xdr"),
-            ],
-            vec![
-                OsString::from("--network"),
-                OsString::from("local"),
-                OsString::from("nns"),
-                OsString::from("governance"),
-                OsString::from("economics"),
-                OsString::from("--source-endpoint"),
-                OsString::from("help"),
-            ],
-        ] {
-            let error = run(args).expect_err("non-mainnet network must fail before dispatch");
-
-            assert_eq!(error.exit_code(), 2);
-            let message = error.to_string();
-            assert!(message.contains("invalid value 'local'"));
-            assert!(message.contains("possible values: ic"));
-            assert!(!message.contains("failed to build IC agent"));
-        }
-    }
-
-    #[test]
-    fn global_network_is_rejected_when_the_family_uses_endpoint_identity() {
-        for (command, mut tail) in [
-            (
-                "ic",
-                vec![OsString::from("canister"), OsString::from("info")],
-            ),
-            (
-                "icrc",
-                vec![OsString::from("ledger"), OsString::from("token")],
-            ),
-        ] {
-            let original = tail.clone();
-            let error = apply_global_network(command, &mut tail, Some("ic".to_string()))
-                .expect_err("endpoint-identified family must reject global network");
-
-            assert_eq!(error.exit_code(), 2);
-            assert!(error.to_string().contains("--network is not supported"));
-            assert!(error.to_string().contains(&format!("icq {command}")));
-            assert!(error.to_string().contains("--source-endpoint"));
-            assert_eq!(tail, original);
-        }
-
-        let error = run([
-            OsString::from("--network"),
-            OsString::from("ic"),
-            OsString::from("icrc"),
-            OsString::from("ledger"),
-            OsString::from("token"),
-            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-        ])
-        .expect_err("ICRC global network must fail before dispatch");
-
-        assert_eq!(error.exit_code(), 2);
-        assert!(error.to_string().contains("--source-endpoint"));
-
-        let error = run([
-            OsString::from("icrc"),
-            OsString::from("ledger"),
-            OsString::from("token"),
-            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-            OsString::from("--network"),
-            OsString::from("ic"),
-        ])
-        .expect_err("command-local ICRC network must use the same rejection");
-
-        assert_eq!(error.exit_code(), 2);
-        assert!(error.to_string().contains("--network is not supported"));
-        assert!(!error.to_string().contains("put it before the command"));
-
-        let error = run([
-            OsString::from("--network"),
-            OsString::from("ic"),
-            OsString::from("icrc"),
-            OsString::from("ledger"),
-            OsString::from("token"),
-            OsString::from("help"),
-        ])
-        .expect_err("unsupported global options remain invalid in help invocations");
-        assert_eq!(error.exit_code(), 2);
-        assert!(error.to_string().contains("--network is not supported"));
-
-        let error = run([
-            OsString::from("--network"),
-            OsString::from("ic"),
-            OsString::from("ic"),
-            OsString::from("canister"),
-            OsString::from("info"),
-            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-        ])
-        .expect_err("Dashboard family global network must fail before dispatch");
-
-        assert_eq!(error.exit_code(), 2);
-        assert!(error.to_string().contains("icq ic"));
-        assert!(error.to_string().contains("--source-endpoint"));
-
-        let error = run([
-            OsString::from("ic"),
-            OsString::from("canister"),
-            OsString::from("info"),
-            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-            OsString::from("--network"),
-            OsString::from("ic"),
-        ])
-        .expect_err("command-local Dashboard network must use the same rejection");
-
-        assert_eq!(error.exit_code(), 2);
-        assert!(error.to_string().contains("--network is not supported"));
-        assert!(!error.to_string().contains("put it before the command"));
-    }
-
-    #[test]
-    fn malformed_source_endpoint_returns_typed_error_without_network_io() {
-        let error = run([
-            OsString::from("icrc"),
-            OsString::from("ledger"),
-            OsString::from("token"),
-            OsString::from("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-            OsString::from("--source-endpoint"),
-            OsString::from(":::"),
-        ])
-        .expect_err("malformed endpoint must return an error");
-
-        assert_eq!(error.exit_code(), 1);
-        assert!(error.to_string().contains("failed to build IC agent"));
-        assert!(error.to_string().contains(":::"));
-    }
-
-    #[test]
-    fn sns_nested_commands_dispatch_through_clap_subcommands() {
-        assert!(
-            run([
-                OsString::from("sns"),
-                OsString::from("neuron"),
-                OsString::from("refresh"),
-                OsString::from("--help")
-            ])
-            .is_ok()
-        );
-        assert!(
-            run([
-                OsString::from("sns"),
-                OsString::from("proposal"),
-                OsString::from("cache"),
-                OsString::from("status"),
-                OsString::from("--help")
-            ])
-            .is_ok()
-        );
     }
 
     fn assert_run_ok(args: &[&str]) {

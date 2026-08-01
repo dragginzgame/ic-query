@@ -1,23 +1,15 @@
 use super::{announce_missing_node_cache, cache_request};
 use crate::{
     cli::common::write_text_or_json_verbose,
-    nns::{
-        NnsCommandError, command_args,
-        node::{commands::node_list_usage, options::node_list_options},
-        now_unix_secs,
-    },
+    nns::{NnsCommandError, node::options::node_list_options_from_matches, now_unix_secs},
 };
+use clap::ArgMatches;
 use ic_query::nns::node::{
     NnsNodeListRequest, build_nns_node_list_report, nns_node_list_report_text,
     nns_node_list_report_verbose_text,
 };
-use std::ffi::OsString;
-
-pub(super) fn run_node_list(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    let Some(args) = command_args(args, node_list_usage) else {
-        return Ok(());
-    };
-    let options = node_list_options(args)?;
+pub(super) fn run_node_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = node_list_options_from_matches(matches, network);
     let cache = cache_request(&options.network)?;
     announce_missing_node_cache(&cache, &options.source_endpoint);
     let request = NnsNodeListRequest::new(cache, options.source_endpoint, now_unix_secs()?)

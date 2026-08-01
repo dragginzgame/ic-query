@@ -1,21 +1,16 @@
 use crate::nns::{
-    NnsCommandError, command_args, command_cache_root, now_unix_secs,
-    topology::{commands::topology_refresh_usage, options::TopologyRefreshOptions},
+    NnsCommandError, command_cache_root, now_unix_secs, topology::options::TopologyRefreshOptions,
     write_text_or_json,
 };
+use clap::ArgMatches;
 use ic_query::nns::topology::{
     NnsTopologyRefreshRequest, nns_topology_refresh_report_text, refresh_nns_topology_report,
 };
-use std::ffi::OsString;
-
-pub(super) fn run_topology_refresh<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, topology_refresh_usage) else {
-        return Ok(());
-    };
-    let options = TopologyRefreshOptions::parse(args)?;
+pub(super) fn run_topology_refresh(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
+    let options = TopologyRefreshOptions::from_matches(matches, network);
     let format = options.format;
     let cache_root = command_cache_root()?;
     let request = NnsTopologyRefreshRequest::new(

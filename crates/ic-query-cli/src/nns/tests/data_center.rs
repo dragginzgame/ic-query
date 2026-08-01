@@ -100,18 +100,3 @@ fn data_center_help_is_advertised_under_nns() {
     assert!(refresh.contains("icq nns data-center refresh"));
     assert!(refresh.contains("--dry-run"));
 }
-
-#[test]
-fn data_center_local_is_rejected_with_pinned_message() {
-    let err = run([
-        OsString::from("data-center"),
-        OsString::from("list"),
-        OsString::from("--__icq-network"),
-        OsString::from("local"),
-    ])
-    .expect_err("local rejected");
-
-    let message = err.to_string();
-    assert!(message.contains("supports only the mainnet `ic` network"));
-    assert!(message.contains("icq --network ic nns data-center list"));
-}

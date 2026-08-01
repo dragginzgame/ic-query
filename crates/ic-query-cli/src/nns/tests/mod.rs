@@ -88,5 +88,4 @@ mod proposals;
 mod registry;
 mod subnet;
 mod topology_help;
-mod topology_local;
 mod topology_options;

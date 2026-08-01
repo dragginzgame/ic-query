@@ -4,12 +4,9 @@
 //! Does not own: command specs, report requests, or output rendering.
 //! Boundary: converts shared clap matches into reusable leaf option values.
 
-use crate::{
-    cli::{
-        clap::required_string,
-        common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
-    },
-    nns::leaf::commands::NETWORK_ARG,
+use crate::cli::{
+    clap::required_string,
+    common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
 };
 use clap::ArgMatches;
 
@@ -27,9 +24,9 @@ pub(in crate::nns) struct NnsCommonOptions {
 }
 
 impl NnsCommonOptions {
-    pub(in crate::nns) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
-            network: required_string(matches, NETWORK_ARG),
+            network: network.to_string(),
             format: output_format(matches),
             source_endpoint: required_string(matches, SOURCE_ENDPOINT_ARG),
         }

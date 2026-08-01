@@ -1,7 +1,10 @@
 //! Parsed options shared by direct NNS Governance reports.
 
-use crate::nns::{NnsCommandError, OutputFormat, leaf::NnsCommonOptions, parse_nns_matches};
+use crate::nns::{OutputFormat, leaf::NnsCommonOptions};
+use clap::ArgMatches;
+#[cfg(test)]
 use clap::Command as ClapCommand;
+#[cfg(test)]
 use std::ffi::OsString;
 
 ///
@@ -18,16 +21,27 @@ pub(in crate::nns) struct NnsGovernanceOptions {
 }
 
 impl NnsGovernanceOptions {
-    pub(in crate::nns) fn parse<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_nns_matches(command, args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-        })
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(
+        args: I,
+        command: ClapCommand,
+    ) -> Result<Self, crate::nns::NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = crate::nns::parse_nns_matches(command, args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }

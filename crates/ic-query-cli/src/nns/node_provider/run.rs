@@ -1,16 +1,12 @@
 use super::{reports::NnsNodeProviderReports, spec::NODE_PROVIDER_SPEC};
 use crate::nns::{NnsCommandError, leaf};
-use ic_query::nns::node_provider::DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT;
-use std::ffi::OsString;
+use clap::ArgMatches;
 
-pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
+pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     leaf::run_cached_leaf(
-        args,
+        matches,
+        network,
         &NODE_PROVIDER_SPEC,
-        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         NnsNodeProviderReports,
     )
 }

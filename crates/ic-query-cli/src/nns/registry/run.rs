@@ -1,38 +1,22 @@
-use super::{
-    commands::{registry_command, registry_usage_for_error, registry_version_usage_for_error},
-    options::RegistryVersionOptions,
-};
-use crate::nns::{
-    NnsCommandError, command_args, now_unix_secs, parse_nns_required_subcommand, write_text_or_json,
-};
+use super::{commands::registry_command, options::RegistryVersionOptions};
+use crate::nns::{NnsCommandError, now_unix_secs, write_text_or_json};
+use clap::ArgMatches;
 use ic_query::nns::registry::{
     NnsRegistryVersionRequest, build_nns_registry_version_report, nns_registry_version_report_text,
 };
-use std::ffi::OsString;
+pub(in crate::nns) fn command() -> clap::Command {
+    registry_command()
+}
 
-pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, registry_usage_for_error) else {
-        return Ok(());
-    };
-    let (command, args) = parse_nns_required_subcommand(registry_command(), args)?;
-
-    match command.as_str() {
-        "version" => run_registry_version(args),
-        _ => unreachable!("nns registry dispatch command only defines known commands"),
+pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    match matches.subcommand() {
+        Some(("version", matches)) => run_registry_version(matches, network),
+        _ => unreachable!("clap requires a known NNS registry subcommand"),
     }
 }
 
-fn run_registry_version<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, registry_version_usage_for_error) else {
-        return Ok(());
-    };
-    let options = RegistryVersionOptions::parse(args)?;
+fn run_registry_version(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = RegistryVersionOptions::from_matches(matches, network);
     let request =
         NnsRegistryVersionRequest::new(options.network, options.source_endpoint, now_unix_secs()?);
     let report = build_nns_registry_version_report(&request)?;

@@ -1,12 +1,11 @@
-use crate::{
-    cli::common::OutputFormat,
-    nns::{
-        NnsCommandError, leaf::NnsCommonOptions, parse_nns_matches,
-        topology::commands as topology_commands,
-    },
-};
+#[cfg(test)]
+use crate::nns::topology::commands as topology_commands;
+use crate::{cli::common::OutputFormat, nns::leaf::NnsCommonOptions};
+use clap::ArgMatches;
 use ic_query::nns::topology::NnsTopologyReadRequest;
-use std::{ffi::OsString, path::PathBuf};
+#[cfg(test)]
+use std::ffi::OsString;
+use std::path::PathBuf;
 
 macro_rules! topology_read_options {
     ($name:ident, $command:path) => {
@@ -23,23 +22,27 @@ macro_rules! topology_read_options {
         }
 
         impl $name {
-            pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+            #[cfg(test)]
+            pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
             where
                 I: IntoIterator<Item = OsString>,
             {
-                let matches = parse_nns_matches($command(), args)?;
-                let common = NnsCommonOptions::from_matches(&matches);
-                Ok(Self {
-                    network: common.network,
-                    format: common.format,
-                    source_endpoint: common.source_endpoint,
-                })
+                let matches = crate::nns::parse_nns_matches($command(), args)?;
+                Ok(<Self as TopologyReadOptions>::from_matches(
+                    &matches,
+                    ic_query::subnet_catalog::MAINNET_NETWORK,
+                ))
             }
         }
 
         impl TopologyReadOptions for $name {
-            fn parse_args(args: Vec<OsString>) -> Result<Self, NnsCommandError> {
-                Self::parse(args)
+            fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+                let common = NnsCommonOptions::from_matches(matches, network);
+                Self {
+                    network: common.network,
+                    format: common.format,
+                    source_endpoint: common.source_endpoint,
+                }
             }
 
             fn format(&self) -> OutputFormat {
@@ -69,7 +72,7 @@ macro_rules! topology_read_options {
 ///
 
 pub(in crate::nns::topology) trait TopologyReadOptions: Sized {
-    fn parse_args(args: Vec<OsString>) -> Result<Self, NnsCommandError>;
+    fn from_matches(matches: &ArgMatches, network: &str) -> Self;
     fn format(&self) -> OutputFormat;
     fn into_request(self, cache_root: PathBuf, now_unix_secs: u64) -> NnsTopologyReadRequest;
 }

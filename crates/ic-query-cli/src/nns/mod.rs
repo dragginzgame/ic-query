@@ -16,17 +16,11 @@ mod subnet;
 mod tests;
 mod topology;
 
+#[cfg(test)]
+use crate::cli::clap::render_help;
 use crate::{
-    cli::{
-        clap::{
-            parse_matches_or_usage, parse_required_subcommand_or_usage, passthrough_subcommand,
-            render_help,
-        },
-        common::{CurrentUnixSecsError, OutputFormat, current_unix_secs, write_text_or_json},
-        help::collect_args_or_print_help_or_version,
-    },
+    cli::common::{CurrentUnixSecsError, OutputFormat, current_unix_secs, write_text_or_json},
     storage::cache_root,
-    version_text,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::{
@@ -39,7 +33,9 @@ use ic_query::{
     },
     subnet_catalog::SubnetCatalogHostError,
 };
-use std::{ffi::OsString, io, path::PathBuf};
+#[cfg(test)]
+use std::ffi::OsString;
+use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
 
 ///
@@ -80,39 +76,23 @@ pub enum NnsCommandError {
     Json(#[from] serde_json::Error),
 }
 
-pub fn run<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, usage) else {
-        return Ok(());
-    };
-    let (command, args) = parse_nns_required_subcommand(nns_command(), args)?;
-    match command.as_str() {
-        "subnet" => subnet::run(args),
-        "data-center" => data_center::run(args),
-        "governance" => governance::run(args),
-        "node" => node::run(args),
-        "neuron" => neuron::run(args),
-        "node-provider" => node_provider::run(args),
-        "node-operator" => node_operator::run(args),
-        "proposal" => proposals::run(args),
-        "registry" => registry::run(args),
-        "topology" => topology::run(args),
-        _ => unreachable!("NNS command only defines known subcommands"),
+pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    match matches.subcommand() {
+        Some(("subnet", matches)) => subnet::run(matches, network),
+        Some(("data-center", matches)) => data_center::run(matches, network),
+        Some(("governance", matches)) => governance::run(matches, network),
+        Some(("node", matches)) => node::run(matches, network),
+        Some(("neuron", matches)) => neuron::run(matches, network),
+        Some(("node-provider", matches)) => node_provider::run(matches, network),
+        Some(("node-operator", matches)) => node_operator::run(matches, network),
+        Some(("proposal", matches)) => proposals::run(matches, network),
+        Some(("registry", matches)) => registry::run(matches, network),
+        Some(("topology", matches)) => topology::run(matches, network),
+        _ => unreachable!("clap requires a known NNS subcommand"),
     }
 }
 
-pub(in crate::nns) fn command_args<I>(
-    args: I,
-    usage: impl FnOnce() -> String,
-) -> Option<Vec<OsString>>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    collect_args_or_print_help_or_version(args, usage, version_text())
-}
-
+#[cfg(test)]
 pub(in crate::nns) fn parse_nns_matches<I>(
     command: ClapCommand,
     args: I,
@@ -120,17 +100,7 @@ pub(in crate::nns) fn parse_nns_matches<I>(
 where
     I: IntoIterator<Item = OsString>,
 {
-    parse_matches_or_usage(command, args).map_err(NnsCommandError::Usage)
-}
-
-pub(in crate::nns) fn parse_nns_required_subcommand<I>(
-    command: ClapCommand,
-    args: I,
-) -> Result<(String, Vec<OsString>), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    parse_required_subcommand_or_usage(command, args).map_err(NnsCommandError::Usage)
+    crate::cli::clap::parse_matches_or_usage(command, args).map_err(NnsCommandError::Usage)
 }
 
 fn now_unix_secs() -> Result<u64, NnsCommandError> {
@@ -140,33 +110,24 @@ fn command_cache_root() -> Result<PathBuf, NnsCommandError> {
     cache_root().map_err(|err| NnsCommandError::Usage(err.to_string()))
 }
 
-fn nns_command() -> ClapCommand {
-    let families = [
-        ("subnet", "Inspect and refresh NNS subnet metadata"),
-        ("data-center", "Inspect NNS data-center metadata"),
-        (
-            "governance",
-            "Inspect NNS Governance economics, metrics, and rewards",
-        ),
-        ("node", "Inspect NNS node metadata"),
-        ("neuron", "Inspect public NNS Governance neuron views"),
-        ("node-provider", "Inspect NNS node-provider metadata"),
-        ("node-operator", "Inspect NNS node-operator metadata"),
-        ("proposal", "Inspect NNS governance proposals"),
-        ("registry", "Inspect NNS registry metadata"),
-        ("topology", "Summarize joined NNS topology metadata"),
-    ];
-    families.into_iter().fold(
-        ClapCommand::new("nns")
-            .bin_name("icq nns")
-            .about("Inspect NNS metadata")
-            .disable_help_flag(true),
-        |command, (name, about)| {
-            command.subcommand(passthrough_subcommand(ClapCommand::new(name).about(about)))
-        },
-    )
+pub fn command() -> ClapCommand {
+    ClapCommand::new("nns")
+        .bin_name("icq nns")
+        .about("Inspect NNS metadata")
+        .subcommand_required(true)
+        .subcommand(subnet::command())
+        .subcommand(data_center::command())
+        .subcommand(governance::command())
+        .subcommand(node::command())
+        .subcommand(neuron::command())
+        .subcommand(node_provider::command())
+        .subcommand(node_operator::command())
+        .subcommand(proposals::command())
+        .subcommand(registry::command())
+        .subcommand(topology::command())
 }
 
+#[cfg(test)]
 fn usage() -> String {
-    render_help(nns_command())
+    render_help(command())
 }

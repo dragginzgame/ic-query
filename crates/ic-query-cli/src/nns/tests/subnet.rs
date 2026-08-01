@@ -119,21 +119,6 @@ fn refresh_parses_defaults_and_export_options() {
 }
 
 #[test]
-fn catalog_local_is_rejected_with_pinned_message() {
-    let err = run([
-        OsString::from("subnet"),
-        OsString::from("list"),
-        OsString::from("--__icq-network"),
-        OsString::from("local"),
-    ])
-    .expect_err("local rejected");
-
-    let message = err.to_string();
-    assert!(message.contains("supports only the mainnet `ic` network"));
-    assert!(message.contains("icq --network ic nns subnet list"));
-}
-
-#[test]
 fn refresh_is_advertised_as_subnet_command() {
     let text = subnet_usage();
     let refresh = refresh_usage();

@@ -1,11 +1,15 @@
+#[cfg(test)]
 use super::commands::{info_command, list_command, refresh_command};
 use crate::{
     cli::clap::{required_string, required_typed, typed_option},
     cli::common::output_format,
-    nns::{NnsCommandError, OutputFormat, parse_nns_matches},
+    nns::OutputFormat,
 };
+use clap::ArgMatches;
 use ic_query::subnet_catalog::{ResolveAs, SubnetCatalogFilters};
-use std::{ffi::OsString, path::PathBuf};
+#[cfg(test)]
+use std::ffi::OsString;
+use std::path::PathBuf;
 
 ///
 /// CatalogListOptions
@@ -57,57 +61,81 @@ pub(in crate::nns) struct CatalogRefreshOptions {
 }
 
 impl CatalogListOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_nns_matches(list_command(), args)?;
-        Ok(Self {
-            network: required_string(&matches, "network"),
-            format: output_format(&matches),
-            source_endpoint: required_string(&matches, "source-endpoint"),
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+            source_endpoint: required_string(matches, "source-endpoint"),
             filters: SubnetCatalogFilters {
-                kind: typed_option(&matches, "kind"),
-                specialization: typed_option(&matches, "specialization"),
-                geographic_scope: typed_option(&matches, "geo"),
+                kind: typed_option(matches, "kind"),
+                specialization: typed_option(matches, "specialization"),
+                geographic_scope: typed_option(matches, "geo"),
             },
             show_ranges: matches.get_flag("show-ranges"),
             verbose: matches.get_flag("verbose"),
-            range_limit: required_typed(&matches, "range-limit"),
-            range_offset: required_typed(&matches, "range-offset"),
-        })
+            range_limit: required_typed(matches, "range-limit"),
+            range_offset: required_typed(matches, "range-offset"),
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = crate::nns::parse_nns_matches(list_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
 impl CatalogInfoOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            input: required_string(matches, "input"),
+            network: network.to_string(),
+            format: output_format(matches),
+            source_endpoint: required_string(matches, "source-endpoint"),
+            forced: typed_option(matches, "as"),
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(info_command(), args)?;
-        Ok(Self {
-            input: required_string(&matches, "input"),
-            network: required_string(&matches, "network"),
-            format: output_format(&matches),
-            source_endpoint: required_string(&matches, "source-endpoint"),
-            forced: typed_option(&matches, "as"),
-        })
+        let matches = crate::nns::parse_nns_matches(info_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
 impl CatalogRefreshOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+            source_endpoint: required_string(matches, "source-endpoint"),
+            lock_stale_after_seconds: required_typed(matches, "lock-stale-after"),
+            dry_run: matches.get_flag("dry-run"),
+            output_path: typed_option(matches, "output"),
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(refresh_command(), args)?;
-        Ok(Self {
-            network: required_string(&matches, "network"),
-            format: output_format(&matches),
-            source_endpoint: required_string(&matches, "source-endpoint"),
-            lock_stale_after_seconds: required_typed(&matches, "lock-stale-after"),
-            dry_run: matches.get_flag("dry-run"),
-            output_path: typed_option(&matches, "output"),
-        })
+        let matches = crate::nns::parse_nns_matches(refresh_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }

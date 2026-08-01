@@ -12,41 +12,27 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::SnsNeuronsOptions,
-        run::common::{
-            command_args, command_cache_root, lookup_command_parts, parse_required_command,
-        },
-        spec::{SnsNeuronsSortArg, sns_neuron_command, sns_neuron_list_usage, sns_neuron_usage},
+        run::common::{command_cache_root, lookup_command_parts},
+        spec::SnsNeuronsSortArg,
     },
 };
+use clap::ArgMatches;
 use ic_query::sns::{
     SnsNeuronsRequest, SnsNeuronsSort, build_sns_neurons_report, sns_neurons_report_text,
 };
-use std::{ffi::OsString, path::PathBuf};
+use std::path::PathBuf;
 
-pub(super) fn run_sns_neuron<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_neuron_usage) else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_command(sns_neuron_command(), args)?;
-    match command.as_str() {
-        "list" => run_sns_neuron_list(args),
-        "refresh" => refresh::run_sns_neuron_refresh(args),
-        "cache" => cache::run_sns_neuron_cache(args),
-        _ => unreachable!("sns neuron dispatch command only defines known commands"),
+pub(super) fn run_sns_neuron(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => run_sns_neuron_list(matches, network),
+        Some(("refresh", matches)) => refresh::run_sns_neuron_refresh(matches, network),
+        Some(("cache", matches)) => cache::run_sns_neuron_cache(matches, network),
+        _ => unreachable!("clap requires a known SNS neuron subcommand"),
     }
 }
 
-fn run_sns_neuron_list<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_neuron_list_usage) else {
-        return Ok(());
-    };
-    let options = SnsNeuronsOptions::parse(args)?;
+fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsNeuronsOptions::from_matches(matches, network)?;
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let cache_root = cache_root_for_sort(options.sort)?;

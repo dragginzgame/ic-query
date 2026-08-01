@@ -1,20 +1,14 @@
-use crate::cli::{clap::value_arg, globals::internal_network_arg};
+use crate::cli::clap::value_arg;
 use ic_query::duration::parse_duration_seconds;
-use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::path::PathBuf;
 
 pub(in crate::nns) const INPUT_ARG: &str = "input";
-pub(in crate::nns) const NETWORK_ARG: &str = "network";
 pub(in crate::nns) const LOCK_STALE_AFTER_ARG: &str = "lock-stale-after";
 pub(in crate::nns) const DRY_RUN_ARG: &str = "dry-run";
 pub(in crate::nns) const OUTPUT_ARG: &str = "output";
 pub(in crate::nns) const VERBOSE_ARG: &str = "verbose";
 
 const DEFAULT_LOCK_STALE_AFTER: &str = "30m";
-
-pub(in crate::nns) fn network_arg() -> clap::Arg {
-    internal_network_arg().default_value(MAINNET_NETWORK)
-}
 
 pub(in crate::nns) fn refresh_lock_stale_after_arg() -> clap::Arg {
     value_arg(LOCK_STALE_AFTER_ARG)

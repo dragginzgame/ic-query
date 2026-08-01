@@ -8,22 +8,25 @@ use super::{
     FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG,
     LIMIT_ARG, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG,
     PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG, START_ARG,
-    SUBACCOUNT_ARG, format_from_matches, icrc_account_transaction_cache_status_command,
-    icrc_account_transaction_list_command, icrc_account_transaction_page_command,
-    icrc_account_transaction_refresh_command, icrc_allowance_command, icrc_archives_command,
-    icrc_balance_command, icrc_transactions_command, source_endpoint_from_matches,
+    SUBACCOUNT_ARG, format_from_matches, source_endpoint_from_matches,
 };
-use crate::{
-    cli::{
-        clap::{
-            parse_matches_or_usage, required_string, required_typed, string_option, typed_option,
-        },
-        common::OutputFormat,
-    },
-    icrc::IcrcCommandError,
+#[cfg(test)]
+use super::{
+    icrc_account_transaction_cache_status_command, icrc_account_transaction_list_command,
+    icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
+    icrc_allowance_command, icrc_archives_command, icrc_balance_command, icrc_transactions_command,
 };
+use crate::cli::{
+    clap::{required_string, required_typed, string_option, typed_option},
+    common::OutputFormat,
+};
+#[cfg(test)]
+use crate::{cli::clap::parse_matches_or_usage, icrc::IcrcCommandError};
+use clap::ArgMatches;
+#[cfg(test)]
 use clap::Command as ClapCommand;
 use ic_query::icrc::IcrcAccountTransactionSort;
+#[cfg(test)]
 use std::ffi::OsString;
 
 ///
@@ -40,16 +43,21 @@ pub(in crate::icrc) struct IcrcLedgerOptions {
 }
 
 impl IcrcLedgerOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            format: format_from_matches(matches),
+            source_endpoint: source_endpoint_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I, command: fn() -> ClapCommand) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(command(), args).map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -69,19 +77,24 @@ pub(in crate::icrc) struct IcrcBalanceOptions {
 }
 
 impl IcrcBalanceOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            account_owner: required_string(matches, PRINCIPAL_ARG),
+            subaccount_hex: string_option(matches, SUBACCOUNT_ARG),
+            format: format_from_matches(matches),
+            source_endpoint: source_endpoint_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_balance_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            account_owner: required_string(&matches, PRINCIPAL_ARG),
-            subaccount_hex: string_option(&matches, SUBACCOUNT_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -103,21 +116,26 @@ pub(in crate::icrc) struct IcrcAllowanceOptions {
 }
 
 impl IcrcAllowanceOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            account_owner: required_string(matches, OWNER_PRINCIPAL_ARG),
+            account_subaccount_hex: string_option(matches, OWNER_SUBACCOUNT_ARG),
+            spender_owner: required_string(matches, SPENDER_PRINCIPAL_ARG),
+            spender_subaccount_hex: string_option(matches, SPENDER_SUBACCOUNT_ARG),
+            format: format_from_matches(matches),
+            source_endpoint: source_endpoint_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_allowance_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            account_owner: required_string(&matches, OWNER_PRINCIPAL_ARG),
-            account_subaccount_hex: string_option(&matches, OWNER_SUBACCOUNT_ARG),
-            spender_owner: required_string(&matches, SPENDER_PRINCIPAL_ARG),
-            spender_subaccount_hex: string_option(&matches, SPENDER_SUBACCOUNT_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -136,7 +154,7 @@ pub(in crate::icrc) struct IcrcAccountTargetOptions {
 }
 
 impl IcrcAccountTargetOptions {
-    fn from_matches(matches: &clap::ArgMatches) -> Self {
+    fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
             account_owner: required_string(matches, PRINCIPAL_ARG),
@@ -162,19 +180,24 @@ pub(in crate::icrc) struct IcrcAccountTransactionPageOptions {
 }
 
 impl IcrcAccountTransactionPageOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            target: IcrcAccountTargetOptions::from_matches(matches),
+            index_canister_id: string_option(matches, INDEX_CANISTER_ID_ARG),
+            start: string_option(matches, START_ARG),
+            limit: required_typed(matches, LIMIT_ARG),
+            format: format_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_account_transaction_page_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            target: IcrcAccountTargetOptions::from_matches(&matches),
-            index_canister_id: string_option(&matches, INDEX_CANISTER_ID_ARG),
-            start: string_option(&matches, START_ARG),
-            limit: required_typed(&matches, LIMIT_ARG),
-            format: format_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -193,23 +216,28 @@ pub(in crate::icrc) struct IcrcAccountTransactionListOptions {
 }
 
 impl IcrcAccountTransactionListOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        let sort = match required_string(matches, SORT_ARG).as_str() {
+            "newest" => IcrcAccountTransactionSort::Newest,
+            "oldest" => IcrcAccountTransactionSort::Oldest,
+            _ => unreachable!("Clap restricts account transaction sort values"),
+        };
+        Self {
+            target: IcrcAccountTargetOptions::from_matches(matches),
+            limit: required_typed(matches, LIMIT_ARG),
+            sort,
+            format: format_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_account_transaction_list_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        let sort = match required_string(&matches, SORT_ARG).as_str() {
-            "newest" => IcrcAccountTransactionSort::Newest,
-            "oldest" => IcrcAccountTransactionSort::Oldest,
-            _ => unreachable!("Clap restricts account transaction sort values"),
-        };
-        Ok(Self {
-            target: IcrcAccountTargetOptions::from_matches(&matches),
-            limit: required_typed(&matches, LIMIT_ARG),
-            sort,
-            format: format_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -229,19 +257,24 @@ pub(in crate::icrc) struct IcrcAccountTransactionRefreshOptions {
 }
 
 impl IcrcAccountTransactionRefreshOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            target: IcrcAccountTargetOptions::from_matches(matches),
+            index_canister_id: string_option(matches, INDEX_CANISTER_ID_ARG),
+            page_size: required_typed(matches, PAGE_SIZE_ARG),
+            max_pages: typed_option(matches, MAX_PAGES_ARG),
+            format: format_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_account_transaction_refresh_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            target: IcrcAccountTargetOptions::from_matches(&matches),
-            index_canister_id: string_option(&matches, INDEX_CANISTER_ID_ARG),
-            page_size: required_typed(&matches, PAGE_SIZE_ARG),
-            max_pages: typed_option(&matches, MAX_PAGES_ARG),
-            format: format_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -258,16 +291,21 @@ pub(in crate::icrc) struct IcrcAccountTransactionCacheOptions {
 }
 
 impl IcrcAccountTransactionCacheOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            target: IcrcAccountTargetOptions::from_matches(matches),
+            format: format_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_account_transaction_cache_status_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            target: IcrcAccountTargetOptions::from_matches(&matches),
-            format: format_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -288,20 +326,25 @@ pub(in crate::icrc) struct IcrcTransactionsOptions {
 }
 
 impl IcrcTransactionsOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            start: required_typed(matches, START_ARG),
+            limit: required_typed(matches, LIMIT_ARG),
+            follow_archives: matches.get_flag(FOLLOW_ARCHIVES_ARG),
+            format: format_from_matches(matches),
+            source_endpoint: source_endpoint_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_transactions_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            start: required_typed(&matches, START_ARG),
-            limit: required_typed(&matches, LIMIT_ARG),
-            follow_archives: matches.get_flag(FOLLOW_ARCHIVES_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -320,17 +363,22 @@ pub(in crate::icrc) struct IcrcArchivesOptions {
 }
 
 impl IcrcArchivesOptions {
+    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            from_canister_id: string_option(matches, FROM_CANISTER_ID_ARG),
+            format: format_from_matches(matches),
+            source_endpoint: source_endpoint_from_matches(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_matches_or_usage(icrc_archives_command(), args)
             .map_err(IcrcCommandError::Usage)?;
-        Ok(Self {
-            ledger_canister_id: required_string(&matches, LEDGER_CANISTER_ID_ARG),
-            from_canister_id: string_option(&matches, FROM_CANISTER_ID_ARG),
-            format: format_from_matches(&matches),
-            source_endpoint: source_endpoint_from_matches(&matches),
-        })
+        Ok(Self::from_matches(&matches))
     }
 }

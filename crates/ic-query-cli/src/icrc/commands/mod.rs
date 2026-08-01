@@ -9,7 +9,7 @@ mod options;
 #[cfg(test)]
 pub(in crate::icrc) mod test_support;
 
-pub use dispatch::run;
+pub use dispatch::run_matches;
 use options::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
@@ -17,8 +17,10 @@ use options::{
     IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 
+#[cfg(test)]
+use crate::cli::clap::render_help;
 use crate::cli::{
-    clap::{flag_arg, passthrough_subcommand, render_help, required_string, value_arg},
+    clap::{flag_arg, required_string, value_arg},
     common::{
         COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_FORCE_REFRESH, COLLECTION_MODE_LIVE,
         OutputFormat, collection_help, json_arg, output_format, source_endpoint_arg,
@@ -54,67 +56,37 @@ const FROM_CANISTER_ID_ARG: &str = "from";
 const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
 const ICRC_SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for ICRC ledger queries";
 
-fn icrc_command() -> ClapCommand {
+pub fn command() -> ClapCommand {
     ClapCommand::new("icrc")
         .bin_name("icq icrc")
         .about("Inspect generic ICRC ledgers")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("ledger").about("Inspect ledger-wide ICRC metadata and transactions"),
-        ))
-        .subcommand(passthrough_subcommand(ClapCommand::new("account").about(
-            "Inspect ICRC account balances, allowances, and transaction history",
-        )))
+        .subcommand_required(true)
+        .subcommand(icrc_ledger_command())
+        .subcommand(icrc_account_command())
 }
 
 fn icrc_ledger_command() -> ClapCommand {
     ClapCommand::new("ledger")
         .bin_name("icq icrc ledger")
         .about("Inspect ledger-wide ICRC metadata and transactions")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("capabilities")
-                .about("Probe generic ICRC ledger endpoint capabilities"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("token")
-                .about("Show generic ICRC token metadata by ledger canister id"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("index").about("Show a generic ICRC ledger index canister"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("transactions")
-                .about("Show a generic ICRC ledger transaction history page"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("block-types")
-                .about("Show generic ICRC-3 ledger supported block types"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("archives").about("Show generic ICRC-3 ledger archive ranges"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("tip-certificate")
-                .about("Show a generic ICRC-3 ledger tip certificate"),
-        ))
+        .subcommand_required(true)
+        .subcommand(icrc_capabilities_command())
+        .subcommand(icrc_token_command())
+        .subcommand(icrc_index_command())
+        .subcommand(icrc_transactions_command())
+        .subcommand(icrc_block_types_command())
+        .subcommand(icrc_archives_command())
+        .subcommand(icrc_tip_certificate_command())
 }
 
 fn icrc_account_command() -> ClapCommand {
     ClapCommand::new("account")
         .bin_name("icq icrc account")
         .about("Inspect ICRC account balances, allowances, and transaction history")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("balance").about("Show a generic ICRC account balance"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("allowance").about("Show a generic ICRC account allowance"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("transaction")
-                .about("Inspect live pages and complete cached account transaction history"),
-        ))
+        .subcommand_required(true)
+        .subcommand(icrc_balance_command())
+        .subcommand(icrc_allowance_command())
+        .subcommand(icrc_account_transaction_command())
 }
 
 fn icrc_token_command() -> ClapCommand {
@@ -143,7 +115,6 @@ fn icrc_balance_command() -> ClapCommand {
             COLLECTION_MODE_LIVE,
             "Examples:\n  icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa\n  icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --subaccount 0000000000000000000000000000000000000000000000000000000000000000",
         ))
-        .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
         .arg(principal_arg(PRINCIPAL_ARG, "Account owner principal"))
         .arg(subaccount_arg(
@@ -161,7 +132,6 @@ fn icrc_allowance_command() -> ClapCommand {
             COLLECTION_MODE_LIVE,
             "Examples:\n  icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa\n  icq icrc account allowance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa aaaaa-aa --owner-subaccount 0000000000000000000000000000000000000000000000000000000000000000 --spender-subaccount 0000000000000000000000000000000000000000000000000000000000000000",
         ))
-        .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
         .arg(principal_arg(
             OWNER_PRINCIPAL_ARG,
@@ -186,19 +156,11 @@ fn icrc_account_transaction_command() -> ClapCommand {
     ClapCommand::new("transaction")
         .bin_name("icq icrc account transaction")
         .about("Inspect live pages and complete cached account transaction history")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("page").about("Fetch one live backward account-history page"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List rows from a complete local account cache"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("refresh").about("Refresh a complete local account cache"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("cache").about("Inspect local account-history cache state"),
-        ))
+        .subcommand_required(true)
+        .subcommand(icrc_account_transaction_page_command())
+        .subcommand(icrc_account_transaction_list_command())
+        .subcommand(icrc_account_transaction_refresh_command())
+        .subcommand(icrc_account_transaction_cache_command())
 }
 
 fn icrc_account_transaction_page_command() -> ClapCommand {
@@ -209,7 +171,6 @@ fn icrc_account_transaction_page_command() -> ClapCommand {
             COLLECTION_MODE_LIVE,
             "Examples:\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction page mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --start 100 --limit 25 --json\n  icq icrc account transaction page ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai",
         ))
-        .disable_help_flag(true)
         .args(account_transaction_target_args())
         .arg(
             value_arg(INDEX_CANISTER_ID_ARG)
@@ -246,7 +207,6 @@ fn icrc_account_transaction_list_command() -> ClapCommand {
             COLLECTION_MODE_CACHE_ONLY,
             "Examples:\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction list mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --sort oldest --limit 100 --json",
         ))
-        .disable_help_flag(true)
         .args(account_transaction_target_args())
         .arg(
             value_arg(LIMIT_ARG)
@@ -275,7 +235,6 @@ fn icrc_account_transaction_refresh_command() -> ClapCommand {
             COLLECTION_MODE_FORCE_REFRESH,
             "Examples:\n  icq icrc account transaction refresh mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction refresh ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa --index-canister-id qhbym-qaaaa-aaaaa-aaafq-cai --page-size 100 --json",
         ))
-        .disable_help_flag(true)
         .args(account_transaction_target_args())
         .arg(
             value_arg(INDEX_CANISTER_ID_ARG)
@@ -308,10 +267,8 @@ fn icrc_account_transaction_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq icrc account transaction cache")
         .about("Inspect local complete account-history cache state")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("status").about("Show cache and latest refresh-attempt status"),
-        ))
+        .subcommand_required(true)
+        .subcommand(icrc_account_transaction_cache_status_command())
 }
 
 fn icrc_account_transaction_cache_status_command() -> ClapCommand {
@@ -322,7 +279,6 @@ fn icrc_account_transaction_cache_status_command() -> ClapCommand {
             COLLECTION_MODE_CACHE_ONLY,
             "Examples:\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa\n  icq icrc account transaction cache status mxzaz-hqaaa-aaaar-qaada-cai aaaaa-aa --json",
         ))
-        .disable_help_flag(true)
         .args(account_transaction_target_args());
     with_common_icrc_options(command)
 }
@@ -344,7 +300,6 @@ fn icrc_transactions_command() -> ClapCommand {
             COLLECTION_MODE_LIVE,
             "Examples:\n  icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --json",
         ))
-        .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
         .arg(
             value_arg(START_ARG)
@@ -389,7 +344,6 @@ fn icrc_archives_command() -> ClapCommand {
             COLLECTION_MODE_LIVE,
             "Examples:\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --json",
         ))
-        .disable_help_flag(true)
         .arg(ledger_canister_id_arg())
         .arg(
             value_arg(FROM_CANISTER_ID_ARG)
@@ -420,79 +374,96 @@ fn simple_icrc_ledger_command(
         .bin_name(bin_name)
         .about(about)
         .after_help(collection_help(COLLECTION_MODE_LIVE, examples))
-        .disable_help_flag(true)
         .arg(ledger_canister_id_arg());
     with_common_icrc_options(command)
 }
 
+#[cfg(test)]
 fn usage() -> String {
-    render_help(icrc_command())
+    render_help(command())
 }
 
+#[cfg(test)]
 fn icrc_ledger_usage() -> String {
     render_help(icrc_ledger_command())
 }
 
+#[cfg(test)]
 fn icrc_account_usage() -> String {
     render_help(icrc_account_command())
 }
 
+#[cfg(test)]
 fn icrc_token_usage() -> String {
     render_help(icrc_token_command())
 }
 
+#[cfg(test)]
 fn icrc_capabilities_usage() -> String {
     render_help(icrc_capabilities_command())
 }
 
+#[cfg(test)]
 fn icrc_balance_usage() -> String {
     render_help(icrc_balance_command())
 }
 
+#[cfg(test)]
 fn icrc_allowance_usage() -> String {
     render_help(icrc_allowance_command())
 }
 
+#[cfg(test)]
 fn icrc_account_transaction_usage() -> String {
     render_help(icrc_account_transaction_command())
 }
 
+#[cfg(test)]
 fn icrc_account_transaction_page_usage() -> String {
     render_help(icrc_account_transaction_page_command())
 }
 
+#[cfg(test)]
 fn icrc_account_transaction_list_usage() -> String {
     render_help(icrc_account_transaction_list_command())
 }
 
+#[cfg(test)]
 fn icrc_account_transaction_refresh_usage() -> String {
     render_help(icrc_account_transaction_refresh_command())
 }
 
+#[cfg(test)]
 fn icrc_account_transaction_cache_usage() -> String {
     render_help(icrc_account_transaction_cache_command())
 }
 
+#[cfg(test)]
 fn icrc_account_transaction_cache_status_usage() -> String {
     render_help(icrc_account_transaction_cache_status_command())
 }
 
+#[cfg(test)]
 fn icrc_index_usage() -> String {
     render_help(icrc_index_command())
 }
 
+#[cfg(test)]
 fn icrc_transactions_usage() -> String {
     render_help(icrc_transactions_command())
 }
 
+#[cfg(test)]
 fn icrc_block_types_usage() -> String {
     render_help(icrc_block_types_command())
 }
 
+#[cfg(test)]
 fn icrc_archives_usage() -> String {
     render_help(icrc_archives_command())
 }
 
+#[cfg(test)]
 fn icrc_tip_certificate_usage() -> String {
     render_help(icrc_tip_certificate_command())
 }

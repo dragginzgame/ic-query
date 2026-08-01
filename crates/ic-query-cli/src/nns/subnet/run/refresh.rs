@@ -1,21 +1,17 @@
 use super::cache_request;
 use crate::{
     cli::common::write_text_or_json,
-    nns::{
-        NnsCommandError, command_args, now_unix_secs,
-        subnet::{commands::refresh_usage, options::CatalogRefreshOptions},
-    },
+    nns::{NnsCommandError, now_unix_secs, subnet::options::CatalogRefreshOptions},
 };
+use clap::ArgMatches;
 use ic_query::subnet_catalog::{
     SubnetCatalogRefreshRequest, refresh_subnet_catalog, subnet_catalog_refresh_report_text,
 };
-use std::ffi::OsString;
-
-pub(super) fn run_catalog_refresh(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    let Some(args) = command_args(args, refresh_usage) else {
-        return Ok(());
-    };
-    let options = CatalogRefreshOptions::parse(args)?;
+pub(super) fn run_catalog_refresh(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
+    let options = CatalogRefreshOptions::from_matches(matches, network);
     let format = options.format;
     let mut request = SubnetCatalogRefreshRequest::new(
         cache_request(&options.network)?,

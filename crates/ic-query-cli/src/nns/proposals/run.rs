@@ -9,12 +9,10 @@ use super::options::{
 };
 use crate::{
     cli::common::write_text_or_json,
-    nns::{
-        NnsCommandError, command_args, command_cache_root, now_unix_secs,
-        parse_nns_required_subcommand,
-    },
+    nns::{NnsCommandError, command_cache_root, now_unix_secs},
     progress::StderrQueryProgress,
 };
+use clap::ArgMatches;
 use ic_query::nns::proposals::{
     NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_cache_list_report,
     build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
@@ -25,7 +23,6 @@ use ic_query::nns::proposals::{
     refresh_nns_proposal_cache_with_progress,
 };
 use ic_query::nns::{NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest};
-use std::ffi::OsString;
 
 const PROPOSAL_CACHE_COMMAND: &str = "cache";
 const PROPOSAL_CACHE_LIST_COMMAND: &str = "list";
@@ -34,21 +31,22 @@ const PROPOSAL_INFO_COMMAND: &str = "info";
 const PROPOSAL_LIST_COMMAND: &str = "list";
 const PROPOSAL_REFRESH_COMMAND: &str = "refresh";
 
-pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    run_nns_proposal(args)
+pub(in crate::nns) fn command() -> clap::Command {
+    super::commands::nns_proposal_command()
 }
 
-fn run_nns_proposal_list<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, super::commands::nns_proposal_list_usage_for_error) else {
-        return Ok(());
-    };
-    let options = NnsProposalListOptions::parse_list(args)?;
+pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    match matches.subcommand() {
+        Some((PROPOSAL_CACHE_COMMAND, matches)) => run_nns_proposal_cache(matches, network),
+        Some((PROPOSAL_LIST_COMMAND, matches)) => run_nns_proposal_list(matches, network),
+        Some((PROPOSAL_INFO_COMMAND, matches)) => run_nns_proposal_info(matches, network),
+        Some((PROPOSAL_REFRESH_COMMAND, matches)) => run_nns_proposal_refresh(matches, network),
+        _ => unreachable!("clap requires a known NNS proposal subcommand"),
+    }
+}
+
+fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = NnsProposalListOptions::from_matches(matches, network)?;
     run_nns_proposal_list_with_options(options)
 }
 
@@ -83,32 +81,8 @@ fn run_nns_proposal_list_with_options(
     write_text_or_json(options.format, &report, nns_proposal_list_report_text)
 }
 
-fn run_nns_proposal<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, super::commands::nns_proposal_usage_for_error) else {
-        return Ok(());
-    };
-    let (command, args) =
-        parse_nns_required_subcommand(super::commands::nns_proposal_command(), args)?;
-    match command.as_str() {
-        PROPOSAL_CACHE_COMMAND => run_nns_proposal_cache(args),
-        PROPOSAL_LIST_COMMAND => run_nns_proposal_list(args),
-        PROPOSAL_INFO_COMMAND => run_nns_proposal_info(args),
-        PROPOSAL_REFRESH_COMMAND => run_nns_proposal_refresh(args),
-        _ => unreachable!("nns proposal dispatch only defines known commands"),
-    }
-}
-
-fn run_nns_proposal_info<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, super::commands::nns_proposal_info_usage_for_error) else {
-        return Ok(());
-    };
-    let options = NnsProposalOptions::parse_info(args)?;
+fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = NnsProposalOptions::from_matches(matches, network);
     run_nns_proposal_with_options(options)
 }
 
@@ -126,15 +100,8 @@ fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsC
     write_text_or_json(options.format, &report, nns_proposal_report_text)
 }
 
-fn run_nns_proposal_refresh<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, super::commands::nns_proposal_refresh_usage_for_error)
-    else {
-        return Ok(());
-    };
-    let options = NnsProposalRefreshOptions::parse(args)?;
+fn run_nns_proposal_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = NnsProposalRefreshOptions::from_matches(matches, network);
     let request = NnsGovernanceRefreshRequest::new(
         command_cache_root()?,
         options.network,
@@ -148,49 +115,30 @@ where
     write_text_or_json(options.format, &report, nns_proposal_refresh_report_text)
 }
 
-fn run_nns_proposal_cache<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, super::commands::nns_proposal_cache_usage_for_error) else {
-        return Ok(());
-    };
-    let (command, args) =
-        parse_nns_required_subcommand(super::commands::nns_proposal_cache_command(), args)?;
-    match command.as_str() {
-        PROPOSAL_CACHE_LIST_COMMAND => run_nns_proposal_cache_list(args),
-        PROPOSAL_CACHE_STATUS_COMMAND => run_nns_proposal_cache_status(args),
-        _ => unreachable!("nns proposal cache dispatch only defines known commands"),
+fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    match matches.subcommand() {
+        Some((PROPOSAL_CACHE_LIST_COMMAND, matches)) => {
+            run_nns_proposal_cache_list(matches, network)
+        }
+        Some((PROPOSAL_CACHE_STATUS_COMMAND, matches)) => {
+            run_nns_proposal_cache_status(matches, network)
+        }
+        _ => unreachable!("clap requires a known NNS proposal cache subcommand"),
     }
 }
 
-fn run_nns_proposal_cache_list<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(
-        args,
-        super::commands::nns_proposal_cache_list_usage_for_error,
-    ) else {
-        return Ok(());
-    };
-    let options = NnsProposalCacheOptions::parse_list(args)?;
+fn run_nns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = NnsProposalCacheOptions::from_matches(matches, network);
     let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_list_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
 }
 
-fn run_nns_proposal_cache_status<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(
-        args,
-        super::commands::nns_proposal_cache_status_usage_for_error,
-    ) else {
-        return Ok(());
-    };
-    let options = NnsProposalCacheOptions::parse_status(args)?;
+fn run_nns_proposal_cache_status(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
+    let options = NnsProposalCacheOptions::from_matches(matches, network);
     let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_status_report(&request)?;
     write_text_or_json(

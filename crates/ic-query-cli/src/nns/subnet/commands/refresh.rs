@@ -18,7 +18,6 @@ pub(in crate::nns::subnet) fn refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq nns subnet refresh")
         .about("Force-refresh and cache NNS subnet metadata")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
@@ -31,7 +30,6 @@ pub(in crate::nns::subnet) fn refresh_command() -> ClapCommand {
                 .help("Fetch and validate without replacing the cached catalog"),
         )
         .arg(leaf::output_path_arg().help("Also write the fetched catalog JSON to this path"))
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             REFRESH_HELP_AFTER,

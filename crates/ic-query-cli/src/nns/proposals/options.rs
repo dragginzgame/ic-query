@@ -4,19 +4,19 @@
 //! Does not own: clap command construction, report requests, or live queries.
 //! Boundary: converts clap matches into command-local option structs.
 
+#[cfg(test)]
 use super::commands::{
     nns_proposal_cache_list_command, nns_proposal_cache_status_command, nns_proposal_info_command,
     nns_proposal_list_command, nns_proposal_refresh_command,
 };
 use crate::{
     cli::{
-        clap::{required_string, required_typed, string_option, typed_option},
+        clap::{required_typed, string_option, typed_option},
         common::output_format,
     },
     nns::{
         NnsCommandError, OutputFormat,
         leaf::NnsCommonOptions,
-        parse_nns_matches,
         proposals::values::{
             NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG,
             NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
@@ -27,11 +27,11 @@ use crate::{
     },
 };
 use clap::ArgMatches;
-use clap::Command as ClapCommand;
 use ic_query::nns::proposals::{
     NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
     NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
+#[cfg(test)]
 use std::ffi::OsString;
 
 ///
@@ -58,40 +58,41 @@ pub(in crate::nns) struct NnsProposalListOptions {
 }
 
 impl NnsProposalListOptions {
-    pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        Self::parse_with(args, nns_proposal_list_command())
-    }
-
-    fn parse_with<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_nns_matches(command, args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        let sort = required_typed::<NnsProposalListSortArg>(&matches, "sort");
-        let sort_direction = proposal_sort_direction(&matches, sort)?;
+    pub(in crate::nns) fn from_matches(
+        matches: &ArgMatches,
+        network: &str,
+    ) -> Result<Self, NnsCommandError> {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        let sort = required_typed::<NnsProposalListSortArg>(matches, "sort");
+        let sort_direction = proposal_sort_direction(matches, sort)?;
         Ok(Self {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-            limit: required_typed(&matches, "limit"),
-            before_proposal_id: typed_option(&matches, "before"),
-            status: required_typed::<NnsProposalStatusArg>(&matches, "status").into(),
+            limit: required_typed(matches, "limit"),
+            before_proposal_id: typed_option(matches, "before"),
+            status: required_typed::<NnsProposalStatusArg>(matches, "status").into(),
             reward_status: required_typed::<NnsProposalRewardStatusArg>(
-                &matches,
+                matches,
                 NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
             )
             .into(),
-            topic: required_typed::<NnsProposalTopicArg>(&matches, "topic").into(),
-            proposer_neuron_id: typed_option(&matches, "proposer"),
-            query: string_option(&matches, "query"),
+            topic: required_typed::<NnsProposalTopicArg>(matches, "topic").into(),
+            proposer_neuron_id: typed_option(matches, "proposer"),
+            query: string_option(matches, "query"),
             sort: sort.into(),
             sort_direction,
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         })
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = crate::nns::parse_nns_matches(nns_proposal_list_command(), args)?;
+        Self::from_matches(&matches, ic_query::subnet_catalog::MAINNET_NETWORK)
     }
 }
 
@@ -147,27 +148,28 @@ pub(in crate::nns) struct NnsProposalOptions {
 }
 
 impl NnsProposalOptions {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
+            network: common.network,
+            format: common.format,
+            source_endpoint: common.source_endpoint,
+            proposal_id: required_typed(matches, NNS_PROPOSAL_ID_ARG),
+            show_ballots: matches.get_flag(NNS_PROPOSAL_BALLOTS_FLAG),
+            verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::nns) fn parse_info<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        Self::parse_with(args, nns_proposal_info_command())
-    }
-
-    fn parse_with<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_nns_matches(command, args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-            proposal_id: required_typed(&matches, NNS_PROPOSAL_ID_ARG),
-            show_ballots: matches.get_flag(NNS_PROPOSAL_BALLOTS_FLAG),
-            verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
-        })
+        let matches = crate::nns::parse_nns_matches(nns_proposal_info_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
@@ -187,19 +189,27 @@ pub(in crate::nns) struct NnsProposalRefreshOptions {
 }
 
 impl NnsProposalRefreshOptions {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
+            network: common.network,
+            format: common.format,
+            source_endpoint: common.source_endpoint,
+            page_size: required_typed(matches, "page-size"),
+            max_pages: typed_option(matches, "max-pages"),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(nns_proposal_refresh_command(), args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-            page_size: required_typed(&matches, "page-size"),
-            max_pages: typed_option(&matches, "max-pages"),
-        })
+        let matches = crate::nns::parse_nns_matches(nns_proposal_refresh_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
@@ -216,6 +226,14 @@ pub(in crate::nns) struct NnsProposalCacheOptions {
 }
 
 impl NnsProposalCacheOptions {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
@@ -223,6 +241,7 @@ impl NnsProposalCacheOptions {
         Self::parse_with(args, nns_proposal_cache_list_command())
     }
 
+    #[cfg(test)]
     pub(in crate::nns) fn parse_status<I>(args: I) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
@@ -230,14 +249,15 @@ impl NnsProposalCacheOptions {
         Self::parse_with(args, nns_proposal_cache_status_command())
     }
 
-    fn parse_with<I>(args: I, command: ClapCommand) -> Result<Self, NnsCommandError>
+    #[cfg(test)]
+    fn parse_with<I>(args: I, command: clap::Command) -> Result<Self, NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(command, args)?;
-        Ok(Self {
-            network: required_string(&matches, "network"),
-            format: output_format(&matches),
-        })
+        let matches = crate::nns::parse_nns_matches(command, args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }

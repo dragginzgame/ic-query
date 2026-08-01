@@ -100,18 +100,3 @@ fn node_operator_help_is_advertised_under_nns() {
     assert!(refresh.contains("icq nns node-operator refresh"));
     assert!(refresh.contains("--dry-run"));
 }
-
-#[test]
-fn node_operator_local_is_rejected_with_pinned_message() {
-    let err = run([
-        OsString::from("node-operator"),
-        OsString::from("list"),
-        OsString::from("--__icq-network"),
-        OsString::from("local"),
-    ])
-    .expect_err("local rejected");
-
-    let message = err.to_string();
-    assert!(message.contains("supports only the mainnet `ic` network"));
-    assert!(message.contains("icq --network ic nns node-operator list"));
-}

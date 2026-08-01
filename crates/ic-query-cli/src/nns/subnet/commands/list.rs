@@ -23,7 +23,6 @@ pub(in crate::nns::subnet) fn list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq nns subnet list")
         .about("List cached mainnet IC subnets")
-        .disable_help_flag(true)
         .arg(kind_arg())
         .arg(specialization_arg())
         .arg(geo_arg())
@@ -36,7 +35,6 @@ pub(in crate::nns::subnet) fn list_command() -> ClapCommand {
         .arg(verbose_arg())
         .arg(range_limit_arg())
         .arg(range_offset_arg())
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_REFRESH_MISSING,
             LIST_HELP_AFTER,

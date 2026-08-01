@@ -2,28 +2,23 @@ mod info;
 mod list;
 mod refresh;
 
-use super::commands::{subnet_command, subnet_usage};
+use super::commands::subnet_command;
 use crate::{
-    nns::{NnsCommandError, command_args, command_cache_root, parse_nns_required_subcommand},
+    nns::{NnsCommandError, command_cache_root},
     progress::announce_missing_mainnet_cache,
 };
+use clap::ArgMatches;
 use ic_query::subnet_catalog::{SubnetCatalogCacheRequest, subnet_catalog_path};
-use std::ffi::OsString;
+pub(in crate::nns) fn command() -> clap::Command {
+    subnet_command()
+}
 
-pub(in crate::nns) fn run<I>(args: I) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, subnet_usage) else {
-        return Ok(());
-    };
-    let (command, args) = parse_nns_required_subcommand(subnet_command(), args)?;
-
-    match command.as_str() {
-        "list" => list::run_catalog_list(args),
-        "info" => info::run_catalog_info(args),
-        "refresh" => refresh::run_catalog_refresh(args),
-        _ => unreachable!("nns subnet dispatch command only defines known commands"),
+pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => list::run_catalog_list(matches, network),
+        Some(("info", matches)) => info::run_catalog_info(matches, network),
+        Some(("refresh", matches)) => refresh::run_catalog_refresh(matches, network),
+        _ => unreachable!("clap requires a known NNS subnet subcommand"),
     }
 }
 

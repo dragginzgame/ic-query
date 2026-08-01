@@ -23,7 +23,6 @@ pub(in crate::nns::topology) fn topology_refresh_command() -> clap::Command {
     clap::Command::new("refresh")
         .bin_name("icq nns topology refresh")
         .about("Refresh cached mainnet NNS topology component reports")
-        .disable_help_flag(true)
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT)
@@ -35,7 +34,6 @@ pub(in crate::nns::topology) fn topology_refresh_command() -> clap::Command {
                 .long(DRY_RUN_ARG)
                 .help("Fetch and validate without replacing topology component caches"),
         )
-        .arg(leaf::network_arg())
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             TOPOLOGY_REFRESH_HELP_AFTER,

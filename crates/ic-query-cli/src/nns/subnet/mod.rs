@@ -8,4 +8,4 @@ pub(super) use commands::{
 };
 #[cfg(test)]
 pub(super) use options::{CatalogInfoOptions, CatalogListOptions, CatalogRefreshOptions};
-pub(super) use run::run;
+pub(super) use run::{command, run};

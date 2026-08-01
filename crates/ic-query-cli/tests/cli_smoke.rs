@@ -78,7 +78,7 @@ fn binary_system_report_help_smoke() {
             "cycles conversions derived from the certified CMC rate",
         ),
     ] {
-        let output = run_icq(&["system", command, "help"]);
+        let output = run_icq(&["system", command, "--help"]);
 
         assert_success(&output);
         let stdout = stdout_text(&output);
@@ -129,7 +129,7 @@ fn binary_invalid_network_precedes_help_like_option_values() {
 
 #[test]
 fn binary_ic_canister_info_help_smoke() {
-    let output = run_icq(&["ic", "canister", "info", "help"]);
+    let output = run_icq(&["ic", "canister", "info", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -141,7 +141,7 @@ fn binary_ic_canister_info_help_smoke() {
 
 #[test]
 fn binary_ic_metrics_help_smoke() {
-    let output = run_icq(&["ic", "metrics", "help"]);
+    let output = run_icq(&["ic", "metrics", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -154,7 +154,7 @@ fn binary_ic_metrics_help_smoke() {
 
 #[test]
 fn binary_ic_boundary_node_data_centers_help_smoke() {
-    let output = run_icq(&["ic", "network", "boundary-node-data-centers", "help"]);
+    let output = run_icq(&["ic", "network", "boundary-node-data-centers", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -166,7 +166,7 @@ fn binary_ic_boundary_node_data_centers_help_smoke() {
 
 #[test]
 fn binary_ic_daily_stats_help_smoke() {
-    let output = run_icq(&["ic", "network", "daily-stats", "help"]);
+    let output = run_icq(&["ic", "network", "daily-stats", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -179,7 +179,7 @@ fn binary_ic_daily_stats_help_smoke() {
 
 #[test]
 fn binary_icrc_balance_help_smoke() {
-    let output = run_icq(&["icrc", "account", "balance", "help"]);
+    let output = run_icq(&["icrc", "account", "balance", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -193,7 +193,7 @@ fn binary_icrc_balance_help_smoke() {
 
 #[test]
 fn binary_icrc_capabilities_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "capabilities", "help"]);
+    let output = run_icq(&["icrc", "ledger", "capabilities", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -204,7 +204,7 @@ fn binary_icrc_capabilities_help_smoke() {
 
 #[test]
 fn binary_icrc_allowance_help_smoke() {
-    let output = run_icq(&["icrc", "account", "allowance", "help"]);
+    let output = run_icq(&["icrc", "account", "allowance", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -220,22 +220,29 @@ fn binary_icrc_allowance_help_smoke() {
 fn binary_icrc_account_transaction_help_smoke() {
     for (args, usage, option) in [
         (
-            &["icrc", "account", "transaction", "page", "help"][..],
+            &["icrc", "account", "transaction", "page", "--help"][..],
             "Usage: icq icrc account transaction page [OPTIONS] <ledger-canister-id> <principal>",
             "--start <block-index>",
         ),
         (
-            &["icrc", "account", "transaction", "list", "help"][..],
+            &["icrc", "account", "transaction", "list", "--help"][..],
             "Usage: icq icrc account transaction list [OPTIONS] <ledger-canister-id> <principal>",
             "--sort <newest|oldest>",
         ),
         (
-            &["icrc", "account", "transaction", "refresh", "help"][..],
+            &["icrc", "account", "transaction", "refresh", "--help"][..],
             "Usage: icq icrc account transaction refresh [OPTIONS] <ledger-canister-id> <principal>",
             "--page-size <count>",
         ),
         (
-            &["icrc", "account", "transaction", "cache", "status", "help"][..],
+            &[
+                "icrc",
+                "account",
+                "transaction",
+                "cache",
+                "status",
+                "--help",
+            ][..],
             "Usage: icq icrc account transaction cache status [OPTIONS] <ledger-canister-id> <principal>",
             "--source-endpoint <url>",
         ),
@@ -310,7 +317,7 @@ fn binary_default_cache_root_uses_xdg_cache_home() {
 
 #[test]
 fn binary_icrc_index_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "index", "help"]);
+    let output = run_icq(&["icrc", "ledger", "index", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -321,7 +328,7 @@ fn binary_icrc_index_help_smoke() {
 
 #[test]
 fn binary_icrc_transactions_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "transactions", "help"]);
+    let output = run_icq(&["icrc", "ledger", "transactions", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -335,7 +342,7 @@ fn binary_icrc_transactions_help_smoke() {
 
 #[test]
 fn binary_icrc_block_types_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "block-types", "help"]);
+    let output = run_icq(&["icrc", "ledger", "block-types", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -346,7 +353,7 @@ fn binary_icrc_block_types_help_smoke() {
 
 #[test]
 fn binary_icrc_archives_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "archives", "help"]);
+    let output = run_icq(&["icrc", "ledger", "archives", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -358,7 +365,7 @@ fn binary_icrc_archives_help_smoke() {
 
 #[test]
 fn binary_icrc_tip_certificate_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "tip-certificate", "help"]);
+    let output = run_icq(&["icrc", "ledger", "tip-certificate", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -371,7 +378,7 @@ fn binary_icrc_tip_certificate_help_smoke() {
 
 #[test]
 fn binary_sns_list_help_smoke() {
-    let output = run_icq(&["sns", "list", "help"]);
+    let output = run_icq(&["sns", "list", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -382,7 +389,7 @@ fn binary_sns_list_help_smoke() {
 
 #[test]
 fn binary_sns_canister_list_help_smoke() {
-    let output = run_icq(&["sns", "canister", "list", "help"]);
+    let output = run_icq(&["sns", "canister", "list", "--help"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
@@ -393,11 +400,11 @@ fn binary_sns_canister_list_help_smoke() {
 
 #[test]
 fn binary_nns_topology_help_smoke() {
-    let output = run_icq(&["nns", "topology", "help"]);
+    let output = run_icq(&["help", "nns", "topology"]);
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq nns topology [COMMAND]"));
+    assert!(stdout.contains("Usage: icq nns topology <COMMAND>"));
     assert!(stdout.contains("summary"));
     assert!(stdout.contains("refresh"));
 }

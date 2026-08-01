@@ -2,4 +2,5 @@
 
 mod commands;
 
-pub use commands::{SnsCommandError, run};
+pub use commands::SnsCommandError;
+pub use commands::{command, run_matches};

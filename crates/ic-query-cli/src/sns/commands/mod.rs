@@ -10,7 +10,7 @@ mod run;
 mod spec;
 
 pub use error::SnsCommandError;
-pub use run::run;
+pub use run::{command, run_matches};
 
 #[cfg(test)]
 mod tests;

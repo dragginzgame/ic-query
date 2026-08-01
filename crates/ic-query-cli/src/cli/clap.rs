@@ -2,12 +2,10 @@
 //!
 //! Responsibility: small clap helper wrappers shared by command parsers.
 //! Does not own: command-family specs, report requests, or runtime dispatch.
-//! Boundary: normalizes passthrough subcommands, required values, and help rendering.
+//! Boundary: normalizes typed values, parse errors, and help rendering.
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
-
-const PASSTHROUGH_ARGS: &str = "args";
 
 pub fn parse_matches<I>(command: Command, args: I) -> Result<ArgMatches, clap::Error>
 where
@@ -17,56 +15,13 @@ where
     command.try_get_matches_from(std::iter::once(OsString::from(name)).chain(args))
 }
 
+#[cfg(test)]
 pub fn parse_matches_or_usage<I>(command: Command, args: I) -> Result<ArgMatches, String>
 where
     I: IntoIterator<Item = OsString>,
 {
     let mut help_command = command.clone();
     parse_matches(command, args).map_err(|error| format!("{error}\n{}", help_command.render_help()))
-}
-
-pub fn passthrough_subcommand(command: Command) -> Command {
-    command.arg(
-        Arg::new(PASSTHROUGH_ARGS)
-            .num_args(0..)
-            .allow_hyphen_values(true)
-            .trailing_var_arg(true)
-            .value_parser(clap::value_parser!(OsString)),
-    )
-}
-
-pub fn passthrough_args(matches: &ArgMatches) -> Vec<OsString> {
-    matches
-        .get_many::<OsString>(PASSTHROUGH_ARGS)
-        .map(|values| values.cloned().collect::<Vec<_>>())
-        .unwrap_or_default()
-}
-
-pub fn parse_required_subcommand<I>(
-    command: Command,
-    args: I,
-) -> Result<(String, Vec<OsString>), clap::Error>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let matches = parse_matches(command.subcommand_required(true), args)?;
-    let (name, matches) = matches
-        .subcommand()
-        .expect("clap requires one of the declared subcommands");
-
-    Ok((name.to_string(), passthrough_args(matches)))
-}
-
-pub fn parse_required_subcommand_or_usage<I>(
-    command: Command,
-    args: I,
-) -> Result<(String, Vec<OsString>), String>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let mut help_command = command.clone();
-    parse_required_subcommand(command, args)
-        .map_err(|error| format!("{error}\n{}", help_command.render_help()))
 }
 
 pub fn value_arg(id: &'static str) -> Arg {
@@ -111,6 +66,7 @@ where
     typed_option(matches, id).unwrap_or_else(|| panic!("clap requires {id}"))
 }
 
+#[cfg(test)]
 pub fn render_help(mut command: Command) -> String {
     command.render_help().to_string()
 }

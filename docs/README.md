@@ -17,8 +17,8 @@ Command help is the definitive option reference:
 
 ```bash
 icq help
-icq nns topology help
-icq icrc account transaction help
+icq help nns topology
+icq icrc account transaction --help
 ```
 
 ## Current design contracts

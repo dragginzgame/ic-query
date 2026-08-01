@@ -38,7 +38,7 @@ macro_rules! impl_leaf_test_helpers {
         }
 
         pub(in crate::nns) fn $usage() -> String {
-            leaf::usage(&$spec)
+            leaf::usage(&$spec, $default_source_endpoint)
         }
 
         pub(in crate::nns) fn $list_usage() -> String {

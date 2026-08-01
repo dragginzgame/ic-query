@@ -6,13 +6,12 @@
 
 use crate::{
     cli::{
-        clap::{flag_arg, passthrough_subcommand, value_arg},
+        clap::{flag_arg, value_arg},
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             COLLECTION_MODE_CACHE_REFRESH_MISSING, COLLECTION_MODE_FORCE_REFRESH, collection_help,
             json_arg, source_endpoint_arg,
         },
-        globals::internal_network_arg,
     },
     sns::commands::spec::{
         commands::args::sns_lookup_input_arg,
@@ -100,26 +99,17 @@ pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
         .bin_name("icq sns proposal")
         .about("List, inspect, and refresh SNS governance proposals")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List SNS governance proposals"),
-        ))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("info").about("Show one SNS governance proposal"),
-        ))
-        .subcommand(passthrough_subcommand(ClapCommand::new("refresh").about(
-            "Force-refresh and cache a complete SNS governance proposal snapshot",
-        )))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("cache").about("Inspect local complete SNS proposal snapshots"),
-        ))
+        .subcommand_required(true)
+        .subcommand(sns_proposal_list_command())
+        .subcommand(sns_proposal_info_command())
+        .subcommand(sns_proposal_refresh_command())
+        .subcommand(sns_proposal_cache_command())
 }
 
 pub(in crate::sns::commands) fn sns_proposal_info_command() -> ClapCommand {
     ClapCommand::new("info")
         .bin_name("icq sns proposal info")
         .about("Show one SNS governance proposal by SNS list id or root principal")
-        .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(
             value_arg("proposal-id")
@@ -143,7 +133,6 @@ pub(in crate::sns::commands) fn sns_proposal_info_command() -> ClapCommand {
                 .long("ballots")
                 .help("Show proposal ballot rows in text output"),
         )
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             SNS_PROPOSAL_HELP_AFTER,
@@ -154,7 +143,6 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq sns proposal list")
         .about("List SNS governance proposals by list id or root principal")
-        .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(json_arg())
         .arg(
@@ -238,7 +226,6 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
                 .long("verbose")
                 .help("Show full proposal titles and per-proposal detail lines in text output"),
         )
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_REFRESH_MISSING,
             SNS_PROPOSALS_HELP_AFTER,
@@ -249,7 +236,6 @@ pub(in crate::sns::commands) fn sns_proposal_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq sns proposal refresh")
         .about("Force-refresh and cache a complete SNS governance proposal snapshot")
-        .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(json_arg())
         .arg(
@@ -274,7 +260,6 @@ pub(in crate::sns::commands) fn sns_proposal_refresh_command() -> ClapCommand {
                 .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             SNS_PROPOSALS_REFRESH_HELP_AFTER,
@@ -285,13 +270,9 @@ pub(in crate::sns::commands) fn sns_proposal_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq sns proposal cache")
         .about("Inspect local complete SNS governance proposal snapshots")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List local complete SNS proposal snapshots"),
-        ))
-        .subcommand(passthrough_subcommand(ClapCommand::new("status").about(
-            "Show local SNS proposal snapshot and refresh-attempt status",
-        )))
+        .subcommand_required(true)
+        .subcommand(sns_proposal_cache_list_command())
+        .subcommand(sns_proposal_cache_status_command())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             SNS_PROPOSALS_CACHE_HELP_AFTER,
@@ -302,9 +283,7 @@ pub(in crate::sns::commands) fn sns_proposal_cache_list_command() -> ClapCommand
     ClapCommand::new("list")
         .bin_name("icq sns proposal cache list")
         .about("List local complete SNS proposal snapshots")
-        .disable_help_flag(true)
         .arg(json_arg())
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             SNS_PROPOSALS_CACHE_LIST_HELP_AFTER,
@@ -315,10 +294,8 @@ pub(in crate::sns::commands) fn sns_proposal_cache_status_command() -> ClapComma
     ClapCommand::new("status")
         .bin_name("icq sns proposal cache status")
         .about("Show local SNS proposal snapshot and refresh-attempt status")
-        .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(json_arg())
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
             SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER,

@@ -1,33 +1,23 @@
 //! System-canister command-line parsing and dispatch.
 
-use crate::{
-    cli::{
-        clap::{
-            parse_matches_or_usage, parse_required_subcommand_or_usage, passthrough_subcommand,
-            render_help, required_string,
-        },
-        common::{
-            COLLECTION_MODE_LIVE, CurrentUnixSecsError, SOURCE_ENDPOINT_ARG, collection_help,
-            current_unix_secs, json_arg, output_format, source_endpoint_arg, write_text_or_json,
-        },
-        globals::internal_network_arg,
-        help::collect_args_or_print_help_or_version,
+#[cfg(test)]
+use crate::cli::clap::render_help;
+use crate::cli::{
+    clap::required_string,
+    common::{
+        COLLECTION_MODE_LIVE, CurrentUnixSecsError, SOURCE_ENDPOINT_ARG, collection_help,
+        current_unix_secs, json_arg, output_format, source_endpoint_arg, write_text_or_json,
     },
-    version_text,
 };
-use clap::Command as ClapCommand;
-use ic_query::{
-    subnet_catalog::MAINNET_NETWORK,
-    system::cmc::{
-        CmcHostError, CmcSourceRequest, DEFAULT_CMC_SOURCE_ENDPOINT, build_cmc_cycles_report,
-        build_cmc_xdr_report, cmc_cycles_report_text, cmc_xdr_report_text,
-    },
+use clap::{ArgMatches, Command as ClapCommand};
+use ic_query::system::cmc::{
+    CmcHostError, CmcSourceRequest, DEFAULT_CMC_SOURCE_ENDPOINT, build_cmc_cycles_report,
+    build_cmc_xdr_report, cmc_cycles_report_text, cmc_xdr_report_text,
 };
 use serde::Serialize;
-use std::{ffi::OsString, io};
+use std::io;
 use thiserror::Error as ThisError;
 
-const NETWORK_ARG: &str = "network";
 const SYSTEM_HELP_AFTER: &str = "\
 Examples:
   icq system xdr
@@ -66,86 +56,56 @@ pub enum SystemCommandError {
     Json(#[from] serde_json::Error),
 }
 
-pub fn run<I>(args: I) -> Result<(), SystemCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, system_usage) else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_subcommand_or_usage(system_command(), args)
-        .map_err(SystemCommandError::Usage)?;
-    match command.as_str() {
-        "xdr" => run_report(
-            args,
-            report_command(
-                "xdr",
-                "Show the certified CMC ICP/XDR conversion rate",
-                XDR_HELP_AFTER,
-            ),
-            xdr_usage,
-            build_cmc_xdr_report,
-            cmc_xdr_report_text,
-        ),
-        "cycles" => run_report(
-            args,
-            report_command(
-                "cycles",
-                "Show cycles conversions derived from the certified CMC rate",
-                CYCLES_HELP_AFTER,
-            ),
-            cycles_usage,
+pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SystemCommandError> {
+    match matches.subcommand() {
+        Some(("xdr", matches)) => {
+            run_report(matches, network, build_cmc_xdr_report, cmc_xdr_report_text)
+        }
+        Some(("cycles", matches)) => run_report(
+            matches,
+            network,
             build_cmc_cycles_report,
             cmc_cycles_report_text,
         ),
-        _ => unreachable!("system dispatch only defines known commands"),
+        _ => unreachable!("clap requires a known system subcommand"),
     }
 }
 
-fn run_report<I, Report>(
-    args: I,
-    command: ClapCommand,
-    usage: fn() -> String,
+fn run_report<Report>(
+    matches: &ArgMatches,
+    network: &str,
     build: fn(&CmcSourceRequest) -> Result<Report, CmcHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), SystemCommandError>
 where
-    I: IntoIterator<Item = OsString>,
     Report: Serialize,
 {
-    let Some(args) = command_args(args, usage) else {
-        return Ok(());
-    };
-    let matches = parse_matches_or_usage(command, args).map_err(SystemCommandError::Usage)?;
     let request = CmcSourceRequest::from_unix_secs(
-        required_string(&matches, NETWORK_ARG),
-        required_string(&matches, SOURCE_ENDPOINT_ARG),
+        network,
+        required_string(matches, SOURCE_ENDPOINT_ARG),
         current_unix_secs()?,
         "ic-query",
     );
-    let format = output_format(&matches);
+    let format = output_format(matches);
     let report = build(&request)?;
     write_text_or_json(format, &report, render_text)
 }
 
-fn command_args<I>(args: I, usage: impl FnOnce() -> String) -> Option<Vec<OsString>>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    collect_args_or_print_help_or_version(args, usage, version_text())
-}
-
-fn system_command() -> ClapCommand {
+pub fn command() -> ClapCommand {
     ClapCommand::new("system")
         .bin_name("icq system")
         .about("Inspect native IC system-canister metadata")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("xdr").about("Show the certified CMC ICP/XDR conversion rate"),
+        .subcommand_required(true)
+        .subcommand(report_command(
+            "xdr",
+            "Show the certified CMC ICP/XDR conversion rate",
+            XDR_HELP_AFTER,
         ))
-        .subcommand(passthrough_subcommand(ClapCommand::new("cycles").about(
+        .subcommand(report_command(
+            "cycles",
             "Show cycles conversions derived from the certified CMC rate",
-        )))
+            CYCLES_HELP_AFTER,
+        ))
         .after_help(SYSTEM_HELP_AFTER)
 }
 
@@ -153,20 +113,20 @@ fn report_command(name: &'static str, about: &'static str, examples: &'static st
     ClapCommand::new(name)
         .bin_name(format!("icq system {name}"))
         .about(about)
-        .disable_help_flag(true)
         .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_CMC_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native CMC query"),
         )
-        .arg(internal_network_arg().default_value(MAINNET_NETWORK))
         .after_help(collection_help(COLLECTION_MODE_LIVE, examples))
 }
 
+#[cfg(test)]
 fn system_usage() -> String {
-    render_help(system_command())
+    render_help(command())
 }
 
+#[cfg(test)]
 fn xdr_usage() -> String {
     render_help(report_command(
         "xdr",
@@ -175,6 +135,7 @@ fn xdr_usage() -> String {
     ))
 }
 
+#[cfg(test)]
 fn cycles_usage() -> String {
     render_help(report_command(
         "cycles",
@@ -186,11 +147,13 @@ fn cycles_usage() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::clap::parse_matches_or_usage;
+    use std::ffi::OsString;
 
     #[test]
     fn usage_describes_bounded_native_reports() {
         let text = system_usage();
-        assert!(text.contains("Usage: icq system [COMMAND]"));
+        assert!(text.contains("Usage: icq system <COMMAND>"));
         assert!(text.contains("xdr"));
         assert!(text.contains("cycles"));
 
@@ -204,12 +167,12 @@ mod tests {
     #[test]
     fn help_and_version_do_not_make_live_calls() {
         for args in [
-            &["help"][..],
-            &["xdr", "help"],
-            &["cycles", "help"],
-            &["--version"],
+            &["system", "--help"][..],
+            &["system", "xdr", "--help"],
+            &["system", "cycles", "--help"],
+            &["system", "--version"],
         ] {
-            assert!(run(args.iter().map(OsString::from)).is_ok());
+            assert!(crate::run(args.iter().map(OsString::from)).is_ok());
         }
     }
 
@@ -221,7 +184,6 @@ mod tests {
         )
         .expect("parse default CMC options");
 
-        assert_eq!(required_string(&matches, NETWORK_ARG), MAINNET_NETWORK);
         assert_eq!(
             required_string(&matches, SOURCE_ENDPOINT_ARG),
             DEFAULT_CMC_SOURCE_ENDPOINT

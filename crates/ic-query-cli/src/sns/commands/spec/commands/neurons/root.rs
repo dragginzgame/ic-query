@@ -6,11 +6,10 @@
 
 use crate::{
     cli::{
-        clap::{flag_arg, passthrough_subcommand, value_arg},
+        clap::{flag_arg, value_arg},
         common::{
             COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help, json_arg, source_endpoint_arg,
         },
-        globals::internal_network_arg,
     },
     sns::commands::spec::commands::{
         args::{principal_value_parser, sns_lookup_input_arg},
@@ -38,23 +37,16 @@ pub(in crate::sns::commands) fn sns_neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
         .bin_name("icq sns neuron")
         .about("List and refresh SNS governance neurons by SNS list id or root principal")
-        .disable_help_flag(true)
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("list").about("List SNS governance neurons"),
-        ))
-        .subcommand(passthrough_subcommand(ClapCommand::new("refresh").about(
-            "Force-refresh and cache a complete SNS governance neuron snapshot",
-        )))
-        .subcommand(passthrough_subcommand(
-            ClapCommand::new("cache").about("Inspect local complete SNS neuron snapshots"),
-        ))
+        .subcommand_required(true)
+        .subcommand(sns_neuron_list_command())
+        .subcommand(super::sns_neuron_refresh_command())
+        .subcommand(super::sns_neuron_cache_command())
 }
 
 pub(in crate::sns::commands) fn sns_neuron_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq sns neuron list")
         .about("List SNS governance neurons by SNS list id or root principal")
-        .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(json_arg())
         .arg(
@@ -82,7 +74,6 @@ pub(in crate::sns::commands) fn sns_neuron_list_command() -> ClapCommand {
                 .help("Show full neuron IDs in text output"),
         )
         .arg(neurons_sort_arg())
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW,
             SNS_NEURONS_HELP_AFTER,

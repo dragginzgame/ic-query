@@ -47,28 +47,6 @@ fn nns_governance_help_advertises_native_live_reports() {
 }
 
 #[test]
-fn nns_governance_non_mainnet_is_rejected_before_live_query() {
-    for command in [
-        "economics",
-        "metrics",
-        "reward-event",
-        "maturity-modulation",
-    ] {
-        let error = run([
-            OsString::from("governance"),
-            OsString::from(command),
-            OsString::from("--__icq-network"),
-            OsString::from("local"),
-        ])
-        .expect_err("local network must be rejected");
-
-        let message = error.to_string();
-        assert!(message.contains("supports only the mainnet `ic` network"));
-        assert!(message.contains("icq --network ic nns governance economics"));
-    }
-}
-
-#[test]
 fn nns_governance_each_report_command_accepts_common_options() {
     for command in [
         governance_economics_command(),

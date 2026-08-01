@@ -8,7 +8,6 @@ use crate::{
     cli::{
         clap::value_arg,
         common::{COLLECTION_MODE_FORCE_REFRESH, collection_help, json_arg, source_endpoint_arg},
-        globals::internal_network_arg,
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
 };
@@ -28,7 +27,6 @@ pub(in crate::sns::commands) fn sns_neuron_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq sns neuron refresh")
         .about("Force-refresh and cache a complete SNS governance neuron snapshot")
-        .disable_help_flag(true)
         .arg(sns_lookup_input_arg())
         .arg(json_arg())
         .arg(
@@ -53,7 +51,6 @@ pub(in crate::sns::commands) fn sns_neuron_refresh_command() -> ClapCommand {
                 .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
-        .arg(internal_network_arg().default_value("ic"))
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             SNS_NEURONS_REFRESH_HELP_AFTER,

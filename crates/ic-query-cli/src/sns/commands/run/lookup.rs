@@ -7,77 +7,52 @@
 use crate::{
     cli::common::write_text_or_json,
     sns::commands::{
-        SnsCommandError,
-        options::SnsLookupOptions,
-        run::common::{command_args, lookup_command_parts},
-        spec::{
-            sns_info_command, sns_info_usage, sns_params_command, sns_params_usage,
-            sns_token_command, sns_token_usage,
-        },
+        SnsCommandError, options::SnsLookupOptions, run::common::lookup_command_parts,
     },
 };
-use clap::Command as ClapCommand;
+use clap::ArgMatches;
 use ic_query::sns::{
     SnsHostError, SnsLookupRequest, build_sns_info_report, build_sns_params_report,
     build_sns_token_report, sns_info_report_text, sns_params_report_text, sns_token_report_text,
 };
 use serde::Serialize;
-use std::ffi::OsString;
-
-pub(super) fn run_sns_info<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
+pub(super) fn run_sns_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     run_sns_lookup(
-        args,
-        sns_info_command,
-        sns_info_usage,
+        matches,
+        network,
         build_sns_info_report,
         sns_info_report_text,
     )
 }
 
-pub(super) fn run_sns_token<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
+pub(super) fn run_sns_token(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     run_sns_lookup(
-        args,
-        sns_token_command,
-        sns_token_usage,
+        matches,
+        network,
         build_sns_token_report,
         sns_token_report_text,
     )
 }
 
-pub(super) fn run_sns_params<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
+pub(super) fn run_sns_params(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     run_sns_lookup(
-        args,
-        sns_params_command,
-        sns_params_usage,
+        matches,
+        network,
         build_sns_params_report,
         sns_params_report_text,
     )
 }
 
-pub(super) fn run_sns_lookup<I, Report>(
-    args: I,
-    command: fn() -> ClapCommand,
-    usage: fn() -> String,
+pub(super) fn run_sns_lookup<Report>(
+    matches: &ArgMatches,
+    network: &str,
     build_report: fn(&SnsLookupRequest) -> Result<Report, SnsHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), SnsCommandError>
 where
-    I: IntoIterator<Item = OsString>,
     Report: Serialize,
 {
-    let Some(args) = command_args(args, usage) else {
-        return Ok(());
-    };
-    let options = SnsLookupOptions::parse(args, command)?;
+    let options = SnsLookupOptions::from_matches(matches, network);
     let parts = lookup_command_parts(options)?;
     let format = parts.format;
     let request = SnsLookupRequest {

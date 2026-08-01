@@ -4,6 +4,14 @@
 //! Does not own: proposal command specs, proposal cache policy, or reports.
 //! Boundary: validates clap matches into proposal command request inputs.
 
+#[cfg(test)]
+use crate::sns::commands::{
+    options::common::parse_sns_matches,
+    spec::{
+        sns_proposal_cache_list_command, sns_proposal_cache_status_command,
+        sns_proposal_info_command, sns_proposal_list_command, sns_proposal_refresh_command,
+    },
+};
 use crate::{
     cli::{
         clap::{required_string, required_typed, string_option, typed_option},
@@ -11,17 +19,16 @@ use crate::{
     },
     sns::commands::{
         SnsCommandError,
-        options::{common::parse_sns_matches, lookup::SnsLookupOptions},
+        options::lookup::SnsLookupOptions,
         spec::{
             SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
-            SnsProposalTopicArg, SnsProposalsSortArg, sns_proposal_cache_list_command,
-            sns_proposal_cache_status_command, sns_proposal_info_command,
-            sns_proposal_list_command, sns_proposal_refresh_command,
+            SnsProposalTopicArg, SnsProposalsSortArg,
         },
     },
 };
 use clap::ArgMatches;
 use ic_query::sns::{SnsProposalSortDirection, SnsProposalsSort};
+#[cfg(test)]
 use std::ffi::OsString;
 
 ///
@@ -98,27 +105,35 @@ pub(in crate::sns::commands) struct SnsProposalsRefreshOptions {
 }
 
 impl SnsProposalsOptions {
+    pub(in crate::sns::commands) fn from_matches(
+        matches: &ArgMatches,
+        network: &str,
+    ) -> Result<Self, SnsCommandError> {
+        let status = required_typed(matches, "status");
+        let sort = required_typed(matches, "sort");
+        let sort_direction = proposal_sort_direction(matches, sort)?;
+        Ok(Self {
+            lookup: SnsLookupOptions::from_matches(matches, network),
+            limit: required_typed(matches, "limit"),
+            before_proposal_id: typed_option::<u64>(matches, "before"),
+            status,
+            topic: required_typed(matches, "topic"),
+            eligibility: required_typed(matches, "eligible"),
+            proposer_neuron_id: string_option(matches, "proposer"),
+            query: string_option(matches, "query"),
+            sort,
+            sort_direction,
+            verbose: matches.get_flag("verbose"),
+        })
+    }
+
+    #[cfg(test)]
     pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(sns_proposal_list_command(), args)?;
-        let status = required_typed(&matches, "status");
-        let sort = required_typed(&matches, "sort");
-        let sort_direction = proposal_sort_direction(&matches, sort)?;
-        Ok(Self {
-            lookup: SnsLookupOptions::from_matches(&matches),
-            limit: required_typed(&matches, "limit"),
-            before_proposal_id: typed_option::<u64>(&matches, "before"),
-            status,
-            topic: required_typed(&matches, "topic"),
-            eligibility: required_typed(&matches, "eligible"),
-            proposer_neuron_id: string_option(&matches, "proposer"),
-            query: string_option(&matches, "query"),
-            sort,
-            sort_direction,
-            verbose: matches.get_flag("verbose"),
-        })
+        Self::from_matches(&matches, ic_query::subnet_catalog::MAINNET_NETWORK)
     }
 }
 
@@ -149,57 +164,89 @@ fn explicit_proposal_sort_direction(
 }
 
 impl SnsProposalOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            lookup: SnsLookupOptions::from_matches(matches, network),
+            proposal_id: required_typed(matches, "proposal-id"),
+            verbose: matches.get_flag("verbose"),
+            show_ballots: matches.get_flag("ballots"),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(sns_proposal_info_command(), args)?;
-        Ok(Self {
-            lookup: SnsLookupOptions::from_matches(&matches),
-            proposal_id: required_typed(&matches, "proposal-id"),
-            verbose: matches.get_flag("verbose"),
-            show_ballots: matches.get_flag("ballots"),
-        })
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
 impl SnsProposalsCacheListOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(sns_proposal_cache_list_command(), args)?;
-        Ok(Self {
-            network: required_string(&matches, "network"),
-            format: output_format(&matches),
-        })
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
 impl SnsProposalsCacheStatusOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            input: required_string(matches, "input"),
+            network: network.to_string(),
+            format: output_format(matches),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(sns_proposal_cache_status_command(), args)?;
-        Ok(Self {
-            input: required_string(&matches, "input"),
-            network: required_string(&matches, "network"),
-            format: output_format(&matches),
-        })
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
 impl SnsProposalsRefreshOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            lookup: SnsLookupOptions::from_matches(matches, network),
+            page_size: required_typed(matches, "page-size"),
+            max_pages: typed_option::<u32>(matches, "max-pages"),
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
         let matches = parse_sns_matches(sns_proposal_refresh_command(), args)?;
-        Ok(Self {
-            lookup: SnsLookupOptions::from_matches(&matches),
-            page_size: required_typed(&matches, "page-size"),
-            max_pages: typed_option::<u32>(&matches, "max-pages"),
-        })
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }

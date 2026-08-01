@@ -1,15 +1,18 @@
 //! Parsed options for public NNS neuron commands.
 
+#[cfg(test)]
 use super::commands::{
     neuron_cache_status_command, neuron_info_command, neuron_list_command, neuron_refresh_command,
 };
 use crate::{
     cli::{
-        clap::{required_string, required_typed, typed_option},
+        clap::{required_typed, typed_option},
         common::output_format,
     },
-    nns::{NnsCommandError, OutputFormat, leaf::NnsCommonOptions, parse_nns_matches},
+    nns::{OutputFormat, leaf::NnsCommonOptions},
 };
+use clap::ArgMatches;
+#[cfg(test)]
 use std::ffi::OsString;
 
 ///
@@ -29,20 +32,28 @@ pub(in crate::nns) struct NnsNeuronListOptions {
 }
 
 impl NnsNeuronListOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_nns_matches(neuron_list_command(), args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-            limit: required_typed(&matches, "limit"),
-            start_neuron_id: typed_option(&matches, "start-neuron-id"),
+            limit: required_typed(matches, "limit"),
+            start_neuron_id: typed_option(matches, "start-neuron-id"),
             verbose: matches.get_flag("verbose"),
-        })
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = crate::nns::parse_nns_matches(neuron_list_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
@@ -62,19 +73,27 @@ pub(in crate::nns) struct NnsNeuronInfoOptions {
 }
 
 impl NnsNeuronInfoOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_nns_matches(neuron_info_command(), args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-            neuron_id: required_typed(&matches, "neuron-id"),
+            neuron_id: required_typed(matches, "neuron-id"),
             verbose: matches.get_flag("verbose"),
-        })
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = crate::nns::parse_nns_matches(neuron_info_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
@@ -94,19 +113,27 @@ pub(in crate::nns) struct NnsNeuronRefreshOptions {
 }
 
 impl NnsNeuronRefreshOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_nns_matches(neuron_refresh_command(), args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
             network: common.network,
             format: common.format,
             source_endpoint: common.source_endpoint,
-            page_size: required_typed(&matches, "page-size"),
-            max_pages: typed_option(&matches, "max-pages"),
-        })
+            page_size: required_typed(matches, "page-size"),
+            max_pages: typed_option(matches, "max-pages"),
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = crate::nns::parse_nns_matches(neuron_refresh_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }
 
@@ -123,14 +150,22 @@ pub(in crate::nns) struct NnsNeuronCacheOptions {
 }
 
 impl NnsNeuronCacheOptions {
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+        }
+    }
+
+    #[cfg(test)]
+    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(neuron_cache_status_command(), args)?;
-        Ok(Self {
-            network: required_string(&matches, "network"),
-            format: output_format(&matches),
-        })
+        let matches = crate::nns::parse_nns_matches(neuron_cache_status_command(), args)?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }

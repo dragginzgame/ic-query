@@ -13,17 +13,10 @@ use crate::{
             SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
             SnsProposalsOptions, SnsProposalsRefreshOptions,
         },
-        run::common::{
-            cache_command_parts, cached_lookup_command_parts, command_args, parse_required_command,
-        },
-        spec::{
-            sns_proposal_cache_command, sns_proposal_cache_list_usage,
-            sns_proposal_cache_status_usage, sns_proposal_cache_usage, sns_proposal_command,
-            sns_proposal_info_usage, sns_proposal_list_usage, sns_proposal_refresh_usage,
-            sns_proposal_usage,
-        },
+        run::common::{cache_command_parts, cached_lookup_command_parts},
     },
 };
+use clap::ArgMatches;
 use ic_query::sns::{
     SnsCacheListRequest, SnsCacheStatusRequest, SnsProposalRequest, SnsProposalsRefreshRequest,
     SnsProposalsRequest, build_sns_proposal_report, build_sns_proposals_cache_list_report,
@@ -32,33 +25,18 @@ use ic_query::sns::{
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
     sns_proposals_refresh_report_text, sns_proposals_report_text,
 };
-use std::ffi::OsString;
-
-pub(super) fn run_sns_proposal<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_proposal_usage) else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_command(sns_proposal_command(), args)?;
-    match command.as_str() {
-        "list" => run_sns_proposal_list(args),
-        "info" => run_sns_proposal_info(args),
-        "refresh" => run_sns_proposal_refresh(args),
-        "cache" => run_sns_proposal_cache(args),
-        _ => unreachable!("sns proposal dispatch command only defines known commands"),
+pub(super) fn run_sns_proposal(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => run_sns_proposal_list(matches, network),
+        Some(("info", matches)) => run_sns_proposal_info(matches, network),
+        Some(("refresh", matches)) => run_sns_proposal_refresh(matches, network),
+        Some(("cache", matches)) => run_sns_proposal_cache(matches, network),
+        _ => unreachable!("clap requires a known SNS proposal subcommand"),
     }
 }
 
-fn run_sns_proposal_info<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_proposal_info_usage) else {
-        return Ok(());
-    };
-    let options = SnsProposalOptions::parse(args)?;
+fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsProposalOptions::from_matches(matches, network);
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsProposalRequest {
@@ -75,14 +53,8 @@ where
     write_text_or_json(format, &report, sns_proposal_report_text)
 }
 
-fn run_sns_proposal_list<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_proposal_list_usage) else {
-        return Ok(());
-    };
-    let options = SnsProposalsOptions::parse(args)?;
+fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsProposalsOptions::from_matches(matches, network)?;
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsProposalsRequest {
@@ -107,14 +79,8 @@ where
     write_text_or_json(format, &report, sns_proposals_report_text)
 }
 
-fn run_sns_proposal_refresh<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_proposal_refresh_usage) else {
-        return Ok(());
-    };
-    let options = SnsProposalsRefreshOptions::parse(args)?;
+fn run_sns_proposal_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsProposalsRefreshOptions::from_matches(matches, network);
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsProposalsRefreshRequest {
@@ -131,29 +97,16 @@ where
     write_text_or_json(format, &report, sns_proposals_refresh_report_text)
 }
 
-fn run_sns_proposal_cache<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_proposal_cache_usage) else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_command(sns_proposal_cache_command(), args)?;
-    match command.as_str() {
-        "list" => run_sns_proposal_cache_list(args),
-        "status" => run_sns_proposal_cache_status(args),
-        _ => unreachable!("sns proposal cache dispatch command only defines known commands"),
+fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => run_sns_proposal_cache_list(matches, network),
+        Some(("status", matches)) => run_sns_proposal_cache_status(matches, network),
+        _ => unreachable!("clap requires a known SNS proposal cache subcommand"),
     }
 }
 
-fn run_sns_proposal_cache_list<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_proposal_cache_list_usage) else {
-        return Ok(());
-    };
-    let options = SnsProposalsCacheListOptions::parse(args)?;
+fn run_sns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsProposalsCacheListOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheListRequest {
         network: parts.network,
@@ -163,14 +116,11 @@ where
     write_text_or_json(parts.format, &report, sns_proposals_cache_list_report_text)
 }
 
-fn run_sns_proposal_cache_status<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_proposal_cache_status_usage) else {
-        return Ok(());
-    };
-    let options = SnsProposalsCacheStatusOptions::parse(args)?;
+fn run_sns_proposal_cache_status(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
+    let options = SnsProposalsCacheStatusOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheStatusRequest {
         network: parts.network,

@@ -1,20 +1,12 @@
 use super::{announce_missing_node_cache, cache_request};
-use crate::nns::{
-    NnsCommandError, command_args,
-    node::{commands::node_info_usage, options::node_info_options},
-    now_unix_secs, write_text_or_json,
-};
+use crate::nns::{NnsCommandError, leaf::NnsLeafInfoOptions, now_unix_secs, write_text_or_json};
+use clap::ArgMatches;
 use ic_query::nns::{
     NnsInventoryInfoRequest,
     node::{build_nns_node_info_report, nns_node_info_report_text},
 };
-use std::ffi::OsString;
-
-pub(super) fn run_node_info(args: Vec<OsString>) -> Result<(), NnsCommandError> {
-    let Some(args) = command_args(args, node_info_usage) else {
-        return Ok(());
-    };
-    let options = node_info_options(args)?;
+pub(super) fn run_node_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = NnsLeafInfoOptions::from_matches(matches, network);
     let cache = cache_request(&options.network)?;
     announce_missing_node_cache(&cache, &options.source_endpoint);
     let request = NnsInventoryInfoRequest::new(

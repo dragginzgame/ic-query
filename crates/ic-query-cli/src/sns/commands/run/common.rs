@@ -5,17 +5,10 @@
 //! Boundary: adapts CLI-level helpers into SNS command errors and request parts.
 
 use crate::{
-    cli::{
-        clap::parse_required_subcommand_or_usage,
-        common::{OutputFormat, current_unix_secs},
-        help::collect_args_or_print_help_or_version,
-    },
+    cli::common::{OutputFormat, current_unix_secs},
     sns::commands::{SnsCommandError, options::SnsLookupOptions},
     storage::cache_root,
-    version_text,
 };
-use clap::Command as ClapCommand;
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 ///
@@ -63,25 +56,8 @@ pub(super) fn command_unix_secs() -> Result<u64, SnsCommandError> {
     Ok(current_unix_secs()?)
 }
 
-pub(super) fn command_args<I>(args: I, usage: impl FnOnce() -> String) -> Option<Vec<OsString>>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    collect_args_or_print_help_or_version(args, usage, version_text())
-}
-
 pub(super) fn command_cache_root() -> Result<PathBuf, SnsCommandError> {
     cache_root().map_err(|err| SnsCommandError::Usage(err.to_string()))
-}
-
-pub(super) fn parse_required_command<I>(
-    command: ClapCommand,
-    args: I,
-) -> Result<(String, Vec<OsString>), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    parse_required_subcommand_or_usage(command, args).map_err(SnsCommandError::Usage)
 }
 
 pub(super) fn lookup_command_parts(

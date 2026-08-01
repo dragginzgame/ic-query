@@ -14,11 +14,11 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
     let boundary_nodes = boundary_node_data_centers_usage();
     let daily_stats = daily_stats_usage();
 
-    assert!(root.contains("Usage: icq ic [COMMAND]"));
+    assert!(root.contains("Usage: icq ic <COMMAND>"));
     assert!(root.contains("canister"));
     assert!(root.contains("metrics"));
     assert!(root.contains("network"));
-    assert!(canister.contains("Usage: icq ic canister [COMMAND]"));
+    assert!(canister.contains("Usage: icq ic canister <COMMAND>"));
     assert!(canister.contains("info"));
     assert!(canister.contains("count"));
     assert!(canister.contains("page"));
@@ -35,7 +35,7 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
     assert!(metrics.contains("exactly one official Dashboard Metrics API request"));
     assert!(metrics.contains("capped at 1000 observations"));
     assert!(metrics.contains("off-chain, non-certified API"));
-    assert!(network.contains("Usage: icq ic network [COMMAND]"));
+    assert!(network.contains("Usage: icq ic network <COMMAND>"));
     assert!(network.contains("boundary-node-data-centers"));
     assert!(network.contains("daily-stats"));
     assert!(boundary_nodes.contains("Usage: icq ic network boundary-node-data-centers [OPTIONS]"));
@@ -221,23 +221,24 @@ fn cli_and_library_page_defaults_remain_aligned() {
 #[test]
 fn family_and_nested_help_return_without_network_calls() {
     for args in [
-        &["help"][..],
-        &["canister", "help"],
-        &["canister", "info", "help"],
-        &["canister", "count", "help"],
-        &["canister", "page", "help"],
-        &["metrics", "help"],
-        &["network", "help"],
-        &["network", "boundary-node-data-centers", "help"],
-        &["network", "daily-stats", "help"],
+        &["ic", "--help"][..],
+        &["ic", "canister", "--help"],
+        &["ic", "canister", "info", "--help"],
+        &["ic", "canister", "count", "--help"],
+        &["ic", "canister", "page", "--help"],
+        &["ic", "metrics", "--help"],
+        &["ic", "network", "--help"],
+        &["ic", "network", "boundary-node-data-centers", "--help"],
+        &["ic", "network", "daily-stats", "--help"],
     ] {
-        assert!(run(args.iter().map(OsString::from)).is_ok());
+        assert!(crate::run(args.iter().map(OsString::from)).is_ok());
     }
 }
 
 #[test]
 fn invalid_principal_fails_before_endpoint_or_network_use() {
-    let error = run([
+    let error = crate::run([
+        OsString::from("ic"),
         OsString::from("canister"),
         OsString::from("info"),
         OsString::from("not a principal"),
@@ -248,9 +249,9 @@ fn invalid_principal_fails_before_endpoint_or_network_use() {
 
     assert!(matches!(
         error,
-        IcCommandError::Host(IcHostError::InvalidPrincipal {
+        crate::IcqCliError::Ic(IcCommandError::Host(IcHostError::InvalidPrincipal {
             field: "canister_id",
             ..
-        })
+        }))
     ));
 }

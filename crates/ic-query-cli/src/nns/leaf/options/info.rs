@@ -5,17 +5,16 @@
 //! Boundary: converts info command arguments into command-runner options.
 
 use super::NnsCommonOptions;
+#[cfg(test)]
+use crate::nns::NnsCommandError;
+#[cfg(test)]
+use crate::nns::leaf::model::NnsLeafCommandSpec;
 use crate::{
     cli::{clap::required_string, common::OutputFormat},
-    nns::{
-        NnsCommandError,
-        leaf::{
-            commands::{INPUT_ARG, info_command},
-            model::NnsLeafCommandSpec,
-        },
-        parse_nns_matches,
-    },
+    nns::leaf::commands::INPUT_ARG,
 };
+use clap::ArgMatches;
+#[cfg(test)]
 use std::ffi::OsString;
 
 ///
@@ -33,6 +32,17 @@ pub(in crate::nns) struct NnsLeafInfoOptions {
 }
 
 impl NnsLeafInfoOptions {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        let common = NnsCommonOptions::from_matches(matches, network);
+        Self {
+            input: required_string(matches, INPUT_ARG),
+            network: common.network,
+            format: common.format,
+            source_endpoint: common.source_endpoint,
+        }
+    }
+
+    #[cfg(test)]
     pub(in crate::nns) fn parse<I>(
         args: I,
         spec: &NnsLeafCommandSpec,
@@ -41,13 +51,13 @@ impl NnsLeafInfoOptions {
     where
         I: IntoIterator<Item = OsString>,
     {
-        let matches = parse_nns_matches(info_command(spec, default_source_endpoint), args)?;
-        let common = NnsCommonOptions::from_matches(&matches);
-        Ok(Self {
-            input: required_string(&matches, INPUT_ARG),
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-        })
+        let matches = crate::nns::parse_nns_matches(
+            crate::nns::leaf::commands::info_command(spec, default_source_endpoint),
+            args,
+        )?;
+        Ok(Self::from_matches(
+            &matches,
+            ic_query::subnet_catalog::MAINNET_NETWORK,
+        ))
     }
 }

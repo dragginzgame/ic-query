@@ -8,26 +8,20 @@ use crate::{
     cli::common::write_text_or_json,
     progress::StderrQueryProgress,
     sns::commands::{
-        SnsCommandError,
-        options::SnsNeuronsRefreshOptions,
-        run::common::{cached_lookup_command_parts, command_args},
-        spec::sns_neuron_refresh_usage,
+        SnsCommandError, options::SnsNeuronsRefreshOptions,
+        run::common::cached_lookup_command_parts,
     },
 };
+use clap::ArgMatches;
 use ic_query::sns::{
     SnsNeuronsRefreshRequest, refresh_sns_neurons_cache_with_progress,
     sns_neurons_refresh_report_text,
 };
-use std::ffi::OsString;
-
-pub(super) fn run_sns_neuron_refresh<I>(args: I) -> Result<(), SnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, sns_neuron_refresh_usage) else {
-        return Ok(());
-    };
-    let options = SnsNeuronsRefreshOptions::parse(args)?;
+pub(super) fn run_sns_neuron_refresh(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
+    let options = SnsNeuronsRefreshOptions::from_matches(matches, network);
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsNeuronsRefreshRequest {

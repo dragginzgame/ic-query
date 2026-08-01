@@ -6,8 +6,6 @@
 
 pub mod clap;
 pub mod common;
-pub mod globals;
-pub mod help;
 
 #[cfg(test)]
 mod tests;

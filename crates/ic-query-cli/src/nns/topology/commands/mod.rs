@@ -1,6 +1,7 @@
 mod read;
 mod refresh;
 mod root;
+#[cfg(test)]
 mod usage;
 
 pub(super) use read::{
@@ -10,6 +11,7 @@ pub(super) use read::{
 };
 pub(super) use refresh::{DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, topology_refresh_command};
 pub(super) use root::topology_command;
+#[cfg(test)]
 pub(in crate::nns) use usage::{
     topology_capacity_usage, topology_coverage_usage, topology_gaps_usage, topology_health_usage,
     topology_providers_usage, topology_refresh_usage, topology_regions_usage,

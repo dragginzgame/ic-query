@@ -4,7 +4,7 @@ use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
 
 #[cfg(test)]
 pub(in crate::nns) fn node_usage() -> String {
-    leaf::usage(&NODE_SPEC)
+    render_help(super::node_command())
 }
 
 pub(in crate::nns) fn node_list_usage() -> String {

@@ -117,6 +117,7 @@ Options:
       --source-endpoint <url>  IC API endpoint used for SNS-W and governance metadata queries [default: https://icp-api.io]
       --verbose                Show full canister IDs in text output
       --sort <id|name>         Text/JSON row order; ids follow the SNS-W response order [default: id] [possible values: id, name]
+  -h, --help                   Print help
 
 Collection mode: Live query; does not read or write a report cache.
 

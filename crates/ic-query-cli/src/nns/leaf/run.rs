@@ -1,5 +1,4 @@
 use super::{
-    commands::{command, info_usage, list_usage, refresh_usage, usage},
     model::{
         NnsLeafCacheRequest, NnsLeafCommandSpec, NnsLeafInfoRequest, NnsLeafListRequest,
         NnsLeafRefreshRequest, NnsLeafReports,
@@ -8,57 +7,25 @@ use super::{
 };
 use crate::{
     cli::common::write_text_or_json_verbose,
-    nns::{
-        NnsCommandError, command_args, command_cache_root, now_unix_secs,
-        parse_nns_required_subcommand, write_text_or_json,
-    },
+    nns::{NnsCommandError, command_cache_root, now_unix_secs, write_text_or_json},
     progress::announce_missing_mainnet_cache,
 };
-use std::ffi::OsString;
+use clap::ArgMatches;
 
-pub(in crate::nns) fn run_leaf<I>(
-    args: I,
+pub(in crate::nns) fn run_cached_leaf<Reports>(
+    matches: &ArgMatches,
+    network: &str,
     spec: &NnsLeafCommandSpec,
-    run_list: fn(Vec<OsString>) -> Result<(), NnsCommandError>,
-    run_info: fn(Vec<OsString>) -> Result<(), NnsCommandError>,
-    run_refresh: fn(Vec<OsString>) -> Result<(), NnsCommandError>,
-) -> Result<(), NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = command_args(args, || usage(spec)) else {
-        return Ok(());
-    };
-    let (command_name, args) = parse_nns_required_subcommand(command(spec), args)?;
-
-    match command_name.as_str() {
-        "list" => run_list(args),
-        "info" => run_info(args),
-        "refresh" => run_refresh(args),
-        _ => unreachable!("nns leaf dispatch command only defines known commands"),
-    }
-}
-
-pub(in crate::nns) fn run_cached_leaf<I, Reports>(
-    args: I,
-    spec: &NnsLeafCommandSpec,
-    default_source_endpoint: &'static str,
     reports: Reports,
 ) -> Result<(), NnsCommandError>
 where
-    I: IntoIterator<Item = OsString>,
     Reports: NnsLeafReports,
 {
-    let Some(args) = command_args(args, || usage(spec)) else {
-        return Ok(());
-    };
-    let (command_name, args) = parse_nns_required_subcommand(command(spec), args)?;
-
-    match command_name.as_str() {
-        "list" => run_cached_leaf_list(args, spec, default_source_endpoint, &reports),
-        "info" => run_cached_leaf_info(args, spec, default_source_endpoint, &reports),
-        "refresh" => run_cached_leaf_refresh(args, spec, default_source_endpoint, &reports),
-        _ => unreachable!("nns leaf dispatch command only defines known commands"),
+    match matches.subcommand() {
+        Some(("list", matches)) => run_cached_leaf_list(matches, network, spec, &reports),
+        Some(("info", matches)) => run_cached_leaf_info(matches, network, spec, &reports),
+        Some(("refresh", matches)) => run_cached_leaf_refresh(matches, network, &reports),
+        _ => unreachable!("clap requires a known NNS leaf subcommand"),
     }
 }
 
@@ -79,18 +46,15 @@ where
 }
 
 fn run_cached_leaf_list<Reports>(
-    args: Vec<OsString>,
+    matches: &ArgMatches,
+    network: &str,
     spec: &NnsLeafCommandSpec,
-    default_source_endpoint: &'static str,
     reports: &Reports,
 ) -> Result<(), NnsCommandError>
 where
     Reports: NnsLeafReports,
 {
-    let Some(args) = command_args(args, || list_usage(spec, default_source_endpoint)) else {
-        return Ok(());
-    };
-    let options = NnsLeafListOptions::parse(args, spec, default_source_endpoint)?;
+    let options = NnsLeafListOptions::from_matches(matches, network);
     let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
     announce_missing_leaf_cache(
         &parts.cache,
@@ -114,18 +78,15 @@ where
 }
 
 fn run_cached_leaf_info<Reports>(
-    args: Vec<OsString>,
+    matches: &ArgMatches,
+    network: &str,
     spec: &NnsLeafCommandSpec,
-    default_source_endpoint: &'static str,
     reports: &Reports,
 ) -> Result<(), NnsCommandError>
 where
     Reports: NnsLeafReports,
 {
-    let Some(args) = command_args(args, || info_usage(spec, default_source_endpoint)) else {
-        return Ok(());
-    };
-    let options = NnsLeafInfoOptions::parse(args, spec, default_source_endpoint)?;
+    let options = NnsLeafInfoOptions::from_matches(matches, network);
     let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
     announce_missing_leaf_cache(
         &parts.cache,
@@ -146,18 +107,14 @@ where
 }
 
 fn run_cached_leaf_refresh<Reports>(
-    args: Vec<OsString>,
-    spec: &NnsLeafCommandSpec,
-    default_source_endpoint: &'static str,
+    matches: &ArgMatches,
+    network: &str,
     reports: &Reports,
 ) -> Result<(), NnsCommandError>
 where
     Reports: NnsLeafReports,
 {
-    let Some(args) = command_args(args, || refresh_usage(spec, default_source_endpoint)) else {
-        return Ok(());
-    };
-    let options = NnsLeafRefreshOptions::parse(args, spec, default_source_endpoint)?;
+    let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.format;
     let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
     let request = <Reports::RefreshRequest as NnsLeafRefreshRequest>::from_leaf_parts(

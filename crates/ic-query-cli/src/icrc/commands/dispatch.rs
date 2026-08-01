@@ -1,40 +1,27 @@
 //! Module: icrc::commands::dispatch
 //!
-//! Responsibility: dispatch parsed ICRC commands into report builders and output.
-//! Does not own: Clap command definitions, option parsing, live calls, or rendering.
-//! Boundary: converts command options to public requests and writes one report.
+//! Responsibility: dispatch typed ICRC command matches into report requests.
+//! Does not own: Clap command definitions, live calls, or report rendering.
+//! Boundary: converts one composed parse tree into public requests and one output.
 
 use super::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
     IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
-    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions, icrc_account_command,
-    icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_usage,
-    icrc_account_transaction_cache_usage, icrc_account_transaction_command,
-    icrc_account_transaction_list_usage, icrc_account_transaction_page_usage,
-    icrc_account_transaction_refresh_usage, icrc_account_transaction_usage, icrc_account_usage,
-    icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage, icrc_block_types_command,
-    icrc_block_types_usage, icrc_capabilities_command, icrc_capabilities_usage, icrc_command,
-    icrc_index_command, icrc_index_usage, icrc_ledger_command, icrc_ledger_usage,
-    icrc_tip_certificate_command, icrc_tip_certificate_usage, icrc_token_command, icrc_token_usage,
-    icrc_transactions_usage, usage,
+    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 use crate::{
-    cli::{
-        clap::parse_required_subcommand_or_usage,
-        common::{current_unix_secs, write_text_or_json},
-        help::collect_args_or_print_help_or_version,
-    },
+    cli::common::{current_unix_secs, write_text_or_json},
     icrc::IcrcCommandError,
     progress::StderrQueryProgress,
     storage::cache_root,
-    version_text,
 };
+use clap::ArgMatches;
 use ic_query::icrc::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
     IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest, IcrcAllowanceRequest,
-    IcrcArchivesRequest, IcrcBalanceRequest, IcrcLedgerRequest, IcrcTransactionsRequest,
+    IcrcArchivesRequest, IcrcBalanceRequest, IcrcError, IcrcLedgerRequest, IcrcTransactionsRequest,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
     build_icrc_account_transaction_page_report, build_icrc_allowance_report,
     build_icrc_archives_report, build_icrc_balance_report, build_icrc_block_types_report,
@@ -47,93 +34,74 @@ use ic_query::icrc::{
     icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
     refresh_icrc_account_transaction_cache_with_progress,
 };
-use std::ffi::OsString;
+use serde::Serialize;
 
-pub fn run<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(args, usage, version_text()) else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_subcommand_or_usage(icrc_command(), args)
-        .map_err(IcrcCommandError::Usage)?;
-    match command.as_str() {
-        "ledger" => run_icrc_ledger(args),
-        "account" => run_icrc_account(args),
-        _ => unreachable!("ICRC command only defines known subcommands"),
+pub fn run_matches(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("ledger", matches)) => run_icrc_ledger(matches),
+        Some(("account", matches)) => run_icrc_account(matches),
+        _ => unreachable!("clap requires a known ICRC subcommand"),
     }
 }
 
-fn run_icrc_ledger<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(args, icrc_ledger_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_subcommand_or_usage(icrc_ledger_command(), args)
-        .map_err(IcrcCommandError::Usage)?;
-    match command.as_str() {
-        "token" => run_icrc_token(args),
-        "index" => run_icrc_index(args),
-        "transactions" => run_icrc_transactions(args),
-        "block-types" => run_icrc_block_types(args),
-        "archives" => run_icrc_archives(args),
-        "tip-certificate" => run_icrc_tip_certificate(args),
-        "capabilities" => run_icrc_capabilities(args),
-        _ => unreachable!("ICRC ledger command only defines known subcommands"),
+fn run_icrc_ledger(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("token", matches)) => {
+            run_simple_ledger_report(matches, build_icrc_token_report, icrc_token_report_text)
+        }
+        Some(("index", matches)) => {
+            run_simple_ledger_report(matches, build_icrc_index_report, icrc_index_report_text)
+        }
+        Some(("transactions", matches)) => run_icrc_transactions(matches),
+        Some(("block-types", matches)) => run_simple_ledger_report(
+            matches,
+            build_icrc_block_types_report,
+            icrc_block_types_report_text,
+        ),
+        Some(("archives", matches)) => run_icrc_archives(matches),
+        Some(("tip-certificate", matches)) => run_simple_ledger_report(
+            matches,
+            build_icrc_tip_certificate_report,
+            icrc_tip_certificate_report_text,
+        ),
+        Some(("capabilities", matches)) => run_simple_ledger_report(
+            matches,
+            build_icrc_capabilities_report,
+            icrc_capabilities_report_text,
+        ),
+        _ => unreachable!("clap requires a known ICRC ledger subcommand"),
     }
 }
 
-fn run_icrc_account<I>(args: I) -> Result<(), IcrcCommandError>
+fn run_simple_ledger_report<Report>(
+    matches: &ArgMatches,
+    build: fn(&IcrcLedgerRequest) -> Result<Report, IcrcError>,
+    render_text: fn(&Report) -> String,
+) -> Result<(), IcrcCommandError>
 where
-    I: IntoIterator<Item = OsString>,
+    Report: Serialize,
 {
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_account_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let (command, args) = parse_required_subcommand_or_usage(icrc_account_command(), args)
-        .map_err(IcrcCommandError::Usage)?;
-    match command.as_str() {
-        "balance" => run_icrc_balance(args),
-        "allowance" => run_icrc_allowance(args),
-        "transaction" => run_icrc_account_transaction(args),
-        _ => unreachable!("ICRC account command only defines known subcommands"),
-    }
-}
-
-fn run_icrc_token<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(args, icrc_token_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcLedgerOptions::parse(args, icrc_token_command)?;
+    let options = IcrcLedgerOptions::from_matches(matches);
     let request = IcrcLedgerRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,
     };
-    let report = build_icrc_token_report(&request)?;
-    write_text_or_json(options.format, &report, icrc_token_report_text)
+    let report = build(&request)?;
+    write_text_or_json(options.format, &report, render_text)
 }
 
-fn run_icrc_balance<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_balance_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcBalanceOptions::parse(args)?;
+fn run_icrc_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("balance", matches)) => run_icrc_balance(matches),
+        Some(("allowance", matches)) => run_icrc_allowance(matches),
+        Some(("transaction", matches)) => run_icrc_account_transaction(matches),
+        _ => unreachable!("clap requires a known ICRC account subcommand"),
+    }
+}
+
+fn run_icrc_balance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcBalanceOptions::from_matches(matches);
     let request = IcrcBalanceRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -145,16 +113,8 @@ where
     write_text_or_json(options.format, &report, icrc_balance_report_text)
 }
 
-fn run_icrc_allowance<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_allowance_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcAllowanceOptions::parse(args)?;
+fn run_icrc_allowance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcAllowanceOptions::from_matches(matches);
     let request = IcrcAllowanceRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -168,39 +128,18 @@ where
     write_text_or_json(options.format, &report, icrc_allowance_report_text)
 }
 
-fn run_icrc_account_transaction<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_account_transaction_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let (command, args) =
-        parse_required_subcommand_or_usage(icrc_account_transaction_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-    match command.as_str() {
-        "page" => run_icrc_account_transaction_page(args),
-        "list" => run_icrc_account_transaction_list(args),
-        "refresh" => run_icrc_account_transaction_refresh(args),
-        "cache" => run_icrc_account_transaction_cache(args),
-        _ => unreachable!("ICRC account transaction command only defines known subcommands"),
+fn run_icrc_account_transaction(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("page", matches)) => run_icrc_account_transaction_page(matches),
+        Some(("list", matches)) => run_icrc_account_transaction_list(matches),
+        Some(("refresh", matches)) => run_icrc_account_transaction_refresh(matches),
+        Some(("cache", matches)) => run_icrc_account_transaction_cache(matches),
+        _ => unreachable!("clap requires a known ICRC account transaction subcommand"),
     }
 }
 
-fn run_icrc_account_transaction_page<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(
-        args,
-        icrc_account_transaction_page_usage,
-        version_text(),
-    ) else {
-        return Ok(());
-    };
-    let options = IcrcAccountTransactionPageOptions::parse(args)?;
+fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcAccountTransactionPageOptions::from_matches(matches);
     let target = options.target;
     let request = IcrcAccountTransactionPageRequest {
         source_endpoint: target.source_endpoint,
@@ -220,18 +159,8 @@ where
     )
 }
 
-fn run_icrc_account_transaction_list<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(
-        args,
-        icrc_account_transaction_list_usage,
-        version_text(),
-    ) else {
-        return Ok(());
-    };
-    let options = IcrcAccountTransactionListOptions::parse(args)?;
+fn run_icrc_account_transaction_list(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcAccountTransactionListOptions::from_matches(matches);
     let request = IcrcAccountTransactionListRequest {
         cache: account_transaction_cache_request(options.target)?,
         limit: options.limit,
@@ -245,18 +174,8 @@ where
     )
 }
 
-fn run_icrc_account_transaction_refresh<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(
-        args,
-        icrc_account_transaction_refresh_usage,
-        version_text(),
-    ) else {
-        return Ok(());
-    };
-    let options = IcrcAccountTransactionRefreshOptions::parse(args)?;
+fn run_icrc_account_transaction_refresh(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcAccountTransactionRefreshOptions::from_matches(matches);
     let request = IcrcAccountTransactionRefreshRequest {
         cache: account_transaction_cache_request(options.target)?,
         now_unix_secs: current_unix_secs()?,
@@ -274,38 +193,15 @@ where
     )
 }
 
-fn run_icrc_account_transaction_cache<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(
-        args,
-        icrc_account_transaction_cache_usage,
-        version_text(),
-    ) else {
-        return Ok(());
-    };
-    let (command, args) =
-        parse_required_subcommand_or_usage(icrc_account_transaction_cache_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-    match command.as_str() {
-        "status" => run_icrc_account_transaction_cache_status(args),
-        _ => unreachable!("ICRC account transaction cache command only defines known subcommands"),
+fn run_icrc_account_transaction_cache(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("status", matches)) => run_icrc_account_transaction_cache_status(matches),
+        _ => unreachable!("clap requires a known ICRC account transaction cache subcommand"),
     }
 }
 
-fn run_icrc_account_transaction_cache_status<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(
-        args,
-        icrc_account_transaction_cache_status_usage,
-        version_text(),
-    ) else {
-        return Ok(());
-    };
-    let options = IcrcAccountTransactionCacheOptions::parse(args)?;
+fn run_icrc_account_transaction_cache_status(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcAccountTransactionCacheOptions::from_matches(matches);
     let request = account_transaction_cache_request(options.target)?;
     let report = build_icrc_account_transaction_cache_status_report(&request)?;
     write_text_or_json(
@@ -327,34 +223,8 @@ fn account_transaction_cache_request(
     })
 }
 
-fn run_icrc_index<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) = collect_args_or_print_help_or_version(args, icrc_index_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcLedgerOptions::parse(args, icrc_index_command)?;
-    let request = IcrcLedgerRequest {
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: options.ledger_canister_id,
-    };
-    let report = build_icrc_index_report(&request)?;
-    write_text_or_json(options.format, &report, icrc_index_report_text)
-}
-
-fn run_icrc_transactions<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_transactions_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcTransactionsOptions::parse(args)?;
+fn run_icrc_transactions(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcTransactionsOptions::from_matches(matches);
     let request = IcrcTransactionsRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -367,35 +237,8 @@ where
     write_text_or_json(options.format, &report, icrc_transactions_report_text)
 }
 
-fn run_icrc_block_types<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_block_types_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcLedgerOptions::parse(args, icrc_block_types_command)?;
-    let request = IcrcLedgerRequest {
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: options.ledger_canister_id,
-    };
-    let report = build_icrc_block_types_report(&request)?;
-    write_text_or_json(options.format, &report, icrc_block_types_report_text)
-}
-
-fn run_icrc_archives<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_archives_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcArchivesOptions::parse(args)?;
+fn run_icrc_archives(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcArchivesOptions::from_matches(matches);
     let request = IcrcArchivesRequest {
         source_endpoint: options.source_endpoint,
         now_unix_secs: current_unix_secs()?,
@@ -404,42 +247,4 @@ where
     };
     let report = build_icrc_archives_report(&request)?;
     write_text_or_json(options.format, &report, icrc_archives_report_text)
-}
-
-fn run_icrc_tip_certificate<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_tip_certificate_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcLedgerOptions::parse(args, icrc_tip_certificate_command)?;
-    let request = IcrcLedgerRequest {
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: options.ledger_canister_id,
-    };
-    let report = build_icrc_tip_certificate_report(&request)?;
-    write_text_or_json(options.format, &report, icrc_tip_certificate_report_text)
-}
-
-fn run_icrc_capabilities<I>(args: I) -> Result<(), IcrcCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let Some(args) =
-        collect_args_or_print_help_or_version(args, icrc_capabilities_usage, version_text())
-    else {
-        return Ok(());
-    };
-    let options = IcrcLedgerOptions::parse(args, icrc_capabilities_command)?;
-    let request = IcrcLedgerRequest {
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: options.ledger_canister_id,
-    };
-    let report = build_icrc_capabilities_report(&request)?;
-    write_text_or_json(options.format, &report, icrc_capabilities_report_text)
 }
