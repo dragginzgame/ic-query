@@ -19,7 +19,10 @@ struct TopLevelKeys(BTreeSet<String>);
 #[derive(Deserialize)]
 struct JsonCacheHeader {
     schema_version: u32,
-    network: String,
+    // Mainnet-only cache schemas may expose network through `JsonCacheReport`
+    // without serializing it as a field.
+    #[serde(default)]
+    network: Option<String>,
 }
 
 impl<'de> serde::Deserialize<'de> for TopLevelKeys {
@@ -116,8 +119,10 @@ where
             errors.unsupported_schema(header.schema_version, request.expected_schema_version)
         );
     }
-    if header.network != request.network {
-        return Err(errors.network_mismatch(request.network.to_string(), header.network));
+    if let Some(network) = header.network
+        && network != request.network
+    {
+        return Err(errors.network_mismatch(request.network.to_string(), network));
     }
     let report = serde_json::from_str::<T>(&data)
         .map_err(|source| errors.parse_cache(path.clone(), source))?;
