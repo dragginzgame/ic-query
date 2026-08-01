@@ -11,6 +11,8 @@ const PAGE_CANISTER_ID: &str = "2223e-iaaaa-aaaac-awyra-cai";
 const PAGE_NEXT_CANISTER_ID: &str = "2223u-yaaaa-aaaal-qutrq-cai";
 const METRIC_START: u64 = 1_699_996_400;
 const METRIC_END: u64 = 1_700_000_000;
+const DAILY_STATS_START: u64 = 1_784_937_600;
+const DAILY_STATS_END: u64 = 1_785_542_400;
 
 #[test]
 fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance() {
@@ -40,13 +42,13 @@ fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance(
 #[test]
 fn boundary_node_custom_source_contract_is_validated() {
     for mutation in [
-        NetworkMutation::WrongEndpoint,
-        NetworkMutation::DuplicateId,
-        NetworkMutation::InvalidLatitude,
-        NetworkMutation::InvalidNodeCount,
+        BoundaryNetworkMutation::WrongEndpoint,
+        BoundaryNetworkMutation::DuplicateId,
+        BoundaryNetworkMutation::InvalidLatitude,
+        BoundaryNetworkMutation::InvalidNodeCount,
     ] {
         let source = NetworkFixture {
-            mutation: RefCell::new(Some(mutation)),
+            boundary_mutation: RefCell::new(Some(mutation)),
             ..NetworkFixture::default()
         };
         let request = IcBoundaryNodeDataCentersRequest::new(
@@ -56,6 +58,75 @@ fn boundary_node_custom_source_contract_is_validated() {
 
         let error = build_ic_boundary_node_data_centers_report_with_source(&request, &source)
             .expect_err("invalid network source data must fail");
+
+        assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+    }
+}
+
+#[test]
+fn daily_stats_preserve_raw_rates_bounds_and_canonical_day_order() {
+    let source = NetworkFixture::default();
+    let request = daily_stats_request();
+
+    let report = build_ic_daily_stats_report_with_source(&request, &source)
+        .expect("bounded daily-statistics report");
+    let text = ic_daily_stats_report_text(&report);
+
+    assert_eq!(source.calls.get(), 1);
+    assert_eq!(report.query, request.query);
+    assert_eq!(report.returned_day_count, 2);
+    assert_eq!(report.rows[0].day, "2026-07-30");
+    assert_eq!(report.rows[1].day, "2026-07-31");
+    assert_eq!(
+        report.rows[1].average_transactions_per_second,
+        "4378.980149999999"
+    );
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
+    assert!(text.contains("returned_day_count: 2"));
+    assert!(text.contains("2026-07-31  timestamp=1785542399"));
+}
+
+#[test]
+fn daily_stats_request_bounds_are_validated_before_source_calls() {
+    for query in [
+        IcDailyStatsQuery::new(MIN_IC_DAILY_STATS_TIMESTAMP - 1, DAILY_STATS_END),
+        IcDailyStatsQuery::new(DAILY_STATS_END, DAILY_STATS_START),
+        IcDailyStatsQuery::new(
+            DAILY_STATS_START,
+            DAILY_STATS_START + MAX_IC_DAILY_STATS_WINDOW_SECS + 1,
+        ),
+        IcDailyStatsQuery::new(DAILY_STATS_START, DAILY_STATS_END + 1),
+    ] {
+        let source = NetworkFixture::default();
+        let request =
+            IcDailyStatsRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, DAILY_STATS_END, query);
+
+        let error = build_ic_daily_stats_report_with_source(&request, &source)
+            .expect_err("invalid daily-statistics bounds must fail");
+
+        assert!(matches!(error, IcHostError::InvalidRequest { .. }));
+        assert_eq!(source.calls.get(), 0);
+    }
+}
+
+#[test]
+fn daily_stats_custom_source_contract_is_validated() {
+    for mutation in [
+        DailyStatsMutation::WrongQuery,
+        DailyStatsMutation::DuplicateDay,
+        DailyStatsMutation::MismatchedDay,
+        DailyStatsMutation::OutsideWindow,
+        DailyStatsMutation::InvalidRate,
+        DailyStatsMutation::TooManyRows,
+    ] {
+        let source = NetworkFixture {
+            daily_stats_mutation: RefCell::new(Some(mutation)),
+            ..NetworkFixture::default()
+        };
+
+        let error = build_ic_daily_stats_report_with_source(&daily_stats_request(), &source)
+            .expect_err("invalid daily-statistics source data must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
@@ -302,6 +373,26 @@ fn live_network_source_rejects_invalid_endpoint_before_http_request() {
 }
 
 #[test]
+fn live_network_source_validates_daily_stats_before_http_request() {
+    let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
+    let valid_query = IcDailyStatsQuery::new(DAILY_STATS_START, DAILY_STATS_END);
+
+    let error = LiveIcSource
+        .fetch_daily_stats(&request, &valid_query)
+        .expect_err("invalid endpoint must fail");
+    assert!(matches!(
+        error,
+        IcHostError::InvalidEndpoint { endpoint, .. } if endpoint == "not a URL"
+    ));
+
+    let invalid_query = IcDailyStatsQuery::new(DAILY_STATS_END, DAILY_STATS_START);
+    let error = LiveIcSource
+        .fetch_daily_stats(&request, &invalid_query)
+        .expect_err("invalid bounds must fail before endpoint parsing");
+    assert!(matches!(error, IcHostError::InvalidRequest { .. }));
+}
+
+#[test]
 fn live_source_rejects_invalid_principal_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
@@ -504,18 +595,37 @@ fn metric_request() -> IcMetricRequest {
     )
 }
 
+fn daily_stats_request() -> IcDailyStatsRequest {
+    IcDailyStatsRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        DAILY_STATS_END,
+        IcDailyStatsQuery::new(DAILY_STATS_START, DAILY_STATS_END),
+    )
+}
+
 #[derive(Clone, Copy)]
-enum NetworkMutation {
+enum BoundaryNetworkMutation {
     WrongEndpoint,
     DuplicateId,
     InvalidLatitude,
     InvalidNodeCount,
 }
 
+#[derive(Clone, Copy)]
+enum DailyStatsMutation {
+    WrongQuery,
+    DuplicateDay,
+    MismatchedDay,
+    OutsideWindow,
+    InvalidRate,
+    TooManyRows,
+}
+
 #[derive(Default)]
 struct NetworkFixture {
     calls: Cell<usize>,
-    mutation: RefCell<Option<NetworkMutation>>,
+    boundary_mutation: RefCell<Option<BoundaryNetworkMutation>>,
+    daily_stats_mutation: RefCell<Option<DailyStatsMutation>>,
 }
 
 impl IcNetworkSource for NetworkFixture {
@@ -531,16 +641,52 @@ impl IcNetworkSource for NetworkFixture {
                 boundary_node_data_center("fr1", "Frankfurt", "50.1109", "8.6821", "0"),
             ],
         };
-        match self.mutation.borrow_mut().take() {
-            Some(NetworkMutation::WrongEndpoint) => {
+        match self.boundary_mutation.borrow_mut().take() {
+            Some(BoundaryNetworkMutation::WrongEndpoint) => {
                 data.source.endpoint = "https://example.com/api/v4".to_string();
             }
-            Some(NetworkMutation::DuplicateId) => data.rows[1].dc_id = "zh2".to_string(),
-            Some(NetworkMutation::InvalidLatitude) => {
+            Some(BoundaryNetworkMutation::DuplicateId) => data.rows[1].dc_id = "zh2".to_string(),
+            Some(BoundaryNetworkMutation::InvalidLatitude) => {
                 data.rows[0].latitude = "91".to_string();
             }
-            Some(NetworkMutation::InvalidNodeCount) => {
+            Some(BoundaryNetworkMutation::InvalidNodeCount) => {
                 data.rows[0].total_nodes = "2.0".to_string();
+            }
+            None => {}
+        }
+        Ok(data)
+    }
+
+    fn fetch_daily_stats(
+        &self,
+        request: &IcSourceRequest,
+        query: &IcDailyStatsQuery,
+    ) -> Result<IcDailyStatsSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        let mut data = IcDailyStatsSourceData {
+            source: request.clone(),
+            query: query.clone(),
+            rows: vec![
+                daily_stats_row("2026-07-31", 1_785_542_399, "4378.980149999999"),
+                daily_stats_row("2026-07-30", 1_785_455_999, "4650.12568"),
+            ],
+        };
+        match self.daily_stats_mutation.borrow_mut().take() {
+            Some(DailyStatsMutation::WrongQuery) => data.query.start_unix_secs += 1,
+            Some(DailyStatsMutation::DuplicateDay) => {
+                data.rows[1].day = "2026-07-31".to_string();
+            }
+            Some(DailyStatsMutation::MismatchedDay) => {
+                data.rows[0].day = "2026-07-29".to_string();
+            }
+            Some(DailyStatsMutation::OutsideWindow) => {
+                data.rows[0].timestamp_unix_secs = query.end_unix_secs + 1;
+            }
+            Some(DailyStatsMutation::InvalidRate) => {
+                data.rows[0].average_transactions_per_second = "NaN".to_string();
+            }
+            Some(DailyStatsMutation::TooManyRows) => {
+                data.rows = vec![data.rows[0].clone(); MAX_IC_DAILY_STATS_ROWS + 1];
             }
             None => {}
         }
@@ -563,6 +709,20 @@ fn boundary_node_data_center(
         latitude: latitude.to_string(),
         longitude: longitude.to_string(),
         total_nodes: total_nodes.to_string(),
+    }
+}
+
+fn daily_stats_row(day: &str, timestamp_unix_secs: u64, average_total: &str) -> IcDailyStatsRow {
+    IcDailyStatsRow {
+        day: day.to_string(),
+        timestamp_unix_secs,
+        average_query_transactions_per_second: "3057.0771".to_string(),
+        average_update_transactions_per_second: "1321.9030499999997".to_string(),
+        average_transactions_per_second: average_total.to_string(),
+        max_query_transactions_per_second: "3635.62381".to_string(),
+        max_update_transactions_per_second: "1688.4959999999999".to_string(),
+        max_total_transactions_per_second: "5062.08807".to_string(),
+        blocks_per_second_average: "193.50055560014323".to_string(),
     }
 }
 

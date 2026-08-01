@@ -9,13 +9,14 @@ use crate::{
         IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
         IcCanisterCollectionSource, IcCanisterCountReport, IcCanisterCountRequest,
         IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport, IcCanisterRequest,
-        IcCanisterSource, IcHostError, IcMetricReport, IcMetricRequest, IcMetricSource,
-        IcNetworkSource, IcSourceRequest, LiveIcSource,
+        IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest, IcHostError, IcMetricReport,
+        IcMetricRequest, IcMetricSource, IcNetworkSource, IcSourceRequest, LiveIcSource,
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
-            canonical_page_cursor, count_report_from_source, metric_report_from_source,
-            normalized_filters, page_report_from_source, report_from_source,
-            validate_metric_request, validate_page_limit,
+            canonical_page_cursor, count_report_from_source, daily_stats_report_from_source,
+            metric_report_from_source, normalized_filters, page_report_from_source,
+            report_from_source, validate_daily_stats_request, validate_metric_request,
+            validate_page_limit,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -36,6 +37,24 @@ pub fn build_ic_boundary_node_data_centers_report_with_source(
     let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
     let source_data = source.fetch_boundary_node_data_centers(&source_request)?;
     boundary_node_data_centers_report_from_source(&source_request, source_data)
+}
+
+/// Build one live, bounded daily network-activity report from the official Dashboard API.
+pub fn build_ic_daily_stats_report(
+    request: &IcDailyStatsRequest,
+) -> Result<IcDailyStatsReport, IcHostError> {
+    build_ic_daily_stats_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded daily network-activity report through a custom Dashboard source.
+pub fn build_ic_daily_stats_report_with_source(
+    request: &IcDailyStatsRequest,
+    source: &dyn IcNetworkSource,
+) -> Result<IcDailyStatsReport, IcHostError> {
+    validate_daily_stats_request(request.now_unix_secs, &request.query)?;
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data = source.fetch_daily_stats(&source_request, &request.query)?;
+    daily_stats_report_from_source(&source_request, &request.query, source_data)
 }
 
 /// Build one live, bounded metric report from the official Dashboard Metrics API.

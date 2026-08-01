@@ -7,7 +7,8 @@
 use crate::{
     ic::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
-        IcCanisterPageReport, IcCanisterReport, IcDashboardReportProvenance, IcMetricReport,
+        IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
+        IcMetricReport,
     },
     text_value::{sanitize_text, yes_no},
 };
@@ -37,6 +38,38 @@ pub fn ic_boundary_node_data_centers_report_text(
                 sanitize_text(&row.latitude),
                 sanitize_text(&row.longitude),
                 sanitize_text(&row.total_nodes),
+            )
+        }));
+    }
+    lines.join("\n")
+}
+
+/// Render one bounded official Dashboard daily-statistics report as human-facing text.
+#[must_use]
+pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("start_unix_secs: {}", report.query.start_unix_secs),
+        format!("end_unix_secs: {}", report.query.end_unix_secs),
+        format!("returned_day_count: {}", report.returned_day_count),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push("daily_stats:".to_string());
+        lines.extend(report.rows.iter().map(|row| {
+            format!(
+                "  {}  timestamp={}  avg_total={}  avg_update={}  avg_query={}  max_total={}  max_update={}  max_query={}  blocks_avg={}",
+                sanitize_text(&row.day),
+                row.timestamp_unix_secs,
+                sanitize_text(&row.average_transactions_per_second),
+                sanitize_text(&row.average_update_transactions_per_second),
+                sanitize_text(&row.average_query_transactions_per_second),
+                sanitize_text(&row.max_total_transactions_per_second),
+                sanitize_text(&row.max_update_transactions_per_second),
+                sanitize_text(&row.max_query_transactions_per_second),
+                sanitize_text(&row.blocks_per_second_average),
             )
         }));
     }

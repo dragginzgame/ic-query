@@ -11,6 +11,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.20.md](docs/changelog/0.20.md)
 
+- `0.20.2` adds a one-request, explicitly bounded Dashboard v3 daily network
+  activity report. It defaults to seven days, caps requests at one year and
+  responses at 366 rows, and preserves raw daily average/maximum query,
+  update, total transaction, and block-rate strings. Rows are canonically
+  ordered and retain exact query, endpoint, retrieval, and non-certified
+  provenance. The report is live-only and never paginates, fans out, fills
+  missing days, or creates a cache. This is a pre-1.0 Rust-API hard cut for
+  custom `IcNetworkSource` implementations, which must implement the new
+  daily-statistics capability.
+
+  ```bash
+  icq ic network daily-stats
+  icq ic network daily-stats \
+    --start 1784937600 --end 1785542400 --format json
+  ```
+
 - `0.20.1` adds the finite official Dashboard v4 boundary-node data-center
   report. It makes exactly one request, preserves raw data-center ids, names,
   owners, regions, coordinates, and node-count strings, retains zero-node

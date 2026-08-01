@@ -29,6 +29,7 @@ icq icrc account transaction help
 | [Cache Policy](design/cache-policy.md) | Cache identity, refresh behavior, locking, and local inspection |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
+| [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |
 | [IC Dashboard Boundary-Node Reporting](design/ic-dashboard-boundary-node-reporting.md) | Official boundary-node data-center aggregates, raw location fields, and one-request contract |
 | [Exact-Version NNS Subnet Topology](design/nns-subnet-topology.md) | One-version Registry join and atomic topology cache |
 | [NNS Governance Reporting](design/nns-governance-reporting.md) | Economics, metrics, reward event, and maturity modulation |

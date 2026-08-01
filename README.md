@@ -16,7 +16,7 @@ live calls, cache reads, refreshes, and local-only inspection visibly distinct.
 
 | Family | Current surface |
 | --- | --- |
-| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series, and boundary-node data-center aggregates |
+| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, and boundary-node data-center aggregates |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Discovery, metadata, token and nervous-system parameters, Root canister inventory and health, proposals, and neurons |
@@ -56,6 +56,7 @@ icq ic metrics ic-node-count --format json
 
 # Official Dashboard network resources
 icq ic network boundary-node-data-centers
+icq ic network daily-stats
 
 # NNS Registry and cached topology diagnostics
 icq nns registry version
@@ -117,6 +118,7 @@ authority model and follow-up query rules.
 icq ic canister info|count|page
 icq ic metrics <metric>
 icq ic network boundary-node-data-centers
+icq ic network daily-stats
 
 icq nns registry version
 icq nns subnet list|info|refresh
@@ -161,14 +163,16 @@ Every data-producing command follows one documented collection mode:
 | Local-only inspection | Never | Never |
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
 
-Dashboard count, page, metric, and boundary-node data-center commands always
-make exactly one REST request. A page returns at most 100 canister summaries
-and never follows its cursors automatically. A metric query defaults to one
-hour at a five-minute step and is capped at 1,000 observations per series. The
-boundary-node report consumes one non-paginated data-center resource and makes
-no per-location calls. None of these commands creates a cache. Paged proposal,
-neuron, and account-history collections retain refresh attempt state. Failed
-or capped refreshes do not replace the last complete snapshot.
+Dashboard count, page, metric, daily-statistics, and boundary-node data-center
+commands always make exactly one REST request. A page returns at most 100
+canister summaries and never follows its cursors automatically. A metric query
+defaults to one hour at a five-minute step and is capped at 1,000 observations
+per series. Daily statistics default to seven days and are capped at one year
+and 366 rows. The boundary-node report consumes one non-paginated data-center
+resource and makes no per-location calls. None of these commands creates a
+cache. Paged proposal, neuron, and account-history collections retain refresh
+attempt state. Failed or capped refreshes do not replace the last complete
+snapshot.
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do
@@ -237,6 +241,7 @@ guidance.
 - [Roadmap to 1.0](docs/roadmap/1.0.md)
 - [IC Dashboard canister reporting](docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](docs/design/ic-dashboard-network-metrics.md)
+- [IC Dashboard daily statistics](docs/design/ic-dashboard-daily-stats.md)
 - [IC Dashboard boundary-node reporting](docs/design/ic-dashboard-boundary-node-reporting.md)
 - [Exact-version NNS Subnet topology](docs/design/nns-subnet-topology.md)
 - [SNS Root canister inventory and health](docs/design/sns-root-canister-reporting.md)

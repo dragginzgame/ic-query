@@ -98,10 +98,12 @@ read or write the proposal or neuron complete-collection caches and do not
 create another implicit cache or freshness policy.
 
 Official Dashboard canister detail, filtered count, explicitly bounded page,
-bounded metric time series, and boundary-node data-center reports are live
-lookups. Count fetches no rows; page makes one request for at most 100 rows and
-never follows a cursor automatically. A metric request selects one series
-family and is capped at 1,000 observations per returned series. Boundary-node
+bounded metric time series, bounded daily statistics, and boundary-node
+data-center reports are live lookups. Count fetches no rows; page makes one
+request for at most 100 rows and never follows a cursor automatically. A
+metric request selects one series family and is capped at 1,000 observations
+per returned series. Daily statistics select one network-activity projection,
+default to seven days, and are capped at one year and 366 rows. Boundary-node
 data centers come from one non-paginated resource and do not trigger
 per-location calls. These operations do not read or write a cache, because
 their REST results are neither authoritative complete collections nor durable

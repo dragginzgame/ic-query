@@ -175,6 +175,63 @@ impl IcMetricRequest {
 }
 
 ///
+/// IcDailyStatsQuery
+///
+/// One explicitly bounded official Dashboard daily-statistics query.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcDailyStatsQuery {
+    /// Inclusive query start as Unix seconds.
+    pub start_unix_secs: u64,
+    /// Inclusive query end as Unix seconds.
+    pub end_unix_secs: u64,
+}
+
+impl IcDailyStatsQuery {
+    /// Construct one explicit daily-statistics query window.
+    #[must_use]
+    pub const fn new(start_unix_secs: u64, end_unix_secs: u64) -> Self {
+        Self {
+            start_unix_secs,
+            end_unix_secs,
+        }
+    }
+}
+
+///
+/// IcDailyStatsRequest
+///
+/// Request accepted by the bounded official Dashboard daily-statistics builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcDailyStatsRequest {
+    /// Dashboard API v3 base endpoint.
+    pub source_endpoint: String,
+    /// Collection time as Unix seconds.
+    pub now_unix_secs: u64,
+    /// Explicitly bounded daily-statistics query.
+    pub query: IcDailyStatsQuery,
+}
+
+impl IcDailyStatsRequest {
+    /// Construct one bounded live Dashboard daily-statistics request.
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        query: IcDailyStatsQuery,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            query,
+        }
+    }
+}
+
+///
 /// IcBoundaryNodeDataCentersRequest
 ///
 /// Request accepted by the official Dashboard boundary-node data-center builder.
@@ -443,6 +500,54 @@ pub struct IcMetricReport {
     pub returned_observation_count: usize,
     /// Raw named time series in canonical series-name order.
     pub series: Vec<IcMetricSeries>,
+}
+
+///
+/// IcDailyStatsRow
+///
+/// Selected raw daily network-activity values returned by the Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcDailyStatsRow {
+    /// Raw UTC calendar day returned by the Dashboard.
+    pub day: String,
+    /// Observation timestamp as Unix seconds.
+    pub timestamp_unix_secs: u64,
+    /// Raw average query-transaction rate.
+    pub average_query_transactions_per_second: String,
+    /// Raw average update-transaction rate.
+    pub average_update_transactions_per_second: String,
+    /// Raw average total-transaction rate.
+    pub average_transactions_per_second: String,
+    /// Raw maximum query-transaction rate.
+    pub max_query_transactions_per_second: String,
+    /// Raw maximum update-transaction rate.
+    pub max_update_transactions_per_second: String,
+    /// Raw maximum total-transaction rate.
+    pub max_total_transactions_per_second: String,
+    /// Raw average block-production rate.
+    pub blocks_per_second_average: String,
+}
+
+///
+/// IcDailyStatsReport
+///
+/// One bounded daily network-activity response from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcDailyStatsReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Exact requested time bounds, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcDailyStatsQuery,
+    /// Number of daily rows returned by the API.
+    pub returned_day_count: usize,
+    /// Rows in strictly increasing timestamp order.
+    pub rows: Vec<IcDailyStatsRow>,
 }
 
 ///
@@ -737,6 +842,23 @@ pub struct IcMetricSourceData {
     pub query: IcMetricQuery,
     /// Raw named time series returned by the source.
     pub series: Vec<IcMetricSeries>,
+}
+
+///
+/// IcDailyStatsSourceData
+///
+/// Raw bounded daily network-activity rows and provenance returned by a source.
+///
+
+#[cfg(feature = "host")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcDailyStatsSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Daily-statistics query applied by the source.
+    pub query: IcDailyStatsQuery,
+    /// Selected raw daily rows returned by the source.
+    pub rows: Vec<IcDailyStatsRow>,
 }
 
 ///

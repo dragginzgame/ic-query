@@ -14,7 +14,8 @@ pub use build::{
     build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
-    build_ic_canister_page_report_with_source, build_ic_metric_report,
+    build_ic_canister_page_report_with_source, build_ic_daily_stats_report,
+    build_ic_daily_stats_report_with_source, build_ic_metric_report,
     build_ic_metric_report_with_source,
 };
 #[cfg(feature = "host")]
@@ -25,19 +26,21 @@ pub use model::{
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, IcDashboardReportProvenance, IcMetricKind,
+    IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
+    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcMetricKind,
     IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
 };
 #[cfg(feature = "host")]
 pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
-    IcCanisterSourceData, IcHostError, IcMetricSourceData, IcSourceRequest,
+    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcMetricSourceData, IcSourceRequest,
 };
 #[cfg(feature = "host")]
 pub use source::{IcCanisterCollectionSource, IcCanisterSource, IcMetricSource, IcNetworkSource};
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
-    ic_canister_page_report_text, ic_canister_report_text, ic_metric_report_text,
+    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
+    ic_metric_report_text,
 };
 
 /// Default base endpoint for the official IC Dashboard API.
@@ -75,6 +78,18 @@ pub const MAX_IC_METRIC_STEP_SECS: u32 = 259_200;
 
 /// Maximum requested observations accepted per metric series.
 pub const MAX_IC_METRIC_OBSERVATIONS_PER_SERIES: u64 = 1_000;
+
+/// Default relative window for one Dashboard daily-statistics query.
+pub const DEFAULT_IC_DAILY_STATS_WINDOW_SECS: u64 = 7 * 24 * 60 * 60;
+
+/// Earliest timestamp accepted by the official Dashboard daily-statistics API.
+pub const MIN_IC_DAILY_STATS_TIMESTAMP: u64 = 1_620_406_800;
+
+/// Largest time window accepted by one daily-statistics request.
+pub const MAX_IC_DAILY_STATS_WINDOW_SECS: u64 = 366 * 24 * 60 * 60;
+
+/// Maximum daily-statistics rows accepted from one source response.
+pub const MAX_IC_DAILY_STATS_ROWS: usize = 366;
 
 /// Maximum boundary-node data-center rows accepted from one source response.
 pub const MAX_IC_BOUNDARY_NODE_DATA_CENTERS: usize = 1_000;

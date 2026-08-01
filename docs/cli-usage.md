@@ -57,6 +57,9 @@ icq ic metrics ic-node-count --format json
 
 icq ic network boundary-node-data-centers
 icq ic network boundary-node-data-centers --format json
+icq ic network daily-stats
+icq ic network daily-stats \
+  --start 1784937600 --end 1785542400
 ```
 
 `info` preserves the Dashboard canister id, raw optional classification, name,
@@ -81,6 +84,13 @@ and node-count strings, including zero-node locations, and derives only row and
 node totals. The endpoint has no pagination parameters; the command makes one
 request and no per-location follow-up calls.
 
+`network daily-stats` selects the official v3 resource's daily network-activity
+fields: raw average and maximum query, update, and total transaction rates plus
+average block rate. It defaults to the preceding seven days and is capped at a
+366-day window and 366 returned rows. Missing days remain missing; the command
+makes one request and does not copy the resource's unrelated governance,
+supply, topology, or Internet Identity fields into this report.
+
 There is no automatic enumeration and these commands never read or write a
 cache. The official Dashboard is an off-chain analytics authority, so every
 report states
@@ -92,7 +102,8 @@ See [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md)
 and [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) for
 the canister and metric contracts. See
 [IC Dashboard Boundary-Node Reporting](design/ic-dashboard-boundary-node-reporting.md)
-for the network-resource contract.
+and [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) for the
+network-resource contracts.
 
 ## NNS
 

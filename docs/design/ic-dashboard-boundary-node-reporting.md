@@ -12,8 +12,8 @@
 `icq ic network boundary-node-data-centers` queries the official v4
 `boundary-node-data-centers` resource through the existing `LiveIcSource`.
 The public `IcNetworkSource` capability owns bounded network-resource reports;
-it starts with `fetch_boundary_node_data_centers` and can gain coherent future
-network operations without adding another concrete live adapter.
+`fetch_boundary_node_data_centers` remains distinct from its bounded
+daily-statistics operation without adding another concrete live adapter.
 
 The API returns data-center aggregates, not individual boundary-node records.
 The command and public types therefore say `data-centers` explicitly rather

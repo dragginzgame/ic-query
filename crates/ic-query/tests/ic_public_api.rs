@@ -1,26 +1,28 @@
 use ic_query::ic::{
     DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_CANISTER_PAGE_LIMIT,
     DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
-    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS,
-    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
-    IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
-    IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, IcDashboardReportProvenance, IcMetricKind,
-    IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
-    MAX_IC_CANISTER_PAGE_LIMIT, ic_boundary_node_data_centers_report_text,
+    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+    DEFAULT_IC_METRIC_STEP_SECS, IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport,
+    IcBoundaryNodeDataCentersRequest, IcCanisterCountReport, IcCanisterCountRequest,
+    IcCanisterFilters, IcCanisterPageController, IcCanisterPageReport, IcCanisterPageRequest,
+    IcCanisterPageRow, IcCanisterReport, IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery,
+    IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
+    IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest,
+    IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT, ic_boundary_node_data_centers_report_text,
     ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
-    ic_metric_report_text,
+    ic_daily_stats_report_text, ic_metric_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcBoundaryNodeDataCentersSourceData,
-    IcCanisterCollectionSource, IcCanisterCountSourceData, IcCanisterPageSourceData,
-    IcCanisterSource, IcCanisterSourceData, IcHostError, IcMetricSource, IcMetricSourceData,
-    IcNetworkSource, IcSourceRequest, LiveIcSource, build_ic_boundary_node_data_centers_report,
+    IcBoundaryNodeDataCentersSourceData, IcCanisterCollectionSource, IcCanisterCountSourceData,
+    IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
+    IcHostError, IcMetricSource, IcMetricSourceData, IcNetworkSource, IcSourceRequest,
+    LiveIcSource, build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
-    build_ic_canister_report_with_source, build_ic_metric_report,
+    build_ic_canister_report_with_source, build_ic_daily_stats_report,
+    build_ic_daily_stats_report_with_source, build_ic_metric_report,
     build_ic_metric_report_with_source,
 };
 
@@ -46,6 +48,34 @@ fn public_ic_boundary_node_api_is_constructible_serializable_and_renderable() {
     assert!(text.contains("data_center_count: 1"));
     assert_eq!(json["rows"][0]["dc_id"], "da11");
     assert_eq!(json["rows"][0]["total_nodes"], "2");
+    assert_eq!(json["certified"], false);
+    assert!(json.get("provenance").is_none());
+}
+
+#[test]
+fn public_ic_daily_stats_api_is_constructible_serializable_and_renderable() {
+    let query = IcDailyStatsQuery::new(1_785_456_000, 1_785_542_400);
+    let request = IcDailyStatsRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        1_785_542_400,
+        query.clone(),
+    );
+    let report = IcDailyStatsReport {
+        provenance: public_provenance(request.source_endpoint),
+        query,
+        returned_day_count: 1,
+        rows: vec![public_daily_stats_row()],
+    };
+
+    let text = ic_daily_stats_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serializable daily-statistics report");
+
+    assert!(text.contains("returned_day_count: 1"));
+    assert_eq!(json["rows"][0]["day"], "2026-07-31");
+    assert_eq!(
+        json["rows"][0]["average_transactions_per_second"],
+        "4378.980149999999"
+    );
     assert_eq!(json["certified"], false);
     assert!(json.get("provenance").is_none());
 }
@@ -206,6 +236,12 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
         &dyn IcNetworkSource,
     ) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> =
         build_ic_boundary_node_data_centers_report_with_source;
+    let _: fn(&IcDailyStatsRequest) -> Result<IcDailyStatsReport, IcHostError> =
+        build_ic_daily_stats_report;
+    let _: fn(
+        &IcDailyStatsRequest,
+        &dyn IcNetworkSource,
+    ) -> Result<IcDailyStatsReport, IcHostError> = build_ic_daily_stats_report_with_source;
     let _: LiveIcSource = LiveIcSource;
     assert_eq!(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
@@ -261,6 +297,15 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
     let network = build_ic_boundary_node_data_centers_report_with_source(&network_request, &source)
         .expect("custom network source report");
     assert_eq!(network.data_center_count, 1);
+
+    let daily_stats_request = IcDailyStatsRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        1_785_542_400,
+        IcDailyStatsQuery::new(1_785_456_000, 1_785_542_400),
+    );
+    let daily_stats = build_ic_daily_stats_report_with_source(&daily_stats_request, &source)
+        .expect("custom daily-statistics source report");
+    assert_eq!(daily_stats.returned_day_count, 1);
 }
 
 #[cfg(feature = "host")]
@@ -356,6 +401,18 @@ impl IcNetworkSource for FixtureSource {
             rows: vec![public_boundary_node_data_center()],
         })
     }
+
+    fn fetch_daily_stats(
+        &self,
+        request: &IcSourceRequest,
+        query: &IcDailyStatsQuery,
+    ) -> Result<IcDailyStatsSourceData, IcHostError> {
+        Ok(IcDailyStatsSourceData {
+            source: request.clone(),
+            query: query.clone(),
+            rows: vec![public_daily_stats_row()],
+        })
+    }
 }
 
 fn public_provenance(source_endpoint: impl Into<String>) -> IcDashboardReportProvenance {
@@ -397,5 +454,19 @@ fn public_boundary_node_data_center() -> IcBoundaryNodeDataCenterRow {
         latitude: "32.7767".to_string(),
         longitude: "-96.797".to_string(),
         total_nodes: "2".to_string(),
+    }
+}
+
+fn public_daily_stats_row() -> IcDailyStatsRow {
+    IcDailyStatsRow {
+        day: "2026-07-31".to_string(),
+        timestamp_unix_secs: 1_785_542_399,
+        average_query_transactions_per_second: "3057.0771".to_string(),
+        average_update_transactions_per_second: "1321.9030499999997".to_string(),
+        average_transactions_per_second: "4378.980149999999".to_string(),
+        max_query_transactions_per_second: "3635.62381".to_string(),
+        max_update_transactions_per_second: "1688.4959999999999".to_string(),
+        max_total_transactions_per_second: "5062.08807".to_string(),
+        blocks_per_second_average: "193.50055560014323".to_string(),
     }
 }

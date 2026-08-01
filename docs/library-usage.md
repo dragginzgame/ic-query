@@ -300,6 +300,37 @@ fn boundary_node_data_center_ids(
 This builder makes one non-paginated REST request, preserves raw location and
 count strings, includes zero-node rows, and never reads or writes a cache.
 
+The same network capability also supports an explicitly bounded daily activity
+window:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcDailyStatsQuery,
+    IcDailyStatsRequest, IcHostError, build_ic_daily_stats_report,
+};
+
+fn daily_average_transaction_rates(
+    start_unix_secs: u64,
+    end_unix_secs: u64,
+) -> Result<Vec<String>, IcHostError> {
+    let request = IcDailyStatsRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        end_unix_secs,
+        IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
+    );
+    let report = build_ic_daily_stats_report(&request)?;
+    Ok(report
+        .rows
+        .into_iter()
+        .map(|row| row.average_transactions_per_second)
+        .collect())
+}
+```
+
+Daily-statistics builders make one request, accept at most a 366-day window
+and 366 rows, preserve selected rate values as raw strings, tolerate missing
+days, and never read or write a cache.
+
 ## Pure Rendering Example
 
 No-default consumers can use report DTOs and text renderers without native

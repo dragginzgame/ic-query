@@ -4,15 +4,21 @@
 //! Does not own: HTTP transport, command parsing, or text rendering.
 //! Boundary: treats live and custom source results as untrusted authority data.
 
-use crate::ic::{
-    IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport,
-    IcBoundaryNodeDataCentersSourceData, IcCanisterCountReport, IcCanisterCountSourceData,
-    IcCanisterFilters, IcCanisterPageReport, IcCanisterPageRow, IcCanisterPageSourceData,
-    IcCanisterReport, IcCanisterSourceData, IcCanisterUpgrade, IcDashboardReportProvenance,
-    IcHostError, IcMetricQuery, IcMetricReport, IcMetricSeries, IcMetricSourceData,
-    IcSourceRequest, MAX_IC_BOUNDARY_NODE_DATA_CENTERS, MAX_IC_CANISTER_PAGE_LIMIT,
-    MAX_IC_METRIC_OBSERVATIONS_PER_SERIES, MAX_IC_METRIC_STEP_SECS, MIN_IC_METRIC_TIMESTAMP,
+use crate::{
+    ic::{
+        IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
+        IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport,
+        IcBoundaryNodeDataCentersSourceData, IcCanisterCountReport, IcCanisterCountSourceData,
+        IcCanisterFilters, IcCanisterPageReport, IcCanisterPageRow, IcCanisterPageSourceData,
+        IcCanisterReport, IcCanisterSourceData, IcCanisterUpgrade, IcDailyStatsQuery,
+        IcDailyStatsReport, IcDailyStatsRow, IcDailyStatsSourceData, IcDashboardReportProvenance,
+        IcHostError, IcMetricQuery, IcMetricReport, IcMetricSeries, IcMetricSourceData,
+        IcSourceRequest, MAX_IC_BOUNDARY_NODE_DATA_CENTERS, MAX_IC_CANISTER_PAGE_LIMIT,
+        MAX_IC_DAILY_STATS_ROWS, MAX_IC_DAILY_STATS_WINDOW_SECS,
+        MAX_IC_METRIC_OBSERVATIONS_PER_SERIES, MAX_IC_METRIC_STEP_SECS,
+        MIN_IC_DAILY_STATS_TIMESTAMP, MIN_IC_METRIC_TIMESTAMP,
+    },
+    subnet_catalog::format_utc_timestamp_secs,
 };
 use candid::Principal;
 use std::collections::HashSet;
@@ -29,6 +35,13 @@ pub trait IcNetworkSource {
         &self,
         request: &IcSourceRequest,
     ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError>;
+
+    /// Fetch one explicitly bounded daily-statistics window in one request.
+    fn fetch_daily_stats(
+        &self,
+        request: &IcSourceRequest,
+        query: &IcDailyStatsQuery,
+    ) -> Result<IcDailyStatsSourceData, IcHostError>;
 }
 
 ///
@@ -127,6 +140,43 @@ pub(super) fn validate_metric_query(query: &IcMetricQuery) -> Result<(), IcHostE
             format!(
                 "would request {requested_observations} observations per series; maximum is {MAX_IC_METRIC_OBSERVATIONS_PER_SERIES}"
             ),
+        );
+    }
+    Ok(())
+}
+
+pub(super) fn validate_daily_stats_request(
+    now_unix_secs: u64,
+    query: &IcDailyStatsQuery,
+) -> Result<(), IcHostError> {
+    validate_daily_stats_query(query)?;
+    if query.end_unix_secs > now_unix_secs {
+        return invalid_request(
+            "query.end_unix_secs",
+            "must not be later than the collection time",
+        );
+    }
+    Ok(())
+}
+
+pub(super) fn validate_daily_stats_query(query: &IcDailyStatsQuery) -> Result<(), IcHostError> {
+    if query.start_unix_secs < MIN_IC_DAILY_STATS_TIMESTAMP {
+        return invalid_request(
+            "query.start_unix_secs",
+            format!("must be at least {MIN_IC_DAILY_STATS_TIMESTAMP}"),
+        );
+    }
+    if query.end_unix_secs < query.start_unix_secs {
+        return invalid_request(
+            "query.end_unix_secs",
+            "must be greater than or equal to query.start_unix_secs",
+        );
+    }
+    let window_secs = query.end_unix_secs - query.start_unix_secs;
+    if window_secs > MAX_IC_DAILY_STATS_WINDOW_SECS {
+        return invalid_request(
+            "query",
+            format!("window is {window_secs} seconds; maximum is {MAX_IC_DAILY_STATS_WINDOW_SECS}"),
         );
     }
     Ok(())
@@ -262,6 +312,28 @@ pub(super) fn boundary_node_data_centers_report_from_source(
         provenance: report_provenance(source.source),
         data_center_count: source.rows.len(),
         total_node_count,
+        rows: source.rows,
+    })
+}
+
+pub(super) fn daily_stats_report_from_source(
+    request: &IcSourceRequest,
+    query: &IcDailyStatsQuery,
+    mut source: IcDailyStatsSourceData,
+) -> Result<IcDailyStatsReport, IcHostError> {
+    validate_provenance(request, &source.source)?;
+    if source.query != *query {
+        return invalid_source(format!(
+            "daily-statistics query is {:?}, expected requested query {query:?}",
+            source.query
+        ));
+    }
+    validate_daily_stats_rows(query, &mut source.rows)?;
+
+    Ok(IcDailyStatsReport {
+        provenance: report_provenance(source.source),
+        query: source.query,
+        returned_day_count: source.rows.len(),
         rows: source.rows,
     })
 }
@@ -512,6 +584,93 @@ fn validate_boundary_node_data_centers(
     }
     rows.sort_unstable_by(|left, right| left.dc_id.cmp(&right.dc_id));
     Ok(total_node_count)
+}
+
+fn validate_daily_stats_rows(
+    query: &IcDailyStatsQuery,
+    rows: &mut [IcDailyStatsRow],
+) -> Result<(), IcHostError> {
+    if rows.len() > MAX_IC_DAILY_STATS_ROWS {
+        return invalid_source(format!(
+            "source returned {} daily-statistics rows; maximum is {MAX_IC_DAILY_STATS_ROWS}",
+            rows.len()
+        ));
+    }
+
+    let mut seen_days = HashSet::with_capacity(rows.len());
+    let mut seen_timestamps = HashSet::with_capacity(rows.len());
+    for row in rows.iter() {
+        if !(query.start_unix_secs..=query.end_unix_secs).contains(&row.timestamp_unix_secs) {
+            return invalid_source(format!(
+                "daily-statistics timestamp {} is outside the requested window",
+                row.timestamp_unix_secs
+            ));
+        }
+        if !seen_timestamps.insert(row.timestamp_unix_secs) {
+            return invalid_source(format!(
+                "duplicate daily-statistics timestamp {}",
+                row.timestamp_unix_secs
+            ));
+        }
+        if !seen_days.insert(row.day.as_str()) {
+            return invalid_source(format!("duplicate daily-statistics day {:?}", row.day));
+        }
+        let timestamp = format_utc_timestamp_secs(row.timestamp_unix_secs);
+        let expected_day = timestamp
+            .split_once('T')
+            .expect("formatted timestamp contains a date separator")
+            .0;
+        if row.day != expected_day {
+            return invalid_source(format!(
+                "daily-statistics day {:?} does not match timestamp date {expected_day:?}",
+                row.day
+            ));
+        }
+        for (field, value) in [
+            (
+                "row.average_query_transactions_per_second",
+                row.average_query_transactions_per_second.as_str(),
+            ),
+            (
+                "row.average_update_transactions_per_second",
+                row.average_update_transactions_per_second.as_str(),
+            ),
+            (
+                "row.average_transactions_per_second",
+                row.average_transactions_per_second.as_str(),
+            ),
+            (
+                "row.max_query_transactions_per_second",
+                row.max_query_transactions_per_second.as_str(),
+            ),
+            (
+                "row.max_update_transactions_per_second",
+                row.max_update_transactions_per_second.as_str(),
+            ),
+            (
+                "row.max_total_transactions_per_second",
+                row.max_total_transactions_per_second.as_str(),
+            ),
+            (
+                "row.blocks_per_second_average",
+                row.blocks_per_second_average.as_str(),
+            ),
+        ] {
+            validate_nonnegative_decimal(field, value)?;
+        }
+    }
+    rows.sort_unstable_by_key(|row| row.timestamp_unix_secs);
+    Ok(())
+}
+
+fn validate_nonnegative_decimal(field: &'static str, raw: &str) -> Result<(), IcHostError> {
+    let value = raw.parse::<f64>().map_err(|error| {
+        invalid_source_value(format!("{field} {raw:?} is not decimal text: {error}"))
+    })?;
+    if value.is_finite() && value >= 0.0 {
+        return Ok(());
+    }
+    invalid_source(format!("{field} {raw:?} must be finite and nonnegative"))
 }
 
 fn validate_coordinate(

@@ -50,10 +50,11 @@ focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
 `LiveIcSource`; bounded aggregate network time series use one `IcMetricSource`
 capability on that same adapter rather than one live source per metric REST
 endpoint. Finite network resources use `IcNetworkSource`; the first operation
-returns boundary-node data-center aggregates without introducing a separate
-adapter for that resource.
+returns boundary-node data-center aggregates and the second returns bounded
+daily network activity without introducing a separate adapter for either
+resource.
 Dashboard source-data DTOs echo that request as their source provenance, and
-canister and metric reports share one flattened
+canister, metric, and network reports share one flattened
 `IcDashboardReportProvenance`, avoiding parallel field and validation flows
 without nesting the public report JSON.
 
@@ -139,6 +140,11 @@ than reaching an infallible parser path.
   data-center resource in one request. It preserves zero-node locations and raw
   owner, region, coordinate, and count strings; rows are data-center
   aggregates, not individual node identities.
+- Official Dashboard daily-statistics reporting selects raw daily network
+  activity from one explicitly bounded v3 request. It defaults to seven days,
+  caps the window and response at 366 days/rows, tolerates missing days, and
+  does not duplicate the resource's unrelated governance, supply, topology,
+  or Internet Identity fields.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -155,7 +161,7 @@ Expansion should proceed in layers:
 | --- | --- | --- |
 | 1 | Fuller SNS neuron state, swap lifecycle, blessed upgrade-path comparison, and treasury evidence | Extend focused SNS capability traits on `LiveSnsSource` |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
-| 2 | Individual boundary-node detail, replica-version, daily-throughput, and trustworthy metrics beyond the implemented aggregate metric and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
+| 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |
 | 3 | CMC/XDR, Internet Identity, Bitcoin, and other protocol-canister reports | Add one authority-family adapter only when multiple coherent reports justify it |
 

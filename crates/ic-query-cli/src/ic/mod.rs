@@ -20,17 +20,19 @@ use crate::{
 };
 use clap::{ArgAction, Command as ClapCommand, builder::RangedU64ValueParser};
 use ic_query::ic::{
-    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_DAILY_STATS_WINDOW_SECS,
     DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
     DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_METRIC_WINDOW_SECS, IcBoundaryNodeDataCentersRequest,
     IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest,
-    IcHostError, IcMetricKind, IcMetricQuery, IcMetricRequest, MAX_IC_CANISTER_PAGE_LIMIT,
-    MAX_IC_METRIC_STEP_SECS, MIN_IC_METRIC_TIMESTAMP, build_ic_boundary_node_data_centers_report,
-    build_ic_canister_count_report, build_ic_canister_page_report, build_ic_canister_report,
+    IcDailyStatsQuery, IcDailyStatsRequest, IcHostError, IcMetricKind, IcMetricQuery,
+    IcMetricRequest, MAX_IC_CANISTER_PAGE_LIMIT, MAX_IC_METRIC_STEP_SECS,
+    MIN_IC_DAILY_STATS_TIMESTAMP, MIN_IC_METRIC_TIMESTAMP,
+    build_ic_boundary_node_data_centers_report, build_ic_canister_count_report,
+    build_ic_canister_page_report, build_ic_canister_report, build_ic_daily_stats_report,
     build_ic_metric_report, ic_boundary_node_data_centers_report_text,
     ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
-    ic_metric_report_text,
+    ic_daily_stats_report_text, ic_metric_report_text,
 };
 use std::{ffi::OsString, io};
 use thiserror::Error as ThisError;
@@ -86,6 +88,18 @@ calls or create a cache. Rows preserve the API's raw owner, region, coordinate,
 and node-count strings, including locations that currently report zero nodes.
 The Dashboard response is off-chain and non-certified.";
 
+const DAILY_STATS_HELP_AFTER: &str = "\
+Examples:
+  icq ic network daily-stats
+  icq ic network daily-stats --start 1784937600 --end 1785542400
+  icq ic network daily-stats --format json
+
+This command makes exactly one official Dashboard v3 request for an explicitly
+bounded daily network-activity window. The default is the preceding seven days,
+and every request is capped at one year and 366 returned rows. It never follows
+up, paginates, or creates a cache. Rate values remain the raw strings returned
+by this off-chain, non-certified API.";
+
 ///
 /// IcCommandError
 ///
@@ -139,6 +153,7 @@ where
             .map_err(IcCommandError::Usage)?;
     match command.as_str() {
         "boundary-node-data-centers" => run_boundary_node_data_centers(args),
+        "daily-stats" => run_daily_stats(args),
         _ => unreachable!("ic network dispatch command only defines known commands"),
     }
 }
@@ -159,6 +174,28 @@ where
         &report,
         ic_boundary_node_data_centers_report_text,
     )
+}
+
+fn run_daily_stats<I>(args: I) -> Result<(), IcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = command_args(args, daily_stats_usage) else {
+        return Ok(());
+    };
+    let options = DailyStatsOptions::parse(args)?;
+    let now_unix_secs = current_unix_secs()?;
+    let end_unix_secs = options.end_unix_secs.unwrap_or(now_unix_secs);
+    let start_unix_secs = options
+        .start_unix_secs
+        .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_DAILY_STATS_WINDOW_SECS));
+    let request = IcDailyStatsRequest::new(
+        options.source_endpoint,
+        now_unix_secs,
+        IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
+    );
+    let report = build_ic_daily_stats_report(&request)?;
+    write_text_or_json(options.format, &report, ic_daily_stats_report_text)
 }
 
 fn run_metrics<I>(args: I) -> Result<(), IcCommandError>
@@ -291,6 +328,9 @@ fn network_command() -> ClapCommand {
             ClapCommand::new("boundary-node-data-centers")
                 .about("List boundary-node data-center aggregates"),
         ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("daily-stats").about("Query bounded daily network activity"),
+        ))
 }
 
 fn boundary_node_data_centers_command() -> ClapCommand {
@@ -306,6 +346,40 @@ fn boundary_node_data_centers_command() -> ClapCommand {
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
             BOUNDARY_NODE_DATA_CENTERS_HELP_AFTER,
+        ))
+}
+
+fn daily_stats_command() -> ClapCommand {
+    ClapCommand::new("daily-stats")
+        .bin_name("icq ic network daily-stats")
+        .about("Query bounded official Dashboard daily network activity")
+        .disable_help_flag(true)
+        .arg(
+            value_arg("start")
+                .long("start")
+                .value_name("unix-seconds")
+                .value_parser(
+                    RangedU64ValueParser::<u64>::new().range(MIN_IC_DAILY_STATS_TIMESTAMP..),
+                )
+                .help("Inclusive start; defaults to seven days before end"),
+        )
+        .arg(
+            value_arg("end")
+                .long("end")
+                .value_name("unix-seconds")
+                .value_parser(
+                    RangedU64ValueParser::<u64>::new().range(MIN_IC_DAILY_STATS_TIMESTAMP..),
+                )
+                .help("Inclusive end; defaults to the current time"),
+        )
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+                .help("Official IC Dashboard API v3 base endpoint"),
+        )
+        .after_help(collection_help(
+            COLLECTION_MODE_LIVE,
+            DAILY_STATS_HELP_AFTER,
         ))
 }
 
@@ -523,6 +597,10 @@ fn boundary_node_data_centers_usage() -> String {
     render_help(boundary_node_data_centers_command())
 }
 
+fn daily_stats_usage() -> String {
+    render_help(daily_stats_command())
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct CanisterInfoOptions {
     canister_id: String,
@@ -594,6 +672,30 @@ impl NetworkReportOptions {
         )
         .map_err(IcCommandError::Usage)?;
         Ok(Self {
+            format: required_typed(&matches, "format"),
+            source_endpoint: required_string(&matches, "source-endpoint"),
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct DailyStatsOptions {
+    start_unix_secs: Option<u64>,
+    end_unix_secs: Option<u64>,
+    format: OutputFormat,
+    source_endpoint: String,
+}
+
+impl DailyStatsOptions {
+    fn parse<I>(args: I) -> Result<Self, IcCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches_or_usage(daily_stats_command(), args, daily_stats_usage)
+            .map_err(IcCommandError::Usage)?;
+        Ok(Self {
+            start_unix_secs: typed_option(&matches, "start"),
+            end_unix_secs: typed_option(&matches, "end"),
             format: required_typed(&matches, "format"),
             source_endpoint: required_string(&matches, "source-endpoint"),
         })
