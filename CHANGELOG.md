@@ -11,19 +11,27 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.2` separates NNS neuron cache models, paths, attempt evidence, page
+  collection, publication, refresh orchestration, and cached report projection
+  behind the existing public facade. Public APIs, CLI behavior, cache paths and
+  schemas, validation, refresh behavior, and network calls are unchanged.
+
 - `0.25.1` corrects schema-version documentation and consolidates shared
   proposal ordering, scalar text formatting, and small NNS leaf command
   adapters. Public APIs, CLI behavior, report JSON, cache schemas, sorting,
   rendering, and network behavior are unchanged.
+
 - `0.25.0` expands every SNS neuron list and complete snapshot row with the
   fixed-size native Governance fields already returned by `list_neurons`:
   source NNS neuron id, auto-stake maturity, aging timestamp, raw dissolve
   state, voting-power percentage multiplier, vesting period, and neuron fees.
   It adds no query, pagination, fanout, or implicit cache behavior.
+
 - This is a pre-1.0 report/cache hard cut. SNS neuron report and cache schemas
   advance to version 2; version-1 neuron caches are rejected rather than
   migrated or read through a compatibility branch and must be explicitly
   refreshed.
+
 - Live custom-source rows, refresh pages, and loaded snapshots now share
   canonical lowercase-id, derived timestamp, uniqueness, and limit validation.
   Cache schema identity is checked before a changed row shape is decoded, so

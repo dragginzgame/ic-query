@@ -51,15 +51,9 @@ pub const DEFAULT_NNS_NEURON_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 pub const NNS_NEURON_MAX_PAGE_SIZE: u32 = 300;
 
 #[cfg(feature = "host")]
-const NNS_NEURON_CACHE_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
 const NNS_NEURON_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const NNS_NEURON_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
-const NNS_NEURON_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
-const NNS_NEURON_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const NNS_NEURON_FETCHED_BY: &str = "ic-query";
 
