@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
 
+- `0.22.2` separates ICRC account-history live orchestration, arbitrary-size
+  cursor validation, complete collection state, generic ICRC-index decoding,
+  and deployed ICP-index decoding into cohesive internal owners. The generic
+  and ICP wire contracts remain deliberately distinct while sharing only their
+  request envelope and protocol-neutral projection helpers. Public Rust paths,
+  report JSON, cache schemas, pagination and index-discovery semantics, and
+  network calls are unchanged.
+
 - `0.22.1` replaces staged CLI parsing with one composed Clap command tree and
   typed family/leaf dispatch. Clap now owns nested help, propagated version,
   required-subcommand diagnostics, and top-level network validation; reduced
