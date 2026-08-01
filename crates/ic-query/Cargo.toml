@@ -5,7 +5,7 @@ rust-version.workspace = true
 version.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Internet Computer query library for NNS, SNS, ICRC, and related public network metadata"
+description = "Internet Computer query library for NNS, SNS, ICRC, system canisters, and public network metadata"
 readme = "../../README.md"
 documentation = "https://docs.rs/ic-query"
 homepage.workspace = true
@@ -52,6 +52,9 @@ name = "nns_public_api"
 
 [[test]]
 name = "sns_public_api"
+
+[[test]]
+name = "system_public_api"
 
 [lints]
 workspace = true

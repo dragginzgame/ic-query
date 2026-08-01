@@ -17,6 +17,8 @@
 mod agent;
 #[cfg(feature = "host")]
 mod cache_file;
+#[cfg(feature = "host")]
+mod certification;
 pub mod duration;
 #[cfg(feature = "host")]
 mod freshness;
@@ -38,6 +40,7 @@ mod runtime;
 pub(crate) mod snapshot_cache;
 pub mod sns;
 pub mod subnet_catalog;
+pub mod system;
 
 #[cfg(feature = "host")]
 pub use cache_file::{CacheFileError, HostCacheError};

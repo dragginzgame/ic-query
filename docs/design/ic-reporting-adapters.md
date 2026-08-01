@@ -21,6 +21,7 @@ authority family owns one built-in live adapter:
 - `ic_query::icrc::LiveIcrcSource`
 - `ic_query::nns::LiveNnsSource`
 - `ic_query::sns::LiveSnsSource`
+- `ic_query::system::cmc::LiveCmcSource`
 
 Report families continue to own small source capability traits. A custom
 adapter implements only the capabilities it can supply, while the built-in
@@ -57,6 +58,10 @@ Dashboard source-data DTOs echo that request as their source provenance, and
 canister, metric, and network reports share one flattened
 `IcDashboardReportProvenance`, avoiding parallel field and validation flows
 without nesting the public report JSON.
+Certified CMC views share one `CmcSourceRequest` and one `CmcSource`
+capability on `LiveCmcSource`. The `xdr` and `cycles` reports are projections
+of the same authenticated native rate rather than separate remote-method
+adapters.
 
 This keeps fixture, mirror, proxy, and pre-collected sources easy to implement
 without creating a concrete live-source type for every report. Report builders
@@ -106,6 +111,11 @@ than reaching an infallible parser path.
 - ICRC block collection can follow ledger-supplied archive callbacks.
 - ICRC tip-certificate collection authenticates the certificate and proves the
   ledger tip witness against the canister's certified-data value.
+- CMC system reporting makes one `get_icp_xdr_conversion_rate` query,
+  authenticates the CMC certificate and certified-data witness, and proves the
+  native rate leaf. The cycles view derives cycles per ICP from that same
+  certified value and the documented one-trillion-cycles-per-XDR protocol
+  constant; it does not scrape uncertified CMC Prometheus metrics.
 - ICRC account history resolves an index through ICRC-106 or an explicit
   canister id, verifies the index's ledger identity, and paginates backward
   with an exclusive transaction-id cursor. The same capability decodes the
@@ -163,7 +173,7 @@ Expansion should proceed in layers:
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |
-| 3 | CMC/XDR, Internet Identity, Bitcoin, and other protocol-canister reports | Add one authority-family adapter only when multiple coherent reports justify it |
+| 3 | Internet Identity, Bitcoin, XRC, and other protocol-canister reports beyond the implemented CMC family | Add one authority-family adapter only when multiple coherent reports justify it |
 
 New report work first identifies whether its authority is a canister, Registry
 snapshot, certified response, official index, official REST API, or external

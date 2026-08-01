@@ -8,9 +8,10 @@
 `ic-query` is a read-only Internet Computer reporting library.
 `ic-query-cli` provides its `icq` command-line interface.
 
-The project turns Registry, NNS, SNS, ledger/index, certificate, and official
-IC Dashboard responses into typed reports with explicit provenance. It keeps
-live calls, cache reads, refreshes, and local-only inspection visibly distinct.
+The project turns Registry, NNS, SNS, system-canister, ledger/index,
+certificate, and official IC Dashboard responses into typed reports with
+explicit provenance. It keeps live calls, cache reads, refreshes, and
+local-only inspection visibly distinct.
 
 ## Supported reporting
 
@@ -21,6 +22,7 @@ live calls, cache reads, refreshes, and local-only inspection visibly distinct.
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Discovery, metadata, token and nervous-system parameters, Root canister inventory and health, proposals, and neurons |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, and tip certificates |
+| System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
 
 The living [Roadmap to 1.0](docs/roadmap/1.0.md) records the broader reporting
 surface, current coverage estimates, and the remaining work.
@@ -76,6 +78,10 @@ icq sns proposal list 1 --limit 25
 # Generic ICRC reports
 icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
+
+# Native system-canister reports
+icq system xdr
+icq system cycles --format json
 ```
 
 Text is the default human-facing format. Use `--format json` on report commands
@@ -102,6 +108,7 @@ actually make:
 | NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
+| Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
 | Official IC Dashboard | Timestamped off-chain REST analytics | `certified: false` and `point_in_time_guaranteed: false` |
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
@@ -139,11 +146,13 @@ icq sns neuron list|refresh|cache
 icq icrc ledger capabilities|token|index|transactions|block-types|archives|tip-certificate
 icq icrc account balance|allowance
 icq icrc account transaction page|list|refresh|cache
+
+icq system xdr|cycles
 ```
 
-The top-level `--network` option supplies network identity to NNS and SNS
-commands. Built-in sources and caches currently accept only the mainnet `ic`
-identity.
+The top-level `--network` option supplies network identity to NNS, SNS, and
+system-canister commands. Built-in sources and caches currently accept only
+the mainnet `ic` identity.
 
 Dashboard canister and ICRC commands identify their target using a stable
 entity id and an explicit API endpoint; Dashboard metric and network-resource
@@ -198,7 +207,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.20", default-features = false }
+ic-query = { version = "0.21", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -206,7 +215,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.20", default-features = false, features = ["host"] }
+ic-query = { version = "0.21", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -220,9 +229,11 @@ Public report families are exposed from:
 - `ic_query::nns`
 - `ic_query::sns`
 - `ic_query::subnet_catalog`
+- `ic_query::system::cmc`
 
 Built-in host calls use one adapter per authority family:
-`LiveIcSource`, `LiveIcrcSource`, `LiveNnsSource`, and `LiveSnsSource`.
+`LiveIcSource`, `LiveIcrcSource`, `LiveNnsSource`, `LiveSnsSource`, and
+`LiveCmcSource`.
 Report-specific capability traits let fixtures, mirrors, proxies, and
 pre-collected sources reuse the same validation and projection path.
 
@@ -245,6 +256,7 @@ guidance.
 - [IC Dashboard boundary-node reporting](docs/design/ic-dashboard-boundary-node-reporting.md)
 - [Exact-version NNS Subnet topology](docs/design/nns-subnet-topology.md)
 - [SNS Root canister inventory and health](docs/design/sns-root-canister-reporting.md)
+- [Certified CMC system reporting](docs/design/cmc-system-reporting.md)
 - [Release ledger](CHANGELOG.md)
 
 ## Scope

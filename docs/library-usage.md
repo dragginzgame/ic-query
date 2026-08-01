@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.20", default-features = false, features = ["host"] }
+ic-query = { version = "0.21", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -18,7 +18,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.20", default-features = false }
+ic-query = { version = "0.21", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -68,6 +68,7 @@ The CLI module layout is intentionally mirrored at the family level:
   to the matching `ic_query::nns::*` modules.
 - `icq nns topology ...` maps to `ic_query::nns::topology`.
 - `icq sns ...` maps to `ic_query::sns`.
+- `icq system ...` maps to `ic_query::system::cmc`.
 
 These family roots are the only public paths. Internal `report` modules own
 implementation details but are not available to downstream crates.
@@ -107,13 +108,17 @@ this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
 `SnsListSource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
 `SnsProposalSource`, `SnsProposalsSource`, and `SnsNeuronsSource`.
+Certified Cycle Minting Canister reports expose `CmcSource` and the paired
+`build_cmc_*_report_with_source` builders.
 
 The built-in implementations are deliberately less fragmented than the
 capability traits. `ic_query::ic::LiveIcSource` owns official Dashboard
 capabilities, `ic_query::nns::LiveNnsSource` implements every supported NNS and
 subnet-catalog source capability, while
 `ic_query::sns::LiveSnsSource` and `ic_query::icrc::LiveIcrcSource` own their
-respective live families. NNS capabilities share
+respective live families. `ic_query::system::cmc::LiveCmcSource` owns the
+focused CMC capability rather than adding one live adapter per report view.
+NNS capabilities share
 `ic_query::nns::NnsSourceRequest`; adding a new NNS report should normally add
 a capability implementation to that adapter instead of introducing another
 live-source type or another copy of the same provenance request. SNS
@@ -330,6 +335,40 @@ fn daily_average_transaction_rates(
 Daily-statistics builders make one request, accept at most a 366-day window
 and 366 rows, preserve selected rate values as raw strings, tolerate missing
 days, and never read or write a cache.
+
+## Certified CMC Example
+
+Native tools can query and verify the mainnet Cycle Minting Canister without
+spawning the CLI:
+
+```rust
+use ic_query::system::cmc::{
+    CmcHostError, CmcSourceRequest, DEFAULT_CMC_SOURCE_ENDPOINT,
+    build_cmc_cycles_report,
+};
+
+fn cycles_per_icp(now_unix_secs: u64) -> Result<u128, CmcHostError> {
+    let request = CmcSourceRequest::from_unix_secs(
+        "ic",
+        DEFAULT_CMC_SOURCE_ENDPOINT,
+        now_unix_secs,
+        "my-tool",
+    );
+    Ok(build_cmc_cycles_report(&request)?.cycles_per_icp)
+}
+```
+
+The builder makes one `get_icp_xdr_conversion_rate` query. It authenticates
+the certificate for the fixed mainnet CMC principal, validates the
+certified-data hash-tree commitment, and proves the native rate leaf before
+deriving cycles per ICP from the documented one-trillion-cycles-per-XDR
+constant. Non-mainnet network identities are rejected before agent
+construction. The operation is live-only and does not read or write a cache.
+
+No-default consumers can construct, serialize, and render `CmcXdrReport` and
+`CmcCyclesReport` without the live adapter. Host consumers can implement the
+single `CmcSource` capability for a fixture or proxy and reuse the same report
+projection.
 
 ## Pure Rendering Example
 

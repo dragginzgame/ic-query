@@ -7,6 +7,28 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.21.x] - 2026-08-01 - Certified Cycle Minting Canister reporting
+
+Detailed release notes: [docs/changelog/0.21.md](docs/changelog/0.21.md)
+
+- `0.21.0` adds bounded live `system xdr` and `system cycles` reports backed
+  by one native Cycle Minting Canister
+  `get_icp_xdr_conversion_rate` query. The host adapter authenticates the
+  application-level certificate for the mainnet CMC, verifies the
+  certified-data hash-tree commitment and native rate leaf, and preserves the
+  raw permyriad rate, market timestamp, endpoint, collection provenance, and
+  certificate evidence. The cycles view derives cycles per ICP exactly from
+  the certified rate and the IC protocol constant of one trillion cycles per
+  XDR. These live-only reports reject non-mainnet networks before agent
+  construction, do not scrape uncertified CMC metrics, and never enumerate or
+  create a cache. Shared canister certified-data authentication is reused by
+  CMC and ICRC tip verification without changing the ICRC report contract.
+
+  ```bash
+  icq system xdr
+  icq system cycles --format json
+  ```
+
 ## [0.20.x] - 2026-07-31 - Bounded Dashboard network metrics
 
 Detailed release notes: [docs/changelog/0.20.md](docs/changelog/0.20.md)

@@ -23,11 +23,12 @@ shape changes replace the previous contract without aliases or legacy readers.
 
 ## Target identity
 
-NNS and SNS commands accept the global network identity:
+NNS, SNS, and system-canister commands accept the global network identity:
 
 ```bash
 icq --network ic nns registry version
 icq --network ic sns list
+icq --network ic system xdr
 ```
 
 The built-in sources and caches currently support only mainnet, named `ic`.
@@ -181,6 +182,35 @@ Complete refreshes page until API exhaustion and publish atomically. Governance
 does not expose a stable collection version, so complete proposal and neuron
 snapshots explicitly do not claim one point-in-time view. Public neuron
 reports do not expose authenticated owner-only state.
+
+## System canisters
+
+Cycle Minting Canister reports are bounded live point queries:
+
+```bash
+icq system xdr
+icq system xdr --format json
+icq system cycles
+```
+
+Both commands make exactly one native mainnet CMC
+`get_icp_xdr_conversion_rate` query. The host adapter authenticates the IC
+system certificate against the CMC principal, verifies that the returned hash
+tree is committed by the canister's `certified_data`, and proves that the
+native `ICP_XDR_CONVERSION_RATE` leaf equals the returned Candid value.
+
+`xdr` preserves the raw market-data timestamp and
+`xdr_permyriad_per_icp`. `cycles` preserves that same certified input and
+derives `cycles_per_icp` exactly as
+`xdr_permyriad_per_icp * 1_000_000_000_000 / 10_000`, using the IC protocol
+constant of one trillion cycles per XDR. The report carries the formula and
+raw certificate/hash-tree evidence; text additionally formats the rate to four
+decimal places without replacing the raw field.
+
+The CMC public Candid interface does not expose total cycles minted. `icq`
+does not scrape the CMC's explicitly uncertified Prometheus metrics, call
+hidden methods, enumerate canisters, or create a cache. See
+[Certified CMC System Reporting](design/cmc-system-reporting.md).
 
 ## SNS
 

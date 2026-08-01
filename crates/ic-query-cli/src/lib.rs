@@ -6,6 +6,7 @@ mod output;
 mod progress;
 mod sns;
 mod storage;
+mod system;
 
 #[cfg(test)]
 mod test_support;
@@ -48,6 +49,9 @@ pub enum IcqCliError {
 
     #[error("sns: {0}")]
     Sns(#[from] sns::SnsCommandError),
+
+    #[error("system: {0}")]
+    System(#[from] system::SystemCommandError),
 }
 
 impl IcqCliError {
@@ -58,10 +62,16 @@ impl IcqCliError {
             Self::Ic(ic::IcCommandError::Io(err))
             | Self::Nns(nns::NnsCommandError::Io(err))
             | Self::Icrc(icrc::IcrcCommandError::Io(err))
-            | Self::Sns(sns::SnsCommandError::Io(err)) => {
+            | Self::Sns(sns::SnsCommandError::Io(err))
+            | Self::System(system::SystemCommandError::Io(err)) => {
                 err.kind() == std::io::ErrorKind::BrokenPipe
             }
-            Self::Usage(_) | Self::Nns(_) | Self::Icrc(_) | Self::Ic(_) | Self::Sns(_) => false,
+            Self::Usage(_)
+            | Self::Nns(_)
+            | Self::Icrc(_)
+            | Self::Ic(_)
+            | Self::Sns(_)
+            | Self::System(_) => false,
         }
     }
 
@@ -73,8 +83,9 @@ impl IcqCliError {
             | Self::Ic(ic::IcCommandError::Usage(_))
             | Self::Nns(nns::NnsCommandError::Usage(_))
             | Self::Icrc(icrc::IcrcCommandError::Usage(_))
-            | Self::Sns(sns::SnsCommandError::Usage(_)) => 2,
-            Self::Nns(_) | Self::Icrc(_) | Self::Ic(_) | Self::Sns(_) => 1,
+            | Self::Sns(sns::SnsCommandError::Usage(_))
+            | Self::System(system::SystemCommandError::Usage(_)) => 2,
+            Self::Nns(_) | Self::Icrc(_) | Self::Ic(_) | Self::Sns(_) | Self::System(_) => 1,
         }
     }
 }
@@ -122,6 +133,7 @@ where
         "icrc" => Ok(icrc::run(tail)?),
         "nns" => Ok(nns::run(tail)?),
         "sns" => Ok(sns::run(tail)?),
+        "system" => Ok(system::run(tail)?),
         _ => unreachable!("top-level dispatch command only defines known commands"),
     }
 }
@@ -160,7 +172,7 @@ fn network_arg() -> Arg {
         .num_args(1)
         .long("network")
         .value_name("name")
-        .help("Network identity for NNS and SNS commands; currently only ic")
+        .help("Network identity for NNS, SNS, and system commands; currently only ic")
 }
 
 fn top_level_command() -> Command {
@@ -323,6 +335,11 @@ const COMMAND_FAMILIES: &[CommandFamily] = &[
         about: "Inspect SNS metadata",
         accepts_global_network: sns_accepts_global_network,
     },
+    CommandFamily {
+        name: "system",
+        about: "Inspect native IC system-canister metadata",
+        accepts_global_network: system_accepts_global_network,
+    },
 ];
 
 fn command_family(name: &str) -> Option<&'static CommandFamily> {
@@ -345,6 +362,10 @@ const fn sns_accepts_global_network(_tail: &[OsString]) -> bool {
     true
 }
 
+const fn system_accepts_global_network(_tail: &[OsString]) -> bool {
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -362,6 +383,8 @@ mod tests {
         assert!(text.contains("Inspect NNS metadata"));
         assert!(text.contains("sns"));
         assert!(text.contains("Inspect SNS metadata"));
+        assert!(text.contains("system"));
+        assert!(text.contains("Inspect native IC system-canister metadata"));
         assert!(text.contains("Run `icq <command> help`"));
     }
 
@@ -375,14 +398,15 @@ Internet Computer metadata query CLI
 Usage: icq [OPTIONS] [COMMAND]
 
 Commands:
-  ic    Inspect official IC Dashboard metadata
-  icrc  Inspect generic ICRC ledger and account metadata
-  nns   Inspect NNS metadata
-  sns   Inspect SNS metadata
+  ic      Inspect official IC Dashboard metadata
+  icrc    Inspect generic ICRC ledger and account metadata
+  nns     Inspect NNS metadata
+  sns     Inspect SNS metadata
+  system  Inspect native IC system-canister metadata
 
 Options:
   -V, --version         Print version
-      --network <name>  Network identity for NNS and SNS commands; currently only ic
+      --network <name>  Network identity for NNS, SNS, and system commands; currently only ic
   -h, --help            Print help
 
 Run `icq <command> help` for command-specific help.
@@ -466,6 +490,9 @@ Run `icq <command> help` for command-specific help.
             &["sns", "neuron", "cache", "list", "help"],
             &["sns", "neuron", "cache", "status", "help"],
             &["sns", "neuron", "refresh", "help"],
+            &["system", "help"],
+            &["system", "xdr", "help"],
+            &["system", "cycles", "help"],
         ] {
             assert_run_ok(args);
         }
@@ -479,6 +506,7 @@ Run `icq <command> help` for command-specific help.
         assert!(run([OsString::from("icrc"), OsString::from("--version")]).is_ok());
         assert!(run([OsString::from("nns"), OsString::from("--version")]).is_ok());
         assert!(run([OsString::from("sns"), OsString::from("--version")]).is_ok());
+        assert!(run([OsString::from("system"), OsString::from("--version")]).is_ok());
         assert!(
             run([
                 OsString::from("nns"),
@@ -510,6 +538,7 @@ Run `icq <command> help` for command-specific help.
         for usage in [
             IcqCliError::Ic(ic::IcCommandError::Usage("bad input".to_string())),
             IcqCliError::Icrc(icrc::IcrcCommandError::Usage("bad input".to_string())),
+            IcqCliError::System(system::SystemCommandError::Usage("bad input".to_string())),
         ] {
             assert_eq!(usage.exit_code(), 2);
             assert!(!usage.is_broken_pipe());
@@ -520,6 +549,9 @@ Run `icq <command> help` for command-specific help.
                 std::io::ErrorKind::BrokenPipe,
             ))),
             IcqCliError::Icrc(icrc::IcrcCommandError::Io(std::io::Error::from(
+                std::io::ErrorKind::BrokenPipe,
+            ))),
+            IcqCliError::System(system::SystemCommandError::Io(std::io::Error::from(
                 std::io::ErrorKind::BrokenPipe,
             ))),
         ] {
@@ -548,11 +580,12 @@ Run `icq <command> help` for command-specific help.
             ("sns", "params"),
             ("sns", "proposal"),
             ("sns", "token"),
+            ("system", "xdr"),
         ] {
             let mut tail = vec![OsString::from(leaf), OsString::from("list")];
 
             apply_global_network(command, &mut tail, Some("ic".to_string()))
-                .expect("NNS and SNS families support the global network");
+                .expect("NNS, SNS, and system families support the global network");
 
             assert_eq!(
                 tail,
@@ -567,8 +600,8 @@ Run `icq <command> help` for command-specific help.
     }
 
     #[test]
-    fn non_mainnet_network_is_rejected_before_nns_or_sns_dispatch() {
-        for command in ["nns", "sns"] {
+    fn non_mainnet_network_is_rejected_before_mainnet_only_dispatch() {
+        for command in ["nns", "sns", "system"] {
             let mut tail = if command == "nns" {
                 vec![OsString::from("proposal"), OsString::from("list")]
             } else {
@@ -576,7 +609,7 @@ Run `icq <command> help` for command-specific help.
             };
 
             let error = apply_global_network(command, &mut tail, Some("local".to_string()))
-                .expect_err("current NNS and SNS adapters are mainnet-only");
+                .expect_err("current mainnet canister adapters reject other networks");
 
             assert_eq!(error.exit_code(), 2);
             assert!(error.to_string().contains("supports only the mainnet `ic`"));
@@ -629,6 +662,12 @@ Run `icq <command> help` for command-specific help.
                 OsString::from("canister"),
                 OsString::from("list"),
                 OsString::from("1"),
+            ],
+            vec![
+                OsString::from("--network"),
+                OsString::from("local"),
+                OsString::from("system"),
+                OsString::from("xdr"),
             ],
         ] {
             let command = args[2].to_string_lossy().into_owned();

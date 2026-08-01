@@ -36,6 +36,7 @@ icq icrc account transaction help
 | [NNS Neuron Reporting](design/nns-neuron-reporting.md) | Public neuron views and complete collection behavior |
 | [SNS Root Canister Reporting](design/sns-root-canister-reporting.md) | Root inventory, health, provenance, and relation gaps |
 | [SNS Proposal Cache](design/sns-proposal-cache.md) | Complete SNS proposal snapshot behavior |
+| [Certified CMC System Reporting](design/cmc-system-reporting.md) | Certified ICP/XDR evidence and exact cycles-per-ICP derivation |
 
 These documents describe the current contract. Detailed release notes under
 [`docs/changelog/`](changelog/) explain when each contract changed.

@@ -82,6 +82,8 @@ cargo test -p ic-query --test sns_public_api --no-default-features --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features host --locked
+cargo test -p ic-query --test system_public_api --no-default-features --locked
+cargo test -p ic-query --test system_public_api --no-default-features --features host --locked
 cargo check -p ic-query-cli --locked
 
 check_tree_absent "ic-query --no-default-features" \

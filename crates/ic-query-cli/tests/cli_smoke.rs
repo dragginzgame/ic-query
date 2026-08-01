@@ -66,6 +66,28 @@ fn binary_top_level_help_smoke() {
     assert!(stdout.contains("icrc"));
     assert!(stdout.contains("nns"));
     assert!(stdout.contains("sns"));
+    assert!(stdout.contains("system"));
+}
+
+#[test]
+fn binary_system_report_help_smoke() {
+    for (command, description) in [
+        ("xdr", "certified CMC ICP/XDR conversion rate"),
+        (
+            "cycles",
+            "cycles conversions derived from the certified CMC rate",
+        ),
+    ] {
+        let output = run_icq(&["system", command, "help"]);
+
+        assert_success(&output);
+        let stdout = stdout_text(&output);
+        assert!(stdout.contains(&format!("Usage: icq system {command} [OPTIONS]")));
+        assert!(stdout.contains("--source-endpoint <url>"));
+        assert!(stdout.contains("--format <text|json>"));
+        assert!(stdout.contains(description));
+        assert!(stdout.contains("Live query; does not read or write a report cache."));
+    }
 }
 
 #[test]

@@ -4,7 +4,10 @@
 //! Does not own: live queries, report construction, or output.
 //! Boundary: accepts the wire certificate pair only after the ledger query succeeds.
 
+#[cfg(test)]
+use crate::certification::verify_canister_hash_tree;
 use crate::{
+    certification::{CertifiedDataError, authenticate_canister_hash_tree},
     hex::hex_bytes,
     icrc::{
         ledger::Icrc3DataCertificate,
@@ -13,7 +16,7 @@ use crate::{
 };
 use candid::Principal;
 use ic_agent::{
-    Agent, Certificate,
+    Agent,
     hash_tree::{HashTree, LookupResult},
 };
 
@@ -36,16 +39,15 @@ pub(super) fn verified_tip_certificate_data(
         });
     };
 
-    let certificate: Certificate = serde_cbor::from_slice(&wire.certificate).map_err(|error| {
-        invalid_tip_certificate(format!("certificate CBOR is invalid: {error}"))
-    })?;
-    agent
-        .verify(&certificate, *ledger_canister)
-        .map_err(|error| IcrcError::AgentCall {
-            method: ICRC3_GET_TIP_CERTIFICATE_METHOD,
-            reason: format!("tip certificate authentication failed: {error}"),
-        })?;
-    verify_tip_witness(&certificate, ledger_canister, &wire.hash_tree)?;
+    let hash_tree = authenticate_canister_hash_tree(
+        agent,
+        ledger_canister,
+        &wire.certificate,
+        &wire.hash_tree,
+        "ledger",
+    )
+    .map_err(map_certified_data_error)?;
+    verify_tip_leaves(&hash_tree)?;
 
     Ok(IcrcTipCertificateData {
         certificate_hex: Some(hex_bytes(&wire.certificate)),
@@ -55,35 +57,23 @@ pub(super) fn verified_tip_certificate_data(
     })
 }
 
+#[cfg(test)]
 fn verify_tip_witness(
-    certificate: &Certificate,
+    certificate: &ic_agent::Certificate,
     ledger_canister: &Principal,
     encoded_hash_tree: &[u8],
 ) -> Result<(), IcrcError> {
-    let hash_tree: HashTree<Vec<u8>> = serde_cbor::from_slice(encoded_hash_tree)
-        .map_err(|error| invalid_tip_certificate(format!("hash-tree CBOR is invalid: {error}")))?;
-    let certified_data_path = [
-        b"canister".as_slice(),
-        ledger_canister.as_slice(),
-        b"certified_data".as_slice(),
-    ];
-    let certified_data =
-        ic_agent::lookup_value(certificate, certified_data_path).map_err(|error| {
-            invalid_tip_certificate(format!(
-                "certificate does not prove the ledger certified_data value: {error}"
-            ))
-        })?;
+    let hash_tree =
+        verify_canister_hash_tree(certificate, ledger_canister, encoded_hash_tree, "ledger")
+            .map_err(map_certified_data_error)?;
+    verify_tip_leaves(&hash_tree)
+}
 
-    if certified_data != hash_tree.digest() {
-        return Err(invalid_tip_certificate(
-            "hash-tree digest does not match the ledger certified_data value",
-        ));
-    }
-
-    let last_block_index = required_leaf(&hash_tree, LAST_BLOCK_INDEX_LABEL)?;
+fn verify_tip_leaves(hash_tree: &HashTree<Vec<u8>>) -> Result<(), IcrcError> {
+    let last_block_index = required_leaf(hash_tree, LAST_BLOCK_INDEX_LABEL)?;
     validate_canonical_unsigned_leb128(last_block_index)?;
 
-    let last_block_hash = required_leaf(&hash_tree, LAST_BLOCK_HASH_LABEL)?;
+    let last_block_hash = required_leaf(hash_tree, LAST_BLOCK_HASH_LABEL)?;
     if last_block_hash.len() != SHA_256_BYTES {
         return Err(invalid_tip_certificate(format!(
             "last_block_hash must contain {SHA_256_BYTES} bytes, got {}",
@@ -92,6 +82,16 @@ fn verify_tip_witness(
     }
 
     Ok(())
+}
+
+fn map_certified_data_error(error: CertifiedDataError) -> IcrcError {
+    match error {
+        CertifiedDataError::Authentication { reason } => IcrcError::AgentCall {
+            method: ICRC3_GET_TIP_CERTIFICATE_METHOD,
+            reason: format!("tip certificate authentication failed: {reason}"),
+        },
+        CertifiedDataError::Invalid { reason } => invalid_tip_certificate(reason),
+    }
 }
 
 fn required_leaf<'tree>(
@@ -142,7 +142,10 @@ fn invalid_tip_certificate(reason: impl Into<String>) -> IcrcError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_agent::hash_tree::{fork, label, leaf};
+    use ic_agent::{
+        Certificate,
+        hash_tree::{fork, label, leaf},
+    };
 
     const LEDGER_CANISTER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 
