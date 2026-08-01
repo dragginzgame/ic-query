@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.3` separates official Dashboard canister, metrics, and network-resource
+  CLI parsing, dispatch, option models, and focused tests behind the existing
+  `ic` command facade. CLI behavior, output, source calls, and public Rust APIs
+  are unchanged.
+
 - `0.25.2` separates NNS neuron cache models, paths, attempt evidence, page
   collection, publication, refresh orchestration, and cached report projection
   behind the existing public facade. Public APIs, CLI behavior, cache paths and
