@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
 
+- `0.22.5` separates the official Dashboard live adapter into canister,
+  metric, and network-resource owners behind one shared HTTP transport facade.
+  URL construction, wire decoding, and their focused tests now live with the
+  capability that owns them. Existing public source traits and builders,
+  endpoints, validation order, report output, request bounds, and network-call
+  counts are unchanged.
+
 - `0.22.4` separates the former monolithic ICRC text renderer into account,
   ledger-history, and ledger metadata/evidence owners behind one explicit
   internal facade. The facade retains only shared table-section and alignment
