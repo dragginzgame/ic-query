@@ -25,10 +25,12 @@ pub use reports::{
 pub use reports::{
     SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
     SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRow, SnsNeuronPermissionList, SnsParamsReport, SnsProposalBallotRow,
-    SnsProposalFailureReason, SnsProposalReport, SnsProposalRow, SnsProposalTally,
-    SnsProposalsReport, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
-    SnsVotingRewardsParameters,
+    SnsListReport, SnsListRow, SnsNeuronPermissionList, SnsParamsReport, SnsPendingUpgrade,
+    SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
+    SnsProposalTally, SnsProposalsReport, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
+    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingRewardsParameters,
 };
 #[cfg(feature = "host")]
 pub use requests::{

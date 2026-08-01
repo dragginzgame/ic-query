@@ -1,13 +1,13 @@
 //! Module: sns::report::live::fetch::list
 //!
-//! Responsibility: fetch deployed SNS inventory from SNS-W.
+//! Responsibility: fetch deployed SNS inventory and explicitly targeted metadata.
 //! Does not own: report assembly, command parsing, cache IO, or rendering.
-//! Boundary: queries SNS-W and root metadata into source-layer SNS list data.
+//! Boundary: keeps the SNS-W inventory query separate from Governance metadata queries.
 
 use super::block_on_sns;
 use crate::sns::report::live::{
     convert::{
-        mainnet_sns_canisters_from_deployed_sns, mainnet_sns_from_canisters_and_metadata,
+        mainnet_sns_canisters_from_deployed_sns, mainnet_sns_metadata_from_response,
         metadata_error_summary,
     },
     query::{principal_from_text, query_canister, sns_agent},
@@ -18,23 +18,24 @@ use crate::sns::report::live::{
 };
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, SNS_METADATA_CONCURRENCY, SnsHostError, SnsSourceRequest,
-    source::{MainnetSns, MainnetSnsCanisters, MainnetSnsList},
+    enforce_mainnet_network,
+    source::{MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsMetadata},
 };
 use crate::subnet_catalog::MAINNET_NETWORK;
 use candid::Principal;
 use futures::{StreamExt, stream};
 use ic_agent::Agent;
 
-/// Fetch the current deployed SNS list from mainnet SNS-W.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_list(
+/// Fetch the current unenriched deployed-SNS inventory from mainnet SNS-W.
+pub(in crate::sns::report::live) fn fetch_mainnet_sns_inventory(
     request: &SnsSourceRequest,
-) -> Result<MainnetSnsList, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_list_async(request))
+) -> Result<MainnetSnsInventory, SnsHostError> {
+    block_on_sns(fetch_mainnet_sns_inventory_async(request))
 }
 
-async fn fetch_mainnet_sns_list_async(
+async fn fetch_mainnet_sns_inventory_async(
     request: &SnsSourceRequest,
-) -> Result<MainnetSnsList, SnsHostError> {
+) -> Result<MainnetSnsInventory, SnsHostError> {
     let agent = sns_agent(request)?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
@@ -47,21 +48,19 @@ async fn fetch_mainnet_sns_list_async(
         &ListDeployedSnsesRequest {},
     )
     .await?;
-    mainnet_sns_list_from_response(&agent, request, response).await
+    mainnet_sns_inventory_from_response(request, response)
 }
 
-async fn mainnet_sns_list_from_response(
-    agent: &Agent,
+fn mainnet_sns_inventory_from_response(
     request: &SnsSourceRequest,
     response: ListDeployedSnsesResponse,
-) -> Result<MainnetSnsList, SnsHostError> {
-    let sns_canisters = response
+) -> Result<MainnetSnsInventory, SnsHostError> {
+    let sns_instances = response
         .instances
         .into_iter()
         .map(mainnet_sns_canisters_from_deployed_sns)
         .collect::<Result<Vec<MainnetSnsCanisters>, _>>()?;
-    let sns_instances = fetch_mainnet_sns_metadata_rows(agent, sns_canisters).await?;
-    Ok(MainnetSnsList {
+    Ok(MainnetSnsInventory {
         network: MAINNET_NETWORK.to_string(),
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
         fetched_at: request.fetched_at.clone(),
@@ -71,29 +70,43 @@ async fn mainnet_sns_list_from_response(
     })
 }
 
-async fn fetch_mainnet_sns_metadata_rows(
-    agent: &Agent,
-    sns_canisters: Vec<MainnetSnsCanisters>,
-) -> Result<Vec<MainnetSns>, SnsHostError> {
+/// Fetch Governance metadata for exactly the requested deployed-SNS targets.
+pub(in crate::sns::report::live) fn fetch_mainnet_sns_metadata(
+    request: &SnsSourceRequest,
+    targets: &[MainnetSnsCanisters],
+) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
+    if targets.is_empty() {
+        return Ok(Vec::new());
+    }
+    block_on_sns(fetch_mainnet_sns_metadata_async(request, targets))
+}
+
+async fn fetch_mainnet_sns_metadata_async(
+    request: &SnsSourceRequest,
+    targets: &[MainnetSnsCanisters],
+) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+    let agent = sns_agent(request)?;
     let fetched = stream::iter(
-        sns_canisters
-            .into_iter()
-            .map(|sns| fetch_mainnet_sns_metadata(agent, sns)),
+        targets
+            .iter()
+            .cloned()
+            .map(|sns| fetch_mainnet_sns_metadata_row(&agent, sns)),
     )
     .buffered(SNS_METADATA_CONCURRENCY)
     .collect::<Vec<_>>()
     .await;
-    let mut sns_instances = Vec::with_capacity(fetched.len());
-    for sns in fetched {
-        sns_instances.push(sns?);
+    let mut metadata = Vec::with_capacity(fetched.len());
+    for row in fetched {
+        metadata.push(row?);
     }
-    Ok(sns_instances)
+    Ok(metadata)
 }
 
-async fn fetch_mainnet_sns_metadata(
+async fn fetch_mainnet_sns_metadata_row(
     agent: &Agent,
     sns: MainnetSnsCanisters,
-) -> Result<MainnetSns, SnsHostError> {
+) -> Result<MainnetSnsMetadata, SnsHostError> {
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
     let (metadata, metadata_error) =
@@ -104,8 +117,8 @@ async fn fetch_mainnet_sns_metadata(
                 None => return Err(err),
             },
         };
-    Ok(mainnet_sns_from_canisters_and_metadata(
-        sns,
+    Ok(mainnet_sns_metadata_from_response(
+        sns.root_canister_id,
         metadata,
         metadata_error,
     ))

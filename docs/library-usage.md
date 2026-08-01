@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.22", default-features = false, features = ["host"] }
+ic-query = { version = "0.23", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -19,7 +19,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.22", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.23", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -31,7 +31,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.22", default-features = false }
+ic-query = { version = "0.23", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -108,7 +108,7 @@ The public API exposes source adapters for host-only downstream crates that
 need to reuse `ic-query` report assembly with data that does not come from the
 built-in live adapters. The official Dashboard, generic ICRC, subnet catalog,
 NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
-list/info/token/params/canister, SNS proposal, and SNS neuron host APIs expose
+list/info/token/params/swap/upgrade/canister, SNS proposal, and SNS neuron host APIs expose
 this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
 `IcMetricSource`, `IcNetworkSource`, and narrow ICRC capabilities such as
 `IcrcTokenSource`,
@@ -119,8 +119,14 @@ this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
 `NnsNeuronSource`, `NnsGovernanceSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
-`SnsListSource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
+`SnsDiscoverySource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
+`SnsSwapSource`, `SnsUpgradeSource`,
 `SnsProposalSource`, `SnsProposalsSource`, and `SnsNeuronsSource`.
+`SnsDiscoverySource` keeps the authoritative SNS-W inventory separate from
+explicit metadata targets. Direct report builders enrich exactly one resolved
+SNS; `sns list` requests metadata for every inventory row. Custom sources must
+return one canonical, unique metadata row for every requested Root principal
+and no unrequested rows.
 Certified Cycle Minting Canister reports expose `CmcSource` and the paired
 `build_cmc_*_report_with_source` builders.
 

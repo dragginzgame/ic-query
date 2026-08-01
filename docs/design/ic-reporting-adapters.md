@@ -46,6 +46,11 @@ SNS capabilities share `SnsSourceRequest`, including explicit network and
 collection provenance. SNS Root inventory and health use one
 `SnsCanisterSource` capability on `LiveSnsSource` rather than separate
 adapters for the Root inventory query and read-only health ingress.
+Bounded swap lifecycle, sale parameters, and derived state similarly share one
+`SnsSwapSource` capability rather than exposing one trait per native method.
+Bounded deployed/pending and next-blessed version evidence shares one
+`SnsUpgradeSource` capability across Governance and SNS-W rather than exposing
+one trait per query.
 Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
 focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
 `LiveIcSource`; bounded aggregate network time series use one `IcMetricSource`
@@ -92,11 +97,27 @@ than reaching an infallible parser path.
 
 - NNS exact topology follows Subnet membership through nodes and operators to
   providers at one Registry version.
-- SNS discovery follows SNS-W results with per-SNS metadata calls.
+- SNS discovery first reads unenriched SNS-W inventory. Direct id/Root lookup
+  resolves that inventory before requesting metadata for exactly one target;
+  unknown lookup requests no metadata, and only `sns list` enriches every row.
 - SNS Root reporting resolves one deployed SNS, uses `list_sns_canisters` as
   membership authority, and joins `get_sns_canisters_summary` health with
   `update_canister_list = false`. The sequential reads retain typed gaps and
   explicitly carry no point-in-time guarantee.
+- SNS swap reporting resolves one deployed SNS and attempts exactly
+  `get_lifecycle`, `get_sale_parameters`, and `get_derived_state` against its
+  discovered swap canister. Component failures remain typed gaps. The adapter
+  does not call the participant-bearing `get_state`, apply swap methods to
+  another SNS, create a cache, or claim that the sequential responses are one
+  point-in-time snapshot. Target resolution retains the existing SNS-W
+  targeted discovery behavior, so the complete direct command budget is one
+  SNS-W query, one selected-SNS metadata query, and three swap queries.
+- SNS upgrade reporting resolves one deployed SNS, requires Governance
+  `get_running_sns_version`, and compares that exact deployed version through
+  SNS-W `get_next_sns_version`. A successful absent successor remains distinct
+  from a typed next-version query gap. The flow makes at most four live calls
+  including targeted discovery, does not read the upgrade journal, download
+  Wasms, fan out, create a cache, or claim one point-in-time snapshot.
 - NNS and SNS complete collections page until exhausted.
 - NNS neuron reporting follows the native ascending `get_neuron_index`
   cursor, preserves publicly readable `NeuronInfo` fields, and atomically
@@ -169,7 +190,7 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Fuller SNS neuron state, swap lifecycle, blessed upgrade-path comparison, and treasury evidence | Extend focused SNS capability traits on `LiveSnsSource` |
+| 1 | Fuller SNS neuron state and treasury evidence beyond the implemented bounded swap and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |

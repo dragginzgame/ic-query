@@ -1,4 +1,4 @@
-use super::sns::{FixtureSnsListSource, GOVERNANCE_A, INDEX_A, ROOT_A};
+use super::sns::{FixtureSnsDiscoverySource, GOVERNANCE_A, INDEX_A, ROOT_A};
 use crate::sns::report::tests::*;
 
 ///
@@ -9,14 +9,7 @@ use crate::sns::report::tests::*;
 
 pub(in crate::sns::report::tests) struct FixtureSnsCanisterSource;
 
-impl SnsListSource for FixtureSnsCanisterSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(FixtureSnsCanisterSource);
 
 impl SnsCanisterSource for FixtureSnsCanisterSource {
     fn fetch_sns_canisters(

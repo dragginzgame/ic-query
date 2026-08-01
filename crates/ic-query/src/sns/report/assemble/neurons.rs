@@ -6,7 +6,7 @@
 
 use super::SnsReportProvenance;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsList, MainnetSnsNeurons, SNS_NEURONS_REPORT_SCHEMA_VERSION,
+    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsNeurons, SNS_NEURONS_REPORT_SCHEMA_VERSION,
     SnsNeuronsReport, SnsNeuronsSort,
 };
 
@@ -17,7 +17,7 @@ use crate::sns::report::{
 ///
 
 pub(in crate::sns::report) struct SnsNeuronsLiveReportParts {
-    pub(in crate::sns::report) list: MainnetSnsList,
+    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
     pub(in crate::sns::report) id: usize,
     pub(in crate::sns::report) sns: MainnetSns,
     pub(in crate::sns::report) requested_limit: u32,

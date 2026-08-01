@@ -5,12 +5,12 @@
 //! Boundary: combines resolved SNS identity and raw parameter DTOs into report output.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsList, SNS_PARAMS_REPORT_SCHEMA_VERSION, SnsGovernanceParameters,
-    SnsParamsReport,
+    JoinedMainnetSnsInventory, MainnetSns, SNS_PARAMS_REPORT_SCHEMA_VERSION,
+    SnsGovernanceParameters, SnsParamsReport,
 };
 
 pub(in crate::sns::report) fn sns_params_report_from_parts(
-    list: MainnetSnsList,
+    list: JoinedMainnetSnsInventory,
     id: usize,
     sns: MainnetSns,
     parameters: SnsGovernanceParameters,

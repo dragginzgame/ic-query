@@ -18,7 +18,7 @@ use crate::{
         cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths},
         cache_storage::SnsCacheMetadata,
         lookup::{lookup_request_from_parts, resolve_sns_lookup, validate_sns_refresh_page_size},
-        source::{MainnetSns, MainnetSnsList, SnsListSource, SnsSourceRequest},
+        source::{JoinedMainnetSnsInventory, MainnetSns, SnsDiscoverySource, SnsSourceRequest},
     },
 };
 use serde::Serialize;
@@ -34,8 +34,8 @@ pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Request, Collect
     pub(in crate::sns::report) request: &'a Request,
     /// Canonical source request shared by lookup and collection calls.
     pub(in crate::sns::report) fetch_request: SnsSourceRequest,
-    /// Complete deployed-SNS inventory that resolved the target.
-    pub(in crate::sns::report) list: MainnetSnsList,
+    /// Targeted joined discovery context that resolved the SNS.
+    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
     /// Stable list position assigned to the resolved SNS.
     pub(in crate::sns::report) id: usize,
     /// Resolved SNS identity and canister principals.
@@ -64,7 +64,7 @@ where
 /// Resolve one SNS target, acquire its family lock, and run the locked refresh.
 pub(in crate::sns::report) fn run_resolved_sns_snapshot_refresh<Request, Collection, Report>(
     request: &Request,
-    source: &dyn SnsListSource,
+    source: &dyn SnsDiscoverySource,
     lock_stale_after_seconds: u64,
     run_locked: impl FnOnce(
         SnsSnapshotRefreshContext<'_, Request, Collection>,

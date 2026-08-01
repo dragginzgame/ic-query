@@ -3,7 +3,7 @@ use crate::sns::report::tests::*;
 pub(in crate::sns::report::tests) const ROOT_A: &str = "be2us-64aaa-aaaaa-qaabq-cai";
 pub(in crate::sns::report::tests) const GOVERNANCE_A: &str = "bkyz2-fmaaa-aaaaa-qaaaq-cai";
 pub(in crate::sns::report::tests) const LEDGER_A: &str = "bd3sg-teaaa-aaaaa-qaaba-cai";
-const SWAP_A: &str = "br5f7-7uaaa-aaaaa-qaaca-cai";
+pub(in crate::sns::report::tests) const SWAP_A: &str = "br5f7-7uaaa-aaaaa-qaaca-cai";
 pub(in crate::sns::report::tests) const INDEX_A: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
 const ROOT_B: &str = "bd3sg-teaaa-aaaaa-qaaba-cai";
 const GOVERNANCE_B: &str = "br5f7-7uaaa-aaaaa-qaaca-cai";
@@ -12,142 +12,180 @@ const SWAP_B: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const INDEX_B: &str = "r7inp-6aaaa-aaaaa-aaabq-cai";
 
 ///
-/// FixtureSnsListSource
+/// FixtureSnsDiscoverySource
 ///
-/// Successful deployed-SNS list source used by report tests.
+/// Successful SNS discovery source used by report tests.
 ///
 
-pub(in crate::sns::report::tests) struct FixtureSnsListSource;
+pub(in crate::sns::report::tests) struct FixtureSnsDiscoverySource;
 
-impl SnsListSource for FixtureSnsListSource {
-    fn fetch_deployed_snses(
+impl SnsDiscoverySource for FixtureSnsDiscoverySource {
+    fn fetch_sns_inventory(
         &self,
         request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        Ok(MainnetSnsList {
-            network: MAINNET_NETWORK.to_string(),
-            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            sns_instances: vec![fixture_sns(
-                "Fixture SNS",
-                Some("Fixture description"),
-                Some("https://example.com"),
-                ROOT_A,
-                GOVERNANCE_A,
-                LEDGER_A,
-                SWAP_A,
-                INDEX_A,
-                None,
-            )],
-        })
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        Ok(fixture_inventory(request, vec![fixture_canisters_a()]))
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        _request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        Ok(targets
+            .iter()
+            .map(|target| fixture_metadata(target, None))
+            .collect())
     }
 }
 
 ///
-/// UnsortedFixtureSnsListSource
+/// UnsortedFixtureSnsDiscoverySource
 ///
-/// Deployed-SNS source with deliberately unsorted rows for view tests.
+/// SNS discovery source with deliberately unsorted metadata names for view tests.
 ///
 
-pub(in crate::sns::report::tests) struct UnsortedFixtureSnsListSource;
+pub(in crate::sns::report::tests) struct UnsortedFixtureSnsDiscoverySource;
 
-impl SnsListSource for UnsortedFixtureSnsListSource {
-    fn fetch_deployed_snses(
+impl SnsDiscoverySource for UnsortedFixtureSnsDiscoverySource {
+    fn fetch_sns_inventory(
         &self,
         request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        Ok(MainnetSnsList {
-            network: MAINNET_NETWORK.to_string(),
-            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            sns_instances: vec![
-                fixture_sns(
-                    "A Name",
-                    None,
-                    None,
-                    ROOT_A,
-                    GOVERNANCE_A,
-                    LEDGER_A,
-                    SWAP_A,
-                    INDEX_A,
-                    None,
-                ),
-                fixture_sns(
-                    "Z Name",
-                    None,
-                    None,
-                    ROOT_B,
-                    GOVERNANCE_B,
-                    LEDGER_B,
-                    SWAP_B,
-                    INDEX_B,
-                    None,
-                ),
-            ],
-        })
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        Ok(fixture_inventory(
+            request,
+            vec![fixture_canisters_a(), fixture_canisters_b()],
+        ))
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        _request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        Ok(targets
+            .iter()
+            .map(|target| {
+                let mut metadata = fixture_metadata(target, None);
+                if target.root_canister_id == ROOT_A {
+                    metadata.name = Some("A Name".to_string());
+                }
+                metadata
+            })
+            .collect())
     }
 }
 
 ///
-/// MetadataErrorFixtureSnsListSource
+/// MetadataErrorFixtureSnsDiscoverySource
 ///
-/// Deployed-SNS source carrying a metadata failure for fallback tests.
+/// SNS discovery source carrying a metadata failure for fallback tests.
 ///
 
-pub(in crate::sns::report::tests) struct MetadataErrorFixtureSnsListSource;
+pub(in crate::sns::report::tests) struct MetadataErrorFixtureSnsDiscoverySource;
 
-impl SnsListSource for MetadataErrorFixtureSnsListSource {
-    fn fetch_deployed_snses(
+impl SnsDiscoverySource for MetadataErrorFixtureSnsDiscoverySource {
+    fn fetch_sns_inventory(
         &self,
         request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        Ok(MainnetSnsList {
-            network: MAINNET_NETWORK.to_string(),
-            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            sns_instances: vec![fixture_sns(
-                "unnamed-be2us",
-                None,
-                None,
-                ROOT_A,
-                GOVERNANCE_A,
-                LEDGER_A,
-                SWAP_A,
-                INDEX_A,
-                Some("get_metadata: Canister has no Wasm module"),
-            )],
-        })
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        Ok(fixture_inventory(request, vec![fixture_canisters_a()]))
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        _request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        Ok(targets
+            .iter()
+            .map(|target| {
+                fixture_metadata(target, Some("get_metadata: Canister has no Wasm module"))
+            })
+            .collect())
     }
 }
 
-#[expect(clippy::too_many_arguments)]
-fn fixture_sns(
-    name: &str,
-    description: Option<&str>,
-    url: Option<&str>,
+fn fixture_inventory(
+    request: &SnsSourceRequest,
+    sns_instances: Vec<MainnetSnsCanisters>,
+) -> MainnetSnsInventory {
+    MainnetSnsInventory {
+        network: MAINNET_NETWORK.to_string(),
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: request.fetched_at.clone(),
+        fetched_by: request.fetched_by.clone(),
+        source_endpoint: request.endpoint.clone(),
+        sns_instances,
+    }
+}
+
+pub(in crate::sns::report::tests) fn fixture_canisters_a() -> MainnetSnsCanisters {
+    fixture_canisters(ROOT_A, GOVERNANCE_A, LEDGER_A, SWAP_A, INDEX_A)
+}
+
+pub(in crate::sns::report::tests) fn fixture_sns_a() -> MainnetSns {
+    MainnetSns {
+        id: 1,
+        name: "Fixture SNS".to_string(),
+        description: Some("Fixture description".to_string()),
+        url: Some("https://example.com".to_string()),
+        root_canister_id: ROOT_A.to_string(),
+        governance_canister_id: GOVERNANCE_A.to_string(),
+        ledger_canister_id: LEDGER_A.to_string(),
+        swap_canister_id: SWAP_A.to_string(),
+        index_canister_id: INDEX_A.to_string(),
+        metadata_error: None,
+    }
+}
+
+fn fixture_canisters_b() -> MainnetSnsCanisters {
+    fixture_canisters(ROOT_B, GOVERNANCE_B, LEDGER_B, SWAP_B, INDEX_B)
+}
+
+fn fixture_canisters(
     root_canister_id: &str,
     governance_canister_id: &str,
     ledger_canister_id: &str,
     swap_canister_id: &str,
     index_canister_id: &str,
-    metadata_error: Option<&str>,
-) -> MainnetSns {
-    MainnetSns {
-        id: 0,
-        name: name.to_string(),
-        description: description.map(str::to_string),
-        url: url.map(str::to_string),
+) -> MainnetSnsCanisters {
+    MainnetSnsCanisters {
         root_canister_id: root_canister_id.to_string(),
         governance_canister_id: governance_canister_id.to_string(),
         ledger_canister_id: ledger_canister_id.to_string(),
         swap_canister_id: swap_canister_id.to_string(),
         index_canister_id: index_canister_id.to_string(),
-        metadata_error: metadata_error.map(str::to_string),
+    }
+}
+
+fn fixture_metadata(
+    target: &MainnetSnsCanisters,
+    metadata_error: Option<&str>,
+) -> MainnetSnsMetadata {
+    if let Some(metadata_error) = metadata_error {
+        return MainnetSnsMetadata {
+            root_canister_id: target.root_canister_id.clone(),
+            name: None,
+            description: None,
+            url: None,
+            metadata_error: Some(metadata_error.to_string()),
+        };
+    }
+    let (name, description, url) = if target.root_canister_id == ROOT_A {
+        (
+            Some("Fixture SNS"),
+            Some("Fixture description"),
+            Some("https://example.com"),
+        )
+    } else {
+        (Some("Z Name"), None, None)
+    };
+    MainnetSnsMetadata {
+        root_canister_id: target.root_canister_id.clone(),
+        name: Some(name.unwrap().to_string()),
+        description: description.map(str::to_string),
+        url: url.map(str::to_string),
+        metadata_error: None,
     }
 }

@@ -12,7 +12,3 @@ pub(in crate::sns::report) fn assign_sns_ids_in_current_order(instances: &mut [M
         sns.id = index + 1;
     }
 }
-
-pub(in crate::sns::report::lookup) fn sort_sns_by_assigned_id(instances: &mut [MainnetSns]) {
-    instances.sort_by_key(|sns| sns.id);
-}

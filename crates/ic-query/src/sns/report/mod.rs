@@ -50,7 +50,9 @@ use neurons_cache::{
     SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
 };
 #[cfg(feature = "host")]
-use source::MainnetSnsCanisters;
+pub(in crate::sns::report) use source::{
+    JoinedMainnetSnsInventory, SNS_SWAP_QUERY_COUNT, SNS_UPGRADE_QUERY_COUNT,
+};
 
 #[cfg(feature = "host")]
 pub use build::{
@@ -60,7 +62,9 @@ pub use build::{
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_report,
     build_sns_proposals_report_with_progress, build_sns_proposals_report_with_source,
-    build_sns_token_report, build_sns_token_report_with_source,
+    build_sns_swap_report, build_sns_swap_report_with_source, build_sns_token_report,
+    build_sns_token_report_with_source, build_sns_upgrade_report,
+    build_sns_upgrade_report_with_source,
 };
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use cache_summary::{
@@ -90,11 +94,14 @@ pub use model::{
     SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
     SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
     SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
-    SnsNeuronPermissionList, SnsParamsReport, SnsProposalBallotRow, SnsProposalEligibilityFilter,
-    SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsTokenMetadataRow, SnsTokenReport,
-    SnsTokenStandardRow, SnsVotingRewardsParameters,
+    SnsNeuronPermissionList, SnsParamsReport, SnsPendingUpgrade, SnsProposalBallotRow,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
+    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingRewardsParameters,
 };
 #[cfg(feature = "host")]
 pub use neurons_cache::{
@@ -112,14 +119,17 @@ pub use proposals_cache::{
 };
 #[cfg(feature = "host")]
 pub use source::{
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
-    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-    MainnetSnsToken, SnsCanisterSource, SnsListSource, SnsNeuronId, SnsNeuronsSource,
-    SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
+    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
+    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsCanisterSource, SnsDiscoverySource, SnsNeuronId, SnsNeuronsSource,
+    SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsSourceRequest, SnsSwapSource,
+    SnsTokenSource, SnsUpgradeSource,
 };
 pub use text::{
     sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_params_report_text,
-    sns_proposal_report_text, sns_proposals_report_text, sns_token_report_text,
+    sns_proposal_report_text, sns_proposals_report_text, sns_swap_report_text,
+    sns_token_report_text, sns_upgrade_report_text,
 };
 #[cfg(feature = "host")]
 pub use text::{
@@ -144,6 +154,10 @@ const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
+const SNS_SWAP_REPORT_SCHEMA_VERSION: u32 = 1;
+#[cfg(feature = "host")]
+const SNS_UPGRADE_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]

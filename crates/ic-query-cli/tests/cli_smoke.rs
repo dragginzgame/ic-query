@@ -388,6 +388,30 @@ fn binary_sns_list_help_smoke() {
 }
 
 #[test]
+fn binary_sns_swap_help_smoke() {
+    let output = run_icq(&["sns", "swap", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq sns swap [OPTIONS] <id|root-principal>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("exactly three bounded"));
+}
+
+#[test]
+fn binary_sns_upgrade_help_smoke() {
+    let output = run_icq(&["sns", "upgrade", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq sns upgrade [OPTIONS] <id|root-principal>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("at most four live calls"));
+}
+
+#[test]
 fn binary_sns_canister_list_help_smoke() {
     let output = run_icq(&["sns", "canister", "list", "--help"]);
 

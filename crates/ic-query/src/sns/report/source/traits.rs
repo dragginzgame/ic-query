@@ -5,24 +5,32 @@
 //! Boundary: defines source contracts used by report builders and tests.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
-    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-    MainnetSnsToken, SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
+    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
+    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter,
     SnsSourceRequest,
 };
 
 ///
-/// SnsListSource
+/// SnsDiscoverySource
 ///
-/// Source contract for fetching deployed SNS inventory.
+/// Source contract for fetching deployed SNS inventory and explicit metadata targets.
 ///
 
-pub trait SnsListSource {
-    /// Fetch deployed SNS instances for one source endpoint and network.
-    fn fetch_deployed_snses(
+pub trait SnsDiscoverySource {
+    /// Fetch the unenriched deployed-SNS inventory for one source endpoint and network.
+    fn fetch_sns_inventory(
         &self,
         request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError>;
+    ) -> Result<MainnetSnsInventory, SnsHostError>;
+
+    /// Fetch metadata for exactly the supplied deployed-SNS targets.
+    fn fetch_sns_metadata(
+        &self,
+        request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError>;
 }
 
 ///
@@ -31,7 +39,7 @@ pub trait SnsListSource {
 /// Source contract for fetching SNS Root canister inventory and health.
 ///
 
-pub trait SnsCanisterSource: SnsListSource {
+pub trait SnsCanisterSource: SnsDiscoverySource {
     /// Fetch Root inventory and operational health for one resolved SNS.
     fn fetch_sns_canisters(
         &self,
@@ -46,7 +54,7 @@ pub trait SnsCanisterSource: SnsListSource {
 /// Source contract for fetching bounded and paged SNS neuron data.
 ///
 
-pub trait SnsNeuronsSource: SnsListSource {
+pub trait SnsNeuronsSource: SnsDiscoverySource {
     /// Fetch a bounded SNS neuron listing for one resolved SNS.
     fn fetch_sns_neurons(
         &self,
@@ -73,7 +81,7 @@ pub trait SnsNeuronsSource: SnsListSource {
 /// Source contract for fetching governance parameters for one deployed SNS.
 ///
 
-pub trait SnsParamsSource: SnsListSource {
+pub trait SnsParamsSource: SnsDiscoverySource {
     /// Fetch SNS governance parameters for one resolved SNS.
     fn fetch_sns_params(
         &self,
@@ -83,12 +91,42 @@ pub trait SnsParamsSource: SnsListSource {
 }
 
 ///
+/// SnsSwapSource
+///
+/// Source contract for bounded lifecycle and sale-state queries against one deployed SNS.
+///
+
+pub trait SnsSwapSource: SnsDiscoverySource {
+    /// Fetch three bounded native swap query components for one resolved SNS.
+    fn fetch_sns_swap(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsSwap, SnsHostError>;
+}
+
+///
+/// SnsUpgradeSource
+///
+/// Source contract for bounded native upgrade-version queries for one deployed SNS.
+///
+
+pub trait SnsUpgradeSource: SnsDiscoverySource {
+    /// Fetch the running Governance version and next blessed SNS-W version.
+    fn fetch_sns_upgrade(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsUpgrade, SnsHostError>;
+}
+
+///
 /// SnsProposalSource
 ///
 /// Source contract for fetching one SNS proposal by id.
 ///
 
-pub trait SnsProposalSource: SnsListSource {
+pub trait SnsProposalSource: SnsDiscoverySource {
     /// Fetch one SNS governance proposal for one resolved SNS.
     fn fetch_sns_proposal(
         &self,
@@ -104,7 +142,7 @@ pub trait SnsProposalSource: SnsListSource {
 /// Source contract for fetching bounded SNS proposal listings.
 ///
 
-pub trait SnsProposalsSource: SnsListSource {
+pub trait SnsProposalsSource: SnsDiscoverySource {
     /// Fetch a bounded SNS governance proposal page for one resolved SNS.
     fn fetch_sns_proposals(
         &self,
@@ -132,7 +170,7 @@ pub trait SnsProposalsSource: SnsListSource {
 /// Source contract for fetching token metadata for one deployed SNS.
 ///
 
-pub trait SnsTokenSource: SnsListSource {
+pub trait SnsTokenSource: SnsDiscoverySource {
     /// Fetch SNS ledger token metadata for one resolved SNS.
     fn fetch_sns_token(
         &self,

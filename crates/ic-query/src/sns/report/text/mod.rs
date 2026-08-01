@@ -12,7 +12,9 @@ mod list;
 mod neurons;
 mod params;
 mod proposals;
+mod swap;
 mod token;
+mod upgrade;
 
 pub use canisters::sns_canister_report_text;
 #[cfg(all(test, feature = "host"))]
@@ -31,4 +33,6 @@ pub use proposals::{
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
     sns_proposals_refresh_report_text,
 };
+pub use swap::sns_swap_report_text;
 pub use token::sns_token_report_text;
+pub use upgrade::sns_upgrade_report_text;

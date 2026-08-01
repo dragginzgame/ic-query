@@ -26,6 +26,7 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("info"));
     assert!(sns.contains("token"));
     assert!(sns.contains("params"));
+    assert!(sns.contains("upgrade"));
     assert!(sns.contains("canister"));
     assert!(sns.contains("proposal"));
     assert!(sns.contains("neuron"));
@@ -103,6 +104,34 @@ fn sns_help_is_advertised() {
     assert!(neuron_refresh.contains("Collection mode: Forced live refresh"));
     assert!(neuron_refresh.contains("--page-size"));
     assert!(neuron_refresh.contains("--max-pages"));
+}
+
+#[test]
+fn sns_upgrade_help_is_advertised() {
+    let sns = usage();
+    let upgrade = sns_upgrade_usage();
+
+    assert!(sns.contains("upgrade"));
+    assert!(sns.contains("Show the running SNS version"));
+    assert!(upgrade.contains("icq sns upgrade"));
+    assert!(upgrade.contains("id|root-principal"));
+    assert!(upgrade.contains("at most four live calls"));
+    assert!(upgrade.contains("get_running_sns_version"));
+    assert!(upgrade.contains("get_next_sns_version"));
+    assert!(upgrade.contains("--json"));
+}
+
+#[test]
+fn sns_swap_help_is_advertised() {
+    let sns = usage();
+    let swap = sns_swap_usage();
+
+    assert!(sns.contains("swap"));
+    assert!(sns.contains("Show bounded SNS swap lifecycle"));
+    assert!(swap.contains("icq sns swap"));
+    assert!(swap.contains("id|root-principal"));
+    assert!(swap.contains("Collection mode: Live query"));
+    assert!(swap.contains("--json"));
 }
 
 #[test]

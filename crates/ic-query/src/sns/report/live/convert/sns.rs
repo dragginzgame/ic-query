@@ -6,9 +6,8 @@
 
 use super::common::clean_optional_text;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsCanisters, SnsHostError,
+    MainnetSnsCanisters, MainnetSnsMetadata, SnsHostError,
     live::types::{DeployedSns, GetMetadataResponse},
-    short_principal,
 };
 use candid::Principal;
 
@@ -28,24 +27,17 @@ pub(in crate::sns::report::live) fn mainnet_sns_canisters_from_deployed_sns(
     })
 }
 
-/// Combine deployed SNS canisters and root metadata into one source-layer SNS.
-pub(in crate::sns::report::live) fn mainnet_sns_from_canisters_and_metadata(
-    sns: MainnetSnsCanisters,
+/// Convert one Governance metadata response into a keyed source result.
+pub(in crate::sns::report::live) fn mainnet_sns_metadata_from_response(
+    root_canister_id: String,
     metadata: GetMetadataResponse,
     metadata_error: Option<String>,
-) -> MainnetSns {
-    let name = clean_optional_text(metadata.name)
-        .unwrap_or_else(|| format!("unnamed-{}", short_principal(&sns.root_canister_id)));
-    MainnetSns {
-        id: 0,
-        name,
+) -> MainnetSnsMetadata {
+    MainnetSnsMetadata {
+        root_canister_id,
+        name: clean_optional_text(metadata.name),
         description: clean_optional_text(metadata.description),
         url: clean_optional_text(metadata.url),
-        root_canister_id: sns.root_canister_id,
-        governance_canister_id: sns.governance_canister_id,
-        ledger_canister_id: sns.ledger_canister_id,
-        swap_canister_id: sns.swap_canister_id,
-        index_canister_id: sns.index_canister_id,
         metadata_error,
     }
 }

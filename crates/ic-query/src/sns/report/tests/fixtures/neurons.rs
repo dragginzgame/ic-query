@@ -1,4 +1,4 @@
-use super::{FixtureSnsListSource, GOVERNANCE_A};
+use super::{FixtureSnsDiscoverySource, GOVERNANCE_A};
 use crate::sns::report::tests::*;
 
 ///
@@ -9,14 +9,7 @@ use crate::sns::report::tests::*;
 
 pub(in crate::sns::report::tests) struct FixtureSnsNeuronsSource;
 
-impl SnsListSource for FixtureSnsNeuronsSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(FixtureSnsNeuronsSource);
 
 impl SnsNeuronsSource for FixtureSnsNeuronsSource {
     fn fetch_sns_neurons(
@@ -77,14 +70,7 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
 
 pub(in crate::sns::report::tests) struct PagedFixtureSnsNeuronsSource;
 
-impl SnsListSource for PagedFixtureSnsNeuronsSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(PagedFixtureSnsNeuronsSource);
 
 impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
     fn fetch_sns_neurons(
@@ -136,12 +122,20 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
 
 pub(in crate::sns::report::tests) struct NoLiveSnsNeuronsSource;
 
-impl SnsListSource for NoLiveSnsNeuronsSource {
-    fn fetch_deployed_snses(
+impl SnsDiscoverySource for NoLiveSnsNeuronsSource {
+    fn fetch_sns_inventory(
         &self,
         _request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        unreachable!("cache-backed neuron report should not fetch deployed SNS list")
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        unreachable!("cache-backed neuron report should not fetch SNS inventory")
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        _request: &SnsSourceRequest,
+        _targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        unreachable!("cache-backed neuron report should not fetch SNS metadata")
     }
 }
 

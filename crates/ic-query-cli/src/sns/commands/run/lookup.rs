@@ -1,6 +1,6 @@
 //! Module: sns::commands::run::lookup
 //!
-//! Responsibility: run SNS lookup-style commands for info, token, and params.
+//! Responsibility: run SNS lookup-style commands.
 //! Does not own: clap command construction, live source reads, or rendering.
 //! Boundary: maps shared lookup options into report requests.
 
@@ -13,7 +13,8 @@ use crate::{
 use clap::ArgMatches;
 use ic_query::sns::{
     SnsHostError, SnsLookupRequest, build_sns_info_report, build_sns_params_report,
-    build_sns_token_report, sns_info_report_text, sns_params_report_text, sns_token_report_text,
+    build_sns_swap_report, build_sns_token_report, build_sns_upgrade_report, sns_info_report_text,
+    sns_params_report_text, sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
 };
 use serde::Serialize;
 pub(super) fn run_sns_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
@@ -40,6 +41,24 @@ pub(super) fn run_sns_params(matches: &ArgMatches, network: &str) -> Result<(), 
         network,
         build_sns_params_report,
         sns_params_report_text,
+    )
+}
+
+pub(super) fn run_sns_swap(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    run_sns_lookup(
+        matches,
+        network,
+        build_sns_swap_report,
+        sns_swap_report_text,
+    )
+}
+
+pub(super) fn run_sns_upgrade(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    run_sns_lookup(
+        matches,
+        network,
+        build_sns_upgrade_report,
+        sns_upgrade_report_text,
     )
 }
 

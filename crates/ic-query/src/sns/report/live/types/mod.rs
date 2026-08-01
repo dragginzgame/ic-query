@@ -8,6 +8,8 @@ mod canisters;
 mod deployed;
 mod neurons;
 mod proposals;
+mod swap;
+mod upgrade;
 
 pub(in crate::sns::report::live) use canisters::{
     CanisterStatusResult, CanisterStatusType, CanisterSummary, GetSnsCanistersSummaryRequest,
@@ -26,4 +28,12 @@ pub(in crate::sns::report::live) use proposals::{
     GetProposalRequest, GetProposalResponse, GetProposalResult, ListProposalsRequest,
     ListProposalsResponse, SnsGovernanceBallot, SnsGovernanceProposalData, SnsProposalId, SnsTopic,
     SnsTopicSelector,
+};
+pub(in crate::sns::report::live) use swap::{
+    GetDerivedStateResponse, GetLifecycleResponse, GetSaleParametersResponse, SnsSwapParams,
+    SnsSwapQueryRequest,
+};
+pub(in crate::sns::report::live) use upgrade::{
+    GetNextSnsVersionRequest, GetNextSnsVersionResponse, GetRunningSnsVersionRequest,
+    GetRunningSnsVersionResponse, PendingSnsVersion, SnsVersionWire,
 };

@@ -9,7 +9,9 @@ mod fetch;
 mod list;
 mod neurons;
 mod proposals;
+mod swap;
 mod token;
+mod upgrade;
 
 pub use canisters::MainnetSnsCanisterInventory;
 pub(in crate::sns::report) use canisters::{
@@ -17,8 +19,21 @@ pub(in crate::sns::report) use canisters::{
     canonicalize_mainnet_sns_canister_inventory,
 };
 pub use fetch::SnsSourceRequest;
-pub use list::{MainnetSns, MainnetSnsList};
-pub(in crate::sns::report) use list::{MainnetSnsCanisters, validate_mainnet_sns_list};
+pub(in crate::sns::report) use list::{
+    JoinedMainnetSnsInventory, join_mainnet_sns_inventory, validate_mainnet_sns_inventory,
+};
+pub use list::{MainnetSns, MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsMetadata};
 pub use neurons::{MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
 pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
+pub use swap::MainnetSnsSwap;
+pub(in crate::sns::report) use swap::{
+    SNS_SWAP_DERIVED_STATE_METHOD, SNS_SWAP_LIFECYCLE_METHOD, SNS_SWAP_QUERY_COUNT,
+    SNS_SWAP_SALE_PARAMETERS_METHOD, canonicalize_mainnet_sns_swap, sns_swap_component_method,
+    sns_swap_lifecycle_name,
+};
 pub use token::MainnetSnsToken;
+pub use upgrade::MainnetSnsUpgrade;
+pub(in crate::sns::report) use upgrade::{
+    SNS_NEXT_VERSION_METHOD, SNS_RUNNING_VERSION_METHOD, SNS_UPGRADE_QUERY_COUNT,
+    canonicalize_mainnet_sns_upgrade,
+};

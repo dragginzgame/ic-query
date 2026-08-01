@@ -73,14 +73,17 @@ membership remains in the inventory and each Extension receives an explicit
 
 ## Adapter and Cache Policy
 
-`SnsCanisterSource` extends `SnsListSource` and is implemented by the existing
-`LiveSnsSource`. Custom fixture, mirror, proxy, or pre-collected sources return
-the same source-layer inventory and gap model. Report builders canonicalize and
-validate custom-source rows as well as built-in live rows. Validation requires
-request-matching SNS-W provenance, canonical and unique discovery identities,
-the exact Root method/call contract, `update_canister_list = false`, no claimed
-point-in-time guarantee, canonical principals and numeric fields, and
-internally consistent optional health fields.
+`SnsCanisterSource` extends `SnsDiscoverySource` and is implemented by the
+existing `LiveSnsSource`. Discovery first fetches the unenriched SNS-W
+inventory, resolves the target, and requests Governance metadata for exactly
+that SNS. Custom fixture, mirror, proxy, or pre-collected sources return the
+same split discovery data plus Root inventory and gap model. Report builders
+canonicalize and validate custom-source rows as well as built-in live rows.
+Validation requires request-matching SNS-W provenance, canonical and unique
+discovery identities, exact metadata target coverage, the exact Root
+method/call contract, `update_canister_list = false`, no claimed point-in-time
+guarantee, canonical principals and numeric fields, and internally consistent
+optional health fields.
 
 `SnsSourceRequest` carries network, endpoint, collection timestamp, and
 collector. Direct built-in source calls reject a non-`ic` network before

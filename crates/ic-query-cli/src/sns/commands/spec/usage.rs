@@ -12,7 +12,8 @@ use crate::{
         sns_neuron_cache_status_command, sns_neuron_command, sns_neuron_list_command,
         sns_neuron_refresh_command, sns_params_command, sns_proposal_cache_list_command,
         sns_proposal_cache_status_command, sns_proposal_command, sns_proposal_info_command,
-        sns_proposal_list_command, sns_proposal_refresh_command, sns_token_command,
+        sns_proposal_list_command, sns_proposal_refresh_command, sns_swap_command,
+        sns_token_command, sns_upgrade_command,
     },
 };
 
@@ -34,6 +35,14 @@ pub(in crate::sns::commands) fn sns_token_usage() -> String {
 
 pub(in crate::sns::commands) fn sns_params_usage() -> String {
     render_help(sns_params_command())
+}
+
+pub(in crate::sns::commands) fn sns_swap_usage() -> String {
+    render_help(sns_swap_command())
+}
+
+pub(in crate::sns::commands) fn sns_upgrade_usage() -> String {
+    render_help(sns_upgrade_command())
 }
 
 pub(in crate::sns::commands) fn sns_canister_usage() -> String {

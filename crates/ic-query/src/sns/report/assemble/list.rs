@@ -5,16 +5,16 @@
 //! Boundary: maps source-layer deployed SNS rows into serializable report DTOs.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsList, SNS_INFO_REPORT_SCHEMA_VERSION, SNS_LIST_REPORT_SCHEMA_VERSION,
-    SnsInfoReport, SnsListReport, SnsListRow, SnsListSort,
+    JoinedMainnetSnsInventory, MainnetSns, SNS_INFO_REPORT_SCHEMA_VERSION,
+    SNS_LIST_REPORT_SCHEMA_VERSION, SnsInfoReport, SnsListReport, SnsListRow, SnsListSort,
 };
 
 pub(in crate::sns::report) fn sns_list_report_from_list(
-    list: MainnetSnsList,
+    list: JoinedMainnetSnsInventory,
     verbose: bool,
     sort: SnsListSort,
 ) -> SnsListReport {
-    let MainnetSnsList {
+    let JoinedMainnetSnsInventory {
         network,
         sns_wasm_canister_id,
         fetched_at,
@@ -55,7 +55,7 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
 }
 
 pub(in crate::sns::report) fn sns_info_report_from_list(
-    list: MainnetSnsList,
+    list: JoinedMainnetSnsInventory,
     id: usize,
     sns: MainnetSns,
 ) -> SnsInfoReport {

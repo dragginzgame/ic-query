@@ -5,12 +5,12 @@
 //! Boundary: combines discovery provenance with joined inventory and health evidence.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, SNS_CANISTER_REPORT_SCHEMA_VERSION,
-    SnsCanisterReport,
+    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsCanisterInventory,
+    SNS_CANISTER_REPORT_SCHEMA_VERSION, SnsCanisterReport,
 };
 
 pub(in crate::sns::report) fn sns_canister_report_from_parts(
-    list: MainnetSnsList,
+    list: JoinedMainnetSnsInventory,
     id: usize,
     sns: MainnetSns,
     inventory: MainnetSnsCanisterInventory,

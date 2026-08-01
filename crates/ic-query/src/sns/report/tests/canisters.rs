@@ -34,16 +34,7 @@ fn live_sns_canister_source_rejects_non_mainnet_before_agent_construction() {
         "2026-07-30T00:00:00Z",
         "test",
     );
-    let sns = FixtureSnsListSource
-        .fetch_deployed_snses(&SnsSourceRequest::new(
-            MAINNET_NETWORK,
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            "2026-07-30T00:00:00Z",
-            "test",
-        ))
-        .expect("fixture list")
-        .sns_instances
-        .remove(0);
+    let sns = fixture_sns_a();
 
     let error = LiveSnsSource
         .fetch_sns_canisters(&request, &sns)
@@ -86,14 +77,7 @@ fn sns_canister_report_rejects_invalid_custom_source_evidence() {
 
 struct MutatingSnsCanisterSource(fn(&mut MainnetSnsCanisterInventory));
 
-impl SnsListSource for MutatingSnsCanisterSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(MutatingSnsCanisterSource);
 
 impl SnsCanisterSource for MutatingSnsCanisterSource {
     fn fetch_sns_canisters(

@@ -5,11 +5,12 @@
 //! Boundary: combines resolved SNS identity and source token data into report output.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsList, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION, SnsTokenReport,
+    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION,
+    SnsTokenReport,
 };
 
 pub(in crate::sns::report) fn sns_token_report_from_parts(
-    list: MainnetSnsList,
+    list: JoinedMainnetSnsInventory,
     id: usize,
     sns: MainnetSns,
     token: MainnetSnsToken,

@@ -8,7 +8,7 @@ use crate::sns::report::SnsHostError;
 
 /// Return a compact metadata-fetch error summary when the error is displayable.
 pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -> Option<String> {
-    match err {
+    let summary = match err {
         SnsHostError::AgentCall { method, reason } => Some(format!("{method}: {reason}")),
         SnsHostError::CandidEncode { message, reason } => {
             Some(format!("encode {message}: {reason}"))
@@ -30,6 +30,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::AgentUpdateCall { .. }
         | SnsHostError::InvalidPrincipal { .. }
         | SnsHostError::InvalidSourceData { .. }
+        | SnsHostError::MissingRunningSnsVersion { .. }
         | SnsHostError::MissingProposalId
         | SnsHostError::MissingNeuronId
         | SnsHostError::InvalidNeuronId
@@ -55,5 +56,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::MissingCacheRoot
         | SnsHostError::UnsupportedProposalView { .. }
         | SnsHostError::DuplicateCanisterId { .. } => None,
-    }
+    }?;
+    let summary = summary.trim();
+    (!summary.is_empty()).then(|| summary.to_string())
 }

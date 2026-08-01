@@ -10,7 +10,9 @@ mod neurons;
 mod params;
 mod proposals;
 mod provenance;
+mod swap;
 mod token;
+mod upgrade;
 
 pub(super) use canisters::sns_canister_report_from_parts;
 pub(super) use list::{sns_info_report_from_list, sns_list_report_from_list};
@@ -21,4 +23,6 @@ pub(super) use proposals::{
     sns_proposals_report_from_parts,
 };
 pub(super) use provenance::SnsReportProvenance;
+pub(super) use swap::sns_swap_report_from_parts;
 pub(super) use token::sns_token_report_from_parts;
+pub(super) use upgrade::sns_upgrade_report_from_parts;

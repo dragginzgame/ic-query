@@ -1,4 +1,4 @@
-use super::{FixtureSnsListSource, GOVERNANCE_A};
+use super::{FixtureSnsDiscoverySource, GOVERNANCE_A};
 use crate::sns::report::tests::*;
 
 ///
@@ -9,14 +9,7 @@ use crate::sns::report::tests::*;
 
 pub(in crate::sns::report::tests) struct FixtureSnsProposalSource;
 
-impl SnsListSource for FixtureSnsProposalSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(FixtureSnsProposalSource);
 
 impl SnsProposalSource for FixtureSnsProposalSource {
     fn fetch_sns_proposal(
@@ -52,14 +45,7 @@ impl SnsProposalSource for NoLiveSnsProposalsSource {
 
 pub(in crate::sns::report::tests) struct FixtureSnsProposalsSource;
 
-impl SnsListSource for FixtureSnsProposalsSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(FixtureSnsProposalsSource);
 
 impl SnsProposalsSource for FixtureSnsProposalsSource {
     fn fetch_sns_proposals(
@@ -105,12 +91,20 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
 
 pub(in crate::sns::report::tests) struct NoLiveSnsProposalsSource;
 
-impl SnsListSource for NoLiveSnsProposalsSource {
-    fn fetch_deployed_snses(
+impl SnsDiscoverySource for NoLiveSnsProposalsSource {
+    fn fetch_sns_inventory(
         &self,
         _request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        Err(no_live_error("fetch_deployed_snses"))
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        Err(no_live_error("fetch_sns_inventory"))
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        _request: &SnsSourceRequest,
+        _targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        Err(no_live_error("fetch_sns_metadata"))
     }
 }
 

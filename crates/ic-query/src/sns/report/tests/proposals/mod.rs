@@ -53,14 +53,7 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
 
 struct UnsortedSnsProposalsSource;
 
-impl SnsListSource for UnsortedSnsProposalsSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(UnsortedSnsProposalsSource);
 
 impl SnsProposalsSource for UnsortedSnsProposalsSource {
     fn fetch_sns_proposals(

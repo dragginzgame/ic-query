@@ -70,6 +70,15 @@ pub enum SnsHostError {
     #[error("SNS governance method {method} returned no result")]
     MissingGovernanceResult { method: &'static str },
 
+    /// SNS Governance returned no deployed version for a running-version query.
+    #[error("SNS Governance {governance_canister_id} returned no deployed version from {method}")]
+    MissingRunningSnsVersion {
+        /// Native Governance method queried.
+        method: &'static str,
+        /// Governance canister that returned the incomplete response.
+        governance_canister_id: String,
+    },
+
     #[error("SNS governance returned a proposal without an id")]
     MissingProposalId,
 

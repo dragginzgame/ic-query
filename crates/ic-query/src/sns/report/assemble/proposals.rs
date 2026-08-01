@@ -6,7 +6,7 @@
 
 use super::SnsReportProvenance;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsList, MainnetSnsProposal, MainnetSnsProposals,
+    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsProposal, MainnetSnsProposals,
     SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
     SnsProposalEligibilityFilter, SnsProposalReport, SnsProposalSortDirection,
     SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsSort,
@@ -19,7 +19,7 @@ use crate::sns::report::{
 ///
 
 pub(in crate::sns::report) struct SnsProposalReportParts {
-    pub(in crate::sns::report) list: MainnetSnsList,
+    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
     pub(in crate::sns::report) id: usize,
     pub(in crate::sns::report) sns: MainnetSns,
     pub(in crate::sns::report) proposal_id: u64,
@@ -36,7 +36,7 @@ pub(in crate::sns::report) struct SnsProposalReportParts {
 ///
 
 pub(in crate::sns::report) struct SnsProposalsReportParts {
-    pub(in crate::sns::report) list: MainnetSnsList,
+    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
     pub(in crate::sns::report) id: usize,
     pub(in crate::sns::report) sns: MainnetSns,
     pub(in crate::sns::report) requested_limit: u32,

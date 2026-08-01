@@ -7,7 +7,7 @@
 use crate::sns::report::{
     SnsProposalRow,
     proposals_cache::model::SnsProposalsCache,
-    source::{MainnetSns, MainnetSnsList},
+    source::{JoinedMainnetSnsInventory, MainnetSns},
 };
 
 ///
@@ -17,7 +17,7 @@ use crate::sns::report::{
 ///
 
 pub(super) struct SnsProposalsCacheProjection {
-    pub(super) list: MainnetSnsList,
+    pub(super) list: JoinedMainnetSnsInventory,
     pub(super) id: usize,
     pub(super) sns: MainnetSns,
     pub(super) proposals: Vec<SnsProposalRow>,
@@ -25,7 +25,7 @@ pub(super) struct SnsProposalsCacheProjection {
 
 pub(super) fn project_sns_proposals_cache(cache: SnsProposalsCache) -> SnsProposalsCacheProjection {
     let metadata = cache.metadata;
-    let list = MainnetSnsList {
+    let list = JoinedMainnetSnsInventory {
         network: cache.network,
         sns_wasm_canister_id: metadata.sns_wasm_canister_id.clone(),
         fetched_at: cache.fetched_at,

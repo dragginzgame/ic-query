@@ -15,7 +15,9 @@ mod list;
 mod neurons;
 mod params;
 mod proposals;
+mod swap;
 mod token;
+mod upgrade;
 
 #[cfg(feature = "host")]
 pub use attempt::SnsRefreshAttemptStatus;
@@ -44,4 +46,10 @@ pub use proposals::{
     SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
     SnsProposalTally, SnsProposalsReport,
 };
+pub use swap::{
+    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters,
+};
 pub use token::{SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow};
+pub use upgrade::{SnsPendingUpgrade, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion};

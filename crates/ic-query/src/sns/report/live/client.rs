@@ -5,15 +5,18 @@
 //! Boundary: implements source traits by delegating to live fetch helpers.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsList, MainnetSnsNeuronPage,
-    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-    MainnetSnsToken, SnsCanisterSource, SnsGovernanceParameters, SnsHostError, SnsListSource,
-    SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalTopicFilter,
-    SnsProposalsSource, SnsSourceRequest, SnsTokenSource,
+    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
+    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal,
+    MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsCanisterSource, SnsDiscoverySource, SnsGovernanceParameters,
+    SnsHostError, SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalTopicFilter, SnsProposalsSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
+    SnsUpgradeSource,
     live::fetch::{
-        fetch_mainnet_sns_canisters, fetch_mainnet_sns_list, fetch_mainnet_sns_neuron_page,
-        fetch_mainnet_sns_neurons, fetch_mainnet_sns_params, fetch_mainnet_sns_proposal,
-        fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals, fetch_mainnet_sns_token,
+        fetch_mainnet_sns_canisters, fetch_mainnet_sns_inventory, fetch_mainnet_sns_metadata,
+        fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons, fetch_mainnet_sns_params,
+        fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
+        fetch_mainnet_sns_swap, fetch_mainnet_sns_token, fetch_mainnet_sns_upgrade,
     },
 };
 
@@ -25,12 +28,20 @@ use crate::sns::report::{
 
 pub struct LiveSnsSource;
 
-impl SnsListSource for LiveSnsSource {
-    fn fetch_deployed_snses(
+impl SnsDiscoverySource for LiveSnsSource {
+    fn fetch_sns_inventory(
         &self,
         request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        fetch_mainnet_sns_list(request)
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        fetch_mainnet_sns_inventory(request)
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        fetch_mainnet_sns_metadata(request, targets)
     }
 }
 
@@ -61,6 +72,26 @@ impl SnsParamsSource for LiveSnsSource {
         sns: &MainnetSns,
     ) -> Result<SnsGovernanceParameters, SnsHostError> {
         fetch_mainnet_sns_params(request, sns)
+    }
+}
+
+impl SnsSwapSource for LiveSnsSource {
+    fn fetch_sns_swap(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsSwap, SnsHostError> {
+        fetch_mainnet_sns_swap(request, sns)
+    }
+}
+
+impl SnsUpgradeSource for LiveSnsSource {
+    fn fetch_sns_upgrade(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<MainnetSnsUpgrade, SnsHostError> {
+        fetch_mainnet_sns_upgrade(request, sns)
     }
 }
 

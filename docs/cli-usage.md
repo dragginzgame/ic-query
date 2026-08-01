@@ -221,7 +221,26 @@ icq sns list
 icq sns info 1
 icq sns token 1
 icq sns params 1
+icq sns swap 1
+icq sns upgrade 1
 ```
+
+`sns swap` makes exactly three bounded native swap queries for the resolved
+SNS: `get_lifecycle`, `get_sale_parameters`, and `get_derived_state`. It keeps
+component failures as typed gaps, does not claim the sequential responses are
+one point-in-time snapshot, and never calls the potentially large
+`get_state`, enumerates participants, or creates a cache. Including targeted
+discovery, the command makes five canister queries: one SNS-W inventory query,
+one Governance metadata query for the resolved SNS, and the three swap
+queries. It does not enrich metadata for every deployed SNS.
+
+`sns upgrade` makes two bounded report-specific queries: Governance
+`get_running_sns_version` and SNS-W `get_next_sns_version`. Including targeted
+discovery, it makes at most four canister queries. It preserves the native
+six-role Wasm hashes and pending-upgrade state, and distinguishes a successful
+response with no blessed successor from a failed next-version query. It does
+not read the upgrade journal, download Wasms, fan out, create a cache, or claim
+that the sequential responses form one point-in-time snapshot.
 
 Inspect Root membership and read-only operational health:
 

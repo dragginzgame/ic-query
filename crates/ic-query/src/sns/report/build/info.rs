@@ -6,7 +6,7 @@
 
 use crate::sns::report::{
     SnsHostError, SnsInfoReport, SnsLookupRequest, assemble::sns_info_report_from_list,
-    live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsListSource,
+    live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsDiscoverySource,
 };
 
 pub fn build_sns_info_report(request: &SnsLookupRequest) -> Result<SnsInfoReport, SnsHostError> {
@@ -15,7 +15,7 @@ pub fn build_sns_info_report(request: &SnsLookupRequest) -> Result<SnsInfoReport
 
 pub fn build_sns_info_report_with_source(
     request: &SnsLookupRequest,
-    source: &dyn SnsListSource,
+    source: &dyn SnsDiscoverySource,
 ) -> Result<SnsInfoReport, SnsHostError> {
     let lookup = resolve_sns_lookup(request, source)?;
     Ok(sns_info_report_from_list(

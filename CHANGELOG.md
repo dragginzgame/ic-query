@@ -7,6 +7,45 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.23.x] - 2026-08-01 - Bounded SNS completeness
+
+Detailed release notes: [docs/changelog/0.23.md](docs/changelog/0.23.md)
+
+- `0.23.0` adds bounded live swap and upgrade reports for one SNS resolved by list id or
+  Root principal. It attempts exactly the native `get_lifecycle`,
+  `get_sale_parameters`, and `get_derived_state` queries; preserves raw
+  lifecycle, sale, participation, method, endpoint, and timestamp evidence;
+  and retains per-component failures as typed gaps without discarding sibling
+  results. The report explicitly has no point-in-time guarantee and never
+  calls the potentially large `get_state`, enumerates participants, applies
+  swap methods to any other SNS, or creates a cache. Direct resolution now
+  makes one SNS-W inventory query and enriches only the resolved SNS, for five
+  canister queries total including the three swap calls; unknown lookup makes
+  no metadata query, while `sns list` alone enriches the complete inventory.
+  The library adds the paired public report/source DTOs, `SnsSwapSource`, live
+  and custom-source builders, and text rendering with custom-source target and
+  evidence validation. As a pre-1.0 Rust API hard cut,
+  `SnsListSource::fetch_deployed_snses` and public `MainnetSnsList` are removed
+  in favor of `SnsDiscoverySource`, `MainnetSnsInventory`,
+  `MainnetSnsCanisters`, and `MainnetSnsMetadata`; there is no compatibility
+  alias or fallback discovery flow. The upgrade report uses native Governance
+  `get_running_sns_version` and SNS-W `get_next_sns_version`, preserves all six
+  deployed/next Wasm hashes plus pending-upgrade state, and distinguishes a
+  successful response with no blessed successor from a typed next-version
+  query gap. It performs at most four live calls including targeted discovery,
+  does not read the upgrade journal, download Wasms, fan out, or create a cache,
+  and does not claim the sequential evidence is one point-in-time snapshot.
+  Custom discovery metadata must now be trimmed and non-empty when present,
+  and cannot combine payload fields with an error; swap query counters are named
+  explicitly as component counters.
+
+  ```bash
+  icq sns swap 1
+  icq sns swap 23ten-uaaaa-aaaaq-aabia-cai --json
+  icq sns upgrade 1
+  icq sns upgrade 23ten-uaaaa-aaaaq-aabia-cai --json
+  ```
+
 ## [0.22.x] - 2026-08-01 - Structural consolidation
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)

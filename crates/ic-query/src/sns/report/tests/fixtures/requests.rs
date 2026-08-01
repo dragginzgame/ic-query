@@ -38,6 +38,19 @@ pub(in crate::sns::report::tests) fn params_request(input: &str) -> SnsLookupReq
     }
 }
 
+pub(in crate::sns::report::tests) fn swap_request(input: &str) -> SnsLookupRequest {
+    SnsLookupRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: input.to_string(),
+    }
+}
+
+pub(in crate::sns::report::tests) fn upgrade_request(input: &str) -> SnsLookupRequest {
+    info_request(input)
+}
+
 pub(in crate::sns::report::tests) fn proposal_request(input: &str) -> SnsProposalRequest {
     SnsProposalRequest {
         network: MAINNET_NETWORK.to_string(),

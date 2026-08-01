@@ -28,6 +28,8 @@ pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SnsCommand
         Some(("info", matches)) => lookup::run_sns_info(matches, network),
         Some(("token", matches)) => lookup::run_sns_token(matches, network),
         Some(("params", matches)) => lookup::run_sns_params(matches, network),
+        Some(("swap", matches)) => lookup::run_sns_swap(matches, network),
+        Some(("upgrade", matches)) => lookup::run_sns_upgrade(matches, network),
         Some(("canister", matches)) => canisters::run_sns_canister(matches, network),
         Some(("proposal", matches)) => proposals::run_sns_proposal(matches, network),
         Some(("neuron", matches)) => neurons::run_sns_neuron(matches, network),

@@ -18,14 +18,7 @@ fn sns_proposals_refresh_rejects_invalid_public_page_size() {
 
 struct PagedSnsProposalsSource;
 
-impl SnsListSource for PagedSnsProposalsSource {
-    fn fetch_deployed_snses(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsList, SnsHostError> {
-        FixtureSnsListSource.fetch_deployed_snses(request)
-    }
-}
+delegate_sns_discovery!(PagedSnsProposalsSource);
 
 impl SnsProposalsSource for PagedSnsProposalsSource {
     fn fetch_sns_proposals(
