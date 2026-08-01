@@ -128,6 +128,13 @@ than reaching an infallible parser path.
   cached treasury and voting-power timestamps, never treats them as current
   ledger state, and does not enumerate transactions, fan out, create a cache,
   or claim one point-in-time snapshot.
+- SNS neuron reporting preserves fixed-size native Governance fields from the
+  existing `list_neurons` response, including raw dissolve state, fees,
+  aging, vesting, source-NNS id, auto-stake setting, and voting multiplier.
+  Bounded live rows and complete refresh pages share canonical id, timestamp,
+  uniqueness, and requested-limit validation. Variable permission, followee,
+  and pending-disbursement graphs remain outside collection caches and would
+  require an explicit detail capability with visibility semantics.
 - NNS and SNS complete collections page until exhausted.
 - NNS neuron reporting follows the native ascending `get_neuron_index`
   cursor, preserves publicly readable `NeuronInfo` fields, and atomically
@@ -200,7 +207,7 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Fuller SNS neuron state plus transaction-level treasury history or current-ledger verification beyond the implemented bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority and bounds are explicit |
+| 1 | Explicit SNS neuron permission/followee/pending-disbursement detail plus transaction-level treasury history or current-ledger verification beyond the implemented fixed-size neurons, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |

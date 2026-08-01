@@ -29,6 +29,9 @@ pub(in crate::sns::report) use metrics::{
     SNS_METRICS_CALL_TYPE, SNS_METRICS_METHOD, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
 };
 pub use neurons::{MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
+pub(in crate::sns::report) use neurons::{
+    validate_mainnet_sns_neuron_page, validate_mainnet_sns_neurons, validate_sns_neuron_rows,
+};
 pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
 pub use swap::MainnetSnsSwap;
 pub(in crate::sns::report) use swap::{

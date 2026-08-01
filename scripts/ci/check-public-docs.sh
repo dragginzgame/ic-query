@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly expected_missing_docs=1911
+readonly expected_missing_docs=1905
 log="$(mktemp "${TMPDIR:-/tmp}/ic-query-public-docs.XXXXXX")"
 trap 'rm -f "${log}"' EXIT
 

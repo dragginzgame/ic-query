@@ -10,7 +10,7 @@ use crate::sns::report::{
     live::LiveSnsSource,
     lookup::{lookup_request_from_parts, resolve_sns_lookup},
     neurons_cache,
-    source::SnsNeuronsSource,
+    source::{SnsNeuronsSource, validate_mainnet_sns_neurons},
 };
 
 pub fn build_sns_neurons_report(
@@ -40,6 +40,7 @@ pub fn build_sns_neurons_report_with_source(
         request.limit,
         request.owner_principal_id.as_deref(),
     )?;
+    validate_mainnet_sns_neurons(&neurons, request.limit)?;
     Ok(sns_neurons_report_from_parts(SnsNeuronsLiveReportParts {
         list: lookup.list,
         id: lookup.id,

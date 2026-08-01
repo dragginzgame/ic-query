@@ -35,7 +35,9 @@ pub use governance::{
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
 pub use metrics::{SnsMetricsReport, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
 #[cfg(feature = "host")]
-pub use neurons::{SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsReport};
+pub use neurons::{
+    SnsNeuronDissolveState, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsReport,
+};
 pub use params::SnsParamsReport;
 #[cfg(feature = "host")]
 pub use proposals::SnsProposalsRefreshReport;

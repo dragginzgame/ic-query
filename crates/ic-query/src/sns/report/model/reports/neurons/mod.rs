@@ -10,4 +10,4 @@ mod row;
 
 pub use refresh::SnsNeuronsRefreshReport;
 pub use report::SnsNeuronsReport;
-pub use row::SnsNeuronRow;
+pub use row::{SnsNeuronDissolveState, SnsNeuronRow};

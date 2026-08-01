@@ -293,7 +293,13 @@ that contains the row and otherwise performs a live lookup.
 
 SNS neuron `--sort api` is a bounded live view. Whole-collection sorts require
 a previously refreshed complete neuron snapshot so a normal view command
-cannot hide an expensive crawl.
+cannot hide an expensive crawl. Each row preserves the fixed-size native
+Governance values already returned by `list_neurons`: stake and maturity,
+creation and aging timestamps, source NNS neuron id, auto-stake setting, raw
+dissolve state, voting-power percentage multiplier, vesting period, and fees.
+JSON exposes all of those raw fields; compact text selects the operationally
+useful subset. This adds no follow-up request or cache fanout. Neuron report
+and cache schema 2 require an explicit refresh of older neuron snapshots.
 
 ## ICRC
 

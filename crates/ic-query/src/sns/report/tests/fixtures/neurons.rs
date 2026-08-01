@@ -30,6 +30,13 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
                 staked_maturity_e8s_equivalent: Some(789),
                 created_timestamp_seconds: 1_780_272_000,
                 created_at: "2026-06-01T00:00:00Z".to_string(),
+                source_nns_neuron_id: Some(42),
+                auto_stake_maturity: Some(true),
+                aging_since_timestamp_seconds: 1_780_272_100,
+                dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+                voting_power_percentage_multiplier: 100,
+                vesting_period_seconds: Some(63_072_000),
+                neuron_fees_e8s: 10,
             }],
         })
     }
@@ -54,6 +61,13 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
                 staked_maturity_e8s_equivalent: Some(789),
                 created_timestamp_seconds: 1_780_272_000,
                 created_at: "2026-06-01T00:00:00Z".to_string(),
+                source_nns_neuron_id: Some(42),
+                auto_stake_maturity: Some(true),
+                aging_since_timestamp_seconds: 1_780_272_100,
+                dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+                voting_power_percentage_multiplier: 100,
+                vesting_period_seconds: Some(63_072_000),
+                neuron_fees_e8s: 10,
             }],
             last_cursor: Some(SnsNeuronId {
                 id: vec![0, 1, 2, 3],
@@ -170,5 +184,12 @@ fn neuron_row(neuron_id: &str, stake: u64) -> SnsNeuronRow {
         staked_maturity_e8s_equivalent: None,
         created_timestamp_seconds: 1_780_272_000 + stake,
         created_at: format_utc_timestamp_secs(1_780_272_000 + stake),
+        source_nns_neuron_id: None,
+        auto_stake_maturity: None,
+        aging_since_timestamp_seconds: 1_780_272_000 + stake,
+        dissolve_state: None,
+        voting_power_percentage_multiplier: 100,
+        vesting_period_seconds: None,
+        neuron_fees_e8s: 0,
     }
 }

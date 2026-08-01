@@ -24,8 +24,8 @@ use ic_query::sns::{
     MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
     MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
     MainnetSnsToken, MainnetSnsUpgrade, SnsCacheListRequest, SnsCacheStatusRequest,
-    SnsCanisterSource, SnsDiscoverySource, SnsHostError, SnsMetricsSource, SnsNeuronId,
-    SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport,
+    SnsCanisterSource, SnsDiscoverySource, SnsHostError, SnsMetricsSource, SnsNeuronDissolveState,
+    SnsNeuronId, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport,
     SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
     SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsSource, SnsSourceRequest,
     SnsSwapSource, SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
@@ -912,7 +912,17 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
     .with_max_pages(Some(3));
     assert_eq!(proposals_refresh_request.max_pages, Some(3));
 
-    assert!(sns_neurons_report_text(&sample_sns_neurons_report()).contains("neuron_count: 1"));
+    let neurons_report = sample_sns_neurons_report();
+    assert!(sns_neurons_report_text(&neurons_report).contains("neuron_count: 1"));
+    let neurons_json = serde_json::to_value(&neurons_report).expect("serialize neurons report");
+    assert_eq!(neurons_json["schema_version"], 2);
+    assert_eq!(neurons_json["neurons"][0]["source_nns_neuron_id"], 42);
+    assert_eq!(neurons_json["neurons"][0]["auto_stake_maturity"], true);
+    assert_eq!(
+        neurons_json["neurons"][0]["dissolve_state"],
+        json!({"kind": "dissolve_delay_seconds", "value": 31_536_000})
+    );
+    assert_eq!(neurons_json["neurons"][0]["neuron_fees_e8s"], 10);
     assert!(
         sns_neurons_refresh_report_text(&sample_sns_neurons_refresh_report(
             &neurons_cache_path,
@@ -1320,6 +1330,13 @@ fn sample_sns_neuron_row() -> SnsNeuronRow {
         staked_maturity_e8s_equivalent: Some(5_000_000),
         created_timestamp_seconds: 1_700_000_000,
         created_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+        source_nns_neuron_id: Some(42),
+        auto_stake_maturity: Some(true),
+        aging_since_timestamp_seconds: 1_700_000_100,
+        dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+        voting_power_percentage_multiplier: 100,
+        vesting_period_seconds: Some(63_072_000),
+        neuron_fees_e8s: 10,
     }
 }
 
@@ -1361,7 +1378,7 @@ fn sample_sns_governance_parameters() -> SnsGovernanceParameters {
 #[cfg(feature = "host")]
 fn sample_sns_neurons_report() -> SnsNeuronsReport {
     SnsNeuronsReport {
-        schema_version: 1,
+        schema_version: 2,
         network: "ic".to_string(),
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
@@ -1387,6 +1404,13 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
             staked_maturity_e8s_equivalent: Some(5_000_000),
             created_timestamp_seconds: 1_700_000_000,
             created_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+            source_nns_neuron_id: Some(42),
+            auto_stake_maturity: Some(true),
+            aging_since_timestamp_seconds: 1_700_000_100,
+            dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+            voting_power_percentage_multiplier: 100,
+            vesting_period_seconds: Some(63_072_000),
+            neuron_fees_e8s: 10,
         }],
     }
 }

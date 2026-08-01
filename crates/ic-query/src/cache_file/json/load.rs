@@ -8,10 +8,19 @@ use super::{
     errors::LoadJsonCacheErrorMapper,
     model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest},
 };
-use serde::de::{DeserializeOwned, Error as _, IgnoredAny, MapAccess, Visitor};
+use serde::{
+    Deserialize,
+    de::{DeserializeOwned, Error as _, IgnoredAny, MapAccess, Visitor},
+};
 use std::{collections::BTreeSet, fmt, fs};
 
 struct TopLevelKeys(BTreeSet<String>);
+
+#[derive(Deserialize)]
+struct JsonCacheHeader {
+    schema_version: u32,
+    network: String,
+}
 
 impl<'de> serde::Deserialize<'de> for TopLevelKeys {
     fn deserialize<Deserializer>(deserializer: Deserializer) -> Result<Self, Deserializer::Error>
@@ -99,6 +108,16 @@ where
             ));
             return Err(errors.parse_cache(path, source));
         }
+    }
+    let header = serde_json::from_str::<JsonCacheHeader>(&data)
+        .map_err(|source| errors.parse_cache(path.clone(), source))?;
+    if header.schema_version != request.expected_schema_version {
+        return Err(
+            errors.unsupported_schema(header.schema_version, request.expected_schema_version)
+        );
+    }
+    if header.network != request.network {
+        return Err(errors.network_mismatch(request.network.to_string(), header.network));
     }
     let report = serde_json::from_str::<T>(&data)
         .map_err(|source| errors.parse_cache(path.clone(), source))?;

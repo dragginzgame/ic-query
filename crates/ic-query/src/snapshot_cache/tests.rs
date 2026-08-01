@@ -204,6 +204,43 @@ fn load_complete_snapshot_rejects_unknown_top_level_fields() {
 }
 
 #[test]
+fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
+    let root = temp_dir("ic-query-snapshot-unsupported-schema-before-rows");
+    let path = root.join("full.json");
+    write_snapshot_fixture(
+        &path,
+        serde_json::json!({
+            "schema_version": 1,
+            "network": "ic"
+        }),
+    );
+
+    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
+    let error = load_complete_snapshot_for_key::<FixtureSnapshot, _>(
+        LoadJsonCacheRequest {
+            path,
+            network: "ic",
+            expected_schema_version: 2,
+        },
+        &key,
+        FIXTURE_SNAPSHOT_FIELDS,
+        SnapshotLoadTestErrors,
+        |_| SnapshotLoadTestError::Incomplete,
+        SnapshotLoadTestError::Identity,
+    )
+    .expect_err("schema mismatch rejected before changed row shape");
+
+    assert_eq!(
+        error,
+        SnapshotLoadTestError::UnsupportedSchema {
+            version: 1,
+            expected: 2,
+        }
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn snapshot_refresh_attempt_serializes_flat_metadata() {
     #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
     struct Metadata {

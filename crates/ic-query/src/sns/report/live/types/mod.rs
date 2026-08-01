@@ -27,7 +27,7 @@ pub(in crate::sns::report::live) use metrics::{
     VotingPowerMetricsWire,
 };
 pub(in crate::sns::report::live) use neurons::{
-    ListNeuronsRequest, ListNeuronsResponse, SnsGovernanceNeuron,
+    ListNeuronsRequest, ListNeuronsResponse, SnsGovernanceDissolveState, SnsGovernanceNeuron,
 };
 pub(in crate::sns::report::live) use proposals::{
     GetProposalRequest, GetProposalResponse, GetProposalResult, ListProposalsRequest,

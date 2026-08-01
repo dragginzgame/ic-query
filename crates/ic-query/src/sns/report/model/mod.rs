@@ -19,8 +19,9 @@ pub(in crate::sns::report) use reports::{
 };
 #[cfg(feature = "host")]
 pub use reports::{
-    SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronRow,
-    SnsNeuronsRefreshReport, SnsNeuronsReport, SnsProposalsRefreshReport, SnsRefreshAttemptStatus,
+    SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronDissolveState,
+    SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsReport, SnsProposalsRefreshReport,
+    SnsRefreshAttemptStatus,
 };
 pub use reports::{
     SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,

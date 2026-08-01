@@ -102,9 +102,9 @@ pub(in crate::sns::report) use model::{
 #[cfg(feature = "host")]
 pub use model::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
-    SnsCacheSummary, SnsHostError, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
-    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsProposalsRefreshReport,
-    SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
+    SnsCacheSummary, SnsHostError, SnsNeuronDissolveState, SnsNeuronRow, SnsNeuronsRefreshReport,
+    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
+    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
 };
 #[cfg(feature = "host")]
 pub use neurons_cache::{
@@ -168,7 +168,7 @@ const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
-const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 2;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
 #[cfg(feature = "host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;

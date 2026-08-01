@@ -30,6 +30,7 @@ icq icrc account transaction --help
 | [0.22 Structural Consolidation](design/0.22/0.22-design.md) | Ordered CLI, inventory, snapshot, feature, and module-ownership cleanup |
 | [0.23 Bounded SNS Completeness](design/0.23/0.23-design.md) | Targeted discovery hard cut plus bounded native swap and upgrade evidence |
 | [0.24 Bounded SNS Governance Metrics](design/0.24/0.24-design.md) | Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp evidence |
+| [0.25 Fuller Fixed-Size SNS Neuron Evidence](design/0.25/0.25-design.md) | Native scalar neuron state with unchanged call and collection bounds |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
 | [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |

@@ -471,6 +471,13 @@ fn neuron_row(
         staked_maturity_e8s_equivalent: None,
         created_timestamp_seconds,
         created_at: created_timestamp_seconds.to_string(),
+        source_nns_neuron_id: None,
+        auto_stake_maturity: None,
+        aging_since_timestamp_seconds: created_timestamp_seconds,
+        dissolve_state: None,
+        voting_power_percentage_multiplier: 100,
+        vesting_period_seconds: None,
+        neuron_fees_e8s: 0,
     }
 }
 

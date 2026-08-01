@@ -8,7 +8,7 @@ use crate::snapshot_cache::{PagedCollectionPage, PagedCollectionState};
 use crate::sns::report::{
     SnsHostError, SnsNeuronRow, hex_bytes,
     neurons_cache::model::CompleteSnsNeurons,
-    source::{MainnetSnsNeuronPage, SnsNeuronId},
+    source::{MainnetSnsNeuronPage, SnsNeuronId, validate_mainnet_sns_neuron_page},
 };
 
 ///
@@ -47,14 +47,9 @@ impl SnsNeuronsCollectionState {
     pub(super) fn ingest_page(
         &mut self,
         page: MainnetSnsNeuronPage,
+        requested_limit: u32,
     ) -> Result<PagedCollectionPage, SnsHostError> {
-        if page
-            .neurons
-            .iter()
-            .any(|neuron| !valid_neuron_id(&neuron.neuron_id))
-        {
-            return Err(SnsHostError::InvalidNeuronId);
-        }
+        validate_mainnet_sns_neuron_page(&page, requested_limit)?;
         Ok(self.pages.ingest_page(
             page.neurons,
             page.last_cursor,
@@ -71,10 +66,4 @@ impl SnsNeuronsCollectionState {
             last_cursor: complete.last_cursor,
         }
     }
-}
-
-fn valid_neuron_id(neuron_id: &str) -> bool {
-    !neuron_id.is_empty()
-        && neuron_id.len().is_multiple_of(2)
-        && neuron_id.bytes().all(|byte| byte.is_ascii_hexdigit())
 }

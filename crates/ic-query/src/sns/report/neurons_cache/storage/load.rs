@@ -13,11 +13,9 @@ use crate::sns::report::{
         model::{SNS_NEURONS_CACHE_FIELDS, SnsNeuronsCache},
         paths::sns_neurons_cache_key_for_cache_path,
     },
+    source::validate_sns_neuron_rows,
 };
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
     path: PathBuf,
@@ -51,20 +49,6 @@ fn validate_sns_neurons_cache(path: &Path, cache: &SnsNeuronsCache) -> Result<()
         ));
     }
     validate_sns_cache_metadata(path, &cache.metadata, &cache.entity)?;
-    let mut neuron_ids = HashSet::new();
-    for neuron in &cache.data.neurons {
-        if neuron.neuron_id.is_empty()
-            || !neuron.neuron_id.len().is_multiple_of(2)
-            || !neuron
-                .neuron_id
-                .bytes()
-                .all(|byte| byte.is_ascii_hexdigit())
-        {
-            return Err(invalid("cache contains an invalid neuron id".to_string()));
-        }
-        if !neuron_ids.insert(&neuron.neuron_id) {
-            return Err(invalid(format!("duplicate neuron id {}", neuron.neuron_id)));
-        }
-    }
+    validate_sns_neuron_rows(&cache.data.neurons).map_err(invalid)?;
     Ok(())
 }

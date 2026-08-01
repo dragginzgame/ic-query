@@ -16,6 +16,7 @@ pub(in crate::sns::report) use model::{
     canonicalize_mainnet_sns_metrics, canonicalize_mainnet_sns_swap,
     canonicalize_mainnet_sns_upgrade, join_mainnet_sns_inventory, sns_swap_component_method,
     sns_swap_lifecycle_name, sns_treasury_kind, validate_mainnet_sns_inventory,
+    validate_mainnet_sns_neuron_page, validate_mainnet_sns_neurons, validate_sns_neuron_rows,
 };
 pub use model::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,

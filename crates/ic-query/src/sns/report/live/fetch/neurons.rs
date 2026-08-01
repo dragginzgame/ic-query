@@ -13,7 +13,10 @@ use crate::sns::report::{
         query::{principal_from_text, query_canister, sns_agent},
         types::{ListNeuronsRequest, ListNeuronsResponse},
     },
-    source::{MainnetSns, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId, SnsSourceRequest},
+    source::{
+        MainnetSns, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId, SnsSourceRequest,
+        validate_mainnet_sns_neuron_page,
+    },
 };
 
 /// Fetch a bounded SNS neuron listing for one resolved mainnet SNS.
@@ -92,8 +95,10 @@ async fn fetch_mainnet_sns_neuron_page_async(
         .into_iter()
         .map(sns_neuron_row)
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(MainnetSnsNeuronPage {
+    let page = MainnetSnsNeuronPage {
         neurons,
         last_cursor,
-    })
+    };
+    validate_mainnet_sns_neuron_page(&page, limit)?;
+    Ok(page)
 }

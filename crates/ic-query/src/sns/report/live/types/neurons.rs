@@ -44,4 +44,23 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuron {
     pub(in crate::sns::report::live) maturity_e8s_equivalent: u64,
     pub(in crate::sns::report::live) cached_neuron_stake_e8s: u64,
     pub(in crate::sns::report::live) created_timestamp_seconds: u64,
+    pub(in crate::sns::report::live) source_nns_neuron_id: Option<u64>,
+    pub(in crate::sns::report::live) auto_stake_maturity: Option<bool>,
+    pub(in crate::sns::report::live) aging_since_timestamp_seconds: u64,
+    pub(in crate::sns::report::live) dissolve_state: Option<SnsGovernanceDissolveState>,
+    pub(in crate::sns::report::live) voting_power_percentage_multiplier: u64,
+    pub(in crate::sns::report::live) vesting_period_seconds: Option<u64>,
+    pub(in crate::sns::report::live) neuron_fees_e8s: u64,
+}
+
+///
+/// SnsGovernanceDissolveState
+///
+/// Candid dissolve-state alternative returned by SNS governance.
+///
+
+#[derive(CandidType, Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+pub(in crate::sns::report::live) enum SnsGovernanceDissolveState {
+    DissolveDelaySeconds(u64),
+    WhenDissolvedTimestampSeconds(u64),
 }

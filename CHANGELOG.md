@@ -7,6 +7,24 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.25.x] - 2026-08-01 - Fuller fixed-size SNS neuron evidence
+
+Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
+
+- `0.25.0` expands every SNS neuron list and complete snapshot row with the
+  fixed-size native Governance fields already returned by `list_neurons`:
+  source NNS neuron id, auto-stake maturity, aging timestamp, raw dissolve
+  state, voting-power percentage multiplier, vesting period, and neuron fees.
+  It adds no query, pagination, fanout, or implicit cache behavior.
+- This is a pre-1.0 report/cache hard cut. SNS neuron report and cache schemas
+  advance to version 2; version-1 neuron caches are rejected rather than
+  migrated or read through a compatibility branch and must be explicitly
+  refreshed.
+- Live custom-source rows, refresh pages, and loaded snapshots now share
+  canonical lowercase-id, derived timestamp, uniqueness, and limit validation.
+  Cache schema identity is checked before a changed row shape is decoded, so
+  stale schemas return the typed unsupported-schema error.
+
 ## [0.24.x] - 2026-08-01 - Bounded SNS governance metrics
 
 Detailed release notes: [docs/changelog/0.24.md](docs/changelog/0.24.md)

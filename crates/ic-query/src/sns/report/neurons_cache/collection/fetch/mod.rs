@@ -88,7 +88,7 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
             self.state.start_page_at(),
             None,
         )?;
-        self.state.ingest_page(page)
+        self.state.ingest_page(page, self.request.page_size)
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

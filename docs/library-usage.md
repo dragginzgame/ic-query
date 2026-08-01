@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.24", default-features = false, features = ["host"] }
+ic-query = { version = "0.25", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -19,7 +19,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.24", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.25", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -31,7 +31,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.24", default-features = false }
+ic-query = { version = "0.25", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -609,7 +609,11 @@ fn render_sns_metrics(
 Native tools can use SNS proposal and neuron snapshot APIs through `host`.
 Proposal list reports can create a missing complete proposal snapshot
 through the public builder; whole-collection neuron sorts expect a prior
-explicit refresh, matching the CLI cache policy.
+explicit refresh, matching the CLI cache policy. `SnsNeuronRow` preserves the
+fixed-size native Governance values from the same `list_neurons` response,
+including `SnsNeuronDissolveState`; variable permission and followee graphs
+are not collected implicitly. Neuron report and cache schema 2 reject older
+snapshot shapes and require an explicit refresh.
 
 ```rust
 use std::path::Path;
