@@ -35,12 +35,12 @@ pub(super) fn proposal_detail_lines(
             "  decision_state: {}",
             sanitize_text(&proposal.decision_state)
         ),
-        format!("  topic: {}", safe_optional_text(proposal.topic.as_ref())),
+        format!("  topic: {}", optional_text(proposal.topic.as_ref())),
         format!("  title: {}", sanitize_text(&proposal.title)),
-        format!("  url: {}", safe_optional_text(proposal.url.as_ref())),
+        format!("  url: {}", optional_text(proposal.url.as_ref())),
         format!(
             "  proposer_neuron_id: {}",
-            safe_optional_text(proposal.proposer_neuron_id.as_ref())
+            optional_text(proposal.proposer_neuron_id.as_ref())
         ),
         format!(
             "  reject_cost: {}",
@@ -49,15 +49,15 @@ pub(super) fn proposal_detail_lines(
         format!("  created_at: {}", sanitize_text(&proposal.created_at)),
         format!(
             "  decided_at: {}",
-            safe_optional_text(proposal.decided_at.as_ref())
+            optional_text(proposal.decided_at.as_ref())
         ),
         format!(
             "  executed_at: {}",
-            safe_optional_text(proposal.executed_at.as_ref())
+            optional_text(proposal.executed_at.as_ref())
         ),
         format!(
             "  failed_at: {}",
-            safe_optional_text(proposal.failed_at.as_ref())
+            optional_text(proposal.failed_at.as_ref())
         ),
         format!("  reward_event_round: {}", proposal.reward_event_round),
         format!(
@@ -128,8 +128,4 @@ pub(super) fn proposal_ballot_table(
 
 fn proposal_detail_text(value: &str, detail_limit: Option<usize>) -> String {
     detail_limit.map_or_else(|| sanitize_text(value), |limit| truncate_text(value, limit))
-}
-
-fn safe_optional_text(value: Option<&String>) -> String {
-    optional_text(value)
 }

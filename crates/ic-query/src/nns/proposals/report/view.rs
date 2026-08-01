@@ -8,8 +8,13 @@ use super::model::{
     NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
     NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
-use crate::text_search::optional_text_contains_case_insensitive;
-use std::cmp::Ordering;
+use crate::{
+    report_sort::{
+        compare_ascii_case_insensitive_text, compare_optional_ascii_case_insensitive_text,
+        compare_optional_ord,
+    },
+    text_search::optional_text_contains_case_insensitive,
+};
 
 pub(in crate::nns::proposals::report) fn proposal_matches_before(
     proposal: &NnsProposalRow,
@@ -181,9 +186,10 @@ fn sort_by_optional_u64(
     direction: NnsProposalSortDirection,
     key: impl Fn(&NnsProposalRow) -> Option<u64>,
 ) {
+    let descending = matches!(direction, NnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_optional_u64(key(left), key(right), direction)
-            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+        compare_optional_ord(key(left), key(right), descending)
+            .then_with(|| compare_optional_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 
@@ -192,9 +198,10 @@ fn sort_by_text(
     direction: NnsProposalSortDirection,
     key: impl Fn(&NnsProposalRow) -> &str,
 ) {
+    let descending = matches!(direction, NnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_text(key(left), key(right), direction)
-            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+        compare_ascii_case_insensitive_text(key(left), key(right), descending)
+            .then_with(|| compare_optional_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 
@@ -203,55 +210,11 @@ fn sort_by_optional_text(
     direction: NnsProposalSortDirection,
     key: impl for<'a> Fn(&'a NnsProposalRow) -> Option<&'a str>,
 ) {
+    let descending = matches!(direction, NnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_optional_text(key(left), key(right), direction)
-            .then_with(|| compare_optional_u64(left.proposal_id, right.proposal_id, direction))
+        compare_optional_ascii_case_insensitive_text(key(left), key(right), descending)
+            .then_with(|| compare_optional_ord(left.proposal_id, right.proposal_id, descending))
     });
-}
-
-fn compare_optional_text(
-    left: Option<&str>,
-    right: Option<&str>,
-    direction: NnsProposalSortDirection,
-) -> Ordering {
-    match (left, right) {
-        (Some(left), Some(right)) => compare_text(left, right, direction),
-        (Some(_), None) => Ordering::Less,
-        (None, Some(_)) => Ordering::Greater,
-        (None, None) => Ordering::Equal,
-    }
-}
-
-fn compare_text(left: &str, right: &str, direction: NnsProposalSortDirection) -> Ordering {
-    let left_key = left.to_ascii_lowercase();
-    let right_key = right.to_ascii_lowercase();
-    match direction {
-        NnsProposalSortDirection::Asc => left_key.cmp(&right_key),
-        NnsProposalSortDirection::Desc => right_key.cmp(&left_key),
-    }
-}
-
-fn compare_optional_u64(
-    left: Option<u64>,
-    right: Option<u64>,
-    direction: NnsProposalSortDirection,
-) -> Ordering {
-    match (left, right) {
-        (Some(left), Some(right)) => compare_ord(left, right, direction),
-        (Some(_), None) => Ordering::Less,
-        (None, Some(_)) => Ordering::Greater,
-        (None, None) => Ordering::Equal,
-    }
-}
-
-fn compare_ord<T>(left: T, right: T, direction: NnsProposalSortDirection) -> Ordering
-where
-    T: Ord,
-{
-    match direction {
-        NnsProposalSortDirection::Asc => left.cmp(&right),
-        NnsProposalSortDirection::Desc => right.cmp(&left),
-    }
 }
 
 const fn nonzero_timestamp(timestamp_seconds: u64) -> Option<u64> {

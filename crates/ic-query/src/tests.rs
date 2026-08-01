@@ -5,9 +5,8 @@ use crate::{
 };
 use crate::{
     table::{ColumnAlign, render_table},
-    text_value::{optional_u64_text, sanitize_text, truncate_text, yes_no},
+    text_value::{optional_text, optional_u64_text, sanitize_text, truncate_text, yes_no},
     token_amount::base_units_decimal_text,
-    token_metadata_text::optional_text,
 };
 
 #[test]

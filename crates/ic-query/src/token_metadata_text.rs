@@ -2,17 +2,13 @@
 //!
 //! Responsibility: shared text formatting for ICRC-style token metadata.
 //! Does not own: report DTOs, table rendering, or JSON output.
-//! Boundary: formats optional fields and raw metadata values for human text.
+//! Boundary: formats raw metadata values for human text.
 
-use crate::{text_value::sanitize_text, token_amount::base_units_decimal_text};
+use crate::token_amount::base_units_decimal_text;
 use serde_json::Value as JsonValue;
 
 const ICRC_FEE_METADATA_KEY: &str = "icrc1:fee";
 const ICRC_LOGO_METADATA_KEY: &str = "icrc1:logo";
-
-pub fn optional_text(value: Option<&String>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| sanitize_text(value))
-}
 
 pub fn token_metadata_value_text(key: &str, value: &JsonValue, decimals: u8) -> String {
     if key == ICRC_LOGO_METADATA_KEY {

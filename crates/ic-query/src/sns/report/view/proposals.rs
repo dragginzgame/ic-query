@@ -10,8 +10,13 @@ use crate::sns::report::{
     SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalEligibilityFilter, SnsProposalRow,
     SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
-use crate::text_search::optional_text_contains_case_insensitive;
-use std::cmp::Ordering;
+use crate::{
+    report_sort::{
+        compare_ascii_case_insensitive_text, compare_optional_ascii_case_insensitive_text,
+        compare_optional_ord, compare_ord,
+    },
+    text_search::optional_text_contains_case_insensitive,
+};
 
 pub(in crate::sns::report) fn proposal_matches_before(
     proposal: &SnsProposalRow,
@@ -98,8 +103,10 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
     match sort {
         SnsProposalsSort::Api => {}
         SnsProposalsSort::Id => {
-            proposals
-                .sort_by(|left, right| compare_ord(left.proposal_id, right.proposal_id, direction));
+            let descending = matches!(direction, SnsProposalSortDirection::Desc);
+            proposals.sort_by(|left, right| {
+                compare_ord(left.proposal_id, right.proposal_id, descending)
+            });
         }
         SnsProposalsSort::Status => {
             sort_by_status(proposals, direction);
@@ -171,9 +178,10 @@ fn sort_by_optional_u64(
     direction: SnsProposalSortDirection,
     key: impl Fn(&SnsProposalRow) -> Option<u64>,
 ) {
+    let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_optional_u64(key(left), key(right), direction)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
+        compare_optional_ord(key(left), key(right), descending)
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 
@@ -182,9 +190,10 @@ fn sort_by_text(
     direction: SnsProposalSortDirection,
     key: impl Fn(&SnsProposalRow) -> &str,
 ) {
+    let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_text(key(left), key(right), direction)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
+        compare_ascii_case_insensitive_text(key(left), key(right), descending)
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 
@@ -193,9 +202,10 @@ fn sort_by_optional_text(
     direction: SnsProposalSortDirection,
     key: impl for<'a> Fn(&'a SnsProposalRow) -> Option<&'a str>,
 ) {
+    let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_optional_text(key(left), key(right), direction)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
+        compare_optional_ascii_case_insensitive_text(key(left), key(right), descending)
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 
@@ -204,20 +214,22 @@ fn sort_by_bool(
     direction: SnsProposalSortDirection,
     key: impl Fn(&SnsProposalRow) -> bool,
 ) {
+    let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_ord(key(left), key(right), direction)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
+        compare_ord(key(left), key(right), descending)
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 
 fn sort_by_status(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDirection) {
+    let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
         compare_ord(
             status_sort_rank(&left.decision_state),
             status_sort_rank(&right.decision_state),
-            direction,
+            descending,
         )
-        .then_with(|| compare_ord(left.proposal_id, right.proposal_id, direction))
+        .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 
@@ -228,50 +240,5 @@ fn status_sort_rank(decision_state: &str) -> u8 {
         state if state == SNS_PROPOSAL_DECISION_EXECUTED => 2,
         state if state == SNS_PROPOSAL_DECISION_FAILED => 3,
         _ => 4,
-    }
-}
-
-fn compare_optional_text(
-    left: Option<&str>,
-    right: Option<&str>,
-    direction: SnsProposalSortDirection,
-) -> Ordering {
-    match (left, right) {
-        (Some(left), Some(right)) => compare_text(left, right, direction),
-        (Some(_), None) => Ordering::Less,
-        (None, Some(_)) => Ordering::Greater,
-        (None, None) => Ordering::Equal,
-    }
-}
-
-fn compare_text(left: &str, right: &str, direction: SnsProposalSortDirection) -> Ordering {
-    let left_key = left.to_ascii_lowercase();
-    let right_key = right.to_ascii_lowercase();
-    match direction {
-        SnsProposalSortDirection::Asc => left_key.cmp(&right_key),
-        SnsProposalSortDirection::Desc => right_key.cmp(&left_key),
-    }
-}
-
-fn compare_optional_u64(
-    left: Option<u64>,
-    right: Option<u64>,
-    direction: SnsProposalSortDirection,
-) -> Ordering {
-    match (left, right) {
-        (Some(left), Some(right)) => compare_ord(left, right, direction),
-        (Some(_), None) => Ordering::Less,
-        (None, Some(_)) => Ordering::Greater,
-        (None, None) => Ordering::Equal,
-    }
-}
-
-fn compare_ord<T>(left: T, right: T, direction: SnsProposalSortDirection) -> Ordering
-where
-    T: Ord,
-{
-    match direction {
-        SnsProposalSortDirection::Asc => left.cmp(&right),
-        SnsProposalSortDirection::Desc => right.cmp(&left),
     }
 }

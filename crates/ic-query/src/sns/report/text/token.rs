@@ -7,9 +7,9 @@
 use crate::{
     sns::report::SnsTokenReport,
     table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, truncate_text},
+    text_value::{optional_text, sanitize_text, truncate_text},
     token_amount::base_units_decimal_text,
-    token_metadata_text::{optional_text, token_metadata_value_text},
+    token_metadata_text::token_metadata_value_text,
 };
 
 const SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;

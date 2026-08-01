@@ -23,6 +23,10 @@ pub fn sanitize_text(value: &str) -> String {
     sanitized
 }
 
+pub fn optional_text(value: Option<&String>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| sanitize_text(value))
+}
+
 pub fn truncate_text(value: &str, limit: usize) -> String {
     let value = sanitize_text(value);
     if value.chars().count() <= limit {

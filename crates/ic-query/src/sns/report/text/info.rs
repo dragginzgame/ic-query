@@ -5,7 +5,8 @@
 //! Boundary: formats one SNS info DTO into stable human-readable lines.
 
 use crate::{
-    sns::report::SnsInfoReport, text_value::sanitize_text, token_metadata_text::optional_text,
+    sns::report::SnsInfoReport,
+    text_value::{optional_text, sanitize_text},
 };
 
 #[must_use]

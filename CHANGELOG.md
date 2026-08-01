@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.1` corrects schema-version documentation and consolidates shared
+  proposal ordering, scalar text formatting, and small NNS leaf command
+  adapters. Public APIs, CLI behavior, report JSON, cache schemas, sorting,
+  rendering, and network behavior are unchanged.
 - `0.25.0` expands every SNS neuron list and complete snapshot row with the
   fixed-size native Governance fields already returned by `list_neurons`:
   source NNS neuron id, auto-stake maturity, aging timestamp, raw dissolve

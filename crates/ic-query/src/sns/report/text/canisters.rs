@@ -7,8 +7,7 @@
 use crate::{
     sns::report::SnsCanisterReport,
     table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, truncate_text, yes_no},
-    token_metadata_text::optional_text,
+    text_value::{optional_text, sanitize_text, truncate_text, yes_no},
 };
 
 const MODULE_HASH_TEXT_CHARS: usize = 12;

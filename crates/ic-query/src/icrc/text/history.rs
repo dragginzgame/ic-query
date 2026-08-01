@@ -12,8 +12,7 @@ use crate::{
         IcrcTransactionsReport,
     },
     table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, truncate_text},
-    token_metadata_text::optional_text,
+    text_value::{optional_text, sanitize_text, truncate_text},
 };
 
 const ICRC_DETAIL_TEXT_LIMIT: usize = 160;

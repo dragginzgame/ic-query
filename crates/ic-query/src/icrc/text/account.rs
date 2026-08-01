@@ -12,9 +12,8 @@ use crate::{
         IcrcAccountTransactionRow, IcrcAllowanceReport, IcrcBalanceReport,
     },
     table::{ColumnAlign, render_table},
-    text_value::sanitize_text,
+    text_value::{optional_text, sanitize_text},
     token_amount::base_units_decimal_text,
-    token_metadata_text::optional_text,
 };
 
 const ICRC_ACCOUNT_TRANSACTION_TABLE_ALIGNMENTS: [ColumnAlign; 8] = [

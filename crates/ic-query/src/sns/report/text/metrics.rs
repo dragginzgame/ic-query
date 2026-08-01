@@ -8,8 +8,7 @@ use crate::{
     duration::display_duration_seconds,
     sns::report::{SnsMetricsReport, SnsTreasuryMetricRow},
     table::{ColumnAlign, render_table},
-    text_value::{optional_u64_text, sanitize_text, yes_no},
-    token_metadata_text::optional_text,
+    text_value::{optional_text, optional_u64_text, sanitize_text, yes_no},
 };
 
 /// Render one SNS Governance metrics report as human-facing text.

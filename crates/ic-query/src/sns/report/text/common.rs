@@ -15,7 +15,7 @@ use crate::{
 
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 
-pub(in crate::sns::report::text) use crate::token_metadata_text::optional_text;
+pub(in crate::sns::report::text) use crate::text_value::optional_text;
 
 pub(in crate::sns::report::text) fn optional_e8s_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)

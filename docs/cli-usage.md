@@ -18,8 +18,9 @@ Report commands use human-facing text by default and accept
 identifiers, native numeric fields, source endpoints, collection timestamps,
 and authority guarantees.
 
-All current report schemas use `schema_version: 1`. Before 1.0, incompatible
-shape changes replace the previous contract without aliases or legacy readers.
+Report schemas are versioned independently and currently use `schema_version`
+values `1` and `2`. Before 1.0, incompatible shape changes replace the previous
+contract without aliases or legacy readers.
 
 ## Target identity
 
