@@ -34,9 +34,10 @@ The built-in sources and caches currently support only mainnet, named `ic`.
 A different network is rejected before a live adapter is constructed.
 
 Official Dashboard canister and ICRC commands identify their target using an
-entity principal plus `--source-endpoint`. Dashboard metric commands use an
-official metric name, time bounds, and `--source-endpoint`. These families
-reject the top-level `--network` option instead of silently ignoring it.
+entity principal plus `--source-endpoint`. Dashboard metric and network
+resource commands use an official resource identity and `--source-endpoint`.
+These families reject the top-level `--network` option instead of silently
+ignoring it.
 
 ## Official IC Dashboard
 
@@ -53,6 +54,9 @@ icq ic metrics instruction-rate
 icq ic metrics cycle-burn-rate \
   --start 1700000000 --end 1700003600 --step 300
 icq ic metrics ic-node-count --format json
+
+icq ic network boundary-node-data-centers
+icq ic network boundary-node-data-centers --format json
 ```
 
 `info` preserves the Dashboard canister id, raw optional classification, name,
@@ -71,6 +75,12 @@ value strings. Its default window is the preceding hour at a
 five-minute step; explicit windows are capped at 1,000 observations per
 series. It does not fan out over metrics or Subnets.
 
+`network boundary-node-data-centers` returns the official v4 data-center
+aggregates in canonical id order. It preserves raw owner, region, coordinate,
+and node-count strings, including zero-node locations, and derives only row and
+node totals. The endpoint has no pagination parameters; the command makes one
+request and no per-location follow-up calls.
+
 There is no automatic enumeration and these commands never read or write a
 cache. The official Dashboard is an off-chain analytics authority, so every
 report states
@@ -80,7 +90,9 @@ module state.
 
 See [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md)
 and [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) for
-the exact report and validation contracts.
+the canister and metric contracts. See
+[IC Dashboard Boundary-Node Reporting](design/ic-dashboard-boundary-node-reporting.md)
+for the network-resource contract.
 
 ## NNS
 

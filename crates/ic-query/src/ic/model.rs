@@ -175,6 +175,31 @@ impl IcMetricRequest {
 }
 
 ///
+/// IcBoundaryNodeDataCentersRequest
+///
+/// Request accepted by the official Dashboard boundary-node data-center builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcBoundaryNodeDataCentersRequest {
+    /// Dashboard API v4 base endpoint.
+    pub source_endpoint: String,
+    /// Collection time as Unix seconds.
+    pub now_unix_secs: u64,
+}
+
+impl IcBoundaryNodeDataCentersRequest {
+    /// Construct one live Dashboard boundary-node data-center request.
+    #[must_use]
+    pub fn new(source_endpoint: impl Into<String>, now_unix_secs: u64) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+        }
+    }
+}
+
+///
 /// IcCanisterRequest
 ///
 /// Request accepted by the official Dashboard canister report builder.
@@ -418,6 +443,49 @@ pub struct IcMetricReport {
     pub returned_observation_count: usize,
     /// Raw named time series in canonical series-name order.
     pub series: Vec<IcMetricSeries>,
+}
+
+///
+/// IcBoundaryNodeDataCenterRow
+///
+/// One raw data-center aggregate returned by the boundary-node API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcBoundaryNodeDataCenterRow {
+    /// Dashboard data-center identifier.
+    pub dc_id: String,
+    /// Raw data-center display name.
+    pub name: String,
+    /// Raw infrastructure-owner label.
+    pub owner: String,
+    /// Raw Dashboard region label.
+    pub region: String,
+    /// Raw decimal latitude.
+    pub latitude: String,
+    /// Raw decimal longitude.
+    pub longitude: String,
+    /// Raw decimal count of boundary nodes assigned to this data center.
+    pub total_nodes: String,
+}
+
+///
+/// IcBoundaryNodeDataCentersReport
+///
+/// One complete response from the official boundary-node data-center resource.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcBoundaryNodeDataCentersReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Number of data-center rows returned by the API.
+    pub data_center_count: usize,
+    /// Sum of the raw per-data-center boundary-node counts.
+    pub total_node_count: u64,
+    /// Rows in canonical data-center-id order, including zero-node locations.
+    pub rows: Vec<IcBoundaryNodeDataCenterRow>,
 }
 
 ///
@@ -669,6 +737,21 @@ pub struct IcMetricSourceData {
     pub query: IcMetricQuery,
     /// Raw named time series returned by the source.
     pub series: Vec<IcMetricSeries>,
+}
+
+///
+/// IcBoundaryNodeDataCentersSourceData
+///
+/// Raw boundary-node data-center rows and provenance returned by a Dashboard source.
+///
+
+#[cfg(feature = "host")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcBoundaryNodeDataCentersSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Raw data-center rows returned by the source.
+    pub rows: Vec<IcBoundaryNodeDataCenterRow>,
 }
 
 ///

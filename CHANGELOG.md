@@ -11,6 +11,20 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.20.md](docs/changelog/0.20.md)
 
+- `0.20.1` adds the finite official Dashboard v4 boundary-node data-center
+  report. It makes exactly one request, preserves raw data-center ids, names,
+  owners, regions, coordinates, and node-count strings, retains zero-node
+  locations, and derives canonical row ordering plus checked data-center and
+  node totals. The public library adds typed request/report/source DTOs,
+  `IcNetworkSource` on the existing `LiveIcSource`, custom-source validation,
+  and text rendering. The report is explicitly off-chain, non-certified,
+  live-only, and never paginates, follows up, or creates a cache.
+
+  ```bash
+  icq ic network boundary-node-data-centers
+  icq ic network boundary-node-data-centers --format json
+  ```
+
 - `0.20.0` adds one-request bounded time-series reports for nine official
   Dashboard network metrics: instruction and message execution rates, cycle
   burn, block rate, node and Subnet counts, registered canister counts, total

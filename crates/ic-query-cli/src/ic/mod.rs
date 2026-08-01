@@ -20,14 +20,17 @@ use crate::{
 };
 use clap::{ArgAction, Command as ClapCommand, builder::RangedU64ValueParser};
 use ic_query::ic::{
+    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
     DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-    DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_METRIC_WINDOW_SECS, IcCanisterCountRequest,
-    IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest, IcHostError, IcMetricKind,
-    IcMetricQuery, IcMetricRequest, MAX_IC_CANISTER_PAGE_LIMIT, MAX_IC_METRIC_STEP_SECS,
-    MIN_IC_METRIC_TIMESTAMP, build_ic_canister_count_report, build_ic_canister_page_report,
-    build_ic_canister_report, build_ic_metric_report, ic_canister_count_report_text,
-    ic_canister_page_report_text, ic_canister_report_text, ic_metric_report_text,
+    DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_METRIC_WINDOW_SECS, IcBoundaryNodeDataCentersRequest,
+    IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest,
+    IcHostError, IcMetricKind, IcMetricQuery, IcMetricRequest, MAX_IC_CANISTER_PAGE_LIMIT,
+    MAX_IC_METRIC_STEP_SECS, MIN_IC_METRIC_TIMESTAMP, build_ic_boundary_node_data_centers_report,
+    build_ic_canister_count_report, build_ic_canister_page_report, build_ic_canister_report,
+    build_ic_metric_report, ic_boundary_node_data_centers_report_text,
+    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
+    ic_metric_report_text,
 };
 use std::{ffi::OsString, io};
 use thiserror::Error as ThisError;
@@ -72,6 +75,17 @@ The default is the preceding hour at a five-minute step, and every request is
 capped at 1000 observations per returned series. Values are preserved as the
 raw value strings returned by this off-chain, non-certified API.";
 
+const BOUNDARY_NODE_DATA_CENTERS_HELP_AFTER: &str = "\
+Examples:
+  icq ic network boundary-node-data-centers
+  icq ic network boundary-node-data-centers --format json
+
+This command makes exactly one official Dashboard v4 request for the complete
+boundary-node data-center resource. It does not issue per-location follow-up
+calls or create a cache. Rows preserve the API's raw owner, region, coordinate,
+and node-count strings, including locations that currently report zero nodes.
+The Dashboard response is off-chain and non-certified.";
+
 ///
 /// IcCommandError
 ///
@@ -108,8 +122,43 @@ where
     match command.as_str() {
         "canister" => run_canister(args),
         "metrics" => run_metrics(args),
+        "network" => run_network(args),
         _ => unreachable!("ic dispatch command only defines known commands"),
     }
+}
+
+fn run_network<I>(args: I) -> Result<(), IcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = command_args(args, network_usage) else {
+        return Ok(());
+    };
+    let (command, args) =
+        parse_required_subcommand_or_usage(network_command(), args, network_usage)
+            .map_err(IcCommandError::Usage)?;
+    match command.as_str() {
+        "boundary-node-data-centers" => run_boundary_node_data_centers(args),
+        _ => unreachable!("ic network dispatch command only defines known commands"),
+    }
+}
+
+fn run_boundary_node_data_centers<I>(args: I) -> Result<(), IcCommandError>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let Some(args) = command_args(args, boundary_node_data_centers_usage) else {
+        return Ok(());
+    };
+    let options = NetworkReportOptions::parse_boundary_node_data_centers(args)?;
+    let request =
+        IcBoundaryNodeDataCentersRequest::new(options.source_endpoint, current_unix_secs()?);
+    let report = build_ic_boundary_node_data_centers_report(&request)?;
+    write_text_or_json(
+        options.format,
+        &report,
+        ic_boundary_node_data_centers_report_text,
+    )
 }
 
 fn run_metrics<I>(args: I) -> Result<(), IcCommandError>
@@ -227,6 +276,36 @@ fn ic_command() -> ClapCommand {
         ))
         .subcommand(passthrough_subcommand(
             ClapCommand::new("metrics").about("Query one bounded network metric time series"),
+        ))
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("network").about("Inspect bounded network analytics"),
+        ))
+}
+
+fn network_command() -> ClapCommand {
+    ClapCommand::new("network")
+        .bin_name("icq ic network")
+        .about("Inspect bounded official Dashboard network analytics")
+        .disable_help_flag(true)
+        .subcommand(passthrough_subcommand(
+            ClapCommand::new("boundary-node-data-centers")
+                .about("List boundary-node data-center aggregates"),
+        ))
+}
+
+fn boundary_node_data_centers_command() -> ClapCommand {
+    ClapCommand::new("boundary-node-data-centers")
+        .bin_name("icq ic network boundary-node-data-centers")
+        .about("List official Dashboard boundary-node data-center aggregates")
+        .disable_help_flag(true)
+        .arg(format_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT)
+                .help("Official IC Dashboard API v4 base endpoint"),
+        )
+        .after_help(collection_help(
+            COLLECTION_MODE_LIVE,
+            BOUNDARY_NODE_DATA_CENTERS_HELP_AFTER,
         ))
 }
 
@@ -436,6 +515,14 @@ fn metrics_usage() -> String {
     render_help(metrics_command())
 }
 
+fn network_usage() -> String {
+    render_help(network_command())
+}
+
+fn boundary_node_data_centers_usage() -> String {
+    render_help(boundary_node_data_centers_command())
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct CanisterInfoOptions {
     canister_id: String,
@@ -483,6 +570,30 @@ impl MetricOptions {
             start_unix_secs: typed_option(&matches, "start"),
             end_unix_secs: typed_option(&matches, "end"),
             step_secs: typed_option(&matches, "step").unwrap_or(DEFAULT_IC_METRIC_STEP_SECS),
+            format: required_typed(&matches, "format"),
+            source_endpoint: required_string(&matches, "source-endpoint"),
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NetworkReportOptions {
+    format: OutputFormat,
+    source_endpoint: String,
+}
+
+impl NetworkReportOptions {
+    fn parse_boundary_node_data_centers<I>(args: I) -> Result<Self, IcCommandError>
+    where
+        I: IntoIterator<Item = OsString>,
+    {
+        let matches = parse_matches_or_usage(
+            boundary_node_data_centers_command(),
+            args,
+            boundary_node_data_centers_usage,
+        )
+        .map_err(IcCommandError::Usage)?;
+        Ok(Self {
             format: required_typed(&matches, "format"),
             source_endpoint: required_string(&matches, "source-endpoint"),
         })

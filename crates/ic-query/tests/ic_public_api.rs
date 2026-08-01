@@ -1,18 +1,23 @@
 use ic_query::ic::{
-    DEFAULT_IC_CANISTER_PAGE_LIMIT, DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
+    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_CANISTER_PAGE_LIMIT,
+    DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS,
+    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
     IcCanisterRequest, IcCanisterUpgrade, IcDashboardReportProvenance, IcMetricKind,
     IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
-    MAX_IC_CANISTER_PAGE_LIMIT, ic_canister_count_report_text, ic_canister_page_report_text,
-    ic_canister_report_text, ic_metric_report_text,
+    MAX_IC_CANISTER_PAGE_LIMIT, ic_boundary_node_data_centers_report_text,
+    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
+    ic_metric_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcCanisterCollectionSource, IcCanisterCountSourceData,
-    IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcHostError, IcMetricSource,
-    IcMetricSourceData, IcSourceRequest, LiveIcSource, build_ic_canister_count_report,
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcBoundaryNodeDataCentersSourceData,
+    IcCanisterCollectionSource, IcCanisterCountSourceData, IcCanisterPageSourceData,
+    IcCanisterSource, IcCanisterSourceData, IcHostError, IcMetricSource, IcMetricSourceData,
+    IcNetworkSource, IcSourceRequest, LiveIcSource, build_ic_boundary_node_data_centers_report,
+    build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
     build_ic_canister_report_with_source, build_ic_metric_report,
@@ -21,6 +26,29 @@ use ic_query::ic::{
 
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const SUBNET_ID: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
+
+#[test]
+fn public_ic_boundary_node_api_is_constructible_serializable_and_renderable() {
+    let request = IcBoundaryNodeDataCentersRequest::new(
+        DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let report = IcBoundaryNodeDataCentersReport {
+        provenance: public_provenance(request.source_endpoint),
+        data_center_count: 1,
+        total_node_count: 2,
+        rows: vec![public_boundary_node_data_center()],
+    };
+
+    let text = ic_boundary_node_data_centers_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serializable boundary-node report");
+
+    assert!(text.contains("data_center_count: 1"));
+    assert_eq!(json["rows"][0]["dc_id"], "da11");
+    assert_eq!(json["rows"][0]["total_nodes"], "2");
+    assert_eq!(json["certified"], false);
+    assert!(json.get("provenance").is_none());
+}
 
 #[test]
 fn public_ic_metric_api_is_constructible_serializable_and_renderable() {
@@ -169,6 +197,15 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
     let _: fn(&IcMetricRequest) -> Result<IcMetricReport, IcHostError> = build_ic_metric_report;
     let _: fn(&IcMetricRequest, &dyn IcMetricSource) -> Result<IcMetricReport, IcHostError> =
         build_ic_metric_report_with_source;
+    let _: fn(
+        &IcBoundaryNodeDataCentersRequest,
+    ) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> =
+        build_ic_boundary_node_data_centers_report;
+    let _: fn(
+        &IcBoundaryNodeDataCentersRequest,
+        &dyn IcNetworkSource,
+    ) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> =
+        build_ic_boundary_node_data_centers_report_with_source;
     let _: LiveIcSource = LiveIcSource;
     assert_eq!(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
@@ -216,6 +253,14 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
     let metric = build_ic_metric_report_with_source(&metric_request, &source)
         .expect("custom metric source report");
     assert_eq!(metric.returned_observation_count, 1);
+
+    let network_request = IcBoundaryNodeDataCentersRequest::new(
+        DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let network = build_ic_boundary_node_data_centers_report_with_source(&network_request, &source)
+        .expect("custom network source report");
+    assert_eq!(network.data_center_count, 1);
 }
 
 #[cfg(feature = "host")]
@@ -300,6 +345,19 @@ impl IcMetricSource for FixtureSource {
     }
 }
 
+#[cfg(feature = "host")]
+impl IcNetworkSource for FixtureSource {
+    fn fetch_boundary_node_data_centers(
+        &self,
+        request: &IcSourceRequest,
+    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError> {
+        Ok(IcBoundaryNodeDataCentersSourceData {
+            source: request.clone(),
+            rows: vec![public_boundary_node_data_center()],
+        })
+    }
+}
+
 fn public_provenance(source_endpoint: impl Into<String>) -> IcDashboardReportProvenance {
     IcDashboardReportProvenance {
         schema_version: 1,
@@ -327,5 +385,17 @@ fn public_page_row() -> IcCanisterPageRow {
         language: String::new(),
         module_hash: String::new(),
         dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
+    }
+}
+
+fn public_boundary_node_data_center() -> IcBoundaryNodeDataCenterRow {
+    IcBoundaryNodeDataCenterRow {
+        dc_id: "da11".to_string(),
+        name: "Dallas".to_string(),
+        owner: "Equinix Metal".to_string(),
+        region: "North America,US,Texas".to_string(),
+        latitude: "32.7767".to_string(),
+        longitude: "-96.797".to_string(),
+        total_nodes: "2".to_string(),
     }
 }

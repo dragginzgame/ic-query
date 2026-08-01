@@ -6,11 +6,42 @@
 
 use crate::{
     ic::{
-        IcCanisterCountReport, IcCanisterFilters, IcCanisterPageReport, IcCanisterReport,
-        IcDashboardReportProvenance, IcMetricReport,
+        IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
+        IcCanisterPageReport, IcCanisterReport, IcDashboardReportProvenance, IcMetricReport,
     },
     text_value::{sanitize_text, yes_no},
 };
+
+/// Render one official boundary-node data-center report as human-facing text.
+#[must_use]
+pub fn ic_boundary_node_data_centers_report_text(
+    report: &IcBoundaryNodeDataCentersReport,
+) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("data_center_count: {}", report.data_center_count),
+        format!("total_node_count: {}", report.total_node_count),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push("boundary_node_data_centers:".to_string());
+        lines.extend(report.rows.iter().map(|row| {
+            format!(
+                "  {}  name={}  owner={}  region={}  latitude={}  longitude={}  nodes={}",
+                sanitize_text(&row.dc_id),
+                sanitize_text(&row.name),
+                sanitize_text(&row.owner),
+                sanitize_text(&row.region),
+                sanitize_text(&row.latitude),
+                sanitize_text(&row.longitude),
+                sanitize_text(&row.total_nodes),
+            )
+        }));
+    }
+    lines.join("\n")
+}
 
 /// Render one bounded official Dashboard metric report as human-facing text.
 #[must_use]

@@ -112,6 +112,18 @@ fn binary_ic_metrics_help_smoke() {
 }
 
 #[test]
+fn binary_ic_boundary_node_data_centers_help_smoke() {
+    let output = run_icq(&["ic", "network", "boundary-node-data-centers", "help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq ic network boundary-node-data-centers [OPTIONS]"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--format <text|json>"));
+    assert!(stdout.contains("one official Dashboard v4 request"));
+}
+
+#[test]
 fn binary_icrc_balance_help_smoke() {
     let output = run_icq(&["icrc", "account", "balance", "help"]);
 

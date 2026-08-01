@@ -6,10 +6,11 @@
 
 use crate::http_endpoint::parse_http_endpoint;
 use crate::ic::{
-    IcCanisterCollectionSource, IcCanisterCountSourceData, IcCanisterFilters,
-    IcCanisterPageController, IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterSource,
-    IcCanisterSourceData, IcCanisterUpgrade, IcHostError, IcMetricKind, IcMetricObservation,
-    IcMetricQuery, IcMetricSeries, IcMetricSource, IcMetricSourceData, IcSourceRequest,
+    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersSourceData, IcCanisterCollectionSource,
+    IcCanisterCountSourceData, IcCanisterFilters, IcCanisterPageController, IcCanisterPageRow,
+    IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcCanisterUpgrade,
+    IcHostError, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricSeries, IcMetricSource,
+    IcMetricSourceData, IcNetworkSource, IcSourceRequest,
 };
 use crate::runtime::block_on_current_thread;
 use reqwest::Client;
@@ -26,6 +27,24 @@ const HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 ///
 
 pub struct LiveIcSource;
+
+impl IcNetworkSource for LiveIcSource {
+    fn fetch_boundary_node_data_centers(
+        &self,
+        request: &IcSourceRequest,
+    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError> {
+        let url = boundary_node_data_centers_url(&request.endpoint)?;
+        let wire: DashboardBoundaryNodeDataCenters = fetch_live(url)?;
+        Ok(IcBoundaryNodeDataCentersSourceData {
+            source: request.clone(),
+            rows: wire
+                .data
+                .into_iter()
+                .map(DashboardBoundaryNodeDataCenter::into_public)
+                .collect(),
+        })
+    }
+}
 
 impl IcMetricSource for LiveIcSource {
     fn fetch_metric(
@@ -180,6 +199,12 @@ fn metric_url(endpoint: &str, query: &IcMetricQuery) -> Result<Url, IcHostError>
         pairs.append_pair("end", &query.end_unix_secs.to_string());
         pairs.append_pair("step", &query.step_secs.to_string());
     }
+    Ok(url)
+}
+
+fn boundary_node_data_centers_url(endpoint: &str) -> Result<Url, IcHostError> {
+    let mut url = dashboard_base_url(endpoint)?;
+    append_path_segments(endpoint, &mut url, &["boundary-node-data-centers"])?;
     Ok(url)
 }
 
@@ -344,6 +369,36 @@ struct DashboardCanisterCount {
 }
 
 #[derive(SerdeDeserialize)]
+struct DashboardBoundaryNodeDataCenters {
+    data: Vec<DashboardBoundaryNodeDataCenter>,
+}
+
+#[derive(SerdeDeserialize)]
+struct DashboardBoundaryNodeDataCenter {
+    dc_id: String,
+    latitude: String,
+    longitude: String,
+    name: String,
+    owner: String,
+    region: String,
+    total_nodes: String,
+}
+
+impl DashboardBoundaryNodeDataCenter {
+    fn into_public(self) -> IcBoundaryNodeDataCenterRow {
+        IcBoundaryNodeDataCenterRow {
+            dc_id: self.dc_id,
+            name: self.name,
+            owner: self.owner,
+            region: self.region,
+            latitude: self.latitude,
+            longitude: self.longitude,
+            total_nodes: self.total_nodes,
+        }
+    }
+}
+
+#[derive(SerdeDeserialize)]
 struct DashboardCanisterPage {
     data: Vec<DashboardCanisterPageRow>,
     next_cursor: Option<String>,
@@ -477,6 +532,46 @@ mod tests {
             url.query(),
             Some("format=json&start=1700000000&end=1700003600&step=300")
         );
+    }
+
+    #[test]
+    fn boundary_node_data_centers_url_appends_one_v4_resource() {
+        for endpoint in [
+            "https://ic-api.internetcomputer.org/api/v4",
+            "https://ic-api.internetcomputer.org/api/v4/",
+        ] {
+            assert_eq!(
+                boundary_node_data_centers_url(endpoint)
+                    .expect("boundary-node data-centers URL")
+                    .as_str(),
+                "https://ic-api.internetcomputer.org/api/v4/boundary-node-data-centers"
+            );
+        }
+    }
+
+    #[test]
+    fn boundary_node_wire_decoder_preserves_zero_counts_and_additive_fields() {
+        let wire: DashboardBoundaryNodeDataCenters = serde_json::from_str(
+            r#"{
+                "data": [{
+                    "dc_id": "fr1",
+                    "latitude": "50.1109",
+                    "longitude": "8.6821",
+                    "name": "Frankfurt",
+                    "owner": "Equinix",
+                    "region": "North America,US,Frankfurt",
+                    "total_nodes": "0",
+                    "future_field": true
+                }],
+                "future_top_level": true
+            }"#,
+        )
+        .expect("current boundary-node payload");
+
+        let row = wire.data.into_iter().next().expect("one row").into_public();
+        assert_eq!(row.dc_id, "fr1");
+        assert_eq!(row.region, "North America,US,Frankfurt");
+        assert_eq!(row.total_nodes, "0");
     }
 
     #[test]

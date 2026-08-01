@@ -13,6 +13,55 @@ const METRIC_START: u64 = 1_699_996_400;
 const METRIC_END: u64 = 1_700_000_000;
 
 #[test]
+fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance() {
+    let source = NetworkFixture::default();
+    let request = IcBoundaryNodeDataCentersRequest::new(
+        DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+        METRIC_END,
+    );
+
+    let report = build_ic_boundary_node_data_centers_report_with_source(&request, &source)
+        .expect("boundary-node data centers");
+    let text = ic_boundary_node_data_centers_report_text(&report);
+
+    assert_eq!(source.calls.get(), 1);
+    assert_eq!(report.data_center_count, 2);
+    assert_eq!(report.total_node_count, 2);
+    assert_eq!(report.rows[0].dc_id, "fr1");
+    assert_eq!(report.rows[0].total_nodes, "0");
+    assert_eq!(report.rows[0].region, "North America,US,Frankfurt");
+    assert_eq!(report.rows[1].dc_id, "zh2");
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
+    assert!(text.contains("data_center_count: 2"));
+    assert!(text.contains("fr1  name=Frankfurt"));
+}
+
+#[test]
+fn boundary_node_custom_source_contract_is_validated() {
+    for mutation in [
+        NetworkMutation::WrongEndpoint,
+        NetworkMutation::DuplicateId,
+        NetworkMutation::InvalidLatitude,
+        NetworkMutation::InvalidNodeCount,
+    ] {
+        let source = NetworkFixture {
+            mutation: RefCell::new(Some(mutation)),
+            ..NetworkFixture::default()
+        };
+        let request = IcBoundaryNodeDataCentersRequest::new(
+            DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+            METRIC_END,
+        );
+
+        let error = build_ic_boundary_node_data_centers_report_with_source(&request, &source)
+            .expect_err("invalid network source data must fail");
+
+        assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+    }
+}
+
+#[test]
 fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
     let source = MetricFixture::default();
     let request = metric_request();
@@ -239,6 +288,20 @@ fn live_metric_source_validates_bounds_before_endpoint_or_http_request() {
 }
 
 #[test]
+fn live_network_source_rejects_invalid_endpoint_before_http_request() {
+    let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
+
+    let error = LiveIcSource
+        .fetch_boundary_node_data_centers(&request)
+        .expect_err("invalid endpoint must fail");
+
+    assert!(matches!(
+        error,
+        IcHostError::InvalidEndpoint { endpoint, .. } if endpoint == "not a URL"
+    ));
+}
+
+#[test]
 fn live_source_rejects_invalid_principal_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
@@ -439,6 +502,68 @@ fn metric_request() -> IcMetricRequest {
             DEFAULT_IC_METRIC_STEP_SECS,
         ),
     )
+}
+
+#[derive(Clone, Copy)]
+enum NetworkMutation {
+    WrongEndpoint,
+    DuplicateId,
+    InvalidLatitude,
+    InvalidNodeCount,
+}
+
+#[derive(Default)]
+struct NetworkFixture {
+    calls: Cell<usize>,
+    mutation: RefCell<Option<NetworkMutation>>,
+}
+
+impl IcNetworkSource for NetworkFixture {
+    fn fetch_boundary_node_data_centers(
+        &self,
+        request: &IcSourceRequest,
+    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        let mut data = IcBoundaryNodeDataCentersSourceData {
+            source: request.clone(),
+            rows: vec![
+                boundary_node_data_center("zh2", "Zurich", "47.3744", "8.541", "2"),
+                boundary_node_data_center("fr1", "Frankfurt", "50.1109", "8.6821", "0"),
+            ],
+        };
+        match self.mutation.borrow_mut().take() {
+            Some(NetworkMutation::WrongEndpoint) => {
+                data.source.endpoint = "https://example.com/api/v4".to_string();
+            }
+            Some(NetworkMutation::DuplicateId) => data.rows[1].dc_id = "zh2".to_string(),
+            Some(NetworkMutation::InvalidLatitude) => {
+                data.rows[0].latitude = "91".to_string();
+            }
+            Some(NetworkMutation::InvalidNodeCount) => {
+                data.rows[0].total_nodes = "2.0".to_string();
+            }
+            None => {}
+        }
+        Ok(data)
+    }
+}
+
+fn boundary_node_data_center(
+    dc_id: &str,
+    name: &str,
+    latitude: &str,
+    longitude: &str,
+    total_nodes: &str,
+) -> IcBoundaryNodeDataCenterRow {
+    IcBoundaryNodeDataCenterRow {
+        dc_id: dc_id.to_string(),
+        name: name.to_string(),
+        owner: "Equinix".to_string(),
+        region: format!("North America,US,{name}"),
+        latitude: latitude.to_string(),
+        longitude: longitude.to_string(),
+        total_nodes: total_nodes.to_string(),
+    }
 }
 
 #[derive(Clone, Copy)]

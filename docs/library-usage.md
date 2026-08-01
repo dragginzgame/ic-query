@@ -96,7 +96,7 @@ built-in live adapters. The official Dashboard, generic ICRC, subnet catalog,
 NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
 list/info/token/params/canister, SNS proposal, and SNS neuron host APIs expose
 this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
-`IcMetricSource`, and narrow ICRC capabilities such as
+`IcMetricSource`, `IcNetworkSource`, and narrow ICRC capabilities such as
 `IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,
 `build_icrc_*_report_with_source`,
@@ -274,6 +274,31 @@ Metric values remain raw strings. The builder validates the official
 time bounds and step, caps each requested series at 1,000 observations, and
 records the same explicit non-certified Dashboard provenance as the canister
 reports.
+
+Finite network resources use a separate focused capability on the same live
+adapter. Boundary-node rows are data-center aggregates, not individual nodes:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+    IcBoundaryNodeDataCentersRequest, IcHostError,
+    build_ic_boundary_node_data_centers_report,
+};
+
+fn boundary_node_data_center_ids(
+    now_unix_secs: u64,
+) -> Result<Vec<String>, IcHostError> {
+    let request = IcBoundaryNodeDataCentersRequest::new(
+        DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+        now_unix_secs,
+    );
+    let report = build_ic_boundary_node_data_centers_report(&request)?;
+    Ok(report.rows.into_iter().map(|row| row.dc_id).collect())
+}
+```
+
+This builder makes one non-paginated REST request, preserves raw location and
+count strings, includes zero-node rows, and never reads or writes a cache.
 
 ## Pure Rendering Example
 

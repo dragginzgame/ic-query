@@ -6,14 +6,30 @@
 
 use crate::ic::{
     IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-    IcCanisterCountReport, IcCanisterCountSourceData, IcCanisterFilters, IcCanisterPageReport,
-    IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterReport, IcCanisterSourceData,
-    IcCanisterUpgrade, IcDashboardReportProvenance, IcHostError, IcMetricQuery, IcMetricReport,
-    IcMetricSeries, IcMetricSourceData, IcSourceRequest, MAX_IC_CANISTER_PAGE_LIMIT,
+    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport,
+    IcBoundaryNodeDataCentersSourceData, IcCanisterCountReport, IcCanisterCountSourceData,
+    IcCanisterFilters, IcCanisterPageReport, IcCanisterPageRow, IcCanisterPageSourceData,
+    IcCanisterReport, IcCanisterSourceData, IcCanisterUpgrade, IcDashboardReportProvenance,
+    IcHostError, IcMetricQuery, IcMetricReport, IcMetricSeries, IcMetricSourceData,
+    IcSourceRequest, MAX_IC_BOUNDARY_NODE_DATA_CENTERS, MAX_IC_CANISTER_PAGE_LIMIT,
     MAX_IC_METRIC_OBSERVATIONS_PER_SERIES, MAX_IC_METRIC_STEP_SECS, MIN_IC_METRIC_TIMESTAMP,
 };
 use candid::Principal;
 use std::collections::HashSet;
+
+///
+/// IcNetworkSource
+///
+/// Source contract for bounded official Dashboard network reports.
+///
+
+pub trait IcNetworkSource {
+    /// Fetch the complete boundary-node data-center resource in one request.
+    fn fetch_boundary_node_data_centers(
+        &self,
+        request: &IcSourceRequest,
+    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError>;
+}
 
 ///
 /// IcMetricSource
@@ -235,6 +251,21 @@ pub(super) fn report_from_source(
     })
 }
 
+pub(super) fn boundary_node_data_centers_report_from_source(
+    request: &IcSourceRequest,
+    mut source: IcBoundaryNodeDataCentersSourceData,
+) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> {
+    validate_provenance(request, &source.source)?;
+    let total_node_count = validate_boundary_node_data_centers(&mut source.rows)?;
+
+    Ok(IcBoundaryNodeDataCentersReport {
+        provenance: report_provenance(source.source),
+        data_center_count: source.rows.len(),
+        total_node_count,
+        rows: source.rows,
+    })
+}
+
 pub(super) fn metric_report_from_source(
     request: &IcSourceRequest,
     query: &IcMetricQuery,
@@ -432,6 +463,72 @@ fn validate_metric_series(
         }
     }
     Ok(())
+}
+
+fn validate_boundary_node_data_centers(
+    rows: &mut [IcBoundaryNodeDataCenterRow],
+) -> Result<u64, IcHostError> {
+    if rows.len() > MAX_IC_BOUNDARY_NODE_DATA_CENTERS {
+        return invalid_source(format!(
+            "source returned {} boundary-node data centers; maximum is {MAX_IC_BOUNDARY_NODE_DATA_CENTERS}",
+            rows.len()
+        ));
+    }
+
+    let mut seen_ids = HashSet::with_capacity(rows.len());
+    let mut total_node_count = 0_u64;
+    for row in rows.iter() {
+        for (field, value) in [
+            ("row.dc_id", row.dc_id.as_str()),
+            ("row.name", row.name.as_str()),
+            ("row.owner", row.owner.as_str()),
+            ("row.region", row.region.as_str()),
+        ] {
+            if value.is_empty() {
+                return invalid_source(format!("{field} must not be empty"));
+            }
+        }
+        if !seen_ids.insert(row.dc_id.as_str()) {
+            return invalid_source(format!("duplicate data-center id {:?}", row.dc_id));
+        }
+        validate_coordinate("row.latitude", &row.latitude, -90.0, 90.0)?;
+        validate_coordinate("row.longitude", &row.longitude, -180.0, 180.0)?;
+
+        let node_count = row.total_nodes.parse::<u64>().map_err(|error| {
+            invalid_source_value(format!(
+                "row.total_nodes {:?} is not an unsigned decimal count: {error}",
+                row.total_nodes
+            ))
+        })?;
+        if node_count.to_string() != row.total_nodes {
+            return invalid_source(format!(
+                "row.total_nodes {:?} is not canonical unsigned decimal text",
+                row.total_nodes
+            ));
+        }
+        total_node_count = total_node_count
+            .checked_add(node_count)
+            .ok_or_else(|| invalid_source_value("boundary-node total overflows u64"))?;
+    }
+    rows.sort_unstable_by(|left, right| left.dc_id.cmp(&right.dc_id));
+    Ok(total_node_count)
+}
+
+fn validate_coordinate(
+    field: &'static str,
+    raw: &str,
+    minimum: f64,
+    maximum: f64,
+) -> Result<(), IcHostError> {
+    let value = raw.parse::<f64>().map_err(|error| {
+        invalid_source_value(format!("{field} {raw:?} is not decimal text: {error}"))
+    })?;
+    if value.is_finite() && (minimum..=maximum).contains(&value) {
+        return Ok(());
+    }
+    invalid_source(format!(
+        "{field} {raw:?} is outside the inclusive range {minimum} through {maximum}"
+    ))
 }
 
 fn metric_observation_limit(query: &IcMetricQuery) -> u64 {

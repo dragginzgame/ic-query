@@ -10,10 +10,13 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
     let count = canister_count_usage();
     let page = canister_page_usage();
     let metrics = metrics_usage();
+    let network = network_usage();
+    let boundary_nodes = boundary_node_data_centers_usage();
 
     assert!(root.contains("Usage: icq ic [COMMAND]"));
     assert!(root.contains("canister"));
     assert!(root.contains("metrics"));
+    assert!(root.contains("network"));
     assert!(canister.contains("Usage: icq ic canister [COMMAND]"));
     assert!(canister.contains("info"));
     assert!(canister.contains("count"));
@@ -31,6 +34,25 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
     assert!(metrics.contains("exactly one official Dashboard Metrics API request"));
     assert!(metrics.contains("capped at 1000 observations"));
     assert!(metrics.contains("off-chain, non-certified API"));
+    assert!(network.contains("Usage: icq ic network [COMMAND]"));
+    assert!(network.contains("boundary-node-data-centers"));
+    assert!(boundary_nodes.contains("Usage: icq ic network boundary-node-data-centers [OPTIONS]"));
+    assert!(boundary_nodes.contains("exactly one official Dashboard v4 request"));
+    assert!(boundary_nodes.contains("locations that currently report zero nodes"));
+}
+
+#[test]
+fn boundary_node_data_center_options_preserve_format_and_endpoint() {
+    let options = NetworkReportOptions::parse_boundary_node_data_centers([
+        OsString::from("--format"),
+        OsString::from("json"),
+        OsString::from("--source-endpoint"),
+        OsString::from("https://example.com/api/v4"),
+    ])
+    .expect("boundary-node options");
+
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, "https://example.com/api/v4");
 }
 
 #[test]
@@ -171,6 +193,8 @@ fn family_and_nested_help_return_without_network_calls() {
         &["canister", "count", "help"],
         &["canister", "page", "help"],
         &["metrics", "help"],
+        &["network", "help"],
+        &["network", "boundary-node-data-centers", "help"],
     ] {
         assert!(run(args.iter().map(OsString::from)).is_ok());
     }

@@ -6,18 +6,37 @@
 
 use crate::{
     ic::{
+        IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
         IcCanisterCollectionSource, IcCanisterCountReport, IcCanisterCountRequest,
         IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport, IcCanisterRequest,
         IcCanisterSource, IcHostError, IcMetricReport, IcMetricRequest, IcMetricSource,
-        IcSourceRequest, LiveIcSource,
+        IcNetworkSource, IcSourceRequest, LiveIcSource,
         source::{
-            canonical_canister_id, canonical_page_cursor, count_report_from_source,
-            metric_report_from_source, normalized_filters, page_report_from_source,
-            report_from_source, validate_metric_request, validate_page_limit,
+            boundary_node_data_centers_report_from_source, canonical_canister_id,
+            canonical_page_cursor, count_report_from_source, metric_report_from_source,
+            normalized_filters, page_report_from_source, report_from_source,
+            validate_metric_request, validate_page_limit,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
 };
+
+/// Build one live boundary-node data-center report from the official Dashboard API.
+pub fn build_ic_boundary_node_data_centers_report(
+    request: &IcBoundaryNodeDataCentersRequest,
+) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> {
+    build_ic_boundary_node_data_centers_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one boundary-node data-center report through a custom Dashboard source.
+pub fn build_ic_boundary_node_data_centers_report_with_source(
+    request: &IcBoundaryNodeDataCentersRequest,
+    source: &dyn IcNetworkSource,
+) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> {
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data = source.fetch_boundary_node_data_centers(&source_request)?;
+    boundary_node_data_centers_report_from_source(&source_request, source_data)
+}
 
 /// Build one live, bounded metric report from the official Dashboard Metrics API.
 pub fn build_ic_metric_report(request: &IcMetricRequest) -> Result<IcMetricReport, IcHostError> {
