@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
 
+- `0.22.4` separates the former monolithic ICRC text renderer into account,
+  ledger-history, and ledger metadata/evidence owners behind one explicit
+  internal facade. The facade retains only shared table-section and alignment
+  mechanics. Existing public renderer paths, text output, report JSON, CLI
+  behavior, feature availability, cache behavior, and network calls are
+  unchanged.
+
 - `0.22.3` separates ICRC request contracts and constructors from serialized
   report/row contracts behind one explicit internal facade. Existing public
   `ic_query::icrc::*` paths, feature availability, type fields and derives,
