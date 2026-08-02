@@ -4,17 +4,19 @@
 //! Does not own: command dispatch, report construction, or output.
 //! Boundary: validates command arguments before dispatch constructs public requests.
 
+#[cfg(test)]
+use super::account::{
+    icrc_account_transaction_cache_status_command, icrc_account_transaction_list_command,
+    icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
+    icrc_allowance_command, icrc_balance_command,
+};
+#[cfg(test)]
+use super::ledger::{icrc_archives_command, icrc_transactions_command};
 use super::{
     FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG,
     LIMIT_ARG, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG,
     PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG, START_ARG,
     SUBACCOUNT_ARG, format_from_matches, source_endpoint_from_matches,
-};
-#[cfg(test)]
-use super::{
-    icrc_account_transaction_cache_status_command, icrc_account_transaction_list_command,
-    icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
-    icrc_allowance_command, icrc_archives_command, icrc_balance_command, icrc_transactions_command,
 };
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option},

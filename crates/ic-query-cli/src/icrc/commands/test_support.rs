@@ -8,14 +8,20 @@ use super::{
     IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
     IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
     IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
-    icrc_account_transaction_cache_status_usage, icrc_account_transaction_cache_usage,
-    icrc_account_transaction_list_usage, icrc_account_transaction_page_usage,
-    icrc_account_transaction_refresh_usage, icrc_account_transaction_usage, icrc_account_usage,
-    icrc_allowance_usage, icrc_archives_usage, icrc_balance_usage, icrc_block_types_command,
-    icrc_block_types_usage, icrc_capabilities_command, icrc_capabilities_usage, icrc_index_command,
-    icrc_index_usage, icrc_ledger_usage, icrc_tip_certificate_command, icrc_tip_certificate_usage,
-    icrc_token_command, icrc_token_usage, icrc_transactions_usage, usage,
+    account::{
+        command as icrc_account_command, icrc_account_transaction_cache_command,
+        icrc_account_transaction_cache_status_command, icrc_account_transaction_command,
+        icrc_account_transaction_list_command, icrc_account_transaction_page_command,
+        icrc_account_transaction_refresh_command, icrc_allowance_command, icrc_balance_command,
+    },
+    command,
+    ledger::{
+        command as icrc_ledger_command, icrc_archives_command, icrc_block_types_command,
+        icrc_capabilities_command, icrc_index_command, icrc_tip_certificate_command,
+        icrc_token_command, icrc_transactions_command,
+    },
 };
+use crate::cli::clap::render_help;
 
 pub(in crate::icrc) fn parse_token_options(args: &[&str]) -> IcrcLedgerOptions {
     parse_ledger_options(args, icrc_token_command, "parse ICRC token options")
@@ -107,73 +113,73 @@ fn parse_ledger_options(
 }
 
 pub(in crate::icrc) fn root_usage() -> String {
-    usage()
+    render_help(command())
 }
 
 pub(in crate::icrc) fn ledger_usage() -> String {
-    icrc_ledger_usage()
+    render_help(icrc_ledger_command())
 }
 
 pub(in crate::icrc) fn account_usage() -> String {
-    icrc_account_usage()
+    render_help(icrc_account_command())
 }
 
 pub(in crate::icrc) fn token_usage() -> String {
-    icrc_token_usage()
+    render_help(icrc_token_command())
 }
 
 pub(in crate::icrc) fn capabilities_usage() -> String {
-    icrc_capabilities_usage()
+    render_help(icrc_capabilities_command())
 }
 
 pub(in crate::icrc) fn balance_usage() -> String {
-    icrc_balance_usage()
+    render_help(icrc_balance_command())
 }
 
 pub(in crate::icrc) fn allowance_usage() -> String {
-    icrc_allowance_usage()
+    render_help(icrc_allowance_command())
 }
 
 pub(in crate::icrc) fn account_transaction_usage() -> String {
-    icrc_account_transaction_usage()
+    render_help(icrc_account_transaction_command())
 }
 
 pub(in crate::icrc) fn account_transaction_page_usage() -> String {
-    icrc_account_transaction_page_usage()
+    render_help(icrc_account_transaction_page_command())
 }
 
 pub(in crate::icrc) fn account_transaction_list_usage() -> String {
-    icrc_account_transaction_list_usage()
+    render_help(icrc_account_transaction_list_command())
 }
 
 pub(in crate::icrc) fn account_transaction_refresh_usage() -> String {
-    icrc_account_transaction_refresh_usage()
+    render_help(icrc_account_transaction_refresh_command())
 }
 
 pub(in crate::icrc) fn account_transaction_cache_usage() -> String {
-    icrc_account_transaction_cache_usage()
+    render_help(icrc_account_transaction_cache_command())
 }
 
 pub(in crate::icrc) fn account_transaction_cache_status_usage() -> String {
-    icrc_account_transaction_cache_status_usage()
+    render_help(icrc_account_transaction_cache_status_command())
 }
 
 pub(in crate::icrc) fn index_usage() -> String {
-    icrc_index_usage()
+    render_help(icrc_index_command())
 }
 
 pub(in crate::icrc) fn transactions_usage() -> String {
-    icrc_transactions_usage()
+    render_help(icrc_transactions_command())
 }
 
 pub(in crate::icrc) fn block_types_usage() -> String {
-    icrc_block_types_usage()
+    render_help(icrc_block_types_command())
 }
 
 pub(in crate::icrc) fn archives_usage() -> String {
-    icrc_archives_usage()
+    render_help(icrc_archives_command())
 }
 
 pub(in crate::icrc) fn tip_certificate_usage() -> String {
-    icrc_tip_certificate_usage()
+    render_help(icrc_tip_certificate_command())
 }
