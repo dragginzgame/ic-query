@@ -6,8 +6,6 @@
 
 use crate::sns::report::{
     SnsCacheListReport, SnsCacheListRequest, SnsHostError, build_sns_cache_list_report,
-    cache_storage::collect_sns_cache_paths,
-    load_sns_cache_summaries,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::SnsProposalsCacheCollection,
     },
@@ -17,15 +15,8 @@ use crate::sns::report::{
 pub fn build_sns_proposals_cache_list_report(
     request: &SnsCacheListRequest,
 ) -> Result<SnsCacheListReport, SnsHostError> {
-    build_sns_cache_list_report(
+    build_sns_cache_list_report::<SnsProposalsCacheCollection>(
         request,
         SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION,
-        |cache_root, network| {
-            let paths =
-                collect_sns_cache_paths::<SnsProposalsCacheCollection>(cache_root, network)?;
-            Ok(load_sns_cache_summaries::<SnsProposalsCacheCollection>(
-                paths, network,
-            ))
-        },
     )
 }

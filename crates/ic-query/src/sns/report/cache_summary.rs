@@ -10,7 +10,9 @@ use crate::{
         SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status,
         cache_paths::{sns_attempt_path_for_cache_path, sns_snapshot_network_cache_dir},
-        cache_storage::{SnsCacheMetadata, SnsCacheStorageFamily, load_sns_cache_at},
+        cache_storage::{
+            SnsCacheMetadata, SnsCacheStorageFamily, collect_sns_cache_paths, load_sns_cache_at,
+        },
         enforce_mainnet_network,
     },
 };
@@ -32,7 +34,7 @@ where
 }
 
 /// Load summaries for a discovered set of SNS snapshot paths.
-pub(in crate::sns::report) fn load_sns_cache_summaries<Family>(
+fn load_sns_cache_summaries<Family>(
     paths: impl IntoIterator<Item = PathBuf>,
     network: &str,
 ) -> Vec<SnsCacheSummary>
@@ -96,16 +98,19 @@ fn invalid_sns_cache_summary(
 }
 
 /// Build a deterministic cache-list report for one SNS cache family.
-pub(in crate::sns::report) fn build_sns_cache_list_report(
+pub(in crate::sns::report) fn build_sns_cache_list_report<Family>(
     request: &SnsCacheListRequest,
     schema_version: u32,
-    list_cache_summaries: impl FnOnce(&Path, &str) -> Result<Vec<SnsCacheSummary>, SnsHostError>,
-) -> Result<SnsCacheListReport, SnsHostError> {
+) -> Result<SnsCacheListReport, SnsHostError>
+where
+    Family: SnsCacheStorageFamily,
+{
     enforce_mainnet_network(&request.network)?;
     let network_cache_root = sns_snapshot_network_cache_dir(&request.cache_root, &request.network)
         .display()
         .to_string();
-    let mut caches = list_cache_summaries(&request.cache_root, &request.network)?;
+    let paths = collect_sns_cache_paths::<Family>(&request.cache_root, &request.network)?;
+    let mut caches = load_sns_cache_summaries::<Family>(paths, &request.network);
     sort_sns_cache_summaries(&mut caches);
     Ok(SnsCacheListReport {
         schema_version,
