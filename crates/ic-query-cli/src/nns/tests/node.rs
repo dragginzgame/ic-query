@@ -1,30 +1,36 @@
 use super::*;
+use crate::cli::clap::render_help;
 
 #[test]
 fn node_list_parses_defaults_and_json_format() {
-    let defaults = node_list_options([]).expect("parse defaults");
+    let defaults = parse_test_options(node_list_command(), &[], node_list_options_from_matches)
+        .expect("parse defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
     assert_eq!(defaults.source_endpoint, DEFAULT_NNS_NODE_SOURCE_ENDPOINT);
     assert!(!defaults.verbose);
 
-    let options = node_list_options([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--verbose"),
-        OsString::from("--data-center"),
-        OsString::from("zh2"),
-        OsString::from("--node-provider"),
-        OsString::from("7at4h"),
-        OsString::from("--node-operator"),
-        OsString::from("4lp6i"),
-        OsString::from("--subnet"),
-        OsString::from("tdb26"),
-        OsString::from("--kind"),
-        OsString::from("system"),
-    ])
+    let options = parse_test_options(
+        node_list_command(),
+        &[
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--verbose",
+            "--data-center",
+            "zh2",
+            "--node-provider",
+            "7at4h",
+            "--node-operator",
+            "4lp6i",
+            "--subnet",
+            "tdb26",
+            "--kind",
+            "system",
+        ],
+        node_list_options_from_matches,
+    )
     .expect("parse node list");
 
     assert_eq!(options.format, OutputFormat::Json);
@@ -39,12 +45,11 @@ fn node_list_parses_defaults_and_json_format() {
 
 #[test]
 fn node_info_parses_input_and_json_format() {
-    let options = node_info_options([
-        OsString::from("ryjl"),
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-    ])
+    let options = parse_test_options(
+        leaf_info_command(&NODE_SPEC, DEFAULT_NNS_NODE_SOURCE_ENDPOINT),
+        &["ryjl", "--json", "--source-endpoint", "https://icp-api.io"],
+        NnsLeafInfoOptions::from_matches,
+    )
     .expect("parse node info");
 
     assert_eq!(options.input, "ryjl");
@@ -55,7 +60,12 @@ fn node_info_parses_input_and_json_format() {
 
 #[test]
 fn node_refresh_parses_defaults_and_export_options() {
-    let defaults = node_refresh_options([]).expect("parse refresh defaults");
+    let defaults = parse_test_options(
+        leaf_refresh_command(&NODE_SPEC, DEFAULT_NNS_NODE_SOURCE_ENDPOINT),
+        &[],
+        NnsLeafRefreshOptions::from_matches,
+    )
+    .expect("parse refresh defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -67,16 +77,20 @@ fn node_refresh_parses_defaults_and_export_options() {
     assert!(!defaults.dry_run);
     assert_eq!(defaults.output_path, None);
 
-    let options = node_refresh_options([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--lock-stale-after"),
-        OsString::from("5m"),
-        OsString::from("--dry-run"),
-        OsString::from("--output"),
-        OsString::from("nodes.preview.json"),
-    ])
+    let options = parse_test_options(
+        leaf_refresh_command(&NODE_SPEC, DEFAULT_NNS_NODE_SOURCE_ENDPOINT),
+        &[
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--lock-stale-after",
+            "5m",
+            "--dry-run",
+            "--output",
+            "nodes.preview.json",
+        ],
+        NnsLeafRefreshOptions::from_matches,
+    )
     .expect("parse node refresh");
 
     assert_eq!(options.format, OutputFormat::Json);
@@ -91,11 +105,17 @@ fn node_refresh_parses_defaults_and_export_options() {
 
 #[test]
 fn node_help_is_advertised_under_nns() {
-    let nns = usage();
-    let node = node_usage();
-    let list = node_list_usage();
-    let info = node_info_usage();
-    let refresh = node_refresh_usage();
+    let nns = render_help(command());
+    let node = render_help(node_command());
+    let list = render_help(node_list_command());
+    let info = render_help(leaf_info_command(
+        &NODE_SPEC,
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
+    ));
+    let refresh = render_help(leaf_refresh_command(
+        &NODE_SPEC,
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
+    ));
 
     assert!(nns.contains("node"));
     assert!(node.contains("List cached mainnet NNS nodes"));

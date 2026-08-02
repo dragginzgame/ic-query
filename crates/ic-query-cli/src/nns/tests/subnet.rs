@@ -148,7 +148,7 @@ fn refresh_is_advertised_as_subnet_command() {
 
 #[test]
 fn nns_namespace_help_mentions_subnet() {
-    let text = usage();
+    let text = render_help(command());
 
     assert!(text.contains("Inspect NNS metadata"));
     assert!(text.contains("subnet"));

@@ -5,10 +5,6 @@
 //! Boundary: converts refresh command arguments into command-runner options.
 
 use super::NnsCommonOptions;
-#[cfg(test)]
-use crate::nns::NnsCommandError;
-#[cfg(test)]
-use crate::nns::leaf::model::NnsLeafCommandSpec;
 use crate::{
     cli::{
         clap::{required_typed, typed_option},
@@ -17,8 +13,6 @@ use crate::{
     nns::leaf::commands::{DRY_RUN_ARG, LOCK_STALE_AFTER_ARG, OUTPUT_ARG},
 };
 use clap::ArgMatches;
-#[cfg(test)]
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 ///
@@ -48,24 +42,5 @@ impl NnsLeafRefreshOptions {
             dry_run: matches.get_flag(DRY_RUN_ARG),
             output_path: typed_option(matches, OUTPUT_ARG),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(
-        args: I,
-        spec: &NnsLeafCommandSpec,
-        default_source_endpoint: &'static str,
-    ) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(
-            crate::nns::leaf::commands::refresh_command(spec, default_source_endpoint),
-            args,
-        )?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

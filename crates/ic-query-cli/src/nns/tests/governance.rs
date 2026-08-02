@@ -29,7 +29,7 @@ fn nns_governance_options_are_shared_across_reports() {
 
 #[test]
 fn nns_governance_help_advertises_native_live_reports() {
-    assert!(usage().contains("governance"));
+    assert!(render_help(command()).contains("governance"));
     let family = render_help(governance_command());
     assert!(family.contains("economics"));
     assert!(family.contains("metrics"));

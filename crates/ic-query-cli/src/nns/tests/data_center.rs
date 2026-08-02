@@ -1,8 +1,14 @@
 use super::*;
+use crate::cli::clap::render_help;
 
 #[test]
 fn data_center_list_parses_defaults_and_json_format() {
-    let defaults = data_center_list_options([]).expect("parse defaults");
+    let defaults = parse_test_options(
+        leaf_list_command(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT),
+        &[],
+        NnsLeafListOptions::from_matches,
+    )
+    .expect("parse defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -12,12 +18,16 @@ fn data_center_list_parses_defaults_and_json_format() {
     );
     assert!(!defaults.verbose);
 
-    let options = data_center_list_options([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--verbose"),
-    ])
+    let options = parse_test_options(
+        leaf_list_command(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT),
+        &[
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--verbose",
+        ],
+        NnsLeafListOptions::from_matches,
+    )
     .expect("parse data-center list");
 
     assert_eq!(options.format, OutputFormat::Json);
@@ -27,12 +37,11 @@ fn data_center_list_parses_defaults_and_json_format() {
 
 #[test]
 fn data_center_info_parses_input_and_json_format() {
-    let options = data_center_info_options([
-        OsString::from("an1"),
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-    ])
+    let options = parse_test_options(
+        leaf_info_command(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT),
+        &["an1", "--json", "--source-endpoint", "https://icp-api.io"],
+        NnsLeafInfoOptions::from_matches,
+    )
     .expect("parse data-center info");
 
     assert_eq!(options.input, "an1");
@@ -43,7 +52,12 @@ fn data_center_info_parses_input_and_json_format() {
 
 #[test]
 fn data_center_refresh_parses_defaults_and_export_options() {
-    let defaults = data_center_refresh_options([]).expect("parse refresh defaults");
+    let defaults = parse_test_options(
+        leaf_refresh_command(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT),
+        &[],
+        NnsLeafRefreshOptions::from_matches,
+    )
+    .expect("parse refresh defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -58,16 +72,20 @@ fn data_center_refresh_parses_defaults_and_export_options() {
     assert!(!defaults.dry_run);
     assert_eq!(defaults.output_path, None);
 
-    let options = data_center_refresh_options([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--lock-stale-after"),
-        OsString::from("5m"),
-        OsString::from("--dry-run"),
-        OsString::from("--output"),
-        OsString::from("data-centers.preview.json"),
-    ])
+    let options = parse_test_options(
+        leaf_refresh_command(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT),
+        &[
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--lock-stale-after",
+            "5m",
+            "--dry-run",
+            "--output",
+            "data-centers.preview.json",
+        ],
+        NnsLeafRefreshOptions::from_matches,
+    )
     .expect("parse data-center refresh");
 
     assert_eq!(options.format, OutputFormat::Json);
@@ -82,11 +100,20 @@ fn data_center_refresh_parses_defaults_and_export_options() {
 
 #[test]
 fn data_center_help_is_advertised_under_nns() {
-    let nns = usage();
-    let data_center = data_center_usage();
-    let list = data_center_list_usage();
-    let info = data_center_info_usage();
-    let refresh = data_center_refresh_usage();
+    let nns = render_help(command());
+    let data_center = render_help(data_center_command());
+    let list = render_help(leaf_list_command(
+        &DATA_CENTER_SPEC,
+        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+    ));
+    let info = render_help(leaf_info_command(
+        &DATA_CENTER_SPEC,
+        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+    ));
+    let refresh = render_help(leaf_refresh_command(
+        &DATA_CENTER_SPEC,
+        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+    ));
 
     assert!(nns.contains("data-center"));
     assert!(data_center.contains("List cached mainnet NNS data centers"));

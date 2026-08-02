@@ -1,34 +1,24 @@
 use super::*;
 use super::{
-    data_center::test_helpers::{
-        data_center_info_options, data_center_info_usage, data_center_list_options,
-        data_center_list_usage, data_center_refresh_options, data_center_refresh_usage,
-        data_center_usage,
-    },
+    data_center::{DATA_CENTER_SPEC, command as data_center_command},
     governance::{
         NnsGovernanceOptions, governance_command, governance_economics_command,
         governance_maturity_modulation_command, governance_metrics_command,
         governance_reward_event_command,
+    },
+    leaf::{
+        NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions,
+        info_command as leaf_info_command, list_command as leaf_list_command,
+        refresh_command as leaf_refresh_command,
     },
     neuron::{
         NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
         neuron_cache_command, neuron_cache_status_command, neuron_command, neuron_info_command,
         neuron_list_command, neuron_refresh_command,
     },
-    node::{
-        node_info_options, node_info_usage, node_list_options, node_list_usage,
-        node_refresh_options, node_refresh_usage, node_usage,
-    },
-    node_operator::test_helpers::{
-        node_operator_info_options, node_operator_info_usage, node_operator_list_options,
-        node_operator_list_usage, node_operator_refresh_options, node_operator_refresh_usage,
-        node_operator_usage,
-    },
-    node_provider::test_helpers::{
-        node_provider_info_options, node_provider_info_usage, node_provider_list_options,
-        node_provider_list_usage, node_provider_refresh_options, node_provider_refresh_usage,
-        node_provider_usage,
-    },
+    node::{NODE_SPEC, node_command, node_list_command, node_list_options_from_matches},
+    node_operator::{NODE_OPERATOR_SPEC, command as node_operator_command},
+    node_provider::{NODE_PROVIDER_SPEC, command as node_provider_command},
     proposals::{
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
         NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_API_LABEL,
@@ -59,6 +49,7 @@ use super::{
         topology_summary_command, topology_versions_command,
     },
 };
+use crate::cli::clap::parse_matches_or_usage;
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::nns::{
     data_center::{
@@ -84,7 +75,8 @@ fn parse_test_options<Options>(
     args: &[&str],
     from_matches: fn(&ArgMatches, &str) -> Options,
 ) -> Result<Options, NnsCommandError> {
-    let matches = parse_nns_matches(command, args.iter().copied().map(OsString::from))?;
+    let matches = parse_matches_or_usage(command, args.iter().copied().map(OsString::from))
+        .map_err(NnsCommandError::Usage)?;
     Ok(from_matches(&matches, MAINNET_NETWORK))
 }
 

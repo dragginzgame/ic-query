@@ -5,17 +5,11 @@
 //! Boundary: converts info command arguments into command-runner options.
 
 use super::NnsCommonOptions;
-#[cfg(test)]
-use crate::nns::NnsCommandError;
-#[cfg(test)]
-use crate::nns::leaf::model::NnsLeafCommandSpec;
 use crate::{
     cli::{clap::required_string, common::OutputFormat},
     nns::leaf::commands::INPUT_ARG,
 };
 use clap::ArgMatches;
-#[cfg(test)]
-use std::ffi::OsString;
 
 ///
 /// NnsLeafInfoOptions
@@ -40,24 +34,5 @@ impl NnsLeafInfoOptions {
             format: common.format,
             source_endpoint: common.source_endpoint,
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(
-        args: I,
-        spec: &NnsLeafCommandSpec,
-        default_source_endpoint: &'static str,
-    ) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(
-            crate::nns::leaf::commands::info_command(spec, default_source_endpoint),
-            args,
-        )?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

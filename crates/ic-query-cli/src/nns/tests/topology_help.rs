@@ -3,7 +3,7 @@ use crate::cli::clap::render_help;
 
 #[test]
 fn topology_help_is_advertised_under_nns() {
-    let nns = usage();
+    let nns = render_help(command());
     let topology = render_help(topology_command());
     let summary = render_help(topology_summary_command());
     let coverage = render_help(topology_coverage_command());

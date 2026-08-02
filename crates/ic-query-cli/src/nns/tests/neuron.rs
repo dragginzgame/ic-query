@@ -94,7 +94,7 @@ fn nns_neuron_rejects_invalid_numeric_values() {
 
 #[test]
 fn nns_neuron_help_advertises_collection_modes_and_commands() {
-    assert!(usage().contains("neuron"));
+    assert!(render_help(command()).contains("neuron"));
     let family = render_help(neuron_command());
     assert!(family.contains("list"));
     assert!(family.contains("info"));

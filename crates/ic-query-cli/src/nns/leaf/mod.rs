@@ -7,7 +7,7 @@ pub(super) use commands::{
     command, command_with_list, list_command, output_path_arg, refresh_lock_stale_after_arg,
 };
 #[cfg(test)]
-pub(super) use commands::{info_usage, list_usage, refresh_usage, usage};
+pub(super) use commands::{info_command, refresh_command};
 pub(super) use model::{NnsLeafCommandSpec, NnsLeafReports};
 #[cfg(test)]
 pub(super) use options::NnsLeafListOptions;

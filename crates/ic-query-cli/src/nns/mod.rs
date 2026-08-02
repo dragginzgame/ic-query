@@ -16,8 +16,6 @@ mod subnet;
 mod tests;
 mod topology;
 
-#[cfg(test)]
-use crate::cli::clap::render_help;
 use crate::{
     cli::common::{CurrentUnixSecsError, OutputFormat, current_unix_secs, write_text_or_json},
     storage::cache_root,
@@ -33,8 +31,6 @@ use ic_query::{
     },
     subnet_catalog::SubnetCatalogHostError,
 };
-#[cfg(test)]
-use std::ffi::OsString;
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
 
@@ -92,17 +88,6 @@ pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsCommand
     }
 }
 
-#[cfg(test)]
-pub(in crate::nns) fn parse_nns_matches<I>(
-    command: ClapCommand,
-    args: I,
-) -> Result<ArgMatches, NnsCommandError>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    crate::cli::clap::parse_matches_or_usage(command, args).map_err(NnsCommandError::Usage)
-}
-
 fn now_unix_secs() -> Result<u64, NnsCommandError> {
     Ok(current_unix_secs()?)
 }
@@ -125,9 +110,4 @@ pub fn command() -> ClapCommand {
         .subcommand(proposals::command())
         .subcommand(registry::command())
         .subcommand(topology::command())
-}
-
-#[cfg(test)]
-fn usage() -> String {
-    render_help(command())
 }

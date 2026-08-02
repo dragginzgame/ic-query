@@ -22,7 +22,7 @@ Examples:
   icq --network ic nns node-provider refresh --json
   icq nns node-provider refresh --dry-run --output /tmp/icq-node-providers.preview.json";
 
-pub(super) const NODE_PROVIDER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
+pub(in crate::nns) const NODE_PROVIDER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "node-provider",
     bin_name: "icq nns node-provider",
     about: "Inspect NNS node-provider metadata",

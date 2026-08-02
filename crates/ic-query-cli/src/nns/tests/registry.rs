@@ -30,7 +30,7 @@ fn registry_version_parses_defaults_and_json_format() {
 
 #[test]
 fn registry_help_is_advertised_under_nns() {
-    let nns = usage();
+    let nns = render_help(command());
     let registry = render_help(registry_command());
     let version = render_help(registry_version_command());
 

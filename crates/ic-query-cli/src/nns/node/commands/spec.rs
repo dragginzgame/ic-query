@@ -25,7 +25,7 @@ Examples:
   icq --network ic nns node refresh --json
   icq nns node refresh --dry-run --output /tmp/icq-nodes.preview.json";
 
-pub(in crate::nns::node) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
+pub(in crate::nns) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "node",
     bin_name: "icq nns node",
     about: "Inspect NNS node metadata",

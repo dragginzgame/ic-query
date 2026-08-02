@@ -22,7 +22,7 @@ Examples:
   icq --network ic nns data-center refresh --json
   icq nns data-center refresh --dry-run --output /tmp/icq-data-centers.preview.json";
 
-pub(super) const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
+pub(in crate::nns) const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "data-center",
     bin_name: "icq nns data-center",
     about: "Inspect NNS data-center metadata",

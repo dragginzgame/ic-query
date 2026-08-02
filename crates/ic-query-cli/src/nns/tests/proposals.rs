@@ -6,7 +6,8 @@ fn parse_proposal_matches(
     command: ClapCommand,
     args: &[&str],
 ) -> Result<ArgMatches, NnsCommandError> {
-    parse_nns_matches(command, args.iter().copied().map(std::ffi::OsString::from))
+    parse_matches_or_usage(command, args.iter().copied().map(std::ffi::OsString::from))
+        .map_err(NnsCommandError::Usage)
 }
 
 fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsCommandError> {
@@ -254,7 +255,7 @@ fn nns_proposal_cache_options_parse_json_format() {
 
 #[test]
 fn nns_proposal_help_is_advertised_under_nns() {
-    let nns = usage();
+    let nns = render_help(command());
     let proposal = render_help(nns_proposal_command());
     let proposal_list = render_help(nns_proposal_list_command());
     let proposal_info = render_help(nns_proposal_info_command());

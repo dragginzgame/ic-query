@@ -8,7 +8,7 @@ use super::{
 use crate::nns::leaf;
 use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
 
-pub(in crate::nns::node) fn node_list_command() -> clap::Command {
+pub(in crate::nns) fn node_list_command() -> clap::Command {
     leaf::list_command(&NODE_SPEC, DEFAULT_NNS_NODE_SOURCE_ENDPOINT)
         .arg(subnet_filter_arg())
         .arg(subnet_kind_filter_arg())

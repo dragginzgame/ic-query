@@ -22,7 +22,7 @@ Examples:
   icq --network ic nns node-operator refresh --json
   icq nns node-operator refresh --dry-run --output /tmp/icq-node-operators.preview.json";
 
-pub(super) const NODE_OPERATOR_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
+pub(in crate::nns) const NODE_OPERATOR_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "node-operator",
     bin_name: "icq nns node-operator",
     about: "Inspect NNS node-operator metadata",
