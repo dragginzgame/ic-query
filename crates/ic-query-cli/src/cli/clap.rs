@@ -15,15 +15,6 @@ where
     command.try_get_matches_from(std::iter::once(OsString::from(name)).chain(args))
 }
 
-#[cfg(test)]
-pub fn parse_matches_or_usage<I>(command: Command, args: I) -> Result<ArgMatches, String>
-where
-    I: IntoIterator<Item = OsString>,
-{
-    let mut help_command = command.clone();
-    parse_matches(command, args).map_err(|error| format!("{error}\n{}", help_command.render_help()))
-}
-
 pub fn value_arg(id: &'static str) -> Arg {
     Arg::new(id).num_args(1)
 }

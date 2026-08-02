@@ -6,8 +6,7 @@ fn parse_proposal_matches(
     command: ClapCommand,
     args: &[&str],
 ) -> Result<ArgMatches, NnsCommandError> {
-    parse_matches_or_usage(command, args.iter().copied().map(std::ffi::OsString::from))
-        .map_err(NnsCommandError::Usage)
+    parse_test_matches(command, args)
 }
 
 fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsCommandError> {

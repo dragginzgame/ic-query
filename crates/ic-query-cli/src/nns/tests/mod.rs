@@ -49,7 +49,7 @@ use super::{
         topology_summary_command, topology_versions_command,
     },
 };
-use crate::cli::clap::parse_matches_or_usage;
+use crate::cli::clap::parse_matches;
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::nns::{
     data_center::{
@@ -75,9 +75,13 @@ fn parse_test_options<Options>(
     args: &[&str],
     from_matches: fn(&ArgMatches, &str) -> Options,
 ) -> Result<Options, NnsCommandError> {
-    let matches = parse_matches_or_usage(command, args.iter().copied().map(OsString::from))
-        .map_err(NnsCommandError::Usage)?;
+    let matches = parse_test_matches(command, args)?;
     Ok(from_matches(&matches, MAINNET_NETWORK))
+}
+
+fn parse_test_matches(command: ClapCommand, args: &[&str]) -> Result<ArgMatches, NnsCommandError> {
+    parse_matches(command, args.iter().copied().map(OsString::from))
+        .map_err(|error| NnsCommandError::Usage(error.to_string()))
 }
 
 mod data_center;

@@ -11,7 +11,7 @@ use super::commands::{
     icrc_transactions_command,
 };
 use crate::cli::{
-    clap::{parse_matches_or_usage, render_help},
+    clap::{parse_matches, render_help},
     common::OutputFormat,
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -28,9 +28,8 @@ fn parse_test_options<Options>(
     args: &[&str],
     from_matches: fn(&ArgMatches) -> Options,
 ) -> Options {
-    let matches =
-        parse_matches_or_usage(command, args.iter().copied().map(std::ffi::OsString::from))
-            .expect("parse ICRC test options");
+    let matches = parse_matches(command, args.iter().copied().map(std::ffi::OsString::from))
+        .expect("parse ICRC test options");
     from_matches(&matches)
 }
 

@@ -63,11 +63,11 @@ fn parse_test_options<Options>(
     args: &[&str],
     from_matches: fn(&ArgMatches) -> Options,
 ) -> Result<Options, IcCommandError> {
-    let matches = crate::cli::clap::parse_matches_or_usage(
+    let matches = crate::cli::clap::parse_matches(
         command,
         args.iter().copied().map(std::ffi::OsString::from),
     )
-    .map_err(IcCommandError::Usage)?;
+    .map_err(|error| IcCommandError::Usage(error.to_string()))?;
     Ok(from_matches(&matches))
 }
 

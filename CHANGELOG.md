@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.19` removes the final shared test-only Clap error augmenter and three
+  System help forwarders. Tests now retain Clap’s native diagnostics without
+  cloning and rendering complete commands on parse failures, while System help
+  assertions render production builders directly. Production behavior is
+  unchanged.
+
 - `0.25.18` removes the ICRC test-support facade and its 13 type-specific
   parser adapters plus 18 help forwarders. ICRC tests now use one generic
   production-Clap harness and render command builders directly; production

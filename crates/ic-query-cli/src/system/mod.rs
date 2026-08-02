@@ -1,7 +1,5 @@
 //! System-canister command-line parsing and dispatch.
 
-#[cfg(test)]
-use crate::cli::clap::render_help;
 use crate::cli::{
     clap::required_string,
     common::{
@@ -122,42 +120,30 @@ fn report_command(name: &'static str, about: &'static str, examples: &'static st
 }
 
 #[cfg(test)]
-fn system_usage() -> String {
-    render_help(command())
-}
-
-#[cfg(test)]
-fn xdr_usage() -> String {
-    render_help(report_command(
-        "xdr",
-        "Show the certified CMC ICP/XDR conversion rate",
-        XDR_HELP_AFTER,
-    ))
-}
-
-#[cfg(test)]
-fn cycles_usage() -> String {
-    render_help(report_command(
-        "cycles",
-        "Show cycles conversions derived from the certified CMC rate",
-        CYCLES_HELP_AFTER,
-    ))
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::clap::parse_matches_or_usage;
+    use crate::cli::clap::{parse_matches, render_help};
     use std::ffi::OsString;
 
     #[test]
     fn usage_describes_bounded_native_reports() {
-        let text = system_usage();
+        let text = render_help(command());
         assert!(text.contains("Usage: icq system <COMMAND>"));
         assert!(text.contains("xdr"));
         assert!(text.contains("cycles"));
 
-        for text in [xdr_usage(), cycles_usage()] {
+        for text in [
+            render_help(report_command(
+                "xdr",
+                "Show the certified CMC ICP/XDR conversion rate",
+                XDR_HELP_AFTER,
+            )),
+            render_help(report_command(
+                "cycles",
+                "Show cycles conversions derived from the certified CMC rate",
+                CYCLES_HELP_AFTER,
+            )),
+        ] {
             assert!(text.contains("--source-endpoint <url>"));
             assert!(text.contains("--json"));
             assert!(text.contains(COLLECTION_MODE_LIVE));
@@ -178,7 +164,7 @@ mod tests {
 
     #[test]
     fn report_options_default_to_mainnet_and_native_endpoint() {
-        let matches = parse_matches_or_usage(
+        let matches = parse_matches(
             report_command("xdr", "test", XDR_HELP_AFTER),
             Vec::<OsString>::new(),
         )
