@@ -2,14 +2,10 @@ use super::*;
 
 #[test]
 fn sns_canister_list_parses_lookup_and_json_format() {
-    let options = SnsLookupOptions::parse(
-        [
-            OsString::from("1"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://icp-api.io"),
-        ],
-        sns_canister_list_command,
+    let options = parse_test_options(
+        sns_canister_list_command(),
+        &["1", "--json", "--source-endpoint", "https://icp-api.io"],
+        SnsLookupOptions::from_matches,
     )
     .expect("parse canister list");
 
@@ -22,9 +18,10 @@ fn sns_canister_list_parses_lookup_and_json_format() {
 #[test]
 fn sns_canister_list_rejects_invalid_lookup() {
     assert!(matches!(
-        SnsLookupOptions::parse(
-            [OsString::from("not-a-principal")],
-            sns_canister_list_command,
+        parse_test_options(
+            sns_canister_list_command(),
+            &["not-a-principal"],
+            SnsLookupOptions::from_matches,
         ),
         Err(SnsCommandError::Usage(_))
     ));

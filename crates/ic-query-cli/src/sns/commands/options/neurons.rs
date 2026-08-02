@@ -4,14 +4,6 @@
 //! Does not own: neuron cache policy, live governance reads, or reports.
 //! Boundary: validates clap matches into neuron command request inputs.
 
-#[cfg(test)]
-use crate::sns::commands::{
-    options::common::parse_sns_matches,
-    spec::{
-        sns_neuron_cache_list_command, sns_neuron_cache_status_command, sns_neuron_list_command,
-        sns_neuron_refresh_command,
-    },
-};
 use crate::{
     cli::{
         clap::{required_string, required_typed, typed_option},
@@ -21,8 +13,6 @@ use crate::{
 };
 use candid::Principal;
 use clap::ArgMatches;
-#[cfg(test)]
-use std::ffi::OsString;
 
 const SNS_NEURONS_LIVE_MAX_LIMIT: u32 = 100;
 
@@ -96,15 +86,6 @@ impl SnsNeuronsOptions {
         Ok(options)
     }
 
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_neuron_list_command(), args)?;
-        Self::from_matches(&matches, ic_query::subnet_catalog::MAINNET_NETWORK)
-    }
-
     fn validate(&self) -> Result<(), SnsCommandError> {
         if self.sort == SnsNeuronsSortArg::Api && self.limit > SNS_NEURONS_LIVE_MAX_LIMIT {
             return Err(SnsCommandError::Usage(format!(
@@ -127,18 +108,6 @@ impl SnsNeuronsCacheListOptions {
             format: output_format(matches),
         }
     }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_neuron_cache_list_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
-    }
 }
 
 impl SnsNeuronsCacheStatusOptions {
@@ -149,18 +118,6 @@ impl SnsNeuronsCacheStatusOptions {
             format: output_format(matches),
         }
     }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_neuron_cache_status_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
-    }
 }
 
 impl SnsNeuronsRefreshOptions {
@@ -170,17 +127,5 @@ impl SnsNeuronsRefreshOptions {
             page_size: required_typed(matches, "page-size"),
             max_pages: typed_option::<u32>(matches, "max-pages"),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_neuron_refresh_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

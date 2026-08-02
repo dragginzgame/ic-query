@@ -2,14 +2,10 @@ use super::*;
 
 #[test]
 fn sns_info_parses_input_and_json_format() {
-    let options = SnsLookupOptions::parse(
-        [
-            OsString::from("1"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://icp-api.io"),
-        ],
-        sns_info_command,
+    let options = parse_test_options(
+        sns_info_command(),
+        &["1", "--json", "--source-endpoint", "https://icp-api.io"],
+        SnsLookupOptions::from_matches,
     )
     .expect("parse info");
 
@@ -21,14 +17,18 @@ fn sns_info_parses_input_and_json_format() {
 
 #[test]
 fn sns_metrics_parses_bounded_window_and_shared_lookup_options() {
-    let options = SnsMetricsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--window"),
-        OsString::from("90d"),
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-    ])
+    let options = parse_test_options(
+        sns_metrics_command(),
+        &[
+            "1",
+            "--window",
+            "90d",
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+        ],
+        SnsMetricsOptions::from_matches,
+    )
     .expect("parse metrics");
 
     assert_eq!(options.lookup.input, "1");
@@ -40,21 +40,22 @@ fn sns_metrics_parses_bounded_window_and_shared_lookup_options() {
 
 #[test]
 fn sns_metrics_uses_the_default_thirty_day_window() {
-    let options = SnsMetricsOptions::parse([OsString::from("1")]).expect("parse metrics");
+    let options = parse_test_options(
+        sns_metrics_command(),
+        &["1"],
+        SnsMetricsOptions::from_matches,
+    )
+    .expect("parse metrics");
 
     assert_eq!(options.time_window_seconds, 30 * 86_400);
 }
 
 #[test]
 fn sns_token_parses_input_and_json_format() {
-    let options = SnsLookupOptions::parse(
-        [
-            OsString::from("1"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://icp-api.io"),
-        ],
-        sns_token_command,
+    let options = parse_test_options(
+        sns_token_command(),
+        &["1", "--json", "--source-endpoint", "https://icp-api.io"],
+        SnsLookupOptions::from_matches,
     )
     .expect("parse token");
 
@@ -66,14 +67,10 @@ fn sns_token_parses_input_and_json_format() {
 
 #[test]
 fn sns_params_parses_input_and_json_format() {
-    let options = SnsLookupOptions::parse(
-        [
-            OsString::from("1"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://icp-api.io"),
-        ],
-        sns_params_command,
+    let options = parse_test_options(
+        sns_params_command(),
+        &["1", "--json", "--source-endpoint", "https://icp-api.io"],
+        SnsLookupOptions::from_matches,
     )
     .expect("parse params");
 
@@ -85,14 +82,10 @@ fn sns_params_parses_input_and_json_format() {
 
 #[test]
 fn sns_swap_parses_input_and_json_format() {
-    let options = SnsLookupOptions::parse(
-        [
-            OsString::from("1"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://icp-api.io"),
-        ],
-        sns_swap_command,
+    let options = parse_test_options(
+        sns_swap_command(),
+        &["1", "--json", "--source-endpoint", "https://icp-api.io"],
+        SnsLookupOptions::from_matches,
     )
     .expect("parse swap");
 
@@ -104,14 +97,10 @@ fn sns_swap_parses_input_and_json_format() {
 
 #[test]
 fn sns_upgrade_parses_input_and_json_format() {
-    let options = SnsLookupOptions::parse(
-        [
-            OsString::from("1"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://icp-api.io"),
-        ],
-        sns_upgrade_command,
+    let options = parse_test_options(
+        sns_upgrade_command(),
+        &["1", "--json", "--source-endpoint", "https://icp-api.io"],
+        SnsLookupOptions::from_matches,
     )
     .expect("parse upgrade");
 

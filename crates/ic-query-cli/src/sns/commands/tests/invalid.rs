@@ -3,89 +3,113 @@ use super::*;
 #[test]
 fn sns_neurons_rejects_invalid_clap_values() {
     assert!(matches!(
-        SnsLookupOptions::parse([OsString::from("not-a-principal")], sns_info_command,),
+        parse_test_options(
+            sns_info_command(),
+            &["not-a-principal"],
+            SnsLookupOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsLookupOptions::parse([OsString::from("0")], sns_token_command),
+        parse_test_options(sns_token_command(), &["0"], SnsLookupOptions::from_matches,),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsNeuronsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--limit"),
-            OsString::from("0"),
-        ]),
+        parse_fallible_test_options(
+            sns_neuron_list_command(),
+            &["1", "--limit", "0"],
+            SnsNeuronsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsNeuronsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--limit"),
-            OsString::from("101"),
-        ]),
+        parse_fallible_test_options(
+            sns_neuron_list_command(),
+            &["1", "--limit", "101"],
+            SnsNeuronsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsNeuronsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--owner"),
-            OsString::from("not-a-principal"),
-        ]),
+        parse_fallible_test_options(
+            sns_neuron_list_command(),
+            &["1", "--owner", "not-a-principal"],
+            SnsNeuronsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsNeuronsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--owner"),
-            OsString::from("zqfso-syaaa-aaaaq-aaafq-cai"),
-            OsString::from("--sort"),
-            OsString::from("stake"),
-        ]),
+        parse_fallible_test_options(
+            sns_neuron_list_command(),
+            &[
+                "1",
+                "--owner",
+                "zqfso-syaaa-aaaaq-aaafq-cai",
+                "--sort",
+                "stake",
+            ],
+            SnsNeuronsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsNeuronsRefreshOptions::parse([
-            OsString::from("1"),
-            OsString::from("--page-size"),
-            OsString::from("0"),
-        ]),
+        parse_test_options(
+            sns_neuron_refresh_command(),
+            &["1", "--page-size", "0"],
+            SnsNeuronsRefreshOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsNeuronsCacheStatusOptions::parse([OsString::from("not-a-principal")]),
+        parse_test_options(
+            sns_neuron_cache_status_command(),
+            &["not-a-principal"],
+            SnsNeuronsCacheStatusOptions::from_matches,
+        ),
+        Err(SnsCommandError::Usage(_))
+    ));
+}
+
+#[test]
+fn sns_proposals_reject_invalid_clap_values() {
+    assert!(matches!(
+        parse_fallible_test_options(
+            sns_proposal_list_command(),
+            &["1", "--limit", "101"],
+            SnsProposalsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsProposalsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--limit"),
-            OsString::from("101"),
-        ]),
+        parse_fallible_test_options(
+            sns_proposal_list_command(),
+            &["1", "--status", "not-a-status"],
+            SnsProposalsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsProposalsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--status"),
-            OsString::from("not-a-status"),
-        ]),
+        parse_fallible_test_options(
+            sns_proposal_list_command(),
+            &["1", "--topic", "not-a-topic"],
+            SnsProposalsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsProposalsOptions::parse([
-            OsString::from("1"),
-            OsString::from("--topic"),
-            OsString::from("not-a-topic"),
-        ]),
+        parse_fallible_test_options(
+            sns_proposal_list_command(),
+            &["1", "--asc"],
+            SnsProposalsOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        SnsProposalsOptions::parse([OsString::from("1"), OsString::from("--asc"),]),
-        Err(SnsCommandError::Usage(_))
-    ));
-    assert!(matches!(
-        SnsProposalOptions::parse([OsString::from("1"), OsString::from("0")]),
+        parse_test_options(
+            sns_proposal_info_command(),
+            &["1", "0"],
+            SnsProposalOptions::from_matches,
+        ),
         Err(SnsCommandError::Usage(_))
     ));
 }
@@ -94,11 +118,11 @@ fn sns_neurons_rejects_invalid_clap_values() {
 fn sns_metrics_rejects_invalid_or_excessive_windows() {
     for value in ["0", "1.5h", "366d"] {
         assert!(matches!(
-            SnsMetricsOptions::parse([
-                OsString::from("1"),
-                OsString::from("--window"),
-                OsString::from(value),
-            ]),
+            parse_test_options(
+                sns_metrics_command(),
+                &["1", "--window", value],
+                SnsMetricsOptions::from_matches,
+            ),
             Err(SnsCommandError::Usage(_))
         ));
     }

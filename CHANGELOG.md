@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.17` removes SNS option parsers and 22 help-rendering functions that
+  existed only for tests. Focused SNS tests now share production-Clap harnesses
+  and render the supported command builders directly; production behavior is
+  unchanged.
+
 - `0.25.16` removes the remaining test-only helper macro, option parsers, and
   help forwarders from the generic NNS Registry-leaf command families. Node,
   node-provider, node-operator, and data-center tests now exercise production

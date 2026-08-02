@@ -4,14 +4,6 @@
 //! Does not own: proposal command specs, proposal cache policy, or reports.
 //! Boundary: validates clap matches into proposal command request inputs.
 
-#[cfg(test)]
-use crate::sns::commands::{
-    options::common::parse_sns_matches,
-    spec::{
-        sns_proposal_cache_list_command, sns_proposal_cache_status_command,
-        sns_proposal_info_command, sns_proposal_list_command, sns_proposal_refresh_command,
-    },
-};
 use crate::{
     cli::{
         clap::{required_string, required_typed, string_option, typed_option},
@@ -28,8 +20,6 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::sns::{SnsProposalSortDirection, SnsProposalsSort};
-#[cfg(test)]
-use std::ffi::OsString;
 
 ///
 /// SnsProposalsOptions
@@ -126,15 +116,6 @@ impl SnsProposalsOptions {
             verbose: matches.get_flag("verbose"),
         })
     }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_proposal_list_command(), args)?;
-        Self::from_matches(&matches, ic_query::subnet_catalog::MAINNET_NETWORK)
-    }
 }
 
 fn proposal_sort_direction(
@@ -172,18 +153,6 @@ impl SnsProposalOptions {
             show_ballots: matches.get_flag("ballots"),
         }
     }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_proposal_info_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
-    }
 }
 
 impl SnsProposalsCacheListOptions {
@@ -192,18 +161,6 @@ impl SnsProposalsCacheListOptions {
             network: network.to_string(),
             format: output_format(matches),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_proposal_cache_list_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }
 
@@ -215,18 +172,6 @@ impl SnsProposalsCacheStatusOptions {
             format: output_format(matches),
         }
     }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_proposal_cache_status_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
-    }
 }
 
 impl SnsProposalsRefreshOptions {
@@ -236,17 +181,5 @@ impl SnsProposalsRefreshOptions {
             page_size: required_typed(matches, "page-size"),
             max_pages: typed_option::<u32>(matches, "max-pages"),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_proposal_refresh_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

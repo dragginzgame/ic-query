@@ -4,10 +4,6 @@
 //! Does not own: deployed SNS lookup, report construction, or text output.
 //! Boundary: converts clap matches into the SNS list request inputs.
 
-#[cfg(test)]
-use crate::sns::commands::{
-    SnsCommandError, options::common::parse_sns_matches, spec::sns_list_command,
-};
 use crate::{
     cli::{
         clap::{required_string, required_typed},
@@ -16,8 +12,6 @@ use crate::{
     sns::commands::spec::SnsListSortArg,
 };
 use clap::ArgMatches;
-#[cfg(test)]
-use std::ffi::OsString;
 
 ///
 /// SnsListOptions
@@ -43,17 +37,5 @@ impl SnsListOptions {
             verbose: matches.get_flag("verbose"),
             sort: required_typed(matches, "sort"),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::sns::commands) fn parse<I>(args: I) -> Result<Self, SnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_sns_matches(sns_list_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

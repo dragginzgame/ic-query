@@ -1,26 +1,27 @@
 use super::*;
+use crate::cli::clap::render_help;
 
 #[test]
 fn sns_help_is_advertised() {
-    let sns = usage();
-    let list = sns_list_usage();
-    let info = sns_info_usage();
-    let token = sns_token_usage();
-    let params = sns_params_usage();
-    let canister = sns_canister_usage();
-    let canister_list = sns_canister_list_usage();
-    let proposal = sns_proposal_usage();
-    let proposal_info = sns_proposal_info_usage();
-    let proposal_list = sns_proposal_list_usage();
-    let proposal_cache_list = sns_proposal_cache_list_usage();
-    let proposal_cache_status = sns_proposal_cache_status_usage();
-    let proposal_refresh = sns_proposal_refresh_usage();
-    let neuron = sns_neuron_usage();
-    let neuron_list = sns_neuron_list_usage();
-    let neuron_cache = sns_neuron_cache_usage();
-    let neuron_cache_list = sns_neuron_cache_list_usage();
-    let neuron_cache_status = sns_neuron_cache_status_usage();
-    let neuron_refresh = sns_neuron_refresh_usage();
+    let sns = render_help(sns_command());
+    let list = render_help(sns_list_command());
+    let info = render_help(sns_info_command());
+    let token = render_help(sns_token_command());
+    let params = render_help(sns_params_command());
+    let canister = render_help(sns_canister_command());
+    let canister_list = render_help(sns_canister_list_command());
+    let proposal = render_help(sns_proposal_command());
+    let proposal_info = render_help(sns_proposal_info_command());
+    let proposal_list = render_help(sns_proposal_list_command());
+    let proposal_cache_list = render_help(sns_proposal_cache_list_command());
+    let proposal_cache_status = render_help(sns_proposal_cache_status_command());
+    let proposal_refresh = render_help(sns_proposal_refresh_command());
+    let neuron = render_help(sns_neuron_command());
+    let neuron_list = render_help(sns_neuron_list_command());
+    let neuron_cache = render_help(sns_neuron_cache_command());
+    let neuron_cache_list = render_help(sns_neuron_cache_list_command());
+    let neuron_cache_status = render_help(sns_neuron_cache_status_command());
+    let neuron_refresh = render_help(sns_neuron_refresh_command());
 
     assert!(sns.contains("list"));
     assert!(sns.contains("info"));
@@ -107,8 +108,8 @@ fn sns_help_is_advertised() {
 
 #[test]
 fn sns_upgrade_help_is_advertised() {
-    let sns = usage();
-    let upgrade = sns_upgrade_usage();
+    let sns = render_help(sns_command());
+    let upgrade = render_help(sns_upgrade_command());
 
     assert!(sns.contains("upgrade"));
     assert!(sns.contains("Show the running SNS version"));
@@ -122,8 +123,8 @@ fn sns_upgrade_help_is_advertised() {
 
 #[test]
 fn sns_metrics_help_is_bounded_and_explicit() {
-    let sns = usage();
-    let metrics = sns_metrics_usage();
+    let sns = render_help(sns_command());
+    let metrics = render_help(sns_metrics_command());
 
     assert!(sns.contains("metrics"));
     assert!(sns.contains("Show bounded native Governance metrics"));
@@ -140,8 +141,8 @@ fn sns_metrics_help_is_bounded_and_explicit() {
 
 #[test]
 fn sns_swap_help_is_advertised() {
-    let sns = usage();
-    let swap = sns_swap_usage();
+    let sns = render_help(sns_command());
+    let swap = render_help(sns_swap_command());
 
     assert!(sns.contains("swap"));
     assert!(sns.contains("Show bounded SNS swap lifecycle"));
@@ -175,5 +176,5 @@ Examples:
   icq sns list --source-endpoint https://icp-api.io
 ";
 
-    assert_snapshot("sns list usage", &sns_list_usage(), expected);
+    assert_snapshot("sns list usage", &render_help(sns_list_command()), expected);
 }

@@ -4,8 +4,6 @@
 //! Does not own: clap command definitions, command dispatch, or reports.
 //! Boundary: keeps parsed command inputs scoped to SNS runtime code.
 
-#[cfg(test)]
-mod common;
 mod list;
 mod lookup;
 mod metrics;

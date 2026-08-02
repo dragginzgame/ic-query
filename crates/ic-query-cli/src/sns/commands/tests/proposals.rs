@@ -1,30 +1,38 @@
 use super::*;
 
+fn parse_proposals(args: &[&str]) -> Result<SnsProposalsOptions, SnsCommandError> {
+    parse_fallible_test_options(
+        sns_proposal_list_command(),
+        args,
+        SnsProposalsOptions::from_matches,
+    )
+}
+
 #[test]
 fn sns_proposals_parses_filters_and_json_format() {
-    let options = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--limit"),
-        OsString::from("50"),
-        OsString::from("--before"),
-        OsString::from("100"),
-        OsString::from("--status"),
-        OsString::from("decided"),
-        OsString::from("--topic"),
-        OsString::from("governance"),
-        OsString::from("--eligible"),
-        OsString::from("yes"),
-        OsString::from("--proposer"),
-        OsString::from("00010203"),
-        OsString::from("--query"),
-        OsString::from("treasury"),
-        OsString::from("--sort"),
-        OsString::from("decided"),
-        OsString::from("--asc"),
-        OsString::from("--verbose"),
+    let options = parse_proposals(&[
+        "1",
+        "--json",
+        "--source-endpoint",
+        "https://icp-api.io",
+        "--limit",
+        "50",
+        "--before",
+        "100",
+        "--status",
+        "decided",
+        "--topic",
+        "governance",
+        "--eligible",
+        "yes",
+        "--proposer",
+        "00010203",
+        "--query",
+        "treasury",
+        "--sort",
+        "decided",
+        "--asc",
+        "--verbose",
     ])
     .expect("parse proposals");
 
@@ -46,104 +54,58 @@ fn sns_proposals_parses_filters_and_json_format() {
 
 #[test]
 fn sns_proposals_parses_local_sort_defaults_and_directions() {
-    let title = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("title"),
-    ])
-    .expect("parse title proposal sort");
+    let title = parse_proposals(&["1", "--sort", "title"]).expect("parse title proposal sort");
 
     assert_eq!(title.sort, SnsProposalsSortArg::Title);
     assert_eq!(title.sort_direction, SnsProposalSortDirection::Asc);
 
-    let action = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("action"),
-    ])
-    .expect("parse action proposal sort");
+    let action = parse_proposals(&["1", "--sort", "action"]).expect("parse action proposal sort");
 
     assert_eq!(action.sort, SnsProposalsSortArg::Action);
     assert_eq!(action.sort_direction, SnsProposalSortDirection::Asc);
 
-    let status = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("status"),
-    ])
-    .expect("parse status proposal sort");
+    let status = parse_proposals(&["1", "--sort", "status"]).expect("parse status proposal sort");
 
     assert_eq!(status.sort, SnsProposalsSortArg::Status);
     assert_eq!(status.sort_direction, SnsProposalSortDirection::Asc);
 
-    let topic = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("topic"),
-    ])
-    .expect("parse topic proposal sort");
+    let topic = parse_proposals(&["1", "--sort", "topic"]).expect("parse topic proposal sort");
 
     assert_eq!(topic.sort, SnsProposalsSortArg::Topic);
     assert_eq!(topic.sort_direction, SnsProposalSortDirection::Asc);
 
-    let proposer = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("proposer"),
-    ])
-    .expect("parse proposer proposal sort");
+    let proposer =
+        parse_proposals(&["1", "--sort", "proposer"]).expect("parse proposer proposal sort");
 
     assert_eq!(proposer.sort, SnsProposalsSortArg::Proposer);
     assert_eq!(proposer.sort_direction, SnsProposalSortDirection::Asc);
 
-    let title_desc = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("title"),
-        OsString::from("--desc"),
-    ])
-    .expect("parse descending title proposal sort");
+    let title_desc = parse_proposals(&["1", "--sort", "title", "--desc"])
+        .expect("parse descending title proposal sort");
 
     assert_eq!(title_desc.sort, SnsProposalsSortArg::Title);
     assert_eq!(title_desc.sort_direction, SnsProposalSortDirection::Desc);
 
-    let total_votes = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("total-votes"),
-    ])
-    .expect("parse total-votes proposal sort");
+    let total_votes =
+        parse_proposals(&["1", "--sort", "total-votes"]).expect("parse total-votes proposal sort");
 
     assert_eq!(total_votes.sort, SnsProposalsSortArg::TotalVotes);
     assert_eq!(total_votes.sort_direction, SnsProposalSortDirection::Desc);
 
-    let reject_cost = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("reject-cost"),
-    ])
-    .expect("parse reject-cost proposal sort");
+    let reject_cost =
+        parse_proposals(&["1", "--sort", "reject-cost"]).expect("parse reject-cost proposal sort");
 
     assert_eq!(reject_cost.sort, SnsProposalsSortArg::RejectCost);
     assert_eq!(reject_cost.sort_direction, SnsProposalSortDirection::Desc);
 
-    let reward_round = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("reward-round"),
-    ])
-    .expect("parse reward-round proposal sort");
+    let reward_round = parse_proposals(&["1", "--sort", "reward-round"])
+        .expect("parse reward-round proposal sort");
 
     assert_eq!(reward_round.sort, SnsProposalsSortArg::RewardRound);
     assert_eq!(reward_round.sort_direction, SnsProposalSortDirection::Desc);
 
-    let ballots = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("ballots"),
-        OsString::from("--asc"),
-    ])
-    .expect("parse ballots proposal sort");
+    let ballots =
+        parse_proposals(&["1", "--sort", "ballots", "--asc"]).expect("parse ballots proposal sort");
 
     assert_eq!(ballots.sort, SnsProposalsSortArg::Ballots);
     assert_eq!(ballots.sort_direction, SnsProposalSortDirection::Asc);
@@ -151,42 +113,26 @@ fn sns_proposals_parses_local_sort_defaults_and_directions() {
 
 #[test]
 fn sns_proposals_parses_extended_local_sort_values() {
-    let action_id = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("action-id"),
-    ])
-    .expect("parse action-id proposal sort");
+    let action_id =
+        parse_proposals(&["1", "--sort", "action-id"]).expect("parse action-id proposal sort");
 
     assert_eq!(action_id.sort, SnsProposalsSortArg::ActionId);
     assert_eq!(action_id.sort_direction, SnsProposalSortDirection::Desc);
 
-    let tally_time = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("tally-time"),
-    ])
-    .expect("parse tally-time proposal sort");
+    let tally_time =
+        parse_proposals(&["1", "--sort", "tally-time"]).expect("parse tally-time proposal sort");
 
     assert_eq!(tally_time.sort, SnsProposalsSortArg::TallyTime);
     assert_eq!(tally_time.sort_direction, SnsProposalSortDirection::Desc);
 
-    let eligible = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("eligible"),
-    ])
-    .expect("parse eligible proposal sort");
+    let eligible =
+        parse_proposals(&["1", "--sort", "eligible"]).expect("parse eligible proposal sort");
 
     assert_eq!(eligible.sort, SnsProposalsSortArg::Eligible);
     assert_eq!(eligible.sort_direction, SnsProposalSortDirection::Desc);
 
-    let reward_end = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("reward-end"),
-    ])
-    .expect("parse reward-end proposal sort");
+    let reward_end =
+        parse_proposals(&["1", "--sort", "reward-end"]).expect("parse reward-end proposal sort");
 
     assert_eq!(reward_end.sort, SnsProposalsSortArg::RewardEnd);
     assert_eq!(reward_end.sort_direction, SnsProposalSortDirection::Desc);
@@ -194,28 +140,27 @@ fn sns_proposals_parses_extended_local_sort_values() {
 
 #[test]
 fn sns_proposals_rejects_explicit_direction_for_api_sort() {
-    let error = SnsProposalsOptions::parse([
-        OsString::from("1"),
-        OsString::from("--sort"),
-        OsString::from("api"),
-        OsString::from("--desc"),
-    ])
-    .expect_err("api sort rejects explicit direction");
+    let error = parse_proposals(&["1", "--sort", "api", "--desc"])
+        .expect_err("api sort rejects explicit direction");
 
     assert!(matches!(error, SnsCommandError::Usage(_)));
 }
 
 #[test]
 fn sns_proposal_parses_id_and_json_format() {
-    let options = SnsProposalOptions::parse([
-        OsString::from("1"),
-        OsString::from("42"),
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--ballots"),
-        OsString::from("--verbose"),
-    ])
+    let options = parse_test_options(
+        sns_proposal_info_command(),
+        &[
+            "1",
+            "42",
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--ballots",
+            "--verbose",
+        ],
+        SnsProposalOptions::from_matches,
+    )
     .expect("parse proposal");
 
     assert_eq!(options.lookup.input, "1");
@@ -229,16 +174,20 @@ fn sns_proposal_parses_id_and_json_format() {
 
 #[test]
 fn sns_proposals_refresh_parses_page_controls() {
-    let options = SnsProposalsRefreshOptions::parse([
-        OsString::from("1"),
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--page-size"),
-        OsString::from("50"),
-        OsString::from("--max-pages"),
-        OsString::from("3"),
-    ])
+    let options = parse_test_options(
+        sns_proposal_refresh_command(),
+        &[
+            "1",
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--page-size",
+            "50",
+            "--max-pages",
+            "3",
+        ],
+        SnsProposalsRefreshOptions::from_matches,
+    )
     .expect("parse proposals refresh");
 
     assert_eq!(options.lookup.input, "1");
@@ -251,14 +200,21 @@ fn sns_proposals_refresh_parses_page_controls() {
 
 #[test]
 fn sns_proposals_cache_parses_list_and_status_options() {
-    let list = SnsProposalsCacheListOptions::parse([OsString::from("--json")])
-        .expect("parse proposals cache list");
+    let list = parse_test_options(
+        sns_proposal_cache_list_command(),
+        &["--json"],
+        SnsProposalsCacheListOptions::from_matches,
+    )
+    .expect("parse proposals cache list");
     assert_eq!(list.network, "ic");
     assert_eq!(list.format, OutputFormat::Json);
 
-    let status =
-        SnsProposalsCacheStatusOptions::parse([OsString::from("1"), OsString::from("--json")])
-            .expect("parse proposals cache status");
+    let status = parse_test_options(
+        sns_proposal_cache_status_command(),
+        &["1", "--json"],
+        SnsProposalsCacheStatusOptions::from_matches,
+    )
+    .expect("parse proposals cache status");
     assert_eq!(status.input, "1");
     assert_eq!(status.network, "ic");
     assert_eq!(status.format, OutputFormat::Json);
