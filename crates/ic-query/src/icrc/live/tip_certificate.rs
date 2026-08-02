@@ -4,8 +4,6 @@
 //! Does not own: live queries, report construction, or output.
 //! Boundary: accepts the wire certificate pair only after the ledger query succeeds.
 
-#[cfg(test)]
-use crate::certification::verify_canister_hash_tree;
 use crate::{
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
     hex::hex_bytes,
@@ -55,18 +53,6 @@ pub(super) fn verified_tip_certificate_data(
         hash_tree_hex: Some(hex_bytes(&wire.hash_tree)),
         hash_tree_bytes: Some(wire.hash_tree.len()),
     })
-}
-
-#[cfg(test)]
-fn verify_tip_witness(
-    certificate: &ic_agent::Certificate,
-    ledger_canister: &Principal,
-    encoded_hash_tree: &[u8],
-) -> Result<(), IcrcError> {
-    let hash_tree =
-        verify_canister_hash_tree(certificate, ledger_canister, encoded_hash_tree, "ledger")
-            .map_err(map_certified_data_error)?;
-    verify_tip_leaves(&hash_tree)
 }
 
 fn verify_tip_leaves(hash_tree: &HashTree<Vec<u8>>) -> Result<(), IcrcError> {
@@ -142,12 +128,24 @@ fn invalid_tip_certificate(reason: impl Into<String>) -> IcrcError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::certification::verify_canister_hash_tree;
     use ic_agent::{
         Certificate,
         hash_tree::{fork, label, leaf},
     };
 
     const LEDGER_CANISTER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
+
+    fn verify_tip_witness(
+        certificate: &Certificate,
+        ledger_canister: &Principal,
+        encoded_hash_tree: &[u8],
+    ) -> Result<(), IcrcError> {
+        let hash_tree =
+            verify_canister_hash_tree(certificate, ledger_canister, encoded_hash_tree, "ledger")
+                .map_err(map_certified_data_error)?;
+        verify_tip_leaves(&hash_tree)
+    }
 
     #[test]
     fn accepts_a_matching_certified_tip_witness() {

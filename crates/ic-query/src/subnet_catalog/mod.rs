@@ -41,15 +41,11 @@ pub use report::{
     build_subnet_catalog_list_report_with_source,
 };
 pub use resolver::{ResolveAs, ResolvedSubnet, ResolvedSubnetSubject};
-#[cfg(all(test, feature = "subnet-catalog-host"))]
-pub(crate) use text::compact_principal;
 #[cfg(feature = "subnet-catalog-host")]
 pub use text::{
     subnet_catalog_info_report_text, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text, subnet_catalog_refresh_report_text,
 };
-#[cfg(all(test, feature = "subnet-catalog-host"))]
-pub(crate) use time::parse_stale_after_duration;
 #[cfg(feature = "host")]
 pub(crate) use time::parse_utc_timestamp_secs;
 #[cfg(feature = "subnet-catalog-host")]

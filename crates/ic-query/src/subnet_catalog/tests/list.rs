@@ -17,7 +17,8 @@ fn list_report_loads_cached_catalog_and_caps_ranges() {
     assert!(text.contains("SPEC"));
     assert!(!text.contains("SPECIALIZATION"));
     for subnet in &report.subnets {
-        assert!(text.contains(&compact_principal(&subnet.subnet_principal)));
+        let compact_principal = subnet.subnet_principal.chars().take(5).collect::<String>();
+        assert!(text.contains(&compact_principal));
         assert!(!text.contains(&subnet.subnet_principal));
     }
     assert!(!text.contains("FETCHED_AT"));

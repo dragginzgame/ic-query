@@ -17,7 +17,7 @@ use super::{
         sns_proposal_refresh_command, sns_swap_command, sns_token_command, sns_upgrade_command,
     },
 };
-use crate::{cli::clap::parse_matches, cli::common::OutputFormat, test_support::assert_snapshot};
+use crate::{cli::clap::parse_matches, cli::common::OutputFormat};
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SnsProposalSortDirection};
 use ic_query::subnet_catalog::MAINNET_NETWORK;

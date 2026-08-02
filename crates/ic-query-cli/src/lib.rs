@@ -8,9 +8,6 @@ mod sns;
 mod storage;
 mod system;
 
-#[cfg(test)]
-mod test_support;
-
 use crate::cli::clap::{parse_matches, string_option};
 use clap::{Arg, Command, error::ErrorKind};
 use ic_query::subnet_catalog::MAINNET_NETWORK;

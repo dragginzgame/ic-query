@@ -7,11 +7,6 @@
 //! Boundary: keeps timestamp parsing and display deterministic without introducing
 //! live clock reads into report builders or cache loaders.
 
-#[cfg(test)]
-use crate::duration::parse_duration_seconds;
-
-#[cfg(test)]
-use super::SubnetCatalogHostError;
 use super::{CatalogStaleStatus, SubnetCatalog};
 use crate::freshness::freshness_facts;
 
@@ -34,14 +29,6 @@ pub fn catalog_stale_status(
         fetched_at_unix_secs: freshness.fetched_at_unix_secs,
         age_seconds: freshness.age_seconds,
     }
-}
-
-#[cfg(test)]
-/// Parses the test-facing stale duration option into seconds.
-pub fn parse_stale_after_duration(value: &str) -> Result<u64, SubnetCatalogHostError> {
-    parse_duration_seconds(value).map_err(|_| SubnetCatalogHostError::InvalidStaleDuration {
-        value: value.to_string(),
-    })
 }
 
 pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {

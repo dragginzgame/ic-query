@@ -15,29 +15,11 @@ pub(in crate::nns::proposals) const NNS_PROPOSAL_BALLOTS_FLAG: &str = "ballots";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_VERBOSE_FLAG: &str = "verbose";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_REWARD_STATUS_ARG: &str = "reward-status";
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL: &str = "any";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL: &str = "settled";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_API_LABEL: &str = "api";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_ASC_LABEL: &str = "asc";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_SORT_DEADLINE_LABEL: &str = "deadline";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_DESC_LABEL: &str = "desc";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_SORT_NONE_LABEL: &str = "none";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL: &str = "reward-status";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_SORT_TALLY_TIME_LABEL: &str = "tally-time";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_SORT_TITLE_LABEL: &str = "title";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_SORT_VOTING_POWER_LABEL: &str = "voting-power";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_ANY_LABEL: &str = "any";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_EXECUTED_LABEL: &str = "executed";
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_ANY_LABEL: &str = "any";
-#[cfg(test)]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL: &str = "governance";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_SORT_VALUE_NAME: &str = concat!(
     "api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|",
     "tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",

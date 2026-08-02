@@ -5,8 +5,6 @@ mod refresh;
 mod root;
 
 #[cfg(test)]
-pub(in crate::nns) use args::DEFAULT_RANGE_LIMIT;
-#[cfg(test)]
 pub(in crate::nns) use info::info_command;
 #[cfg(test)]
 pub(in crate::nns) use list::list_command;

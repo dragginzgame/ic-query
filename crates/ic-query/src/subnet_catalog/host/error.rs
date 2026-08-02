@@ -34,12 +34,6 @@ pub enum SubnetCatalogHostError {
     )]
     NetworkMismatch { requested: String, actual: String },
 
-    #[error(
-        "invalid stale duration {value:?}; use positive seconds or a value ending in s, m, h, or d"
-    )]
-    #[cfg(test)]
-    InvalidStaleDuration { value: String },
-
     #[error(transparent)]
     Cache(#[from] HostCacheError),
 

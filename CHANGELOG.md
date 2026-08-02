@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.20` removes the remaining test-only Subnet duration/error surface,
+  compact-renderer visibility bridge, NNS CLI value aliases, and single-use
+  test adapters. Tests now use the supported shared duration parser, real host
+  errors, command values, and observable report text directly. Production
+  behavior is unchanged.
+
 - `0.25.19` removes the final shared test-only Clap error augmenter and three
   System help forwarders. Tests now retain Clap’s native diagnostics without
   cloning and rendering complete commands on parse failures, while System help

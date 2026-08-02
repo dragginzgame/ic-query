@@ -10,6 +10,6 @@
 use crate::text_value::sanitize_text;
 
 /// Returns the compact prefix used for narrow principal columns.
-pub fn compact_principal(value: &str) -> String {
+pub(super) fn compact_principal(value: &str) -> String {
     sanitize_text(value).chars().take(5).collect()
 }

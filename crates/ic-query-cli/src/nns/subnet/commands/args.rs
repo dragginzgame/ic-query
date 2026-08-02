@@ -1,9 +1,6 @@
 use crate::cli::clap::{flag_arg, value_arg};
 use ic_query::subnet_catalog::{GeographicScope, SubnetKind, SubnetSpecialization};
 
-#[cfg(test)]
-pub(in crate::nns) const DEFAULT_RANGE_LIMIT: usize = 50;
-
 pub(super) const DEFAULT_RANGE_LIMIT_ARG: &str = "50";
 pub(super) const INFO_INPUT_VALUE_NAME: &str = "subnet|canister|subnet-prefix";
 pub(super) const INFO_INPUT_HELP: &str = "Subnet/canister principal or unique subnet prefix";

@@ -1,16 +1,8 @@
 use super::*;
 use crate::cli::clap::render_help;
-use clap::{ArgMatches, Command as ClapCommand};
-
-fn parse_proposal_matches(
-    command: ClapCommand,
-    args: &[&str],
-) -> Result<ArgMatches, NnsCommandError> {
-    parse_test_matches(command, args)
-}
 
 fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsCommandError> {
-    let matches = parse_proposal_matches(nns_proposal_list_command(), args)?;
+    let matches = parse_test_matches(nns_proposal_list_command(), args)?;
     NnsProposalListOptions::from_matches(&matches, MAINNET_NETWORK)
 }
 
@@ -33,16 +25,13 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(defaults.query, None);
     assert_eq!(defaults.sort, NnsProposalListSort::Api);
     assert_eq!(defaults.sort_direction, NnsProposalSortDirection::Desc);
-    assert_eq!(defaults.status.as_str(), NNS_PROPOSAL_STATUS_ANY_LABEL);
-    assert_eq!(
-        defaults.reward_status.as_str(),
-        NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL
-    );
-    assert_eq!(defaults.topic.as_str(), NNS_PROPOSAL_TOPIC_ANY_LABEL);
-    assert_eq!(defaults.sort.as_str(), NNS_PROPOSAL_SORT_API_LABEL);
+    assert_eq!(defaults.status.as_str(), "any");
+    assert_eq!(defaults.reward_status.as_str(), "any");
+    assert_eq!(defaults.topic.as_str(), "any");
+    assert_eq!(defaults.sort.as_str(), "api");
     assert_eq!(
         defaults.sort.direction_label(defaults.sort_direction),
-        NNS_PROPOSAL_SORT_NONE_LABEL
+        "none"
     );
     assert!(!defaults.verbose);
 
@@ -55,17 +44,17 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
         "--before",
         "132000",
         "--status",
-        NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+        "executed",
         "--reward-status",
-        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
+        "settled",
         "--topic",
-        NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        "governance",
         "--proposer",
         "123456789",
         "--query",
         "subnet",
         "--sort",
-        NNS_PROPOSAL_SORT_TITLE_LABEL,
+        "title",
         "--asc",
         "--verbose",
     ])
@@ -85,26 +74,15 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(options.query.as_deref(), Some("subnet"));
     assert_eq!(options.sort, NnsProposalListSort::Title);
     assert_eq!(options.sort_direction, NnsProposalSortDirection::Asc);
-    assert_eq!(options.status.as_str(), NNS_PROPOSAL_STATUS_EXECUTED_LABEL);
-    assert_eq!(
-        options.reward_status.as_str(),
-        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL
-    );
-    assert_eq!(options.topic.as_str(), NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
-    assert_eq!(options.sort.as_str(), NNS_PROPOSAL_SORT_TITLE_LABEL);
-    assert_eq!(
-        options.sort.direction_label(options.sort_direction),
-        NNS_PROPOSAL_SORT_ASC_LABEL
-    );
+    assert_eq!(options.status.as_str(), "executed");
+    assert_eq!(options.reward_status.as_str(), "settled");
+    assert_eq!(options.topic.as_str(), "governance");
+    assert_eq!(options.sort.as_str(), "title");
+    assert_eq!(options.sort.direction_label(options.sort_direction), "asc");
     assert!(options.verbose);
 
-    let grouped_options = parse_list_options(&[
-        "--limit",
-        "10",
-        "--reward-status",
-        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
-    ])
-    .expect("parse nns proposal list");
+    let grouped_options = parse_list_options(&["--limit", "10", "--reward-status", "settled"])
+        .expect("parse nns proposal list");
 
     assert_eq!(grouped_options.limit, 10);
     assert_eq!(
@@ -115,40 +93,33 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
 
 #[test]
 fn nns_proposal_list_parses_extended_local_sort_values() {
-    let reward_status_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL])
-        .expect("parse reward-status sort");
+    let reward_status_sort =
+        parse_list_options(&["--sort", "reward-status"]).expect("parse reward-status sort");
 
     assert_eq!(reward_status_sort.sort, NnsProposalListSort::RewardStatus);
     assert_eq!(
         reward_status_sort.sort_direction,
         NnsProposalSortDirection::Asc
     );
-    assert_eq!(
-        reward_status_sort.sort.as_str(),
-        NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL
-    );
+    assert_eq!(reward_status_sort.sort.as_str(), "reward-status");
 
-    let deadline_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_DEADLINE_LABEL])
-        .expect("parse deadline sort");
+    let deadline_sort = parse_list_options(&["--sort", "deadline"]).expect("parse deadline sort");
 
     assert_eq!(deadline_sort.sort, NnsProposalListSort::Deadline);
     assert_eq!(deadline_sort.sort_direction, NnsProposalSortDirection::Desc);
 
-    let tally_time_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_TALLY_TIME_LABEL])
-        .expect("parse tally-time sort");
+    let tally_time_sort =
+        parse_list_options(&["--sort", "tally-time"]).expect("parse tally-time sort");
 
     assert_eq!(tally_time_sort.sort, NnsProposalListSort::TallyTime);
     assert_eq!(
         tally_time_sort.sort_direction,
         NnsProposalSortDirection::Desc
     );
-    assert_eq!(
-        tally_time_sort.sort.as_str(),
-        NNS_PROPOSAL_SORT_TALLY_TIME_LABEL
-    );
+    assert_eq!(tally_time_sort.sort.as_str(), "tally-time");
 
-    let voting_power_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_VOTING_POWER_LABEL])
-        .expect("parse voting-power sort");
+    let voting_power_sort =
+        parse_list_options(&["--sort", "voting-power"]).expect("parse voting-power sort");
 
     assert_eq!(voting_power_sort.sort, NnsProposalListSort::VotingPower);
     assert_eq!(

@@ -111,9 +111,7 @@ impl SubnetCatalogSource for FixtureRefreshSource {
         _request: &NnsSourceRequest,
     ) -> Result<SubnetCatalog, SubnetCatalogHostError> {
         if self.fail {
-            return Err(SubnetCatalogHostError::InvalidStaleDuration {
-                value: "fixture".to_string(),
-            });
+            return Err(SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets));
         }
         Ok(self.catalog.clone().expect("fixture catalog"))
     }

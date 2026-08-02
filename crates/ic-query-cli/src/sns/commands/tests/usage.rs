@@ -176,5 +176,9 @@ Examples:
   icq sns list --source-endpoint https://icp-api.io
 ";
 
-    assert_snapshot("sns list usage", &render_help(sns_list_command()), expected);
+    assert_eq!(
+        render_help(sns_list_command()),
+        expected,
+        "sns list usage snapshot changed"
+    );
 }

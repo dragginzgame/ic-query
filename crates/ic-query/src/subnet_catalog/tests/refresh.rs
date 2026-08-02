@@ -76,7 +76,7 @@ fn refresh_failure_preserves_existing_catalog_and_removes_lock() {
 
     assert!(matches!(
         err,
-        SubnetCatalogHostError::InvalidStaleDuration { .. }
+        SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets)
     ));
     assert_eq!(cached.catalog.registry_version, 123_456);
     assert!(!lock_path.exists());

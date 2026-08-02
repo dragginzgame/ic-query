@@ -12,7 +12,7 @@ fn list_defaults_to_mainnet_ic_catalog() {
         options.source_endpoint,
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
     );
-    assert_eq!(options.range_limit, DEFAULT_RANGE_LIMIT);
+    assert_eq!(options.range_limit, 50);
     assert!(!options.verbose);
 }
 
