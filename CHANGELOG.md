@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.13` removes single-use configurable NNS proposal command builders and
+  routes proposal option and help tests directly through the supported Clap
+  commands. Production grammar, parsing, dispatch, reports, and source
+  behavior are unchanged.
+
 - `0.25.12` consolidates repeated Dashboard CLI test parsing for canister,
   metric, and network-resource options behind one IC-family harness. Production
   command parsing, help, dispatch, reports, and source behavior are unchanged.

@@ -4,11 +4,6 @@
 //! Does not own: clap command construction, report requests, or live queries.
 //! Boundary: converts clap matches into command-local option structs.
 
-#[cfg(test)]
-use super::commands::{
-    nns_proposal_cache_list_command, nns_proposal_cache_status_command, nns_proposal_info_command,
-    nns_proposal_list_command, nns_proposal_refresh_command,
-};
 use crate::{
     cli::{
         clap::{required_typed, string_option, typed_option},
@@ -31,8 +26,6 @@ use ic_query::nns::proposals::{
     NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
     NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
-#[cfg(test)]
-use std::ffi::OsString;
 
 ///
 /// NnsProposalListOptions
@@ -84,15 +77,6 @@ impl NnsProposalListOptions {
             sort_direction,
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         })
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(nns_proposal_list_command(), args)?;
-        Self::from_matches(&matches, ic_query::subnet_catalog::MAINNET_NETWORK)
     }
 }
 
@@ -159,18 +143,6 @@ impl NnsProposalOptions {
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         }
     }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse_info<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(nns_proposal_info_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
-    }
 }
 
 ///
@@ -199,18 +171,6 @@ impl NnsProposalRefreshOptions {
             max_pages: typed_option(matches, "max-pages"),
         }
     }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(nns_proposal_refresh_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
-    }
 }
 
 ///
@@ -231,33 +191,5 @@ impl NnsProposalCacheOptions {
             network: network.to_string(),
             format: output_format(matches),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse_list<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        Self::parse_with(args, nns_proposal_cache_list_command())
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse_status<I>(args: I) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        Self::parse_with(args, nns_proposal_cache_status_command())
-    }
-
-    #[cfg(test)]
-    fn parse_with<I>(args: I, command: clap::Command) -> Result<Self, NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(command, args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

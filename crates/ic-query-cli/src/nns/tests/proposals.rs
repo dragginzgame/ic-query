@@ -1,8 +1,31 @@
 use super::*;
+use crate::cli::clap::render_help;
+use clap::{ArgMatches, Command as ClapCommand};
+
+fn parse_proposal_matches(
+    command: ClapCommand,
+    args: &[&str],
+) -> Result<ArgMatches, NnsCommandError> {
+    parse_nns_matches(command, args.iter().copied().map(std::ffi::OsString::from))
+}
+
+fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsCommandError> {
+    let matches = parse_proposal_matches(nns_proposal_list_command(), args)?;
+    NnsProposalListOptions::from_matches(&matches, MAINNET_NETWORK)
+}
+
+fn parse_options<Options>(
+    command: ClapCommand,
+    args: &[&str],
+    from_matches: fn(&ArgMatches, &str) -> Options,
+) -> Result<Options, NnsCommandError> {
+    let matches = parse_proposal_matches(command, args)?;
+    Ok(from_matches(&matches, MAINNET_NETWORK))
+}
 
 #[test]
 fn nns_proposal_list_parses_defaults_and_json_format() {
-    let defaults = NnsProposalListOptions::parse_list([]).expect("parse defaults");
+    let defaults = parse_list_options(&[]).expect("parse defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -32,28 +55,28 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     );
     assert!(!defaults.verbose);
 
-    let options = NnsProposalListOptions::parse_list([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--limit"),
-        OsString::from("50"),
-        OsString::from("--before"),
-        OsString::from("132000"),
-        OsString::from("--status"),
-        OsString::from(NNS_PROPOSAL_STATUS_EXECUTED_LABEL),
-        OsString::from("--reward-status"),
-        OsString::from(NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL),
-        OsString::from("--topic"),
-        OsString::from(NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL),
-        OsString::from("--proposer"),
-        OsString::from("123456789"),
-        OsString::from("--query"),
-        OsString::from("subnet"),
-        OsString::from("--sort"),
-        OsString::from(NNS_PROPOSAL_SORT_TITLE_LABEL),
-        OsString::from("--asc"),
-        OsString::from("--verbose"),
+    let options = parse_list_options(&[
+        "--json",
+        "--source-endpoint",
+        "https://icp-api.io",
+        "--limit",
+        "50",
+        "--before",
+        "132000",
+        "--status",
+        NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
+        "--reward-status",
+        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
+        "--topic",
+        NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+        "--proposer",
+        "123456789",
+        "--query",
+        "subnet",
+        "--sort",
+        NNS_PROPOSAL_SORT_TITLE_LABEL,
+        "--asc",
+        "--verbose",
     ])
     .expect("parse nns proposal list");
 
@@ -84,11 +107,11 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     );
     assert!(options.verbose);
 
-    let grouped_options = NnsProposalListOptions::parse_list([
-        OsString::from("--limit"),
-        OsString::from("10"),
-        OsString::from("--reward-status"),
-        OsString::from(NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL),
+    let grouped_options = parse_list_options(&[
+        "--limit",
+        "10",
+        "--reward-status",
+        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
     ])
     .expect("parse nns proposal list");
 
@@ -101,11 +124,8 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
 
 #[test]
 fn nns_proposal_list_parses_extended_local_sort_values() {
-    let reward_status_sort = NnsProposalListOptions::parse_list([
-        OsString::from("--sort"),
-        OsString::from(NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL),
-    ])
-    .expect("parse reward-status sort");
+    let reward_status_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL])
+        .expect("parse reward-status sort");
 
     assert_eq!(reward_status_sort.sort, NnsProposalListSort::RewardStatus);
     assert_eq!(
@@ -117,20 +137,14 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
         NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL
     );
 
-    let deadline_sort = NnsProposalListOptions::parse_list([
-        OsString::from("--sort"),
-        OsString::from(NNS_PROPOSAL_SORT_DEADLINE_LABEL),
-    ])
-    .expect("parse deadline sort");
+    let deadline_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_DEADLINE_LABEL])
+        .expect("parse deadline sort");
 
     assert_eq!(deadline_sort.sort, NnsProposalListSort::Deadline);
     assert_eq!(deadline_sort.sort_direction, NnsProposalSortDirection::Desc);
 
-    let tally_time_sort = NnsProposalListOptions::parse_list([
-        OsString::from("--sort"),
-        OsString::from(NNS_PROPOSAL_SORT_TALLY_TIME_LABEL),
-    ])
-    .expect("parse tally-time sort");
+    let tally_time_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_TALLY_TIME_LABEL])
+        .expect("parse tally-time sort");
 
     assert_eq!(tally_time_sort.sort, NnsProposalListSort::TallyTime);
     assert_eq!(
@@ -142,11 +156,8 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
         NNS_PROPOSAL_SORT_TALLY_TIME_LABEL
     );
 
-    let voting_power_sort = NnsProposalListOptions::parse_list([
-        OsString::from("--sort"),
-        OsString::from(NNS_PROPOSAL_SORT_VOTING_POWER_LABEL),
-    ])
-    .expect("parse voting-power sort");
+    let voting_power_sort = parse_list_options(&["--sort", NNS_PROPOSAL_SORT_VOTING_POWER_LABEL])
+        .expect("parse voting-power sort");
 
     assert_eq!(voting_power_sort.sort, NnsProposalListSort::VotingPower);
     assert_eq!(
@@ -157,14 +168,18 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
 
 #[test]
 fn nns_proposal_parses_id_and_json_format() {
-    let options = NnsProposalOptions::parse_info([
-        OsString::from("132411"),
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--ballots"),
-        OsString::from("--verbose"),
-    ])
+    let options = parse_options(
+        nns_proposal_info_command(),
+        &[
+            "132411",
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--ballots",
+            "--verbose",
+        ],
+        NnsProposalOptions::from_matches,
+    )
     .expect("parse nns proposal info");
 
     assert_eq!(options.network, MAINNET_NETWORK);
@@ -174,11 +189,11 @@ fn nns_proposal_parses_id_and_json_format() {
     assert!(options.show_ballots);
     assert!(options.verbose);
 
-    let grouped_options = NnsProposalOptions::parse_info([
-        OsString::from("132411"),
-        OsString::from("--ballots"),
-        OsString::from("--verbose"),
-    ])
+    let grouped_options = parse_options(
+        nns_proposal_info_command(),
+        &["132411", "--ballots", "--verbose"],
+        NnsProposalOptions::from_matches,
+    )
     .expect("parse nns proposal info");
 
     assert_eq!(grouped_options.proposal_id, 132_411);
@@ -188,7 +203,12 @@ fn nns_proposal_parses_id_and_json_format() {
 
 #[test]
 fn nns_proposal_refresh_parses_cache_options() {
-    let defaults = NnsProposalRefreshOptions::parse([]).expect("parse refresh defaults");
+    let defaults = parse_options(
+        nns_proposal_refresh_command(),
+        &[],
+        NnsProposalRefreshOptions::from_matches,
+    )
+    .expect("parse refresh defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -199,15 +219,19 @@ fn nns_proposal_refresh_parses_cache_options() {
     assert_eq!(defaults.page_size, 100);
     assert_eq!(defaults.max_pages, None);
 
-    let options = NnsProposalRefreshOptions::parse([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--page-size"),
-        OsString::from("25"),
-        OsString::from("--max-pages"),
-        OsString::from("2"),
-    ])
+    let options = parse_options(
+        nns_proposal_refresh_command(),
+        &[
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--page-size",
+            "25",
+            "--max-pages",
+            "2",
+        ],
+        NnsProposalRefreshOptions::from_matches,
+    )
     .expect("parse refresh options");
 
     assert_eq!(options.format, OutputFormat::Json);
@@ -218,10 +242,18 @@ fn nns_proposal_refresh_parses_cache_options() {
 
 #[test]
 fn nns_proposal_cache_options_parse_json_format() {
-    let list =
-        NnsProposalCacheOptions::parse_list([OsString::from("--json")]).expect("parse cache list");
-    let status = NnsProposalCacheOptions::parse_status([OsString::from("--json")])
-        .expect("parse cache status");
+    let list = parse_options(
+        nns_proposal_cache_list_command(),
+        &["--json"],
+        NnsProposalCacheOptions::from_matches,
+    )
+    .expect("parse cache list");
+    let status = parse_options(
+        nns_proposal_cache_status_command(),
+        &["--json"],
+        NnsProposalCacheOptions::from_matches,
+    )
+    .expect("parse cache status");
 
     assert_eq!(list.network, MAINNET_NETWORK);
     assert_eq!(list.format, OutputFormat::Json);
@@ -232,13 +264,13 @@ fn nns_proposal_cache_options_parse_json_format() {
 #[test]
 fn nns_proposal_help_is_advertised_under_nns() {
     let nns = usage();
-    let proposal = nns_proposal_usage();
-    let proposal_list = nns_proposal_list_usage();
-    let proposal_info = nns_proposal_info_usage();
-    let proposal_refresh = nns_proposal_refresh_usage();
-    let proposal_cache = nns_proposal_cache_usage();
-    let proposal_cache_list = nns_proposal_cache_list_usage();
-    let proposal_cache_status = nns_proposal_cache_status_usage();
+    let proposal = render_help(nns_proposal_command());
+    let proposal_list = render_help(nns_proposal_list_command());
+    let proposal_info = render_help(nns_proposal_info_command());
+    let proposal_refresh = render_help(nns_proposal_refresh_command());
+    let proposal_cache = render_help(nns_proposal_cache_command());
+    let proposal_cache_list = render_help(nns_proposal_cache_list_command());
+    let proposal_cache_status = render_help(nns_proposal_cache_status_command());
 
     assert!(nns.contains("proposal"));
     assert!(!nns.contains("\n  proposals"));
@@ -283,8 +315,7 @@ fn nns_proposal_help_is_advertised_under_nns() {
 
 #[test]
 fn nns_proposal_list_rejects_direction_without_local_sort() {
-    let err = NnsProposalListOptions::parse_list([OsString::from("--desc")])
-        .expect_err("direction without local sort rejected");
+    let err = parse_list_options(&["--desc"]).expect_err("direction without local sort rejected");
 
     assert!(err.to_string().contains("--desc requires --sort"));
 }

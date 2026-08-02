@@ -4,9 +4,9 @@ mod run;
 mod values;
 #[cfg(test)]
 pub(super) use commands::{
-    nns_proposal_cache_list_usage, nns_proposal_cache_status_usage, nns_proposal_cache_usage,
-    nns_proposal_info_usage, nns_proposal_list_usage, nns_proposal_refresh_usage,
-    nns_proposal_usage,
+    nns_proposal_cache_command, nns_proposal_cache_list_command, nns_proposal_cache_status_command,
+    nns_proposal_command, nns_proposal_info_command, nns_proposal_list_command,
+    nns_proposal_refresh_command,
 };
 #[cfg(test)]
 pub(super) use ic_query::nns::proposals::{
