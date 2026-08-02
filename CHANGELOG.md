@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.4` separates live ICRC token/account queries, ledger-history and
+  archive traversal, and capability probing behind the existing fetch facade.
+  Public APIs, report output, source calls, and verification behavior are
+  unchanged.
+
 - `0.25.3` separates official Dashboard canister, metrics, and network-resource
   CLI parsing, dispatch, option models, and focused tests behind the existing
   `ic` command facade. CLI behavior, output, source calls, and public Rust APIs
