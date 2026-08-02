@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.23` makes each SNS collection marker own its cache schema, field
+  allowlist, and missing-cache error, replacing the enum selector and duplicate
+  proposal/neuron scan modules. Cache and report behavior are unchanged.
+
 - `0.25.22` replaces duplicated proposal and neuron cache-summary modules and
   their projection macro with one typed SNS snapshot-summary owner. Public
   APIs, cache evidence, report output, and behavior are unchanged.

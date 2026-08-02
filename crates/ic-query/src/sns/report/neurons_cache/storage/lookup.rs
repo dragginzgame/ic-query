@@ -7,14 +7,18 @@
 use super::{
     errors::{invalid_lookup_error, missing_id_error},
     load::load_sns_neurons_cache_at,
-    scan::{collect_sns_neurons_cache_paths, read_sns_neurons_cache_header},
 };
 use crate::sns::report::{
     SnsHostError,
     cache_paths::sns_snapshot_network_cache_dir,
-    cache_storage::find_unique_sns_cache_path_by_id,
+    cache_storage::{
+        collect_sns_cache_paths, find_unique_sns_cache_path_by_id, read_sns_cache_header,
+    },
     enforce_mainnet_network,
-    neurons_cache::{model::SnsNeuronsCache, paths::sns_neurons_cache_path},
+    neurons_cache::{
+        model::SnsNeuronsCache,
+        paths::{SnsNeuronsCacheCollection, sns_neurons_cache_path},
+    },
     parse_sns_root_canister_input,
 };
 use std::path::{Path, PathBuf};
@@ -44,9 +48,12 @@ pub(in crate::sns::report::neurons_cache) fn find_sns_neurons_cache_by_id(
     id: usize,
 ) -> Result<Option<(PathBuf, SnsNeuronsCache)>, SnsHostError> {
     let path = find_unique_sns_cache_path_by_id(
-        collect_sns_neurons_cache_paths(cache_root, network)?,
+        collect_sns_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network)?,
         id,
-        |path| read_sns_neurons_cache_header(path, network).map(|header| header.metadata.id),
+        |path| {
+            read_sns_cache_header::<SnsNeuronsCacheCollection>(path, network)
+                .map(|header| header.metadata.id)
+        },
     )?;
     path.map(|path| load_sns_neurons_cache_at(path.clone(), network).map(|cache| (path, cache)))
         .transpose()

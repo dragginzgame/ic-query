@@ -8,12 +8,8 @@ use crate::snapshot_cache::validate_snapshot_completeness;
 use crate::sns::report::{
     SnsHostError,
     cache_paths::sns_snapshot_key_for_cache_path,
-    cache_storage::{SnsCacheLoadErrors, load_sns_complete_cache, validate_sns_cache_metadata},
-    proposals_cache::{
-        SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
-        model::{SNS_PROPOSALS_CACHE_FIELDS, SnsProposalsCache},
-        paths::SnsProposalsCacheCollection,
-    },
+    cache_storage::{load_sns_complete_cache, validate_sns_cache_metadata},
+    proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };
 use std::{
     collections::HashSet,
@@ -26,15 +22,10 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_at(
     network: &str,
 ) -> Result<SnsProposalsCache, SnsHostError> {
     let key = sns_snapshot_key_for_cache_path::<SnsProposalsCacheCollection>(network, &cache_path);
-    let errors = SnsCacheLoadErrors::proposals();
-    let cache = load_sns_complete_cache(
+    let cache = load_sns_complete_cache::<SnsProposalsCache, SnsProposalsCacheCollection>(
         cache_path.clone(),
         network,
-        SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
         &key,
-        SNS_PROPOSALS_CACHE_FIELDS,
-        errors,
-        |completeness| errors.incomplete_cache_error(completeness),
     )?;
     validate_sns_proposals_cache(&cache_path, &cache)?;
     Ok(cache)

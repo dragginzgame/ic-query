@@ -8,12 +8,8 @@ use crate::snapshot_cache::validate_snapshot_completeness;
 use crate::sns::report::{
     SnsHostError,
     cache_paths::sns_snapshot_key_for_cache_path,
-    cache_storage::{SnsCacheLoadErrors, load_sns_complete_cache, validate_sns_cache_metadata},
-    neurons_cache::{
-        SNS_NEURONS_CACHE_SCHEMA_VERSION,
-        model::{SNS_NEURONS_CACHE_FIELDS, SnsNeuronsCache},
-        paths::SnsNeuronsCacheCollection,
-    },
+    cache_storage::{load_sns_complete_cache, validate_sns_cache_metadata},
+    neurons_cache::{model::SnsNeuronsCache, paths::SnsNeuronsCacheCollection},
     source::validate_sns_neuron_rows,
 };
 use std::path::{Path, PathBuf};
@@ -23,15 +19,10 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_at(
     network: &str,
 ) -> Result<SnsNeuronsCache, SnsHostError> {
     let key = sns_snapshot_key_for_cache_path::<SnsNeuronsCacheCollection>(network, &path);
-    let errors = SnsCacheLoadErrors::neurons();
-    let cache = load_sns_complete_cache(
+    let cache = load_sns_complete_cache::<SnsNeuronsCache, SnsNeuronsCacheCollection>(
         path.clone(),
         network,
-        SNS_NEURONS_CACHE_SCHEMA_VERSION,
         &key,
-        SNS_NEURONS_CACHE_FIELDS,
-        errors,
-        |completeness| errors.incomplete_cache_error(completeness),
     )?;
     validate_sns_neurons_cache(&path, &cache)?;
     Ok(cache)

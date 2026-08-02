@@ -5,11 +5,8 @@
 //! Boundary: keeps persisted cache models separate from public report models.
 
 use crate::{
-    snapshot_cache::{SnapshotEnvelope, SnapshotHeader},
-    sns::report::{
-        SnsNeuronRow, SnsNeuronsSort,
-        cache_storage::{SnsCacheHeaderMetadata, SnsCacheMetadata},
-    },
+    snapshot_cache::SnapshotEnvelope,
+    sns::report::{SnsNeuronRow, SnsNeuronsSort, cache_storage::SnsCacheMetadata},
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::PathBuf;
@@ -45,8 +42,6 @@ pub(super) const SNS_NEURONS_CACHE_FIELDS: &[&str] = &[
 pub(super) struct SnsNeuronsCacheRows {
     pub(super) neurons: Vec<SnsNeuronRow>,
 }
-
-pub(super) type SnsNeuronsCacheHeader = SnapshotHeader<SnsCacheHeaderMetadata>;
 
 ///
 /// CompleteSnsNeurons

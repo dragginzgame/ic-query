@@ -9,14 +9,12 @@ use crate::sns::report::{
     SnsRefreshAttemptStatus,
     cache_attempt::read_sns_refresh_attempt_status_strict,
     cache_status::{SnsCacheStatusFamily, SnsCacheStatusPaths, build_sns_cache_status_report},
+    cache_storage::{collect_sns_cache_paths, read_sns_cache_header},
     find_sns_cache_summary_by_id, load_sns_cache_summary_at,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         paths::{SnsProposalsCacheCollection, SnsProposalsCachePaths},
-        storage::{
-            collect_sns_proposals_cache_paths, load_sns_proposals_cache_at,
-            read_sns_proposals_cache_header,
-        },
+        storage::load_sns_proposals_cache_at,
     },
 };
 use std::path::{Path, PathBuf};
@@ -42,9 +40,12 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
         id: usize,
     ) -> Result<Option<SnsCacheSummary>, SnsHostError> {
         find_sns_cache_summary_by_id(
-            collect_sns_proposals_cache_paths(cache_root, network)?,
+            collect_sns_cache_paths::<SnsProposalsCacheCollection>(cache_root, network)?,
             id,
-            |path| read_sns_proposals_cache_header(path, network).map(|header| header.metadata.id),
+            |path| {
+                read_sns_cache_header::<SnsProposalsCacheCollection>(path, network)
+                    .map(|header| header.metadata.id)
+            },
             |path| load_sns_cache_summary_at(path, network, load_sns_proposals_cache_at),
         )
     }

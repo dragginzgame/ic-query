@@ -1,8 +1,8 @@
 //! Module: sns::report::cache_storage
 //!
-//! Responsibility: shared SNS snapshot cache storage and error-mapping helpers.
-//! Does not own: family-specific schemas, cache models, or refresh policy.
-//! Boundary: builds common snapshot-cache load and discovery requests for SNS caches.
+//! Responsibility: shared SNS snapshot storage and collection-family contract.
+//! Does not own: cache payload models, family row validation, or refresh policy.
+//! Boundary: centralizes discovery, schema/header validation, loading, and error mapping.
 
 use crate::{
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
@@ -19,48 +19,43 @@ use crate::{
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Copy)]
-enum SnsCacheFamily {
-    Neurons,
-    Proposals,
+///
+/// SnsCacheStorageFamily
+///
+/// Schema and missing-cache contract owned by one SNS snapshot collection.
+///
+
+pub(in crate::sns::report) trait SnsCacheStorageFamily:
+    SnsCacheCollection
+{
+    const CACHE_SCHEMA_VERSION: u32;
+    const CACHE_FIELDS: &'static [&'static str];
+
+    fn missing_cache_error(path: PathBuf) -> SnsHostError;
 }
 
-///
-/// SnsCacheLoadErrors
-///
-/// Shared JSON cache error mapper for complete SNS collection snapshots.
-///
-
 #[derive(Clone, Copy)]
-pub(in crate::sns::report) struct SnsCacheLoadErrors {
-    family: SnsCacheFamily,
+struct SnsCacheLoadErrors {
+    collection: &'static str,
+    missing_cache_error: fn(PathBuf) -> SnsHostError,
 }
 
 impl SnsCacheLoadErrors {
-    pub(in crate::sns::report) const fn neurons() -> Self {
+    fn for_family<Family>() -> Self
+    where
+        Family: SnsCacheStorageFamily,
+    {
         Self {
-            family: SnsCacheFamily::Neurons,
+            collection: Family::COLLECTION,
+            missing_cache_error: Family::missing_cache_error,
         }
     }
 
-    pub(in crate::sns::report) const fn proposals() -> Self {
-        Self {
-            family: SnsCacheFamily::Proposals,
-        }
-    }
-
-    pub(in crate::sns::report) fn incomplete_cache_error(
-        self,
-        completeness: &SnapshotCompleteness,
-    ) -> SnsHostError {
-        let collection = match self.family {
-            SnsCacheFamily::Neurons => "neurons",
-            SnsCacheFamily::Proposals => "proposals",
-        };
+    fn incomplete_cache_error(self, completeness: &SnapshotCompleteness) -> SnsHostError {
         SnsHostError::IncompleteRefresh {
             pages_fetched: completeness.page_count,
             rows_fetched: completeness.row_count,
-            reason: format!("cached SNS {collection} snapshot is not complete"),
+            reason: format!("cached SNS {} snapshot is not complete", self.collection),
         }
     }
 }
@@ -69,10 +64,7 @@ impl LoadJsonCacheErrorMapper for SnsCacheLoadErrors {
     type Error = SnsHostError;
 
     fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        match self.family {
-            SnsCacheFamily::Neurons => SnsHostError::MissingNeuronsCache { path },
-            SnsCacheFamily::Proposals => SnsHostError::MissingProposalsCache { path },
-        }
+        (self.missing_cache_error)(path)
     }
 
     fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
@@ -119,38 +111,34 @@ pub(in crate::sns::report) struct SnsCacheHeaderMetadata {
 }
 
 /// Collect complete SNS snapshot paths for one cache collection.
-pub(in crate::sns::report) fn collect_sns_cache_paths<Collection>(
+pub(in crate::sns::report) fn collect_sns_cache_paths<Family>(
     cache_root: &Path,
     network: &str,
 ) -> Result<Vec<PathBuf>, SnsHostError>
 where
-    Collection: SnsCacheCollection,
+    Family: SnsCacheStorageFamily,
 {
     let root = sns_snapshot_network_cache_dir(cache_root, network);
-    collect_full_collection_snapshot_paths(&root, Collection::COLLECTION)
+    collect_full_collection_snapshot_paths(&root, Family::COLLECTION)
         .map_err(|source| SnsHostError::ReadCache { path: root, source })
 }
 
 /// Read and validate one SNS snapshot cache header.
-pub(in crate::sns::report) fn read_sns_cache_header<Metadata, Errors>(
+pub(in crate::sns::report) fn read_sns_cache_header<Family>(
     path: &Path,
     network: &str,
-    expected_schema_version: u32,
-    supported_fields: &'static [&'static str],
-    errors: Errors,
-) -> Result<SnapshotHeader<Metadata>, SnsHostError>
+) -> Result<SnapshotHeader<SnsCacheHeaderMetadata>, SnsHostError>
 where
-    Metadata: DeserializeOwned,
-    Errors: LoadJsonCacheErrorMapper<Error = SnsHostError>,
+    Family: SnsCacheStorageFamily,
 {
     load_snapshot_header(
         LoadJsonCacheRequest {
             path: path.to_path_buf(),
             network,
-            expected_schema_version,
+            expected_schema_version: Family::CACHE_SCHEMA_VERSION,
         },
-        supported_fields,
-        errors,
+        Family::CACHE_FIELDS,
+        SnsCacheLoadErrors::for_family::<Family>(),
     )
 }
 
@@ -173,29 +161,26 @@ pub(in crate::sns::report) fn find_unique_sns_cache_path_by_id(
 }
 
 /// Load and validate one complete SNS snapshot cache.
-pub(in crate::sns::report) fn load_sns_complete_cache<Cache, Errors>(
+pub(in crate::sns::report) fn load_sns_complete_cache<Cache, Family>(
     path: PathBuf,
     network: &str,
-    expected_schema_version: u32,
     expected_key: &SnapshotKey,
-    supported_fields: &'static [&'static str],
-    errors: Errors,
-    incomplete_error: impl FnOnce(&SnapshotCompleteness) -> SnsHostError,
 ) -> Result<Cache, SnsHostError>
 where
     Cache: DeserializeOwned + SnapshotReport,
-    Errors: LoadJsonCacheErrorMapper<Error = SnsHostError>,
+    Family: SnsCacheStorageFamily,
 {
+    let errors = SnsCacheLoadErrors::for_family::<Family>();
     load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
             path: path.clone(),
             network,
-            expected_schema_version,
+            expected_schema_version: Family::CACHE_SCHEMA_VERSION,
         },
         expected_key,
-        supported_fields,
+        Family::CACHE_FIELDS,
         errors,
-        incomplete_error,
+        |completeness| errors.incomplete_cache_error(completeness),
         |mismatch| sns_identity_mismatch_error(path, mismatch),
     )
 }

@@ -4,15 +4,20 @@
 //! Does not own: cache summary construction, report assembly, or refresh policy.
 //! Boundary: provides typed proposal cache lookup helpers for report builders.
 
-use super::{load::load_sns_proposals_cache_at, scan::read_sns_proposals_cache_header};
+use super::load::load_sns_proposals_cache_at;
 use crate::sns::report::{
-    SnsHostError, cache_paths::sns_snapshot_network_cache_dir,
-    cache_storage::find_unique_sns_cache_path_by_id, parse_sns_root_canister_input,
-    proposals_cache::model::SnsProposalsCache, proposals_cache::paths::SnsProposalsCachePaths,
+    SnsHostError,
+    cache_paths::sns_snapshot_network_cache_dir,
+    cache_storage::{
+        collect_sns_cache_paths, find_unique_sns_cache_path_by_id, read_sns_cache_header,
+    },
+    parse_sns_root_canister_input,
+    proposals_cache::{
+        model::SnsProposalsCache,
+        paths::{SnsProposalsCacheCollection, SnsProposalsCachePaths},
+    },
 };
 use std::path::{Path, PathBuf};
-
-use super::scan::collect_sns_proposals_cache_paths;
 
 /// Load a complete SNS proposal cache and return its concrete cache path.
 pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_input_with_path(
@@ -42,9 +47,12 @@ pub(in crate::sns::report::proposals_cache) fn find_sns_proposals_cache_by_id(
     id: usize,
 ) -> Result<Option<(PathBuf, SnsProposalsCache)>, SnsHostError> {
     let path = find_unique_sns_cache_path_by_id(
-        collect_sns_proposals_cache_paths(cache_root, network)?,
+        collect_sns_cache_paths::<SnsProposalsCacheCollection>(cache_root, network)?,
         id,
-        |path| read_sns_proposals_cache_header(path, network).map(|header| header.metadata.id),
+        |path| {
+            read_sns_cache_header::<SnsProposalsCacheCollection>(path, network)
+                .map(|header| header.metadata.id)
+        },
     )?;
     path.map(|path| load_sns_proposals_cache_at(path.clone(), network).map(|cache| (path, cache)))
         .transpose()
