@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.11` centralizes ledger id, source endpoint, and output selection across
+  live ICRC balance, allowance, ledger-transaction, and archive CLI option
+  models. Command grammar, parsing behavior, dispatch requests, reports, and
+  source behavior are unchanged.
+
 - `0.25.10` separates ICRC account-history cache identity and strict storage,
   refresh and atomic publication, local list/status projection, and attempt
   evidence behind the existing public facade. Public APIs, cache paths and

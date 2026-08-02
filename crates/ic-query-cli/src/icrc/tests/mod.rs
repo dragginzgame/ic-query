@@ -51,10 +51,10 @@ fn balance_options_parse_through_clap_and_normalize_subaccount() {
         "--json",
     ]);
 
-    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.account_owner, ACCOUNT_OWNER);
     assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.ledger.format, OutputFormat::Json);
 }
 
 #[test]
@@ -175,6 +175,7 @@ fn transactions_options_parse_through_clap() {
         "--follow-archives",
     ]);
 
+    assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.start, 17);
     assert_eq!(options.limit, 42);
     assert!(options.follow_archives);
@@ -193,9 +194,9 @@ fn archives_options_parse_through_clap() {
     let options =
         parse_archives_options(&[LEDGER_CANISTER_ID, "--from", INDEX_CANISTER_ID, "--json"]);
 
-    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.from_canister_id.as_deref(), Some(INDEX_CANISTER_ID));
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.ledger.format, OutputFormat::Json);
 }
 
 #[test]

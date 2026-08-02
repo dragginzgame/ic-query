@@ -20,7 +20,7 @@ use ic_query::icrc::IcrcAccountTransactionSort;
 ///
 /// IcrcLedgerOptions
 ///
-/// Shared ledger target, output, and endpoint options for simple ICRC queries.
+/// Shared ledger target, output, and endpoint options for live ICRC queries.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -48,21 +48,17 @@ impl IcrcLedgerOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcBalanceOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) ledger: IcrcLedgerOptions,
     pub(in crate::icrc) account_owner: String,
     pub(in crate::icrc) subaccount_hex: Option<String>,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcBalanceOptions {
     pub(super) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
-            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            ledger: IcrcLedgerOptions::from_matches(matches),
             account_owner: required_string(matches, PRINCIPAL_ARG),
             subaccount_hex: string_option(matches, SUBACCOUNT_ARG),
-            format: format_from_matches(matches),
-            source_endpoint: source_endpoint_from_matches(matches),
         }
     }
 }
@@ -75,25 +71,21 @@ impl IcrcBalanceOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAllowanceOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) ledger: IcrcLedgerOptions,
     pub(in crate::icrc) account_owner: String,
     pub(in crate::icrc) account_subaccount_hex: Option<String>,
     pub(in crate::icrc) spender_owner: String,
     pub(in crate::icrc) spender_subaccount_hex: Option<String>,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcAllowanceOptions {
     pub(super) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
-            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            ledger: IcrcLedgerOptions::from_matches(matches),
             account_owner: required_string(matches, OWNER_PRINCIPAL_ARG),
             account_subaccount_hex: string_option(matches, OWNER_SUBACCOUNT_ARG),
             spender_owner: required_string(matches, SPENDER_PRINCIPAL_ARG),
             spender_subaccount_hex: string_option(matches, SPENDER_SUBACCOUNT_ARG),
-            format: format_from_matches(matches),
-            source_endpoint: source_endpoint_from_matches(matches),
         }
     }
 }
@@ -236,23 +228,19 @@ impl IcrcAccountTransactionCacheOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcTransactionsOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) ledger: IcrcLedgerOptions,
     pub(in crate::icrc) start: u64,
     pub(in crate::icrc) limit: u32,
     pub(in crate::icrc) follow_archives: bool,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcTransactionsOptions {
     pub(super) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
-            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            ledger: IcrcLedgerOptions::from_matches(matches),
             start: required_typed(matches, START_ARG),
             limit: required_typed(matches, LIMIT_ARG),
             follow_archives: matches.get_flag(FOLLOW_ARCHIVES_ARG),
-            format: format_from_matches(matches),
-            source_endpoint: source_endpoint_from_matches(matches),
         }
     }
 }
@@ -265,19 +253,15 @@ impl IcrcTransactionsOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcArchivesOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) ledger: IcrcLedgerOptions,
     pub(in crate::icrc) from_canister_id: Option<String>,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcArchivesOptions {
     pub(super) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
-            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            ledger: IcrcLedgerOptions::from_matches(matches),
             from_canister_id: string_option(matches, FROM_CANISTER_ID_ARG),
-            format: format_from_matches(matches),
-            source_endpoint: source_endpoint_from_matches(matches),
         }
     }
 }
