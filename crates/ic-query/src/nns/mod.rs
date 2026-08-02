@@ -19,7 +19,7 @@ pub mod node_provider;
 pub mod proposals;
 pub mod registry;
 pub mod render;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub(crate) mod source;
 pub mod topology;
 
@@ -34,5 +34,5 @@ pub use inventory_request::NnsInventoryRefreshRequest;
 pub use inventory_request::{
     NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
 };
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub use source::{LiveNnsSource, NnsSourceRequest};

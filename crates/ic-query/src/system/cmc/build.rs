@@ -9,6 +9,7 @@ use super::{
     CmcReportContext, CmcSource, CmcSourceRequest, CmcXdrReport, ICP_XDR_PERMYRIAD_DENOMINATOR,
     LiveCmcSource, MAINNET_CMC_CANISTER_ID, enforce_mainnet_network,
 };
+use crate::hex::is_lowercase_hex;
 
 const CYCLES_PER_ICP_FORMULA: &str = "xdr_permyriad_per_icp * cycles_per_xdr / 10000";
 const CYCLES_PER_XDR_SOURCE: &str = "ic_protocol_constant";
@@ -105,10 +106,7 @@ fn validate_evidence_hex(field: &str, value: &str, byte_count: usize) -> Result<
             value.len()
         )));
     }
-    if !value
-        .bytes()
-        .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
-    {
+    if !is_lowercase_hex(value) {
         return Err(invalid_source_data(format!(
             "{field} must be canonical lowercase hexadecimal"
         )));

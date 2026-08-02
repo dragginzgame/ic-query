@@ -5,6 +5,7 @@
 //! Boundary: carries live neuron rows and pagination cursors into builders.
 
 use crate::{
+    hex::is_canonical_lowercase_hex,
     sns::report::{SnsHostError, SnsNeuronRow},
     subnet_catalog::format_utc_timestamp_secs,
 };
@@ -95,13 +96,7 @@ pub(in crate::sns::report) fn validate_sns_neuron_rows(
 
 /// Validate canonical fields derived for one SNS neuron row.
 pub(in crate::sns::report) fn validate_sns_neuron_row(neuron: &SnsNeuronRow) -> Result<(), String> {
-    if neuron.neuron_id.is_empty()
-        || !neuron.neuron_id.len().is_multiple_of(2)
-        || !neuron
-            .neuron_id
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
-    {
+    if !is_canonical_lowercase_hex(&neuron.neuron_id) {
         return Err(format!(
             "neuron id {} is not canonical lowercase hexadecimal",
             neuron.neuron_id

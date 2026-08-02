@@ -1,11 +1,11 @@
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 use ic_query::nns::NnsSourceRequest;
 use ic_query::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_NETWORK,
     MAINNET_REGISTRY_CANISTER_ID, ResolveAs, ResolvedSubnetSubject, RoutingRange, SubnetCatalog,
     SubnetInfo, SubnetKind, SubnetSpecialization, catalog_to_pretty_json, parse_catalog_json,
 };
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::{
     DEFAULT_REFRESH_LOCK_STALE_SECONDS, DEFAULT_STALE_AFTER_SECONDS,
     DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest, SubnetCatalogFilters,
@@ -18,7 +18,7 @@ use ic_query::subnet_catalog::{
     subnet_catalog_list_report_verbose_text, subnet_catalog_path, subnet_catalog_refresh_lock_path,
     subnet_catalog_refresh_report_text,
 };
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -49,7 +49,7 @@ fn public_subnet_catalog_api_parses_and_resolves_without_host() {
     );
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[test]
 fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers() {
     let root = temp_root("subnet-catalog-host-public-api");
@@ -72,7 +72,7 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
     assert_eq!(resolved.subnet.subnet_kind.as_str(), "application");
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[test]
 fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
     let root = temp_root("subnet-catalog-host-report-public-api");
@@ -113,7 +113,7 @@ fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
     ));
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[test]
 fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     let root = temp_root("subnet-catalog-host-custom-source-public-api");
@@ -131,10 +131,10 @@ fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     assert_eq!(report.subnets[0].subnet_principal, SUBNET_A);
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 struct FixtureSubnetCatalogSource;
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 impl SubnetCatalogSource for FixtureSubnetCatalogSource {
     fn fetch_catalog(
         &self,
@@ -152,11 +152,11 @@ impl SubnetCatalogSource for FixtureSubnetCatalogSource {
     }
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 type SubnetCatalogRefreshFn =
     fn(&SubnetCatalogRefreshRequest) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError>;
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn write_fixture_catalog(root: &Path) -> PathBuf {
     let path = subnet_catalog_path(root, MAINNET_NETWORK);
@@ -169,13 +169,13 @@ fn write_fixture_catalog(root: &Path) -> PathBuf {
     path
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn host_cache_request(root: &Path) -> SubnetCatalogCacheRequest {
     SubnetCatalogCacheRequest::new(root, MAINNET_NETWORK)
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn host_info_request(
     cache: &SubnetCatalogCacheRequest,
@@ -191,7 +191,7 @@ fn host_info_request(
     .with_forced(ResolveAs::Canister)
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn host_list_request(
     cache: &SubnetCatalogCacheRequest,
@@ -208,7 +208,7 @@ fn host_list_request(
     .with_range_limit(10)
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn host_refresh_request(
     cache: &SubnetCatalogCacheRequest,
@@ -223,7 +223,7 @@ fn host_refresh_request(
     .with_dry_run(true)
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
@@ -247,7 +247,7 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
     }
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn refresh_api_accepts_public_types(
     _refresh: SubnetCatalogRefreshFn,
@@ -256,7 +256,7 @@ fn refresh_api_accepts_public_types(
     request.dry_run
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn temp_root(name: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
@@ -265,7 +265,7 @@ fn temp_root(name: &str) -> PathBuf {
     path
 }
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 const fn unix_secs_for_test() -> u64 {
     1_782_432_100

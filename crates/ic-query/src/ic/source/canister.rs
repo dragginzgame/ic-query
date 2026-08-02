@@ -7,10 +7,13 @@
 use super::{
     invalid_request, invalid_source, invalid_source_value, report_provenance, validate_provenance,
 };
-use crate::ic::{
-    IcCanisterCountReport, IcCanisterCountSourceData, IcCanisterFilters, IcCanisterPageReport,
-    IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterReport, IcCanisterSourceData,
-    IcCanisterUpgrade, IcHostError, IcSourceRequest, MAX_IC_CANISTER_PAGE_LIMIT,
+use crate::{
+    hex::is_lowercase_hex,
+    ic::{
+        IcCanisterCountReport, IcCanisterCountSourceData, IcCanisterFilters, IcCanisterPageReport,
+        IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterReport, IcCanisterSourceData,
+        IcCanisterUpgrade, IcHostError, IcSourceRequest, MAX_IC_CANISTER_PAGE_LIMIT,
+    },
 };
 use candid::Principal;
 use std::collections::HashSet;
@@ -382,11 +385,7 @@ fn validate_optional_module_hash(field: &'static str, value: &str) -> Result<(),
 }
 
 fn validate_module_hash(field: &'static str, value: &str) -> Result<(), IcHostError> {
-    if value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-    {
+    if value.len() == 64 && is_lowercase_hex(value) {
         return Ok(());
     }
     invalid_source(format!(

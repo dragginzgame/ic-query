@@ -24,8 +24,10 @@ ic-query = { version = "0.25", default-features = false, features = ["subnet-cat
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
 hashing, synchronous Tokio bridge, cache IO, and endpoint validation required
-by `ic_query::subnet_catalog`. It excludes Dashboard Reqwest transport and CBOR
-certification. The full `host` feature is a strict superset.
+by `ic_query::subnet_catalog`. It does not enable `ic-query`'s direct optional
+Dashboard `reqwest` transport or `serde_cbor` certification dependencies.
+Those packages may still appear transitively through `ic-agent`. The full
+`host` feature is a strict superset.
 
 For pure model/rendering use, keep all features off:
 

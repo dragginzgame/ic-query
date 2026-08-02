@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.5` centralizes canonical lowercase-hex checks and corrects the focused
+  Subnet feature documentation and gate to distinguish direct optional
+  dependencies from packages retained transitively through `ic-agent`. It also
+  simplifies shared internal feature gates by relying on `host` enabling
+  `subnet-catalog-host`. Validation errors, public features and APIs, report
+  output, and source behavior are unchanged.
+
 - `0.25.4` separates live ICRC token/account queries, ledger-history and
   archive traversal, and capability probing behind the existing fetch facade.
   Public APIs, report output, source calls, and verification behavior are
@@ -161,12 +168,14 @@ Detailed release notes: [docs/changelog/0.22.md](docs/changelog/0.22.md)
   slice replaces the NNS neuron wildcard export with an explicit current API
   list, table-drives repeated topology non-mainnet tests, makes published README
   documentation links resolve through GitHub, and adds a focused
-  `subnet-catalog-host` feature without Dashboard Reqwest or CBOR dependencies.
-  The full `host` feature remains a superset. Registry node, provider, operator,
-  and data-center reports now share one cache-missing refresh driver and one
-  exact-or-unique-prefix resolver, plus common network/source-request/fetch/write
-  orchestration. NNS Governance proposal and neuron snapshots also share one
-  attempt-sidecar construction, validation, status, and failed-progress owner.
+  `subnet-catalog-host` feature without enabling `ic-query`'s direct optional
+  Dashboard Reqwest or CBOR dependencies. Those packages may remain transitive
+  through `ic-agent`. The full `host` feature remains a superset. Registry node,
+  provider, operator, and data-center reports now share one cache-missing
+  refresh driver and one exact-or-unique-prefix resolver, plus common
+  network/source-request/fetch/write orchestration. NNS Governance proposal and
+  neuron snapshots also share one attempt-sidecar construction, validation,
+  status, and failed-progress owner.
   SNS proposal and neuron snapshots now share target lookup, lock acquisition,
   complete-cache provenance, atomic publication, and attempt finalization while
   retaining their distinct cursors and row validation. Public Rust paths, CLI

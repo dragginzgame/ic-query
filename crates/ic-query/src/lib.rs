@@ -14,30 +14,30 @@
 //! or `host` for every native live-call adapter and runtime helper. CLI parsing
 //! and process IO belong to the separate `ic-query-cli` crate.
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod agent;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod cache_file;
 #[cfg(feature = "host")]
 mod certification;
 pub mod duration;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod freshness;
 mod hex;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod http_endpoint;
 pub mod ic;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;
 pub mod icrc;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod network;
 pub mod nns;
 #[cfg(feature = "host")]
 mod progress;
 #[cfg(feature = "host")]
 mod report_sort;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod runtime;
 #[cfg(feature = "host")]
 pub(crate) mod snapshot_cache;
@@ -45,7 +45,7 @@ pub mod sns;
 pub mod subnet_catalog;
 pub mod system;
 
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub use cache_file::{CacheFileError, HostCacheError};
 mod table;
 #[cfg(feature = "host")]
@@ -54,7 +54,7 @@ mod text_value;
 mod token_amount;
 mod token_metadata_text;
 
-#[cfg(all(test, any(feature = "host", feature = "subnet-catalog-host")))]
+#[cfg(all(test, feature = "subnet-catalog-host"))]
 mod test_support;
 
 #[cfg(test)]

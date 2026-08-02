@@ -250,8 +250,11 @@ remains an `ic-query-cli` responsibility.
 Enable the narrower `subnet-catalog-host` feature when a native embedder needs
 only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
 decoding, runtime bridge, and cache dependencies required by that API while
-excluding Dashboard Reqwest transport and CBOR certification. The full `host`
-feature remains the choice for all reporting adapters and is a strict superset.
+leaving `ic-query`'s direct optional Dashboard `reqwest` transport and
+`serde_cbor` certification dependencies disabled. Because the feature still
+includes `ic-agent`, both packages may remain in its transitive dependency
+graph. The full `host` feature remains the choice for all reporting adapters
+and is a strict superset.
 
 See [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md) for complete examples and feature
 guidance.

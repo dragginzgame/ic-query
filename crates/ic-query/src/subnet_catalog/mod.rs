@@ -1,21 +1,21 @@
 //! Cached NNS subnet catalog models, resolution helpers, builders, and renderers.
 
 mod error;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod host;
 mod json;
 mod model;
 mod principal;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod report;
 mod resolver;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod text;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod time;
 
 pub use error::CatalogError;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub use host::{
     CachedSubnetCatalog, SubnetCatalogCacheRequest, SubnetCatalogHostError,
     SubnetCatalogRefreshRequest, SubnetCatalogSource, load_cached_subnet_catalog,
@@ -30,9 +30,9 @@ pub use model::{
 };
 pub use principal::canonical_principal_text;
 pub(crate) use principal::{parse_principal, principal_bytes};
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub(crate) use report::CatalogStaleStatus;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub use report::{
     SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
@@ -41,37 +41,37 @@ pub use report::{
     build_subnet_catalog_list_report_with_source,
 };
 pub use resolver::{ResolveAs, ResolvedSubnet, ResolvedSubnetSubject};
-#[cfg(all(test, any(feature = "host", feature = "subnet-catalog-host")))]
+#[cfg(all(test, feature = "subnet-catalog-host"))]
 pub(crate) use text::compact_principal;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub use text::{
     subnet_catalog_info_report_text, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text, subnet_catalog_refresh_report_text,
 };
-#[cfg(all(test, any(feature = "host", feature = "subnet-catalog-host")))]
+#[cfg(all(test, feature = "subnet-catalog-host"))]
 pub(crate) use time::parse_stale_after_duration;
 #[cfg(feature = "host")]
 pub(crate) use time::parse_utc_timestamp_secs;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub(crate) use time::{catalog_stale_status, format_utc_timestamp_secs};
 
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 pub const MAINNET_NETWORK: &str = "ic";
 pub const MAINNET_REGISTRY_CANISTER_ID: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT: &str = "https://icp-api.io";
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub(crate) const SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub(crate) const SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub(crate) const SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 #[cfg(test)]
 mod core_tests;
-#[cfg(all(test, any(feature = "host", feature = "subnet-catalog-host")))]
+#[cfg(all(test, feature = "subnet-catalog-host"))]
 mod tests;

@@ -19,6 +19,11 @@ forbidden_host_dependencies=(
   clap
 )
 
+forbidden_direct_subnet_catalog_host_dependencies=(
+  reqwest
+  serde_cbor
+)
+
 check_tree_absent() {
   local label="$1"
   shift
@@ -70,6 +75,8 @@ cargo check -p ic-query --no-default-features --locked
 cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked
 run_quiet "ic-query --features host" \
   cargo check -p ic-query --no-default-features --features host --locked
+run_quiet "ic-query --features subnet-catalog-host" \
+  cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
@@ -81,6 +88,7 @@ cargo test -p ic-query --test nns_public_api --no-default-features --features ho
 cargo test -p ic-query --test sns_public_api --no-default-features --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --locked
+cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features subnet-catalog-host --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test system_public_api --no-default-features --locked
 cargo test -p ic-query --test system_public_api --no-default-features --features host --locked
@@ -118,3 +126,15 @@ check_tree_absent "ic-query --features host --no-default-features" \
   -p ic-query \
   --no-default-features \
   --features host
+
+# `ic-agent` may retain these package names transitively. The focused feature
+# promises only that ic-query's own optional transport/certification edges stay
+# disabled, so this gate intentionally inspects direct normal dependencies.
+check_tree_absent "ic-query --features subnet-catalog-host direct dependencies" \
+  "${forbidden_direct_subnet_catalog_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features subnet-catalog-host \
+  -e normal \
+  --depth 1

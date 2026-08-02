@@ -4,8 +4,12 @@
 //! Does not own: live transport, SNS lookup, report assembly, or rendering.
 //! Boundary: validates target identity, native methods, versions, and next-version gaps.
 
-use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsPendingUpgrade, SnsUpgradeQueryGap, SnsVersion,
+use crate::{
+    hex::is_canonical_lowercase_hex,
+    sns::report::{
+        MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsPendingUpgrade, SnsUpgradeQueryGap,
+        SnsVersion,
+    },
 };
 use candid::Principal;
 
@@ -117,11 +121,7 @@ fn validate_version(field: &'static str, version: &SnsVersion) -> Result<(), Sns
         ("governance", version.governance_wasm_hash_hex.as_str()),
         ("index", version.index_wasm_hash_hex.as_str()),
     ] {
-        if hash.is_empty()
-            || hash.len() % 2 != 0
-            || !hash.bytes().all(|byte| byte.is_ascii_hexdigit())
-            || hash.bytes().any(|byte| byte.is_ascii_uppercase())
-        {
+        if !is_canonical_lowercase_hex(hash) {
             return Err(invalid_upgrade(format!(
                 "{field}.{role}_wasm_hash_hex is not lowercase even-length hexadecimal text"
             )));

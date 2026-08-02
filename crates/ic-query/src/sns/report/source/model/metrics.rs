@@ -4,8 +4,9 @@
 //! Does not own: live transport, lookup, report assembly, or rendering.
 //! Boundary: validates target, method, freshness claims, row identity, and bounds.
 
-use crate::sns::report::{
-    SnsHostError, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics,
+use crate::{
+    hex::is_lowercase_hex,
+    sns::report::{SnsHostError, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics},
 };
 use candid::Principal;
 use std::collections::BTreeSet;
@@ -104,9 +105,7 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
         validate_optional_principal("ledger_canister_id", row.ledger_canister_id.as_deref())?;
         validate_optional_principal("account_owner", row.account_owner.as_deref())?;
         if let Some(subaccount) = row.account_subaccount_hex.as_deref()
-            && (subaccount.len() != 64
-                || !subaccount.bytes().all(|byte| byte.is_ascii_hexdigit())
-                || subaccount.bytes().any(|byte| byte.is_ascii_uppercase()))
+            && (subaccount.len() != 64 || !is_lowercase_hex(subaccount))
         {
             return Err(invalid_metrics(format!(
                 "treasury code {} account_subaccount_hex is not 32-byte lowercase hexadecimal text",

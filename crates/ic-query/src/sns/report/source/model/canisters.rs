@@ -4,7 +4,10 @@
 //! Does not own: live Root transport, lookup, report assembly, or rendering.
 //! Boundary: carries source provenance, joined rows, and typed gaps to builders.
 
-use crate::sns::report::{SnsCanisterGap, SnsCanisterRole, SnsCanisterRow, SnsHostError};
+use crate::{
+    hex::is_canonical_lowercase_hex,
+    sns::report::{SnsCanisterGap, SnsCanisterRole, SnsCanisterRow, SnsHostError},
+};
 use candid::Principal;
 use std::collections::BTreeMap;
 
@@ -169,10 +172,7 @@ fn validate_canister_health(canister: &SnsCanisterRow) -> Result<(), SnsHostErro
         }
     }
     if let Some(hash) = canister.module_hash_hex.as_deref()
-        && (hash.is_empty()
-            || hash.len() % 2 != 0
-            || !hash.bytes().all(|byte| byte.is_ascii_hexdigit())
-            || hash.bytes().any(|byte| byte.is_ascii_uppercase()))
+        && !is_canonical_lowercase_hex(hash)
     {
         return Err(invalid_inventory(format!(
             "canister {} module_hash_hex is not lowercase even-length hexadecimal text",
