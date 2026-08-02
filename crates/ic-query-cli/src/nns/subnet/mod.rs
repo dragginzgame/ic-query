@@ -4,7 +4,7 @@ mod run;
 
 #[cfg(test)]
 pub(super) use commands::{
-    DEFAULT_RANGE_LIMIT, info_usage, list_usage, refresh_usage, subnet_usage,
+    DEFAULT_RANGE_LIMIT, info_command, list_command, refresh_command, subnet_command,
 };
 #[cfg(test)]
 pub(super) use options::{CatalogInfoOptions, CatalogListOptions, CatalogRefreshOptions};

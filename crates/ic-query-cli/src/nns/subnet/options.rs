@@ -1,5 +1,3 @@
-#[cfg(test)]
-use super::commands::{info_command, list_command, refresh_command};
 use crate::{
     cli::clap::{required_string, required_typed, typed_option},
     cli::common::output_format,
@@ -7,8 +5,6 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{ResolveAs, SubnetCatalogFilters};
-#[cfg(test)]
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 ///
@@ -77,18 +73,6 @@ impl CatalogListOptions {
             range_offset: required_typed(matches, "range-offset"),
         }
     }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(list_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
-    }
 }
 
 impl CatalogInfoOptions {
@@ -100,18 +84,6 @@ impl CatalogInfoOptions {
             source_endpoint: required_string(matches, "source-endpoint"),
             forced: typed_option(matches, "as"),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(info_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }
 
@@ -125,17 +97,5 @@ impl CatalogRefreshOptions {
             dry_run: matches.get_flag("dry-run"),
             output_path: typed_option(matches, "output"),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(refresh_command(), args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

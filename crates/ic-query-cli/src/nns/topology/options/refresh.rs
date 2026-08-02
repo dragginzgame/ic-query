@@ -6,8 +6,6 @@ use crate::{
     },
 };
 use clap::ArgMatches;
-#[cfg(test)]
-use std::ffi::OsString;
 
 ///
 /// TopologyRefreshOptions
@@ -34,20 +32,5 @@ impl TopologyRefreshOptions {
             lock_stale_after_seconds: required_typed(matches, LOCK_STALE_AFTER_ARG),
             dry_run: matches.get_flag(DRY_RUN_ARG),
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(
-            crate::nns::topology::commands::topology_refresh_command(),
-            args,
-        )?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

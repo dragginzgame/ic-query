@@ -59,7 +59,7 @@ const TOPOLOGY_OPERATOR_CACHE_SOURCE_HELP: &str =
 const TOPOLOGY_DATA_CENTER_CACHE_SOURCE_HELP: &str =
     "IC API endpoint used if the data-center cache is missing";
 
-pub(in crate::nns::topology) fn topology_summary_command() -> clap::Command {
+pub(in crate::nns) fn topology_summary_command() -> clap::Command {
     topology_read_command(
         "summary",
         "Summarize cached mainnet NNS topology reports",
@@ -68,7 +68,7 @@ pub(in crate::nns::topology) fn topology_summary_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns::topology) fn topology_coverage_command() -> clap::Command {
+pub(in crate::nns) fn topology_coverage_command() -> clap::Command {
     topology_read_command(
         "coverage",
         "Show cached mainnet NNS topology join coverage",
@@ -77,7 +77,7 @@ pub(in crate::nns::topology) fn topology_coverage_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns::topology) fn topology_versions_command() -> clap::Command {
+pub(in crate::nns) fn topology_versions_command() -> clap::Command {
     topology_read_command(
         "versions",
         "Show cached mainnet NNS topology component registry versions",
@@ -86,7 +86,7 @@ pub(in crate::nns::topology) fn topology_versions_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns::topology) fn topology_health_command() -> clap::Command {
+pub(in crate::nns) fn topology_health_command() -> clap::Command {
     topology_read_command(
         "health",
         "Check cached mainnet NNS topology cache health",
@@ -95,7 +95,7 @@ pub(in crate::nns::topology) fn topology_health_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns::topology) fn topology_gaps_command() -> clap::Command {
+pub(in crate::nns) fn topology_gaps_command() -> clap::Command {
     topology_read_command(
         "gaps",
         "List cached mainnet NNS topology join gaps",
@@ -104,7 +104,7 @@ pub(in crate::nns::topology) fn topology_gaps_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns::topology) fn topology_capacity_command() -> clap::Command {
+pub(in crate::nns) fn topology_capacity_command() -> clap::Command {
     topology_read_command(
         "capacity",
         "Show cached mainnet NNS node-operator capacity",
@@ -113,7 +113,7 @@ pub(in crate::nns::topology) fn topology_capacity_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns::topology) fn topology_regions_command() -> clap::Command {
+pub(in crate::nns) fn topology_regions_command() -> clap::Command {
     topology_read_command(
         "regions",
         "Summarize cached mainnet NNS topology by region",
@@ -122,7 +122,7 @@ pub(in crate::nns::topology) fn topology_regions_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns::topology) fn topology_providers_command() -> clap::Command {
+pub(in crate::nns) fn topology_providers_command() -> clap::Command {
     topology_read_command(
         "providers",
         "Summarize cached mainnet NNS topology by node provider",

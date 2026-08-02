@@ -4,7 +4,7 @@ use super::{
     topology_regions_command, topology_summary_command, topology_versions_command,
 };
 
-pub(in crate::nns::topology) fn topology_command() -> clap::Command {
+pub(in crate::nns) fn topology_command() -> clap::Command {
     clap::Command::new("topology")
         .bin_name("icq nns topology")
         .about("Inspect joined NNS topology metadata")

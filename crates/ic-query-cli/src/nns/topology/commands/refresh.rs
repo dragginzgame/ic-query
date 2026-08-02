@@ -19,7 +19,7 @@ Examples:
 const TOPOLOGY_REFRESH_SOURCE_HELP: &str =
     "IC API endpoint used for NNS topology component refreshes";
 
-pub(in crate::nns::topology) fn topology_refresh_command() -> clap::Command {
+pub(in crate::nns) fn topology_refresh_command() -> clap::Command {
     clap::Command::new("refresh")
         .bin_name("icq nns topology refresh")
         .about("Refresh cached mainnet NNS topology component reports")

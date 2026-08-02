@@ -17,7 +17,7 @@ Examples:
 Refresh stale cache:
   icq nns subnet refresh";
 
-pub(in crate::nns::subnet) fn info_command() -> ClapCommand {
+pub(in crate::nns) fn info_command() -> ClapCommand {
     ClapCommand::new("info")
         .bin_name("icq nns subnet info")
         .about("Resolve a subnet, canister, or subnet prefix to cached subnet info")

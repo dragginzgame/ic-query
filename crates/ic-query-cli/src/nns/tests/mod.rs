@@ -47,15 +47,16 @@ use super::{
     registry::{RegistryVersionOptions, registry_command, registry_version_command},
     subnet::{
         CatalogInfoOptions, CatalogListOptions, CatalogRefreshOptions, DEFAULT_RANGE_LIMIT,
-        info_usage, list_usage, refresh_usage, subnet_usage,
+        info_command, list_command, refresh_command, subnet_command,
     },
     topology::{
         TopologyCapacityOptions, TopologyCoverageOptions, TopologyGapsOptions,
-        TopologyHealthOptions, TopologyProvidersOptions, TopologyRefreshOptions,
-        TopologyRegionsOptions, TopologySummaryOptions, TopologyVersionsOptions,
-        topology_capacity_usage, topology_coverage_usage, topology_gaps_usage,
-        topology_health_usage, topology_providers_usage, topology_refresh_usage,
-        topology_regions_usage, topology_summary_usage, topology_usage, topology_versions_usage,
+        TopologyHealthOptions, TopologyProvidersOptions, TopologyReadOptions,
+        TopologyRefreshOptions, TopologyRegionsOptions, TopologySummaryOptions,
+        TopologyVersionsOptions, topology_capacity_command, topology_command,
+        topology_coverage_command, topology_gaps_command, topology_health_command,
+        topology_providers_command, topology_refresh_command, topology_regions_command,
+        topology_summary_command, topology_versions_command,
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};

@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.15` removes test-only option parsers and help-rendering modules from
+  the NNS Subnet and Topology command owners. Focused tests reuse the shared
+  NNS production-Clap harness and render supported command builders directly.
+  Production grammar, parsing, dispatch, reports, and source behavior are
+  unchanged.
+
 - `0.25.14` removes test-only option parsers and help forwarders from the NNS
   neuron, Governance, and Registry command owners. Focused NNS tests now share
   one production-Clap parsing harness and render supported command builders

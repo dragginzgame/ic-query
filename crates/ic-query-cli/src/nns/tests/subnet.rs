@@ -1,8 +1,10 @@
 use super::*;
+use crate::cli::clap::render_help;
 
 #[test]
 fn list_defaults_to_mainnet_ic_catalog() {
-    let options = CatalogListOptions::parse([]).expect("parse list");
+    let options = parse_test_options(list_command(), &[], CatalogListOptions::from_matches)
+        .expect("parse list");
 
     assert_eq!(options.network, MAINNET_NETWORK);
     assert_eq!(options.format, OutputFormat::Text);
@@ -16,19 +18,23 @@ fn list_defaults_to_mainnet_ic_catalog() {
 
 #[test]
 fn list_parses_filters_and_json_format() {
-    let options = CatalogListOptions::parse([
-        OsString::from("--kind"),
-        OsString::from("application"),
-        OsString::from("--specialization"),
-        OsString::from("fiduciary"),
-        OsString::from("--geo"),
-        OsString::from("global"),
-        OsString::from("--json"),
-        OsString::from("--show-ranges"),
-        OsString::from("--verbose"),
-        OsString::from("--range-limit"),
-        OsString::from("12"),
-    ])
+    let options = parse_test_options(
+        list_command(),
+        &[
+            "--kind",
+            "application",
+            "--specialization",
+            "fiduciary",
+            "--geo",
+            "global",
+            "--json",
+            "--show-ranges",
+            "--verbose",
+            "--range-limit",
+            "12",
+        ],
+        CatalogListOptions::from_matches,
+    )
     .expect("parse list");
 
     assert_eq!(options.filters.kind, Some(SubnetKind::Application));
@@ -53,26 +59,34 @@ fn list_parses_filters_and_json_format() {
 #[test]
 fn clap_rejects_invalid_nns_option_values() {
     assert!(matches!(
-        CatalogListOptions::parse([OsString::from("--kind"), OsString::from("subnet"),]),
+        parse_test_options(
+            list_command(),
+            &["--kind", "subnet"],
+            CatalogListOptions::from_matches,
+        ),
         Err(NnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        CatalogListOptions::parse([OsString::from("--range-limit"), OsString::from("0"),]),
+        parse_test_options(
+            list_command(),
+            &["--range-limit", "0"],
+            CatalogListOptions::from_matches,
+        ),
         Err(NnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        CatalogInfoOptions::parse([
-            OsString::from("aaaaa-aa"),
-            OsString::from("--as"),
-            OsString::from("route"),
-        ]),
+        parse_test_options(
+            info_command(),
+            &["aaaaa-aa", "--as", "route"],
+            CatalogInfoOptions::from_matches,
+        ),
         Err(NnsCommandError::Usage(_))
     ));
 }
 
 #[test]
 fn info_usage_names_subnet_lookup_input() {
-    let text = info_usage();
+    let text = render_help(info_command());
 
     assert!(text.contains("subnet|canister|subnet-prefix"));
     assert!(text.contains("unique subnet prefix"));
@@ -82,8 +96,8 @@ fn info_usage_names_subnet_lookup_input() {
 
 #[test]
 fn list_and_info_help_hide_stale_policy_knobs() {
-    let list = list_usage();
-    let info = info_usage();
+    let list = render_help(list_command());
+    let info = render_help(info_command());
 
     assert!(list.contains("Collection mode: Cache-backed read"));
     assert!(info.contains("Collection mode: Cache-backed read"));
@@ -95,16 +109,20 @@ fn list_and_info_help_hide_stale_policy_knobs() {
 
 #[test]
 fn refresh_parses_defaults_and_export_options() {
-    let options = CatalogRefreshOptions::parse([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-        OsString::from("--lock-stale-after"),
-        OsString::from("5m"),
-        OsString::from("--dry-run"),
-        OsString::from("--output"),
-        OsString::from("catalog.preview.json"),
-    ])
+    let options = parse_test_options(
+        refresh_command(),
+        &[
+            "--json",
+            "--source-endpoint",
+            "https://icp-api.io",
+            "--lock-stale-after",
+            "5m",
+            "--dry-run",
+            "--output",
+            "catalog.preview.json",
+        ],
+        CatalogRefreshOptions::from_matches,
+    )
     .expect("parse refresh");
 
     assert_eq!(options.network, MAINNET_NETWORK);
@@ -120,8 +138,8 @@ fn refresh_parses_defaults_and_export_options() {
 
 #[test]
 fn refresh_is_advertised_as_subnet_command() {
-    let text = subnet_usage();
-    let refresh = refresh_usage();
+    let text = render_help(subnet_command());
+    let refresh = render_help(refresh_command());
 
     assert!(text.contains("refresh"));
     assert!(refresh.contains("icq nns subnet refresh"));

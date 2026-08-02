@@ -1,14 +1,10 @@
-#[cfg(test)]
-use crate::nns::topology::commands as topology_commands;
 use crate::{cli::common::OutputFormat, nns::leaf::NnsCommonOptions};
 use clap::ArgMatches;
 use ic_query::nns::topology::NnsTopologyReadRequest;
-#[cfg(test)]
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 macro_rules! topology_read_options {
-    ($name:ident, $command:path) => {
+    ($name:ident) => {
         #[doc = ""]
         #[doc = stringify!($name)]
         #[doc = ""]
@@ -20,21 +16,6 @@ macro_rules! topology_read_options {
             pub(in crate::nns) format: OutputFormat,
             pub(in crate::nns) source_endpoint: String,
         }
-
-        impl $name {
-            #[cfg(test)]
-            pub(in crate::nns) fn parse<I>(args: I) -> Result<Self, crate::nns::NnsCommandError>
-            where
-                I: IntoIterator<Item = OsString>,
-            {
-                let matches = crate::nns::parse_nns_matches($command(), args)?;
-                Ok(<Self as TopologyReadOptions>::from_matches(
-                    &matches,
-                    ic_query::subnet_catalog::MAINNET_NETWORK,
-                ))
-            }
-        }
-
         impl TopologyReadOptions for $name {
             fn from_matches(matches: &ArgMatches, network: &str) -> Self {
                 let common = NnsCommonOptions::from_matches(matches, network);
@@ -71,41 +52,17 @@ macro_rules! topology_read_options {
 /// Request conversion shared by NNS topology read command variants.
 ///
 
-pub(in crate::nns::topology) trait TopologyReadOptions: Sized {
+pub(in crate::nns) trait TopologyReadOptions: Sized {
     fn from_matches(matches: &ArgMatches, network: &str) -> Self;
     fn format(&self) -> OutputFormat;
     fn into_request(self, cache_root: PathBuf, now_unix_secs: u64) -> NnsTopologyReadRequest;
 }
 
-topology_read_options!(
-    TopologySummaryOptions,
-    topology_commands::topology_summary_command
-);
-topology_read_options!(
-    TopologyCoverageOptions,
-    topology_commands::topology_coverage_command
-);
-topology_read_options!(
-    TopologyVersionsOptions,
-    topology_commands::topology_versions_command
-);
-topology_read_options!(
-    TopologyHealthOptions,
-    topology_commands::topology_health_command
-);
-topology_read_options!(
-    TopologyGapsOptions,
-    topology_commands::topology_gaps_command
-);
-topology_read_options!(
-    TopologyCapacityOptions,
-    topology_commands::topology_capacity_command
-);
-topology_read_options!(
-    TopologyRegionsOptions,
-    topology_commands::topology_regions_command
-);
-topology_read_options!(
-    TopologyProvidersOptions,
-    topology_commands::topology_providers_command
-);
+topology_read_options!(TopologySummaryOptions);
+topology_read_options!(TopologyCoverageOptions);
+topology_read_options!(TopologyVersionsOptions);
+topology_read_options!(TopologyHealthOptions);
+topology_read_options!(TopologyGapsOptions);
+topology_read_options!(TopologyCapacityOptions);
+topology_read_options!(TopologyRegionsOptions);
+topology_read_options!(TopologyProvidersOptions);

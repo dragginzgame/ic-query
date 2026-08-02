@@ -14,7 +14,7 @@ Examples:
   icq --network ic nns subnet refresh --json
   icq nns subnet refresh --dry-run --output /tmp/icq-subnet-catalog.preview.json";
 
-pub(in crate::nns::subnet) fn refresh_command() -> ClapCommand {
+pub(in crate::nns) fn refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq nns subnet refresh")
         .about("Force-refresh and cache NNS subnet metadata")

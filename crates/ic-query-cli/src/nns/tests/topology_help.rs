@@ -1,18 +1,19 @@
 use super::*;
+use crate::cli::clap::render_help;
 
 #[test]
 fn topology_help_is_advertised_under_nns() {
     let nns = usage();
-    let topology = topology_usage();
-    let summary = topology_summary_usage();
-    let coverage = topology_coverage_usage();
-    let versions = topology_versions_usage();
-    let health = topology_health_usage();
-    let gaps = topology_gaps_usage();
-    let capacity = topology_capacity_usage();
-    let regions = topology_regions_usage();
-    let providers = topology_providers_usage();
-    let refresh = topology_refresh_usage();
+    let topology = render_help(topology_command());
+    let summary = render_help(topology_summary_command());
+    let coverage = render_help(topology_coverage_command());
+    let versions = render_help(topology_versions_command());
+    let health = render_help(topology_health_command());
+    let gaps = render_help(topology_gaps_command());
+    let capacity = render_help(topology_capacity_command());
+    let regions = render_help(topology_regions_command());
+    let providers = render_help(topology_providers_command());
+    let refresh = render_help(topology_refresh_command());
 
     assert!(nns.contains("topology"));
     assert!(topology.contains("Summarize cached mainnet NNS topology reports"));
