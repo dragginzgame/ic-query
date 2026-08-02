@@ -4,14 +4,6 @@
 //! Does not own: command dispatch, report construction, or output.
 //! Boundary: validates command arguments before dispatch constructs public requests.
 
-#[cfg(test)]
-use super::account::{
-    icrc_account_transaction_cache_status_command, icrc_account_transaction_list_command,
-    icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
-    icrc_allowance_command, icrc_balance_command,
-};
-#[cfg(test)]
-use super::ledger::{icrc_archives_command, icrc_transactions_command};
 use super::{
     FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG,
     LIMIT_ARG, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG,
@@ -22,14 +14,8 @@ use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option},
     common::OutputFormat,
 };
-#[cfg(test)]
-use crate::{cli::clap::parse_matches_or_usage, icrc::IcrcCommandError};
 use clap::ArgMatches;
-#[cfg(test)]
-use clap::Command as ClapCommand;
 use ic_query::icrc::IcrcAccountTransactionSort;
-#[cfg(test)]
-use std::ffi::OsString;
 
 ///
 /// IcrcLedgerOptions
@@ -51,15 +37,6 @@ impl IcrcLedgerOptions {
             format: format_from_matches(matches),
             source_endpoint: source_endpoint_from_matches(matches),
         }
-    }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I, command: fn() -> ClapCommand) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(command(), args).map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -87,16 +64,6 @@ impl IcrcBalanceOptions {
             format: format_from_matches(matches),
             source_endpoint: source_endpoint_from_matches(matches),
         }
-    }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_balance_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -128,16 +95,6 @@ impl IcrcAllowanceOptions {
             format: format_from_matches(matches),
             source_endpoint: source_endpoint_from_matches(matches),
         }
-    }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_allowance_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -191,16 +148,6 @@ impl IcrcAccountTransactionPageOptions {
             format: format_from_matches(matches),
         }
     }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_account_transaction_page_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 ///
@@ -231,16 +178,6 @@ impl IcrcAccountTransactionListOptions {
             format: format_from_matches(matches),
         }
     }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_account_transaction_list_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 ///
@@ -268,16 +205,6 @@ impl IcrcAccountTransactionRefreshOptions {
             format: format_from_matches(matches),
         }
     }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_account_transaction_refresh_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 ///
@@ -298,16 +225,6 @@ impl IcrcAccountTransactionCacheOptions {
             target: IcrcAccountTargetOptions::from_matches(matches),
             format: format_from_matches(matches),
         }
-    }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_account_transaction_cache_status_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -338,16 +255,6 @@ impl IcrcTransactionsOptions {
             source_endpoint: source_endpoint_from_matches(matches),
         }
     }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_transactions_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 ///
@@ -372,15 +279,5 @@ impl IcrcArchivesOptions {
             format: format_from_matches(matches),
             source_endpoint: source_endpoint_from_matches(matches),
         }
-    }
-
-    #[cfg(test)]
-    pub(super) fn parse<I>(args: I) -> Result<Self, IcrcCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = parse_matches_or_usage(icrc_archives_command(), args)
-            .map_err(IcrcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
     }
 }

@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.9` removes duplicated test-only parsers from every ICRC option model
+  and routes focused command tests through one shared Clap parsing helper.
+  Production option parsing, CLI behavior, public APIs, reports, and source
+  behavior are unchanged.
+
 - `0.25.8` separates ICRC ledger-wide and account/account-history Clap command
   construction behind the existing command facade. CLI grammar and help,
   option parsing, dispatch, public Rust APIs, reports, and source behavior are
