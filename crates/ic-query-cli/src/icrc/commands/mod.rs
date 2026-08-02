@@ -9,10 +9,21 @@ mod dispatch;
 mod ledger;
 mod options;
 #[cfg(test)]
-pub(in crate::icrc) mod test_support;
+pub(in crate::icrc) use account::{
+    command as icrc_account_command, icrc_account_transaction_cache_command,
+    icrc_account_transaction_cache_status_command, icrc_account_transaction_command,
+    icrc_account_transaction_list_command, icrc_account_transaction_page_command,
+    icrc_account_transaction_refresh_command, icrc_allowance_command, icrc_balance_command,
+};
+#[cfg(test)]
+pub(in crate::icrc) use ledger::{
+    command as icrc_ledger_command, icrc_archives_command, icrc_block_types_command,
+    icrc_capabilities_command, icrc_index_command, icrc_tip_certificate_command,
+    icrc_token_command, icrc_transactions_command,
+};
 
 pub use dispatch::run_matches;
-use options::{
+pub(in crate::icrc) use options::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
     IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,

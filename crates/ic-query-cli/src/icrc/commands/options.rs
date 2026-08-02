@@ -31,7 +31,7 @@ pub(in crate::icrc) struct IcrcLedgerOptions {
 }
 
 impl IcrcLedgerOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
             format: format_from_matches(matches),
@@ -54,7 +54,7 @@ pub(in crate::icrc) struct IcrcBalanceOptions {
 }
 
 impl IcrcBalanceOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             ledger: IcrcLedgerOptions::from_matches(matches),
             account_owner: required_string(matches, PRINCIPAL_ARG),
@@ -79,7 +79,7 @@ pub(in crate::icrc) struct IcrcAllowanceOptions {
 }
 
 impl IcrcAllowanceOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             ledger: IcrcLedgerOptions::from_matches(matches),
             account_owner: required_string(matches, OWNER_PRINCIPAL_ARG),
@@ -131,7 +131,7 @@ pub(in crate::icrc) struct IcrcAccountTransactionPageOptions {
 }
 
 impl IcrcAccountTransactionPageOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             target: IcrcAccountTargetOptions::from_matches(matches),
             index_canister_id: string_option(matches, INDEX_CANISTER_ID_ARG),
@@ -157,7 +157,7 @@ pub(in crate::icrc) struct IcrcAccountTransactionListOptions {
 }
 
 impl IcrcAccountTransactionListOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         let sort = match required_string(matches, SORT_ARG).as_str() {
             "newest" => IcrcAccountTransactionSort::Newest,
             "oldest" => IcrcAccountTransactionSort::Oldest,
@@ -188,7 +188,7 @@ pub(in crate::icrc) struct IcrcAccountTransactionRefreshOptions {
 }
 
 impl IcrcAccountTransactionRefreshOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             target: IcrcAccountTargetOptions::from_matches(matches),
             index_canister_id: string_option(matches, INDEX_CANISTER_ID_ARG),
@@ -212,7 +212,7 @@ pub(in crate::icrc) struct IcrcAccountTransactionCacheOptions {
 }
 
 impl IcrcAccountTransactionCacheOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             target: IcrcAccountTargetOptions::from_matches(matches),
             format: format_from_matches(matches),
@@ -235,7 +235,7 @@ pub(in crate::icrc) struct IcrcTransactionsOptions {
 }
 
 impl IcrcTransactionsOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             ledger: IcrcLedgerOptions::from_matches(matches),
             start: required_typed(matches, START_ARG),
@@ -258,7 +258,7 @@ pub(in crate::icrc) struct IcrcArchivesOptions {
 }
 
 impl IcrcArchivesOptions {
-    pub(super) fn from_matches(matches: &ArgMatches) -> Self {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             ledger: IcrcLedgerOptions::from_matches(matches),
             from_canister_id: string_option(matches, FROM_CANISTER_ID_ARG),

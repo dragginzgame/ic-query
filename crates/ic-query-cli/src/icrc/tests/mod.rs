@@ -1,16 +1,20 @@
-use super::commands::test_support::{
-    account_transaction_cache_status_usage, account_transaction_cache_usage,
-    account_transaction_list_usage, account_transaction_page_usage,
-    account_transaction_refresh_usage, account_transaction_usage, account_usage, allowance_usage,
-    archives_usage, balance_usage, block_types_usage, capabilities_usage, index_usage,
-    ledger_usage, parse_account_transaction_cache_options, parse_account_transaction_list_options,
-    parse_account_transaction_page_options, parse_account_transaction_refresh_options,
-    parse_allowance_options, parse_archives_options, parse_balance_options,
-    parse_block_types_options, parse_capabilities_options, parse_index_options,
-    parse_tip_certificate_options, parse_token_options, parse_transactions_options, root_usage,
-    tip_certificate_usage, token_usage, transactions_usage,
+use super::commands::{
+    IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
+    IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
+    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    command as icrc_command, icrc_account_command, icrc_account_transaction_cache_command,
+    icrc_account_transaction_cache_status_command, icrc_account_transaction_command,
+    icrc_account_transaction_list_command, icrc_account_transaction_page_command,
+    icrc_account_transaction_refresh_command, icrc_allowance_command, icrc_archives_command,
+    icrc_balance_command, icrc_block_types_command, icrc_capabilities_command, icrc_index_command,
+    icrc_ledger_command, icrc_tip_certificate_command, icrc_token_command,
+    icrc_transactions_command,
 };
-use crate::cli::common::OutputFormat;
+use crate::cli::{
+    clap::{parse_matches_or_usage, render_help},
+    common::OutputFormat,
+};
+use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::icrc::IcrcAccountTransactionSort;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
@@ -19,14 +23,29 @@ const ACCOUNT_OWNER: &str = "aaaaa-aa";
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 const SUBACCOUNT: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
+fn parse_test_options<Options>(
+    command: ClapCommand,
+    args: &[&str],
+    from_matches: fn(&ArgMatches) -> Options,
+) -> Options {
+    let matches =
+        parse_matches_or_usage(command, args.iter().copied().map(std::ffi::OsString::from))
+            .expect("parse ICRC test options");
+    from_matches(&matches)
+}
+
 #[test]
 fn token_options_parse_through_clap() {
-    let options = parse_token_options(&[
-        LEDGER_CANISTER_ID,
-        "--json",
-        "--source-endpoint",
-        SOURCE_ENDPOINT,
-    ]);
+    let options = parse_test_options(
+        icrc_token_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            "--json",
+            "--source-endpoint",
+            SOURCE_ENDPOINT,
+        ],
+        IcrcLedgerOptions::from_matches,
+    );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -35,7 +54,11 @@ fn token_options_parse_through_clap() {
 
 #[test]
 fn capabilities_options_parse_through_clap() {
-    let options = parse_capabilities_options(&[LEDGER_CANISTER_ID, "--json"]);
+    let options = parse_test_options(
+        icrc_capabilities_command(),
+        &[LEDGER_CANISTER_ID, "--json"],
+        IcrcLedgerOptions::from_matches,
+    );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -43,13 +66,17 @@ fn capabilities_options_parse_through_clap() {
 
 #[test]
 fn balance_options_parse_through_clap_and_normalize_subaccount() {
-    let options = parse_balance_options(&[
-        LEDGER_CANISTER_ID,
-        ACCOUNT_OWNER,
-        "--subaccount",
-        SUBACCOUNT,
-        "--json",
-    ]);
+    let options = parse_test_options(
+        icrc_balance_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            ACCOUNT_OWNER,
+            "--subaccount",
+            SUBACCOUNT,
+            "--json",
+        ],
+        IcrcBalanceOptions::from_matches,
+    );
 
     assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.account_owner, ACCOUNT_OWNER);
@@ -59,15 +86,19 @@ fn balance_options_parse_through_clap_and_normalize_subaccount() {
 
 #[test]
 fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
-    let options = parse_allowance_options(&[
-        LEDGER_CANISTER_ID,
-        ACCOUNT_OWNER,
-        ACCOUNT_OWNER,
-        "--owner-subaccount",
-        SUBACCOUNT,
-        "--spender-subaccount",
-        SUBACCOUNT,
-    ]);
+    let options = parse_test_options(
+        icrc_allowance_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            ACCOUNT_OWNER,
+            ACCOUNT_OWNER,
+            "--owner-subaccount",
+            SUBACCOUNT,
+            "--spender-subaccount",
+            SUBACCOUNT,
+        ],
+        IcrcAllowanceOptions::from_matches,
+    );
 
     assert_eq!(options.account_owner, ACCOUNT_OWNER);
     assert_eq!(options.spender_owner, ACCOUNT_OWNER);
@@ -77,21 +108,25 @@ fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
 
 #[test]
 fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
-    let options = parse_account_transaction_page_options(&[
-        LEDGER_CANISTER_ID,
-        ACCOUNT_OWNER,
-        "--index-canister-id",
-        INDEX_CANISTER_ID,
-        "--subaccount",
-        SUBACCOUNT,
-        "--start",
-        "18446744073709551616",
-        "--limit",
-        "42",
-        "--json",
-        "--source-endpoint",
-        SOURCE_ENDPOINT,
-    ]);
+    let options = parse_test_options(
+        icrc_account_transaction_page_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            ACCOUNT_OWNER,
+            "--index-canister-id",
+            INDEX_CANISTER_ID,
+            "--subaccount",
+            SUBACCOUNT,
+            "--start",
+            "18446744073709551616",
+            "--limit",
+            "42",
+            "--json",
+            "--source-endpoint",
+            SOURCE_ENDPOINT,
+        ],
+        IcrcAccountTransactionPageOptions::from_matches,
+    );
 
     assert_eq!(options.target.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(
@@ -108,14 +143,18 @@ fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
 
 #[test]
 fn account_transaction_list_options_parse_cache_view() {
-    let options = parse_account_transaction_list_options(&[
-        LEDGER_CANISTER_ID,
-        ACCOUNT_OWNER,
-        "--limit",
-        "250",
-        "--sort",
-        "oldest",
-    ]);
+    let options = parse_test_options(
+        icrc_account_transaction_list_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            ACCOUNT_OWNER,
+            "--limit",
+            "250",
+            "--sort",
+            "oldest",
+        ],
+        IcrcAccountTransactionListOptions::from_matches,
+    );
 
     assert_eq!(options.limit, 250);
     assert_eq!(options.sort, IcrcAccountTransactionSort::Oldest);
@@ -123,16 +162,20 @@ fn account_transaction_list_options_parse_cache_view() {
 
 #[test]
 fn account_transaction_refresh_options_parse_collection_bounds() {
-    let options = parse_account_transaction_refresh_options(&[
-        LEDGER_CANISTER_ID,
-        ACCOUNT_OWNER,
-        "--index-canister-id",
-        INDEX_CANISTER_ID,
-        "--page-size",
-        "100",
-        "--max-pages",
-        "20",
-    ]);
+    let options = parse_test_options(
+        icrc_account_transaction_refresh_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            ACCOUNT_OWNER,
+            "--index-canister-id",
+            INDEX_CANISTER_ID,
+            "--page-size",
+            "100",
+            "--max-pages",
+            "20",
+        ],
+        IcrcAccountTransactionRefreshOptions::from_matches,
+    );
 
     assert_eq!(options.page_size, 100);
     assert_eq!(options.max_pages, Some(20));
@@ -144,12 +187,16 @@ fn account_transaction_refresh_options_parse_collection_bounds() {
 
 #[test]
 fn account_transaction_cache_options_parse_identity() {
-    let options = parse_account_transaction_cache_options(&[
-        LEDGER_CANISTER_ID,
-        ACCOUNT_OWNER,
-        "--subaccount",
-        SUBACCOUNT,
-    ]);
+    let options = parse_test_options(
+        icrc_account_transaction_cache_status_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            ACCOUNT_OWNER,
+            "--subaccount",
+            SUBACCOUNT,
+        ],
+        IcrcAccountTransactionCacheOptions::from_matches,
+    );
 
     assert_eq!(options.target.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.target.account_owner, ACCOUNT_OWNER);
@@ -158,7 +205,11 @@ fn account_transaction_cache_options_parse_identity() {
 
 #[test]
 fn index_options_parse_through_clap() {
-    let options = parse_index_options(&[LEDGER_CANISTER_ID, "--json"]);
+    let options = parse_test_options(
+        icrc_index_command(),
+        &[LEDGER_CANISTER_ID, "--json"],
+        IcrcLedgerOptions::from_matches,
+    );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -166,14 +217,18 @@ fn index_options_parse_through_clap() {
 
 #[test]
 fn transactions_options_parse_through_clap() {
-    let options = parse_transactions_options(&[
-        LEDGER_CANISTER_ID,
-        "--start",
-        "17",
-        "--limit",
-        "42",
-        "--follow-archives",
-    ]);
+    let options = parse_test_options(
+        icrc_transactions_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            "--start",
+            "17",
+            "--limit",
+            "42",
+            "--follow-archives",
+        ],
+        IcrcTransactionsOptions::from_matches,
+    );
 
     assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.start, 17);
@@ -183,7 +238,11 @@ fn transactions_options_parse_through_clap() {
 
 #[test]
 fn block_types_options_parse_through_clap() {
-    let options = parse_block_types_options(&[LEDGER_CANISTER_ID, "--json"]);
+    let options = parse_test_options(
+        icrc_block_types_command(),
+        &[LEDGER_CANISTER_ID, "--json"],
+        IcrcLedgerOptions::from_matches,
+    );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -191,8 +250,11 @@ fn block_types_options_parse_through_clap() {
 
 #[test]
 fn archives_options_parse_through_clap() {
-    let options =
-        parse_archives_options(&[LEDGER_CANISTER_ID, "--from", INDEX_CANISTER_ID, "--json"]);
+    let options = parse_test_options(
+        icrc_archives_command(),
+        &[LEDGER_CANISTER_ID, "--from", INDEX_CANISTER_ID, "--json"],
+        IcrcArchivesOptions::from_matches,
+    );
 
     assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.from_canister_id.as_deref(), Some(INDEX_CANISTER_ID));
@@ -201,7 +263,11 @@ fn archives_options_parse_through_clap() {
 
 #[test]
 fn tip_certificate_options_parse_through_clap() {
-    let options = parse_tip_certificate_options(&[LEDGER_CANISTER_ID, "--json"]);
+    let options = parse_test_options(
+        icrc_tip_certificate_command(),
+        &[LEDGER_CANISTER_ID, "--json"],
+        IcrcLedgerOptions::from_matches,
+    );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format, OutputFormat::Json);
@@ -209,60 +275,77 @@ fn tip_certificate_options_parse_through_clap() {
 
 #[test]
 fn usage_mentions_icrc_command_surface() {
+    let root = render_help(icrc_command());
+    let ledger = render_help(icrc_ledger_command());
+    let account = render_help(icrc_account_command());
+    let token = render_help(icrc_token_command());
+    let capabilities = render_help(icrc_capabilities_command());
+    let balance = render_help(icrc_balance_command());
+    let allowance = render_help(icrc_allowance_command());
+    let account_transaction = render_help(icrc_account_transaction_command());
+    let account_transaction_page = render_help(icrc_account_transaction_page_command());
+    let account_transaction_list = render_help(icrc_account_transaction_list_command());
+    let account_transaction_refresh = render_help(icrc_account_transaction_refresh_command());
+    let account_transaction_cache = render_help(icrc_account_transaction_cache_command());
+    let account_transaction_cache_status =
+        render_help(icrc_account_transaction_cache_status_command());
+    let index = render_help(icrc_index_command());
+    let transactions = render_help(icrc_transactions_command());
+    let block_types = render_help(icrc_block_types_command());
+    let archives = render_help(icrc_archives_command());
+    let tip_certificate = render_help(icrc_tip_certificate_command());
+
     for (usage, needle) in [
-        (root_usage(), "ledger"),
-        (root_usage(), "account"),
-        (ledger_usage(), "capabilities"),
-        (ledger_usage(), "transactions"),
-        (account_usage(), "balance"),
-        (account_usage(), "allowance"),
-        (account_usage(), "transaction"),
-        (token_usage(), "ledger-canister-id"),
-        (capabilities_usage(), "ledger-canister-id"),
-        (balance_usage(), "principal"),
-        (allowance_usage(), "spender-principal"),
-        (account_transaction_usage(), "refresh"),
-        (account_transaction_page_usage(), "--index-canister-id"),
-        (account_transaction_list_usage(), "--sort"),
-        (account_transaction_refresh_usage(), "--page-size"),
-        (account_transaction_cache_usage(), "status"),
+        (root.as_str(), "ledger"),
+        (root.as_str(), "account"),
+        (ledger.as_str(), "capabilities"),
+        (ledger.as_str(), "transactions"),
+        (account.as_str(), "balance"),
+        (account.as_str(), "allowance"),
+        (account.as_str(), "transaction"),
+        (token.as_str(), "ledger-canister-id"),
+        (capabilities.as_str(), "ledger-canister-id"),
+        (balance.as_str(), "principal"),
+        (allowance.as_str(), "spender-principal"),
+        (account_transaction.as_str(), "refresh"),
+        (account_transaction_page.as_str(), "--index-canister-id"),
+        (account_transaction_list.as_str(), "--sort"),
+        (account_transaction_refresh.as_str(), "--page-size"),
+        (account_transaction_cache.as_str(), "status"),
         (
-            account_transaction_cache_status_usage(),
+            account_transaction_cache_status.as_str(),
             "ledger-canister-id",
         ),
-        (index_usage(), "ledger-canister-id"),
-        (transactions_usage(), "follow-archives"),
-        (block_types_usage(), "ledger-canister-id"),
-        (archives_usage(), "--from"),
-        (tip_certificate_usage(), "ledger-canister-id"),
+        (index.as_str(), "ledger-canister-id"),
+        (transactions.as_str(), "follow-archives"),
+        (block_types.as_str(), "ledger-canister-id"),
+        (archives.as_str(), "--from"),
+        (tip_certificate.as_str(), "ledger-canister-id"),
     ] {
         assert!(usage.contains(needle), "missing {needle:?} in {usage}");
     }
 
-    assert!(token_usage().contains("icq icrc ledger token"));
-    assert!(balance_usage().contains("icq icrc account balance"));
-    assert!(account_transaction_usage().contains("icq icrc account transaction"));
-    assert!(account_transaction_page_usage().contains("icq icrc account transaction page"));
+    assert!(token.contains("icq icrc ledger token"));
+    assert!(balance.contains("icq icrc account balance"));
+    assert!(account_transaction.contains("icq icrc account transaction"));
+    assert!(account_transaction_page.contains("icq icrc account transaction page"));
 
     for usage in [
-        token_usage(),
-        capabilities_usage(),
-        balance_usage(),
-        allowance_usage(),
-        account_transaction_page_usage(),
-        index_usage(),
-        transactions_usage(),
-        block_types_usage(),
-        archives_usage(),
-        tip_certificate_usage(),
+        token,
+        capabilities,
+        balance,
+        allowance,
+        account_transaction_page,
+        index,
+        transactions,
+        block_types,
+        archives,
+        tip_certificate,
     ] {
         assert!(usage.contains("Collection mode: Live query"));
     }
 
-    assert!(account_transaction_list_usage().contains("Collection mode: Local cache inspection"));
-    assert!(
-        account_transaction_cache_status_usage()
-            .contains("Collection mode: Local cache inspection")
-    );
-    assert!(account_transaction_refresh_usage().contains("Collection mode: Forced live refresh"));
+    assert!(account_transaction_list.contains("Collection mode: Local cache inspection"));
+    assert!(account_transaction_cache_status.contains("Collection mode: Local cache inspection"));
+    assert!(account_transaction_refresh.contains("Collection mode: Forced live refresh"));
 }

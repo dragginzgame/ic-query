@@ -24,7 +24,7 @@ use clap::{
 };
 use ic_query::icrc::ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE;
 
-pub(super) fn command() -> ClapCommand {
+pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("account")
         .bin_name("icq icrc account")
         .about("Inspect ICRC account balances, allowances, and transaction history")
@@ -34,7 +34,7 @@ pub(super) fn command() -> ClapCommand {
         .subcommand(icrc_account_transaction_command())
 }
 
-pub(super) fn icrc_balance_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_balance_command() -> ClapCommand {
     let command = ClapCommand::new("balance")
         .bin_name("icq icrc account balance")
         .about("Show a generic ICRC account balance")
@@ -51,7 +51,7 @@ pub(super) fn icrc_balance_command() -> ClapCommand {
     with_common_icrc_options(command)
 }
 
-pub(super) fn icrc_allowance_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_allowance_command() -> ClapCommand {
     let command = ClapCommand::new("allowance")
         .bin_name("icq icrc account allowance")
         .about("Show a generic ICRC account allowance")
@@ -79,7 +79,7 @@ pub(super) fn icrc_allowance_command() -> ClapCommand {
     with_common_icrc_options(command)
 }
 
-pub(super) fn icrc_account_transaction_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_account_transaction_command() -> ClapCommand {
     ClapCommand::new("transaction")
         .bin_name("icq icrc account transaction")
         .about("Inspect live pages and complete cached account transaction history")
@@ -90,7 +90,7 @@ pub(super) fn icrc_account_transaction_command() -> ClapCommand {
         .subcommand(icrc_account_transaction_cache_command())
 }
 
-pub(super) fn icrc_account_transaction_page_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_account_transaction_page_command() -> ClapCommand {
     let command = ClapCommand::new("page")
         .bin_name("icq icrc account transaction page")
         .about("Show an ICRC account transaction-history page from its index")
@@ -126,7 +126,7 @@ pub(super) fn icrc_account_transaction_page_command() -> ClapCommand {
     with_common_icrc_options(command)
 }
 
-pub(super) fn icrc_account_transaction_list_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_account_transaction_list_command() -> ClapCommand {
     let command = ClapCommand::new("list")
         .bin_name("icq icrc account transaction list")
         .about("List rows from a complete local ICRC account-history cache")
@@ -154,7 +154,7 @@ pub(super) fn icrc_account_transaction_list_command() -> ClapCommand {
     with_common_icrc_options(command)
 }
 
-pub(super) fn icrc_account_transaction_refresh_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_account_transaction_refresh_command() -> ClapCommand {
     let command = ClapCommand::new("refresh")
         .bin_name("icq icrc account transaction refresh")
         .about("Fetch and atomically cache complete ICRC account history")
@@ -190,7 +190,7 @@ pub(super) fn icrc_account_transaction_refresh_command() -> ClapCommand {
     with_common_icrc_options(command)
 }
 
-pub(super) fn icrc_account_transaction_cache_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_account_transaction_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq icrc account transaction cache")
         .about("Inspect local complete account-history cache state")
@@ -198,7 +198,7 @@ pub(super) fn icrc_account_transaction_cache_command() -> ClapCommand {
         .subcommand(icrc_account_transaction_cache_status_command())
 }
 
-pub(super) fn icrc_account_transaction_cache_status_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_account_transaction_cache_status_command() -> ClapCommand {
     let command = ClapCommand::new("status")
         .bin_name("icq icrc account transaction cache status")
         .about("Show local account-history cache and latest refresh-attempt status")

@@ -15,7 +15,7 @@ use crate::cli::{
 };
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
-pub(super) fn command() -> ClapCommand {
+pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("ledger")
         .bin_name("icq icrc ledger")
         .about("Inspect ledger-wide ICRC metadata and transactions")
@@ -29,7 +29,7 @@ pub(super) fn command() -> ClapCommand {
         .subcommand(icrc_tip_certificate_command())
 }
 
-pub(super) fn icrc_token_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_token_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "token",
         "icq icrc ledger token",
@@ -38,7 +38,7 @@ pub(super) fn icrc_token_command() -> ClapCommand {
     )
 }
 
-pub(super) fn icrc_capabilities_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_capabilities_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "capabilities",
         "icq icrc ledger capabilities",
@@ -47,7 +47,7 @@ pub(super) fn icrc_capabilities_command() -> ClapCommand {
     )
 }
 
-pub(super) fn icrc_index_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_index_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "index",
         "icq icrc ledger index",
@@ -56,7 +56,7 @@ pub(super) fn icrc_index_command() -> ClapCommand {
     )
 }
 
-pub(super) fn icrc_transactions_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_transactions_command() -> ClapCommand {
     let command = ClapCommand::new("transactions")
         .bin_name("icq icrc ledger transactions")
         .about("Show a generic ICRC ledger transaction history page")
@@ -91,7 +91,7 @@ pub(super) fn icrc_transactions_command() -> ClapCommand {
     with_icrc_json_option(command)
 }
 
-pub(super) fn icrc_block_types_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_block_types_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "block-types",
         "icq icrc ledger block-types",
@@ -100,7 +100,7 @@ pub(super) fn icrc_block_types_command() -> ClapCommand {
     )
 }
 
-pub(super) fn icrc_archives_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_archives_command() -> ClapCommand {
     let command = ClapCommand::new("archives")
         .bin_name("icq icrc ledger archives")
         .about("Show generic ICRC-3 ledger archive ranges")
@@ -119,7 +119,7 @@ pub(super) fn icrc_archives_command() -> ClapCommand {
     with_common_icrc_options(command)
 }
 
-pub(super) fn icrc_tip_certificate_command() -> ClapCommand {
+pub(in crate::icrc) fn icrc_tip_certificate_command() -> ClapCommand {
     simple_icrc_ledger_command(
         "tip-certificate",
         "icq icrc ledger tip-certificate",

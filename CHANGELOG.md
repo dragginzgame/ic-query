@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.18` removes the ICRC test-support facade and its 13 type-specific
+  parser adapters plus 18 help forwarders. ICRC tests now use one generic
+  production-Clap harness and render command builders directly; production
+  behavior is unchanged.
+
 - `0.25.17` removes SNS option parsers and 22 help-rendering functions that
   existed only for tests. Focused SNS tests now share production-Clap harnesses
   and render the supported command builders directly; production behavior is
