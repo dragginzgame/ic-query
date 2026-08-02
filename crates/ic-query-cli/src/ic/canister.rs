@@ -5,6 +5,8 @@
 //! Boundary: exposes one bounded canister command family to the IC CLI facade.
 
 use super::IcCommandError;
+#[cfg(test)]
+use super::parse_test_options;
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option, value_arg},
     common::{
@@ -236,16 +238,6 @@ impl CanisterInfoOptions {
             source_endpoint: required_string(matches, "source-endpoint"),
         }
     }
-
-    #[cfg(test)]
-    fn parse<I>(args: I) -> Result<Self, IcCommandError>
-    where
-        I: IntoIterator<Item = std::ffi::OsString>,
-    {
-        let matches = crate::cli::clap::parse_matches_or_usage(info_command(), args)
-            .map_err(IcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -281,16 +273,6 @@ impl CanisterPageOptions {
             after: string_option(matches, "after"),
             before: string_option(matches, "before"),
         }
-    }
-
-    #[cfg(test)]
-    fn parse<I>(args: I) -> Result<Self, IcCommandError>
-    where
-        I: IntoIterator<Item = std::ffi::OsString>,
-    {
-        let matches = crate::cli::clap::parse_matches_or_usage(page_command(), args)
-            .map_err(IcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
     }
 }
 
@@ -345,12 +327,16 @@ mod tests {
 
     #[test]
     fn canister_info_options_preserve_principal_format_and_endpoint() {
-        let options = CanisterInfoOptions::parse([
-            OsString::from(CANISTER_ID),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://example.com/api/v3"),
-        ])
+        let options = parse_test_options(
+            info_command(),
+            &[
+                CANISTER_ID,
+                "--json",
+                "--source-endpoint",
+                "https://example.com/api/v3",
+            ],
+            CanisterInfoOptions::from_matches,
+        )
         .expect("canister options");
 
         assert_eq!(options.canister_id, CANISTER_ID);
@@ -360,32 +346,33 @@ mod tests {
 
     #[test]
     fn canister_info_options_require_a_canister_id() {
-        let error = CanisterInfoOptions::parse([]).expect_err("missing canister id");
+        let error = parse_test_options(info_command(), &[], CanisterInfoOptions::from_matches)
+            .expect_err("missing canister id");
 
         assert!(matches!(error, IcCommandError::Usage(message) if message.contains("required")));
     }
 
     #[test]
     fn canister_count_options_preserve_official_filters() {
-        let matches = crate::cli::clap::parse_matches_or_usage(
+        let options = parse_test_options(
             count_command(),
-            [
-                OsString::from("--has-name"),
-                OsString::from("true"),
-                OsString::from("--subnet-id"),
-                OsString::from("tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe"),
-                OsString::from("--language"),
-                OsString::from("rust"),
-                OsString::from("--language"),
-                OsString::from("motoko"),
-                OsString::from("--canister-type"),
-                OsString::from("ledger"),
-                OsString::from("--query"),
-                OsString::from("ICP Ledger"),
+            &[
+                "--has-name",
+                "true",
+                "--subnet-id",
+                "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+                "--language",
+                "rust",
+                "--language",
+                "motoko",
+                "--canister-type",
+                "ledger",
+                "--query",
+                "ICP Ledger",
             ],
+            CanisterCollectionOptions::from_matches,
         )
         .expect("count options");
-        let options = CanisterCollectionOptions::from_matches(&matches);
 
         assert_eq!(options.filters.has_name, Some(true));
         assert_eq!(options.filters.languages, ["rust", "motoko"]);
@@ -399,36 +386,38 @@ mod tests {
 
     #[test]
     fn canister_page_options_are_bounded_and_cursors_are_exclusive() {
-        let options = CanisterPageOptions::parse([
-            OsString::from("--limit"),
-            OsString::from("100"),
-            OsString::from("--after"),
-            OsString::from(CANISTER_ID),
-        ])
+        let options = parse_test_options(
+            page_command(),
+            &["--limit", "100", "--after", CANISTER_ID],
+            CanisterPageOptions::from_matches,
+        )
         .expect("page options");
 
         assert_eq!(options.limit, MAX_IC_CANISTER_PAGE_LIMIT);
         assert_eq!(options.after.as_deref(), Some(CANISTER_ID));
         assert_eq!(options.before, None);
 
-        let excessive =
-            CanisterPageOptions::parse([OsString::from("--limit"), OsString::from("101")])
-                .expect_err("page limit above API maximum must fail");
+        let excessive = parse_test_options(
+            page_command(),
+            &["--limit", "101"],
+            CanisterPageOptions::from_matches,
+        )
+        .expect_err("page limit above API maximum must fail");
         assert!(matches!(excessive, IcCommandError::Usage(_)));
 
-        let conflicting = CanisterPageOptions::parse([
-            OsString::from("--after"),
-            OsString::from(CANISTER_ID),
-            OsString::from("--before"),
-            OsString::from(CANISTER_ID),
-        ])
+        let conflicting = parse_test_options(
+            page_command(),
+            &["--after", CANISTER_ID, "--before", CANISTER_ID],
+            CanisterPageOptions::from_matches,
+        )
         .expect_err("page cursors must be exclusive");
         assert!(matches!(conflicting, IcCommandError::Usage(_)));
     }
 
     #[test]
     fn cli_and_library_page_defaults_remain_aligned() {
-        let options = CanisterPageOptions::parse([]).expect("default page options");
+        let options = parse_test_options(page_command(), &[], CanisterPageOptions::from_matches)
+            .expect("default page options");
 
         assert_eq!(options.limit, ic_query::ic::DEFAULT_IC_CANISTER_PAGE_LIMIT);
     }

@@ -5,6 +5,8 @@
 //! Boundary: exposes the metric command to the IC CLI facade.
 
 use super::IcCommandError;
+#[cfg(test)]
+use super::parse_test_options;
 use crate::cli::{
     clap::{required_string, typed_option, value_arg},
     common::{
@@ -120,23 +122,12 @@ impl MetricOptions {
             source_endpoint: required_string(matches, "source-endpoint"),
         }
     }
-
-    #[cfg(test)]
-    fn parse<I>(args: I) -> Result<Self, IcCommandError>
-    where
-        I: IntoIterator<Item = std::ffi::OsString>,
-    {
-        let matches = crate::cli::clap::parse_matches_or_usage(command(), args)
-            .map_err(IcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::cli::clap::render_help;
-    use std::ffi::OsString;
 
     #[test]
     fn usage_discloses_live_dashboard_authority_and_bounds() {
@@ -150,18 +141,22 @@ mod tests {
 
     #[test]
     fn options_preserve_official_kind_bounds_and_endpoint() {
-        let options = MetricOptions::parse([
-            OsString::from("cycle-burn-rate"),
-            OsString::from("--start"),
-            OsString::from("1700000000"),
-            OsString::from("--end"),
-            OsString::from("1700003600"),
-            OsString::from("--step"),
-            OsString::from("600"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://example.com/api/v1"),
-        ])
+        let options = parse_test_options(
+            command(),
+            &[
+                "cycle-burn-rate",
+                "--start",
+                "1700000000",
+                "--end",
+                "1700003600",
+                "--step",
+                "600",
+                "--json",
+                "--source-endpoint",
+                "https://example.com/api/v1",
+            ],
+            MetricOptions::from_matches,
+        )
         .expect("metric options");
 
         assert_eq!(options.metric, IcMetricKind::CycleBurnRate);
@@ -174,8 +169,12 @@ mod tests {
 
     #[test]
     fn options_use_bounded_defaults_and_reject_unknown_kinds() {
-        let options =
-            MetricOptions::parse([OsString::from("instruction-rate")]).expect("default options");
+        let options = parse_test_options(
+            command(),
+            &["instruction-rate"],
+            MetricOptions::from_matches,
+        )
+        .expect("default options");
 
         assert_eq!(options.step_secs, DEFAULT_IC_METRIC_STEP_SECS);
         assert_eq!(
@@ -185,7 +184,7 @@ mod tests {
         assert_eq!(options.start_unix_secs, None);
         assert_eq!(options.end_unix_secs, None);
 
-        let error = MetricOptions::parse([OsString::from("made-up-rate")])
+        let error = parse_test_options(command(), &["made-up-rate"], MetricOptions::from_matches)
             .expect_err("unknown metric must fail");
         assert!(matches!(error, IcCommandError::Usage(_)));
     }

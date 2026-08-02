@@ -58,6 +58,20 @@ pub fn command() -> ClapCommand {
 }
 
 #[cfg(test)]
+fn parse_test_options<Options>(
+    command: ClapCommand,
+    args: &[&str],
+    from_matches: fn(&ArgMatches) -> Options,
+) -> Result<Options, IcCommandError> {
+    let matches = crate::cli::clap::parse_matches_or_usage(
+        command,
+        args.iter().copied().map(std::ffi::OsString::from),
+    )
+    .map_err(IcCommandError::Usage)?;
+    Ok(from_matches(&matches))
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::cli::clap::render_help;

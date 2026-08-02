@@ -5,6 +5,8 @@
 //! Boundary: exposes the network command family to the IC CLI facade.
 
 use super::IcCommandError;
+#[cfg(test)]
+use super::parse_test_options;
 use crate::cli::{
     clap::{required_string, typed_option, value_arg},
     common::{
@@ -150,17 +152,6 @@ impl NetworkReportOptions {
             source_endpoint: required_string(matches, "source-endpoint"),
         }
     }
-
-    #[cfg(test)]
-    fn parse_boundary_node_data_centers<I>(args: I) -> Result<Self, IcCommandError>
-    where
-        I: IntoIterator<Item = std::ffi::OsString>,
-    {
-        let matches =
-            crate::cli::clap::parse_matches_or_usage(boundary_node_data_centers_command(), args)
-                .map_err(IcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -180,23 +171,12 @@ impl DailyStatsOptions {
             source_endpoint: required_string(matches, "source-endpoint"),
         }
     }
-
-    #[cfg(test)]
-    fn parse<I>(args: I) -> Result<Self, IcCommandError>
-    where
-        I: IntoIterator<Item = std::ffi::OsString>,
-    {
-        let matches = crate::cli::clap::parse_matches_or_usage(daily_stats_command(), args)
-            .map_err(IcCommandError::Usage)?;
-        Ok(Self::from_matches(&matches))
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::cli::clap::render_help;
-    use std::ffi::OsString;
 
     #[test]
     fn usage_discloses_live_dashboard_authority_and_bounds() {
@@ -219,11 +199,11 @@ mod tests {
 
     #[test]
     fn boundary_node_data_center_options_preserve_format_and_endpoint() {
-        let options = NetworkReportOptions::parse_boundary_node_data_centers([
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://example.com/api/v4"),
-        ])
+        let options = parse_test_options(
+            boundary_node_data_centers_command(),
+            &["--json", "--source-endpoint", "https://example.com/api/v4"],
+            NetworkReportOptions::from_matches,
+        )
         .expect("boundary-node options");
 
         assert_eq!(options.format, OutputFormat::Json);
@@ -232,15 +212,19 @@ mod tests {
 
     #[test]
     fn daily_stats_options_preserve_bounds_format_and_endpoint() {
-        let options = DailyStatsOptions::parse([
-            OsString::from("--start"),
-            OsString::from("1784937600"),
-            OsString::from("--end"),
-            OsString::from("1785542400"),
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://example.com/api/v3"),
-        ])
+        let options = parse_test_options(
+            daily_stats_command(),
+            &[
+                "--start",
+                "1784937600",
+                "--end",
+                "1785542400",
+                "--json",
+                "--source-endpoint",
+                "https://example.com/api/v3",
+            ],
+            DailyStatsOptions::from_matches,
+        )
         .expect("daily-statistics options");
 
         assert_eq!(options.start_unix_secs, Some(1_784_937_600));
@@ -251,7 +235,9 @@ mod tests {
 
     #[test]
     fn daily_stats_options_use_live_bounded_defaults() {
-        let options = DailyStatsOptions::parse([]).expect("default daily-statistics options");
+        let options =
+            parse_test_options(daily_stats_command(), &[], DailyStatsOptions::from_matches)
+                .expect("default daily-statistics options");
 
         assert_eq!(options.start_unix_secs, None);
         assert_eq!(options.end_unix_secs, None);

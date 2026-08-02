@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.12` consolidates repeated Dashboard CLI test parsing for canister,
+  metric, and network-resource options behind one IC-family harness. Production
+  command parsing, help, dispatch, reports, and source behavior are unchanged.
+
 - `0.25.11` centralizes ledger id, source endpoint, and output selection across
   live ICRC balance, allowance, ledger-transaction, and archive CLI option
   models. Command grammar, parsing behavior, dispatch requests, reports, and
