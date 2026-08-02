@@ -14,7 +14,6 @@ use crate::sns::report::{
     neurons_cache::{
         SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         paths::{SnsNeuronsCacheCollection, SnsNeuronsCachePaths},
-        storage::load_sns_neurons_cache_at,
     },
 };
 use std::path::{Path, PathBuf};
@@ -45,7 +44,7 @@ impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
                 read_sns_cache_header::<SnsNeuronsCacheCollection>(path, network)
                     .map(|header| header.metadata.id)
             },
-            |path| load_sns_cache_summary_at(path, network, load_sns_neurons_cache_at),
+            |path| load_sns_cache_summary_at::<SnsNeuronsCacheCollection>(path, network),
         )
     }
 
@@ -65,10 +64,8 @@ impl SnsCacheStatusFamily for SnsNeuronsCacheStatusFamily {
         cache_path: PathBuf,
         network: &str,
     ) -> Result<SnsCacheSummary, SnsHostError> {
-        Ok(load_sns_cache_summary_at(
-            cache_path,
-            network,
-            load_sns_neurons_cache_at,
+        Ok(load_sns_cache_summary_at::<SnsNeuronsCacheCollection>(
+            cache_path, network,
         ))
     }
 

@@ -10,7 +10,6 @@ use crate::sns::report::{
     load_sns_cache_summaries,
     neurons_cache::{
         SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::SnsNeuronsCacheCollection,
-        storage::load_sns_neurons_cache_at,
     },
 };
 
@@ -22,10 +21,8 @@ pub fn build_sns_neurons_cache_list_report(
         SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION,
         |cache_root, network| {
             let paths = collect_sns_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network)?;
-            Ok(load_sns_cache_summaries(
-                paths,
-                network,
-                load_sns_neurons_cache_at,
+            Ok(load_sns_cache_summaries::<SnsNeuronsCacheCollection>(
+                paths, network,
             ))
         },
     )

@@ -4,15 +4,13 @@
 //! Does not own: CLI argument parsing, refresh collection, cache rendering, or live fetches.
 //! Boundary: supports numeric SNS ids and root canister principals over local cache files.
 
-use super::{
-    errors::{invalid_lookup_error, missing_id_error},
-    load::load_sns_neurons_cache_at,
-};
+use super::errors::{invalid_lookup_error, missing_id_error};
 use crate::sns::report::{
     SnsHostError,
     cache_paths::sns_snapshot_network_cache_dir,
     cache_storage::{
-        collect_sns_cache_paths, find_unique_sns_cache_path_by_id, read_sns_cache_header,
+        collect_sns_cache_paths, find_unique_sns_cache_path_by_id, load_sns_cache_at,
+        read_sns_cache_header,
     },
     enforce_mainnet_network,
     neurons_cache::{
@@ -38,7 +36,7 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_for_input(
     let root_canister_id =
         parse_sns_root_canister_input(input).map_err(|_| invalid_lookup_error(input))?;
     let path = sns_neurons_cache_path(cache_root, network, &root_canister_id);
-    let cache = load_sns_neurons_cache_at(path.clone(), network)?;
+    let cache = load_sns_cache_at::<SnsNeuronsCacheCollection>(path.clone(), network)?;
     Ok((path, cache))
 }
 
@@ -55,6 +53,9 @@ pub(in crate::sns::report::neurons_cache) fn find_sns_neurons_cache_by_id(
                 .map(|header| header.metadata.id)
         },
     )?;
-    path.map(|path| load_sns_neurons_cache_at(path.clone(), network).map(|cache| (path, cache)))
-        .transpose()
+    path.map(|path| {
+        load_sns_cache_at::<SnsNeuronsCacheCollection>(path.clone(), network)
+            .map(|cache| (path, cache))
+    })
+    .transpose()
 }

@@ -10,7 +10,6 @@ use crate::sns::report::{
     load_sns_cache_summaries,
     proposals_cache::{
         SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION, paths::SnsProposalsCacheCollection,
-        storage::load_sns_proposals_cache_at,
     },
 };
 
@@ -24,10 +23,8 @@ pub fn build_sns_proposals_cache_list_report(
         |cache_root, network| {
             let paths =
                 collect_sns_cache_paths::<SnsProposalsCacheCollection>(cache_root, network)?;
-            Ok(load_sns_cache_summaries(
-                paths,
-                network,
-                load_sns_proposals_cache_at,
+            Ok(load_sns_cache_summaries::<SnsProposalsCacheCollection>(
+                paths, network,
             ))
         },
     )

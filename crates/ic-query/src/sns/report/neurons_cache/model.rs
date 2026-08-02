@@ -4,14 +4,14 @@
 //! Does not own: cache storage, refresh collection, report rendering, or CLI parsing.
 //! Boundary: keeps persisted cache models separate from public report models.
 
-use crate::{
-    snapshot_cache::SnapshotEnvelope,
-    sns::report::{SnsNeuronRow, SnsNeuronsSort, cache_storage::SnsCacheMetadata},
+use crate::sns::report::{
+    SnsNeuronRow, SnsNeuronsSort, cache_storage::SnsStoredCache,
+    neurons_cache::paths::SnsNeuronsCacheCollection,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::PathBuf;
 
-pub(super) type SnsNeuronsCache = SnapshotEnvelope<SnsCacheMetadata, SnsNeuronsCacheRows>;
+pub(super) type SnsNeuronsCache = SnsStoredCache<SnsNeuronsCacheCollection>;
 
 pub(super) const SNS_NEURONS_CACHE_FIELDS: &[&str] = &[
     "schema_version",

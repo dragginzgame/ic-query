@@ -10,43 +10,38 @@ use crate::{
         SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status,
         cache_paths::{sns_attempt_path_for_cache_path, sns_snapshot_network_cache_dir},
-        cache_storage::SnsCacheMetadata,
+        cache_storage::{SnsCacheMetadata, SnsCacheStorageFamily, load_sns_cache_at},
         enforce_mainnet_network,
     },
 };
 use candid::Principal;
 use std::path::{Path, PathBuf};
 
-///
-/// SnsCacheLoader
-///
-/// Family-specific storage function used to load one complete SNS snapshot.
-///
-
-pub(in crate::sns::report) type SnsCacheLoader<Data> =
-    fn(PathBuf, &str) -> Result<SnapshotEnvelope<SnsCacheMetadata, Data>, SnsHostError>;
-
 /// Load one SNS snapshot and project either its valid or invalid cache summary.
-pub(in crate::sns::report) fn load_sns_cache_summary_at<Data>(
+pub(in crate::sns::report) fn load_sns_cache_summary_at<Family>(
     cache_path: PathBuf,
     network: &str,
-    load_cache: SnsCacheLoader<Data>,
-) -> SnsCacheSummary {
-    match load_cache(cache_path.clone(), network) {
+) -> SnsCacheSummary
+where
+    Family: SnsCacheStorageFamily,
+{
+    match load_sns_cache_at::<Family>(cache_path.clone(), network) {
         Ok(cache) => valid_sns_cache_summary(cache_path, cache),
         Err(error) => invalid_sns_cache_summary(cache_path, network, &error),
     }
 }
 
 /// Load summaries for a discovered set of SNS snapshot paths.
-pub(in crate::sns::report) fn load_sns_cache_summaries<Data>(
+pub(in crate::sns::report) fn load_sns_cache_summaries<Family>(
     paths: impl IntoIterator<Item = PathBuf>,
     network: &str,
-    load_cache: SnsCacheLoader<Data>,
-) -> Vec<SnsCacheSummary> {
+) -> Vec<SnsCacheSummary>
+where
+    Family: SnsCacheStorageFamily,
+{
     paths
         .into_iter()
-        .map(|path| load_sns_cache_summary_at(path, network, load_cache))
+        .map(|path| load_sns_cache_summary_at::<Family>(path, network))
         .collect()
 }
 

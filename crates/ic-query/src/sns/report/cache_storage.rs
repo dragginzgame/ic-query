@@ -1,19 +1,21 @@
 //! Module: sns::report::cache_storage
 //!
 //! Responsibility: shared SNS snapshot storage and collection-family contract.
-//! Does not own: cache payload models, family row validation, or refresh policy.
+//! Does not own: cache payload models, refresh collection, or publication policy.
 //! Boundary: centralizes discovery, schema/header validation, loading, and error mapping.
 
 use crate::{
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
     snapshot_cache::{
-        SnapshotCompleteness, SnapshotHeader, SnapshotIdentityMismatch, SnapshotKey,
-        SnapshotReport, collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
-        load_snapshot_header,
+        SnapshotCompleteness, SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
+        collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
+        load_snapshot_header, validate_snapshot_completeness,
     },
     sns::report::{
         SnsHostError,
-        cache_paths::{SnsCacheCollection, sns_snapshot_network_cache_dir},
+        cache_paths::{
+            SnsCacheCollection, sns_snapshot_key_for_cache_path, sns_snapshot_network_cache_dir,
+        },
     },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
@@ -28,11 +30,25 @@ use std::path::{Path, PathBuf};
 pub(in crate::sns::report) trait SnsCacheStorageFamily:
     SnsCacheCollection
 {
+    type Data: DeserializeOwned;
+
     const CACHE_SCHEMA_VERSION: u32;
     const CACHE_FIELDS: &'static [&'static str];
+    const CACHE_ITEM_NAME: &'static str;
 
     fn missing_cache_error(path: PathBuf) -> SnsHostError;
+    fn row_count(data: &Self::Data) -> usize;
+    fn validate_rows(data: &Self::Data) -> Result<(), String>;
 }
+
+///
+/// SnsStoredCache
+///
+/// Complete stored snapshot type associated with one SNS cache family.
+///
+
+pub(in crate::sns::report) type SnsStoredCache<Family> =
+    SnapshotEnvelope<SnsCacheMetadata, <Family as SnsCacheStorageFamily>::Data>;
 
 #[derive(Clone, Copy)]
 struct SnsCacheLoadErrors {
@@ -161,55 +177,87 @@ pub(in crate::sns::report) fn find_unique_sns_cache_path_by_id(
 }
 
 /// Load and validate one complete SNS snapshot cache.
-pub(in crate::sns::report) fn load_sns_complete_cache<Cache, Family>(
+pub(in crate::sns::report) fn load_sns_cache_at<Family>(
     path: PathBuf,
     network: &str,
-    expected_key: &SnapshotKey,
-) -> Result<Cache, SnsHostError>
+) -> Result<SnsStoredCache<Family>, SnsHostError>
 where
-    Cache: DeserializeOwned + SnapshotReport,
     Family: SnsCacheStorageFamily,
 {
+    let key = sns_snapshot_key_for_cache_path::<Family>(network, &path);
     let errors = SnsCacheLoadErrors::for_family::<Family>();
-    load_complete_snapshot_for_key(
+    let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
             path: path.clone(),
             network,
             expected_schema_version: Family::CACHE_SCHEMA_VERSION,
         },
-        expected_key,
+        &key,
         Family::CACHE_FIELDS,
         errors,
         |completeness| errors.incomplete_cache_error(completeness),
-        |mismatch| sns_identity_mismatch_error(path, mismatch),
-    )
+        |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
+    )?;
+    validate_sns_cache::<Family>(&path, &cache)?;
+    Ok(cache)
 }
 
-/// Validate identity fields shared by complete SNS collection caches.
-pub(in crate::sns::report) fn validate_sns_cache_metadata(
+fn validate_sns_cache<Family>(
+    path: &Path,
+    cache: &SnsStoredCache<Family>,
+) -> Result<(), SnsHostError>
+where
+    Family: SnsCacheStorageFamily,
+{
+    validate_snapshot_completeness(&cache.completeness, Family::row_count(&cache.data))
+        .map_err(|reason| invalid_sns_cache_error(path, reason))?;
+    if cache.completeness.point_in_time_guaranteed {
+        return Err(invalid_sns_cache_error(
+            path,
+            format!(
+                "SNS Governance {} pagination cannot claim a point-in-time guarantee",
+                Family::CACHE_ITEM_NAME
+            ),
+        ));
+    }
+    validate_sns_cache_metadata(path, &cache.metadata, &cache.entity)?;
+    Family::validate_rows(&cache.data).map_err(|reason| invalid_sns_cache_error(path, reason))
+}
+
+fn validate_sns_cache_metadata(
     path: &Path,
     metadata: &SnsCacheMetadata,
     entity: &str,
 ) -> Result<(), SnsHostError> {
-    let invalid = |reason| SnsHostError::InvalidCache {
-        path: path.to_path_buf(),
-        reason,
-    };
     if metadata.id == 0 {
-        return Err(invalid("SNS list id must be greater than zero".to_string()));
+        return Err(invalid_sns_cache_error(
+            path,
+            "SNS list id must be greater than zero".to_string(),
+        ));
     }
     if metadata.root_canister_id != entity {
-        return Err(invalid(format!(
-            "root_canister_id is {}, expected {entity}",
-            metadata.root_canister_id
-        )));
+        return Err(invalid_sns_cache_error(
+            path,
+            format!(
+                "root_canister_id is {}, expected {entity}",
+                metadata.root_canister_id
+            ),
+        ));
     }
     if metadata.governance_canister_id.is_empty() {
-        return Err(invalid(
+        return Err(invalid_sns_cache_error(
+            path,
             "governance_canister_id must not be empty".to_string(),
         ));
     }
     Ok(())
+}
+
+fn invalid_sns_cache_error(path: &Path, reason: String) -> SnsHostError {
+    SnsHostError::InvalidCache {
+        path: path.to_path_buf(),
+        reason,
+    }
 }
 
 fn sns_identity_mismatch_error(path: PathBuf, mismatch: SnapshotIdentityMismatch) -> SnsHostError {

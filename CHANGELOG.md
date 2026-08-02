@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.24` centralizes complete SNS cache loading and validation behind the
+  collection storage contract, deleting the proposal/neuron load modules and
+  loader plumbing. Cache errors, reports, and behavior are unchanged.
+
 - `0.25.23` makes each SNS collection marker own its cache schema, field
   allowlist, and missing-cache error, replacing the enum selector and duplicate
   proposal/neuron scan modules. Cache and report behavior are unchanged.

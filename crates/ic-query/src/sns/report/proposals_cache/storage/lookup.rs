@@ -4,12 +4,12 @@
 //! Does not own: cache summary construction, report assembly, or refresh policy.
 //! Boundary: provides typed proposal cache lookup helpers for report builders.
 
-use super::load::load_sns_proposals_cache_at;
 use crate::sns::report::{
     SnsHostError,
     cache_paths::sns_snapshot_network_cache_dir,
     cache_storage::{
-        collect_sns_cache_paths, find_unique_sns_cache_path_by_id, read_sns_cache_header,
+        collect_sns_cache_paths, find_unique_sns_cache_path_by_id, load_sns_cache_at,
+        read_sns_cache_header,
     },
     parse_sns_root_canister_input,
     proposals_cache::{
@@ -36,7 +36,7 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_inpu
     let root_canister_id = parse_sns_root_canister_input(input)?;
     let cache_path =
         SnsProposalsCachePaths::for_root(cache_root, network, &root_canister_id).cache_path;
-    let cache = load_sns_proposals_cache_at(cache_path.clone(), network)?;
+    let cache = load_sns_cache_at::<SnsProposalsCacheCollection>(cache_path.clone(), network)?;
     Ok((cache_path, cache))
 }
 
@@ -54,6 +54,9 @@ pub(in crate::sns::report::proposals_cache) fn find_sns_proposals_cache_by_id(
                 .map(|header| header.metadata.id)
         },
     )?;
-    path.map(|path| load_sns_proposals_cache_at(path.clone(), network).map(|cache| (path, cache)))
-        .transpose()
+    path.map(|path| {
+        load_sns_cache_at::<SnsProposalsCacheCollection>(path.clone(), network)
+            .map(|cache| (path, cache))
+    })
+    .transpose()
 }

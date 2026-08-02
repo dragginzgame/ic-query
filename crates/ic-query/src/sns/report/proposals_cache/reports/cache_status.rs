@@ -14,7 +14,6 @@ use crate::sns::report::{
     proposals_cache::{
         SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         paths::{SnsProposalsCacheCollection, SnsProposalsCachePaths},
-        storage::load_sns_proposals_cache_at,
     },
 };
 use std::path::{Path, PathBuf};
@@ -46,7 +45,7 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
                 read_sns_cache_header::<SnsProposalsCacheCollection>(path, network)
                     .map(|header| header.metadata.id)
             },
-            |path| load_sns_cache_summary_at(path, network, load_sns_proposals_cache_at),
+            |path| load_sns_cache_summary_at::<SnsProposalsCacheCollection>(path, network),
         )
     }
 
@@ -66,10 +65,8 @@ impl SnsCacheStatusFamily for SnsProposalsCacheStatusFamily {
         cache_path: PathBuf,
         network: &str,
     ) -> Result<SnsCacheSummary, SnsHostError> {
-        Ok(load_sns_cache_summary_at(
-            cache_path,
-            network,
-            load_sns_proposals_cache_at,
+        Ok(load_sns_cache_summary_at::<SnsProposalsCacheCollection>(
+            cache_path, network,
         ))
     }
 

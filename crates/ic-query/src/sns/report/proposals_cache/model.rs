@@ -4,11 +4,13 @@
 //! Does not own: cache path construction, refresh orchestration, or rendering.
 //! Boundary: defines complete proposal snapshot metadata, rows, and attempts.
 
-use crate::snapshot_cache::SnapshotEnvelope;
-use crate::sns::report::{SnsProposalRow, cache_storage::SnsCacheMetadata};
+use crate::sns::report::{
+    SnsProposalRow, cache_storage::SnsStoredCache,
+    proposals_cache::paths::SnsProposalsCacheCollection,
+};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
-pub(super) type SnsProposalsCache = SnapshotEnvelope<SnsCacheMetadata, SnsProposalsCacheRows>;
+pub(super) type SnsProposalsCache = SnsStoredCache<SnsProposalsCacheCollection>;
 
 pub(super) const SNS_PROPOSALS_CACHE_FIELDS: &[&str] = &[
     "schema_version",
