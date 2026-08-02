@@ -4,12 +4,15 @@
 //! Does not own: live collection, cache publication, or text rendering.
 //! Boundary: keeps failed collection progress observable without publishing partial rows.
 
-use super::{ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, normalize_transaction_cursor};
+use super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT;
 use crate::{
     HostCacheError,
-    icrc::model::{
-        IcrcAccountTransactionCacheRequest, IcrcAccountTransactionError,
-        IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshRequest,
+    icrc::{
+        live::account_transactions::normalize_transaction_cursor,
+        model::{
+            IcrcAccountTransactionCacheRequest, IcrcAccountTransactionError,
+            IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshRequest,
+        },
     },
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,

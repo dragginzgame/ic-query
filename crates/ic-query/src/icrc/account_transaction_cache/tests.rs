@@ -2,14 +2,18 @@ use super::*;
 use crate::{
     QueryProgress,
     icrc::{
-        IcrcAccountTransactionCollectionSource, IcrcAccountTransactionRow,
-        IcrcAccountTransactionSort,
+        IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCollectionData,
+        IcrcAccountTransactionCollectionSource, IcrcAccountTransactionError,
+        IcrcAccountTransactionListRequest, IcrcAccountTransactionRefreshRequest,
+        IcrcAccountTransactionRow, IcrcAccountTransactionSort,
     },
     test_support::temp_dir,
 };
+use candid::Principal;
 use serde_json::json;
 use std::{
     fs,
+    path::Path,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
@@ -31,8 +35,11 @@ fn cache_entity_changes_with_collection_identity_and_normalizes_subaccounts() {
         ..first.clone()
     };
 
-    assert_eq!(cache_entity(&first), cache_entity(&same));
-    assert_ne!(cache_entity(&first), cache_entity(&different_endpoint));
+    assert_eq!(storage::cache_entity(&first), storage::cache_entity(&same));
+    assert_ne!(
+        storage::cache_entity(&first),
+        storage::cache_entity(&different_endpoint)
+    );
 
     let lowercase = first.clone().with_subaccount_hex("ab".repeat(32));
     let uppercase = first.with_subaccount_hex("AB".repeat(32));
@@ -150,9 +157,14 @@ fn source_claiming_completion_with_wrong_final_cursor_is_not_published() {
     assert!(matches!(
         error,
         IcrcAccountTransactionError::IncompleteCollection {
+            index_canister_id,
+            pages_fetched: 1,
+            rows_fetched: 1,
+            last_cursor,
             reason,
-            ..
-        } if reason.contains("final cursor")
+        } if index_canister_id.as_deref() == Some(INDEX_CANISTER_ID)
+            && last_cursor.as_deref() == Some("6")
+            && reason.contains("final cursor")
     ));
     assert!(
         !icrc_account_transaction_cache_path(&cache)

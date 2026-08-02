@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.10` separates ICRC account-history cache identity and strict storage,
+  refresh and atomic publication, local list/status projection, and attempt
+  evidence behind the existing public facade. Public APIs, cache paths and
+  schemas, refresh policies, reports, and source behavior are unchanged.
+
 - `0.25.9` removes duplicated test-only parsers from every ICRC option model
   and routes focused command tests through one shared Clap parsing helper.
   Production option parsing, CLI behavior, public APIs, reports, and source
