@@ -1,8 +1,14 @@
 use super::*;
+use crate::cli::clap::render_help;
 
 #[test]
 fn registry_version_parses_defaults_and_json_format() {
-    let defaults = RegistryVersionOptions::parse([]).expect("parse defaults");
+    let defaults = parse_test_options(
+        registry_version_command(),
+        &[],
+        RegistryVersionOptions::from_matches,
+    )
+    .expect("parse defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
@@ -11,11 +17,11 @@ fn registry_version_parses_defaults_and_json_format() {
         DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT
     );
 
-    let options = RegistryVersionOptions::parse([
-        OsString::from("--json"),
-        OsString::from("--source-endpoint"),
-        OsString::from("https://icp-api.io"),
-    ])
+    let options = parse_test_options(
+        registry_version_command(),
+        &["--json", "--source-endpoint", "https://icp-api.io"],
+        RegistryVersionOptions::from_matches,
+    )
     .expect("parse registry version");
 
     assert_eq!(options.format, OutputFormat::Json);
@@ -25,8 +31,8 @@ fn registry_version_parses_defaults_and_json_format() {
 #[test]
 fn registry_help_is_advertised_under_nns() {
     let nns = usage();
-    let registry = registry_usage();
-    let version = registry_version_usage();
+    let registry = render_help(registry_command());
+    let version = render_help(registry_version_command());
 
     assert!(nns.contains("registry"));
     assert!(registry.contains("Show the latest mainnet NNS registry version"));

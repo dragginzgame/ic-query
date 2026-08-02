@@ -1,7 +1,5 @@
 //! Clap specifications for direct NNS Governance reports.
 
-#[cfg(test)]
-use crate::cli::clap::render_help;
 use crate::{
     cli::common::{COLLECTION_MODE_LIVE, collection_help},
     nns::leaf,
@@ -36,7 +34,7 @@ Examples:
   icq nns governance maturity-modulation
   icq nns governance maturity-modulation --json";
 
-pub(super) fn governance_command() -> ClapCommand {
+pub(in crate::nns) fn governance_command() -> ClapCommand {
     ClapCommand::new("governance")
         .bin_name("icq nns governance")
         .about("Inspect NNS Governance economics, metrics, and rewards")
@@ -90,29 +88,4 @@ fn report_command(name: &'static str, about: &'static str, examples: &'static st
                 .help("IC API endpoint used for the native NNS Governance query"),
         )
         .after_help(collection_help(COLLECTION_MODE_LIVE, examples))
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn governance_usage() -> String {
-    render_help(governance_command())
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn governance_economics_usage() -> String {
-    render_help(governance_economics_command())
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn governance_metrics_usage() -> String {
-    render_help(governance_metrics_command())
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn governance_reward_event_usage() -> String {
-    render_help(governance_reward_event_command())
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn governance_maturity_modulation_usage() -> String {
-    render_help(governance_maturity_modulation_command())
 }

@@ -1,9 +1,15 @@
 use super::*;
+use crate::cli::clap::render_help;
 use ic_query::nns::neuron::{DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_PAGE_SIZE};
 
 #[test]
 fn nns_neuron_options_parse_defaults_and_explicit_values() {
-    let list = NnsNeuronListOptions::parse([]).expect("list defaults");
+    let list = parse_test_options(
+        neuron_list_command(),
+        &[],
+        NnsNeuronListOptions::from_matches,
+    )
+    .expect("list defaults");
     assert_eq!(list.network, MAINNET_NETWORK);
     assert_eq!(list.format, OutputFormat::Text);
     assert_eq!(list.source_endpoint, DEFAULT_NNS_NEURON_SOURCE_ENDPOINT);
@@ -11,36 +17,49 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     assert_eq!(list.start_neuron_id, None);
     assert!(!list.verbose);
 
-    let list = NnsNeuronListOptions::parse([
-        OsString::from("--limit"),
-        OsString::from(NNS_NEURON_MAX_PAGE_SIZE.to_string()),
-        OsString::from("--start-neuron-id"),
-        OsString::from("123"),
-        OsString::from("--verbose"),
-        OsString::from("--json"),
-    ])
+    let max_page_size = NNS_NEURON_MAX_PAGE_SIZE.to_string();
+    let list = parse_test_options(
+        neuron_list_command(),
+        &[
+            "--limit",
+            &max_page_size,
+            "--start-neuron-id",
+            "123",
+            "--verbose",
+            "--json",
+        ],
+        NnsNeuronListOptions::from_matches,
+    )
     .expect("explicit list options");
     assert_eq!(list.limit, NNS_NEURON_MAX_PAGE_SIZE);
     assert_eq!(list.start_neuron_id, Some(123));
     assert!(list.verbose);
     assert_eq!(list.format, OutputFormat::Json);
 
-    let info = NnsNeuronInfoOptions::parse([OsString::from("456"), OsString::from("--verbose")])
-        .expect("info options");
+    let info = parse_test_options(
+        neuron_info_command(),
+        &["456", "--verbose"],
+        NnsNeuronInfoOptions::from_matches,
+    )
+    .expect("info options");
     assert_eq!(info.neuron_id, 456);
     assert!(info.verbose);
 
-    let refresh = NnsNeuronRefreshOptions::parse([
-        OsString::from("--page-size"),
-        OsString::from("100"),
-        OsString::from("--max-pages"),
-        OsString::from("2"),
-    ])
+    let refresh = parse_test_options(
+        neuron_refresh_command(),
+        &["--page-size", "100", "--max-pages", "2"],
+        NnsNeuronRefreshOptions::from_matches,
+    )
     .expect("refresh options");
     assert_eq!(refresh.page_size, 100);
     assert_eq!(refresh.max_pages, Some(2));
 
-    let cache = NnsNeuronCacheOptions::parse([OsString::from("--json")]).expect("cache options");
+    let cache = parse_test_options(
+        neuron_cache_status_command(),
+        &["--json"],
+        NnsNeuronCacheOptions::from_matches,
+    )
+    .expect("cache options");
     assert_eq!(cache.network, MAINNET_NETWORK);
     assert_eq!(cache.format, OutputFormat::Json);
 }
@@ -48,26 +67,42 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
 #[test]
 fn nns_neuron_rejects_invalid_numeric_values() {
     assert!(
-        NnsNeuronListOptions::parse([OsString::from("--limit"), OsString::from("0"),]).is_err()
+        parse_test_options(
+            neuron_list_command(),
+            &["--limit", "0"],
+            NnsNeuronListOptions::from_matches,
+        )
+        .is_err()
     );
     assert!(
-        NnsNeuronRefreshOptions::parse([OsString::from("--page-size"), OsString::from("301"),])
-            .is_err()
+        parse_test_options(
+            neuron_refresh_command(),
+            &["--page-size", "301"],
+            NnsNeuronRefreshOptions::from_matches,
+        )
+        .is_err()
     );
-    assert!(NnsNeuronInfoOptions::parse([OsString::from("0")]).is_err());
+    assert!(
+        parse_test_options(
+            neuron_info_command(),
+            &["0"],
+            NnsNeuronInfoOptions::from_matches,
+        )
+        .is_err()
+    );
 }
 
 #[test]
 fn nns_neuron_help_advertises_collection_modes_and_commands() {
     assert!(usage().contains("neuron"));
-    let family = neuron_usage();
+    let family = render_help(neuron_command());
     assert!(family.contains("list"));
     assert!(family.contains("info"));
     assert!(family.contains("refresh"));
     assert!(family.contains("cache"));
-    assert!(neuron_list_usage().contains("Cache-preferred read"));
-    assert!(neuron_info_usage().contains("Cache-preferred read"));
-    assert!(neuron_refresh_usage().contains("Forced live refresh"));
-    assert!(neuron_cache_usage().contains("Local cache inspection"));
-    assert!(neuron_cache_status_usage().contains("does not make a network request"));
+    assert!(render_help(neuron_list_command()).contains("Cache-preferred read"));
+    assert!(render_help(neuron_info_command()).contains("Cache-preferred read"));
+    assert!(render_help(neuron_refresh_command()).contains("Forced live refresh"));
+    assert!(render_help(neuron_cache_command()).contains("Local cache inspection"));
+    assert!(render_help(neuron_cache_status_command()).contains("does not make a network request"));
 }

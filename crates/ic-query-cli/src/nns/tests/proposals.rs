@@ -14,15 +14,6 @@ fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsComman
     NnsProposalListOptions::from_matches(&matches, MAINNET_NETWORK)
 }
 
-fn parse_options<Options>(
-    command: ClapCommand,
-    args: &[&str],
-    from_matches: fn(&ArgMatches, &str) -> Options,
-) -> Result<Options, NnsCommandError> {
-    let matches = parse_proposal_matches(command, args)?;
-    Ok(from_matches(&matches, MAINNET_NETWORK))
-}
-
 #[test]
 fn nns_proposal_list_parses_defaults_and_json_format() {
     let defaults = parse_list_options(&[]).expect("parse defaults");
@@ -168,7 +159,7 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
 
 #[test]
 fn nns_proposal_parses_id_and_json_format() {
-    let options = parse_options(
+    let options = parse_test_options(
         nns_proposal_info_command(),
         &[
             "132411",
@@ -189,7 +180,7 @@ fn nns_proposal_parses_id_and_json_format() {
     assert!(options.show_ballots);
     assert!(options.verbose);
 
-    let grouped_options = parse_options(
+    let grouped_options = parse_test_options(
         nns_proposal_info_command(),
         &["132411", "--ballots", "--verbose"],
         NnsProposalOptions::from_matches,
@@ -203,7 +194,7 @@ fn nns_proposal_parses_id_and_json_format() {
 
 #[test]
 fn nns_proposal_refresh_parses_cache_options() {
-    let defaults = parse_options(
+    let defaults = parse_test_options(
         nns_proposal_refresh_command(),
         &[],
         NnsProposalRefreshOptions::from_matches,
@@ -219,7 +210,7 @@ fn nns_proposal_refresh_parses_cache_options() {
     assert_eq!(defaults.page_size, 100);
     assert_eq!(defaults.max_pages, None);
 
-    let options = parse_options(
+    let options = parse_test_options(
         nns_proposal_refresh_command(),
         &[
             "--json",
@@ -242,13 +233,13 @@ fn nns_proposal_refresh_parses_cache_options() {
 
 #[test]
 fn nns_proposal_cache_options_parse_json_format() {
-    let list = parse_options(
+    let list = parse_test_options(
         nns_proposal_cache_list_command(),
         &["--json"],
         NnsProposalCacheOptions::from_matches,
     )
     .expect("parse cache list");
-    let status = parse_options(
+    let status = parse_test_options(
         nns_proposal_cache_status_command(),
         &["--json"],
         NnsProposalCacheOptions::from_matches,

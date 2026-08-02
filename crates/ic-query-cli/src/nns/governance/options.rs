@@ -2,10 +2,6 @@
 
 use crate::nns::{OutputFormat, leaf::NnsCommonOptions};
 use clap::ArgMatches;
-#[cfg(test)]
-use clap::Command as ClapCommand;
-#[cfg(test)]
-use std::ffi::OsString;
 
 ///
 /// NnsGovernanceOptions
@@ -28,20 +24,5 @@ impl NnsGovernanceOptions {
             format: common.format,
             source_endpoint: common.source_endpoint,
         }
-    }
-
-    #[cfg(test)]
-    pub(in crate::nns) fn parse<I>(
-        args: I,
-        command: ClapCommand,
-    ) -> Result<Self, crate::nns::NnsCommandError>
-    where
-        I: IntoIterator<Item = OsString>,
-    {
-        let matches = crate::nns::parse_nns_matches(command, args)?;
-        Ok(Self::from_matches(
-            &matches,
-            ic_query::subnet_catalog::MAINNET_NETWORK,
-        ))
     }
 }

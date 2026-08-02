@@ -6,8 +6,8 @@ mod run;
 
 #[cfg(test)]
 pub(in crate::nns) use commands::{
-    neuron_cache_status_usage, neuron_cache_usage, neuron_info_usage, neuron_list_usage,
-    neuron_refresh_usage, neuron_usage,
+    neuron_cache_command, neuron_cache_status_command, neuron_command, neuron_info_command,
+    neuron_list_command, neuron_refresh_command,
 };
 #[cfg(test)]
 pub(in crate::nns) use options::{

@@ -1,10 +1,15 @@
 use super::*;
+use crate::cli::clap::render_help;
 use ic_query::nns::governance::DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT;
 
 #[test]
 fn nns_governance_options_are_shared_across_reports() {
-    let defaults = NnsGovernanceOptions::parse([], governance_economics_command())
-        .expect("economics defaults");
+    let defaults = parse_test_options(
+        governance_economics_command(),
+        &[],
+        NnsGovernanceOptions::from_matches,
+    )
+    .expect("economics defaults");
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
     assert_eq!(
@@ -12,13 +17,10 @@ fn nns_governance_options_are_shared_across_reports() {
         DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT
     );
 
-    let explicit = NnsGovernanceOptions::parse(
-        [
-            OsString::from("--json"),
-            OsString::from("--source-endpoint"),
-            OsString::from("https://example.test"),
-        ],
+    let explicit = parse_test_options(
         governance_metrics_command(),
+        &["--json", "--source-endpoint", "https://example.test"],
+        NnsGovernanceOptions::from_matches,
     )
     .expect("metrics options");
     assert_eq!(explicit.format, OutputFormat::Json);
@@ -28,17 +30,17 @@ fn nns_governance_options_are_shared_across_reports() {
 #[test]
 fn nns_governance_help_advertises_native_live_reports() {
     assert!(usage().contains("governance"));
-    let family = governance_usage();
+    let family = render_help(governance_command());
     assert!(family.contains("economics"));
     assert!(family.contains("metrics"));
     assert!(family.contains("reward-event"));
     assert!(family.contains("maturity-modulation"));
 
     for help in [
-        governance_economics_usage(),
-        governance_metrics_usage(),
-        governance_reward_event_usage(),
-        governance_maturity_modulation_usage(),
+        render_help(governance_economics_command()),
+        render_help(governance_metrics_command()),
+        render_help(governance_reward_event_command()),
+        render_help(governance_maturity_modulation_command()),
     ] {
         assert!(help.contains("Collection mode: Live query"));
         assert!(help.contains("--source-endpoint"));
@@ -54,7 +56,7 @@ fn nns_governance_each_report_command_accepts_common_options() {
         governance_reward_event_command(),
         governance_maturity_modulation_command(),
     ] {
-        let options = NnsGovernanceOptions::parse([OsString::from("--json")], command)
+        let options = parse_test_options(command, &["--json"], NnsGovernanceOptions::from_matches)
             .expect("shared report options");
         assert_eq!(options.format, OutputFormat::Json);
     }

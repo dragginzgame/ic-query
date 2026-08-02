@@ -6,15 +6,14 @@ use super::{
         data_center_usage,
     },
     governance::{
-        NnsGovernanceOptions, governance_economics_command, governance_economics_usage,
-        governance_maturity_modulation_command, governance_maturity_modulation_usage,
-        governance_metrics_command, governance_metrics_usage, governance_reward_event_command,
-        governance_reward_event_usage, governance_usage,
+        NnsGovernanceOptions, governance_command, governance_economics_command,
+        governance_maturity_modulation_command, governance_metrics_command,
+        governance_reward_event_command,
     },
     neuron::{
         NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
-        neuron_cache_status_usage, neuron_cache_usage, neuron_info_usage, neuron_list_usage,
-        neuron_refresh_usage, neuron_usage,
+        neuron_cache_command, neuron_cache_status_command, neuron_command, neuron_info_command,
+        neuron_list_command, neuron_refresh_command,
     },
     node::{
         node_info_options, node_info_usage, node_list_options, node_list_usage,
@@ -45,7 +44,7 @@ use super::{
         nns_proposal_cache_status_command, nns_proposal_command, nns_proposal_info_command,
         nns_proposal_list_command, nns_proposal_refresh_command,
     },
-    registry::{RegistryVersionOptions, registry_usage, registry_version_usage},
+    registry::{RegistryVersionOptions, registry_command, registry_version_command},
     subnet::{
         CatalogInfoOptions, CatalogListOptions, CatalogRefreshOptions, DEFAULT_RANGE_LIMIT,
         info_usage, list_usage, refresh_usage, subnet_usage,
@@ -59,6 +58,7 @@ use super::{
         topology_regions_usage, topology_summary_usage, topology_usage, topology_versions_usage,
     },
 };
+use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::nns::{
     data_center::{
         DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
@@ -77,6 +77,15 @@ use ic_query::subnet_catalog::{
     SubnetSpecialization,
 };
 use std::{ffi::OsString, path::PathBuf};
+
+fn parse_test_options<Options>(
+    command: ClapCommand,
+    args: &[&str],
+    from_matches: fn(&ArgMatches, &str) -> Options,
+) -> Result<Options, NnsCommandError> {
+    let matches = parse_nns_matches(command, args.iter().copied().map(OsString::from))?;
+    Ok(from_matches(&matches, MAINNET_NETWORK))
+}
 
 mod data_center;
 mod governance;

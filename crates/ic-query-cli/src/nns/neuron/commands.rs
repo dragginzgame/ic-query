@@ -1,7 +1,5 @@
 //! Clap specifications for public NNS neuron commands.
 
-#[cfg(test)]
-use crate::cli::clap::render_help;
 use crate::{
     cli::{
         clap::{flag_arg, value_arg},
@@ -50,7 +48,7 @@ Examples:
   icq nns neuron cache status
   icq nns neuron cache status --json";
 
-pub(super) fn neuron_command() -> ClapCommand {
+pub(in crate::nns) fn neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
         .bin_name("icq nns neuron")
         .about("Inspect public NNS Governance neuron views")
@@ -62,7 +60,7 @@ pub(super) fn neuron_command() -> ClapCommand {
         .after_help(NEURON_HELP_AFTER)
 }
 
-pub(super) fn neuron_list_command() -> ClapCommand {
+pub(in crate::nns) fn neuron_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq nns neuron list")
         .about("List public NNS neurons")
@@ -100,7 +98,7 @@ pub(super) fn neuron_list_command() -> ClapCommand {
         ))
 }
 
-pub(super) fn neuron_info_command() -> ClapCommand {
+pub(in crate::nns) fn neuron_info_command() -> ClapCommand {
     ClapCommand::new("info")
         .bin_name("icq nns neuron info")
         .about("Show one public NNS neuron")
@@ -127,7 +125,7 @@ pub(super) fn neuron_info_command() -> ClapCommand {
         ))
 }
 
-pub(super) fn neuron_refresh_command() -> ClapCommand {
+pub(in crate::nns) fn neuron_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
         .bin_name("icq nns neuron refresh")
         .about("Refresh the complete public NNS neuron snapshot")
@@ -160,7 +158,7 @@ pub(super) fn neuron_refresh_command() -> ClapCommand {
         ))
 }
 
-pub(super) fn neuron_cache_command() -> ClapCommand {
+pub(in crate::nns) fn neuron_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq nns neuron cache")
         .about("Inspect the local complete public NNS neuron snapshot")
@@ -172,7 +170,7 @@ pub(super) fn neuron_cache_command() -> ClapCommand {
         ))
 }
 
-pub(super) fn neuron_cache_status_command() -> ClapCommand {
+pub(in crate::nns) fn neuron_cache_status_command() -> ClapCommand {
     ClapCommand::new("status")
         .bin_name("icq nns neuron cache status")
         .about("Show public NNS neuron snapshot and refresh-attempt status")
@@ -181,64 +179,4 @@ pub(super) fn neuron_cache_status_command() -> ClapCommand {
             COLLECTION_MODE_CACHE_ONLY,
             CACHE_HELP_AFTER,
         ))
-}
-
-#[cfg(test)]
-pub(super) fn neuron_usage_for_error() -> String {
-    render_help(neuron_command())
-}
-
-#[cfg(test)]
-pub(super) fn neuron_list_usage_for_error() -> String {
-    render_help(neuron_list_command())
-}
-
-#[cfg(test)]
-pub(super) fn neuron_info_usage_for_error() -> String {
-    render_help(neuron_info_command())
-}
-
-#[cfg(test)]
-pub(super) fn neuron_refresh_usage_for_error() -> String {
-    render_help(neuron_refresh_command())
-}
-
-#[cfg(test)]
-pub(super) fn neuron_cache_usage_for_error() -> String {
-    render_help(neuron_cache_command())
-}
-
-#[cfg(test)]
-pub(super) fn neuron_cache_status_usage_for_error() -> String {
-    render_help(neuron_cache_status_command())
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn neuron_usage() -> String {
-    neuron_usage_for_error()
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn neuron_list_usage() -> String {
-    neuron_list_usage_for_error()
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn neuron_info_usage() -> String {
-    neuron_info_usage_for_error()
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn neuron_refresh_usage() -> String {
-    neuron_refresh_usage_for_error()
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn neuron_cache_usage() -> String {
-    neuron_cache_usage_for_error()
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn neuron_cache_status_usage() -> String {
-    neuron_cache_status_usage_for_error()
 }

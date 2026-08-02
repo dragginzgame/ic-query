@@ -1,5 +1,3 @@
-#[cfg(test)]
-use crate::cli::clap::render_help;
 use crate::{
     cli::common::{COLLECTION_MODE_LIVE, collection_help},
     nns::leaf,
@@ -13,7 +11,7 @@ Examples:
   icq --network ic nns registry version --json
   icq nns registry version --source-endpoint https://icp-api.io";
 
-pub(in crate::nns::registry) fn registry_command() -> ClapCommand {
+pub(in crate::nns) fn registry_command() -> ClapCommand {
     ClapCommand::new("registry")
         .bin_name("icq nns registry")
         .about("Inspect NNS registry metadata")
@@ -21,7 +19,7 @@ pub(in crate::nns::registry) fn registry_command() -> ClapCommand {
         .subcommand(registry_version_command())
 }
 
-pub(in crate::nns::registry) fn registry_version_command() -> ClapCommand {
+pub(in crate::nns) fn registry_version_command() -> ClapCommand {
     ClapCommand::new("version")
         .bin_name("icq nns registry version")
         .about("Show the latest mainnet NNS registry version")
@@ -34,14 +32,4 @@ pub(in crate::nns::registry) fn registry_version_command() -> ClapCommand {
             COLLECTION_MODE_LIVE,
             REGISTRY_VERSION_HELP_AFTER,
         ))
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn registry_usage() -> String {
-    render_help(registry_command())
-}
-
-#[cfg(test)]
-pub(in crate::nns) fn registry_version_usage() -> String {
-    render_help(registry_version_command())
 }
