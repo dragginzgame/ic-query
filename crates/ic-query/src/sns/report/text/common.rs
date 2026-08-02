@@ -5,7 +5,7 @@
 //! Boundary: exposes small formatting helpers used by text report leaves.
 
 #[cfg(feature = "host")]
-use crate::sns::report::SnsCacheSummarySortKey;
+use crate::sns::report::SnsCacheSummary;
 use crate::{
     duration::display_duration_seconds,
     sns::report::SnsNeuronPermissionList,
@@ -97,15 +97,15 @@ pub(in crate::sns::report::text) fn push_report_provenance_lines(
 }
 
 #[cfg(feature = "host")]
-pub(in crate::sns::report::text) fn push_cache_error_lines<T>(lines: &mut Vec<String>, caches: &[T])
-where
-    T: SnsCacheSummarySortKey,
-{
+pub(in crate::sns::report::text) fn push_cache_error_lines(
+    lines: &mut Vec<String>,
+    caches: &[SnsCacheSummary],
+) {
     lines.extend(caches.iter().filter_map(|cache| {
-        cache.cache_error().map(|error| {
+        cache.cache_error.as_deref().map(|error| {
             format!(
                 "cache_error: {}: {}",
-                sanitize_text(cache.cache_path()),
+                sanitize_text(&cache.cache_path),
                 sanitize_text(error)
             )
         })

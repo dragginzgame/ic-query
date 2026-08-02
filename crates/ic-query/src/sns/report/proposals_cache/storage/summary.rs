@@ -6,8 +6,8 @@
 
 use super::{load::load_sns_proposals_cache_at, scan::collect_sns_proposals_cache_paths};
 use crate::sns::report::{
-    SnsCacheSummary, SnsHostError, project_sns_cache_summary,
-    proposals_cache::{model::SnsProposalsCache, paths::attempt_path_for_cache_path},
+    SnsCacheSummary, SnsHostError, cache_paths::sns_attempt_path_for_cache_path,
+    project_sns_cache_summary, proposals_cache::model::SnsProposalsCache,
 };
 use std::path::{Path, PathBuf};
 
@@ -37,7 +37,7 @@ pub(in crate::sns::report::proposals_cache) fn sns_proposals_cache_summary(
     cache_path: PathBuf,
     cache: SnsProposalsCache,
 ) -> SnsCacheSummary {
-    let attempt_path = attempt_path_for_cache_path(&cache_path);
+    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
     project_sns_cache_summary!(valid
         SnsCacheSummary,
         &cache_path,
@@ -51,7 +51,7 @@ pub(in crate::sns::report::proposals_cache) fn invalid_sns_proposals_cache_summa
     network: &str,
     error: &SnsHostError,
 ) -> SnsCacheSummary {
-    let attempt_path = attempt_path_for_cache_path(&cache_path);
+    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
     project_sns_cache_summary!(invalid
         SnsCacheSummary,
         &cache_path,

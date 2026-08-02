@@ -7,11 +7,12 @@
 use crate::snapshot_cache::validate_snapshot_completeness;
 use crate::sns::report::{
     SnsHostError,
+    cache_paths::sns_snapshot_key_for_cache_path,
     cache_storage::{SnsCacheLoadErrors, load_sns_complete_cache, validate_sns_cache_metadata},
     proposals_cache::{
         SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
         model::{SNS_PROPOSALS_CACHE_FIELDS, SnsProposalsCache},
-        paths::sns_proposals_cache_key_for_cache_path,
+        paths::SnsProposalsCacheCollection,
     },
 };
 use std::{
@@ -24,7 +25,7 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_at(
     cache_path: PathBuf,
     network: &str,
 ) -> Result<SnsProposalsCache, SnsHostError> {
-    let key = sns_proposals_cache_key_for_cache_path(network, &cache_path);
+    let key = sns_snapshot_key_for_cache_path::<SnsProposalsCacheCollection>(network, &cache_path);
     let errors = SnsCacheLoadErrors::proposals();
     let cache = load_sns_complete_cache(
         cache_path.clone(),

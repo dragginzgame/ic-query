@@ -11,12 +11,10 @@ use super::{
 };
 use crate::sns::report::{
     SnsHostError,
+    cache_paths::sns_snapshot_network_cache_dir,
     cache_storage::find_unique_sns_cache_path_by_id,
     enforce_mainnet_network,
-    neurons_cache::{
-        model::SnsNeuronsCache,
-        paths::{sns_network_cache_dir, sns_neurons_cache_path},
-    },
+    neurons_cache::{model::SnsNeuronsCache, paths::sns_neurons_cache_path},
     parse_sns_root_canister_input,
 };
 use std::path::{Path, PathBuf};
@@ -28,8 +26,9 @@ pub(in crate::sns::report::neurons_cache) fn load_sns_neurons_cache_for_input(
 ) -> Result<(PathBuf, SnsNeuronsCache), SnsHostError> {
     enforce_mainnet_network(network)?;
     if let Ok(id) = input.parse::<usize>() {
-        return find_sns_neurons_cache_by_id(cache_root, network, id)?
-            .ok_or_else(|| missing_id_error(id, sns_network_cache_dir(cache_root, network)));
+        return find_sns_neurons_cache_by_id(cache_root, network, id)?.ok_or_else(|| {
+            missing_id_error(id, sns_snapshot_network_cache_dir(cache_root, network))
+        });
     }
 
     let root_canister_id =

@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.21` centralizes SNS proposal and neuron cache-list and cache-status
+  report assembly, and removes their family-local path forwarders. Public APIs,
+  cache identities and schemas, report output, and behavior are unchanged.
+
 - `0.25.20` removes the remaining test-only Subnet duration/error surface,
   compact-renderer visibility bridge, NNS CLI value aliases, and single-use
   test adapters. Tests now use the supported shared duration parser, real host

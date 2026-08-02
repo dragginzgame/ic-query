@@ -6,11 +6,9 @@
 
 use super::{load::load_sns_proposals_cache_at, scan::read_sns_proposals_cache_header};
 use crate::sns::report::{
-    SnsHostError,
-    cache_storage::find_unique_sns_cache_path_by_id,
-    parse_sns_root_canister_input,
-    proposals_cache::model::SnsProposalsCache,
-    proposals_cache::paths::{SnsProposalsCachePaths, sns_network_cache_dir},
+    SnsHostError, cache_paths::sns_snapshot_network_cache_dir,
+    cache_storage::find_unique_sns_cache_path_by_id, parse_sns_root_canister_input,
+    proposals_cache::model::SnsProposalsCache, proposals_cache::paths::SnsProposalsCachePaths,
 };
 use std::path::{Path, PathBuf};
 
@@ -25,7 +23,7 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_inpu
     if let Ok(id) = input.parse::<usize>() {
         return find_sns_proposals_cache_by_id(cache_root, network, id)?.ok_or_else(|| {
             SnsHostError::MissingProposalsCache {
-                path: sns_network_cache_dir(cache_root, network),
+                path: sns_snapshot_network_cache_dir(cache_root, network),
             }
         });
     }

@@ -1,36 +1,15 @@
 //! Module: sns::report::cache_summary
 //!
-//! Responsibility: share cache-summary projection and lookup helpers across SNS cache reports.
+//! Responsibility: share cache-summary projection and list-report assembly across SNS caches.
 //! Does not own: cache storage, refresh-attempt persistence, or text rendering.
 //! Boundary: keeps common cache-summary fields and ordering consistent.
 
-use crate::sns::report::{SnsHostError, enforce_mainnet_network};
+use crate::sns::report::{
+    SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
+    cache_paths::sns_snapshot_network_cache_dir, enforce_mainnet_network,
+};
 use candid::Principal;
 use std::path::{Path, PathBuf};
-
-///
-/// SnsCacheListLookup
-///
-/// Shared lookup result used to assemble SNS cache-list reports.
-///
-
-pub(in crate::sns::report) struct SnsCacheListLookup<Summary> {
-    pub(in crate::sns::report) cache_root: String,
-    pub(in crate::sns::report) caches: Vec<Summary>,
-}
-
-///
-/// SnsCacheSummarySortKey
-///
-/// Stable ordering key implemented by SNS cache summary report rows.
-///
-
-pub(in crate::sns::report) trait SnsCacheSummarySortKey {
-    fn id(&self) -> usize;
-    fn root_canister_id(&self) -> &str;
-    fn cache_path(&self) -> &str;
-    fn cache_error(&self) -> Option<&str>;
-}
 
 macro_rules! project_sns_cache_summary {
     (valid $summary:ident, $cache_path:expr, $attempt_path:expr, $cache:expr) => {{
@@ -83,38 +62,23 @@ macro_rules! project_sns_cache_summary {
 
 pub(in crate::sns::report) use project_sns_cache_summary;
 
-///
-/// SnsCacheListFamily
-///
-/// Family-specific hooks required by the shared SNS cache-list report flow.
-///
-
-pub(in crate::sns::report) trait SnsCacheListFamily {
-    type Summary: SnsCacheSummarySortKey;
-
-    fn network_cache_dir(cache_root: &Path, network: &str) -> PathBuf;
-    fn list_cache_summaries(
-        cache_root: &Path,
-        network: &str,
-    ) -> Result<Vec<Self::Summary>, SnsHostError>;
-}
-
-/// Build a deterministic cache-list lookup for one SNS cache family.
-pub(in crate::sns::report) fn build_sns_cache_list_lookup<Family>(
-    network: &str,
-    cache_root: &Path,
-) -> Result<SnsCacheListLookup<Family::Summary>, SnsHostError>
-where
-    Family: SnsCacheListFamily,
-{
-    enforce_mainnet_network(network)?;
-    let network_cache_root = Family::network_cache_dir(cache_root, network)
+/// Build a deterministic cache-list report for one SNS cache family.
+pub(in crate::sns::report) fn build_sns_cache_list_report(
+    request: &SnsCacheListRequest,
+    schema_version: u32,
+    list_cache_summaries: impl FnOnce(&Path, &str) -> Result<Vec<SnsCacheSummary>, SnsHostError>,
+) -> Result<SnsCacheListReport, SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let network_cache_root = sns_snapshot_network_cache_dir(&request.cache_root, &request.network)
         .display()
         .to_string();
-    let mut caches = Family::list_cache_summaries(cache_root, network)?;
+    let mut caches = list_cache_summaries(&request.cache_root, &request.network)?;
     sort_sns_cache_summaries(&mut caches);
-    Ok(SnsCacheListLookup {
+    Ok(SnsCacheListReport {
+        schema_version,
+        network: request.network.clone(),
         cache_root: network_cache_root,
+        cache_count: caches.len(),
         caches,
     })
 }
@@ -131,27 +95,21 @@ pub(in crate::sns::report) fn parse_sns_root_canister_input(
 }
 
 /// Sort SNS cache summaries by stable list id and root principal.
-pub(in crate::sns::report) fn sort_sns_cache_summaries<T>(caches: &mut [T])
-where
-    T: SnsCacheSummarySortKey,
-{
+fn sort_sns_cache_summaries(caches: &mut [SnsCacheSummary]) {
     caches.sort_by(|left, right| {
-        left.id()
-            .cmp(&right.id())
-            .then_with(|| left.root_canister_id().cmp(right.root_canister_id()))
+        left.id
+            .cmp(&right.id)
+            .then_with(|| left.root_canister_id.cmp(&right.root_canister_id))
     });
 }
 
 /// Find a valid SNS cache summary by id without loading unrelated snapshots.
-pub(in crate::sns::report) fn find_sns_cache_summary_by_id<T>(
+pub(in crate::sns::report) fn find_sns_cache_summary_by_id(
     paths: impl IntoIterator<Item = PathBuf>,
     id: usize,
     mut read_id: impl FnMut(&Path) -> Result<usize, SnsHostError>,
-    mut load_summary: impl FnMut(PathBuf) -> T,
-) -> Result<Option<T>, SnsHostError>
-where
-    T: SnsCacheSummarySortKey,
-{
+    mut load_summary: impl FnMut(PathBuf) -> SnsCacheSummary,
+) -> Result<Option<SnsCacheSummary>, SnsHostError> {
     let mut matching = None;
     for path in paths {
         let Ok(candidate_id) = read_id(&path) else {
@@ -161,7 +119,7 @@ where
             continue;
         }
         let summary = load_summary(path);
-        if summary.id() != id || summary.cache_error().is_some() {
+        if summary.id != id || summary.cache_error.is_some() {
             continue;
         }
         if matching.replace(summary).is_some() {
@@ -185,31 +143,28 @@ pub(in crate::sns::report) fn root_from_cache_path(cache_path: &Path) -> String 
 
 #[cfg(test)]
 mod tests {
-    use super::{SnsCacheSummarySortKey, find_sns_cache_summary_by_id};
-    use crate::sns::report::SnsHostError;
+    use super::find_sns_cache_summary_by_id;
+    use crate::sns::report::{SnsCacheSummary, SnsHostError};
     use std::{cell::Cell, path::PathBuf};
 
-    struct Summary {
-        id: usize,
-        path: String,
-        error: Option<String>,
-    }
-
-    impl SnsCacheSummarySortKey for Summary {
-        fn id(&self) -> usize {
-            self.id
-        }
-
-        fn root_canister_id(&self) -> &str {
-            &self.path
-        }
-
-        fn cache_path(&self) -> &str {
-            &self.path
-        }
-
-        fn cache_error(&self) -> Option<&str> {
-            self.error.as_deref()
+    fn summary(id: usize, path: PathBuf) -> SnsCacheSummary {
+        let path = path.display().to_string();
+        SnsCacheSummary {
+            id,
+            name: "SNS".to_string(),
+            root_canister_id: path.clone(),
+            governance_canister_id: "governance".to_string(),
+            cache_status: "ok".to_string(),
+            cache_error: None,
+            complete: true,
+            row_count: 1,
+            page_count: 1,
+            page_size: 100,
+            fetched_at: "2026-08-02T00:00:00Z".to_string(),
+            source_endpoint: "https://ic0.app".to_string(),
+            cache_path: path,
+            refresh_attempt_path: "attempt.json".to_string(),
+            latest_attempt: None,
         }
     }
 
@@ -234,14 +189,11 @@ mod tests {
             },
             |path| {
                 snapshot_loads.set(snapshot_loads.get() + 1);
-                Summary {
-                    id: path
-                        .to_string_lossy()
-                        .parse()
-                        .expect("numeric fixture path"),
-                    path: path.display().to_string(),
-                    error: None,
-                }
+                let id = path
+                    .to_string_lossy()
+                    .parse()
+                    .expect("numeric fixture path");
+                summary(id, path)
             },
         )
         .expect("lookup succeeds")
@@ -258,11 +210,7 @@ mod tests {
             [PathBuf::from("a"), PathBuf::from("b")],
             7,
             |_| Ok(7),
-            |path| Summary {
-                id: 7,
-                path: path.display().to_string(),
-                error: None,
-            },
+            |path| summary(7, path),
         );
 
         assert!(matches!(

@@ -5,7 +5,6 @@
 //! Boundary: preserves fields common to neuron and proposal cache list/status reports.
 
 use super::SnsRefreshAttemptStatus;
-use crate::sns::report::SnsCacheSummarySortKey;
 use serde::Serialize;
 
 ///
@@ -65,22 +64,4 @@ pub struct SnsCacheSummary {
     pub cache_path: String,
     pub refresh_attempt_path: String,
     pub latest_attempt: Option<SnsRefreshAttemptStatus>,
-}
-
-impl SnsCacheSummarySortKey for SnsCacheSummary {
-    fn id(&self) -> usize {
-        self.id
-    }
-
-    fn root_canister_id(&self) -> &str {
-        &self.root_canister_id
-    }
-
-    fn cache_path(&self) -> &str {
-        &self.cache_path
-    }
-
-    fn cache_error(&self) -> Option<&str> {
-        self.cache_error.as_deref()
-    }
 }

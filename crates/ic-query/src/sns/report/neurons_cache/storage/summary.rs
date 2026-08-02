@@ -6,9 +6,8 @@
 
 use super::{load::load_sns_neurons_cache_at, scan::collect_sns_neurons_cache_paths};
 use crate::sns::report::{
-    SnsCacheSummary, SnsHostError,
-    neurons_cache::{model::SnsNeuronsCache, paths::sns_neurons_attempt_path_for_cache_path},
-    project_sns_cache_summary,
+    SnsCacheSummary, SnsHostError, cache_paths::sns_attempt_path_for_cache_path,
+    neurons_cache::model::SnsNeuronsCache, project_sns_cache_summary,
 };
 use std::path::{Path, PathBuf};
 
@@ -36,7 +35,7 @@ pub(in crate::sns::report::neurons_cache) fn sns_neurons_cache_summary(
     cache_path: PathBuf,
     cache: SnsNeuronsCache,
 ) -> SnsCacheSummary {
-    let attempt_path = sns_neurons_attempt_path_for_cache_path(&cache_path);
+    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
     project_sns_cache_summary!(valid SnsCacheSummary, &cache_path, &attempt_path, cache)
 }
 
@@ -45,7 +44,7 @@ pub(in crate::sns::report::neurons_cache) fn invalid_sns_neurons_cache_summary(
     network: &str,
     error: &SnsHostError,
 ) -> SnsCacheSummary {
-    let attempt_path = sns_neurons_attempt_path_for_cache_path(&cache_path);
+    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
     project_sns_cache_summary!(invalid
         SnsCacheSummary,
         &cache_path,
