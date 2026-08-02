@@ -4,6 +4,7 @@
 //! Does not own: governance transport, cache storage, sorting, or rendering.
 //! Boundary: carries live neuron rows and pagination cursors into builders.
 
+use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_canonical_lowercase_hex,
     sns::report::{SnsHostError, SnsNeuronRow},
@@ -67,17 +68,14 @@ fn validate_sns_neuron_source_rows(
     requested_limit: u32,
     capability: &'static str,
 ) -> Result<(), SnsHostError> {
+    let validator = SnsSourceValidator::new(capability);
     if neurons.len() > requested_limit as usize {
-        return Err(SnsHostError::InvalidSourceData {
-            capability,
-            reason: format!(
-                "returned {} rows for requested limit {requested_limit}",
-                neurons.len()
-            ),
-        });
+        return Err(validator.invalid(format!(
+            "returned {} rows for requested limit {requested_limit}",
+            neurons.len()
+        )));
     }
-    validate_sns_neuron_rows(neurons)
-        .map_err(|reason| SnsHostError::InvalidSourceData { capability, reason })
+    validate_sns_neuron_rows(neurons).map_err(|reason| validator.invalid(reason))
 }
 
 /// Validate canonical row fields and neuron-id uniqueness within one row collection.

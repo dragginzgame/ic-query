@@ -4,16 +4,17 @@
 //! Does not own: live transport, lookup, report assembly, or rendering.
 //! Boundary: validates target, method, freshness claims, row identity, and bounds.
 
+use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_lowercase_hex,
     sns::report::{SnsHostError, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics},
 };
-use candid::Principal;
 use std::collections::BTreeSet;
 
 pub(in crate::sns::report) const SNS_METRICS_METHOD: &str = "get_metrics";
 pub(in crate::sns::report) const SNS_METRICS_CALL_TYPE: &str = "composite_query";
 const MAX_SNS_TREASURY_METRICS: usize = 16;
+const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS metrics");
 
 ///
 /// MainnetSnsMetrics
@@ -54,32 +55,32 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
     expected_governance_canister_id: &str,
     expected_time_window_seconds: u64,
 ) -> Result<(), SnsHostError> {
-    validate_principal("governance_canister_id", &metrics.governance_canister_id)?;
-    validate_exact(
+    VALIDATOR.canonical_principal("governance_canister_id", &metrics.governance_canister_id)?;
+    VALIDATOR.exact(
         "governance_canister_id",
         expected_governance_canister_id,
         &metrics.governance_canister_id,
     )?;
-    validate_exact("method", SNS_METRICS_METHOD, &metrics.method)?;
-    validate_exact("call_type", SNS_METRICS_CALL_TYPE, &metrics.call_type)?;
+    VALIDATOR.exact("method", SNS_METRICS_METHOD, &metrics.method)?;
+    VALIDATOR.exact("call_type", SNS_METRICS_CALL_TYPE, &metrics.call_type)?;
     if metrics.time_window_seconds != expected_time_window_seconds {
-        return Err(invalid_metrics(format!(
+        return Err(VALIDATOR.invalid(format!(
             "time_window_seconds is {}, expected {expected_time_window_seconds}",
             metrics.time_window_seconds
         )));
     }
     if metrics.point_in_time_guaranteed {
-        return Err(invalid_metrics(
+        return Err(VALIDATOR.invalid(
             "cached and live metrics cannot claim a point-in-time guarantee".to_string(),
         ));
     }
     if !metrics.treasury_metrics_cached {
-        return Err(invalid_metrics(
+        return Err(VALIDATOR.invalid(
             "treasury_metrics_cached must identify Governance-cached values".to_string(),
         ));
     }
     if metrics.treasury_metrics.len() > MAX_SNS_TREASURY_METRICS {
-        return Err(invalid_metrics(format!(
+        return Err(VALIDATOR.invalid(format!(
             "treasury metric count {} exceeds {MAX_SNS_TREASURY_METRICS}",
             metrics.treasury_metrics.len()
         )));
@@ -89,14 +90,11 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
     let mut treasury_codes = BTreeSet::new();
     for row in &metrics.treasury_metrics {
         if !treasury_codes.insert(row.treasury) {
-            return Err(invalid_metrics(format!(
-                "duplicate treasury code {}",
-                row.treasury
-            )));
+            return Err(VALIDATOR.invalid(format!("duplicate treasury code {}", row.treasury)));
         }
         let expected_kind = sns_treasury_kind(row.treasury);
         if row.treasury_kind != expected_kind {
-            return Err(invalid_metrics(format!(
+            return Err(VALIDATOR.invalid(format!(
                 "treasury code {} has kind {:?}, expected {:?}",
                 row.treasury, row.treasury_kind, expected_kind
             )));
@@ -107,7 +105,7 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
         if let Some(subaccount) = row.account_subaccount_hex.as_deref()
             && (subaccount.len() != 64 || !is_lowercase_hex(subaccount))
         {
-            return Err(invalid_metrics(format!(
+            return Err(VALIDATOR.invalid(format!(
                 "treasury code {} account_subaccount_hex is not 32-byte lowercase hexadecimal text",
                 row.treasury
             )));
@@ -130,12 +128,10 @@ fn validate_optional_text(field: &'static str, value: Option<&str>) -> Result<()
         return Ok(());
     };
     if value.trim().is_empty() {
-        return Err(invalid_metrics(format!("{field} is empty")));
+        return Err(VALIDATOR.invalid(format!("{field} is empty")));
     }
     if value.trim() != value {
-        return Err(invalid_metrics(format!(
-            "{field} has surrounding whitespace"
-        )));
+        return Err(VALIDATOR.invalid(format!("{field} has surrounding whitespace")));
     }
     Ok(())
 }
@@ -145,34 +141,7 @@ fn validate_optional_principal(
     value: Option<&str>,
 ) -> Result<(), SnsHostError> {
     if let Some(value) = value {
-        validate_principal(field, value)?;
+        VALIDATOR.canonical_principal(field, value)?;
     }
     Ok(())
-}
-
-fn validate_principal(field: &'static str, value: &str) -> Result<(), SnsHostError> {
-    let principal = Principal::from_text(value)
-        .map_err(|error| invalid_metrics(format!("{field} {value:?} is invalid: {error}")))?;
-    if principal.to_text() != value {
-        return Err(invalid_metrics(format!(
-            "{field} {value:?} is not canonical principal text"
-        )));
-    }
-    Ok(())
-}
-
-fn validate_exact(field: &'static str, expected: &str, actual: &str) -> Result<(), SnsHostError> {
-    if actual != expected {
-        return Err(invalid_metrics(format!(
-            "{field} is {actual:?}, expected {expected:?}"
-        )));
-    }
-    Ok(())
-}
-
-const fn invalid_metrics(reason: String) -> SnsHostError {
-    SnsHostError::InvalidSourceData {
-        capability: "SNS metrics",
-        reason,
-    }
 }

@@ -13,6 +13,7 @@ mod proposals;
 mod swap;
 mod token;
 mod upgrade;
+mod validation;
 
 pub use canisters::MainnetSnsCanisterInventory;
 pub(in crate::sns::report) use canisters::{

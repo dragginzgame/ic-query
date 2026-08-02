@@ -4,17 +4,18 @@
 //! Does not own: live transport, SNS lookup, report assembly, or rendering.
 //! Boundary: validates target identity, native methods, partial gaps, and raw numeric values.
 
+use super::validation::SnsSourceValidator;
 use crate::sns::report::{
     SnsHostError, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle, SnsSwapQueryGap,
     SnsSwapSaleParameters,
 };
-use candid::Principal;
 use std::collections::BTreeSet;
 
 pub(in crate::sns::report) const SNS_SWAP_LIFECYCLE_METHOD: &str = "get_lifecycle";
 pub(in crate::sns::report) const SNS_SWAP_SALE_PARAMETERS_METHOD: &str = "get_sale_parameters";
 pub(in crate::sns::report) const SNS_SWAP_DERIVED_STATE_METHOD: &str = "get_derived_state";
 pub(in crate::sns::report) const SNS_SWAP_QUERY_COUNT: usize = 3;
+const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS swap");
 
 ///
 /// MainnetSnsSwap
@@ -48,30 +49,30 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
     swap: &mut MainnetSnsSwap,
     expected_swap_canister_id: &str,
 ) -> Result<(), SnsHostError> {
-    validate_principal("swap_canister_id", &swap.swap_canister_id)?;
+    VALIDATOR.canonical_principal("swap_canister_id", &swap.swap_canister_id)?;
     if swap.swap_canister_id != expected_swap_canister_id {
-        return Err(invalid_swap(format!(
+        return Err(VALIDATOR.invalid(format!(
             "swap_canister_id is {:?}, expected {:?}",
             swap.swap_canister_id, expected_swap_canister_id
         )));
     }
-    validate_exact(
+    VALIDATOR.exact(
         "lifecycle_method",
         SNS_SWAP_LIFECYCLE_METHOD,
         &swap.lifecycle_method,
     )?;
-    validate_exact(
+    VALIDATOR.exact(
         "sale_parameters_method",
         SNS_SWAP_SALE_PARAMETERS_METHOD,
         &swap.sale_parameters_method,
     )?;
-    validate_exact(
+    VALIDATOR.exact(
         "derived_state_method",
         SNS_SWAP_DERIVED_STATE_METHOD,
         &swap.derived_state_method,
     )?;
     if swap.point_in_time_guaranteed {
-        return Err(invalid_swap(
+        return Err(VALIDATOR.invalid(
             "three sequential swap queries cannot claim a point-in-time guarantee".to_string(),
         ));
     }
@@ -79,7 +80,7 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
     if let Some(lifecycle) = &swap.lifecycle {
         let expected_name = sns_swap_lifecycle_name(lifecycle.lifecycle).map(str::to_string);
         if lifecycle.lifecycle_name != expected_name {
-            return Err(invalid_swap(format!(
+            return Err(VALIDATOR.invalid(format!(
                 "lifecycle_name is {:?}, expected {:?} for lifecycle {:?}",
                 lifecycle.lifecycle_name, expected_name, lifecycle.lifecycle
             )));
@@ -91,7 +92,7 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
         .and_then(|state| state.sns_tokens_per_icp)
         && (!rate.is_finite() || rate.is_sign_negative())
     {
-        return Err(invalid_swap(format!(
+        return Err(VALIDATOR.invalid(format!(
             "sns_tokens_per_icp must be a finite non-negative value, got {rate}"
         )));
     }
@@ -100,14 +101,13 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
     let mut gap_components = BTreeSet::new();
     for gap in &swap.gaps {
         if !gap_components.insert(gap.component) {
-            return Err(invalid_swap(format!(
-                "duplicate {} query gap",
-                gap.component.as_str()
-            )));
+            return Err(
+                VALIDATOR.invalid(format!("duplicate {} query gap", gap.component.as_str()))
+            );
         }
         let expected_method = sns_swap_component_method(gap.component);
         if gap.method != expected_method {
-            return Err(invalid_swap(format!(
+            return Err(VALIDATOR.invalid(format!(
                 "{} gap method is {:?}, expected {:?}",
                 gap.component.as_str(),
                 gap.method,
@@ -115,7 +115,7 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
             )));
         }
         if gap.reason.trim().is_empty() {
-            return Err(invalid_swap(format!(
+            return Err(VALIDATOR.invalid(format!(
                 "{} query gap has an empty reason",
                 gap.component.as_str()
             )));
@@ -175,45 +175,18 @@ fn validate_component_result(
     empty_success_allowed: bool,
 ) -> Result<(), SnsHostError> {
     if has_value && has_gap {
-        return Err(invalid_swap(format!(
+        return Err(VALIDATOR.invalid(format!(
             "{} has both a value and a query gap",
             component.as_str()
         )));
     }
     if !has_value && !has_gap && !empty_success_allowed {
-        return Err(invalid_swap(format!(
+        return Err(VALIDATOR.invalid(format!(
             "{} has neither a value nor a query gap",
             component.as_str()
         )));
     }
     Ok(())
-}
-
-fn validate_exact(field: &'static str, expected: &str, actual: &str) -> Result<(), SnsHostError> {
-    if actual != expected {
-        return Err(invalid_swap(format!(
-            "{field} is {actual:?}, expected {expected:?}"
-        )));
-    }
-    Ok(())
-}
-
-fn validate_principal(field: &'static str, value: &str) -> Result<(), SnsHostError> {
-    let principal = Principal::from_text(value)
-        .map_err(|error| invalid_swap(format!("{field} {value:?} is invalid: {error}")))?;
-    if principal.to_text() != value {
-        return Err(invalid_swap(format!(
-            "{field} {value:?} is not canonical principal text"
-        )));
-    }
-    Ok(())
-}
-
-const fn invalid_swap(reason: String) -> SnsHostError {
-    SnsHostError::InvalidSourceData {
-        capability: "SNS swap",
-        reason,
-    }
 }
 
 #[cfg(test)]

@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.6` centralizes common SNS custom-source validation for capability
+  errors, exact evidence fields, and canonical principal text. Capability-
+  specific invariants, validation errors, public APIs, reports, and source
+  behavior are unchanged.
+
 - `0.25.5` centralizes canonical lowercase-hex checks and corrects the focused
   Subnet feature documentation and gate to distinguish direct optional
   dependencies from packages retained transitively through `ic-agent`. It also

@@ -4,12 +4,14 @@
 //! Does not own: live transport, lookup parsing, report assembly, or rendering.
 //! Boundary: validates discovery provenance and exact metadata target coverage before joining.
 
-use super::SnsSourceRequest;
+use super::{SnsSourceRequest, validation::SnsSourceValidator};
 use crate::sns::report::{MAINNET_SNS_WASM_CANISTER_ID, SnsHostError};
-use candid::Principal;
 use std::collections::{BTreeMap, BTreeSet};
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
+const INVENTORY_VALIDATOR: SnsSourceValidator =
+    SnsSourceValidator::new("SNS-W deployed SNS inventory");
+const METADATA_VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS metadata");
 
 ///
 /// MainnetSnsInventory
@@ -113,15 +115,15 @@ pub(in crate::sns::report) fn validate_mainnet_sns_inventory(
     request: &SnsSourceRequest,
     inventory: &MainnetSnsInventory,
 ) -> Result<(), SnsHostError> {
-    validate_provenance("network", &request.network, &inventory.network)?;
-    validate_provenance(
+    INVENTORY_VALIDATOR.exact("network", &request.network, &inventory.network)?;
+    INVENTORY_VALIDATOR.exact(
         "sns_wasm_canister_id",
         MAINNET_SNS_WASM_CANISTER_ID,
         &inventory.sns_wasm_canister_id,
     )?;
-    validate_provenance("fetched_at", &request.fetched_at, &inventory.fetched_at)?;
-    validate_provenance("fetched_by", &request.fetched_by, &inventory.fetched_by)?;
-    validate_provenance(
+    INVENTORY_VALIDATOR.exact("fetched_at", &request.fetched_at, &inventory.fetched_at)?;
+    INVENTORY_VALIDATOR.exact("fetched_by", &request.fetched_by, &inventory.fetched_by)?;
+    INVENTORY_VALIDATOR.exact(
         "source_endpoint",
         &request.endpoint,
         &inventory.source_endpoint,
@@ -131,7 +133,7 @@ pub(in crate::sns::report) fn validate_mainnet_sns_inventory(
     for sns in &inventory.sns_instances {
         validate_sns_canisters(sns)?;
         if !roots.insert(sns.root_canister_id.as_str()) {
-            return Err(invalid_inventory(format!(
+            return Err(INVENTORY_VALIDATOR.invalid(format!(
                 "duplicate root canister id {}",
                 sns.root_canister_id
             )));
@@ -155,7 +157,7 @@ pub(in crate::sns::report) fn join_mainnet_sns_inventory(
         .map(|canisters| {
             let root_canister_id = canisters.root_canister_id.clone();
             let metadata = metadata_by_root.remove(&root_canister_id).ok_or_else(|| {
-                invalid_metadata(format!(
+                METADATA_VALIDATOR.invalid(format!(
                     "metadata is missing requested root canister id {root_canister_id}"
                 ))
             })?;
@@ -182,19 +184,16 @@ fn validate_mainnet_sns_metadata(
         .collect::<BTreeSet<_>>();
     let mut actual_roots = BTreeSet::new();
     for row in metadata {
-        validate_canonical_principal(
-            "metadata root_canister_id",
-            &row.root_canister_id,
-            invalid_metadata,
-        )?;
+        METADATA_VALIDATOR
+            .canonical_principal("metadata root_canister_id", &row.root_canister_id)?;
         if !actual_roots.insert(row.root_canister_id.as_str()) {
-            return Err(invalid_metadata(format!(
+            return Err(METADATA_VALIDATOR.invalid(format!(
                 "duplicate metadata root canister id {}",
                 row.root_canister_id
             )));
         }
         if !expected_roots.contains(row.root_canister_id.as_str()) {
-            return Err(invalid_metadata(format!(
+            return Err(METADATA_VALIDATOR.invalid(format!(
                 "metadata returned unrequested root canister id {}",
                 row.root_canister_id
             )));
@@ -209,7 +208,7 @@ fn validate_mainnet_sns_metadata(
         if let Some(error) = row.metadata_error.as_deref() {
             validate_metadata_text(&row.root_canister_id, "metadata_error", error)?;
             if row.name.is_some() || row.description.is_some() || row.url.is_some() {
-                return Err(invalid_metadata(format!(
+                return Err(METADATA_VALIDATOR.invalid(format!(
                     "metadata for {} contains both payload fields and metadata_error",
                     row.root_canister_id
                 )));
@@ -222,7 +221,7 @@ fn validate_mainnet_sns_metadata(
             .copied()
             .collect::<Vec<_>>()
             .join(", ");
-        return Err(invalid_metadata(format!(
+        return Err(METADATA_VALIDATOR.invalid(format!(
             "metadata is missing requested root canister ids: {missing}"
         )));
     }
@@ -246,12 +245,12 @@ fn validate_metadata_text(
     value: &str,
 ) -> Result<(), SnsHostError> {
     if value.trim().is_empty() {
-        return Err(invalid_metadata(format!(
-            "metadata {field} for {root_canister_id} is empty"
-        )));
+        return Err(
+            METADATA_VALIDATOR.invalid(format!("metadata {field} for {root_canister_id} is empty"))
+        );
     }
     if value.trim() != value {
-        return Err(invalid_metadata(format!(
+        return Err(METADATA_VALIDATOR.invalid(format!(
             "metadata {field} for {root_canister_id} has surrounding whitespace"
         )));
     }
@@ -294,49 +293,7 @@ fn validate_sns_canisters(sns: &MainnetSnsCanisters) -> Result<(), SnsHostError>
         ("swap_canister_id", sns.swap_canister_id.as_str()),
         ("index_canister_id", sns.index_canister_id.as_str()),
     ] {
-        validate_canonical_principal(field, value, invalid_inventory)?;
+        INVENTORY_VALIDATOR.canonical_principal(field, value)?;
     }
     Ok(())
-}
-
-fn validate_provenance(
-    field: &'static str,
-    expected: &str,
-    actual: &str,
-) -> Result<(), SnsHostError> {
-    if expected != actual {
-        return Err(invalid_inventory(format!(
-            "{field} is {actual:?}, expected {expected:?}"
-        )));
-    }
-    Ok(())
-}
-
-fn validate_canonical_principal(
-    field: &'static str,
-    value: &str,
-    invalid: fn(String) -> SnsHostError,
-) -> Result<(), SnsHostError> {
-    let principal = Principal::from_text(value)
-        .map_err(|error| invalid(format!("{field} {value:?} is invalid: {error}")))?;
-    if principal.to_text() != value {
-        return Err(invalid(format!(
-            "{field} {value:?} is not canonical principal text"
-        )));
-    }
-    Ok(())
-}
-
-const fn invalid_inventory(reason: String) -> SnsHostError {
-    SnsHostError::InvalidSourceData {
-        capability: "SNS-W deployed SNS inventory",
-        reason,
-    }
-}
-
-const fn invalid_metadata(reason: String) -> SnsHostError {
-    SnsHostError::InvalidSourceData {
-        capability: "SNS metadata",
-        reason,
-    }
 }
