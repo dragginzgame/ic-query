@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.7` centralizes optional ICRC subaccount normalization across account
+  reports and complete-history caches and reuses one typed principal converter
+  for live and cached transaction targets. Accepted inputs, errors, cache
+  identities, public APIs, reports, and source behavior are unchanged.
+
 - `0.25.6` centralizes common SNS custom-source validation for capability
   errors, exact evidence fields, and canonical principal text. Capability-
   specific invariants, validation errors, public APIs, reports, and source

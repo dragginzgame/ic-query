@@ -25,7 +25,7 @@ use crate::{
             IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
             IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcError, IcrcIndexReport,
             IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionsReport,
-            IcrcTransactionsRequest, normalize_subaccount_hex,
+            IcrcTransactionsRequest, normalize_optional_subaccount_hex,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -116,11 +116,7 @@ pub fn build_icrc_balance_report_with_source(
     source: &dyn IcrcBalanceSource,
 ) -> Result<IcrcBalanceReport, IcrcError> {
     let request = IcrcBalanceRequest {
-        subaccount_hex: request
-            .subaccount_hex
-            .as_deref()
-            .map(normalize_subaccount_hex)
-            .transpose()?,
+        subaccount_hex: normalize_optional_subaccount_hex(request.subaccount_hex.as_deref())?,
         ..request.clone()
     };
     let balance = source.fetch_balance(&request)?;
@@ -143,16 +139,12 @@ pub fn build_icrc_allowance_report_with_source(
     source: &dyn IcrcAllowanceSource,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
     let request = IcrcAllowanceRequest {
-        account_subaccount_hex: request
-            .account_subaccount_hex
-            .as_deref()
-            .map(normalize_subaccount_hex)
-            .transpose()?,
-        spender_subaccount_hex: request
-            .spender_subaccount_hex
-            .as_deref()
-            .map(normalize_subaccount_hex)
-            .transpose()?,
+        account_subaccount_hex: normalize_optional_subaccount_hex(
+            request.account_subaccount_hex.as_deref(),
+        )?,
+        spender_subaccount_hex: normalize_optional_subaccount_hex(
+            request.spender_subaccount_hex.as_deref(),
+        )?,
         ..request.clone()
     };
     let allowance = source.fetch_allowance(&request)?;
@@ -199,11 +191,7 @@ pub fn build_icrc_account_transaction_page_report_with_source(
         ledger_canister_id,
         index_canister_id,
         account_owner,
-        subaccount_hex: request
-            .subaccount_hex
-            .as_deref()
-            .map(normalize_subaccount_hex)
-            .transpose()?,
+        subaccount_hex: normalize_optional_subaccount_hex(request.subaccount_hex.as_deref())?,
         start: request
             .start
             .as_deref()

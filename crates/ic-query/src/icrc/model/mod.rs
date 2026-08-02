@@ -35,4 +35,6 @@ pub use data::{
 pub use error::{IcrcAccountTransactionError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;
 #[cfg(feature = "host")]
-pub(in crate::icrc) use subaccount::subaccount_bytes_from_hex;
+pub(in crate::icrc) use subaccount::{
+    normalize_optional_subaccount_hex, subaccount_bytes_from_hex,
+};

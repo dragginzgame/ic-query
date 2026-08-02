@@ -18,7 +18,7 @@ const INDEX_CANISTER_ID: &str = "qhbym-qaaaa-aaaaa-aaafq-cai";
 const ACCOUNT_OWNER: &str = "aaaaa-aa";
 
 #[test]
-fn cache_entity_changes_with_collection_identity_not_view_options() {
+fn cache_entity_changes_with_collection_identity_and_normalizes_subaccounts() {
     let first = IcrcAccountTransactionCacheRequest::new(
         "/tmp/ic-query-cache",
         "https://icp-api.io",
@@ -33,6 +33,13 @@ fn cache_entity_changes_with_collection_identity_not_view_options() {
 
     assert_eq!(cache_entity(&first), cache_entity(&same));
     assert_ne!(cache_entity(&first), cache_entity(&different_endpoint));
+
+    let lowercase = first.clone().with_subaccount_hex("ab".repeat(32));
+    let uppercase = first.with_subaccount_hex("AB".repeat(32));
+    assert_eq!(
+        icrc_account_transaction_cache_path(&lowercase).expect("lowercase cache path"),
+        icrc_account_transaction_cache_path(&uppercase).expect("uppercase cache path")
+    );
 }
 
 #[test]

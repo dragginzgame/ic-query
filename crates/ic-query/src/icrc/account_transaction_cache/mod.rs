@@ -16,6 +16,7 @@ pub(super) use super::live::account_transactions::normalize_transaction_cursor;
 use super::live::account_transactions::validate_canonical_account_transactions;
 use super::{
     ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE,
+    ledger::principal_from_text,
     model::{
         CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCacheRequest,
         IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionCacheSummary,
@@ -23,7 +24,7 @@ use super::{
         IcrcAccountTransactionError, IcrcAccountTransactionListReport,
         IcrcAccountTransactionListRequest, IcrcAccountTransactionRefreshReport,
         IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionSnapshot,
-        IcrcAccountTransactionSort, IcrcError, normalize_subaccount_hex,
+        IcrcAccountTransactionSort, IcrcError, normalize_optional_subaccount_hex,
     },
 };
 use crate::{
@@ -514,12 +515,8 @@ fn validate_collection_data(
             reason: "source returned a complete collection with zero pages".to_string(),
         });
     }
-    let actual_index = Principal::from_text(&complete.index_canister_id).map_err(|error| {
-        IcrcError::InvalidPrincipal {
-            field: "index_canister_id",
-            reason: error.to_string(),
-        }
-    })?;
+    let actual_index =
+        principal_from_text::<IcrcError>(&complete.index_canister_id, "index_canister_id")?;
     if let Some(expected_index) = request.index_canister_id.as_deref()
         && expected_index != actual_index.to_text()
     {
@@ -562,28 +559,14 @@ fn normalize_cache_request(
         });
     }
     let ledger_canister_id =
-        Principal::from_text(&request.ledger_canister_id).map_err(|error| {
-            IcrcError::InvalidPrincipal {
-                field: "ledger_canister_id",
-                reason: error.to_string(),
-            }
-        })?;
-    let account_owner = Principal::from_text(&request.account_owner).map_err(|error| {
-        IcrcError::InvalidPrincipal {
-            field: "account_owner",
-            reason: error.to_string(),
-        }
-    })?;
+        principal_from_text::<IcrcError>(&request.ledger_canister_id, "ledger_canister_id")?;
+    let account_owner = principal_from_text::<IcrcError>(&request.account_owner, "account_owner")?;
     Ok(IcrcAccountTransactionCacheRequest {
         cache_root: request.cache_root.clone(),
         source_endpoint: request.source_endpoint.clone(),
         ledger_canister_id: ledger_canister_id.to_text(),
         account_owner: account_owner.to_text(),
-        subaccount_hex: request
-            .subaccount_hex
-            .as_deref()
-            .map(normalize_subaccount_hex)
-            .transpose()?,
+        subaccount_hex: normalize_optional_subaccount_hex(request.subaccount_hex.as_deref())?,
     })
 }
 
@@ -602,12 +585,8 @@ fn normalize_refresh_request(
     let index_canister_id = request
         .index_canister_id
         .as_deref()
-        .map(Principal::from_text)
-        .transpose()
-        .map_err(|error| IcrcError::InvalidPrincipal {
-            field: "index_canister_id",
-            reason: error.to_string(),
-        })?
+        .map(|value| principal_from_text::<IcrcError>(value, "index_canister_id"))
+        .transpose()?
         .map(|principal| principal.to_text());
     Ok(IcrcAccountTransactionRefreshRequest {
         cache: normalize_cache_request(&request.cache)?,
