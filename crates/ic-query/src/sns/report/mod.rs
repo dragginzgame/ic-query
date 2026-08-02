@@ -69,8 +69,8 @@ pub use build::{
 };
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use cache_summary::{
-    build_sns_cache_list_report, find_sns_cache_summary_by_id, parse_sns_root_canister_input,
-    project_sns_cache_summary,
+    build_sns_cache_list_report, find_sns_cache_summary_by_id, load_sns_cache_summaries,
+    load_sns_cache_summary_at, parse_sns_root_canister_input,
 };
 #[cfg(feature = "host")]
 pub use live::LiveSnsSource;

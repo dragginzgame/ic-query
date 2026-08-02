@@ -8,8 +8,7 @@ mod errors;
 mod load;
 mod lookup;
 mod scan;
-mod summary;
 
+pub(super) use load::load_sns_neurons_cache_at;
 pub(super) use lookup::load_sns_neurons_cache_for_input;
 pub(super) use scan::{collect_sns_neurons_cache_paths, read_sns_neurons_cache_header};
-pub(super) use summary::{list_sns_neurons_cache_summaries, load_sns_neurons_cache_summary_at};

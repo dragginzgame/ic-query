@@ -1,66 +1,104 @@
 //! Module: sns::report::cache_summary
 //!
-//! Responsibility: share cache-summary projection and list-report assembly across SNS caches.
+//! Responsibility: share cache-summary loading, projection, and list-report assembly.
 //! Does not own: cache storage, refresh-attempt persistence, or text rendering.
 //! Boundary: keeps common cache-summary fields and ordering consistent.
 
-use crate::sns::report::{
-    SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
-    cache_paths::sns_snapshot_network_cache_dir, enforce_mainnet_network,
+use crate::{
+    snapshot_cache::{SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotEnvelope},
+    sns::report::{
+        SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
+        cache_attempt::read_sns_refresh_attempt_status,
+        cache_paths::{sns_attempt_path_for_cache_path, sns_snapshot_network_cache_dir},
+        cache_storage::SnsCacheMetadata,
+        enforce_mainnet_network,
+    },
 };
 use candid::Principal;
 use std::path::{Path, PathBuf};
 
-macro_rules! project_sns_cache_summary {
-    (valid $summary:ident, $cache_path:expr, $attempt_path:expr, $cache:expr) => {{
-        let cache = $cache;
-        let latest_attempt = $crate::sns::report::cache_attempt::read_sns_refresh_attempt_status(
-            $attempt_path,
-            &cache.network,
-        );
-        $summary {
-            id: cache.metadata.id,
-            name: cache.metadata.name,
-            root_canister_id: cache.metadata.root_canister_id,
-            governance_canister_id: cache.metadata.governance_canister_id,
-            cache_status: $crate::snapshot_cache::SNAPSHOT_CACHE_STATUS_OK.to_string(),
-            cache_error: None,
-            complete: cache.completeness.is_api_exhausted(),
-            row_count: cache.completeness.row_count,
-            page_count: cache.completeness.page_count,
-            page_size: cache.completeness.page_size,
-            fetched_at: cache.fetched_at,
-            source_endpoint: cache.source_endpoint,
-            cache_path: ($cache_path).display().to_string(),
-            refresh_attempt_path: ($attempt_path).display().to_string(),
-            latest_attempt,
-        }
-    }};
-    (invalid $summary:ident, $cache_path:expr, $attempt_path:expr, $network:expr, $error:expr) => {
-        $summary {
-            id: 0,
-            name: "-".to_string(),
-            root_canister_id: $crate::sns::report::cache_summary::root_from_cache_path($cache_path),
-            governance_canister_id: "-".to_string(),
-            cache_status: $crate::snapshot_cache::SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
-            cache_error: Some(($error).to_string()),
-            complete: false,
-            row_count: 0,
-            page_count: 0,
-            page_size: 0,
-            fetched_at: "-".to_string(),
-            source_endpoint: "-".to_string(),
-            cache_path: ($cache_path).display().to_string(),
-            refresh_attempt_path: ($attempt_path).display().to_string(),
-            latest_attempt: $crate::sns::report::cache_attempt::read_sns_refresh_attempt_status(
-                $attempt_path,
-                $network,
-            ),
-        }
-    };
+///
+/// SnsCacheLoader
+///
+/// Family-specific storage function used to load one complete SNS snapshot.
+///
+
+pub(in crate::sns::report) type SnsCacheLoader<Data> =
+    fn(PathBuf, &str) -> Result<SnapshotEnvelope<SnsCacheMetadata, Data>, SnsHostError>;
+
+/// Load one SNS snapshot and project either its valid or invalid cache summary.
+pub(in crate::sns::report) fn load_sns_cache_summary_at<Data>(
+    cache_path: PathBuf,
+    network: &str,
+    load_cache: SnsCacheLoader<Data>,
+) -> SnsCacheSummary {
+    match load_cache(cache_path.clone(), network) {
+        Ok(cache) => valid_sns_cache_summary(cache_path, cache),
+        Err(error) => invalid_sns_cache_summary(cache_path, network, &error),
+    }
 }
 
-pub(in crate::sns::report) use project_sns_cache_summary;
+/// Load summaries for a discovered set of SNS snapshot paths.
+pub(in crate::sns::report) fn load_sns_cache_summaries<Data>(
+    paths: impl IntoIterator<Item = PathBuf>,
+    network: &str,
+    load_cache: SnsCacheLoader<Data>,
+) -> Vec<SnsCacheSummary> {
+    paths
+        .into_iter()
+        .map(|path| load_sns_cache_summary_at(path, network, load_cache))
+        .collect()
+}
+
+fn valid_sns_cache_summary<Data>(
+    cache_path: PathBuf,
+    cache: SnapshotEnvelope<SnsCacheMetadata, Data>,
+) -> SnsCacheSummary {
+    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
+    let latest_attempt = read_sns_refresh_attempt_status(&attempt_path, &cache.network);
+    SnsCacheSummary {
+        id: cache.metadata.id,
+        name: cache.metadata.name,
+        root_canister_id: cache.metadata.root_canister_id,
+        governance_canister_id: cache.metadata.governance_canister_id,
+        cache_status: SNAPSHOT_CACHE_STATUS_OK.to_string(),
+        cache_error: None,
+        complete: cache.completeness.is_api_exhausted(),
+        row_count: cache.completeness.row_count,
+        page_count: cache.completeness.page_count,
+        page_size: cache.completeness.page_size,
+        fetched_at: cache.fetched_at,
+        source_endpoint: cache.source_endpoint,
+        cache_path: cache_path.display().to_string(),
+        refresh_attempt_path: attempt_path.display().to_string(),
+        latest_attempt,
+    }
+}
+
+fn invalid_sns_cache_summary(
+    cache_path: PathBuf,
+    network: &str,
+    error: &SnsHostError,
+) -> SnsCacheSummary {
+    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
+    SnsCacheSummary {
+        id: 0,
+        name: "-".to_string(),
+        root_canister_id: root_from_cache_path(&cache_path),
+        governance_canister_id: "-".to_string(),
+        cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
+        cache_error: Some(error.to_string()),
+        complete: false,
+        row_count: 0,
+        page_count: 0,
+        page_size: 0,
+        fetched_at: "-".to_string(),
+        source_endpoint: "-".to_string(),
+        cache_path: cache_path.display().to_string(),
+        refresh_attempt_path: attempt_path.display().to_string(),
+        latest_attempt: read_sns_refresh_attempt_status(&attempt_path, network),
+    }
+}
 
 /// Build a deterministic cache-list report for one SNS cache family.
 pub(in crate::sns::report) fn build_sns_cache_list_report(
@@ -130,7 +168,7 @@ pub(in crate::sns::report) fn find_sns_cache_summary_by_id(
 }
 
 /// Recover an SNS root identity from a complete snapshot cache path.
-pub(in crate::sns::report) fn root_from_cache_path(cache_path: &Path) -> String {
+fn root_from_cache_path(cache_path: &Path) -> String {
     cache_path
         .parent()
         .and_then(Path::parent)

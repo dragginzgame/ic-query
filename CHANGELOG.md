@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.22` replaces duplicated proposal and neuron cache-summary modules and
+  their projection macro with one typed SNS snapshot-summary owner. Public
+  APIs, cache evidence, report output, and behavior are unchanged.
+
 - `0.25.21` centralizes SNS proposal and neuron cache-list and cache-status
   report assembly, and removes their family-local path forwarders. Public APIs,
   cache identities and schemas, report output, and behavior are unchanged.
