@@ -229,9 +229,12 @@ the first non-empty source:
 It does not inspect project files or read and migrate former project-local
 `.icq` directories. Cache semantics and recovery rules are defined in
 [Cache Policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md).
+Network-scoped cache paths consistently begin with
+`<cache-root>/<domain>/<network>/...`.
 Use `icq cache status` to inspect known complete caches across that root,
-including ages, sizes, and fresh, stale, unmanaged, or invalid status, without
-live calls or cache mutation.
+including ages, sizes, stale policies, and fresh, stale, unmanaged, or invalid
+status. It also reports active, stale, and invalid refresh locks without live
+calls, process probes, or cache mutation.
 
 ## Library
 

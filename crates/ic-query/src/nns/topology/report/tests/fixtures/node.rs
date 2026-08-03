@@ -8,8 +8,8 @@ pub(in crate::nns::topology::report::tests) fn node_refresh_report_fixture() -> 
     NnsNodeRefreshReport {
         schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
-        cache_path: "/cache/node/ic/nodes.json".to_string(),
-        refresh_lock_path: "/cache/node/ic/refresh.lock".to_string(),
+        cache_path: "/cache/nns/ic/node/nodes.json".to_string(),
+        refresh_lock_path: "/cache/nns/ic/node/refresh.lock".to_string(),
         output_path: None,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 43,

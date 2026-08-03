@@ -18,8 +18,9 @@ This note describes the shared cache behavior expected across `ic-query`.
 - Cache keys describe collected data, not view options. Sorting, limits,
   verbosity, and text formatting must not create separate complete snapshots.
 - Failed refreshes should not replace a previously complete cache.
-- Operators should be able to inspect every known complete cache, its age,
-  size, and applicable age policy without making a network request.
+- Operators should be able to inspect every known complete cache and refresh
+  lock, including age, size, and applicable stale policy, without making a
+  network request.
 
 ## Shared Missing-Cache Flow
 
@@ -54,21 +55,35 @@ missing-cache helper because the user has already requested refresh behavior.
 
 ## Refresh Locks
 
-Refresh locks are never removed automatically. Parsed locks older than the
-command's stale-lock threshold are reported explicitly as stale; malformed
-locks are reported as invalid. Commands show the lock path and require the
-operator to remove it manually after verifying that no refresh is still
-running. This avoids deleting a newly acquired lock during concurrent stale
-lock recovery.
+Refresh locks record the network, target cache, owner process id, acquisition
+time, and the stale threshold chosen by the refresh that created them. A
+competing refresh honors that recorded threshold, so one caller cannot
+reclassify another caller's active lock by supplying a shorter policy.
+
+Refresh locks are never removed automatically. Parsed locks older than their
+recorded stale threshold are reported explicitly as stale; malformed or
+future-dated locks are reported as invalid. Commands show the lock path and
+require the operator to remove it manually after verifying that no refresh is
+still running. This avoids deleting a newly acquired lock during concurrent
+stale-lock recovery.
 
 ## Cache Discovery
 
 Cache status and cache list commands inspect local state only. Family-specific
 list and status operations use their typed snapshot paths and validators. The
 top-level `icq cache status` command performs a bounded cross-family inventory
-of known complete-cache filenames across every network directory under the
-selected user-level root; it does not inspect refresh-attempt sidecars, follow
-symlinks, refresh files, or delete files.
+of known complete-cache and refresh-lock filenames across every network
+directory under the selected user-level root; it does not inspect
+refresh-attempt sidecars, follow symlinks, refresh files, delete files, or probe
+recorded process ids. The scan bound applies to cache and lock candidates
+together.
+
+Network-scoped caches use `<cache-root>/<domain>/<network>/...` as their common
+top-level layout. NNS Registry leaf and Subnet caches therefore live below
+`nns/<network>/`, alongside NNS Governance caches; SNS and ICRC caches use the
+same domain-then-network ordering. Before 1.0, replaced path layouts are not
+used by typed loaders or migrated automatically. The generic global inventory
+may still expose an orphaned old file as unmanaged local evidence.
 
 The global report parses generic header and timestamp evidence. `fresh` and
 `stale` are emitted only for families with an explicit age policy;

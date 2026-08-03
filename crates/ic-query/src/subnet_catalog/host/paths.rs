@@ -12,8 +12,9 @@ use std::path::{Path, PathBuf};
 #[must_use]
 pub fn subnet_catalog_path(cache_root: &Path, network: &str) -> PathBuf {
     cache_root
-        .join("subnet-catalog")
+        .join("nns")
         .join(network)
+        .join("subnet-catalog")
         .join("catalog.json")
 }
 
@@ -21,7 +22,8 @@ pub fn subnet_catalog_path(cache_root: &Path, network: &str) -> PathBuf {
 #[must_use]
 pub fn subnet_catalog_refresh_lock_path(cache_root: &Path, network: &str) -> PathBuf {
     cache_root
-        .join("subnet-catalog")
+        .join("nns")
         .join(network)
+        .join("subnet-catalog")
         .join("refresh.lock")
 }

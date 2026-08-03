@@ -21,6 +21,8 @@ pub use json::{
     CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
     load_json_cache, load_json_cache_strict,
 };
+#[cfg(feature = "host")]
+pub use lock::{RefreshLockEvidence, inspect_refresh_lock};
 pub use lock::{RefreshLockRequest, with_refresh_lock};
 pub use policy::load_or_refresh_missing_cache;
 #[cfg(feature = "host")]

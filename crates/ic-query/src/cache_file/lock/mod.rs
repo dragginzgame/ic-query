@@ -11,5 +11,9 @@ mod run;
 #[cfg(test)]
 mod tests;
 
+#[cfg(any(feature = "host", test))]
+pub use acquire::inspect_refresh_lock;
+#[cfg(any(feature = "host", test))]
+pub use model::RefreshLockEvidence;
 pub use model::RefreshLockRequest;
 pub use run::with_refresh_lock;

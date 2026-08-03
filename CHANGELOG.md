@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.3` extends local-only `cache status` with active, stale, and invalid
+  refresh-lock evidence. Refresh locks now record the stale threshold chosen by
+  their owner, and competing refreshes honor that recorded policy. NNS
+  Registry leaf and Subnet caches now share the `nns/<network>/...` layout used
+  by the other domain-scoped caches; typed loaders neither migrate nor reuse
+  the replaced paths.
+
 - `0.26.2` adds local-only `cache status`, which inventories known complete
   caches across networks, reports file age and size, and distinguishes managed
   `fresh`/`stale` policies from readable `unmanaged` caches and invalid files.

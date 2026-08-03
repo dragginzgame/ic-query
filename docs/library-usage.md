@@ -450,9 +450,10 @@ fn render_cache_status(
 }
 ```
 
-This inventory is bounded and local-only. It reports generic age and file
-evidence; family-specific loaders remain authoritative for semantic cache
-validation.
+This inventory is bounded and local-only. It reports generic cache age and
+file evidence plus self-described refresh-lock state; it does not probe lock
+processes or mutate local files. Family-specific loaders remain authoritative
+for semantic cache validation.
 
 Native tools can use the same subnet catalog cache/report path as
 `icq nns subnet info` without spawning `icq`:

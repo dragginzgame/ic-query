@@ -16,5 +16,6 @@ fn public_cache_status_api_is_local_and_constructible() {
     assert_eq!(report.cache_root, cache_root.display().to_string());
     assert!(!report.cache_root_found);
     assert_eq!(report.cache_count, 0);
+    assert_eq!(report.refresh_lock_count, 0);
     assert!(cache_status_report_text(&report).contains("cache_count: 0"));
 }

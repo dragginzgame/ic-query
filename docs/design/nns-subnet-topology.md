@@ -53,7 +53,7 @@ No missing relation is silently omitted.
 The joined report is published atomically at:
 
 ```text
-<cache-root>/subnet-topology/<network>/report.json
+<cache-root>/nns/<network>/subnet-topology/report.json
 ```
 
 One sibling `refresh.lock` covers version resolution, the complete joined

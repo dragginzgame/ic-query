@@ -33,7 +33,7 @@ pub fn nns_subnet_topology_refresh_lock_path(cache_root: &Path, network: &str) -
 }
 
 fn cache_dir(cache_root: &Path, network: &str) -> PathBuf {
-    cache_root.join(CACHE_DIR).join(network)
+    cache_root.join("nns").join(network).join(CACHE_DIR)
 }
 
 /// Load and validate the joined cache without making a live network call.

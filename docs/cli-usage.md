@@ -442,12 +442,15 @@ It never discovers or migrates repository-local `.icq` directories.
 
 `icq cache status` inventories known complete snapshots across this root,
 including each path, generic component identity, collection age, file size,
-and applicable age threshold. The scan is local-only, bounded to 10,000 cache
-files, skips symlinks and refresh-attempt sidecars, and never refreshes,
-repairs, removes, or otherwise validates family-specific report semantics.
-Large unmanaged histories stop at their header/completeness boundary instead
-of scanning complete row arrays; the small age-managed families are fully
-JSON-checked before receiving `fresh` or `stale`.
+and applicable age threshold. It also reports active, stale, malformed, and
+future-dated refresh locks from their recorded owner, target, acquisition time,
+and stale policy. The scan is local-only, bounded to 10,000 cache and lock
+candidates, skips symlinks and refresh-attempt sidecars, and never refreshes,
+repairs, removes, probes process liveness, or otherwise validates
+family-specific report semantics. Large unmanaged histories stop at their
+header/completeness boundary instead of scanning complete row arrays; the
+small age-managed families are fully JSON-checked before receiving `fresh` or
+`stale`.
 
 Complete snapshot refreshes use a lock. Paged proposal, neuron, and
 account-history collections also use a separate attempt sidecar so a failed or

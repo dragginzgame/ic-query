@@ -1294,8 +1294,8 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
         replaced_existing_cache_count: 0,
         components: vec![NnsTopologyRefreshRow {
             source: "subnet_catalog".to_string(),
-            cache_path: "/cache/subnet-catalog/ic/catalog.json".to_string(),
-            refresh_lock_path: "/cache/subnet-catalog/ic/refresh.lock".to_string(),
+            cache_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
+            refresh_lock_path: "/cache/nns/ic/subnet-catalog/refresh.lock".to_string(),
             registry_version: 42,
             fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: "https://icp-api.io".to_string(),
@@ -1988,7 +1988,7 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
     SubnetCatalogListReport {
         schema_version: 1,
         network: "ic".to_string(),
-        catalog_path: "/cache/subnet-catalog/ic/catalog.json".to_string(),
+        catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
         catalog_schema_version: 1,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
@@ -2005,8 +2005,8 @@ fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
         schema_version: 1,
         network: "ic".to_string(),
-        catalog_path: "/cache/subnet-catalog/ic/catalog.json".to_string(),
-        refresh_lock_path: "/cache/subnet-catalog/ic/refresh.lock".to_string(),
+        catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
+        refresh_lock_path: "/cache/nns/ic/subnet-catalog/refresh.lock".to_string(),
         output_path: None,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,

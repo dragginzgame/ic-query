@@ -102,10 +102,11 @@ fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
     fs::write(
         &lock_path,
         serde_json::to_vec_pretty(&serde_json::json!({
-            "schema_version": 1,
+            "schema_version": 2,
             "network": MAINNET_NETWORK,
             "pid": 999_999,
             "started_at_unix_ms": 1,
+            "stale_after_seconds": DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
             "target_path": cache_path.display().to_string(),
         }))
         .expect("serialize stale lock"),

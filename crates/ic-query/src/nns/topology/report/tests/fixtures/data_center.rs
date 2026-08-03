@@ -8,8 +8,8 @@ pub(in crate::nns::topology::report::tests) fn data_center_refresh_report_fixtur
     NnsDataCenterRefreshReport {
         schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
-        cache_path: "/cache/data-center/ic/data-centers.json".to_string(),
-        refresh_lock_path: "/cache/data-center/ic/refresh.lock".to_string(),
+        cache_path: "/cache/nns/ic/data-center/data-centers.json".to_string(),
+        refresh_lock_path: "/cache/nns/ic/data-center/refresh.lock".to_string(),
         output_path: None,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 46,

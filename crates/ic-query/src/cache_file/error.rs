@@ -102,7 +102,7 @@ pub enum CacheFileError {
         started_at_unix_ms: u64,
     },
 
-    /// An existing refresh lock is older than the caller's lock policy.
+    /// An existing refresh lock is older than its recorded owner policy.
     #[error(
         "stale refresh lock exists at {} since unix_ms={started_at_unix_ms}; remove it manually after verifying no refresh is running",
         path.display()

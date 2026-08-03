@@ -8,7 +8,7 @@ fn catalog_path_lives_under_cache_root() {
 
     assert_eq!(
         path,
-        PathBuf::from("/tmp/ic-query-cache/subnet-catalog/ic/catalog.json")
+        PathBuf::from("/tmp/ic-query-cache/nns/ic/subnet-catalog/catalog.json")
     );
     assert!(!path.display().to_string().contains("/deployments/"));
     assert!(!path.display().to_string().contains("/fleets/"));

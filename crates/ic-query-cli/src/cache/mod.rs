@@ -55,7 +55,7 @@ pub fn command() -> ClapCommand {
         .subcommand(
             ClapCommand::new("status")
                 .bin_name("icq cache status")
-                .about("Show every known complete cache and its age policy")
+                .about("Show complete caches, age policies, and refresh locks")
                 .arg(json_arg())
                 .after_help(collection_help(
                     COLLECTION_MODE_CACHE_ONLY,

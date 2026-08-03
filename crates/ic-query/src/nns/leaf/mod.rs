@@ -50,7 +50,7 @@ impl NnsLeafCachePaths {
         network: &str,
         cache_file: &str,
     ) -> Self {
-        let cache_dir = cache_root.join(component_dir).join(network);
+        let cache_dir = cache_root.join("nns").join(network).join(component_dir);
         Self {
             cache_path: cache_dir.join(cache_file),
             lock_path: cache_dir.join("refresh.lock"),

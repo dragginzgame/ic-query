@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-pub(super) const REFRESH_LOCK_SCHEMA_VERSION: u32 = 1;
+pub(super) const REFRESH_LOCK_SCHEMA_VERSION: u32 = 2;
 
 ///
 /// RefreshLockRequest
@@ -37,6 +37,7 @@ pub(super) struct RefreshLockFile {
     pub(super) network: String,
     pub(super) pid: u32,
     pub(super) started_at_unix_ms: u64,
+    pub(super) stale_after_seconds: u64,
     pub(super) target_path: String,
 }
 
@@ -47,7 +48,39 @@ impl RefreshLockFile {
             network: request.network.to_string(),
             pid: std::process::id(),
             started_at_unix_ms,
+            stale_after_seconds: request.lock_stale_after_seconds,
             target_path: request.target_path.display().to_string(),
+        }
+    }
+}
+
+///
+/// RefreshLockEvidence
+///
+/// Strictly parsed refresh-lock identity, ownership, time, and stale policy.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(any(feature = "host", test))]
+pub struct RefreshLockEvidence {
+    pub(crate) schema_version: u32,
+    pub(crate) network: String,
+    pub(crate) pid: u32,
+    pub(crate) started_at_unix_ms: u64,
+    pub(crate) stale_after_seconds: u64,
+    pub(crate) target_path: String,
+}
+
+#[cfg(any(feature = "host", test))]
+impl From<RefreshLockFile> for RefreshLockEvidence {
+    fn from(lock: RefreshLockFile) -> Self {
+        Self {
+            schema_version: lock.schema_version,
+            network: lock.network,
+            pid: lock.pid,
+            started_at_unix_ms: lock.started_at_unix_ms,
+            stale_after_seconds: lock.stale_after_seconds,
+            target_path: lock.target_path,
         }
     }
 }

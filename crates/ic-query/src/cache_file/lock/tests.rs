@@ -1,4 +1,7 @@
-use super::{acquire::acquire_refresh_lock, model::RefreshLockRequest};
+use super::{
+    acquire::{acquire_refresh_lock, inspect_refresh_lock},
+    model::RefreshLockRequest,
+};
 use crate::{cache_file::CacheFileError, test_support::temp_dir};
 use serde_json::json;
 use std::{
@@ -10,9 +13,27 @@ const NETWORK: &str = "ic";
 const STALE_AFTER_SECONDS: u64 = 60;
 
 #[test]
+fn new_refresh_lock_records_its_stale_policy() {
+    let fixture = LockFixture::new("ic-query-recorded-refresh-lock-policy");
+
+    let guard = acquire_refresh_lock(fixture.request(120)).expect("acquire refresh lock");
+    let evidence = inspect_refresh_lock(&fixture.lock_path).expect("inspect refresh lock");
+
+    assert_eq!(evidence.schema_version, 2);
+    assert_eq!(evidence.stale_after_seconds, STALE_AFTER_SECONDS);
+    assert_eq!(
+        evidence.target_path,
+        fixture.target_path.display().to_string()
+    );
+    drop(guard);
+    assert!(!fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
+#[test]
 fn corrupted_fresh_refresh_lock_requires_manual_cleanup() {
     let fixture = LockFixture::new("ic-query-corrupted-fresh-refresh-lock");
-    fixture.write_lock(r#"{"schema_version":1,"started_at_unix_ms":"60"}"#);
+    fixture.write_lock(r#"{"schema_version":2,"started_at_unix_ms":"60"}"#);
 
     let err = acquire_refresh_lock(fixture.request(60)).expect_err("corrupted lock is rejected");
 
@@ -25,7 +46,7 @@ fn corrupted_fresh_refresh_lock_requires_manual_cleanup() {
 fn corrupted_stale_refresh_lock_requires_manual_cleanup() {
     let fixture = LockFixture::new("ic-query-corrupted-stale-refresh-lock");
     fixture
-        .write_lock(r#"{"schema_version":1,"network":"ic","pid":999999,"started_at_unix_ms":1,"#);
+        .write_lock(r#"{"schema_version":2,"network":"ic","pid":999999,"started_at_unix_ms":1,"#);
 
     let err = acquire_refresh_lock(fixture.request(120)).expect_err("corrupted lock is rejected");
 
@@ -95,6 +116,35 @@ fn active_valid_refresh_lock_is_rejected() {
     fixture.cleanup();
 }
 
+#[test]
+fn future_dated_refresh_lock_requires_manual_cleanup() {
+    let fixture = LockFixture::new("ic-query-future-refresh-lock");
+    fixture.write_valid_lock(121_000);
+
+    let err = acquire_refresh_lock(fixture.request(120)).expect_err("future lock is rejected");
+
+    assert!(matches!(err, CacheFileError::InvalidRefreshLock { .. }));
+    assert!(fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
+#[test]
+fn existing_refresh_lock_uses_its_recorded_stale_policy() {
+    let fixture = LockFixture::new("ic-query-self-describing-refresh-lock");
+    fixture.write_valid_lock(100_000);
+    let mut request = fixture.request(130);
+    request.lock_stale_after_seconds = 10;
+
+    let err = acquire_refresh_lock(request).expect_err("recorded policy keeps lock active");
+
+    assert!(matches!(
+        err,
+        CacheFileError::RefreshAlreadyInProgress { .. }
+    ));
+    assert!(fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
 fn assert_parse_refresh_lock_error(err: CacheFileError, lock_path: &Path) {
     let message = err.to_string();
     match err {
@@ -143,10 +193,11 @@ impl LockFixture {
 
     fn valid_lock_value(&self, started_at_unix_ms: u64) -> serde_json::Value {
         json!({
-            "schema_version": 1,
+            "schema_version": 2,
             "network": NETWORK,
             "pid": 999_999,
             "started_at_unix_ms": started_at_unix_ms,
+            "stale_after_seconds": STALE_AFTER_SECONDS,
             "target_path": self.target_path.display().to_string(),
         })
     }

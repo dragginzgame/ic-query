@@ -15,8 +15,16 @@ fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
     let result = write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &report)
         .expect("dry-run refresh writes output");
 
-    let cache_path = root.join("fixture").join("ic").join("fixture.json");
-    let lock_path = root.join("fixture").join("ic").join("refresh.lock");
+    let cache_path = root
+        .join("nns")
+        .join("ic")
+        .join("fixture")
+        .join("fixture.json");
+    let lock_path = root
+        .join("nns")
+        .join("ic")
+        .join("fixture")
+        .join("refresh.lock");
     assert_eq!(result.cache_path, cache_path.display().to_string());
     assert_eq!(result.refresh_lock_path, lock_path.display().to_string());
     assert_eq!(result.output_path, Some(output_path.display().to_string()));
@@ -42,8 +50,16 @@ fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
     let second_report = FixtureReport {
         rows: vec!["second"],
     };
-    let cache_path = root.join("fixture").join("ic").join("fixture.json");
-    let lock_path = root.join("fixture").join("ic").join("refresh.lock");
+    let cache_path = root
+        .join("nns")
+        .join("ic")
+        .join("fixture")
+        .join("fixture.json");
+    let lock_path = root
+        .join("nns")
+        .join("ic")
+        .join("fixture")
+        .join("refresh.lock");
 
     let first =
         write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &first_report)

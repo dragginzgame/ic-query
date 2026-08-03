@@ -10,8 +10,8 @@ pub(in crate::nns::topology::report::tests) fn node_provider_refresh_report_fixt
     NnsNodeProviderRefreshReport {
         schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
-        cache_path: "/cache/node-provider/ic/providers.json".to_string(),
-        refresh_lock_path: "/cache/node-provider/ic/refresh.lock".to_string(),
+        cache_path: "/cache/nns/ic/node-provider/providers.json".to_string(),
+        refresh_lock_path: "/cache/nns/ic/node-provider/refresh.lock".to_string(),
         output_path: None,
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
