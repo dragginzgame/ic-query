@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.30` separates ICRC request and report contracts into account,
+  indexed account-history, and ledger-wide owners behind the existing explicit
+  facades. Public Rust paths, JSON contracts, and behavior are unchanged.
+
 - `0.25.29` separates the NNS proposal model into request, serialized
   report/row, and filter/sort vocabulary owners behind the existing facade.
   Public Rust paths, JSON contracts, and behavior are unchanged.
