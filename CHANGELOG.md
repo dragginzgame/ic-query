@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.31` separates NNS neuron source-independent pagination, provenance,
+  and report assembly from the built-in Governance wire adapter. Public Rust
+  paths, source calls, cache contracts, and behavior are unchanged.
+
 - `0.25.30` separates ICRC request and report contracts into account,
   indexed account-history, and ledger-wide owners behind the existing explicit
   facades. Public Rust paths, JSON contracts, and behavior are unchanged.
