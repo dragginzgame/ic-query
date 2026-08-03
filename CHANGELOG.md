@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.12` replaces free-form SNS metrics and Root-health call-type strings
+  with `SnsCanisterCallType`. Source validation, live conversion, reports, and
+  rendering now share one typed invocation vocabulary while existing JSON and
+  CLI labels remain unchanged.
+
 - `0.26.11` replaces free-form NNS topology-gap classifications and duplicate
   ICRC/SNS ledger-metadata value types with typed domain enums. Gap construction,
   native metadata conversion, ordering, and rendering now consume closed

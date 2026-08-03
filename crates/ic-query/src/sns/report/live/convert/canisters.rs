@@ -101,7 +101,7 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
     let mut inventory = MainnetSnsCanisterInventory {
         inventory_method: SNS_CANISTER_INVENTORY_METHOD.to_string(),
         health_method: SNS_CANISTER_HEALTH_METHOD.to_string(),
-        health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE.to_string(),
+        health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE,
         health_update_canister_list: false,
         point_in_time_guaranteed: false,
         canisters,

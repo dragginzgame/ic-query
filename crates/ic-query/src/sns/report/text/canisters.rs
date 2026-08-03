@@ -32,10 +32,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
             sanitize_text(&report.inventory_method)
         ),
         format!("health_method: {}", sanitize_text(&report.health_method)),
-        format!(
-            "health_call_type: {}",
-            sanitize_text(&report.health_call_type)
-        ),
+        format!("health_call_type: {}", report.health_call_type.as_str()),
         format!(
             "health_update_canister_list: {}",
             yes_no(report.health_update_canister_list)

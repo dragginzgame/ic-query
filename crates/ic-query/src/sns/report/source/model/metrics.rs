@@ -7,12 +7,16 @@
 use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_lowercase_hex,
-    sns::report::{SnsHostError, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics},
+    sns::report::{
+        SnsCanisterCallType, SnsHostError, SnsTreasuryKind, SnsTreasuryMetricRow,
+        SnsVotingPowerMetrics,
+    },
 };
 use std::collections::BTreeSet;
 
 pub(in crate::sns::report) const SNS_METRICS_METHOD: &str = "get_metrics";
-pub(in crate::sns::report) const SNS_METRICS_CALL_TYPE: &str = "composite_query";
+pub(in crate::sns::report) const SNS_METRICS_CALL_TYPE: SnsCanisterCallType =
+    SnsCanisterCallType::CompositeQuery;
 const MAX_SNS_TREASURY_METRICS: usize = 16;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS metrics");
 
@@ -29,7 +33,7 @@ pub struct MainnetSnsMetrics {
     /// Native Governance method queried by the source.
     pub method: String,
     /// Native call type used by the source.
-    pub call_type: String,
+    pub call_type: SnsCanisterCallType,
     /// Proposal-count window supplied to Governance.
     pub time_window_seconds: u64,
     /// Whether the source can prove one point-in-time snapshot.
@@ -62,7 +66,11 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
         &metrics.governance_canister_id,
     )?;
     VALIDATOR.exact("method", SNS_METRICS_METHOD, &metrics.method)?;
-    VALIDATOR.exact("call_type", SNS_METRICS_CALL_TYPE, &metrics.call_type)?;
+    VALIDATOR.exact(
+        "call_type",
+        SNS_METRICS_CALL_TYPE.as_str(),
+        metrics.call_type.as_str(),
+    )?;
     if metrics.time_window_seconds != expected_time_window_seconds {
         return Err(VALIDATOR.invalid(format!(
             "time_window_seconds is {}, expected {expected_time_window_seconds}",

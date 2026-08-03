@@ -12,7 +12,7 @@ fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
     assert_eq!(report.root_canister_id, ROOT_A);
     assert_eq!(report.inventory_method, "list_sns_canisters");
     assert_eq!(report.health_method, "get_sns_canisters_summary");
-    assert_eq!(report.health_call_type, "ingress_update");
+    assert_eq!(report.health_call_type, SnsCanisterCallType::IngressUpdate);
     assert!(!report.health_update_canister_list);
     assert!(!report.point_in_time_guaranteed);
     assert_eq!(report.canister_count, 2);
@@ -53,6 +53,7 @@ fn sns_canister_report_rejects_invalid_custom_source_evidence() {
             wrong_inventory_method as fn(&mut MainnetSnsCanisterInventory),
             "inventory_method",
         ),
+        (wrong_health_call_type, "health_call_type"),
         (
             enable_health_inventory_update,
             "health_update_canister_list",
@@ -93,6 +94,10 @@ impl SnsCanisterSource for MutatingSnsCanisterSource {
 
 fn wrong_inventory_method(inventory: &mut MainnetSnsCanisterInventory) {
     inventory.inventory_method = "wrong_method".to_string();
+}
+
+const fn wrong_health_call_type(inventory: &mut MainnetSnsCanisterInventory) {
+    inventory.health_call_type = SnsCanisterCallType::Query;
 }
 
 const fn enable_health_inventory_update(inventory: &mut MainnetSnsCanisterInventory) {

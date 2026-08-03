@@ -7,13 +7,16 @@
 use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_canonical_lowercase_hex,
-    sns::report::{SnsCanisterGap, SnsCanisterRole, SnsCanisterRow, SnsHostError},
+    sns::report::{
+        SnsCanisterCallType, SnsCanisterGap, SnsCanisterRole, SnsCanisterRow, SnsHostError,
+    },
 };
 use std::collections::BTreeMap;
 
 pub(in crate::sns::report) const SNS_CANISTER_INVENTORY_METHOD: &str = "list_sns_canisters";
 pub(in crate::sns::report) const SNS_CANISTER_HEALTH_METHOD: &str = "get_sns_canisters_summary";
-pub(in crate::sns::report) const SNS_CANISTER_HEALTH_CALL_TYPE: &str = "ingress_update";
+pub(in crate::sns::report) const SNS_CANISTER_HEALTH_CALL_TYPE: SnsCanisterCallType =
+    SnsCanisterCallType::IngressUpdate;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS Root canister inventory");
 
 ///
@@ -29,7 +32,7 @@ pub struct MainnetSnsCanisterInventory {
     /// Root ingress method used for operational health.
     pub health_method: String,
     /// Transport kind used for the health call.
-    pub health_call_type: String,
+    pub health_call_type: SnsCanisterCallType,
     /// Value sent in the Root health request.
     pub health_update_canister_list: bool,
     /// Whether the source can prove one point-in-time snapshot for all values.
@@ -55,8 +58,8 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_canister_inventory(
     )?;
     VALIDATOR.exact(
         "health_call_type",
-        SNS_CANISTER_HEALTH_CALL_TYPE,
-        &inventory.health_call_type,
+        SNS_CANISTER_HEALTH_CALL_TYPE.as_str(),
+        inventory.health_call_type.as_str(),
     )?;
     if inventory.health_update_canister_list {
         return Err(VALIDATOR.invalid(

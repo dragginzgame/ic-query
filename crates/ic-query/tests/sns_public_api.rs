@@ -1,10 +1,10 @@
 use ic_query::icrc::IcrcMetadataValueKind;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
-    SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
-    SnsListRequest, SnsListSort, SnsLookupRequest, SnsMaturityDisbursementRow, SnsMetricsReport,
-    SnsMetricsRequest, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
+    SnsCanisterCallType, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
+    SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
+    SnsListReport, SnsListRequest, SnsListSort, SnsLookupRequest, SnsMaturityDisbursementRow,
+    SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
     SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
     SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
@@ -529,7 +529,7 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
         method: "get_metrics".to_string(),
-        call_type: "composite_query".to_string(),
+        call_type: SnsCanisterCallType::CompositeQuery,
         time_window_seconds: 86_400,
         point_in_time_guaranteed: false,
         treasury_metrics_cached: true,
@@ -560,6 +560,7 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
 
     assert_eq!(json["treasury_metrics"][0]["treasury"], 1);
     assert_eq!(json["treasury_metrics"][0]["treasury_kind"], "icp");
+    assert_eq!(json["call_type"], "composite_query");
     assert!(text.contains("treasury_metrics_cached: yes"));
     assert!(text.contains("ICP treasury"));
 }
@@ -578,7 +579,7 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
         inventory_method: "list_sns_canisters".to_string(),
         health_method: "get_sns_canisters_summary".to_string(),
-        health_call_type: "ingress_update".to_string(),
+        health_call_type: SnsCanisterCallType::IngressUpdate,
         health_update_canister_list: false,
         point_in_time_guaranteed: false,
         canister_count: 1,
@@ -601,6 +602,10 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
 
     assert_eq!(SnsCanisterRole::Governance.as_str(), "governance");
     assert_eq!(SnsCanisterStatus::Stopped.as_str(), "stopped");
+    assert_eq!(
+        SnsCanisterCallType::IngressUpdate.as_str(),
+        "ingress_update"
+    );
     assert_eq!(
         SnsCanisterGapKind::SummaryMissing.as_str(),
         "summary_missing"
@@ -1384,7 +1389,7 @@ impl SnsCanisterSource for FixtureSnsSource {
         Ok(MainnetSnsCanisterInventory {
             inventory_method: "list_sns_canisters".to_string(),
             health_method: "get_sns_canisters_summary".to_string(),
-            health_call_type: "ingress_update".to_string(),
+            health_call_type: SnsCanisterCallType::IngressUpdate,
             health_update_canister_list: false,
             point_in_time_guaranteed: false,
             canisters: vec![SnsCanisterRow {
@@ -1736,7 +1741,7 @@ fn sample_mainnet_sns_metrics(time_window_seconds: u64) -> MainnetSnsMetrics {
     MainnetSnsMetrics {
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
         method: "get_metrics".to_string(),
-        call_type: "composite_query".to_string(),
+        call_type: SnsCanisterCallType::CompositeQuery,
         time_window_seconds,
         point_in_time_guaranteed: false,
         treasury_metrics_cached: true,

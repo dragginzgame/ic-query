@@ -10,7 +10,7 @@ fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
     assert_eq!(report.schema_version, SNS_METRICS_REPORT_SCHEMA_VERSION);
     assert_eq!(report.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.method, "get_metrics");
-    assert_eq!(report.call_type, "composite_query");
+    assert_eq!(report.call_type, SnsCanisterCallType::CompositeQuery);
     assert_eq!(report.time_window_seconds, 30 * 24 * 60 * 60);
     assert!(!report.point_in_time_guaranteed);
     assert!(report.treasury_metrics_cached);
@@ -152,8 +152,8 @@ fn wrong_method(metrics: &mut MainnetSnsMetrics) {
     metrics.method = "get_cached_metrics".to_string();
 }
 
-fn wrong_call_type(metrics: &mut MainnetSnsMetrics) {
-    metrics.call_type = "query".to_string();
+const fn wrong_call_type(metrics: &mut MainnetSnsMetrics) {
+    metrics.call_type = SnsCanisterCallType::Query;
 }
 
 const fn wrong_window(metrics: &mut MainnetSnsMetrics) {

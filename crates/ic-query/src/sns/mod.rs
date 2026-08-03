@@ -4,9 +4,9 @@ mod report;
 
 pub use report::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT,
-    MAINNET_SNS_WASM_CANISTER_ID, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsCanisterGap,
-    SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
-    SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
+    MAINNET_SNS_WASM_CANISTER_ID, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsCanisterCallType,
+    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
+    SnsCanisterStatus, SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
     SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRequest, SnsListRow, SnsListSort,
     SnsLookupRequest, SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest,
     SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState,

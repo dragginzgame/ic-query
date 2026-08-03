@@ -22,7 +22,7 @@ pub(in crate::sns::report::live) fn mainnet_sns_metrics(
     MainnetSnsMetrics {
         governance_canister_id,
         method: SNS_METRICS_METHOD.to_string(),
-        call_type: SNS_METRICS_CALL_TYPE.to_string(),
+        call_type: SNS_METRICS_CALL_TYPE,
         time_window_seconds,
         point_in_time_guaranteed: false,
         treasury_metrics_cached: true,

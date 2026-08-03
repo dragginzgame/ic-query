@@ -4,7 +4,36 @@
 //! Does not own: Root transport, SNS lookup, report assembly, or rendering.
 //! Boundary: preserves native canister roles, status, module hashes, and typed gaps.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+///
+/// SnsCanisterCallType
+///
+/// Invocation mode used for a native SNS canister method.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SnsCanisterCallType {
+    /// A non-replicated query call.
+    Query,
+    /// A non-replicated composite query call.
+    CompositeQuery,
+    /// A replicated update submitted through ingress.
+    IngressUpdate,
+}
+
+impl SnsCanisterCallType {
+    /// Return the stable JSON and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Query => "query",
+            Self::CompositeQuery => "composite_query",
+            Self::IngressUpdate => "ingress_update",
+        }
+    }
+}
 
 ///
 /// SnsCanisterRole
@@ -198,7 +227,7 @@ pub struct SnsCanisterReport {
     /// Root ingress method used for operational health.
     pub health_method: String,
     /// Transport kind used for the health call.
-    pub health_call_type: String,
+    pub health_call_type: SnsCanisterCallType,
     /// Value sent in the Root health request; always false for this read-only report.
     pub health_update_canister_list: bool,
     /// Whether all joined values represent one authoritative point-in-time snapshot.
@@ -213,4 +242,28 @@ pub struct SnsCanisterReport {
     pub canisters: Vec<SnsCanisterRow>,
     /// Canonically ordered typed relation gaps.
     pub gaps: Vec<SnsCanisterGap>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn canister_call_type_labels_round_trip() {
+        for (call_type, label) in [
+            (SnsCanisterCallType::Query, "query"),
+            (SnsCanisterCallType::CompositeQuery, "composite_query"),
+            (SnsCanisterCallType::IngressUpdate, "ingress_update"),
+        ] {
+            assert_eq!(
+                serde_json::to_string(&call_type).unwrap(),
+                format!("\"{label}\"")
+            );
+            assert_eq!(
+                serde_json::from_str::<SnsCanisterCallType>(&format!("\"{label}\"")).unwrap(),
+                call_type
+            );
+            assert_eq!(call_type.as_str(), label);
+        }
+    }
 }

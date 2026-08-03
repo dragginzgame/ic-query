@@ -21,7 +21,7 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("method: {}", report.method),
-        format!("call_type: {}", report.call_type),
+        format!("call_type: {}", report.call_type.as_str()),
         format!(
             "time_window: {}",
             display_duration_seconds(report.time_window_seconds)
