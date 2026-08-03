@@ -11,7 +11,7 @@ mod neurons;
 mod proposals;
 mod reward;
 
-pub(super) use list::SnsListOptions;
+pub(super) use list::{SnsCatalogRefreshOptions, SnsListOptions};
 pub(super) use lookup::SnsLookupOptions;
 pub(super) use metrics::SnsMetricsOptions;
 pub(super) use neurons::{

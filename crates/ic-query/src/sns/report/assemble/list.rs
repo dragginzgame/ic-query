@@ -7,12 +7,14 @@
 use crate::sns::report::{
     JoinedMainnetSnsInventory, MainnetSns, SNS_INFO_REPORT_SCHEMA_VERSION,
     SNS_LIST_REPORT_SCHEMA_VERSION, SnsInfoReport, SnsListReport, SnsListRow, SnsListSort,
+    assemble::SnsReportProvenance,
 };
 
 pub(in crate::sns::report) fn sns_list_report_from_list(
     list: JoinedMainnetSnsInventory,
     verbose: bool,
     sort: SnsListSort,
+    provenance: SnsReportProvenance,
 ) -> SnsListReport {
     let JoinedMainnetSnsInventory {
         network,
@@ -46,6 +48,9 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         fetched_at,
         source_endpoint,
         fetched_by,
+        data_source: provenance.data_source,
+        cache_path: provenance.cache_path,
+        cache_complete: provenance.cache_complete,
         verbose,
         sort: sort.as_str().to_string(),
         sns_count: sns_instances.len(),

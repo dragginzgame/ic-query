@@ -6,6 +6,7 @@
 
 use super::{SnsSourceRequest, validation::SnsSourceValidator};
 use crate::sns::report::{MAINNET_SNS_WASM_CANISTER_ID, SnsHostError};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
@@ -81,7 +82,7 @@ pub struct MainnetSnsMetadata {
 /// Joined deployed SNS identity and optional metadata used by report capabilities.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MainnetSns {
     pub id: usize,
     pub name: String,
@@ -172,6 +173,45 @@ pub(in crate::sns::report) fn join_mainnet_sns_inventory(
         source_endpoint: inventory.source_endpoint,
         sns_instances,
     })
+}
+
+pub(in crate::sns::report) fn validate_joined_mainnet_sns_inventory(
+    inventory: &JoinedMainnetSnsInventory,
+) -> Result<(), SnsHostError> {
+    let mut roots = BTreeSet::new();
+    for (index, sns) in inventory.sns_instances.iter().enumerate() {
+        let expected_id = index + 1;
+        if sns.id != expected_id {
+            return Err(INVENTORY_VALIDATOR
+                .invalid(format!("SNS list id is {}, expected {expected_id}", sns.id)));
+        }
+        validate_sns_canisters(&MainnetSnsCanisters {
+            root_canister_id: sns.root_canister_id.clone(),
+            governance_canister_id: sns.governance_canister_id.clone(),
+            ledger_canister_id: sns.ledger_canister_id.clone(),
+            swap_canister_id: sns.swap_canister_id.clone(),
+            index_canister_id: sns.index_canister_id.clone(),
+        })?;
+        if !roots.insert(sns.root_canister_id.as_str()) {
+            return Err(INVENTORY_VALIDATOR.invalid(format!(
+                "duplicate root canister id {}",
+                sns.root_canister_id
+            )));
+        }
+        validate_metadata_text(&sns.root_canister_id, "name", &sns.name)?;
+        validate_optional_metadata_text(
+            &sns.root_canister_id,
+            "description",
+            sns.description.as_deref(),
+        )?;
+        validate_optional_metadata_text(&sns.root_canister_id, "url", sns.url.as_deref())?;
+        validate_optional_metadata_text(
+            &sns.root_canister_id,
+            "metadata_error",
+            sns.metadata_error.as_deref(),
+        )?;
+    }
+    Ok(())
 }
 
 fn validate_mainnet_sns_metadata(

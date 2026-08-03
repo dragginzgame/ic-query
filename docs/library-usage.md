@@ -73,6 +73,7 @@ A canic-style native crate should usually replace shell-outs in this order:
 
 The CLI module layout is intentionally mirrored at the family level:
 
+- `icq cache ...` maps to host-only `ic_query::cache`.
 - `icq ic ...` maps to `ic_query::ic`.
 - `icq icrc ...` maps to `ic_query::icrc`.
 - `icq nns proposal ...` maps to `ic_query::nns::proposals`.
@@ -97,7 +98,9 @@ intent. All read-only NNS topology builders share
 `NnsTopologyReadRequest`; Registry-derived NNS
 inventory families share the `NnsInventory*Request` contracts; SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts
-plus `SnsRefreshAttemptStatus`; complete NNS Governance proposal and neuron
+plus `SnsRefreshAttemptStatus`; the joined discovery catalog uses
+`SnsCatalogCacheRequest` and `SnsCatalogRefreshRequest`; complete NNS
+Governance proposal and neuron
 collections share `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 and `NnsGovernanceRefreshAttemptStatus`; direct NNS Governance point-value
 reports share `NnsSourceRequest` and one `NnsGovernanceSource` capability;
@@ -426,6 +429,31 @@ fn render_registry_version() -> String {
 
 ## Host Cache Example
 
+Native tools can inventory every known complete cache locally through the
+same generic report used by `icq cache status`:
+
+```rust
+use std::path::Path;
+
+use ic_query::cache::{
+    CacheStatusError, CacheStatusRequest, build_cache_status_report,
+    cache_status_report_text,
+};
+
+fn render_cache_status(
+    cache_root: &Path,
+    now_unix_secs: u64,
+) -> Result<String, CacheStatusError> {
+    let request = CacheStatusRequest::new(cache_root, now_unix_secs);
+    let report = build_cache_status_report(&request)?;
+    Ok(cache_status_report_text(&report))
+}
+```
+
+This inventory is bounded and local-only. It reports generic age and file
+evidence; family-specific loaders remain authoritative for semantic cache
+validation.
+
 Native tools can use the same subnet catalog cache/report path as
 `icq nns subnet info` without spawning `icq`:
 
@@ -664,6 +692,9 @@ and local checkpoint content is not authenticated.
 ## SNS Snapshot Example
 
 Native tools can use SNS proposal and neuron snapshot APIs through `host`.
+The joined deployed-SNS catalog also exposes cache-only,
+refresh-if-one-hour-stale, and forced-refresh operations. Its cache identity is
+the network-level collected catalog; list sorting and verbosity remain views.
 Proposal list reports can create a missing complete proposal snapshot
 through the public builder; whole-collection neuron sorts expect a prior
 explicit refresh, matching the CLI cache policy. `SnsNeuronRow` preserves the

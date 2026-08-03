@@ -21,6 +21,8 @@ mod cache_storage;
 #[cfg(feature = "host")]
 mod cache_summary;
 #[cfg(feature = "host")]
+mod catalog_cache;
+#[cfg(feature = "host")]
 mod live;
 #[cfg(feature = "host")]
 mod lookup;
@@ -79,6 +81,15 @@ pub use build::{
 pub(in crate::sns::report) use cache_summary::{
     build_sns_cache_list_report, find_sns_cache_summary_by_id, load_sns_cache_summary_at,
     parse_sns_root_canister_input,
+};
+#[cfg(feature = "host")]
+pub use catalog_cache::{
+    DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
+    SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest,
+    build_sns_list_report_from_cache, build_sns_list_report_from_cache_or_refresh,
+    build_sns_list_report_from_cache_or_refresh_with_source, refresh_sns_catalog,
+    refresh_sns_catalog_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
+    sns_catalog_refresh_report_text,
 };
 #[cfg(feature = "host")]
 pub use live::LiveSnsSource;
@@ -181,7 +192,7 @@ pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 pub const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
 #[cfg(feature = "host")]
-const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 2;
 #[cfg(feature = "host")]
 const SNS_CANISTER_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]

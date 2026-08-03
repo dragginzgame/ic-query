@@ -11,6 +11,27 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.2` adds local-only `cache status`, which inventories known complete
+  caches across networks, reports file age and size, and distinguishes managed
+  `fresh`/`stale` policies from readable `unmanaged` caches and invalid files.
+  It never refreshes or removes cache state.
+
+- `sns list` now reuses one atomic joined discovery catalog for one hour,
+  avoiding a repeated metadata fan-out on consecutive calls. `sns refresh`
+  forces an explicit replacement; targeted SNS commands retain their bounded
+  targeted discovery calls instead of refreshing the all-SNS catalog.
+
+- NNS topology health schema 2 no longer treats sources without an age policy
+  as healthy freshness evidence. It reports their count explicitly and marks
+  the cache-freshness check non-OK until every source age is assessable.
+
+```bash
+icq cache status
+icq cache status --json
+icq sns refresh
+icq sns list
+```
+
 - `0.26.1` replaces the abbreviated `sns params` command with
   `sns parameters` as a pre-1.0 hard cut with no alias. Nested Canister,
   neuron, proposal, and reward commands retain the consistent

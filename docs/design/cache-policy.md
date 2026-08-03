@@ -18,6 +18,8 @@ This note describes the shared cache behavior expected across `ic-query`.
 - Cache keys describe collected data, not view options. Sorting, limits,
   verbosity, and text formatting must not create separate complete snapshots.
 - Failed refreshes should not replace a previously complete cache.
+- Operators should be able to inspect every known complete cache, its age,
+  size, and applicable age policy without making a network request.
 
 ## Shared Missing-Cache Flow
 
@@ -40,6 +42,10 @@ command already has:
 - a refresh implementation
 - a typed missing-cache error that contains the expected cache path
 
+For small fixed-cost snapshots with an explicit age policy, use the distinct
+refresh-if-stale flow. It refreshes only a missing or older complete snapshot;
+invalid caches remain errors and forced refresh remains a separate operation.
+
 ## Manual Refresh
 
 Manual refresh commands always refresh explicitly and should report refresh
@@ -57,10 +63,23 @@ lock recovery.
 
 ## Cache Discovery
 
-Cache status and cache list commands should inspect local state only. They
-should discover complete full-collection snapshots through the shared
-snapshot-cache path scanner so cache listing and id lookup behavior stays
-deterministic across command families.
+Cache status and cache list commands inspect local state only. Family-specific
+list and status operations use their typed snapshot paths and validators. The
+top-level `icq cache status` command performs a bounded cross-family inventory
+of known complete-cache filenames across every network directory under the
+selected user-level root; it does not inspect refresh-attempt sidecars, follow
+symlinks, refresh files, or delete files.
+
+The global report parses generic header and timestamp evidence. `fresh` and
+`stale` are emitted only for families with an explicit age policy;
+`unmanaged` means that a readable cache has no such policy, not that its data
+is current. `invalid` identifies an unreadable generic header or timestamp and
+does not replace the owning family's stricter semantic validator. Every valid
+timestamp receives a caller-relative age even when freshness is unmanaged.
+Large unmanaged proposal, neuron, and transaction histories are inspected only
+through their leading header/completeness boundary, so cross-family status does
+not load or scan complete row arrays. The small families that receive a
+managed `fresh` or `stale` label are fully JSON-checked first.
 Complete snapshot caches carry required logical identity fields and are
 validated against the expected cache key on load. Identity-less snapshots are
 unsupported and require an explicit refresh.
@@ -80,6 +99,24 @@ The shared missing-cache flow is used by:
 - subnet catalog loads
 - cached NNS node, node-provider, node-operator, and data-center list reports
 - SNS proposal list auto-cache creation
+
+`sns list` uses a distinct one-hour refresh-if-stale policy for one bounded,
+joined deployed-SNS catalog. A fresh catalog avoids all SNS-W and Governance
+metadata calls. Missing or stale state is visibly refreshed under one lock and
+published atomically; invalid state is not silently replaced. `sns refresh`
+forces replacement. Targeted SNS commands retain targeted discovery and do
+not refresh or depend on the all-SNS catalog.
+
+The current registered age policies are:
+
+| Cache | Stale after | Read behavior |
+| --- | ---: | --- |
+| Subnet catalog | 7 days | Refreshes missing; reports stale age without replacing |
+| Exact-version NNS Subnet topology | 24 hours | Explicit refresh-if-stale API |
+| Joined deployed-SNS catalog | 1 hour | `sns list` refreshes missing or stale |
+
+Other complete proposal, neuron, inventory, and transaction caches remain
+`unmanaged` by age unless their owning operation explicitly defines a policy.
 
 SNS proposal detail lookups opportunistically read an existing complete
 proposal snapshot when the requested proposal row is present, then fall back to

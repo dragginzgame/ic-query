@@ -31,16 +31,17 @@ use ic_query::sns::{
     MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron, MainnetSnsNeuronPage,
     MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
     MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsDiscoverySource,
-    SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource,
-    SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest,
-    SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsSource,
-    SnsRewardCheckpointRequest, SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
-    SnsUpgradeSource, build_sns_canister_report, build_sns_canister_report_with_source,
-    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
-    build_sns_list_report_with_source, build_sns_metrics_report,
-    build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsCatalogCacheRequest,
+    SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsDiscoverySource, SnsHostError,
+    SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource, SnsNeuronsRefreshReport,
+    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
+    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsRefreshReport,
+    SnsProposalsRefreshRequest, SnsProposalsSource, SnsRewardCheckpointRequest, SnsRewardSource,
+    SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
+    build_sns_canister_report_with_source, build_sns_info_report,
+    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_from_cache,
+    build_sns_list_report_from_cache_or_refresh, build_sns_list_report_with_source,
+    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
     build_sns_neuron_detail_report_with_source, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, build_sns_neurons_report,
     build_sns_neurons_report_with_source, build_sns_params_report,
@@ -51,10 +52,11 @@ use ic_query::sns::{
     build_sns_reward_checkpoint_report_with_source, build_sns_reward_diff_report_from_paths,
     build_sns_swap_report, build_sns_swap_report_with_source, build_sns_token_report,
     build_sns_token_report_with_source, build_sns_upgrade_report,
-    build_sns_upgrade_report_with_source, load_sns_reward_checkpoint, refresh_sns_neurons_cache,
-    refresh_sns_neurons_cache_with_source, refresh_sns_proposals_cache,
-    refresh_sns_proposals_cache_with_source, sns_neurons_cache_list_report_text,
-    sns_neurons_cache_path, sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
+    build_sns_upgrade_report_with_source, load_sns_reward_checkpoint, refresh_sns_catalog,
+    refresh_sns_neurons_cache, refresh_sns_neurons_cache_with_source, refresh_sns_proposals_cache,
+    refresh_sns_proposals_cache_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
+    sns_catalog_refresh_report_text, sns_neurons_cache_list_report_text, sns_neurons_cache_path,
+    sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
     sns_neurons_refresh_lock_path, sns_neurons_refresh_report_text, sns_neurons_report_text,
     sns_proposals_cache_list_report_text, sns_proposals_cache_path,
     sns_proposals_cache_status_report_text, sns_proposals_refresh_attempt_path,
@@ -112,6 +114,9 @@ type SnsNeuronsRefreshBuilder =
 #[cfg(feature = "host")]
 type SnsProposalsRefreshBuilder =
     fn(&SnsProposalsRefreshRequest) -> Result<SnsProposalsRefreshReport, SnsHostError>;
+#[cfg(feature = "host")]
+type SnsCatalogRefreshBuilder =
+    fn(&SnsCatalogRefreshRequest) -> Result<SnsCatalogRefreshReport, SnsHostError>;
 
 #[test]
 fn public_sns_request_constructors_set_expected_fields() {
@@ -449,12 +454,15 @@ fn public_sns_list_api_is_constructible_and_renderable() {
     assert_eq!(request.sort.as_str(), "id");
 
     let report = SnsListReport {
-        schema_version: 1,
+        schema_version: 2,
         network: request.network,
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint,
         fetched_by: "ic-query".to_string(),
+        data_source: "live".to_string(),
+        cache_path: None,
+        cache_complete: None,
         verbose: request.verbose,
         sort: request.sort.as_str().to_string(),
         sns_count: 0,
@@ -924,6 +932,7 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsNeuronsBuilder>(build_sns_neurons_report);
     accepts_public_function::<SnsNeuronsRefreshBuilder>(refresh_sns_neurons_cache);
     accepts_public_function::<SnsProposalsRefreshBuilder>(refresh_sns_proposals_cache);
+    accepts_public_function::<SnsCatalogRefreshBuilder>(refresh_sns_catalog);
     let live_source = LiveSnsSource;
     accepts_public_function(live_source);
     assert_eq!(DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
@@ -1135,6 +1144,54 @@ fn public_sns_host_api_exposes_neuron_request_constructor() {
     assert_eq!(request.sort, SnsNeuronsSort::Stake);
     assert_eq!(request.cache_root.as_deref(), Some(cache_root.as_path()));
     assert!(request.verbose);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_sns_host_api_exposes_catalog_cache_contract() {
+    let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
+    let catalog_request = SnsCatalogCacheRequest::new(&cache_root, "ic");
+    let catalog_path = sns_catalog_cache_path(&cache_root, "ic");
+    let catalog_lock_path = sns_catalog_refresh_lock_path(&cache_root, "ic");
+    assert_eq!(catalog_request.cache_root, cache_root);
+    assert_eq!(
+        catalog_lock_path,
+        catalog_path.with_file_name("full.refresh.lock")
+    );
+    let list_request = SnsListRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000);
+    let _: fn(&SnsListRequest, &Path) -> Result<SnsListReport, SnsHostError> =
+        build_sns_list_report_from_cache;
+    let _: fn(
+        &SnsListRequest,
+        &Path,
+        &mut dyn ic_query::QueryProgress,
+    ) -> Result<SnsListReport, SnsHostError> = build_sns_list_report_from_cache_or_refresh;
+    assert!(matches!(
+        build_sns_list_report_from_cache(&list_request, &cache_root),
+        Err(SnsHostError::MissingCatalogCache { .. })
+    ));
+
+    let refresh_request = SnsCatalogRefreshRequest::new(
+        &cache_root,
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        1_700_000_000,
+        30 * 60,
+    );
+    assert_eq!(refresh_request.cache, catalog_request);
+    let refresh_report = SnsCatalogRefreshReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        fetched_by: "ic-query".to_string(),
+        cache_path: catalog_path.display().to_string(),
+        refresh_lock_path: catalog_lock_path.display().to_string(),
+        replaced_existing_cache: false,
+        sns_count: 1,
+        metadata_error_count: 0,
+    };
+    assert!(sns_catalog_refresh_report_text(&refresh_report).contains("sns_count: 1"));
 }
 
 #[cfg(feature = "host")]

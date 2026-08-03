@@ -24,8 +24,12 @@ pub(super) fn topology_health_checks(
         ),
         health_check_row(
             "cache_freshness",
-            health.stale_source_count == 0,
-            cache_freshness_detail(health.stale_source_count, summary),
+            health.stale_source_count == 0 && health.unknown_freshness_source_count == 0,
+            cache_freshness_detail(
+                health.stale_source_count,
+                health.unknown_freshness_source_count,
+                summary,
+            ),
         ),
         health_check_row(
             "join_coverage",
@@ -63,15 +67,22 @@ fn registry_version_detail(
     }
 }
 
-fn cache_freshness_detail(stale_source_count: usize, summary: &NnsTopologySummaryReport) -> String {
-    if stale_source_count == 0 {
+fn cache_freshness_detail(
+    stale_source_count: usize,
+    unknown_source_count: usize,
+    summary: &NnsTopologySummaryReport,
+) -> String {
+    if stale_source_count == 0 && unknown_source_count == 0 {
         return "no stale topology sources".to_string();
+    }
+    if stale_source_count == 0 {
+        return format!("{unknown_source_count} topology sources have no age policy");
     }
     if summary.subnet_catalog_stale {
         return format!(
-            "{stale_source_count} stale source; subnet catalog {}",
-            summary.subnet_catalog_stale_reason
+            "{stale_source_count} stale source, {unknown_source_count} without an age policy; subnet catalog {}",
+            summary.subnet_catalog_stale_reason,
         );
     }
-    format!("{stale_source_count} stale source")
+    format!("{stale_source_count} stale source, {unknown_source_count} without an age policy")
 }

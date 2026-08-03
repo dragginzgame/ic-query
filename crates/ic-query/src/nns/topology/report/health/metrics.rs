@@ -18,6 +18,7 @@ pub(super) struct NnsTopologyHealthDerivedMetrics {
     pub(super) registry_version_max: Option<u64>,
     pub(super) registry_versions_aligned: bool,
     pub(super) stale_source_count: usize,
+    pub(super) unknown_freshness_source_count: usize,
     pub(super) known_join_count: usize,
     pub(super) unknown_join_count: usize,
     pub(super) join_coverage: String,
@@ -48,6 +49,11 @@ pub(super) fn topology_health_derived_metrics(
             .registry_versions
             .iter()
             .filter(|row| row.stale == Some(true))
+            .count(),
+        unknown_freshness_source_count: summary
+            .registry_versions
+            .iter()
+            .filter(|row| row.stale.is_none())
             .count(),
         known_join_count,
         unknown_join_count,

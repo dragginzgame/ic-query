@@ -20,6 +20,12 @@ pub struct SnsListReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
+    /// Whether the rows came from a live collection or the joined catalog cache.
+    pub data_source: String,
+    /// Complete snapshot path when `data_source` is `cache`.
+    pub cache_path: Option<String>,
+    /// Whether the cache provenance represents an API-exhausted complete snapshot.
+    pub cache_complete: Option<bool>,
     pub verbose: bool,
     pub sort: String,
     pub sns_count: usize,

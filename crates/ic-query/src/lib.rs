@@ -16,6 +16,8 @@
 
 #[cfg(feature = "subnet-catalog-host")]
 mod agent;
+#[cfg(feature = "host")]
+pub mod cache;
 #[cfg(feature = "subnet-catalog-host")]
 mod cache_file;
 #[cfg(feature = "host")]

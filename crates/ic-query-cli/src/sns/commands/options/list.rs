@@ -28,6 +28,29 @@ pub(in crate::sns::commands) struct SnsListOptions {
     pub(in crate::sns::commands) sort: SnsListSortArg,
 }
 
+///
+/// SnsCatalogRefreshOptions
+///
+/// Parsed options accepted by `icq sns refresh`.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::sns::commands) struct SnsCatalogRefreshOptions {
+    pub(in crate::sns::commands) network: String,
+    pub(in crate::sns::commands) format: OutputFormat,
+    pub(in crate::sns::commands) source_endpoint: String,
+}
+
+impl SnsCatalogRefreshOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+            source_endpoint: required_string(matches, "source-endpoint"),
+        }
+    }
+}
+
 impl SnsListOptions {
     pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {

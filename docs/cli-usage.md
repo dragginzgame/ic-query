@@ -28,6 +28,19 @@ Report schemas are versioned independently and currently use `schema_version`
 values `1` and `2`. Before 1.0, incompatible shape changes replace the previous
 contract without aliases or legacy readers.
 
+Inspect all known complete caches under the selected user-level root without a
+network call or mutation:
+
+```bash
+icq cache status
+icq cache status --json
+```
+
+The report calculates age for every readable collection timestamp. It labels
+only caches with an explicit age policy as `fresh` or `stale`; `unmanaged`
+means no registered age policy exists and is not a freshness claim. Because
+the report spans all cached networks, `icq cache` rejects `--network`.
+
 ## Target identity
 
 NNS, SNS, and system-canister commands accept the global network identity:
@@ -225,6 +238,7 @@ Resolve a deployed SNS by list id or Root principal:
 
 ```bash
 icq sns list
+icq sns refresh
 icq sns info 1
 icq sns token 1
 icq sns parameters 1
@@ -233,6 +247,13 @@ icq sns metrics 23ten-uaaaa-aaaaq-aabia-cai --window 90d --json
 icq sns swap 1
 icq sns upgrade 1
 ```
+
+`sns list` reads one complete joined discovery catalog and visibly refreshes
+it when missing or older than one hour. A fresh consecutive read makes no
+SNS-W or Governance request. `sns refresh` forces the same finite all-SNS
+metadata collection and atomically replaces the cache after validation.
+Targeted commands continue to make their existing targeted discovery calls;
+they do not refresh or depend on this all-SNS catalog.
 
 `sns metrics` calls the Governance `get_metrics` composite query for the
 resolved SNS. Its recent submitted/executed proposal window accepts nonzero
@@ -418,6 +439,15 @@ The CLI selects one user-level cache root:
 3. `$HOME/.cache/ic-query`.
 
 It never discovers or migrates repository-local `.icq` directories.
+
+`icq cache status` inventories known complete snapshots across this root,
+including each path, generic component identity, collection age, file size,
+and applicable age threshold. The scan is local-only, bounded to 10,000 cache
+files, skips symlinks and refresh-attempt sidecars, and never refreshes,
+repairs, removes, or otherwise validates family-specific report semantics.
+Large unmanaged histories stop at their header/completeness boundary instead
+of scanning complete row arrays; the small age-managed families are fully
+JSON-checked before receiving `fresh` or `stale`.
 
 Complete snapshot refreshes use a lock. Paged proposal, neuron, and
 account-history collections also use a separate attempt sidecar so a failed or

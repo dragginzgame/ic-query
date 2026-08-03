@@ -6,7 +6,7 @@
 
 use crate::sns::report::{SnsListReport, short_principal};
 use crate::table::{ColumnAlign, render_table};
-use crate::text_value::sanitize_text;
+use crate::text_value::{sanitize_text, yes_no};
 
 #[must_use]
 pub fn sns_list_report_text(report: &SnsListReport) -> String {
@@ -18,6 +18,13 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
     ));
     lines.push(format!("sns_count: {}", report.sns_count));
     lines.push(format!("fetched_at: {}", sanitize_text(&report.fetched_at)));
+    lines.push(format!("data_source: {}", report.data_source));
+    if let Some(cache_path) = report.cache_path.as_ref() {
+        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
+    }
+    if let Some(cache_complete) = report.cache_complete {
+        lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
+    }
     lines.push(format!(
         "source_endpoint: {}",
         sanitize_text(&report.source_endpoint)

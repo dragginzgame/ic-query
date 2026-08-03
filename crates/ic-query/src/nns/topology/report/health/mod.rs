@@ -19,6 +19,7 @@ pub(super) fn topology_health_report_from_summary(
     let health = topology_health_derived_metrics(&summary);
     let status = if health.registry_versions_aligned
         && health.stale_source_count == 0
+        && health.unknown_freshness_source_count == 0
         && health.unknown_join_count == 0
     {
         "ok"
@@ -38,6 +39,7 @@ pub(super) fn topology_health_report_from_summary(
         registry_version_max: health.registry_version_max,
         registry_versions_aligned: health.registry_versions_aligned,
         stale_source_count: health.stale_source_count,
+        unknown_freshness_source_count: health.unknown_freshness_source_count,
         subnet_catalog_stale: summary.subnet_catalog_stale,
         subnet_catalog_stale_reason: summary.subnet_catalog_stale_reason,
         known_join_count: health.known_join_count,

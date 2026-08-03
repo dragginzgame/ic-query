@@ -19,6 +19,7 @@ mod upgrade;
 
 pub use canisters::{build_sns_canister_report, build_sns_canister_report_with_source};
 pub use info::{build_sns_info_report, build_sns_info_report_with_source};
+pub(in crate::sns::report) use list::fetch_joined_sns_catalog;
 pub use list::{build_sns_list_report, build_sns_list_report_with_source};
 pub use metrics::{build_sns_metrics_report, build_sns_metrics_report_with_source};
 pub use neuron::{build_sns_neuron_detail_report, build_sns_neuron_detail_report_with_source};

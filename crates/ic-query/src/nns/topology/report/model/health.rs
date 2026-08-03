@@ -17,6 +17,8 @@ pub struct NnsTopologyHealthReport {
     pub registry_version_max: Option<u64>,
     pub registry_versions_aligned: bool,
     pub stale_source_count: usize,
+    /// Sources whose age cannot be assessed because they have no freshness policy.
+    pub unknown_freshness_source_count: usize,
     pub subnet_catalog_stale: bool,
     pub subnet_catalog_stale_reason: String,
     pub known_join_count: usize,

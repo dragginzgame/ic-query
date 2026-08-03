@@ -13,12 +13,23 @@ mod reward;
 
 use crate::{
     cli::common::write_text_or_json,
+    progress::StderrQueryProgress,
     sns::commands::{
-        SnsCommandError, options::SnsListOptions, run::common::command_unix_secs, spec::sns_command,
+        SnsCommandError,
+        options::{SnsCatalogRefreshOptions, SnsListOptions},
+        run::common::{command_cache_root, command_unix_secs},
+        spec::sns_command,
     },
 };
 use clap::ArgMatches;
-use ic_query::sns::{SnsListRequest, build_sns_list_report, sns_list_report_text};
+use ic_query::{
+    QueryProgress, QueryProgressEvent,
+    sns::{
+        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, SnsCatalogRefreshRequest, SnsListRequest,
+        build_sns_list_report_from_cache_or_refresh, refresh_sns_catalog, sns_catalog_cache_path,
+        sns_catalog_refresh_report_text, sns_list_report_text,
+    },
+};
 pub fn command() -> clap::Command {
     sns_command()
 }
@@ -30,6 +41,7 @@ pub fn run_matches(
 ) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_list(matches, network),
+        Some(("refresh", matches)) => run_sns_refresh(matches, network),
         Some(("info", matches)) => lookup::run_sns_info(matches, network),
         Some(("metrics", matches)) => lookup::run_sns_metrics(matches, network),
         Some(("token", matches)) => lookup::run_sns_token(matches, network),
@@ -54,6 +66,33 @@ fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandErr
         verbose: options.verbose,
         sort: options.sort.into(),
     };
-    let report = build_sns_list_report(&request)?;
+    let mut progress = StderrQueryProgress::new();
+    let report = build_sns_list_report_from_cache_or_refresh(
+        &request,
+        &command_cache_root()?,
+        &mut progress,
+    )?;
     write_text_or_json(format, &report, sns_list_report_text)
+}
+
+fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsCatalogRefreshOptions::from_matches(matches, network);
+    let format = options.format;
+    let cache_root = command_cache_root()?;
+    let now_unix_secs = command_unix_secs()?;
+    let request = SnsCatalogRefreshRequest::new(
+        &cache_root,
+        options.network,
+        &options.source_endpoint,
+        now_unix_secs,
+        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS,
+    );
+    let mut progress = StderrQueryProgress::new();
+    progress.report(QueryProgressEvent::CacheRefresh {
+        component: "SNS catalog".to_string(),
+        path: sns_catalog_cache_path(&cache_root, &request.cache.network),
+        source_endpoint: options.source_endpoint,
+    });
+    let report = refresh_sns_catalog(&request)?;
+    write_text_or_json(format, &report, sns_catalog_refresh_report_text)
 }

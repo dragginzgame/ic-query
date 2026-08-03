@@ -208,6 +208,13 @@ pub enum SnsHostError {
     #[error("multiple SNS caches claim list id {id}; use a root principal instead")]
     AmbiguousCacheId { id: usize },
 
+    /// The deployed-SNS catalog cache has not been collected yet.
+    #[error("SNS catalog cache is missing at {}", path.display())]
+    MissingCatalogCache {
+        /// Expected complete catalog path.
+        path: PathBuf,
+    },
+
     #[error(
         "SNS neurons cache is missing at {}\n\nRun `icq sns neuron refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting.",
         path.display()

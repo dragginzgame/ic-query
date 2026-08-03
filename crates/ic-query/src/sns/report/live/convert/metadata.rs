@@ -50,6 +50,7 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::InvalidMetricsTimeWindow { .. }
         | SnsHostError::AmbiguousCacheId { .. }
         | SnsHostError::AmbiguousRefreshAttemptId { .. }
+        | SnsHostError::MissingCatalogCache { .. }
         | SnsHostError::MissingNeuronsCache { .. }
         | SnsHostError::MissingNeuronsCacheForId { .. }
         | SnsHostError::MissingProposalsCache { .. }

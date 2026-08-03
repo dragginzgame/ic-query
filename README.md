@@ -20,7 +20,7 @@ local-only inspection visibly distinct.
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, and boundary-node data-center aggregates |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
-| SNS | Discovery, metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
+| SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, and tip certificates |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
 
@@ -72,6 +72,7 @@ icq nns governance economics
 
 # Deployed SNS reports
 icq sns list
+icq sns refresh
 icq sns canister list 1
 icq sns metrics 1
 icq sns upgrade 1
@@ -87,6 +88,9 @@ icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
 # Native system-canister reports
 icq system xdr
 icq system cycles --json
+
+# Local cache inventory
+icq cache status
 ```
 
 Text is the default human-facing format. Use `--json` on report commands
@@ -132,6 +136,8 @@ authority model and follow-up query rules.
 ## Command families
 
 ```text
+icq cache status
+
 icq ic canister info|count|page
 icq ic metrics <metric>
 icq ic network boundary-node-data-centers
@@ -148,7 +154,7 @@ icq nns governance economics|metrics|reward-event|maturity-modulation
 icq nns proposal list|info|refresh|cache
 icq nns neuron list|info|refresh|cache
 
-icq sns list
+icq sns list|refresh
 icq sns info|metrics|parameters|swap|token|upgrade <SNS>
 icq sns canister list <SNS>
 icq sns neuron cache list
@@ -187,6 +193,7 @@ Every data-producing command follows one documented collection mode:
 | --- | --- | --- |
 | Live query | Always | Never |
 | Cache-backed, refresh if missing | Only when the complete cache is absent | Publishes a validated complete snapshot |
+| Cache-backed, refresh if stale | Only when the complete cache is absent or older than its documented policy | Publishes a validated complete snapshot |
 | Cache-preferred, live fallback | Only when cached data cannot satisfy the lookup | Only an explicit refresh writes complete collections |
 | Local-only inspection | Never | Never |
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
@@ -204,6 +211,9 @@ Governance-cached treasury and voting-power timestamps, and do not scan
 transactions, fan out, or create a cache. Paged proposal, neuron, and
 account-history collections retain refresh attempt state. Failed or capped
 refreshes do not replace the last complete snapshot.
+`sns list` uses a one-hour joined catalog cache, so consecutive fresh reads
+make no live calls; `sns refresh` forces replacement. Targeted SNS commands
+keep their bounded targeted discovery and never refresh the all-SNS catalog.
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do
@@ -219,6 +229,9 @@ the first non-empty source:
 It does not inspect project files or read and migrate former project-local
 `.icq` directories. Cache semantics and recovery rules are defined in
 [Cache Policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md).
+Use `icq cache status` to inspect known complete caches across that root,
+including ages, sizes, and fresh, stale, unmanaged, or invalid status, without
+live calls or cache mutation.
 
 ## Library
 
@@ -246,6 +259,7 @@ not a `no_std` promise.
 
 Public report families are exposed from:
 
+- `ic_query::cache` with the `host` feature
 - `ic_query::ic`
 - `ic_query::icrc`
 - `ic_query::nns`

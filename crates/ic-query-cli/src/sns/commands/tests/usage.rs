@@ -5,6 +5,7 @@ use crate::cli::clap::render_help;
 fn sns_help_is_advertised() {
     let sns = render_help(sns_command());
     let list = render_help(sns_list_command());
+    let refresh = render_help(sns_refresh_command());
     let info = render_help(sns_info_command());
     let token = render_help(sns_token_command());
     let parameters = render_help(sns_parameters_command());
@@ -32,11 +33,15 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("List, inspect, and refresh SNS governance proposals"));
     assert!(sns.contains("List, inspect, and refresh SNS governance neurons"));
     assert!(list.contains("icq sns list"));
-    assert!(list.contains("Collection mode: Live query"));
+    assert!(list.contains("Collection mode: Cache-backed read"));
+    assert!(list.contains("older than one hour"));
     assert!(list.contains("--json"));
     assert!(list.contains("--source-endpoint"));
     assert!(list.contains("--sort"));
     assert!(list.contains("--verbose"));
+    assert!(refresh.contains("icq sns refresh"));
+    assert!(refresh.contains("Collection mode: Forced live refresh"));
+    assert!(refresh.contains("--json"));
     assert!(info.contains("icq sns info"));
     assert!(info.contains("id|root-principal"));
     assert!(token.contains("icq sns token"));
@@ -176,7 +181,10 @@ Options:
       --sort <id|name>         Text/JSON row order; ids follow the SNS-W response order [default: id] [possible values: id, name]
   -h, --help                   Print help
 
-Collection mode: Live query; does not read or write a report cache.
+Collection mode: Cache-backed read; refreshes and stores a complete snapshot when the cache is missing or older than its documented age policy.
+
+Uses the joined deployed-SNS catalog cache and visibly refreshes it when missing
+or older than one hour. Targeted SNS commands retain bounded targeted discovery.
 
 Examples:
   icq sns list

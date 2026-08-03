@@ -23,7 +23,8 @@ pub(in crate::sns::report) use canisters::{
 };
 pub use fetch::SnsSourceRequest;
 pub(in crate::sns::report) use list::{
-    JoinedMainnetSnsInventory, join_mainnet_sns_inventory, validate_mainnet_sns_inventory,
+    JoinedMainnetSnsInventory, join_mainnet_sns_inventory, validate_joined_mainnet_sns_inventory,
+    validate_mainnet_sns_inventory,
 };
 pub use list::{MainnetSns, MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsMetadata};
 pub use metrics::MainnetSnsMetrics;

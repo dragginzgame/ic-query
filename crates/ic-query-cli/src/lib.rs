@@ -1,3 +1,4 @@
+mod cache;
 mod cli;
 mod ic;
 mod icrc;
@@ -27,6 +28,9 @@ pub enum IcqCliError {
     #[error("{0}")]
     Usage(String),
 
+    #[error("cache: {0}")]
+    Cache(#[from] cache::CacheCommandError),
+
     #[error("nns: {0}")]
     Nns(#[from] nns::NnsCommandError),
 
@@ -48,7 +52,8 @@ impl IcqCliError {
     #[must_use]
     pub fn is_broken_pipe(&self) -> bool {
         match self {
-            Self::Ic(ic::IcCommandError::Io(err))
+            Self::Cache(cache::CacheCommandError::Io(err))
+            | Self::Ic(ic::IcCommandError::Io(err))
             | Self::Nns(nns::NnsCommandError::Io(err))
             | Self::Icrc(icrc::IcrcCommandError::Io(err))
             | Self::Sns(sns::SnsCommandError::Io(err))
@@ -56,6 +61,7 @@ impl IcqCliError {
                 err.kind() == std::io::ErrorKind::BrokenPipe
             }
             Self::Usage(_)
+            | Self::Cache(_)
             | Self::Nns(_)
             | Self::Icrc(_)
             | Self::Ic(_)
@@ -74,7 +80,12 @@ impl IcqCliError {
             | Self::Icrc(icrc::IcrcCommandError::Usage(_))
             | Self::Sns(sns::SnsCommandError::Usage(_))
             | Self::System(system::SystemCommandError::Usage(_)) => 2,
-            Self::Nns(_) | Self::Icrc(_) | Self::Ic(_) | Self::Sns(_) | Self::System(_) => 1,
+            Self::Cache(_)
+            | Self::Nns(_)
+            | Self::Icrc(_)
+            | Self::Ic(_)
+            | Self::Sns(_)
+            | Self::System(_) => 1,
         }
     }
 }
@@ -118,6 +129,10 @@ where
     };
 
     match command {
+        "cache" => {
+            reject_network_for_local_family(command, selected_network.as_deref())?;
+            Ok(cache::run_matches(matches)?)
+        }
         "ic" => {
             reject_network_for_endpoint_family(command, selected_network.as_deref())?;
             Ok(ic::run_matches(matches)?)
@@ -150,6 +165,19 @@ fn reject_network_for_endpoint_family(
     )))
 }
 
+fn reject_network_for_local_family(
+    command: &str,
+    selected_network: Option<&str>,
+) -> Result<(), IcqCliError> {
+    if selected_network.is_none() {
+        return Ok(());
+    }
+    Err(IcqCliError::Usage(format!(
+        "--network is not supported by `icq {command}`; this command inspects every network under the local cache root\n\n{}",
+        usage()
+    )))
+}
+
 fn network_arg() -> Arg {
     Arg::new("network")
         .num_args(1)
@@ -168,6 +196,7 @@ fn top_level_command() -> Command {
         .subcommand_help_heading("Commands")
         .help_template(TOP_LEVEL_HELP_TEMPLATE)
         .after_help("Run `icq <command> --help` for command-specific help.")
+        .subcommand(cache::command())
         .subcommand(ic::command())
         .subcommand(icrc::command())
         .subcommand(nns::command())
@@ -209,6 +238,8 @@ mod tests {
         assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
         assert!(text.contains("ic"));
         assert!(text.contains("Inspect official IC Dashboard data"));
+        assert!(text.contains("cache"));
+        assert!(text.contains("Inspect the local ic-query cache"));
         assert!(text.contains("icrc"));
         assert!(text.contains("Inspect generic ICRC ledgers"));
         assert!(text.contains("nns"));
@@ -276,6 +307,7 @@ mod tests {
         for args in [
             &["--help"][..],
             &["ic", "canister", "info", "--help"],
+            &["cache", "status", "--help"],
             &[
                 "icrc",
                 "account",
@@ -397,6 +429,20 @@ mod tests {
             assert_eq!(error.exit_code(), 2);
             assert!(error.to_string().contains("--source-endpoint"));
         }
+    }
+
+    #[test]
+    fn explicit_network_is_rejected_for_cross_network_cache_status() {
+        let error = run([
+            OsString::from("--network"),
+            OsString::from("ic"),
+            OsString::from("cache"),
+            OsString::from("status"),
+        ])
+        .expect_err("cross-network cache status must reject one selected network");
+
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("every network"));
     }
 
     #[test]

@@ -1,5 +1,10 @@
 use super::{fixtures::*, *};
-use std::cell::RefCell;
+use std::{
+    cell::{Cell, RefCell},
+    fs,
+    path::PathBuf,
+    time::SystemTime,
+};
 
 #[test]
 fn sns_list_report_uses_names_and_compact_ids_by_default() {
@@ -18,6 +23,8 @@ fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert_eq!(report.sns_instances[0].name, "Fixture SNS");
     assert_eq!(report.sns_instances[0].root_canister_id, ROOT_A);
     assert_eq!(report.metadata_error_count, 0);
+    assert_eq!(report.data_source, "live");
+    assert_eq!(report.cache_path, None);
     assert_eq!(report.sns_instances[0].metadata_error, None);
     assert!(text.contains("ID   NAME"));
     assert!(text.contains("sort: id"));
@@ -25,6 +32,121 @@ fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert!(text.contains("Fixture SNS"));
     assert!(text.contains(&ROOT_A[..COMPACT_PRINCIPAL_CHARS]));
     assert!(!text.contains(ROOT_A));
+}
+
+#[test]
+fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
+    let root = temp_catalog_root("ic-query-sns-catalog-policy");
+    let source = CountingDiscoverySource::default();
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    let request = list_request(false);
+
+    let first = build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect("missing catalog refresh");
+    let second = build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect("fresh catalog read");
+
+    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.cache_complete, Some(true));
+    assert!(sns_list_report_text(&first).contains("cache_complete: yes"));
+    assert_eq!(second.data_source, "cache");
+    assert_eq!(source.inventory_calls.get(), 1);
+    assert_eq!(source.metadata_calls.get(), 1);
+
+    let mut stale_request = request;
+    stale_request.now_unix_secs += DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS + 1;
+    build_sns_list_report_from_cache_or_refresh_with_source(
+        &stale_request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect("stale catalog refresh");
+
+    assert_eq!(source.inventory_calls.get(), 2);
+    assert_eq!(source.metadata_calls.get(), 2);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn invalid_sns_catalog_is_not_silently_refreshed() {
+    let root = temp_catalog_root("ic-query-invalid-sns-catalog");
+    let source = CountingDiscoverySource::default();
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    let request = list_request(false);
+    build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect("initial catalog");
+    fs::write(sns_catalog_cache_path(&root, MAINNET_NETWORK), "not-json").expect("corrupt catalog");
+
+    let error = build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect_err("invalid cache remains visible");
+
+    assert!(matches!(error, SnsHostError::ParseCache { .. }));
+    assert_eq!(source.inventory_calls.get(), 1);
+    assert_eq!(source.metadata_calls.get(), 1);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn future_sns_catalog_is_not_silently_refreshed() {
+    let root = temp_catalog_root("ic-query-future-sns-catalog");
+    let source = CountingDiscoverySource::default();
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    let request = list_request(false);
+    build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect("initial catalog");
+
+    let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
+    let mut cache = serde_json::from_str::<serde_json::Value>(
+        &fs::read_to_string(&path).expect("read catalog"),
+    )
+    .expect("parse catalog");
+    cache["fetched_at"] = serde_json::Value::String("9999-01-01T00:00:00Z".to_string());
+    fs::write(
+        &path,
+        serde_json::to_string_pretty(&cache).expect("serialize catalog"),
+    )
+    .expect("write future catalog");
+
+    let error = build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect_err("future cache remains visible");
+
+    assert!(
+        matches!(error, SnsHostError::InvalidCache { reason, .. } if reason.contains("future"))
+    );
+    assert_eq!(source.inventory_calls.get(), 1);
+    assert_eq!(source.metadata_calls.get(), 1);
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -278,6 +400,39 @@ fn sns_list_rejects_local_network() {
 }
 
 struct MutatingInventorySource(fn(&mut MainnetSnsInventory));
+
+#[derive(Default)]
+struct CountingDiscoverySource {
+    inventory_calls: Cell<usize>,
+    metadata_calls: Cell<usize>,
+}
+
+impl SnsDiscoverySource for CountingDiscoverySource {
+    fn fetch_sns_inventory(
+        &self,
+        request: &SnsSourceRequest,
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        self.inventory_calls.set(self.inventory_calls.get() + 1);
+        FixtureSnsDiscoverySource.fetch_sns_inventory(request)
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        self.metadata_calls.set(self.metadata_calls.get() + 1);
+        FixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)
+    }
+}
+
+fn temp_catalog_root(label: &str) -> PathBuf {
+    let nonce = SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock")
+        .as_nanos();
+    std::env::temp_dir().join(format!("{label}-{nonce}"))
+}
 
 impl SnsDiscoverySource for MutatingInventorySource {
     fn fetch_sns_inventory(

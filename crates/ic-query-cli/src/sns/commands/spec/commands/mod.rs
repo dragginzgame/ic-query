@@ -14,7 +14,10 @@ mod reward;
 use crate::{
     cli::{
         clap::{flag_arg, value_arg},
-        common::{COLLECTION_MODE_LIVE, collection_help, json_arg, source_endpoint_arg},
+        common::{
+            COLLECTION_MODE_CACHE_REFRESH_STALE, COLLECTION_MODE_FORCE_REFRESH, collection_help,
+            json_arg, source_endpoint_arg,
+        },
     },
     sns::commands::spec::values::SnsListSortArg,
 };
@@ -45,6 +48,9 @@ pub(in crate::sns::commands) use reward::sns_reward_command;
 pub(in crate::sns::commands) use reward::{sns_reward_checkpoint_command, sns_reward_diff_command};
 
 const SNS_LIST_HELP_AFTER: &str = "\
+Uses the joined deployed-SNS catalog cache and visibly refreshes it when missing
+or older than one hour. Targeted SNS commands retain bounded targeted discovery.
+
 Examples:
   icq sns list
   icq sns list --sort name
@@ -52,11 +58,17 @@ Examples:
   icq --network ic sns list --json
   icq sns list --source-endpoint https://icp-api.io";
 
+const SNS_REFRESH_HELP_AFTER: &str = "\
+Examples:
+  icq sns refresh
+  icq --network ic sns refresh --json";
+
 pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
     ClapCommand::new("sns")
         .bin_name("icq sns")
         .about("Inspect SNS metadata")
         .subcommand(sns_list_command())
+        .subcommand(sns_refresh_command())
         .subcommand(sns_info_command())
         .subcommand(sns_metrics_command())
         .subcommand(sns_token_command())
@@ -84,7 +96,25 @@ pub(in crate::sns::commands) fn sns_list_command() -> ClapCommand {
                 .help("Show full canister IDs in text output"),
         )
         .arg(sort_arg())
-        .after_help(collection_help(COLLECTION_MODE_LIVE, SNS_LIST_HELP_AFTER))
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_REFRESH_STALE,
+            SNS_LIST_HELP_AFTER,
+        ))
+}
+
+pub(in crate::sns::commands) fn sns_refresh_command() -> ClapCommand {
+    ClapCommand::new("refresh")
+        .bin_name("icq sns refresh")
+        .about("Refresh the joined deployed-SNS catalog")
+        .arg(json_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W and governance metadata queries"),
+        )
+        .after_help(collection_help(
+            COLLECTION_MODE_FORCE_REFRESH,
+            SNS_REFRESH_HELP_AFTER,
+        ))
 }
 
 fn sort_arg() -> clap::Arg {

@@ -1142,6 +1142,7 @@ fn public_nns_topology_coverage_and_health_api_is_constructible_and_renderable()
         registry_version_max: Some(42),
         registry_versions_aligned: true,
         stale_source_count: 0,
+        unknown_freshness_source_count: 0,
         subnet_catalog_stale: false,
         subnet_catalog_stale_reason: "fresh".to_string(),
         known_join_count: 11,
