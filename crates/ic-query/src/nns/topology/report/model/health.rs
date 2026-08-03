@@ -1,3 +1,4 @@
+use super::NnsTopologyAssessmentStatus;
 use serde::{Deserialize, Serialize};
 
 ///
@@ -11,7 +12,7 @@ pub struct NnsTopologyHealthReport {
     pub schema_version: u32,
     pub network: String,
     pub source_endpoint: String,
-    pub status: String,
+    pub status: NnsTopologyAssessmentStatus,
     pub registry_source_count: usize,
     pub registry_version_min: Option<u64>,
     pub registry_version_max: Option<u64>,
@@ -36,6 +37,6 @@ pub struct NnsTopologyHealthReport {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsTopologyHealthCheckRow {
     pub check: String,
-    pub status: String,
+    pub status: NnsTopologyAssessmentStatus,
     pub detail: String,
 }

@@ -18,7 +18,13 @@ fn render_health_check_table(rows: &[NnsTopologyHealthCheckRow]) -> String {
     let headers = ["CHECK", "STATUS", "DETAIL"];
     let rows = rows
         .iter()
-        .map(|row| [row.check.clone(), row.status.clone(), row.detail.clone()])
+        .map(|row| {
+            [
+                row.check.clone(),
+                row.status.as_str().to_string(),
+                row.detail.clone(),
+            ]
+        })
         .collect::<Vec<_>>();
     let alignments = [ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left];
     render_table(&headers, &rows, &alignments)

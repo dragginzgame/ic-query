@@ -61,8 +61,7 @@ impl NnsTopologyProviderAccumulator {
                 topology_node_count,
                 node_operator_count,
                 over_assigned_node_count,
-            )
-            .to_string(),
+            ),
         }
     }
 }

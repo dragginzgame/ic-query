@@ -43,7 +43,7 @@ fn render_providers_table(rows: &[NnsTopologyProviderRow]) -> String {
         .map(|row| {
             [
                 compact_text(&row.node_provider_principal, COMPACT_PRINCIPAL_CHARS),
-                row.status.clone(),
+                row.status.as_str().to_string(),
                 optional_u64_text(row.governance_node_count),
                 row.topology_node_count.to_string(),
                 row.node_operator_count.to_string(),

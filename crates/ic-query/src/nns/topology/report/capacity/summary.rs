@@ -4,7 +4,7 @@
 //! Does not own: row construction, sorting, source reads, or rendering.
 //! Boundary: derives aggregate capacity totals and status.
 
-use crate::nns::topology::report::NnsTopologyCapacityRow;
+use crate::nns::topology::report::{NnsTopologyAssessmentStatus, NnsTopologyCapacityRow};
 
 ///
 /// CapacitySummary
@@ -13,7 +13,7 @@ use crate::nns::topology::report::NnsTopologyCapacityRow;
 ///
 
 pub(super) struct CapacitySummary {
-    pub(super) status: String,
+    pub(super) status: NnsTopologyAssessmentStatus,
     pub(super) total_node_allowance: u64,
     pub(super) assigned_node_count: u64,
     pub(super) unknown_node_count_operator_count: usize,
@@ -44,12 +44,9 @@ pub(super) fn capacity_summary(capacity: &[NnsTopologyCapacityRow]) -> CapacityS
         .iter()
         .filter_map(|row| row.over_assigned_node_count)
         .sum();
-    let status = if over_assigned_operator_count == 0 && unknown_node_count_operator_count == 0 {
-        "ok"
-    } else {
-        "attention"
-    }
-    .to_string();
+    let status = NnsTopologyAssessmentStatus::from_ok(
+        over_assigned_operator_count == 0 && unknown_node_count_operator_count == 0,
+    );
 
     CapacitySummary {
         status,

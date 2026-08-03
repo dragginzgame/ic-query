@@ -9,7 +9,7 @@ fn topology_capacity_report_summarizes_operator_allowance() {
     );
 
     assert_eq!(report.schema_version, 1);
-    assert_eq!(report.status, "attention");
+    assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
     assert_eq!(report.node_operator_count, 2);
     assert_eq!(report.total_node_allowance, 2);
     assert_eq!(report.assigned_node_count, 3);
@@ -21,7 +21,7 @@ fn topology_capacity_report_summarizes_operator_allowance() {
             && row.assigned_node_count == Some(2)
             && row.over_assigned_node_count == Some(1)
             && row.utilization == "200.0%"
-            && row.status == "over"
+            && row.status == NnsTopologyCapacityStatus::Over
     }));
 }
 

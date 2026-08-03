@@ -5,6 +5,7 @@ mod health;
 mod providers;
 mod refresh;
 mod regions;
+mod status;
 mod summary;
 mod versions;
 
@@ -15,5 +16,8 @@ pub use health::{NnsTopologyHealthCheckRow, NnsTopologyHealthReport};
 pub use providers::{NnsTopologyProviderRow, NnsTopologyProvidersReport};
 pub use refresh::{NnsTopologyRefreshReport, NnsTopologyRefreshRow};
 pub use regions::{NnsTopologyRegionRow, NnsTopologyRegionsReport};
+pub use status::{
+    NnsTopologyAssessmentStatus, NnsTopologyCapacityStatus, NnsTopologyProviderStatus,
+};
 pub use summary::{NnsTopologyRegistryVersionRow, NnsTopologySummaryReport};
 pub use versions::NnsTopologyVersionsReport;

@@ -5,7 +5,9 @@
 //! Boundary: projects cached topology component reports into missing-relation rows.
 
 use super::relations::TopologyRelationIndex;
-use super::{NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION, NnsTopologyGapsReport};
+use super::{
+    NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus, NnsTopologyGapsReport,
+};
 use crate::nns::{
     data_center::NnsDataCenterListReport,
     node::{NnsNodeListReport, NnsNodeRow},
@@ -35,7 +37,7 @@ pub(super) fn topology_gaps_report_from_reports(
     sort_gap_rows(&mut gaps);
 
     let gap_count = gaps.len();
-    let status = if gap_count == 0 { "ok" } else { "attention" }.to_string();
+    let status = NnsTopologyAssessmentStatus::from_ok(gap_count == 0);
 
     NnsTopologyGapsReport {
         schema_version: NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION,

@@ -1,14 +1,14 @@
-use crate::nns::topology::report::NnsTopologyProviderRow;
+use crate::nns::topology::report::{NnsTopologyProviderRow, NnsTopologyProviderStatus};
 
 pub(super) fn sort_provider_rows(providers: &mut [NnsTopologyProviderRow]) {
     providers.sort_by(|left, right| {
         (
-            provider_status_rank(&left.status),
+            left.status.sort_rank(),
             std::cmp::Reverse(left.topology_node_count),
             left.node_provider_principal.as_str(),
         )
             .cmp(&(
-                provider_status_rank(&right.status),
+                right.status.sort_rank(),
                 std::cmp::Reverse(right.topology_node_count),
                 right.node_provider_principal.as_str(),
             ))
@@ -20,25 +20,15 @@ pub(super) const fn provider_status(
     topology_node_count: u64,
     node_operator_count: u64,
     over_assigned_node_count: u64,
-) -> &'static str {
+) -> NnsTopologyProviderStatus {
     if !registered {
-        return "unknown_provider";
+        return NnsTopologyProviderStatus::UnknownProvider;
     }
     if over_assigned_node_count > 0 {
-        return "over";
+        return NnsTopologyProviderStatus::Over;
     }
     if topology_node_count == 0 && node_operator_count == 0 {
-        return "unused";
+        return NnsTopologyProviderStatus::Unused;
     }
-    "ok"
-}
-
-fn provider_status_rank(status: &str) -> u8 {
-    match status {
-        "unknown_provider" => 0,
-        "over" => 1,
-        "unused" => 2,
-        "ok" => 3,
-        _ => 4,
-    }
+    NnsTopologyProviderStatus::Ok
 }

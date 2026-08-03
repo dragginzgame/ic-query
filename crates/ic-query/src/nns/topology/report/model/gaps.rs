@@ -1,3 +1,4 @@
+use super::NnsTopologyAssessmentStatus;
 use serde::{Deserialize, Serialize};
 
 ///
@@ -11,7 +12,7 @@ pub struct NnsTopologyGapsReport {
     pub schema_version: u32,
     pub network: String,
     pub source_endpoint: String,
-    pub status: String,
+    pub status: NnsTopologyAssessmentStatus,
     pub gap_count: usize,
     pub gaps: Vec<NnsTopologyGapRow>,
 }

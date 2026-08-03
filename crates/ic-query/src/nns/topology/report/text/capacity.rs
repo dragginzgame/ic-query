@@ -27,7 +27,7 @@ fn render_capacity_summary_table(report: &NnsTopologyCapacityReport) -> String {
     let headers = ["FIELD", "VALUE"];
     let rows = [
         ["network".to_string(), report.network.clone()],
-        ["status".to_string(), report.status.clone()],
+        ["status".to_string(), report.status.as_str().to_string()],
         [
             "node_operators".to_string(),
             report.node_operator_count.to_string(),
@@ -65,12 +65,12 @@ fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String
     let attention_rows = report
         .capacity
         .iter()
-        .filter(|row| matches!(row.status.as_str(), "over" | "unknown"))
+        .filter(|row| row.status.needs_attention())
         .collect::<Vec<_>>();
     if attention_rows.is_empty() {
         let headers = ["STATUS", "DETAIL"];
         let rows = [[
-            report.status.clone(),
+            report.status.as_str().to_string(),
             "no capacity attention rows".to_string(),
         ]];
         let alignments = [ColumnAlign::Left, ColumnAlign::Left];
@@ -100,7 +100,7 @@ fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String
                 optional_u64_text(row.available_node_slots),
                 optional_u64_text(row.over_assigned_node_count),
                 row.utilization.clone(),
-                row.status.clone(),
+                row.status.as_str().to_string(),
             ]
         })
         .collect::<Vec<_>>();

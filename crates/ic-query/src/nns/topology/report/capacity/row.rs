@@ -6,7 +6,9 @@
 
 use crate::nns::{
     node_operator::NnsNodeOperatorRow,
-    topology::report::{NnsTopologyCapacityRow, percent::ratio_percent_text},
+    topology::report::{
+        NnsTopologyCapacityRow, NnsTopologyCapacityStatus, percent::ratio_percent_text,
+    },
 };
 
 pub(super) fn capacity_row_from_operator(operator: &NnsNodeOperatorRow) -> NnsTopologyCapacityRow {
@@ -22,15 +24,14 @@ pub(super) fn capacity_row_from_operator(operator: &NnsNodeOperatorRow) -> NnsTo
         },
     );
     let status = if over_assigned_node_count.is_some_and(|count| count > 0) {
-        "over"
+        NnsTopologyCapacityStatus::Over
     } else if available_node_slots == Some(0) {
-        "full"
+        NnsTopologyCapacityStatus::Full
     } else if available_node_slots.is_some() {
-        "available"
+        NnsTopologyCapacityStatus::Available
     } else {
-        "unknown"
-    }
-    .to_string();
+        NnsTopologyCapacityStatus::Unknown
+    };
 
     NnsTopologyCapacityRow {
         node_operator_principal: operator.node_operator_principal.clone(),

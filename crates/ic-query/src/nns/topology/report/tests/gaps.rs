@@ -12,7 +12,7 @@ fn topology_gaps_report_lists_unknown_join_subjects() {
     );
 
     assert_eq!(report.schema_version, 1);
-    assert_eq!(report.status, "attention");
+    assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
     assert_eq!(report.gap_count, 5);
     assert!(report.gaps.iter().any(|gap| {
         gap.subject_kind == "node"
@@ -62,7 +62,7 @@ fn topology_gaps_text_renders_gap_or_ok_tables() {
     );
     let clean_text = nns_topology_gaps_report_text(&clean_report);
 
-    assert_eq!(clean_report.status, "ok");
+    assert_eq!(clean_report.status, NnsTopologyAssessmentStatus::Ok);
     assert_eq!(clean_report.gap_count, 0);
     assert!(clean_text.contains("STATUS"));
     assert!(clean_text.contains("no topology join gaps"));

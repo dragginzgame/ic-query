@@ -5,7 +5,9 @@
 //! Boundary: maps health metrics into user-facing check names and details.
 
 use super::metrics::NnsTopologyHealthDerivedMetrics;
-use crate::nns::topology::report::{NnsTopologyHealthCheckRow, NnsTopologySummaryReport};
+use crate::nns::topology::report::{
+    NnsTopologyAssessmentStatus, NnsTopologyHealthCheckRow, NnsTopologySummaryReport,
+};
 
 pub(super) fn topology_health_checks(
     summary: &NnsTopologySummaryReport,
@@ -45,7 +47,7 @@ pub(super) fn topology_health_checks(
 fn health_check_row(check: &str, is_ok: bool, detail: String) -> NnsTopologyHealthCheckRow {
     NnsTopologyHealthCheckRow {
         check: check.to_string(),
-        status: if is_ok { "ok" } else { "attention" }.to_string(),
+        status: NnsTopologyAssessmentStatus::from_ok(is_ok),
         detail,
     }
 }

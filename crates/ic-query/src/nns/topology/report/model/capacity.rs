@@ -1,3 +1,4 @@
+use super::{NnsTopologyAssessmentStatus, NnsTopologyCapacityStatus};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -11,7 +12,7 @@ pub struct NnsTopologyCapacityReport {
     pub schema_version: u32,
     pub network: String,
     pub source_endpoint: String,
-    pub status: String,
+    pub status: NnsTopologyAssessmentStatus,
     pub node_operator_count: usize,
     pub total_node_allowance: u64,
     pub assigned_node_count: u64,
@@ -38,5 +39,5 @@ pub struct NnsTopologyCapacityRow {
     pub available_node_slots: Option<u64>,
     pub over_assigned_node_count: Option<u64>,
     pub utilization: String,
-    pub status: String,
+    pub status: NnsTopologyCapacityStatus,
 }

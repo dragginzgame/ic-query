@@ -75,9 +75,10 @@ pub use build::{
 #[cfg(feature = "host")]
 pub use error::NnsTopologyHostError;
 pub use model::{
-    NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
-    NnsTopologyGapRow, NnsTopologyGapsReport, NnsTopologyHealthCheckRow, NnsTopologyHealthReport,
-    NnsTopologyProviderRow, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
+    NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
+    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRow, NnsTopologyGapsReport,
+    NnsTopologyHealthCheckRow, NnsTopologyHealthReport, NnsTopologyProviderRow,
+    NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
     NnsTopologyRefreshRow, NnsTopologyRegionRow, NnsTopologyRegionsReport,
     NnsTopologyRegistryVersionRow, NnsTopologySummaryReport, NnsTopologyVersionsReport,
 };

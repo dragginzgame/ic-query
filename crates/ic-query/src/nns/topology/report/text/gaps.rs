@@ -19,7 +19,10 @@ pub fn nns_topology_gaps_report_text(report: &NnsTopologyGapsReport) -> String {
 
 fn render_gaps_status_table(report: &NnsTopologyGapsReport) -> String {
     let headers = ["STATUS", "DETAIL"];
-    let rows = [[report.status.clone(), "no topology join gaps".to_string()]];
+    let rows = [[
+        report.status.as_str().to_string(),
+        "no topology join gaps".to_string(),
+    ]];
     let alignments = [ColumnAlign::Left, ColumnAlign::Left];
     render_table(&headers, &rows, &alignments)
 }

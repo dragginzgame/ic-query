@@ -41,14 +41,14 @@ fn topology_providers_report_summarizes_provider_distribution() {
             && provider.topology_node_count == 2
             && provider.node_operator_count == 1
             && provider.over_assigned_node_count == 1
-            && provider.status == "over"
+            && provider.status == NnsTopologyProviderStatus::Over
     }));
     assert!(report.providers.iter().any(|provider| {
         provider.node_provider_principal == "provider-z"
             && !provider.registered
             && provider.topology_node_count == 1
             && provider.node_operator_count == 1
-            && provider.status == "unknown_provider"
+            && provider.status == NnsTopologyProviderStatus::UnknownProvider
     }));
 }
 

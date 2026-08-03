@@ -8,7 +8,8 @@ mod checks;
 mod metrics;
 
 use super::{
-    NNS_TOPOLOGY_HEALTH_REPORT_SCHEMA_VERSION, NnsTopologyHealthReport, NnsTopologySummaryReport,
+    NNS_TOPOLOGY_HEALTH_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus,
+    NnsTopologyHealthReport, NnsTopologySummaryReport,
 };
 use checks::topology_health_checks;
 use metrics::topology_health_derived_metrics;
@@ -17,16 +18,12 @@ pub(super) fn topology_health_report_from_summary(
     summary: NnsTopologySummaryReport,
 ) -> NnsTopologyHealthReport {
     let health = topology_health_derived_metrics(&summary);
-    let status = if health.registry_versions_aligned
-        && health.stale_source_count == 0
-        && health.unknown_freshness_source_count == 0
-        && health.unknown_join_count == 0
-    {
-        "ok"
-    } else {
-        "attention"
-    }
-    .to_string();
+    let status = NnsTopologyAssessmentStatus::from_ok(
+        health.registry_versions_aligned
+            && health.stale_source_count == 0
+            && health.unknown_freshness_source_count == 0
+            && health.unknown_join_count == 0,
+    );
     let checks = topology_health_checks(&summary, &health);
 
     NnsTopologyHealthReport {

@@ -115,9 +115,10 @@ use ic_query::nns::topology::{
     refresh_nns_topology_report_with_source,
 };
 use ic_query::nns::topology::{
-    NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCoverageReport,
-    NnsTopologyGapRow, NnsTopologyGapsReport, NnsTopologyHealthCheckRow, NnsTopologyHealthReport,
-    NnsTopologyProviderRow, NnsTopologyProvidersReport, NnsTopologyReadRequest,
+    NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
+    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRow, NnsTopologyGapsReport,
+    NnsTopologyHealthCheckRow, NnsTopologyHealthReport, NnsTopologyProviderRow,
+    NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyReadRequest,
     NnsTopologyRefreshReport, NnsTopologyRefreshRequest, NnsTopologyRefreshRow,
     NnsTopologyRegionRow, NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow,
     NnsTopologySummaryReport, NnsTopologyVersionsReport, nns_topology_capacity_report_text,
@@ -1136,7 +1137,7 @@ fn public_nns_topology_coverage_and_health_api_is_constructible_and_renderable()
         schema_version: 1,
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
-        status: "ok".to_string(),
+        status: NnsTopologyAssessmentStatus::Ok,
         registry_source_count: 1,
         registry_version_min: Some(42),
         registry_version_max: Some(42),
@@ -1150,7 +1151,7 @@ fn public_nns_topology_coverage_and_health_api_is_constructible_and_renderable()
         join_coverage: "100.0%".to_string(),
         checks: vec![NnsTopologyHealthCheckRow {
             check: "registry_versions".to_string(),
-            status: "ok".to_string(),
+            status: NnsTopologyAssessmentStatus::Ok,
             detail: "1 source at registry version 42".to_string(),
         }],
     };
@@ -1184,7 +1185,7 @@ fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
         schema_version: 1,
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
-        status: "attention".to_string(),
+        status: NnsTopologyAssessmentStatus::Attention,
         gap_count: 1,
         gaps: vec![NnsTopologyGapRow {
             subject_kind: "node".to_string(),
@@ -1199,7 +1200,7 @@ fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
         schema_version: 1,
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
-        status: "attention".to_string(),
+        status: NnsTopologyAssessmentStatus::Attention,
         node_operator_count: 1,
         total_node_allowance: 2,
         assigned_node_count: 3,
@@ -1216,7 +1217,7 @@ fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
             available_node_slots: Some(0),
             over_assigned_node_count: Some(1),
             utilization: "150.0%".to_string(),
-            status: "over".to_string(),
+            status: NnsTopologyCapacityStatus::Over,
         }],
     };
     assert!(nns_topology_capacity_report_text(&capacity).contains("over"));
@@ -1276,7 +1277,7 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
             assigned_node_count: 3,
             available_node_slots: 0,
             over_assigned_node_count: 1,
-            status: "over".to_string(),
+            status: NnsTopologyProviderStatus::Over,
         }],
     };
     assert!(nns_topology_providers_report_text(&providers).contains("over"));

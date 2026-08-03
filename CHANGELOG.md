@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.8` replaces free-form component-topology assessment, capacity, and
+  provider status strings with three public domain-specific enums. Existing
+  JSON labels and CLI text are unchanged; typed construction removes invalid
+  states and string-based sort fallbacks.
+
 - `0.26.7` consolidates NNS, SNS, and ICRC complete-collection evidence into
   one public `CacheCollectionCompleteness` DTO and validator. Serialized cache
   shapes remain unchanged; the duplicate ICRC-specific type and status

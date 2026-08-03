@@ -1,4 +1,4 @@
-use super::NnsTopologyRegistryVersionRow;
+use super::{NnsTopologyProviderStatus, NnsTopologyRegistryVersionRow};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -46,5 +46,5 @@ pub struct NnsTopologyProviderRow {
     pub assigned_node_count: u64,
     pub available_node_slots: u64,
     pub over_assigned_node_count: u64,
-    pub status: String,
+    pub status: NnsTopologyProviderStatus,
 }
