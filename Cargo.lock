@@ -1160,7 +1160,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.25.28"
+version = "0.25.29"
 dependencies = [
  "candid",
  "futures",
@@ -1179,7 +1179,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.25.28"
+version = "0.25.29"
 dependencies = [
  "candid",
  "clap",
