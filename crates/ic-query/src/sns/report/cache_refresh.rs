@@ -13,7 +13,7 @@ use crate::{
     sns::report::{
         SnsHostError,
         cache_attempt::{
-            SnsRefreshAttemptContext, SnsRefreshRequestView, write_complete_sns_refresh_attempt,
+            SnsRefreshContext, SnsRefreshRequestView, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
         },
         cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths},
@@ -52,8 +52,8 @@ where
     Request: SnsRefreshRequestView,
 {
     /// Borrow the shared inputs required by the attempt-sidecar writer.
-    pub(in crate::sns::report) fn attempt_context(&self) -> SnsRefreshAttemptContext<'_> {
-        SnsRefreshAttemptContext {
+    pub(in crate::sns::report) fn refresh_context(&self) -> SnsRefreshContext<'_> {
+        SnsRefreshContext {
             path: &self.paths.attempt_path,
             request: self.request,
             fetch_request: &self.fetch_request,
@@ -109,9 +109,9 @@ where
                 replaced_existing_cache: refresh_state.replaced_existing_snapshot,
             };
             run_snapshot_refresh_with_attempts(
-                || write_starting_sns_refresh_attempt(context.attempt_context()),
+                || write_starting_sns_refresh_attempt(context.refresh_context()),
                 || run_locked(&context),
-                |error| write_failed_sns_refresh_attempt(context.attempt_context(), error),
+                |error| write_failed_sns_refresh_attempt(context.refresh_context(), error),
             )
         },
     )
@@ -167,7 +167,7 @@ where
         },
         || {
             write_complete_sns_refresh_attempt(
-                context.attempt_context(),
+                context.refresh_context(),
                 SnapshotRefreshProgress::new(page_count, row_count, last_cursor),
             )
         },

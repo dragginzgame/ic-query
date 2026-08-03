@@ -51,14 +51,7 @@ fn refresh_sns_neurons_cache_with_source_and_progress(
         source,
         DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
         |context| {
-            let complete = fetch_complete_sns_neurons(
-                context.request,
-                &context.fetch_request,
-                &context.sns,
-                source,
-                &context.paths.attempt_path,
-                progress,
-            )?;
+            let complete = fetch_complete_sns_neurons(context.refresh_context(), source, progress)?;
             publish_complete_sns_neurons_cache(context, complete)
         },
     )

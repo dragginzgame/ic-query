@@ -12,31 +12,24 @@ use crate::{
         PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress,
     },
     sns::report::{
-        SnsHostError, SnsNeuronsRefreshRequest,
-        cache_attempt::{SnsRefreshAttemptContext, write_running_sns_refresh_page},
+        SnsHostError,
+        cache_attempt::{SnsRefreshContext, write_running_sns_refresh_page},
         neurons_cache::model::CompleteSnsNeurons,
-        source::{MainnetSns, SnsNeuronsSource, SnsSourceRequest},
+        source::SnsNeuronsSource,
     },
 };
 use state::SnsNeuronsCollectionState;
-use std::path::Path;
 
 /// Fetch every neuron page required for a complete SNS neuron snapshot.
 pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
-    request: &SnsNeuronsRefreshRequest,
-    fetch_request: &SnsSourceRequest,
-    sns: &MainnetSns,
+    context: SnsRefreshContext<'_>,
     source: &dyn SnsNeuronsSource,
-    attempt_path: &Path,
     progress: &mut dyn QueryProgress,
 ) -> Result<CompleteSnsNeurons, SnsHostError> {
     run_paged_snapshot_refresh_with_progress(
         SnsNeuronsRefreshPages {
-            request,
-            fetch_request,
-            sns,
+            context,
             source,
-            attempt_path,
             state: SnsNeuronsCollectionState::new(),
         },
         progress,
@@ -50,11 +43,8 @@ pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
 ///
 
 struct SnsNeuronsRefreshPages<'a> {
-    request: &'a SnsNeuronsRefreshRequest,
-    fetch_request: &'a SnsSourceRequest,
-    sns: &'a MainnetSns,
+    context: SnsRefreshContext<'a>,
     source: &'a dyn SnsNeuronsSource,
-    attempt_path: &'a Path,
     state: SnsNeuronsCollectionState,
 }
 
@@ -63,42 +53,37 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
     type Error = SnsHostError;
 
     fn progress_text(&self) -> String {
-        sns_neurons_progress_text(self.sns, self.state.page_count(), self.state.row_count())
+        self.context
+            .progress_text("neurons", self.state.page_count(), self.state.row_count())
     }
 
     fn max_pages_reached(&self) -> bool {
-        self.request
-            .max_pages
-            .is_some_and(|max_pages| self.state.page_count() >= max_pages)
+        self.context.max_pages_reached(self.state.page_count())
     }
 
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
-        SnsHostError::IncompleteRefresh {
-            pages_fetched: self.state.page_count(),
-            rows_fetched: self.state.row_count(),
-            reason: reason.to_string(),
-        }
+        SnsRefreshContext::incomplete_refresh_error(
+            self.state.page_count(),
+            self.state.row_count(),
+            reason,
+        )
     }
 
     fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
         let page = self.source.fetch_sns_neuron_page(
-            self.fetch_request,
-            self.sns,
-            self.request.page_size,
+            self.context.fetch_request,
+            self.context.sns,
+            self.context.request.page_size(),
             self.state.start_page_at(),
             None,
         )?;
-        self.state.ingest_page(page, self.request.page_size)
+        self.state
+            .ingest_page(page, self.context.request.page_size())
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
         write_running_sns_refresh_page(
-            SnsRefreshAttemptContext {
-                path: self.attempt_path,
-                request: self.request,
-                fetch_request: self.fetch_request,
-                sns: self.sns,
-            },
+            self.context,
             self.state.page_count(),
             self.state.row_count(),
             page,
@@ -106,17 +91,11 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
     }
 
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        page.exhausts_collection(self.request.page_size, self.state.has_next_cursor())
+        self.context
+            .page_exhausts_collection(page, self.state.has_next_cursor())
     }
 
     fn into_complete(self) -> Self::Complete {
         self.state.into_complete()
     }
-}
-
-fn sns_neurons_progress_text(sns: &MainnetSns, pages: u32, rows: usize) -> String {
-    format!(
-        "refreshing SNS neurons for {}: pages={} rows={}",
-        sns.name, pages, rows
-    )
 }

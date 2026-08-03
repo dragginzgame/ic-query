@@ -55,14 +55,8 @@ pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progre
         source,
         DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS,
         |context| {
-            let complete = fetch_complete_sns_proposals(
-                context.request,
-                &context.fetch_request,
-                &context.sns,
-                source,
-                &context.paths.attempt_path,
-                progress,
-            )?;
+            let complete =
+                fetch_complete_sns_proposals(context.refresh_context(), source, progress)?;
             publish_complete_sns_proposals_cache(context, complete)
         },
     )

@@ -12,31 +12,24 @@ use crate::{
         PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress,
     },
     sns::report::{
-        SnsHostError, SnsProposalsRefreshRequest,
-        cache_attempt::{SnsRefreshAttemptContext, write_running_sns_refresh_page},
+        SnsHostError,
+        cache_attempt::{SnsRefreshContext, write_running_sns_refresh_page},
         proposals_cache::model::CompleteSnsProposals,
-        source::{MainnetSns, SnsProposalsSource, SnsSourceRequest},
+        source::SnsProposalsSource,
     },
 };
 use state::SnsProposalsCollectionState;
-use std::path::Path;
 
 /// Fetch every proposal page required for a complete SNS proposal snapshot.
 pub(in crate::sns::report::proposals_cache) fn fetch_complete_sns_proposals(
-    request: &SnsProposalsRefreshRequest,
-    fetch_request: &SnsSourceRequest,
-    sns: &MainnetSns,
+    context: SnsRefreshContext<'_>,
     source: &dyn SnsProposalsSource,
-    attempt_path: &Path,
     progress: &mut dyn QueryProgress,
 ) -> Result<CompleteSnsProposals, SnsHostError> {
     run_paged_snapshot_refresh_with_progress(
         SnsProposalsRefreshPages {
-            request,
-            fetch_request,
-            sns,
+            context,
             source,
-            attempt_path,
             state: SnsProposalsCollectionState::new(),
         },
         progress,
@@ -50,11 +43,8 @@ pub(in crate::sns::report::proposals_cache) fn fetch_complete_sns_proposals(
 ///
 
 struct SnsProposalsRefreshPages<'a> {
-    request: &'a SnsProposalsRefreshRequest,
-    fetch_request: &'a SnsSourceRequest,
-    sns: &'a MainnetSns,
+    context: SnsRefreshContext<'a>,
     source: &'a dyn SnsProposalsSource,
-    attempt_path: &'a Path,
     state: SnsProposalsCollectionState,
 }
 
@@ -63,28 +53,27 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
     type Error = SnsHostError;
 
     fn progress_text(&self) -> String {
-        sns_proposals_progress_text(self.sns, self.state.page_count(), self.state.row_count())
+        self.context
+            .progress_text("proposals", self.state.page_count(), self.state.row_count())
     }
 
     fn max_pages_reached(&self) -> bool {
-        self.request
-            .max_pages
-            .is_some_and(|max_pages| self.state.page_count() >= max_pages)
+        self.context.max_pages_reached(self.state.page_count())
     }
 
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
-        SnsHostError::IncompleteRefresh {
-            pages_fetched: self.state.page_count(),
-            rows_fetched: self.state.row_count(),
-            reason: reason.to_string(),
-        }
+        SnsRefreshContext::incomplete_refresh_error(
+            self.state.page_count(),
+            self.state.row_count(),
+            reason,
+        )
     }
 
     fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
         let page = self.source.fetch_sns_proposal_page(
-            self.fetch_request,
-            self.sns,
-            self.request.page_size,
+            self.context.fetch_request,
+            self.context.sns,
+            self.context.request.page_size(),
             self.state.before_proposal_id(),
         )?;
         Ok(self.state.ingest_page(page))
@@ -92,12 +81,7 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
         write_running_sns_refresh_page(
-            SnsRefreshAttemptContext {
-                path: self.attempt_path,
-                request: self.request,
-                fetch_request: self.fetch_request,
-                sns: self.sns,
-            },
+            self.context,
             self.state.page_count(),
             self.state.row_count(),
             page,
@@ -105,17 +89,11 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
     }
 
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        page.exhausts_collection(self.request.page_size, self.state.has_next_cursor())
+        self.context
+            .page_exhausts_collection(page, self.state.has_next_cursor())
     }
 
     fn into_complete(self) -> Self::Complete {
         self.state.into_complete()
     }
-}
-
-fn sns_proposals_progress_text(sns: &MainnetSns, pages: u32, rows: usize) -> String {
-    format!(
-        "refreshing SNS proposals for {}: pages={} rows={}",
-        sns.name, pages, rows
-    )
 }

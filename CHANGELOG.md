@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.28` gives SNS proposal and neuron pagination one resolved refresh
+  context for request, source, target, attempt, progress, page-cap, incomplete,
+  and exhaustion policy. Family-specific cursors, validation, and source calls
+  remain separate; refresh behavior is unchanged.
+
 - `0.25.27` centralizes the resolved SNS refresh-attempt lifecycle and reuses
   the shared complete paged-collection result for proposal and neuron
   refreshes, removing duplicate locked adapters and intermediate DTOs.

@@ -1,8 +1,8 @@
 //! Module: sns::report::cache_attempt
 //!
-//! Responsibility: shared SNS cache refresh-attempt models, reads, and writes.
-//! Does not own: cache publication, page fetching, or text rendering.
-//! Boundary: persists one attempt lifecycle for neuron and proposal refreshes.
+//! Responsibility: shared SNS refresh context and attempt-sidecar lifecycle.
+//! Does not own: family page fetching, cache publication, or text rendering.
+//! Boundary: one resolved context and attempt contract serves neuron and proposal refreshes.
 
 use crate::{
     snapshot_cache::{
@@ -43,7 +43,7 @@ pub(in crate::sns::report) type SnsRefreshAttempt =
 ///
 /// SnsRefreshRequestView
 ///
-/// Request fields shared by SNS neuron and proposal refresh-attempt sidecars.
+/// Request fields shared by SNS neuron and proposal refresh orchestration.
 ///
 
 pub(in crate::sns::report) trait SnsRefreshRequestView {
@@ -53,6 +53,7 @@ pub(in crate::sns::report) trait SnsRefreshRequestView {
     fn input(&self) -> &str;
     fn cache_root(&self) -> &Path;
     fn page_size(&self) -> u32;
+    fn max_pages(&self) -> Option<u32>;
 }
 
 macro_rules! impl_sns_refresh_request_view {
@@ -81,6 +82,10 @@ macro_rules! impl_sns_refresh_request_view {
             fn page_size(&self) -> u32 {
                 self.page_size
             }
+
+            fn max_pages(&self) -> Option<u32> {
+                self.max_pages
+            }
         }
     };
 }
@@ -89,21 +94,61 @@ impl_sns_refresh_request_view!(SnsNeuronsRefreshRequest);
 impl_sns_refresh_request_view!(SnsProposalsRefreshRequest);
 
 ///
-/// SnsRefreshAttemptContext
+/// SnsRefreshContext
 ///
-/// Shared inputs required to write one SNS collection refresh-attempt sidecar.
+/// Resolved inputs and paging policy shared by one SNS collection refresh.
 ///
 
 #[derive(Clone, Copy)]
-pub(in crate::sns::report) struct SnsRefreshAttemptContext<'a> {
+pub(in crate::sns::report) struct SnsRefreshContext<'a> {
     pub(in crate::sns::report) path: &'a Path,
     pub(in crate::sns::report) request: &'a dyn SnsRefreshRequestView,
     pub(in crate::sns::report) fetch_request: &'a SnsSourceRequest,
     pub(in crate::sns::report) sns: &'a MainnetSns,
 }
 
+impl SnsRefreshContext<'_> {
+    pub(in crate::sns::report) fn progress_text(
+        self,
+        collection: &str,
+        page_count: u32,
+        row_count: usize,
+    ) -> String {
+        format!(
+            "refreshing SNS {collection} for {}: pages={page_count} rows={row_count}",
+            self.sns.name
+        )
+    }
+
+    pub(in crate::sns::report) fn max_pages_reached(self, page_count: u32) -> bool {
+        self.request
+            .max_pages()
+            .is_some_and(|max_pages| page_count >= max_pages)
+    }
+
+    pub(in crate::sns::report) fn incomplete_refresh_error(
+        page_count: u32,
+        row_count: usize,
+        reason: &'static str,
+    ) -> SnsHostError {
+        SnsHostError::IncompleteRefresh {
+            pages_fetched: page_count,
+            rows_fetched: row_count,
+            reason: reason.to_string(),
+        }
+    }
+
+    pub(in crate::sns::report) fn page_exhausts_collection(
+        self,
+        page: &PagedCollectionPage,
+        has_next_cursor: bool,
+    ) -> bool {
+        page.exhausts_collection(self.request.page_size(), has_next_cursor)
+    }
+}
+
 struct SnsRefreshAttemptParts<'a> {
-    context: SnsRefreshAttemptContext<'a>,
+    context: SnsRefreshContext<'a>,
     status: &'static str,
     progress: SnapshotRefreshProgress,
     last_error: Option<String>,
@@ -131,13 +176,13 @@ fn attempt_from_parts(parts: SnsRefreshAttemptParts<'_>) -> SnsRefreshAttempt {
 }
 
 pub(in crate::sns::report) fn write_starting_sns_refresh_attempt(
-    context: SnsRefreshAttemptContext<'_>,
+    context: SnsRefreshContext<'_>,
 ) -> Result<(), SnsHostError> {
     write_sns_refresh_attempt_status(context, "running", SnapshotRefreshProgress::default(), None)
 }
 
 pub(in crate::sns::report) fn write_running_sns_refresh_attempt(
-    context: SnsRefreshAttemptContext<'_>,
+    context: SnsRefreshContext<'_>,
     progress: SnapshotRefreshProgress,
 ) -> Result<(), SnsHostError> {
     write_sns_refresh_attempt_status(context, "running", progress, None)
@@ -145,7 +190,7 @@ pub(in crate::sns::report) fn write_running_sns_refresh_attempt(
 
 /// Write the running attempt evidence produced by one retained SNS page.
 pub(in crate::sns::report) fn write_running_sns_refresh_page(
-    context: SnsRefreshAttemptContext<'_>,
+    context: SnsRefreshContext<'_>,
     page_count: u32,
     row_count: usize,
     page: &PagedCollectionPage,
@@ -157,14 +202,14 @@ pub(in crate::sns::report) fn write_running_sns_refresh_page(
 }
 
 pub(in crate::sns::report) fn write_complete_sns_refresh_attempt(
-    context: SnsRefreshAttemptContext<'_>,
+    context: SnsRefreshContext<'_>,
     progress: SnapshotRefreshProgress,
 ) -> Result<(), SnsHostError> {
     write_sns_refresh_attempt_status(context, "complete", progress, None)
 }
 
 pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
-    context: SnsRefreshAttemptContext<'_>,
+    context: SnsRefreshContext<'_>,
     error: &SnsHostError,
 ) {
     let latest = read_sns_refresh_attempt(context.path, context.request.network());
@@ -177,7 +222,7 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
 }
 
 fn write_sns_refresh_attempt_status(
-    context: SnsRefreshAttemptContext<'_>,
+    context: SnsRefreshContext<'_>,
     status: &'static str,
     progress: SnapshotRefreshProgress,
     last_error: Option<String>,
