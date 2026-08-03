@@ -12,6 +12,7 @@ use std::collections::HashSet;
 /// Deduplicated rows and pagination metadata from a complete API walk.
 ///
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompletePagedCollection<Row> {
     pub rows: Vec<Row>,
     pub page_count: u32,

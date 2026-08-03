@@ -1,19 +1,20 @@
 //! Module: sns::report::cache_refresh
 //!
-//! Responsibility: shared SNS snapshot lookup, locking, context, and publication mechanics.
+//! Responsibility: shared SNS snapshot lookup, locking, attempt lifecycle, and publication.
 //! Does not own: family paging, row validation, report DTOs, or text rendering.
 //! Boundary: one lifecycle serves proposal and neuron complete-cache refreshes.
 
 use crate::{
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotCompleteness, SnapshotEnvelope,
-        SnapshotRefreshProgress, publish_snapshot_with_attempt, with_locked_snapshot_refresh,
-        write_snapshot_json,
+        SnapshotRefreshProgress, publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts,
+        with_locked_snapshot_refresh, write_snapshot_json,
     },
     sns::report::{
         SnsHostError,
         cache_attempt::{
             SnsRefreshAttemptContext, SnsRefreshRequestView, write_complete_sns_refresh_attempt,
+            write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
         },
         cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths},
         cache_storage::SnsCacheMetadata,
@@ -61,13 +62,13 @@ where
     }
 }
 
-/// Resolve one SNS target, acquire its family lock, and run the locked refresh.
+/// Resolve one SNS target, acquire its family lock, and run its attempt lifecycle.
 pub(in crate::sns::report) fn run_resolved_sns_snapshot_refresh<Request, Collection, Report>(
     request: &Request,
     source: &dyn SnsDiscoverySource,
     lock_stale_after_seconds: u64,
     run_locked: impl FnOnce(
-        SnsSnapshotRefreshContext<'_, Request, Collection>,
+        &SnsSnapshotRefreshContext<'_, Request, Collection>,
     ) -> Result<Report, SnsHostError>,
 ) -> Result<Report, SnsHostError>
 where
@@ -98,7 +99,7 @@ where
         },
         SnsHostError::Cache,
         |refresh_state| {
-            run_locked(SnsSnapshotRefreshContext {
+            let context = SnsSnapshotRefreshContext {
                 request,
                 fetch_request: lookup.fetch_request,
                 list: lookup.list,
@@ -106,7 +107,12 @@ where
                 sns: lookup.sns,
                 paths: context_paths,
                 replaced_existing_cache: refresh_state.replaced_existing_snapshot,
-            })
+            };
+            run_snapshot_refresh_with_attempts(
+                || write_starting_sns_refresh_attempt(context.attempt_context()),
+                || run_locked(&context),
+                |error| write_failed_sns_refresh_attempt(context.attempt_context(), error),
+            )
         },
     )
 }

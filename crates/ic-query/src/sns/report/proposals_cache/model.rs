@@ -4,9 +4,12 @@
 //! Does not own: cache path construction, refresh orchestration, or rendering.
 //! Boundary: defines complete proposal snapshot metadata, rows, and attempts.
 
-use crate::sns::report::{
-    SnsProposalRow, cache_storage::SnsStoredCache,
-    proposals_cache::paths::SnsProposalsCacheCollection,
+use crate::{
+    snapshot_cache::CompletePagedCollection,
+    sns::report::{
+        SnsProposalRow, cache_storage::SnsStoredCache,
+        proposals_cache::paths::SnsProposalsCacheCollection,
+    },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
@@ -48,9 +51,4 @@ pub(super) struct SnsProposalsCacheRows {
 /// Complete in-memory proposal collection produced by refresh paging.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct CompleteSnsProposals {
-    pub(super) proposals: Vec<SnsProposalRow>,
-    pub(super) page_count: u32,
-    pub(super) last_cursor: Option<String>,
-}
+pub(super) type CompleteSnsProposals = CompletePagedCollection<SnsProposalRow>;

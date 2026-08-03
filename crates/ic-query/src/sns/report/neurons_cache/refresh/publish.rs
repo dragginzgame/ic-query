@@ -18,19 +18,17 @@ pub(super) fn publish_complete_sns_neurons_cache(
     context: &SnsNeuronsRefreshContext<'_>,
     complete: CompleteSnsNeurons,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
-    let CompleteSnsNeurons {
-        neurons,
-        page_count,
-        last_cursor,
-    } = complete;
-    let neuron_count = neurons.len();
+    let page_count = complete.page_count;
+    let neuron_count = complete.rows.len();
     let attempt_finalization_error = publish_complete_sns_snapshot(
         context,
         SNS_NEURONS_CACHE_SCHEMA_VERSION,
         page_count,
         neuron_count,
-        last_cursor,
-        SnsNeuronsCacheRows { neurons },
+        complete.last_cursor,
+        SnsNeuronsCacheRows {
+            neurons: complete.rows,
+        },
     )?;
     Ok(SnsNeuronsRefreshReport {
         schema_version: SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,

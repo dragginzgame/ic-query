@@ -56,11 +56,6 @@ impl SnsProposalsCollectionState {
     }
 
     pub(super) fn into_complete(self) -> CompleteSnsProposals {
-        let complete = self.pages.into_complete(ToString::to_string);
-        CompleteSnsProposals {
-            proposals: complete.rows,
-            page_count: complete.page_count,
-            last_cursor: complete.last_cursor,
-        }
+        self.pages.into_complete(ToString::to_string)
     }
 }

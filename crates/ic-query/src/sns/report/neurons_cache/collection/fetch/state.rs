@@ -59,11 +59,6 @@ impl SnsNeuronsCollectionState {
     }
 
     pub(super) fn into_complete(self) -> CompleteSnsNeurons {
-        let complete = self.pages.into_complete(|cursor| hex_bytes(&cursor.id));
-        CompleteSnsNeurons {
-            neurons: complete.rows,
-            page_count: complete.page_count,
-            last_cursor: complete.last_cursor,
-        }
+        self.pages.into_complete(|cursor| hex_bytes(&cursor.id))
     }
 }

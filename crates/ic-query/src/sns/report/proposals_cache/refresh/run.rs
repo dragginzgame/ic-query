@@ -1,17 +1,15 @@
 //! Module: sns::report::proposals_cache::refresh::run
 //!
-//! Responsibility: run complete SNS proposal snapshot refreshes.
-//! Does not own: cache publication details, attempt models, or text rendering.
-//! Boundary: resolves lookup, acquires refresh lock, fetches pages, and publishes.
+//! Responsibility: expose complete SNS proposal snapshot refresh entry points.
+//! Does not own: shared locking and attempt mechanics, cache publication, or text rendering.
+//! Boundary: adapts proposal collection and publication to the shared refresh lifecycle.
 
-use super::{SnsProposalsRefreshContext, publish::publish_complete_sns_proposals_cache};
+use super::publish::publish_complete_sns_proposals_cache;
 use crate::{
     QueryProgress,
     progress::IgnoreQueryProgress,
-    snapshot_cache::run_snapshot_refresh_with_attempts,
     sns::report::{
         SnsHostError, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
-        cache_attempt::{write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt},
         cache_refresh::run_resolved_sns_snapshot_refresh,
         live::LiveSnsSource,
         proposals_cache::{
@@ -56,18 +54,7 @@ pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progre
         request,
         source,
         DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS,
-        |context| refresh_sns_proposals_cache_locked(context, source, progress),
-    )
-}
-
-fn refresh_sns_proposals_cache_locked(
-    context: SnsProposalsRefreshContext<'_>,
-    source: &dyn SnsProposalsSource,
-    progress: &mut dyn QueryProgress,
-) -> Result<SnsProposalsRefreshReport, SnsHostError> {
-    run_snapshot_refresh_with_attempts(
-        || write_starting_sns_refresh_attempt(context.attempt_context()),
-        || {
+        |context| {
             let complete = fetch_complete_sns_proposals(
                 context.request,
                 &context.fetch_request,
@@ -76,8 +63,7 @@ fn refresh_sns_proposals_cache_locked(
                 &context.paths.attempt_path,
                 progress,
             )?;
-            publish_complete_sns_proposals_cache(&context, complete)
+            publish_complete_sns_proposals_cache(context, complete)
         },
-        |err| write_failed_sns_refresh_attempt(context.attempt_context(), err),
     )
 }

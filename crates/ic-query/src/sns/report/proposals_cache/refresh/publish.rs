@@ -18,19 +18,17 @@ pub(super) fn publish_complete_sns_proposals_cache(
     context: &SnsProposalsRefreshContext<'_>,
     complete: CompleteSnsProposals,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
-    let CompleteSnsProposals {
-        proposals,
-        page_count,
-        last_cursor,
-    } = complete;
-    let proposal_count = proposals.len();
+    let page_count = complete.page_count;
+    let proposal_count = complete.rows.len();
     let attempt_finalization_error = publish_complete_sns_snapshot(
         context,
         SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
         page_count,
         proposal_count,
-        last_cursor,
-        SnsProposalsCacheRows { proposals },
+        complete.last_cursor,
+        SnsProposalsCacheRows {
+            proposals: complete.rows,
+        },
     )?;
     Ok(SnsProposalsRefreshReport {
         schema_version: SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION,

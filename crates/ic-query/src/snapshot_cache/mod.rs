@@ -30,7 +30,7 @@ pub use model::{
     SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch, SnapshotReport,
     validate_snapshot_completeness,
 };
-pub use paged::{PagedCollectionPage, PagedCollectionState};
+pub use paged::{CompletePagedCollection, PagedCollectionPage, PagedCollectionState};
 pub use paths::{
     SnapshotJsonPaths, collect_full_collection_attempt_paths,
     collect_full_collection_snapshot_paths, snapshot_network_dir,

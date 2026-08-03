@@ -4,9 +4,12 @@
 //! Does not own: cache storage, refresh collection, report rendering, or CLI parsing.
 //! Boundary: keeps persisted cache models separate from public report models.
 
-use crate::sns::report::{
-    SnsNeuronRow, SnsNeuronsSort, cache_storage::SnsStoredCache,
-    neurons_cache::paths::SnsNeuronsCacheCollection,
+use crate::{
+    snapshot_cache::CompletePagedCollection,
+    sns::report::{
+        SnsNeuronRow, SnsNeuronsSort, cache_storage::SnsStoredCache,
+        neurons_cache::paths::SnsNeuronsCacheCollection,
+    },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::PathBuf;
@@ -49,12 +52,7 @@ pub(super) struct SnsNeuronsCacheRows {
 /// Complete in-memory neuron collection produced by refresh paging.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct CompleteSnsNeurons {
-    pub(super) neurons: Vec<SnsNeuronRow>,
-    pub(super) page_count: u32,
-    pub(super) last_cursor: Option<String>,
-}
+pub(super) type CompleteSnsNeurons = CompletePagedCollection<SnsNeuronRow>;
 
 ///
 /// SnsNeuronsCachedReportParts
