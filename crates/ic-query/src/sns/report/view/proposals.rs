@@ -5,10 +5,9 @@
 //! Boundary: sorts proposal rows without changing cache identity.
 
 use crate::sns::report::{
-    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
-    SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalEligibilityFilter, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+    SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalDecisionState,
+    SnsProposalEligibilityFilter, SnsProposalRow, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 use crate::{
     report_sort::{
@@ -31,14 +30,16 @@ pub(in crate::sns::report) fn proposal_matches_status(
 ) -> bool {
     match status {
         SnsProposalStatusFilter::Any => true,
-        SnsProposalStatusFilter::Open => proposal.decision_state == SNS_PROPOSAL_DECISION_OPEN,
+        SnsProposalStatusFilter::Open => proposal.decision_state == SnsProposalDecisionState::Open,
         SnsProposalStatusFilter::Decided => {
-            proposal.decision_state == SNS_PROPOSAL_DECISION_DECIDED
+            proposal.decision_state == SnsProposalDecisionState::Decided
         }
         SnsProposalStatusFilter::Executed => {
-            proposal.decision_state == SNS_PROPOSAL_DECISION_EXECUTED
+            proposal.decision_state == SnsProposalDecisionState::Executed
         }
-        SnsProposalStatusFilter::Failed => proposal.decision_state == SNS_PROPOSAL_DECISION_FAILED,
+        SnsProposalStatusFilter::Failed => {
+            proposal.decision_state == SnsProposalDecisionState::Failed
+        }
         SnsProposalStatusFilter::Rejected => {
             proposal.status == Some(SNS_PROPOSAL_STATUS_REJECTED_CODE)
         }
@@ -224,21 +225,7 @@ fn sort_by_bool(
 fn sort_by_status(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDirection) {
     let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
-        compare_ord(
-            status_sort_rank(&left.decision_state),
-            status_sort_rank(&right.decision_state),
-            descending,
-        )
-        .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
+        compare_ord(left.decision_state, right.decision_state, descending)
+            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
-}
-
-fn status_sort_rank(decision_state: &str) -> u8 {
-    match decision_state {
-        state if state == SNS_PROPOSAL_DECISION_OPEN => 0,
-        state if state == SNS_PROPOSAL_DECISION_DECIDED => 1,
-        state if state == SNS_PROPOSAL_DECISION_EXECUTED => 2,
-        state if state == SNS_PROPOSAL_DECISION_FAILED => 3,
-        _ => 4,
-    }
 }

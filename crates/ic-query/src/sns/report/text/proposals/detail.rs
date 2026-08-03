@@ -33,7 +33,7 @@ pub(super) fn proposal_detail_lines(
         format!("  action: {}", sanitize_text(&proposal.action)),
         format!(
             "  decision_state: {}",
-            sanitize_text(&proposal.decision_state)
+            sanitize_text(proposal.decision_state.as_str())
         ),
         format!("  topic: {}", optional_text(proposal.topic.as_ref())),
         format!("  title: {}", sanitize_text(&proposal.title)),

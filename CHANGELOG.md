@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.9` replaces the free-form SNS proposal `decision_state` string with
+  `SnsProposalDecisionState`. Live projection, cached filtering, and lifecycle
+  sorting now share the typed state while existing cache JSON and CLI labels
+  remain unchanged.
+
 - `0.26.8` replaces free-form component-topology assessment, capacity, and
   provider status strings with three public domain-specific enums. Existing
   JSON labels and CLI text are unchanged; typed construction removes invalid

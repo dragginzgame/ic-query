@@ -56,14 +56,9 @@ pub(in crate::sns::report) use neurons::{
 pub use params::SnsParamsReport;
 #[cfg(feature = "host")]
 pub use proposals::SnsProposalsRefreshReport;
-#[cfg(feature = "host")]
-pub(in crate::sns::report) use proposals::{
-    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN,
-};
 pub use proposals::{
-    SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
-    SnsProposalTally, SnsProposalsReport,
+    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport,
+    SnsProposalRow, SnsProposalTally, SnsProposalsReport,
 };
 pub use swap::{
     SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,

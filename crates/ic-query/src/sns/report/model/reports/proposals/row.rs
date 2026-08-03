@@ -6,14 +6,37 @@
 
 use serde::{Deserialize as SerdeDeserialize, Deserializer, Serialize};
 
-#[cfg(feature = "host")]
-pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_DECIDED: &str = "decided";
-#[cfg(feature = "host")]
-pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_EXECUTED: &str = "executed";
-#[cfg(feature = "host")]
-pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_FAILED: &str = "failed";
-#[cfg(feature = "host")]
-pub(in crate::sns::report) const SNS_PROPOSAL_DECISION_OPEN: &str = "open";
+///
+/// SnsProposalDecisionState
+///
+/// Derived lifecycle state for one SNS Governance proposal.
+///
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, SerdeDeserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SnsProposalDecisionState {
+    /// The proposal has not reached a decision.
+    Open,
+    /// The proposal was decided without an execution or failure timestamp.
+    Decided,
+    /// The proposal has an execution timestamp.
+    Executed,
+    /// The proposal has a failure timestamp.
+    Failed,
+}
+
+impl SnsProposalDecisionState {
+    /// Return the stable cache, JSON, and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::Decided => "decided",
+            Self::Executed => "executed",
+            Self::Failed => "failed",
+        }
+    }
+}
 
 ///
 /// SnsProposalRow
@@ -29,7 +52,7 @@ pub struct SnsProposalRow {
     pub title: String,
     pub summary: String,
     pub url: Option<String>,
-    pub decision_state: String,
+    pub decision_state: SnsProposalDecisionState,
     #[serde(deserialize_with = "deserialize_required_option")]
     pub status: Option<i32>,
     #[serde(deserialize_with = "deserialize_required_option")]
@@ -102,4 +125,29 @@ pub struct SnsProposalTally {
     pub yes: u64,
     pub no: u64,
     pub total: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn proposal_decision_state_labels_round_trip() {
+        for (state, label) in [
+            (SnsProposalDecisionState::Open, "open"),
+            (SnsProposalDecisionState::Decided, "decided"),
+            (SnsProposalDecisionState::Executed, "executed"),
+            (SnsProposalDecisionState::Failed, "failed"),
+        ] {
+            assert_eq!(
+                serde_json::to_string(&state).unwrap(),
+                format!("\"{label}\"")
+            );
+            assert_eq!(
+                serde_json::from_str::<SnsProposalDecisionState>(&format!("\"{label}\"")).unwrap(),
+                state
+            );
+        }
+        assert!(serde_json::from_str::<SnsProposalDecisionState>("\"unknown\"").is_err());
+    }
 }

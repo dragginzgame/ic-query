@@ -147,7 +147,7 @@ pub(in crate::sns::report::tests) fn fixture_proposal_row() -> SnsProposalRow {
         title: "Fixture proposal".to_string(),
         summary: "Fixture proposal summary".to_string(),
         url: Some("https://example.com/proposal".to_string()),
-        decision_state: "open".to_string(),
+        decision_state: SnsProposalDecisionState::Open,
         status: Some(SNS_PROPOSAL_STATUS_OPEN_CODE),
         topic: Some(SnsProposalTopicFilter::Governance.as_str().to_string()),
         reject_cost_e8s: 100_000_000,

@@ -28,7 +28,7 @@ fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
         second
             .proposals
             .iter()
-            .all(|proposal| proposal.decision_state == SNS_PROPOSAL_DECISION_DECIDED)
+            .all(|proposal| proposal.decision_state == SnsProposalDecisionState::Decided)
     );
     let text = sns_proposals_report_text(&second);
     assert!(text.contains("status_filter: decided"));

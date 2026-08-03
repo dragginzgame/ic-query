@@ -102,7 +102,7 @@ pub use model::{
     SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState,
     SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
-    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
+    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
     SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
     SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
     SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
@@ -119,9 +119,7 @@ pub use model::{
 };
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use model::{
-    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN, SNS_PROPOSAL_STATUS_ADOPTED_CODE,
-    SNS_PROPOSAL_STATUS_REJECTED_CODE,
+    SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
 };
 #[cfg(all(test, feature = "host"))]
 pub(in crate::sns::report) use model::{

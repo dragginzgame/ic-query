@@ -17,7 +17,10 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert!(report.show_ballots);
     assert_eq!(report.proposal.proposal_id, 42);
     assert_eq!(report.proposal.action, "motion");
-    assert_eq!(report.proposal.decision_state, SNS_PROPOSAL_DECISION_OPEN);
+    assert_eq!(
+        report.proposal.decision_state,
+        SnsProposalDecisionState::Open
+    );
     assert_eq!(report.proposal.ballot_count, 1);
     assert_eq!(report.proposal.ballots[0].vote_text, "yes");
     assert_eq!(report.data_source, "live");
@@ -62,7 +65,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.proposals[0].action, "motion");
     assert_eq!(
         report.proposals[0].decision_state,
-        SNS_PROPOSAL_DECISION_OPEN
+        SnsProposalDecisionState::Open
     );
     assert_eq!(report.proposals[0].reject_cost_e8s, 100_000_000);
     assert_eq!(report.proposals[0].created_at, "2026-06-01T00:00:00Z");

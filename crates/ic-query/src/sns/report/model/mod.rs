@@ -13,11 +13,6 @@ mod sorts;
 #[cfg(feature = "host")]
 pub use errors::SnsHostError;
 #[cfg(feature = "host")]
-pub(in crate::sns::report) use reports::{
-    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN,
-};
-#[cfg(feature = "host")]
 pub use reports::{
     SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsRefreshReport,
     SnsNeuronsReport, SnsProposalsRefreshReport, SnsRefreshAttemptStatus,
@@ -30,8 +25,8 @@ pub use reports::{
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
     SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
     SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
-    SnsProposalFailureReason, SnsProposalReport, SnsProposalRow, SnsProposalTally,
-    SnsProposalsReport, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
+    SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
+    SnsProposalTally, SnsProposalsReport, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
     SnsRewardCheckpointRow, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
     SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
     SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,

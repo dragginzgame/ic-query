@@ -10,8 +10,7 @@ mod timestamp;
 
 use super::common::clean_optional_text;
 use crate::sns::report::{
-    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN, SnsHostError, SnsProposalFailureReason, SnsProposalRow,
+    SnsHostError, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalRow,
     SnsProposalTally, hex_bytes, live::types::SnsGovernanceProposalData,
 };
 use ballot::sns_proposal_ballot_row;
@@ -84,15 +83,14 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
     })
 }
 
-fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> String {
+const fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> SnsProposalDecisionState {
     if proposal.failed_timestamp_seconds > 0 {
-        SNS_PROPOSAL_DECISION_FAILED
+        SnsProposalDecisionState::Failed
     } else if proposal.executed_timestamp_seconds > 0 {
-        SNS_PROPOSAL_DECISION_EXECUTED
+        SnsProposalDecisionState::Executed
     } else if proposal.decided_timestamp_seconds > 0 {
-        SNS_PROPOSAL_DECISION_DECIDED
+        SnsProposalDecisionState::Decided
     } else {
-        SNS_PROPOSAL_DECISION_OPEN
+        SnsProposalDecisionState::Open
     }
-    .to_string()
 }

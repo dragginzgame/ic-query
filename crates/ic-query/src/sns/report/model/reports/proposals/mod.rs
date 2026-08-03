@@ -12,9 +12,7 @@ mod row;
 #[cfg(feature = "host")]
 pub use refresh::SnsProposalsRefreshReport;
 pub use report::{SnsProposalReport, SnsProposalsReport};
-#[cfg(feature = "host")]
-pub(in crate::sns::report) use row::{
-    SNS_PROPOSAL_DECISION_DECIDED, SNS_PROPOSAL_DECISION_EXECUTED, SNS_PROPOSAL_DECISION_FAILED,
-    SNS_PROPOSAL_DECISION_OPEN,
+pub use row::{
+    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalRow,
+    SnsProposalTally,
 };
-pub use row::{SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalRow, SnsProposalTally};
