@@ -4,65 +4,8 @@
 //! Does not own: cache-file IO, path construction, or command-specific metadata.
 //! Boundary: defines generic JSON shapes reused by NNS and SNS snapshot caches.
 
-use crate::cache_file::JsonCacheReport;
+use crate::{cache::CacheCollectionCompleteness, cache_file::JsonCacheReport};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-
-pub const SNAPSHOT_STATUS_API_EXHAUSTED: &str = "api_exhausted";
-
-///
-/// SnapshotCompleteness
-///
-/// Completion metadata for a published complete snapshot.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub struct SnapshotCompleteness {
-    pub status: String,
-    pub page_size: u32,
-    pub page_count: u32,
-    pub row_count: usize,
-    pub point_in_time_guaranteed: bool,
-}
-
-impl SnapshotCompleteness {
-    pub fn api_exhausted(
-        page_size: u32,
-        page_count: u32,
-        row_count: usize,
-        point_in_time_guaranteed: bool,
-    ) -> Self {
-        Self {
-            status: SNAPSHOT_STATUS_API_EXHAUSTED.to_string(),
-            page_size,
-            page_count,
-            row_count,
-            point_in_time_guaranteed,
-        }
-    }
-
-    pub fn is_api_exhausted(&self) -> bool {
-        self.status == SNAPSHOT_STATUS_API_EXHAUSTED
-    }
-}
-
-pub fn validate_snapshot_completeness(
-    completeness: &SnapshotCompleteness,
-    actual_row_count: usize,
-) -> Result<(), String> {
-    if completeness.page_size == 0 {
-        return Err("completeness page_size must be greater than zero".to_string());
-    }
-    if completeness.page_count == 0 {
-        return Err("completeness page_count must be greater than zero".to_string());
-    }
-    if completeness.row_count != actual_row_count {
-        return Err(format!(
-            "completeness row_count is {}, actual row count is {actual_row_count}",
-            completeness.row_count
-        ));
-    }
-    Ok(())
-}
 
 ///
 /// SnapshotEnvelope
@@ -83,7 +26,7 @@ pub struct SnapshotEnvelope<Metadata, Data> {
     pub scope: String,
     #[serde(flatten)]
     pub metadata: Metadata,
-    pub completeness: SnapshotCompleteness,
+    pub completeness: CacheCollectionCompleteness,
     #[serde(flatten)]
     pub data: Data,
 }
@@ -105,7 +48,7 @@ impl<Metadata, Data> JsonCacheReport for SnapshotEnvelope<Metadata, Data> {
 ///
 
 pub trait SnapshotReport: JsonCacheReport {
-    fn completeness(&self) -> &SnapshotCompleteness;
+    fn completeness(&self) -> &CacheCollectionCompleteness;
 
     fn snapshot_domain(&self) -> &str;
 
@@ -117,7 +60,7 @@ pub trait SnapshotReport: JsonCacheReport {
 }
 
 impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
-    fn completeness(&self) -> &SnapshotCompleteness {
+    fn completeness(&self) -> &CacheCollectionCompleteness {
         &self.completeness
     }
 

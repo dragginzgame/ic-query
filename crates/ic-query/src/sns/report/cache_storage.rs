@@ -5,11 +5,12 @@
 //! Boundary: centralizes discovery, strict id/root lookup, validation, loading, and error mapping.
 
 use crate::{
+    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
     snapshot_cache::{
-        SnapshotCompleteness, SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
+        SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
         collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
-        load_snapshot_header, validate_snapshot_completeness,
+        load_snapshot_header,
     },
     sns::report::{
         SnsHostError,
@@ -76,7 +77,7 @@ impl SnsCacheLoadErrors {
         }
     }
 
-    fn incomplete_cache_error(self, completeness: &SnapshotCompleteness) -> SnsHostError {
+    fn incomplete_cache_error(self, completeness: &CacheCollectionCompleteness) -> SnsHostError {
         SnsHostError::IncompleteRefresh {
             pages_fetched: completeness.page_count,
             rows_fetched: completeness.row_count,
@@ -251,7 +252,7 @@ fn validate_sns_cache<Family>(
 where
     Family: SnsCacheStorageFamily,
 {
-    validate_snapshot_completeness(&cache.completeness, Family::row_count(&cache.data))
+    validate_cache_collection_completeness(&cache.completeness, Family::row_count(&cache.data))
         .map_err(|reason| invalid_sns_cache_error(path, reason))?;
     if cache.completeness.point_in_time_guaranteed {
         return Err(invalid_sns_cache_error(

@@ -15,6 +15,7 @@ use super::{
 };
 use crate::{
     HostCacheError,
+    cache::CacheCollectionCompleteness,
     nns::{
         NnsGovernanceRefreshRequest,
         governance::mainnet_governance_cache_metadata,
@@ -23,8 +24,8 @@ use crate::{
         },
     },
     snapshot_cache::{
-        SnapshotCompleteness, SnapshotJsonPaths, SnapshotRefreshProgress,
-        publish_snapshot_with_attempt, write_snapshot_json,
+        SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt,
+        write_snapshot_json,
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
@@ -52,7 +53,7 @@ pub(super) fn publish_complete_nns_proposal_cache(
         collection: "proposals".to_string(),
         scope: "full".to_string(),
         metadata: mainnet_governance_cache_metadata(),
-        completeness: SnapshotCompleteness::api_exhausted(
+        completeness: CacheCollectionCompleteness::api_exhausted(
             request.page_size,
             page_count,
             proposals.len(),

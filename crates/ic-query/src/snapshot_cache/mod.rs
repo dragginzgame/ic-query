@@ -25,10 +25,7 @@ pub use lifecycle::{
     LockedSnapshotRefreshRequest, publish_snapshot_with_attempt,
     run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
 };
-pub use model::{
-    SnapshotCompleteness, SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
-    SnapshotReport, validate_snapshot_completeness,
-};
+pub use model::{SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch, SnapshotReport};
 pub use paged::{CompletePagedCollection, PagedCollectionPage, PagedCollectionState};
 pub use paths::{
     SnapshotJsonPaths, collect_full_collection_attempt_paths,

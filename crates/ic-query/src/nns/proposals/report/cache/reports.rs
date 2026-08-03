@@ -16,6 +16,7 @@ use super::{
 };
 use crate::{
     HostCacheError,
+    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
@@ -39,10 +40,7 @@ use crate::{
             },
         },
     },
-    snapshot_cache::{
-        SnapshotCompleteness, SnapshotIdentityMismatch, SnapshotKey,
-        load_complete_snapshot_for_key, validate_snapshot_completeness,
-    },
+    snapshot_cache::{SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key},
 };
 use std::{
     collections::HashSet,
@@ -177,7 +175,7 @@ fn validate_nns_proposal_cache(
         path: path.to_path_buf(),
         reason,
     };
-    validate_snapshot_completeness(&cache.completeness, cache.data.proposals.len())
+    validate_cache_collection_completeness(&cache.completeness, cache.data.proposals.len())
         .map_err(invalid)?;
     if cache.completeness.point_in_time_guaranteed {
         return Err(invalid(
@@ -308,7 +306,7 @@ fn nns_proposal_cache_paths_for_cache_path(cache_path: &Path) -> PathBuf {
     cache_path.with_file_name("full.refresh-attempt.json")
 }
 
-fn incomplete_snapshot_error(completeness: &SnapshotCompleteness) -> NnsProposalHostError {
+fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsProposalHostError {
     NnsProposalHostError::IncompleteRefresh {
         pages_fetched: completeness.page_count,
         rows_fetched: completeness.row_count,

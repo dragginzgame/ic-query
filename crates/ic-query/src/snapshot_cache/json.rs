@@ -4,12 +4,13 @@
 //! Does not own: snapshot path discovery, refresh attempts, or family-specific schemas.
 //! Boundary: validates complete snapshot envelopes through cache-file JSON helpers.
 
-use super::{
-    SnapshotCompleteness, SnapshotHeader, SnapshotIdentityMismatch, SnapshotKey, SnapshotReport,
-};
-use crate::cache_file::{
-    CacheFileError, CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-    load_json_cache_strict, write_text_atomically,
+use super::{SnapshotHeader, SnapshotIdentityMismatch, SnapshotKey, SnapshotReport};
+use crate::{
+    cache::CacheCollectionCompleteness,
+    cache_file::{
+        CacheFileError, CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
+        load_json_cache_strict, write_text_atomically,
+    },
 };
 use serde::{Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
@@ -18,7 +19,7 @@ pub fn load_complete_snapshot<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],
     errors: Errors,
-    incomplete_error: impl FnOnce(&SnapshotCompleteness) -> Errors::Error,
+    incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Errors::Error,
 ) -> Result<T, Errors::Error>
 where
     T: DeserializeOwned + SnapshotReport,
@@ -36,7 +37,7 @@ pub fn load_complete_snapshot_for_key<T, Errors>(
     key: &SnapshotKey,
     supported_fields: &'static [&'static str],
     errors: Errors,
-    incomplete_error: impl FnOnce(&SnapshotCompleteness) -> Errors::Error,
+    incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Errors::Error,
     identity_error: impl FnOnce(SnapshotIdentityMismatch) -> Errors::Error,
 ) -> Result<T, Errors::Error>
 where

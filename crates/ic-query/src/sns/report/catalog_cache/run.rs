@@ -10,12 +10,13 @@ use super::{
 };
 use crate::{
     QueryProgress, QueryProgressEvent,
+    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest, load_or_refresh_stale_cache},
     freshness::freshness_facts,
     snapshot_cache::{
-        LockedSnapshotRefreshRequest, SnapshotCompleteness, SnapshotEnvelope,
-        SnapshotIdentityMismatch, SnapshotJsonPaths, SnapshotKey, load_complete_snapshot_for_key,
-        validate_snapshot_completeness, with_locked_snapshot_refresh, write_snapshot_json,
+        LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotIdentityMismatch,
+        SnapshotJsonPaths, SnapshotKey, load_complete_snapshot_for_key,
+        with_locked_snapshot_refresh, write_snapshot_json,
     },
     sns::report::{
         MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsListReport, SnsListRequest,
@@ -258,7 +259,7 @@ fn validate_catalog_cache(path: &Path, cache: &SnsCatalogCache) -> Result<(), Sn
         path: path.to_path_buf(),
         reason,
     };
-    validate_snapshot_completeness(&cache.completeness, cache.data.sns_instances.len())
+    validate_cache_collection_completeness(&cache.completeness, cache.data.sns_instances.len())
         .map_err(invalid)?;
     if cache.completeness.point_in_time_guaranteed {
         return Err(invalid(
@@ -311,7 +312,7 @@ fn cache_from_list(list: JoinedMainnetSnsInventory) -> SnsCatalogCache {
         metadata: SnsCatalogMetadata {
             sns_wasm_canister_id: list.sns_wasm_canister_id,
         },
-        completeness: SnapshotCompleteness::api_exhausted(1, 1, row_count, false),
+        completeness: CacheCollectionCompleteness::api_exhausted(1, 1, row_count, false),
         data: SnsCatalogData {
             sns_instances: list.sns_instances,
         },

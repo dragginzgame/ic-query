@@ -4,7 +4,7 @@
 //! Does not own: ledger-wide history, requests, live transport, cache mechanics, or rendering.
 //! Boundary: owns the stable JSON and persisted snapshot shapes for indexed account history.
 
-use crate::cache::{CacheRefreshAttemptStatus, CacheValidationStatus};
+use crate::cache::{CacheCollectionCompleteness, CacheRefreshAttemptStatus, CacheValidationStatus};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -51,26 +51,6 @@ pub struct IcrcAccountTransactionPageReport {
 }
 
 ///
-/// IcrcAccountTransactionCompleteness
-///
-/// Evidence that a persisted account-history snapshot exhausted the index API.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub struct IcrcAccountTransactionCompleteness {
-    /// Stable completeness classification; complete snapshots use `api_exhausted`.
-    pub status: String,
-    /// Maximum transactions requested per source page.
-    pub page_size: u32,
-    /// Number of source pages collected.
-    pub page_count: u32,
-    /// Number of unique persisted transaction rows.
-    pub row_count: usize,
-    /// Whether the source guarantees every page belongs to one point in time.
-    pub point_in_time_guaranteed: bool,
-}
-
-///
 /// IcrcAccountTransactionSnapshot
 ///
 /// Complete persisted account-history snapshot collected by exhausting the index API.
@@ -107,7 +87,7 @@ pub struct IcrcAccountTransactionSnapshot {
     /// Lowest collected transaction id.
     pub oldest_transaction_id: Option<String>,
     /// Complete-collection evidence.
-    pub completeness: IcrcAccountTransactionCompleteness,
+    pub completeness: CacheCollectionCompleteness,
     /// Canonical newest-first account transactions.
     pub transactions: Vec<IcrcAccountTransactionRow>,
 }

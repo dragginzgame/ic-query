@@ -5,8 +5,7 @@
 //! Boundary: publishes only validated API-exhausted collections under one refresh lock.
 
 use super::{
-    ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS,
-    ICRC_ACCOUNT_TRANSACTION_FETCHED_BY,
+    ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, ICRC_ACCOUNT_TRANSACTION_FETCHED_BY,
     attempt::{write_complete_attempt, write_failed_attempt, write_starting_attempt},
     storage::{
         ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION, cache_paths,
@@ -16,6 +15,7 @@ use super::{
 };
 use crate::{
     HostCacheError, QueryProgress,
+    cache::CacheCollectionCompleteness,
     cache_file::{load_or_refresh_missing_cache, load_or_refresh_stale_cache},
     icrc::{
         ledger::principal_from_text,
@@ -25,9 +25,8 @@ use crate::{
         },
         model::{
             CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
-            IcrcAccountTransactionCompleteness, IcrcAccountTransactionError,
-            IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRefreshRequest,
-            IcrcAccountTransactionSnapshot, IcrcError,
+            IcrcAccountTransactionError, IcrcAccountTransactionRefreshReport,
+            IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionSnapshot, IcrcError,
         },
     },
     progress::IgnoreQueryProgress,
@@ -194,13 +193,12 @@ fn publish_complete_snapshot(
         decimals: complete.decimals,
         newest_transaction_id: newest_transaction_id.clone(),
         oldest_transaction_id: oldest_transaction_id.clone(),
-        completeness: IcrcAccountTransactionCompleteness {
-            status: ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS.to_string(),
-            page_size: request.page_size,
-            page_count: complete.page_count,
-            row_count: complete.transactions.len(),
-            point_in_time_guaranteed: false,
-        },
+        completeness: CacheCollectionCompleteness::api_exhausted(
+            request.page_size,
+            complete.page_count,
+            complete.transactions.len(),
+            false,
+        ),
         transactions: complete.transactions,
     };
     validate_snapshot(&paths.snapshot_path, &snapshot, &request.cache)?;

@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.7` consolidates NNS, SNS, and ICRC complete-collection evidence into
+  one public `CacheCollectionCompleteness` DTO and validator. Serialized cache
+  shapes remain unchanged; the duplicate ICRC-specific type and status
+  constant are removed.
+
 - `0.26.6` replaces free-form NNS, SNS, and ICRC refresh-attempt lifecycle
   fields with `CacheRefreshAttemptStatus::{Running, Complete, Failed}`. Writers
   now accept only those states, while existing sidecar/report JSON and CLI text

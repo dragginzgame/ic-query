@@ -12,18 +12,17 @@ mod subaccount;
 
 pub use contracts::{
     IcrcAccountRow, IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
-    IcrcAccountTransactionCacheSummary, IcrcAccountTransactionCompleteness,
-    IcrcAccountTransactionListReport, IcrcAccountTransactionListRequest,
-    IcrcAccountTransactionPageReport, IcrcAccountTransactionPageRequest,
-    IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshReport,
-    IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionRow,
-    IcrcAccountTransactionSnapshot, IcrcAccountTransactionSort, IcrcAllowanceReport,
-    IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
-    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
-    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
-    IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcLedgerRequest,
-    IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
-    IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcAccountTransactionCacheSummary, IcrcAccountTransactionListReport,
+    IcrcAccountTransactionListRequest, IcrcAccountTransactionPageReport,
+    IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshAttemptStatus,
+    IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRefreshRequest,
+    IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot, IcrcAccountTransactionSort,
+    IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
+    IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
+    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
+    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
+    IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport,
+    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
 };
 #[cfg(feature = "host")]
 pub use data::{

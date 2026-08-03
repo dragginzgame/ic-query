@@ -31,5 +31,4 @@ pub use storage::{
 pub const DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 const ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT: &str = "ICRC account transactions";
-const ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS: &str = "api_exhausted";
 const ICRC_ACCOUNT_TRANSACTION_FETCHED_BY: &str = "ic-query";

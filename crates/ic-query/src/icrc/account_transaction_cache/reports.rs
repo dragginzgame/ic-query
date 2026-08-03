@@ -5,7 +5,6 @@
 //! Boundary: list and status views remain local-only and never trigger network access.
 
 use super::{
-    ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS,
     attempt::read_refresh_attempt_status,
     storage::{
         cache_paths, load_cached_icrc_account_transactions, load_snapshot_at,
@@ -71,7 +70,7 @@ pub fn build_icrc_account_transaction_list_report(
         collection_completed_at: snapshot.collection_completed_at,
         source_endpoint: snapshot.source_endpoint,
         fetched_by: snapshot.fetched_by,
-        complete: snapshot.completeness.status == ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS,
+        complete: snapshot.completeness.is_api_exhausted(),
         point_in_time_guaranteed: snapshot.completeness.point_in_time_guaranteed,
         page_size: snapshot.completeness.page_size,
         page_count: snapshot.completeness.page_count,

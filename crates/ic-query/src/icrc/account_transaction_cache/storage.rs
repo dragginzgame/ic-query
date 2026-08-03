@@ -4,10 +4,9 @@
 //! Does not own: live collection, refresh publication, attempt evidence, or report projection.
 //! Boundary: accepts only normalized identities and complete API-exhausted snapshots.
 
-use super::{
-    ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS,
-};
+use super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT;
 use crate::{
+    cache::validate_cache_collection_completeness,
     cache_file::{
         HostJsonCacheErrorMapper, JsonCacheReport, LoadJsonCacheRequest, load_json_cache_strict,
     },
@@ -131,24 +130,8 @@ pub(super) fn validate_snapshot(
                 .to_string(),
         ));
     }
-    if snapshot.completeness.status != ICRC_ACCOUNT_TRANSACTION_COMPLETENESS_STATUS {
-        return Err(invalid(format!(
-            "completeness status is {}",
-            snapshot.completeness.status
-        )));
-    }
-    if snapshot.completeness.page_size == 0 || snapshot.completeness.page_count == 0 {
-        return Err(invalid(
-            "completeness page size and page count must be greater than zero".to_string(),
-        ));
-    }
-    if snapshot.completeness.row_count != snapshot.transactions.len() {
-        return Err(invalid(format!(
-            "completeness row count is {}, actual row count is {}",
-            snapshot.completeness.row_count,
-            snapshot.transactions.len()
-        )));
-    }
+    validate_cache_collection_completeness(&snapshot.completeness, snapshot.transactions.len())
+        .map_err(invalid)?;
     if snapshot.completeness.point_in_time_guaranteed {
         return Err(invalid(
             "index account history cannot claim a point-in-time guarantee".to_string(),

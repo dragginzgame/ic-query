@@ -14,6 +14,7 @@ use super::{
 };
 use crate::{
     HostCacheError,
+    cache::CacheCollectionCompleteness,
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
         NnsGovernanceRefreshRequest,
@@ -21,8 +22,8 @@ use crate::{
         neuron::report::{NNS_NEURON_FETCHED_BY, NnsNeuronHostError, source::validate_neuron_rows},
     },
     snapshot_cache::{
-        SnapshotCompleteness, SnapshotJsonPaths, SnapshotRefreshProgress,
-        publish_snapshot_with_attempt, write_snapshot_json,
+        SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt,
+        write_snapshot_json,
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
@@ -52,7 +53,7 @@ pub(super) fn publish_complete_neuron_cache(
         collection: NNS_NEURON_CACHE_COLLECTION.to_string(),
         scope: "full".to_string(),
         metadata: mainnet_governance_cache_metadata(),
-        completeness: SnapshotCompleteness::api_exhausted(
+        completeness: CacheCollectionCompleteness::api_exhausted(
             request.page_size,
             page_count,
             neuron_count,

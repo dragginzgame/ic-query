@@ -18,6 +18,7 @@ use super::{
 };
 use crate::{
     HostCacheError,
+    cache::validate_cache_collection_completeness,
     cache_file::{HostJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache_strict},
     nns::{
         NnsGovernanceCacheRequest,
@@ -34,7 +35,6 @@ use crate::{
             },
         },
     },
-    snapshot_cache::validate_snapshot_completeness,
 };
 use std::path::Path;
 
@@ -168,13 +168,7 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
         }
     }
     validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
-    if !cache.completeness.is_api_exhausted() {
-        return Err(invalid(format!(
-            "completeness status is {}, expected api_exhausted",
-            cache.completeness.status
-        )));
-    }
-    validate_snapshot_completeness(&cache.completeness, cache.data.neurons.len())
+    validate_cache_collection_completeness(&cache.completeness, cache.data.neurons.len())
         .map_err(invalid)?;
     if cache.completeness.point_in_time_guaranteed {
         return Err(invalid(

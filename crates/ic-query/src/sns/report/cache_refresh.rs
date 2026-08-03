@@ -5,9 +5,10 @@
 //! Boundary: one lifecycle serves proposal and neuron complete-cache refreshes.
 
 use crate::{
+    cache::CacheCollectionCompleteness,
     snapshot_cache::{
-        LockedSnapshotRefreshRequest, SnapshotCompleteness, SnapshotEnvelope,
-        SnapshotRefreshProgress, publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts,
+        LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotRefreshProgress,
+        publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts,
         with_locked_snapshot_refresh, write_snapshot_json,
     },
     sns::report::{
@@ -148,7 +149,7 @@ where
             root_canister_id: context.sns.root_canister_id.clone(),
             governance_canister_id: context.sns.governance_canister_id.clone(),
         },
-        completeness: SnapshotCompleteness::api_exhausted(
+        completeness: CacheCollectionCompleteness::api_exhausted(
             context.request.page_size(),
             page_count,
             row_count,

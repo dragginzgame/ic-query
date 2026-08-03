@@ -1,11 +1,13 @@
 //! Shared cache report models and host-only local inventory helpers.
 
+mod completeness;
 mod model;
 #[cfg(feature = "host")]
 mod status;
 #[cfg(feature = "host")]
 mod text;
 
+pub use completeness::{CacheCollectionCompleteness, validate_cache_collection_completeness};
 pub use model::{
     CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheFileStatus, CacheRefreshAttemptStatus,
     CacheRefreshLockStatus, CacheRefreshLockStatusRow, CacheStatusReport, CacheStatusRequest,

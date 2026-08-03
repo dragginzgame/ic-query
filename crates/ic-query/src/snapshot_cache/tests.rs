@@ -1,14 +1,14 @@
 use super::{
     LockedSnapshotRefreshRequest, PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
-    SnapshotCompleteness, SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotJsonPaths,
-    SnapshotKey, SnapshotRefreshAttempt, collect_full_collection_snapshot_paths,
-    load_complete_snapshot_for_key, publish_snapshot_with_attempt,
-    run_paged_snapshot_refresh_with_progress, run_snapshot_refresh_with_attempts,
-    validate_snapshot_completeness, validate_snapshot_refresh_attempt,
+    SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotJsonPaths, SnapshotKey,
+    SnapshotRefreshAttempt, collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
+    publish_snapshot_with_attempt, run_paged_snapshot_refresh_with_progress,
+    run_snapshot_refresh_with_attempts, validate_snapshot_refresh_attempt,
     with_locked_snapshot_refresh,
 };
 use crate::{
     QueryProgressEvent, QueryProgressState,
+    cache::CacheCollectionCompleteness,
     cache_file::{CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
     test_support::temp_dir,
 };
@@ -83,7 +83,7 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
         collection: "neurons".to_string(),
         scope: "full".to_string(),
         metadata: Metadata { id: 7 },
-        completeness: SnapshotCompleteness::api_exhausted(100, 2, 101, false),
+        completeness: CacheCollectionCompleteness::api_exhausted(100, 2, 101, false),
         data: Data {
             rows: vec!["row".to_string()],
         },
@@ -98,32 +98,6 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
     assert_eq!(value["rows"][0], "row");
     assert!(value.get("metadata").is_none());
     assert!(value.get("data").is_none());
-}
-
-#[test]
-fn snapshot_completeness_requires_actual_row_count_and_page_metadata() {
-    for page_size in 0..=2 {
-        for page_count in 0..=2 {
-            for declared_row_count in 0..=2 {
-                for actual_row_count in 0..=2 {
-                    let completeness = SnapshotCompleteness::api_exhausted(
-                        page_size,
-                        page_count,
-                        declared_row_count,
-                        false,
-                    );
-                    let expected_valid =
-                        page_size > 0 && page_count > 0 && declared_row_count == actual_row_count;
-
-                    assert_eq!(
-                        validate_snapshot_completeness(&completeness, actual_row_count).is_ok(),
-                        expected_valid,
-                        "page_size={page_size}, page_count={page_count}, declared_row_count={declared_row_count}, actual_row_count={actual_row_count}"
-                    );
-                }
-            }
-        }
-    }
 }
 
 #[test]
