@@ -35,8 +35,8 @@ mod host {
             icrc_token_report_text,
         },
         nns::node::{
-            DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeHostError,
-            NnsNodeListRequest, build_nns_node_list_report, nns_node_list_report_text,
+            DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NnsNodeHostError, NnsNodeListRequest,
+            build_nns_node_list_report, nns_node_list_report_text,
         },
         nns::proposals::{
             NnsProposalHostError, NnsProposalRefreshReport,
@@ -69,7 +69,7 @@ mod host {
         subnet_catalog::{
             DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, ResolveAs,
             SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogInfoRequest,
-            build_subnet_catalog_info_report, subnet_catalog_info_report_text,
+            SubnetKind, build_subnet_catalog_info_report, subnet_catalog_info_report_text,
         },
     };
     use std::path::Path;
@@ -148,7 +148,7 @@ mod host {
         let cache = NnsInventoryCacheRequest::new(cache_root, "ic");
         let request =
             NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
-                .with_subnet_kind(NNS_NODE_SUBNET_KIND_APPLICATION);
+                .with_subnet_kind(SubnetKind::Application);
 
         let report = build_nns_node_list_report(&request)?;
         Ok(nns_node_list_report_text(&report))

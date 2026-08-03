@@ -19,8 +19,8 @@ use crate::icrc::{
         fetch_icrc_supported_standards, index_principal_error_text,
     },
     model::{
-        IcrcCapabilitiesData, IcrcCapabilityRow, IcrcError, IcrcLedgerRequest,
-        IcrcTipCertificateData,
+        IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
+        IcrcLedgerRequest, IcrcTipCertificateData,
     },
 };
 use candid::{Nat, Principal};
@@ -190,7 +190,7 @@ fn available_capability_row(
     IcrcCapabilityRow {
         capability: capability.to_string(),
         method: method.to_string(),
-        status: "available".to_string(),
+        status: IcrcCapabilityStatus::Available,
         details: Some(details.into()),
         error: None,
     }
@@ -202,29 +202,24 @@ fn error_capability_row(
     error: IcrcError,
 ) -> IcrcCapabilityRow {
     let error = error.to_string();
-    let status = capability_error_status(&error);
+    let (status, details) = capability_error_projection(&error);
     IcrcCapabilityRow {
         capability: capability.to_string(),
         method: method.to_string(),
-        status: status.to_string(),
-        details: Some(capability_error_details(status).to_string()),
+        status,
+        details: Some(details.to_string()),
         error: Some(error),
     }
 }
 
-fn capability_error_status(error: &str) -> &'static str {
+fn capability_error_projection(error: &str) -> (IcrcCapabilityStatus, &'static str) {
     if method_not_exported(error) {
-        "unsupported"
+        (
+            IcrcCapabilityStatus::Unsupported,
+            "method not exported by target canister",
+        )
     } else {
-        "error"
-    }
-}
-
-fn capability_error_details(status: &str) -> &'static str {
-    if status == "unsupported" {
-        "method not exported by target canister"
-    } else {
-        "query failed"
+        (IcrcCapabilityStatus::Error, "query failed")
     }
 }
 
@@ -244,5 +239,25 @@ where
         format!("0 {singular}(s)")
     } else {
         format!("{} {singular}(s): {}", names.len(), names.join(", "))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn capability_error_projection_distinguishes_unsupported_methods() {
+        assert_eq!(
+            capability_error_projection("Canister has no query method"),
+            (
+                IcrcCapabilityStatus::Unsupported,
+                "method not exported by target canister"
+            )
+        );
+        assert_eq!(
+            capability_error_projection("replica rejected the query"),
+            (IcrcCapabilityStatus::Error, "query failed")
+        );
     }
 }

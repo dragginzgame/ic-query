@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.10` replaces free-form ICRC capability status and NNS node Subnet-kind
+  strings with typed domain enums. Capability diagnostics, Registry
+  projection, node filters, topology counts, and text rendering now consume
+  typed classifications while existing JSON, cache, and CLI labels remain
+  unchanged.
+
 - `0.26.9` replaces the free-form SNS proposal `decision_state` string with
   `SnsProposalDecisionState`. Live projection, cached filtering, and lifecycle
   sorting now share the typed state while existing cache JSON and CLI labels

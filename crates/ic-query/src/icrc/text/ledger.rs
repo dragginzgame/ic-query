@@ -182,7 +182,7 @@ fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
                 [
                     capability.capability.clone(),
                     capability.method.clone(),
-                    capability.status.clone(),
+                    capability.status.as_str().to_string(),
                     capability_detail_text(capability),
                 ]
             })

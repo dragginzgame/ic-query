@@ -10,13 +10,8 @@ mod registry_versions;
 use super::{NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION, NnsTopologySummaryReport};
 use crate::{
     nns::{
-        data_center::NnsDataCenterListReport,
-        node::{
-            NNS_NODE_SUBNET_KIND_APPLICATION, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
-            NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN, NnsNodeListReport,
-        },
-        node_operator::NnsNodeOperatorListReport,
-        node_provider::NnsNodeProviderListReport,
+        data_center::NnsDataCenterListReport, node::NnsNodeListReport,
+        node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
     },
     subnet_catalog::{SubnetCatalogListReport, SubnetKind},
 };
@@ -36,12 +31,10 @@ pub(super) fn topology_summary_report_from_reports(
     let cloud_engine_subnet_count = subnet_count_by_kind(&subnet_report, SubnetKind::CloudEngine);
     let system_subnet_count = subnet_count_by_kind(&subnet_report, SubnetKind::System);
     let unknown_subnet_count = subnet_count_by_kind(&subnet_report, SubnetKind::Unknown);
-    let application_node_count =
-        node_count_by_subnet_kind(&node_report, NNS_NODE_SUBNET_KIND_APPLICATION);
-    let cloud_engine_node_count =
-        node_count_by_subnet_kind(&node_report, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE);
-    let system_node_count = node_count_by_subnet_kind(&node_report, NNS_NODE_SUBNET_KIND_SYSTEM);
-    let unknown_node_count = node_count_by_subnet_kind(&node_report, NNS_NODE_SUBNET_KIND_UNKNOWN);
+    let application_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::Application);
+    let cloud_engine_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::CloudEngine);
+    let system_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::System);
+    let unknown_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::Unknown);
     let join_coverage = topology_summary_join_coverage_counts(
         &node_report,
         &node_provider_report,
@@ -114,10 +107,10 @@ fn subnet_count_by_kind(report: &SubnetCatalogListReport, kind: SubnetKind) -> u
         .count()
 }
 
-fn node_count_by_subnet_kind(report: &NnsNodeListReport, kind: &str) -> usize {
+fn node_count_by_subnet_kind(report: &NnsNodeListReport, kind: SubnetKind) -> usize {
     report
         .nodes
         .iter()
-        .filter(|node| node.subnet_kind.eq_ignore_ascii_case(kind))
+        .filter(|node| node.subnet_kind == kind)
         .count()
 }

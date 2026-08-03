@@ -6,13 +6,8 @@
 
 use super::common::{render_join_coverage_table, render_registry_version_table};
 use crate::{
-    nns::{
-        node::{
-            NNS_NODE_SUBNET_KIND_APPLICATION, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
-            NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN,
-        },
-        topology::report::NnsTopologySummaryReport,
-    },
+    nns::topology::report::NnsTopologySummaryReport,
+    subnet_catalog::SubnetKind,
     table::{ColumnAlign, render_table},
     text_value::sanitize_text,
 };
@@ -70,22 +65,22 @@ fn render_kind_table(report: &NnsTopologySummaryReport) -> String {
     let headers = ["KIND", "SUBNETS", "NODES"];
     let rows = [
         [
-            NNS_NODE_SUBNET_KIND_APPLICATION.to_string(),
+            SubnetKind::Application.as_str().to_string(),
             report.application_subnet_count.to_string(),
             report.application_node_count.to_string(),
         ],
         [
-            NNS_NODE_SUBNET_KIND_CLOUD_ENGINE.to_string(),
+            SubnetKind::CloudEngine.as_str().to_string(),
             report.cloud_engine_subnet_count.to_string(),
             report.cloud_engine_node_count.to_string(),
         ],
         [
-            NNS_NODE_SUBNET_KIND_SYSTEM.to_string(),
+            SubnetKind::System.as_str().to_string(),
             report.system_subnet_count.to_string(),
             report.system_node_count.to_string(),
         ],
         [
-            NNS_NODE_SUBNET_KIND_UNKNOWN.to_string(),
+            SubnetKind::Unknown.as_str().to_string(),
             report.unknown_subnet_count.to_string(),
             report.unknown_node_count.to_string(),
         ],

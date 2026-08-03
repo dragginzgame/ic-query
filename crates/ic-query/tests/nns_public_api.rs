@@ -43,9 +43,8 @@ use ic_query::nns::node::{
     nns_node_refresh_report_text, refresh_nns_node_report, refresh_nns_node_report_with_source,
 };
 use ic_query::nns::node::{
-    NNS_NODE_SUBNET_KIND_APPLICATION, NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest,
-    NnsNodeRow, nns_node_info_report_text, nns_node_list_report_text,
-    nns_node_list_report_verbose_text,
+    NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
+    nns_node_info_report_text, nns_node_list_report_text, nns_node_list_report_verbose_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::node_operator::{
@@ -133,10 +132,11 @@ use ic_query::nns::{
     NnsInventoryRefreshRequest, NnsSourceRequest,
 };
 use ic_query::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
+use ic_query::subnet_catalog::SubnetKind;
 #[cfg(feature = "host")]
 use ic_query::subnet_catalog::{
     ClassificationSource, GeographicScope, SubnetCatalogListReport, SubnetCatalogRefreshReport,
-    SubnetCatalogSubnetRow, SubnetKind, SubnetSpecialization,
+    SubnetCatalogSubnetRow, SubnetSpecialization,
 };
 #[cfg(feature = "host")]
 use serde::Serialize;
@@ -465,12 +465,12 @@ fn public_nns_node_api_is_constructible_and_renderable() {
     let cache = NnsInventoryCacheRequest::new(".", "ic");
     let list_request = NnsNodeListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000)
         .with_subnet("tdb26-jop6g")
-        .with_subnet_kind(NNS_NODE_SUBNET_KIND_APPLICATION)
+        .with_subnet_kind(SubnetKind::Application)
         .with_data_center("zh1");
 
     assert_eq!(
-        list_request.filters.subnet_kind.as_deref(),
-        Some(NNS_NODE_SUBNET_KIND_APPLICATION)
+        list_request.filters.subnet_kind,
+        Some(SubnetKind::Application)
     );
 
     let node = sample_nns_node_row();
@@ -490,7 +490,7 @@ fn public_nns_node_api_is_constructible_and_renderable() {
     let verbose_text = nns_node_list_report_verbose_text(&list_report);
 
     assert!(list_text.contains("nodes: ic count 1"));
-    assert!(list_text.contains(NNS_NODE_SUBNET_KIND_APPLICATION));
+    assert!(list_text.contains(SubnetKind::Application.as_str()));
     assert!(verbose_text.contains("source_endpoint: https://icp-api.io"));
     assert!(verbose_text.contains("tdb26-jop6g-7sc54-foywl"));
 
@@ -2233,7 +2233,7 @@ fn sample_nns_node_row() -> NnsNodeRow {
         node_operator_principal: "qoctq-giaaa-aaaar-qaada-cai".to_string(),
         node_provider_principal: "w6gnz-6qaaa-aaaar-qaada-cai".to_string(),
         subnet_principal: "tdb26-jop6g-7sc54-foywl".to_string(),
-        subnet_kind: NNS_NODE_SUBNET_KIND_APPLICATION.to_string(),
+        subnet_kind: SubnetKind::Application,
         data_center_id: "zh1".to_string(),
     }
 }

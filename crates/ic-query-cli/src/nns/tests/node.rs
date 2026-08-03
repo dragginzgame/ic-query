@@ -1,5 +1,6 @@
 use super::*;
 use crate::cli::clap::render_help;
+use ic_query::subnet_catalog::SubnetKind;
 
 #[test]
 fn node_list_parses_defaults_and_json_format() {
@@ -40,7 +41,7 @@ fn node_list_parses_defaults_and_json_format() {
     assert_eq!(options.filters.node_provider.as_deref(), Some("7at4h"));
     assert_eq!(options.filters.node_operator.as_deref(), Some("4lp6i"));
     assert_eq!(options.filters.subnet.as_deref(), Some("tdb26"));
-    assert_eq!(options.filters.subnet_kind.as_deref(), Some("system"));
+    assert_eq!(options.filters.subnet_kind, Some(SubnetKind::System));
 }
 
 #[test]
@@ -56,6 +57,34 @@ fn node_info_parses_input_and_json_format() {
     assert_eq!(options.network, MAINNET_NETWORK);
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
+}
+
+#[test]
+fn node_kind_filter_parses_every_registry_kind() {
+    for (value, expected) in [
+        ("application", SubnetKind::Application),
+        ("cloud_engine", SubnetKind::CloudEngine),
+        ("system", SubnetKind::System),
+        ("unknown", SubnetKind::Unknown),
+    ] {
+        let options = parse_test_options(
+            node_list_command(),
+            &["--kind", value],
+            node_list_options_from_matches,
+        )
+        .expect("parse supported Subnet kind");
+
+        assert_eq!(options.filters.subnet_kind, Some(expected));
+    }
+
+    assert!(
+        parse_test_options(
+            node_list_command(),
+            &["--kind", "public"],
+            node_list_options_from_matches,
+        )
+        .is_err()
+    );
 }
 
 #[test]

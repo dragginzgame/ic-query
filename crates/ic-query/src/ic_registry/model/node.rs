@@ -1,3 +1,4 @@
+use crate::subnet_catalog::SubnetKind;
 use serde::Serialize;
 
 ///
@@ -29,6 +30,6 @@ pub struct MainnetNode {
     pub node_operator_principal: String,
     pub node_provider_principal: String,
     pub subnet_principal: String,
-    pub subnet_kind: String,
+    pub subnet_kind: SubnetKind,
     pub data_center_id: String,
 }

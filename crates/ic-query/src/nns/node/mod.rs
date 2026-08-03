@@ -3,10 +3,9 @@
 mod report;
 
 pub use report::{
-    DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION,
-    NNS_NODE_SUBNET_KIND_CLOUD_ENGINE, NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN,
-    NnsNodeInfoReport, NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
-    nns_node_info_report_text, nns_node_list_report_text, nns_node_list_report_verbose_text,
+    DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NnsNodeInfoReport, NnsNodeListFilters, NnsNodeListReport,
+    NnsNodeListRequest, NnsNodeRow, nns_node_info_report_text, nns_node_list_report_text,
+    nns_node_list_report_verbose_text,
 };
 #[cfg(feature = "host")]
 pub use report::{

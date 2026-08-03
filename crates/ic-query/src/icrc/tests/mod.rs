@@ -21,9 +21,9 @@ use super::{
         IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
         IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
         IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcCapabilitiesData,
-        IcrcCapabilityRow, IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexData,
-        IcrcLedgerRequest, IcrcTipCertificateData, IcrcTokenData, IcrcTokenMetadataRow,
-        IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
+        IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcFollowedArchiveBlockRow,
+        IcrcIndexData, IcrcLedgerRequest, IcrcTipCertificateData, IcrcTokenData,
+        IcrcTokenMetadataRow, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
         IcrcTransactionsRequest,
     },
     text::{
@@ -322,14 +322,14 @@ impl IcrcCapabilitiesSource for FixtureIcrcSource {
                 IcrcCapabilityRow {
                     capability: "ICRC-1 supported standards".to_string(),
                     method: "icrc1_supported_standards".to_string(),
-                    status: "available".to_string(),
+                    status: IcrcCapabilityStatus::Available,
                     details: Some("2 standard(s)".to_string()),
                     error: None,
                 },
                 IcrcCapabilityRow {
                     capability: "ICRC-3 tip certificate".to_string(),
                     method: "icrc3_get_tip_certificate".to_string(),
-                    status: "unsupported".to_string(),
+                    status: IcrcCapabilityStatus::Unsupported,
                     details: Some("method not exported by target canister".to_string()),
                     error: Some("Canister has no query method".to_string()),
                 },
@@ -1026,8 +1026,14 @@ fn capabilities_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.supported_standards.len(), 2);
     assert_eq!(report.capabilities.len(), 2);
-    assert_eq!(report.capabilities[0].status, "available");
-    assert_eq!(report.capabilities[1].status, "unsupported");
+    assert_eq!(
+        report.capabilities[0].status,
+        IcrcCapabilityStatus::Available
+    );
+    assert_eq!(
+        report.capabilities[1].status,
+        IcrcCapabilityStatus::Unsupported
+    );
 
     let text = icrc_capabilities_report_text(&report);
     assert!(text.contains("standard_count: 2"));

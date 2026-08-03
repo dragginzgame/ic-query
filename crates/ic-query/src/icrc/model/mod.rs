@@ -20,9 +20,10 @@ pub use contracts::{
     IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
     IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
     IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
-    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
-    IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
+    IcrcIndexReport, IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenMetadataRow,
+    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
+    IcrcTransactionsRequest,
 };
 #[cfg(feature = "host")]
 pub use data::{

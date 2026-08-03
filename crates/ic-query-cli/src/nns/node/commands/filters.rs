@@ -1,8 +1,5 @@
 use crate::cli::clap::value_arg;
-use ic_query::nns::node::{
-    NNS_NODE_SUBNET_KIND_APPLICATION, NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
-    NNS_NODE_SUBNET_KIND_SYSTEM, NNS_NODE_SUBNET_KIND_UNKNOWN,
-};
+use ic_query::subnet_catalog::SubnetKind;
 
 pub(in crate::nns::node) const SUBNET_FILTER_ARG: &str = "subnet";
 pub(in crate::nns::node) const SUBNET_KIND_FILTER_ARG: &str = "kind";
@@ -22,10 +19,10 @@ pub(super) fn subnet_kind_filter_arg() -> clap::Arg {
         .long(SUBNET_KIND_FILTER_ARG)
         .value_name("application|cloud_engine|system|unknown")
         .value_parser([
-            NNS_NODE_SUBNET_KIND_APPLICATION,
-            NNS_NODE_SUBNET_KIND_CLOUD_ENGINE,
-            NNS_NODE_SUBNET_KIND_SYSTEM,
-            NNS_NODE_SUBNET_KIND_UNKNOWN,
+            SubnetKind::Application.as_str(),
+            SubnetKind::CloudEngine.as_str(),
+            SubnetKind::System.as_str(),
+            SubnetKind::Unknown.as_str(),
         ])
         .help("Show only nodes assigned to subnets of this kind")
 }

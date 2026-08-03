@@ -1,6 +1,7 @@
 use crate::nns::NnsInventoryCacheRequest;
 #[cfg(feature = "host")]
 use crate::nns::inventory::NnsInventoryListInput;
+use crate::subnet_catalog::SubnetKind;
 
 ///
 /// NnsNodeListRequest
@@ -44,8 +45,8 @@ impl NnsNodeListRequest {
     }
 
     #[must_use]
-    pub fn with_subnet_kind(mut self, subnet_kind: impl Into<String>) -> Self {
-        self.filters.subnet_kind = Some(subnet_kind.into());
+    pub const fn with_subnet_kind(mut self, subnet_kind: SubnetKind) -> Self {
+        self.filters.subnet_kind = Some(subnet_kind);
         self
     }
 
@@ -92,7 +93,7 @@ impl NnsInventoryListInput for NnsNodeListRequest {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct NnsNodeListFilters {
     pub subnet: Option<String>,
-    pub subnet_kind: Option<String>,
+    pub subnet_kind: Option<SubnetKind>,
     pub data_center: Option<String>,
     pub node_provider: Option<String>,
     pub node_operator: Option<String>,

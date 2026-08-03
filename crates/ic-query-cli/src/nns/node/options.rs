@@ -8,6 +8,7 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::nns::node::NnsNodeListFilters;
+use ic_query::subnet_catalog::SubnetKind;
 
 ///
 /// NnsNodeListOptions
@@ -36,10 +37,18 @@ pub(in crate::nns) fn node_list_options_from_matches(
         verbose: matches.get_flag("verbose"),
         filters: NnsNodeListFilters {
             subnet: typed_option(matches, SUBNET_FILTER_ARG),
-            subnet_kind: typed_option(matches, SUBNET_KIND_FILTER_ARG),
+            subnet_kind: subnet_kind_option(matches),
             data_center: typed_option(matches, DATA_CENTER_FILTER_ARG),
             node_provider: typed_option(matches, NODE_PROVIDER_FILTER_ARG),
             node_operator: typed_option(matches, NODE_OPERATOR_FILTER_ARG),
         },
     }
+}
+
+fn subnet_kind_option(matches: &ArgMatches) -> Option<SubnetKind> {
+    typed_option::<String>(matches, SUBNET_KIND_FILTER_ARG).map(|value| {
+        value
+            .parse()
+            .expect("Clap restricts the Subnet kind to supported values")
+    })
 }

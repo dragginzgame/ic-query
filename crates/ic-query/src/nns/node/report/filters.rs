@@ -22,8 +22,7 @@ fn node_matches_filters(node: &NnsNodeRow, filters: &NnsNodeListFilters) -> bool
         .is_none_or(|filter| principal_filter_matches(&node.subnet_principal, filter))
         && filters
             .subnet_kind
-            .as_deref()
-            .is_none_or(|filter| text_filter_equals(&node.subnet_kind, filter))
+            .is_none_or(|filter| node.subnet_kind == filter)
         && filters
             .data_center
             .as_deref()
@@ -55,13 +54,6 @@ fn text_filter_starts_with(value: &str, filter: &str) -> bool {
     value
         .to_ascii_lowercase()
         .starts_with(&filter.to_ascii_lowercase())
-}
-
-fn text_filter_equals(value: &str, filter: &str) -> bool {
-    let Some(filter) = non_empty_filter(filter) else {
-        return false;
-    };
-    value.eq_ignore_ascii_case(filter)
 }
 
 fn non_empty_filter(filter: &str) -> Option<&str> {

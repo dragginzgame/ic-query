@@ -18,7 +18,7 @@ pub use account_history::{
 pub use ledger::{
     IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
     IcrcArchivesReport, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
-    IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcTipCertificateReport,
-    IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow,
-    IcrcTransactionsReport,
+    IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
+    IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
+    IcrcTransactionBlockRow, IcrcTransactionsReport,
 };

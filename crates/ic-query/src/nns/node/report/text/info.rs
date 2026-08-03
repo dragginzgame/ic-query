@@ -18,7 +18,7 @@ pub fn nns_node_info_report_text(report: &NnsNodeInfoReport) -> String {
             report.node_provider_principal
         ),
         format!("subnet_principal: {}", report.subnet_principal),
-        format!("subnet_kind: {}", sanitize_text(&report.subnet_kind)),
+        format!("subnet_kind: {}", report.subnet_kind.as_str()),
         format!(
             "data_center_id: {}",
             text_or_dash(Some(&report.data_center_id))

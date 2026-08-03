@@ -151,9 +151,38 @@ pub struct IcrcCapabilitiesReport {
 pub struct IcrcCapabilityRow {
     pub capability: String,
     pub method: String,
-    pub status: String,
+    pub status: IcrcCapabilityStatus,
     pub details: Option<String>,
     pub error: Option<String>,
+}
+
+///
+/// IcrcCapabilityStatus
+///
+/// Result of probing one optional ICRC ledger capability.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IcrcCapabilityStatus {
+    /// The target answered the capability query successfully.
+    Available,
+    /// The target does not export the probed query method.
+    Unsupported,
+    /// The target exports the method but the query failed.
+    Error,
+}
+
+impl IcrcCapabilityStatus {
+    /// Return the stable JSON and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Available => "available",
+            Self::Unsupported => "unsupported",
+            Self::Error => "error",
+        }
+    }
 }
 
 ///
@@ -238,6 +267,26 @@ pub struct IcrcFollowedArchiveBlockRow {
     pub timestamp_unix_nanos: Option<String>,
     pub amount_base_units: Option<String>,
     pub raw_block: JsonValue,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn capability_status_labels_are_stable() {
+        for (status, label) in [
+            (IcrcCapabilityStatus::Available, "available"),
+            (IcrcCapabilityStatus::Unsupported, "unsupported"),
+            (IcrcCapabilityStatus::Error, "error"),
+        ] {
+            assert_eq!(
+                serde_json::to_string(&status).unwrap(),
+                format!("\"{label}\"")
+            );
+            assert_eq!(status.as_str(), label);
+        }
+    }
 }
 
 ///

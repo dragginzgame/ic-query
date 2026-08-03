@@ -38,6 +38,6 @@ fn node_list_follows_nodes_to_subnets_operators_and_providers() {
     assert_eq!(list.nodes[0].node_operator_principal, operator);
     assert_eq!(list.nodes[0].node_provider_principal, provider);
     assert_eq!(list.nodes[0].subnet_principal, subnet);
-    assert_eq!(list.nodes[0].subnet_kind, "application");
+    assert_eq!(list.nodes[0].subnet_kind, SubnetKind::Application);
     assert_eq!(list.nodes[0].data_center_id, "dc-a");
 }

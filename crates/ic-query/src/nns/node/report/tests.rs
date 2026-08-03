@@ -5,7 +5,7 @@ use super::{
 };
 use crate::ic_registry::MainnetNode;
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
+use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind};
 use crate::test_support::temp_dir;
 
 #[test]
@@ -68,6 +68,17 @@ fn node_text_keeps_compact_principals() {
 }
 
 #[test]
+fn node_report_subnet_kind_keeps_the_existing_cache_label() {
+    let report = node_report_fixture();
+    let json = serde_json::to_value(&report).expect("serialize node report");
+
+    assert_eq!(json["nodes"][0]["subnet_kind"], "application");
+
+    let decoded: NnsNodeListReport = serde_json::from_value(json).expect("deserialize node report");
+    assert_eq!(decoded.nodes[0].subnet_kind, SubnetKind::Application);
+}
+
+#[test]
 fn node_info_resolves_unique_prefix() {
     let report = node_report_fixture();
 
@@ -87,7 +98,7 @@ fn node_list_filters_by_related_prefixes() {
         node_provider_principal: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         subnet_principal: "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe"
             .to_string(),
-        subnet_kind: "system".to_string(),
+        subnet_kind: SubnetKind::System,
         data_center_id: "dc2".to_string(),
     });
 
@@ -95,7 +106,7 @@ fn node_list_filters_by_related_prefixes() {
         report,
         &NnsNodeListFilters {
             subnet: Some("pzp6e".to_string()),
-            subnet_kind: Some("application".to_string()),
+            subnet_kind: Some(SubnetKind::Application),
             data_center: Some("dc".to_string()),
             node_provider: Some("rwlgt".to_string()),
             node_operator: Some("aaaaa-aa".to_string()),
@@ -125,7 +136,7 @@ fn node_report_fixture() -> NnsNodeListReport {
             node_provider_principal: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
             subnet_principal: "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
                 .to_string(),
-            subnet_kind: "application".to_string(),
+            subnet_kind: SubnetKind::Application,
             data_center_id: "dc1".to_string(),
         }],
     }
@@ -138,7 +149,7 @@ fn node_fixture() -> MainnetNode {
         node_provider_principal: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         subnet_principal: "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
             .to_string(),
-        subnet_kind: "application".to_string(),
+        subnet_kind: SubnetKind::Application,
         data_center_id: "dc1".to_string(),
     }
 }
@@ -167,7 +178,7 @@ impl NnsNodeSource for FixtureNodeSource {
                 node_operator_principal: node.node_operator_principal.clone(),
                 node_provider_principal: node.node_provider_principal.clone(),
                 subnet_principal: node.subnet_principal.clone(),
-                subnet_kind: node.subnet_kind.clone(),
+                subnet_kind: node.subnet_kind,
                 data_center_id: node.data_center_id.clone(),
             })
             .collect::<Vec<_>>();

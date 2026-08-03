@@ -32,7 +32,7 @@ pub fn nns_node_list_report_text(report: &NnsNodeListReport) -> String {
                 compact_text(&node.node_operator_principal, COMPACT_PRINCIPAL_CHARS),
                 compact_text(&node.node_provider_principal, COMPACT_PRINCIPAL_CHARS),
                 compact_text(&node.subnet_principal, COMPACT_PRINCIPAL_CHARS),
-                node.subnet_kind.clone(),
+                node.subnet_kind.as_str().to_string(),
                 text_or_dash(Some(&node.data_center_id)),
             ]
         })
@@ -80,7 +80,7 @@ pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
                 node.node_operator_principal.clone(),
                 node.node_provider_principal.clone(),
                 node.subnet_principal.clone(),
-                node.subnet_kind.clone(),
+                node.subnet_kind.as_str().to_string(),
                 text_or_dash(Some(&node.data_center_id)),
                 report.registry_version.to_string(),
                 report.fetched_at.clone(),

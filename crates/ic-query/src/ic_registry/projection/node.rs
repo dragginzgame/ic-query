@@ -69,9 +69,7 @@ fn node_from_relation(
         node_operator_principal: relation.node_operator_principal,
         node_provider_principal: relation.node_provider_principal,
         subnet_principal: subnet_principal.clone(),
-        subnet_kind: subnet_kind_from_registry(subnet_record.subnet_type)
-            .as_str()
-            .to_string(),
+        subnet_kind: subnet_kind_from_registry(subnet_record.subnet_type),
         data_center_id: relation.data_center_id,
     })
 }

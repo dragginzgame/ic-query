@@ -1,6 +1,6 @@
 use crate::{
     nns::node::{NnsNodeListReport, NnsNodeRefreshReport, NnsNodeRow},
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind},
 };
 
 pub(in crate::nns::topology::report::tests) fn node_refresh_report_fixture() -> NnsNodeRefreshReport
@@ -43,9 +43,27 @@ pub(in crate::nns::topology::report::tests) fn node_report_fixture() -> NnsNodeL
         fetched_by: "test".to_string(),
         node_count: 3,
         nodes: vec![
-            node_row("node-a", "operator-a", "provider-a", "dc1", "application"),
-            node_row("node-b", "operator-a", "provider-a", "dc1", "application"),
-            node_row("node-c", "operator-z", "provider-z", "dc-z", "system"),
+            node_row(
+                "node-a",
+                "operator-a",
+                "provider-a",
+                "dc1",
+                SubnetKind::Application,
+            ),
+            node_row(
+                "node-b",
+                "operator-a",
+                "provider-a",
+                "dc1",
+                SubnetKind::Application,
+            ),
+            node_row(
+                "node-c",
+                "operator-z",
+                "provider-z",
+                "dc-z",
+                SubnetKind::System,
+            ),
         ],
     }
 }
@@ -55,14 +73,14 @@ fn node_row(
     node_operator_principal: &str,
     node_provider_principal: &str,
     data_center_id: &str,
-    subnet_kind: &str,
+    subnet_kind: SubnetKind,
 ) -> NnsNodeRow {
     NnsNodeRow {
         node_principal: node_principal.to_string(),
         node_operator_principal: node_operator_principal.to_string(),
         node_provider_principal: node_provider_principal.to_string(),
         subnet_principal: "subnet-a".to_string(),
-        subnet_kind: subnet_kind.to_string(),
+        subnet_kind,
         data_center_id: data_center_id.to_string(),
     }
 }
