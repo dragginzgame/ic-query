@@ -12,6 +12,67 @@ use std::path::PathBuf;
 pub const CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 2;
 
 ///
+/// CacheFileStatus
+///
+/// Generic freshness or validity classification for one complete cache file.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheFileStatus {
+    /// The cache is within its registered family stale threshold.
+    Fresh,
+    /// The cache is older than its registered family stale threshold.
+    Stale,
+    /// The cache has a readable age but no registered family stale threshold.
+    Unmanaged,
+    /// The generic cache header or timestamp is unreadable or invalid.
+    Invalid,
+}
+
+impl CacheFileStatus {
+    /// Return the stable serialized status label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Fresh => "fresh",
+            Self::Stale => "stale",
+            Self::Unmanaged => "unmanaged",
+            Self::Invalid => "invalid",
+        }
+    }
+}
+
+///
+/// CacheRefreshLockStatus
+///
+/// Generic age or validity classification for one refresh lock.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheRefreshLockStatus {
+    /// The lock is within the stale threshold recorded by its owner.
+    Active,
+    /// The lock is older than the stale threshold recorded by its owner.
+    Stale,
+    /// The lock is unreadable, malformed, or future-dated.
+    Invalid,
+}
+
+impl CacheRefreshLockStatus {
+    /// Return the stable serialized status label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Stale => "stale",
+            Self::Invalid => "invalid",
+        }
+    }
+}
+
+///
 /// CacheStatusRequest
 ///
 /// Local cache-root inspection request with a caller-supplied observation time.
@@ -98,8 +159,8 @@ pub struct CacheStatusRow {
     pub cache_path: String,
     /// Cache-root-relative path.
     pub relative_path: String,
-    /// Generic status: `fresh`, `stale`, `unmanaged`, or `invalid`.
-    pub status: String,
+    /// Generic freshness or validity classification.
+    pub status: CacheFileStatus,
     /// Serialized cache schema version when readable.
     pub schema_version: Option<u32>,
     /// Serialized network identity when present.
@@ -130,8 +191,8 @@ pub struct CacheRefreshLockStatusRow {
     pub refresh_lock_path: String,
     /// Cache-root-relative refresh-lock path.
     pub relative_path: String,
-    /// Generic lock status: `active`, `stale`, or `invalid`.
-    pub status: String,
+    /// Generic lock age or validity classification.
+    pub status: CacheRefreshLockStatus,
     /// Serialized refresh-lock schema version when readable.
     pub schema_version: Option<u32>,
     /// Serialized network identity when readable.
@@ -152,4 +213,36 @@ pub struct CacheRefreshLockStatusRow {
     pub size_bytes: u64,
     /// Lock parse, shape, or timestamp error.
     pub error: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn typed_statuses_keep_the_existing_json_labels() {
+        for (status, expected) in [
+            (CacheFileStatus::Fresh, "fresh"),
+            (CacheFileStatus::Stale, "stale"),
+            (CacheFileStatus::Unmanaged, "unmanaged"),
+            (CacheFileStatus::Invalid, "invalid"),
+        ] {
+            assert_eq!(status.as_str(), expected);
+            assert_eq!(
+                serde_json::to_value(status).expect("serialize cache status"),
+                serde_json::json!(expected)
+            );
+        }
+        for (status, expected) in [
+            (CacheRefreshLockStatus::Active, "active"),
+            (CacheRefreshLockStatus::Stale, "stale"),
+            (CacheRefreshLockStatus::Invalid, "invalid"),
+        ] {
+            assert_eq!(status.as_str(), expected);
+            assert_eq!(
+                serde_json::to_value(status).expect("serialize refresh-lock status"),
+                serde_json::json!(expected)
+            );
+        }
+    }
 }

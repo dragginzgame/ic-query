@@ -451,7 +451,8 @@ fn render_cache_status(
 ```
 
 This inventory is bounded and local-only. It reports generic cache age and
-file evidence plus self-described refresh-lock state; it does not probe lock
+file evidence plus self-described refresh-lock state through typed
+`CacheFileStatus` and `CacheRefreshLockStatus` values; it does not probe lock
 processes or mutate local files. Family-specific loaders remain authoritative
 for semantic cache validation.
 

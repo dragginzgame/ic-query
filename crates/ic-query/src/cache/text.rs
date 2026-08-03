@@ -52,7 +52,7 @@ fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
                 .iter()
                 .map(|row| {
                     [
-                        row.status.clone(),
+                        row.status.as_str().to_string(),
                         row.component.clone(),
                         row.age_seconds
                             .map_or_else(|| "-".to_string(), display_duration_seconds),
@@ -93,7 +93,7 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
                 .iter()
                 .map(|row| {
                     [
-                        row.status.clone(),
+                        row.status.as_str().to_string(),
                         row.component.clone(),
                         row.age_seconds
                             .map_or_else(|| "-".to_string(), display_duration_seconds),
