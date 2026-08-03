@@ -12,7 +12,6 @@ mod canisters;
 mod governance;
 mod list;
 mod metrics;
-#[cfg(feature = "host")]
 mod neurons;
 mod params;
 mod proposals;
@@ -29,14 +28,30 @@ pub use canisters::{
     SnsCanisterStatus,
 };
 pub use governance::{
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsNeuronPermissionList,
-    SnsVotingRewardsParameters,
+    SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
+    SnsGovernanceParameters, SnsNeuronPermissionList, SnsVotingRewardsParameters,
 };
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
 pub use metrics::{SnsMetricsReport, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
-#[cfg(feature = "host")]
 pub use neurons::{
-    SnsNeuronDissolveState, SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsReport,
+    SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
+    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
+    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus,
+    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
+    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
+    SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport,
+    SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, sns_neuron_permission_name,
+    validate_sns_reward_checkpoint_report,
+};
+#[cfg(feature = "host")]
+pub use neurons::{SnsNeuronsRefreshReport, SnsNeuronsReport};
+pub(in crate::sns::report) use neurons::{
+    SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
+};
+#[cfg(feature = "host")]
+pub(in crate::sns::report) use neurons::{
+    validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
+    validate_sns_reward_running_version_evidence,
 };
 pub use params::SnsParamsReport;
 #[cfg(feature = "host")]
@@ -56,4 +71,6 @@ pub use swap::{
     SnsSwapSaleParameters,
 };
 pub use token::{SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow};
-pub use upgrade::{SnsPendingUpgrade, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion};
+pub use upgrade::{
+    SnsPendingUpgrade, SnsRunningVersionResponse, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
+};

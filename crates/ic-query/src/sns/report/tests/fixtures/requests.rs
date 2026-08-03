@@ -1,3 +1,4 @@
+use super::NEURON_A;
 use crate::sns::report::tests::*;
 use std::path::Path;
 
@@ -120,6 +121,27 @@ pub(in crate::sns::report::tests) fn neurons_request(input: &str) -> SnsNeuronsR
         cache_root: None,
         verbose: false,
     }
+}
+
+pub(in crate::sns::report::tests) fn neuron_request(input: &str) -> SnsNeuronRequest {
+    SnsNeuronRequest {
+        network: MAINNET_NETWORK.to_string(),
+        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: 1_780_531_200,
+        input: input.to_string(),
+        neuron_id: NEURON_A.to_string(),
+    }
+}
+
+pub(in crate::sns::report::tests) fn reward_checkpoint_request(
+    input: &str,
+) -> SnsRewardCheckpointRequest {
+    SnsRewardCheckpointRequest::new(
+        MAINNET_NETWORK,
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        1_780_531_200,
+        input,
+    )
 }
 
 pub(in crate::sns::report::tests) fn sns_neurons_refresh_request(

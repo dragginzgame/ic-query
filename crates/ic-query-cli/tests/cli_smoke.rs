@@ -436,6 +436,30 @@ fn binary_sns_canister_list_help_smoke() {
 }
 
 #[test]
+fn binary_sns_reward_checkpoint_help_smoke() {
+    let output = run_icq(&["sns", "reward", "checkpoint", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq sns reward checkpoint [OPTIONS] <id|root-principal>"));
+    assert!(stdout.contains("--max-pages <count>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("N + 8 client queries"));
+}
+
+#[test]
+fn binary_sns_reward_diff_help_is_local_only() {
+    let output = run_icq(&["sns", "reward", "diff", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq sns reward diff [OPTIONS] <before.json> <after.json>"));
+    assert!(stdout.contains("Local-only file inspection"));
+    assert!(stdout.contains("--json"));
+    assert!(!stdout.contains("--source-endpoint"));
+}
+
+#[test]
 fn binary_nns_topology_help_smoke() {
     let output = run_icq(&["help", "nns", "topology"]);
 

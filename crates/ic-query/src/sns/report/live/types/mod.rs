@@ -8,6 +8,7 @@ mod canisters;
 mod deployed;
 mod metrics;
 mod neurons;
+mod params;
 mod proposals;
 mod swap;
 mod upgrade;
@@ -22,12 +23,21 @@ pub(in crate::sns::report::live) use deployed::{
     DeployedSns, GetMetadataRequest, GetMetadataResponse, ListDeployedSnsesRequest,
     ListDeployedSnsesResponse,
 };
+#[cfg(test)]
+pub(in crate::sns::report::live) use metrics::SnsMetricsSubaccount;
 pub(in crate::sns::report::live) use metrics::{
-    GetMetricsRequest, GetMetricsResponse, GetMetricsResult, MetricsWire, TreasuryMetricsWire,
-    VotingPowerMetricsWire,
+    GetMetricsRequest, GetMetricsResponse, GetMetricsResult, MetricsWire, SnsMetricsAccount,
+    TreasuryMetricsWire, VotingPowerMetricsWire,
 };
 pub(in crate::sns::report::live) use neurons::{
-    ListNeuronsRequest, ListNeuronsResponse, SnsGovernanceDissolveState, SnsGovernanceNeuron,
+    GetNeuronRequest, GetNeuronResponse, GetNeuronResult, ListNeuronsRequest, ListNeuronsResponse,
+    ListRewardNeuronsResponse, SnsGovernanceDissolveState, SnsGovernanceFollowee,
+    SnsGovernanceFollowees, SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement,
+    SnsGovernanceNeuron, SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission,
+    SnsGovernanceRewardNeuron, SnsGovernanceTopicFollowees,
+};
+pub(in crate::sns::report::live) use params::{
+    SnsDefaultFolloweesWire, SnsGovernanceParametersWire,
 };
 pub(in crate::sns::report::live) use proposals::{
     GetProposalRequest, GetProposalResponse, GetProposalResult, ListProposalsRequest,

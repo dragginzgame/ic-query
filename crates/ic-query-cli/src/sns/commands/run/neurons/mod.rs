@@ -11,24 +11,41 @@ use crate::{
     cli::common::write_text_or_json,
     sns::commands::{
         SnsCommandError,
-        options::SnsNeuronsOptions,
+        options::{SnsNeuronOptions, SnsNeuronsOptions},
         run::common::{command_cache_root, lookup_command_parts},
         spec::SnsNeuronsSortArg,
     },
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsNeuronsRequest, SnsNeuronsSort, build_sns_neurons_report, sns_neurons_report_text,
+    SnsNeuronRequest, SnsNeuronsRequest, SnsNeuronsSort, build_sns_neuron_detail_report,
+    build_sns_neurons_report, sns_neuron_detail_report_text, sns_neurons_report_text,
 };
 use std::path::PathBuf;
 
 pub(super) fn run_sns_neuron(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_neuron_list(matches, network),
+        Some(("info", matches)) => run_sns_neuron_info(matches, network),
         Some(("refresh", matches)) => refresh::run_sns_neuron_refresh(matches, network),
         Some(("cache", matches)) => cache::run_sns_neuron_cache(matches, network),
         _ => unreachable!("clap requires a known SNS neuron subcommand"),
     }
+}
+
+fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    let options = SnsNeuronOptions::from_matches(matches, network);
+    let parts = lookup_command_parts(options.lookup)?;
+    let format = parts.format;
+    let request = SnsNeuronRequest {
+        network: parts.network,
+        source_endpoint: parts.source_endpoint,
+        now_unix_secs: parts.now_unix_secs,
+        input: parts.input,
+        neuron_id: options.neuron_id,
+    };
+    let report = build_sns_neuron_detail_report(&request)?;
+    write_text_or_json(format, &report, sns_neuron_detail_report_text)
 }
 
 fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {

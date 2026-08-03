@@ -7,10 +7,19 @@
 use crate::{
     hex::hex_bytes,
     sns::report::{
-        SnsPendingUpgrade, SnsVersion,
-        live::types::{PendingSnsVersion, SnsVersionWire},
+        SnsPendingUpgrade, SnsRunningVersionResponse, SnsVersion,
+        live::types::{GetRunningSnsVersionResponse, PendingSnsVersion, SnsVersionWire},
     },
 };
+
+pub(in crate::sns::report::live) fn sns_running_version_response(
+    response: GetRunningSnsVersionResponse,
+) -> SnsRunningVersionResponse {
+    SnsRunningVersionResponse {
+        deployed_version: response.deployed_version.map(sns_version),
+        pending_version: response.pending_version.map(sns_pending_upgrade),
+    }
+}
 
 pub(in crate::sns::report::live) fn sns_version(version: SnsVersionWire) -> SnsVersion {
     SnsVersion {

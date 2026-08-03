@@ -6,10 +6,11 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
-    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
-    MainnetSnsToken, MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError, SnsNeuronId,
-    SnsProposalTopicFilter, SnsSourceRequest,
+    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron, MainnetSnsNeuronPage,
+    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter, SnsRewardEvent,
+    SnsRunningVersionResponse, SnsSourceRequest,
 };
 
 ///
@@ -49,6 +50,22 @@ pub trait SnsCanisterSource: SnsDiscoverySource {
 }
 
 ///
+/// SnsNeuronSource
+///
+/// Source contract for fetching one exact full SNS neuron detail.
+///
+
+pub trait SnsNeuronSource: SnsDiscoverySource {
+    /// Fetch exactly one full native SNS Governance neuron.
+    fn fetch_sns_neuron(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        neuron_id: &str,
+    ) -> Result<MainnetSnsNeuron, SnsHostError>;
+}
+
+///
 /// SnsNeuronsSource
 ///
 /// Source contract for fetching bounded and paged SNS neuron data.
@@ -73,6 +90,44 @@ pub trait SnsNeuronsSource: SnsDiscoverySource {
         start_page_at: Option<&SnsNeuronId>,
         owner_principal_id: Option<&str>,
     ) -> Result<MainnetSnsNeuronPage, SnsHostError>;
+}
+
+///
+/// SnsRewardSource
+///
+/// Source contract for bracketed API-exhausted SNS reward checkpoint collection.
+///
+
+pub trait SnsRewardSource: SnsDiscoverySource {
+    /// Fetch the complete native running-version response for one bracket position.
+    fn fetch_sns_reward_running_version(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<SnsRunningVersionResponse, SnsHostError>;
+
+    /// Fetch the complete native nervous-system parameters for one bracket position.
+    fn fetch_sns_reward_parameters(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<SnsGovernanceParameters, SnsHostError>;
+
+    /// Fetch the complete latest reward event for one bracket position.
+    fn fetch_sns_reward_event(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+    ) -> Result<SnsRewardEvent, SnsHostError>;
+
+    /// Fetch one strict full-evidence neuron page using an exclusive native cursor.
+    fn fetch_sns_reward_neuron_page(
+        &self,
+        request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        limit: u32,
+        start_page_at: Option<&SnsNeuronId>,
+    ) -> Result<MainnetSnsRewardNeuronPage, SnsHostError>;
 }
 
 ///

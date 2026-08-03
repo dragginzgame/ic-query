@@ -1,20 +1,23 @@
 use super::{
     error::SnsCommandError,
     options::{
-        SnsListOptions, SnsLookupOptions, SnsMetricsOptions, SnsNeuronsCacheListOptions,
-        SnsNeuronsCacheStatusOptions, SnsNeuronsOptions, SnsNeuronsRefreshOptions,
-        SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
-        SnsProposalsOptions, SnsProposalsRefreshOptions,
+        SnsListOptions, SnsLookupOptions, SnsMetricsOptions, SnsNeuronOptions,
+        SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions,
+        SnsNeuronsRefreshOptions, SnsProposalOptions, SnsProposalsCacheListOptions,
+        SnsProposalsCacheStatusOptions, SnsProposalsOptions, SnsProposalsRefreshOptions,
+        SnsRewardCheckpointOptions, SnsRewardDiffOptions,
     },
     spec::{
         SnsListSortArg, SnsNeuronsSortArg, SnsProposalEligibilityArg, SnsProposalStatusArg,
         SnsProposalTopicArg, SnsProposalsSortArg, sns_canister_command, sns_canister_list_command,
         sns_command, sns_info_command, sns_list_command, sns_metrics_command,
         sns_neuron_cache_command, sns_neuron_cache_list_command, sns_neuron_cache_status_command,
-        sns_neuron_command, sns_neuron_list_command, sns_neuron_refresh_command,
-        sns_params_command, sns_proposal_cache_list_command, sns_proposal_cache_status_command,
-        sns_proposal_command, sns_proposal_info_command, sns_proposal_list_command,
-        sns_proposal_refresh_command, sns_swap_command, sns_token_command, sns_upgrade_command,
+        sns_neuron_command, sns_neuron_info_command, sns_neuron_list_command,
+        sns_neuron_refresh_command, sns_params_command, sns_proposal_cache_list_command,
+        sns_proposal_cache_status_command, sns_proposal_command, sns_proposal_info_command,
+        sns_proposal_list_command, sns_proposal_refresh_command, sns_reward_checkpoint_command,
+        sns_reward_command, sns_reward_diff_command, sns_swap_command, sns_token_command,
+        sns_upgrade_command,
     },
 };
 use crate::{cli::clap::parse_matches, cli::common::OutputFormat};
@@ -51,4 +54,5 @@ mod list;
 mod lookup;
 mod neurons;
 mod proposals;
+mod reward;
 mod usage;

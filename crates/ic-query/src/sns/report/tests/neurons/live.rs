@@ -47,7 +47,7 @@ fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert_eq!(report.requested_limit, 10);
     assert_eq!(report.owner_principal_id.as_deref(), Some(GOVERNANCE_A));
     assert_eq!(report.neuron_count, 1);
-    assert_eq!(report.neurons[0].neuron_id, "0001020304");
+    assert_eq!(report.neurons[0].neuron_id, NEURON_A);
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 123);
     assert_eq!(report.neurons[0].maturity_e8s_equivalent, 456);
     assert_eq!(report.neurons[0].staked_maturity_e8s_equivalent, Some(789));
@@ -69,7 +69,7 @@ fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert!(text.contains("requested_limit: 10"));
     assert!(text.contains("owner_principal_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
     assert!(text.contains("00010203"));
-    assert!(!text.contains("0001020304"));
+    assert!(!text.contains(NEURON_A));
     assert!(text.contains("STAKE"));
     assert!(text.contains("MATURITY"));
     assert!(text.contains("STAKED_MATURITY"));
@@ -119,5 +119,5 @@ fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
 
     assert!(report.verbose);
     assert!(text.contains("verbose: yes"));
-    assert!(text.contains("0001020304"));
+    assert!(text.contains(NEURON_A));
 }

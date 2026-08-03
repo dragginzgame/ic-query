@@ -9,6 +9,7 @@ mod canisters;
 mod lookup;
 mod neurons;
 mod proposals;
+mod reward;
 
 use crate::{
     cli::{
@@ -31,7 +32,7 @@ pub(in crate::sns::commands) use neurons::sns_neuron_command;
 #[cfg(test)]
 pub(in crate::sns::commands) use neurons::{
     sns_neuron_cache_command, sns_neuron_cache_list_command, sns_neuron_cache_status_command,
-    sns_neuron_list_command, sns_neuron_refresh_command,
+    sns_neuron_info_command, sns_neuron_list_command, sns_neuron_refresh_command,
 };
 pub(in crate::sns::commands) use proposals::sns_proposal_command;
 #[cfg(test)]
@@ -39,6 +40,9 @@ pub(in crate::sns::commands) use proposals::{
     sns_proposal_cache_list_command, sns_proposal_cache_status_command, sns_proposal_info_command,
     sns_proposal_list_command, sns_proposal_refresh_command,
 };
+pub(in crate::sns::commands) use reward::sns_reward_command;
+#[cfg(test)]
+pub(in crate::sns::commands) use reward::{sns_reward_checkpoint_command, sns_reward_diff_command};
 
 const SNS_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -63,6 +67,7 @@ pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
         .subcommand(sns_canister_command())
         .subcommand(sns_proposal_command())
         .subcommand(sns_neuron_command())
+        .subcommand(sns_reward_command())
 }
 
 pub(in crate::sns::commands) fn sns_list_command() -> ClapCommand {

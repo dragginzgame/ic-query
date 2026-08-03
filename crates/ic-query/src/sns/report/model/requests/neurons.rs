@@ -8,6 +8,46 @@ use crate::sns::report::SnsNeuronsSort;
 use std::path::PathBuf;
 
 ///
+/// SnsNeuronRequest
+///
+/// Request accepted by the exact SNS neuron detail report builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnsNeuronRequest {
+    /// Requested IC network identity.
+    pub network: String,
+    /// Explicit IC API endpoint used for live calls.
+    pub source_endpoint: String,
+    /// Collection timestamp supplied by the caller.
+    pub now_unix_secs: u64,
+    /// SNS list id or Root canister principal.
+    pub input: String,
+    /// Exact 32-byte neuron id encoded as 64 lowercase hexadecimal characters.
+    pub neuron_id: String,
+}
+
+impl SnsNeuronRequest {
+    /// Construct one exact SNS neuron detail request.
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        input: impl Into<String>,
+        neuron_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            input: input.into(),
+            neuron_id: neuron_id.into(),
+        }
+    }
+}
+
+///
 /// SnsNeuronsRequest
 ///
 /// Request accepted by the SNS neuron listing report builder.

@@ -31,7 +31,7 @@ icq icrc account transaction --help
 | [0.23 Bounded SNS Completeness](design/0.23/0.23-design.md) | Targeted discovery hard cut plus bounded native swap and upgrade evidence |
 | [0.24 Bounded SNS Governance Metrics](design/0.24/0.24-design.md) | Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp evidence |
 | [0.25 Fuller Fixed-Size SNS Neuron Evidence](design/0.25/0.25-design.md) | Native scalar neuron state with unchanged call and collection bounds |
-| [0.26 SNS Maturity Reward Evidence](design/0.26/0.26-design.md) | Planned neuron permission detail, reward-round checkpoints, policy audits, and local maturity deltas |
+| [0.26 SNS Maturity Reward Evidence](design/0.26/0.26-design.md) | Exact neuron permission detail, bracketed reward checkpoints, and pure local reward-event reconciliation |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
 | [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |

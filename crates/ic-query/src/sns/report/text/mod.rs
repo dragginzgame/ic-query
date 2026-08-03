@@ -9,10 +9,13 @@ mod common;
 mod info;
 mod list;
 mod metrics;
+mod neuron;
 #[cfg(feature = "host")]
 mod neurons;
 mod params;
 mod proposals;
+mod reward;
+mod reward_diff;
 mod swap;
 mod token;
 mod upgrade;
@@ -23,6 +26,7 @@ pub(super) use common::optional_e8s_decimal_text;
 pub use info::sns_info_report_text;
 pub use list::sns_list_report_text;
 pub use metrics::sns_metrics_report_text;
+pub use neuron::sns_neuron_detail_report_text;
 #[cfg(feature = "host")]
 pub use neurons::{
     sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
@@ -35,6 +39,8 @@ pub use proposals::{
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
     sns_proposals_refresh_report_text,
 };
+pub use reward::sns_reward_checkpoint_report_text;
+pub use reward_diff::sns_reward_diff_report_text;
 pub use swap::sns_swap_report_text;
 pub use token::sns_token_report_text;
 pub use upgrade::sns_upgrade_report_text;

@@ -4,7 +4,7 @@
 //! Does not own: Governance or SNS-W calls, source validation, lookup, or rendering.
 //! Boundary: preserves native deployed, pending, and next blessed SNS versions.
 
-use serde::Serialize;
+use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
 /// SnsVersion
@@ -12,7 +12,8 @@ use serde::Serialize;
 /// Native six-role SNS Wasm version represented as lowercase hexadecimal hashes.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnsVersion {
     /// Archive Wasm hash.
     pub archive_wasm_hash_hex: String,
@@ -34,7 +35,8 @@ pub struct SnsVersion {
 /// Native pending-upgrade state reported by SNS Governance.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnsPendingUpgrade {
     /// Native deadline after which Governance may mark the upgrade failed.
     pub mark_failed_at_seconds: u64,
@@ -44,6 +46,21 @@ pub struct SnsPendingUpgrade {
     pub proposal_id: u64,
     /// Pending target version, when Governance returned it.
     pub target_version: Option<SnsVersion>,
+}
+
+///
+/// SnsRunningVersionResponse
+///
+/// Complete native Governance running-version response retained for bracketing.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SnsRunningVersionResponse {
+    /// Currently deployed six-role version when Governance supplied it.
+    pub deployed_version: Option<SnsVersion>,
+    /// Pending Governance upgrade state when present.
+    pub pending_version: Option<SnsPendingUpgrade>,
 }
 
 ///

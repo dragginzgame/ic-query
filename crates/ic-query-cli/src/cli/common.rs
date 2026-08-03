@@ -25,6 +25,8 @@ pub const COLLECTION_MODE_CACHE_REFRESH_MISSING: &str =
 pub const COLLECTION_MODE_FORCE_REFRESH: &str = "Forced live refresh; fetches and validates a complete snapshot before any atomic cache replacement.";
 pub const COLLECTION_MODE_LIVE: &str = "Live query; does not read or write a report cache.";
 pub const COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW: &str = "View-dependent read; --sort api makes a bounded live query and other sorts use a complete local cache.";
+pub const COLLECTION_MODE_LOCAL_ONLY: &str =
+    "Local-only file inspection; does not make a network request or write a report cache.";
 
 ///
 /// OutputFormat

@@ -10,7 +10,6 @@ pub fn hex_bytes(bytes: &[u8]) -> String {
 }
 
 #[must_use]
-#[cfg(feature = "host")]
 pub fn is_lowercase_hex(value: &str) -> bool {
     value
         .bytes()
@@ -18,12 +17,11 @@ pub fn is_lowercase_hex(value: &str) -> bool {
 }
 
 #[must_use]
-#[cfg(feature = "host")]
 pub fn is_canonical_lowercase_hex(value: &str) -> bool {
     !value.is_empty() && value.len().is_multiple_of(2) && is_lowercase_hex(value)
 }
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(test)]
 mod tests {
     use super::*;
 

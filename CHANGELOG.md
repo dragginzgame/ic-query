@@ -7,6 +7,49 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.26.x] - 2026-08-03 - SNS maturity reward evidence
+
+Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
+
+- `0.26.0` adds a live-only exact SNS neuron detail report backed by native
+  Governance `get_neuron`. It preserves current principal permissions with raw
+  codes and native labels, pending maturity disbursement destination accounts,
+  legacy and topic followees, and fixed-size neuron state without expanding the
+  existing list or cache schema.
+
+- Exact neuron input and source rows now enforce the native 32-byte identifier
+  contract. Unknown permission codes remain raw evidence and make the affected
+  maturity-policy observation unassessable; pending disbursements and known
+  conversion permissions produce typed violations.
+
+- `0.26.0` also adds `sns reward checkpoint`: a live, strictly paged
+  API-exhausted observation of every SNS neuron's combined maturity,
+  permissions, pending maturity disbursements, and auto-stake state. Complete
+  parameter, reward-event, and running-version responses bracket the walk;
+  unstable brackets, malformed pagination, unknown permission evidence, and
+  parameter-derived collection bounds remain explicit in the typed report.
+
+- Checkpoint DTOs, bounded text rendering, and pure recomputation of untrusted
+  checkpoint summaries are usable without host features. The live source and
+  builder remain behind `host`; checkpoints are emitted to stdout and never
+  implicitly cached or written by the library.
+
+- `sns reward diff` locally loads two explicitly selected checkpoint files,
+  revalidates their raw rows and bracket evidence, joins complete neuron ids,
+  and retains signed `maturity_delta_e8s_equivalent` values. Allocation is
+  `valid` only when both policies are observed satisfied, the later event is
+  the immediate successor and its actual distribution postdates the baseline
+  collection, every delta is non-negative and explained, and aggregate plus
+  per-neuron sums exactly equal the native distributed amount. Exact zero
+  distribution returns `no_allocation`; all failed invariants remain typed
+  `invalid` evidence.
+
+```bash
+icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --json
+icq sns reward checkpoint 1 --max-pages 10 --json
+icq sns reward diff before-checkpoint.json after-checkpoint.json --json
+```
+
 ## [0.25.x] - 2026-08-01 - Fuller fixed-size SNS neuron evidence
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)

@@ -45,7 +45,9 @@ pub(super) fn proposal_action_text(action: u64) -> String {
 }
 
 /// Convert an SNS governance proposal topic into a stable report label.
-pub(super) const fn proposal_topic_text(topic: SnsTopic) -> &'static str {
+pub(in crate::sns::report::live::convert) const fn proposal_topic_text(
+    topic: SnsTopic,
+) -> &'static str {
     match topic {
         SnsTopic::DaoCommunitySettings => "dao-community-settings",
         SnsTopic::SnsFrameworkManagement => "sns-framework-management",

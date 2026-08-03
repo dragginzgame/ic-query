@@ -30,6 +30,9 @@ mod neurons_cache;
 #[cfg(feature = "host")]
 mod proposals_cache;
 #[cfg(feature = "host")]
+mod reward_checkpoint_file;
+mod reward_diff;
+#[cfg(feature = "host")]
 mod source;
 mod text;
 #[cfg(feature = "host")]
@@ -49,20 +52,25 @@ use neurons_cache::{
     SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_SCHEMA_VERSION,
     SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
 };
+#[cfg(all(test, feature = "host"))]
+pub(in crate::sns::report) use source::validate_mainnet_sns_reward_neuron_page;
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use source::{
     JoinedMainnetSnsInventory, SNS_SWAP_QUERY_COUNT, SNS_UPGRADE_QUERY_COUNT,
+    SnsRewardCollectionState,
 };
 
 #[cfg(feature = "host")]
 pub use build::{
     build_sns_canister_report, build_sns_canister_report_with_source, build_sns_info_report,
     build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
-    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neurons_report,
+    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
+    build_sns_neuron_detail_report_with_source, build_sns_neurons_report,
     build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_report,
     build_sns_proposals_report_with_progress, build_sns_proposals_report_with_source,
+    build_sns_reward_checkpoint_report, build_sns_reward_checkpoint_report_with_source,
     build_sns_swap_report, build_sns_swap_report_with_source, build_sns_token_report,
     build_sns_token_report_with_source, build_sns_upgrade_report,
     build_sns_upgrade_report_with_source,
@@ -77,17 +85,26 @@ pub use live::LiveSnsSource;
 pub use model::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsCanisterGap,
     SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
-    SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport, SnsListReport,
-    SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsMetricsReport, SnsMetricsRequest,
-    SnsNeuronPermissionList, SnsParamsReport, SnsPendingUpgrade, SnsProposalBallotRow,
+    SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
+    SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRequest, SnsListRow, SnsListSort,
+    SnsLookupRequest, SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest,
+    SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState,
+    SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
+    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
+    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
     SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
     SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
     SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
+    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
+    SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport,
+    SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, SnsRunningVersionResponse,
     SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
     SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
     SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
-    SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+    SnsVotingPowerMetrics, SnsVotingRewardsParameters, sns_neuron_permission_name,
+    validate_sns_reward_checkpoint_report,
 };
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use model::{
@@ -102,9 +119,18 @@ pub(in crate::sns::report) use model::{
 #[cfg(feature = "host")]
 pub use model::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
-    SnsCacheSummary, SnsHostError, SnsNeuronDissolveState, SnsNeuronRow, SnsNeuronsRefreshReport,
+    SnsCacheSummary, SnsHostError, SnsNeuronRequest, SnsNeuronsRefreshReport,
     SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
     SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
+    SnsRewardCheckpointRequest,
+};
+pub(in crate::sns::report) use model::{
+    SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
+};
+#[cfg(feature = "host")]
+pub(in crate::sns::report) use model::{
+    validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
+    validate_sns_reward_running_version_evidence,
 };
 #[cfg(feature = "host")]
 pub use neurons_cache::{
@@ -121,17 +147,24 @@ pub use proposals_cache::{
     sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };
 #[cfg(feature = "host")]
+pub use reward_checkpoint_file::{
+    build_sns_reward_diff_report_from_paths, load_sns_reward_checkpoint,
+};
+pub use reward_diff::build_sns_reward_diff_report;
+#[cfg(feature = "host")]
 pub use source::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsNeurons,
-    MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals, MainnetSnsSwap,
-    MainnetSnsToken, MainnetSnsUpgrade, SnsCanisterSource, SnsDiscoverySource, SnsMetricsSource,
-    SnsNeuronId, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron, MainnetSnsNeuronPage,
+    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
+    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsCanisterSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronId, SnsNeuronSource,
+    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsRewardSource,
     SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
 pub use text::{
     sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_metrics_report_text,
-    sns_params_report_text, sns_proposal_report_text, sns_proposals_report_text,
+    sns_neuron_detail_report_text, sns_params_report_text, sns_proposal_report_text,
+    sns_proposals_report_text, sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
     sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
 };
 #[cfg(feature = "host")]
@@ -169,6 +202,12 @@ const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 2;
+#[cfg(feature = "host")]
+const SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION: u32 = 1;
+const SNS_REWARD_CHECKPOINT_MAX_NEURONS: u64 = 200_000;
+const SNS_REWARD_CHECKPOINT_PAGE_SIZE: u32 = 100;
+const SNS_REWARD_DIFF_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
 #[cfg(feature = "host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;

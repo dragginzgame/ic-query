@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.25", default-features = false, features = ["host"] }
+ic-query = { version = "0.26", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -19,7 +19,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.25", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.26", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -33,7 +33,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.25", default-features = false }
+ic-query = { version = "0.26", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -126,7 +126,8 @@ this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
 `SnsDiscoverySource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
 `SnsMetricsSource`, `SnsSwapSource`, `SnsUpgradeSource`,
-`SnsProposalSource`, `SnsProposalsSource`, and `SnsNeuronsSource`.
+`SnsProposalSource`, `SnsProposalsSource`, `SnsNeuronSource`,
+`SnsNeuronsSource`, and `SnsRewardSource`.
 `SnsDiscoverySource` keeps the authoritative SNS-W inventory separate from
 explicit metadata targets. Direct report builders enrich exactly one resolved
 SNS; `sns list` requests metadata for every inventory row. Custom sources must
@@ -605,6 +606,60 @@ fn render_sns_metrics(
     Ok(sns_metrics_report_text(&report))
 }
 ```
+
+## SNS Reward Evidence Example
+
+Exact neuron detail and bracketed reward checkpoints are explicit live
+capabilities under `host`; they do not expand the ordinary fixed-size neuron
+cache. A checkpoint strictly exhausts native 100-row pages beneath the
+Governance parameter ceiling and brackets them with complete parameter,
+reward-event, and running-version responses.
+
+```rust
+use ic_query::sns::{
+    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsRewardCheckpointReport,
+    SnsRewardCheckpointRequest, build_sns_reward_checkpoint_report,
+};
+
+fn collect_reward_checkpoint(
+    sns_input: &str,
+    now_unix_secs: u64,
+) -> Result<SnsRewardCheckpointReport, SnsHostError> {
+    let request = SnsRewardCheckpointRequest::new(
+        "ic",
+        DEFAULT_SNS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        sns_input,
+    );
+    build_sns_reward_checkpoint_report(&request)
+}
+```
+
+Pure checkpoint validation and reconciliation remain available with no
+features. The diff builder treats both DTOs as untrusted, recomputes their raw
+evidence, and returns typed invalid reasons instead of trusting serialized
+totals or policy booleans:
+
+```rust
+use ic_query::sns::{
+    SnsRewardCheckpointReport, SnsRewardCheckpointValidationError, SnsRewardDiffReport,
+    build_sns_reward_diff_report, validate_sns_reward_checkpoint_report,
+};
+
+fn reconcile_reward(
+    before: &SnsRewardCheckpointReport,
+    after: &SnsRewardCheckpointReport,
+) -> Result<SnsRewardDiffReport, SnsRewardCheckpointValidationError> {
+    validate_sns_reward_checkpoint_report(before)?;
+    validate_sns_reward_checkpoint_report(after)?;
+    Ok(build_sns_reward_diff_report(before, after))
+}
+```
+
+Native callers that want the library to load files can use
+`build_sns_reward_diff_report_from_paths` under `host`. File selection and
+persistence stay caller-owned; no checkpoint is implicitly written or cached,
+and local checkpoint content is not authenticated.
 
 ## SNS Snapshot Example
 

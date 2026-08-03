@@ -34,6 +34,16 @@ pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -
         | SnsHostError::MissingProposalId
         | SnsHostError::MissingNeuronId
         | SnsHostError::InvalidNeuronId
+        | SnsHostError::InvalidNeuronIdText { .. }
+        | SnsHostError::MissingNeuronPermissionPrincipal { .. }
+        | SnsHostError::UnstableRewardCheckpoint { .. }
+        | SnsHostError::InvalidRewardCheckpointCeiling { .. }
+        | SnsHostError::InvalidRewardCheckpointPageCap { .. }
+        | SnsHostError::IncompleteRewardCheckpoint { .. }
+        | SnsHostError::RewardCheckpointArithmetic { .. }
+        | SnsHostError::RewardCheckpointClock { .. }
+        | SnsHostError::ReadRewardCheckpoint { .. }
+        | SnsHostError::ParseRewardCheckpoint { .. }
         | SnsHostError::UnknownSnsId { .. }
         | SnsHostError::UnknownSnsRoot { .. }
         | SnsHostError::InvalidLookup { .. }

@@ -18,6 +18,8 @@ use ballot::sns_proposal_ballot_row;
 use labels::{proposal_action_text, proposal_topic_text};
 use timestamp::{nonzero_timestamp, optional_timestamp_text};
 
+pub(super) use labels::proposal_topic_text as sns_topic_text;
+
 /// Convert one SNS governance proposal wire row into a report row.
 pub(in crate::sns::report::live) fn sns_proposal_row(
     proposal: SnsGovernanceProposalData,

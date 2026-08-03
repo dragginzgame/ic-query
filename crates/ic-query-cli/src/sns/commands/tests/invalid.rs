@@ -2,6 +2,16 @@ use super::*;
 
 #[test]
 fn sns_neurons_rejects_invalid_clap_values() {
+    for neuron_id in ["01", &"AB".repeat(32), &"gg".repeat(32)] {
+        assert!(matches!(
+            parse_test_options(
+                sns_neuron_info_command(),
+                &["1", neuron_id],
+                SnsNeuronOptions::from_matches,
+            ),
+            Err(SnsCommandError::Usage(_))
+        ));
+    }
     assert!(matches!(
         parse_test_options(
             sns_info_command(),

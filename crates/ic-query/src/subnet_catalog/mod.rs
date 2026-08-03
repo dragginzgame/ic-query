@@ -11,7 +11,6 @@ mod report;
 mod resolver;
 #[cfg(feature = "subnet-catalog-host")]
 mod text;
-#[cfg(feature = "subnet-catalog-host")]
 mod time;
 
 pub use error::CatalogError;
@@ -46,10 +45,11 @@ pub use text::{
     subnet_catalog_info_report_text, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text, subnet_catalog_refresh_report_text,
 };
+#[cfg(feature = "subnet-catalog-host")]
+pub(crate) use time::catalog_stale_status;
+pub(crate) use time::format_utc_timestamp_secs;
 #[cfg(feature = "host")]
 pub(crate) use time::parse_utc_timestamp_secs;
-#[cfg(feature = "subnet-catalog-host")]
-pub(crate) use time::{catalog_stale_status, format_utc_timestamp_secs};
 
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 pub const MAINNET_NETWORK: &str = "ic";

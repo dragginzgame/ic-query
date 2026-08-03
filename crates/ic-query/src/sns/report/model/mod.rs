@@ -19,20 +19,36 @@ pub(in crate::sns::report) use reports::{
 };
 #[cfg(feature = "host")]
 pub use reports::{
-    SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronDissolveState,
-    SnsNeuronRow, SnsNeuronsRefreshReport, SnsNeuronsReport, SnsProposalsRefreshReport,
-    SnsRefreshAttemptStatus,
+    SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsRefreshReport,
+    SnsNeuronsReport, SnsProposalsRefreshReport, SnsRefreshAttemptStatus,
 };
 pub use reports::{
     SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
-    SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRow, SnsMetricsReport, SnsNeuronPermissionList, SnsParamsReport,
-    SnsPendingUpgrade, SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalReport,
-    SnsProposalRow, SnsProposalTally, SnsProposalsReport, SnsSwapComponent, SnsSwapDerivedState,
-    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsCanisterStatus, SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
+    SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRow, SnsMaturityDisbursementRow,
+    SnsMetricsReport, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
+    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
+    SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
+    SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
+    SnsProposalFailureReason, SnsProposalReport, SnsProposalRow, SnsProposalTally,
+    SnsProposalsReport, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
+    SnsRewardCheckpointRow, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
+    SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
+    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
+    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
     SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
-    SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+    SnsVotingPowerMetrics, SnsVotingRewardsParameters, sns_neuron_permission_name,
+    validate_sns_reward_checkpoint_report,
+};
+pub(in crate::sns::report) use reports::{
+    SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
+};
+#[cfg(feature = "host")]
+pub(in crate::sns::report) use reports::{
+    validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
+    validate_sns_reward_running_version_evidence,
 };
 pub use requests::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsListRequest,
@@ -40,8 +56,8 @@ pub use requests::{
 };
 #[cfg(feature = "host")]
 pub use requests::{
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronsRefreshRequest, SnsNeuronsRequest,
-    SnsProposalsRefreshRequest,
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronRequest, SnsNeuronsRefreshRequest,
+    SnsNeuronsRequest, SnsProposalsRefreshRequest, SnsRewardCheckpointRequest,
 };
 #[cfg(feature = "host")]
 pub(in crate::sns::report) use requests::{

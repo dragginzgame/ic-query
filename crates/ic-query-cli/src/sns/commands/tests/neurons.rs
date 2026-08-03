@@ -1,5 +1,21 @@
 use super::*;
 
+const NEURON_ID: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+
+#[test]
+fn sns_neuron_info_parses_exact_id_and_json_format() {
+    let options = parse_test_options(
+        sns_neuron_info_command(),
+        &["1", NEURON_ID, "--json"],
+        SnsNeuronOptions::from_matches,
+    )
+    .expect("parse neuron info");
+
+    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(options.neuron_id, NEURON_ID);
+}
+
 #[test]
 fn sns_neurons_parses_owner_limit_and_json_format() {
     let options = parse_fallible_test_options(

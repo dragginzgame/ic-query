@@ -47,9 +47,9 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(report.sort, "stake");
     assert_eq!(report.total_neuron_count, 3);
     assert_eq!(report.neuron_count, 2);
-    assert_eq!(report.neurons[0].neuron_id, "03");
+    assert_eq!(report.neurons[0].neuron_id, "03".repeat(32));
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 50);
-    assert_eq!(report.neurons[1].neuron_id, "02");
+    assert_eq!(report.neurons[1].neuron_id, "02".repeat(32));
     assert_eq!(report.neurons[1].cached_neuron_stake_e8s, 30);
 
     let attempt: serde_json::Value =
@@ -81,7 +81,7 @@ fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
 
     assert_eq!(report.data_source, "cache");
     assert_eq!(report.total_neuron_count, 3);
-    assert_eq!(report.neurons[0].neuron_id, "03");
+    assert_eq!(report.neurons[0].neuron_id, "03".repeat(32));
 
     let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     let attempt: serde_json::Value =

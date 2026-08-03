@@ -9,6 +9,7 @@ mod common;
 mod lookup;
 mod neurons;
 mod proposals;
+mod reward;
 
 use crate::{
     cli::common::write_text_or_json,
@@ -22,7 +23,11 @@ pub fn command() -> clap::Command {
     sns_command()
 }
 
-pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+pub fn run_matches(
+    matches: &ArgMatches,
+    network: &str,
+    network_was_explicit: bool,
+) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_list(matches, network),
         Some(("info", matches)) => lookup::run_sns_info(matches, network),
@@ -34,6 +39,7 @@ pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SnsCommand
         Some(("canister", matches)) => canisters::run_sns_canister(matches, network),
         Some(("proposal", matches)) => proposals::run_sns_proposal(matches, network),
         Some(("neuron", matches)) => neurons::run_sns_neuron(matches, network),
+        Some(("reward", matches)) => reward::run_sns_reward(matches, network, network_was_explicit),
         _ => unreachable!("clap requires a known SNS subcommand"),
     }
 }

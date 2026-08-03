@@ -2,19 +2,22 @@
 //!
 //! Responsibility: SNS governance parameter DTOs shared by reports.
 //! Does not own: live governance fetches, parameter rendering, or defaults.
-//! Boundary: mirrors Candid-compatible governance parameter fields.
+//! Boundary: preserves the complete native parameter response in JSON-friendly report fields.
 
 use candid::{CandidType, Deserialize};
-use serde::Serialize;
+use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
 /// SnsGovernanceParameters
 ///
-/// Serializable and Candid-compatible SNS governance parameter set.
+/// Serializable complete SNS governance parameter set.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnsGovernanceParameters {
+    /// Native default followee map when Governance supplied one.
+    pub default_followees: Option<SnsDefaultFollowees>,
     pub max_dissolve_delay_seconds: Option<u64>,
     pub max_dissolve_delay_bonus_percentage: Option<u64>,
     pub max_followees_per_function: Option<u64>,
@@ -45,8 +48,37 @@ pub struct SnsGovernanceParameters {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnsNeuronPermissionList {
     pub permissions: Vec<i32>,
+}
+
+///
+/// SnsDefaultFollowees
+///
+/// Complete native default-followee map projected into stable report rows.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SnsDefaultFollowees {
+    /// Function-keyed default followee entries in native response order.
+    pub followees: Vec<SnsDefaultFolloweesRow>,
+}
+
+///
+/// SnsDefaultFolloweesRow
+///
+/// Default neuron followees for one nervous-system function identifier.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SnsDefaultFolloweesRow {
+    /// Native nervous-system function identifier.
+    pub function_id: u64,
+    /// Full followee neuron identifiers as lowercase hexadecimal text.
+    pub followee_neuron_ids: Vec<String>,
 }
 
 ///
@@ -56,6 +88,7 @@ pub struct SnsNeuronPermissionList {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnsVotingRewardsParameters {
     pub final_reward_rate_basis_points: Option<u64>,
     pub initial_reward_rate_basis_points: Option<u64>,
@@ -70,6 +103,7 @@ pub struct SnsVotingRewardsParameters {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnsCustomProposalCriticality {
     pub additional_critical_native_action_ids: Vec<u64>,
 }

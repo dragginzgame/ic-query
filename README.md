@@ -20,7 +20,7 @@ local-only inspection visibly distinct.
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, and boundary-node data-center aggregates |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
-| SNS | Discovery, metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, and fixed-size neuron state |
+| SNS | Discovery, metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, and tip certificates |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
 
@@ -76,6 +76,9 @@ icq sns canister list 1
 icq sns metrics 1
 icq sns upgrade 1
 icq sns proposal list 1 --limit 25
+icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+icq sns reward checkpoint 1 --json
+icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 
 # Generic ICRC reports
 icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
@@ -144,7 +147,8 @@ icq nns neuron list|info|refresh|cache
 icq sns list|info|token|params|metrics|swap|upgrade
 icq sns canister list
 icq sns proposal list|info|refresh|cache
-icq sns neuron list|refresh|cache
+icq sns neuron list|info|refresh|cache
+icq sns reward checkpoint|diff
 
 icq icrc ledger capabilities|token|index|transactions|block-types|archives|tip-certificate
 icq icrc account balance|allowance
@@ -213,7 +217,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.25", default-features = false }
+ic-query = { version = "0.26", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -221,7 +225,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.25", default-features = false, features = ["host"] }
+ic-query = { version = "0.26", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -269,6 +273,7 @@ guidance.
 - [0.23 bounded SNS completeness](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.23/0.23-design.md)
 - [0.24 bounded SNS Governance metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.24/0.24-design.md)
 - [0.25 fuller fixed-size SNS neuron evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.25/0.25-design.md)
+- [0.26 SNS maturity reward evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.26/0.26-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

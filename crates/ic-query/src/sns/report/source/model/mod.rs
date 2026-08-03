@@ -10,6 +10,7 @@ mod list;
 mod metrics;
 mod neurons;
 mod proposals;
+mod reward;
 mod swap;
 mod token;
 mod upgrade;
@@ -29,11 +30,16 @@ pub use metrics::MainnetSnsMetrics;
 pub(in crate::sns::report) use metrics::{
     SNS_METRICS_CALL_TYPE, SNS_METRICS_METHOD, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
 };
-pub use neurons::{MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
+pub use neurons::{MainnetSnsNeuron, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
 pub(in crate::sns::report) use neurons::{
-    validate_mainnet_sns_neuron_page, validate_mainnet_sns_neurons, validate_sns_neuron_rows,
+    sns_neuron_id_from_text, validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page,
+    validate_mainnet_sns_neurons, validate_sns_neuron_rows,
 };
 pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
+pub use reward::MainnetSnsRewardNeuronPage;
+pub(in crate::sns::report) use reward::{
+    SnsRewardCollectionState, validate_mainnet_sns_reward_neuron_page,
+};
 pub use swap::MainnetSnsSwap;
 pub(in crate::sns::report) use swap::{
     SNS_SWAP_DERIVED_STATE_METHOD, SNS_SWAP_LIFECYCLE_METHOD, SNS_SWAP_QUERY_COUNT,

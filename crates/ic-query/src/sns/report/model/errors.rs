@@ -88,6 +88,96 @@ pub enum SnsHostError {
     #[error("SNS governance returned an invalid neuron id")]
     InvalidNeuronId,
 
+    /// A caller supplied an SNS neuron id outside the native 32-byte contract.
+    #[error(
+        "invalid SNS neuron id {neuron_id}; expected exactly 64 lowercase hexadecimal characters"
+    )]
+    InvalidNeuronIdText {
+        /// Rejected caller-supplied neuron id.
+        neuron_id: String,
+    },
+
+    /// SNS Governance returned a permission entry without its required principal.
+    #[error(
+        "SNS governance neuron {neuron_id} permission entry {permission_index} has no principal"
+    )]
+    MissingNeuronPermissionPrincipal {
+        /// Neuron containing the incomplete permission entry.
+        neuron_id: String,
+        /// Zero-based position of the incomplete permission entry.
+        permission_index: usize,
+    },
+
+    /// A required Governance checkpoint bracket changed during neuron pagination.
+    #[error("SNS reward checkpoint {component} changed while neurons were being collected")]
+    UnstableRewardCheckpoint {
+        /// Complete native component whose before and after responses differed.
+        component: &'static str,
+    },
+
+    /// Governance omitted or exceeded the mandatory checkpoint neuron ceiling.
+    #[error(
+        "invalid SNS reward checkpoint max_number_of_neurons {value:?}; expected 1..={maximum}"
+    )]
+    InvalidRewardCheckpointCeiling {
+        /// Raw optional parameter returned by Governance.
+        value: Option<u64>,
+        /// Official Governance protocol ceiling.
+        maximum: u64,
+    },
+
+    /// A diagnostic reward checkpoint page cap was zero.
+    #[error("invalid SNS reward checkpoint max_pages {max_pages}; expected at least 1")]
+    InvalidRewardCheckpointPageCap {
+        /// Rejected diagnostic page cap.
+        max_pages: u32,
+    },
+
+    /// Strict checkpoint pagination ended before native API exhaustion.
+    #[error(
+        "SNS reward checkpoint did not exhaust the neuron API after {pages_fetched} pages and {rows_fetched} rows: {reason}"
+    )]
+    IncompleteRewardCheckpoint {
+        /// Number of successfully ingested pages.
+        pages_fetched: u32,
+        /// Number of successfully ingested neuron rows.
+        rows_fetched: usize,
+        /// Deterministic incomplete-collection reason.
+        reason: String,
+    },
+
+    /// Checked checkpoint arithmetic exceeded the report's native integer contract.
+    #[error("SNS reward checkpoint arithmetic overflow in {field}")]
+    RewardCheckpointArithmetic {
+        /// Derived aggregate or row field that overflowed.
+        field: &'static str,
+    },
+
+    /// The host clock could not provide a valid completion timestamp.
+    #[error("failed to capture SNS reward checkpoint completion time: {reason}")]
+    RewardCheckpointClock {
+        /// Host clock failure.
+        reason: String,
+    },
+
+    /// A caller-selected reward checkpoint could not be read.
+    #[error("failed to read SNS reward checkpoint at {}: {source}", path.display())]
+    ReadRewardCheckpoint {
+        /// Caller-selected checkpoint path.
+        path: PathBuf,
+        /// Underlying filesystem error.
+        source: io::Error,
+    },
+
+    /// A caller-selected reward checkpoint was not strict current-schema JSON.
+    #[error("failed to parse SNS reward checkpoint at {}: {source}", path.display())]
+    ParseRewardCheckpoint {
+        /// Caller-selected checkpoint path.
+        path: PathBuf,
+        /// Underlying JSON error.
+        source: serde_json::Error,
+    },
+
     #[error("failed to decode Candid response {message}: {reason}")]
     CandidDecode {
         message: &'static str,

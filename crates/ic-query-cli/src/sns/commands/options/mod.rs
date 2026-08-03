@@ -9,15 +9,17 @@ mod lookup;
 mod metrics;
 mod neurons;
 mod proposals;
+mod reward;
 
 pub(super) use list::SnsListOptions;
 pub(super) use lookup::SnsLookupOptions;
 pub(super) use metrics::SnsMetricsOptions;
 pub(super) use neurons::{
-    SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions,
+    SnsNeuronOptions, SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions,
     SnsNeuronsRefreshOptions,
 };
 pub(super) use proposals::{
     SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
     SnsProposalsOptions, SnsProposalsRefreshOptions,
 };
+pub(super) use reward::{SnsRewardCheckpointOptions, SnsRewardDiffOptions};

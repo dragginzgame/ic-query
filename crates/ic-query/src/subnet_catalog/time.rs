@@ -7,11 +7,14 @@
 //! Boundary: keeps timestamp parsing and display deterministic without introducing
 //! live clock reads into report builders or cache loaders.
 
+#[cfg(feature = "subnet-catalog-host")]
 use super::{CatalogStaleStatus, SubnetCatalog};
+#[cfg(feature = "subnet-catalog-host")]
 use crate::freshness::freshness_facts;
 
 /// Computes stale/fresh metadata for a catalog relative to a caller-provided time.
 #[must_use]
+#[cfg(feature = "subnet-catalog-host")]
 pub fn catalog_stale_status(
     catalog: &SubnetCatalog,
     now_unix_secs: u64,
@@ -31,6 +34,7 @@ pub fn catalog_stale_status(
     }
 }
 
+#[cfg(feature = "subnet-catalog-host")]
 pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
     let value = value.strip_suffix('Z')?;
     let (date, time) = value.split_once('T')?;
@@ -92,6 +96,7 @@ fn civil_from_days(days: i64) -> (i64, i64, i64) {
     (year, month, day)
 }
 
+#[cfg(feature = "subnet-catalog-host")]
 fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
     let month = i64::from(month);
     let day = i64::from(day);
@@ -106,7 +111,7 @@ fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
         .checked_sub(719_468)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "subnet-catalog-host"))]
 mod timestamp_tests {
     use super::parse_utc_timestamp_secs;
 

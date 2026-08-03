@@ -283,9 +283,14 @@ icq sns proposal refresh 1
 icq sns proposal cache status 1
 
 icq sns neuron list 1 --sort api
+icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
 icq sns neuron refresh 1
 icq sns neuron list 1 --sort stake --limit 500
 icq sns neuron cache status 1
+
+icq sns reward checkpoint 1 --json
+icq sns reward checkpoint 23ten-uaaaa-aaaaq-aabia-cai --max-pages 10 --json
+icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 ```
 
 SNS proposal list views can create a missing complete proposal cache and apply
@@ -301,6 +306,51 @@ dissolve state, voting-power percentage multiplier, vesting period, and fees.
 JSON exposes all of those raw fields; compact text selects the operationally
 useful subset. This adds no follow-up request or cache fanout. Neuron report
 and cache schema 2 require an explicit refresh of older neuron snapshots.
+
+`sns neuron info` is a separate live-only exact lookup. It accepts exactly one
+32-byte neuron id as 64 lowercase hexadecimal characters and calls native
+Governance `get_neuron` after targeted SNS discovery. The report preserves
+every principal and raw permission code with its current native label, pending
+maturity disbursement destinations including owner and subaccount, legacy and
+topic followees, and the fixed-size state above. Unknown permission codes stay
+visible and make the affected neuron-local maturity policy observation
+unassessable. Including targeted discovery, the command makes exactly three
+queries and never reads or writes the complete neuron cache.
+
+`sns reward checkpoint` is a live API-exhausted observation, not a
+point-in-time proof. It strictly walks native 100-row neuron pages and retains
+each neuron's combined maturity, permissions, pending maturity disbursements,
+and auto-stake state. Complete nervous-system parameters, latest reward event,
+and running SNS version responses bracket the walk. Any bracket change,
+duplicate or overlapping id, invalid cursor, missing exhaustion evidence, or
+parameter-derived collection-bound violation fails without emitting a
+checkpoint.
+
+For `N` neuron pages the command makes `N + 8` client queries, including
+targeted discovery. It never queries ballots, ledgers, transactions, or one
+detail endpoint per neuron. `--max-pages` is an optional diagnostic ceiling;
+reaching it before exhaustion is an error, not a partial result. Text output
+is a bounded summary, while `--json` retains all raw neuron evidence for
+explicit caller-managed persistence. The command does not read or write the
+ordinary neuron cache and does not create a checkpoint file implicitly.
+
+`sns reward diff` is local-only. It accepts two explicitly selected current-
+schema checkpoint files and `--json`; it has no source endpoint and rejects an
+explicit global `--network`. Both files are untrusted input. The library
+recomputes raw maturity totals, row ids and order, permission findings,
+parameter/event/version brackets, timestamps, counts, and stable target
+principals before comparing them.
+
+Rows join by the full 32-byte neuron id and always retain the signed raw
+`maturity_delta_e8s_equivalent`. A positive allocation is reported only when
+both policies are observed satisfied, the after reward event is the immediate
+native successor by canonical end timestamp and round continuity, no neuron is
+missing or unexplained, every delta is non-negative, and both aggregate and
+per-neuron sums exactly equal the after event's
+`distributed_e8s_equivalent`. Exact zero distribution produces
+`no_allocation`; every failed invariant produces typed `invalid` evidence.
+The command never infers a beneficiary, never writes a file, and explicitly
+states that local checkpoint content is not authenticated.
 
 ## ICRC
 

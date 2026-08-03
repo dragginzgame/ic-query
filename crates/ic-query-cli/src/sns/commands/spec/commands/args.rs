@@ -21,6 +21,18 @@ pub(super) fn principal_value_parser() -> clap::builder::ValueParser {
     })
 }
 
+pub(super) fn sns_neuron_id_value_parser() -> clap::builder::ValueParser {
+    clap::builder::ValueParser::new(|value: &str| {
+        let canonical = value.len() == 64
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'));
+        canonical
+            .then(|| value.to_string())
+            .ok_or_else(|| "must be exactly 64 lowercase hexadecimal characters".to_string())
+    })
+}
+
 fn sns_lookup_input_value_parser() -> clap::builder::ValueParser {
     clap::builder::ValueParser::new(|value: &str| {
         if value.parse::<usize>().is_ok_and(|id| id > 0) || Principal::from_text(value).is_ok() {

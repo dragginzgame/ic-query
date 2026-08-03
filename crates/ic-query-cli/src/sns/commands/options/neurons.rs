@@ -17,6 +17,18 @@ use clap::ArgMatches;
 const SNS_NEURONS_LIVE_MAX_LIMIT: u32 = 100;
 
 ///
+/// SnsNeuronOptions
+///
+/// Parsed options accepted by `icq sns neuron info`.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::sns::commands) struct SnsNeuronOptions {
+    pub(in crate::sns::commands) lookup: SnsLookupOptions,
+    pub(in crate::sns::commands) neuron_id: String,
+}
+
+///
 /// SnsNeuronsOptions
 ///
 /// Parsed options accepted by `icq sns neuron list`.
@@ -98,6 +110,15 @@ impl SnsNeuronsOptions {
             ));
         }
         Ok(())
+    }
+}
+
+impl SnsNeuronOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            lookup: SnsLookupOptions::from_matches(matches, network),
+            neuron_id: required_string(matches, "neuron-id"),
+        }
     }
 }
 

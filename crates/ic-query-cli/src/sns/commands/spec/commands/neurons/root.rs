@@ -8,11 +8,12 @@ use crate::{
     cli::{
         clap::{flag_arg, value_arg},
         common::{
-            COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help, json_arg, source_endpoint_arg,
+            COLLECTION_MODE_LIVE, COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help, json_arg,
+            source_endpoint_arg,
         },
     },
     sns::commands::spec::commands::{
-        args::{principal_value_parser, sns_lookup_input_arg},
+        args::{principal_value_parser, sns_lookup_input_arg, sns_neuron_id_value_parser},
         neurons::sort::neurons_sort_arg,
     },
 };
@@ -33,14 +34,44 @@ Examples:
   icq sns neuron list 1 --limit 500 --sort stake
   icq --network ic sns neuron list 1 --json";
 
+const SNS_NEURON_INFO_HELP_AFTER: &str = "\
+Examples:
+  icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+  icq sns neuron info 23ten-uaaaa-aaaaq-aabia-cai 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+  icq --network ic sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --json";
+
 pub(in crate::sns::commands) fn sns_neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
         .bin_name("icq sns neuron")
-        .about("List and refresh SNS governance neurons by SNS list id or root principal")
+        .about("List, inspect, and refresh SNS governance neurons")
         .subcommand_required(true)
         .subcommand(sns_neuron_list_command())
+        .subcommand(sns_neuron_info_command())
         .subcommand(super::sns_neuron_refresh_command())
         .subcommand(super::sns_neuron_cache_command())
+}
+
+pub(in crate::sns::commands) fn sns_neuron_info_command() -> ClapCommand {
+    ClapCommand::new("info")
+        .bin_name("icq sns neuron info")
+        .about("Show one full SNS Governance neuron by exact 32-byte id")
+        .arg(sns_lookup_input_arg())
+        .arg(
+            value_arg("neuron-id")
+                .value_name("neuron-id")
+                .required(true)
+                .value_parser(sns_neuron_id_value_parser())
+                .help("Exact 32-byte SNS neuron id as lowercase hexadecimal"),
+        )
+        .arg(json_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W and Governance queries"),
+        )
+        .after_help(collection_help(
+            COLLECTION_MODE_LIVE,
+            SNS_NEURON_INFO_HELP_AFTER,
+        ))
 }
 
 pub(in crate::sns::commands) fn sns_neuron_list_command() -> ClapCommand {

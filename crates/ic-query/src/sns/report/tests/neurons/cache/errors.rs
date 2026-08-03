@@ -62,7 +62,7 @@ fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
     assert_eq!(attempt["status"], "failed");
     assert_eq!(attempt["pages_fetched"], 1);
     assert_eq!(attempt["rows_fetched"], 2);
-    assert_eq!(attempt["last_cursor"], "02");
+    assert_eq!(attempt["last_cursor"], "02".repeat(32));
     assert!(
         attempt["last_error"]
             .as_str()

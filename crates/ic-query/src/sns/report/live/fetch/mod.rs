@@ -10,6 +10,7 @@ mod metrics;
 mod neurons;
 mod params;
 mod proposals;
+mod reward;
 mod swap;
 mod token;
 mod upgrade;
@@ -24,14 +25,17 @@ use std::future::Future;
 pub(super) use canisters::fetch_mainnet_sns_canisters;
 pub(super) use list::{fetch_mainnet_sns_inventory, fetch_mainnet_sns_metadata};
 pub(super) use metrics::fetch_mainnet_sns_metrics;
-pub(super) use neurons::{fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons};
+pub(super) use neurons::{
+    fetch_mainnet_sns_neuron, fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons,
+};
 pub(super) use params::fetch_mainnet_sns_params;
 pub(super) use proposals::{
     fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
 };
+pub(super) use reward::{fetch_mainnet_sns_reward_event, fetch_mainnet_sns_reward_neuron_page};
 pub(super) use swap::fetch_mainnet_sns_swap;
 pub(super) use token::fetch_mainnet_sns_token;
-pub(super) use upgrade::fetch_mainnet_sns_upgrade;
+pub(super) use upgrade::{fetch_mainnet_sns_running_version, fetch_mainnet_sns_upgrade};
 
 /// Run one async SNS query flow on the current-thread runtime.
 fn block_on_sns<T: Send>(

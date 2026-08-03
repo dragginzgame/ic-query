@@ -119,7 +119,11 @@ where
             Ok(icrc::run_matches(matches)?)
         }
         "nns" => Ok(nns::run_matches(matches, network)?),
-        "sns" => Ok(sns::run_matches(matches, network)?),
+        "sns" => Ok(sns::run_matches(
+            matches,
+            network,
+            selected_network.is_some(),
+        )?),
         "system" => Ok(system::run_matches(matches, network)?),
         _ => unreachable!("clap only returns declared top-level commands"),
     }
@@ -316,6 +320,23 @@ mod tests {
             assert_eq!(error.exit_code(), 2);
             assert!(error.to_string().contains("--source-endpoint"));
         }
+    }
+
+    #[test]
+    fn explicit_network_is_rejected_for_local_reward_diff() {
+        let error = run([
+            OsString::from("--network"),
+            OsString::from("ic"),
+            OsString::from("sns"),
+            OsString::from("reward"),
+            OsString::from("diff"),
+            OsString::from("before.json"),
+            OsString::from("after.json"),
+        ])
+        .expect_err("local reward diff must reject explicit network identity");
+
+        assert_eq!(error.exit_code(), 2);
+        assert!(error.to_string().contains("local-only"));
     }
 
     #[test]

@@ -4,6 +4,7 @@ mod neurons;
 mod params;
 mod proposals;
 mod requests;
+mod reward;
 mod sns;
 mod swap;
 mod token;
@@ -14,17 +15,23 @@ pub(in crate::sns::report::tests) use metrics::{
     FixtureSnsMetricsSource, MutatingFixtureSnsMetricsSource, NoCallSnsMetricsSource,
 };
 pub(in crate::sns::report::tests) use neurons::{
-    FixtureSnsNeuronsSource, NoLiveSnsNeuronsSource, PagedFixtureSnsNeuronsSource,
+    FixtureSnsNeuronSource, FixtureSnsNeuronsSource, NEURON_A, NoLiveSnsNeuronsSource,
+    PagedFixtureSnsNeuronsSource, fixture_sns_neuron,
 };
-pub(in crate::sns::report::tests) use params::FixtureSnsParamsSource;
+pub(in crate::sns::report::tests) use params::{
+    FixtureSnsParamsSource, fixture_sns_governance_parameters,
+};
 pub(in crate::sns::report::tests) use proposals::{
     FixtureSnsProposalSource, FixtureSnsProposalsSource, NoLiveSnsProposalsSource,
     fixture_proposal_row,
 };
 pub(in crate::sns::report::tests) use requests::{
-    info_request, list_request, metrics_request, neurons_request, params_request, proposal_request,
-    proposals_request, sns_neurons_refresh_request, sns_proposals_refresh_request, swap_request,
-    token_request, upgrade_request,
+    info_request, list_request, metrics_request, neuron_request, neurons_request, params_request,
+    proposal_request, proposals_request, reward_checkpoint_request, sns_neurons_refresh_request,
+    sns_proposals_refresh_request, swap_request, token_request, upgrade_request,
+};
+pub(in crate::sns::report::tests) use reward::{
+    FixtureSnsRewardSource, fixture_reward_page, fixture_reward_row,
 };
 pub(in crate::sns::report::tests) use sns::{
     FixtureSnsDiscoverySource, GOVERNANCE_A, INDEX_A, LEDGER_A,

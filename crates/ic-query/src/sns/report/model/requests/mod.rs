@@ -12,6 +12,8 @@ mod metrics;
 #[cfg(feature = "host")]
 mod neurons;
 mod proposals;
+#[cfg(feature = "host")]
+mod reward;
 
 #[cfg(feature = "host")]
 pub use cache::{SnsCacheListRequest, SnsCacheStatusRequest};
@@ -25,7 +27,9 @@ pub(in crate::sns::report) use metrics::{
     sns_metrics_lookup_request, validate_sns_metrics_request, validate_sns_metrics_time_window,
 };
 #[cfg(feature = "host")]
-pub use neurons::{SnsNeuronsRefreshRequest, SnsNeuronsRequest};
+pub use neurons::{SnsNeuronRequest, SnsNeuronsRefreshRequest, SnsNeuronsRequest};
 #[cfg(feature = "host")]
 pub use proposals::SnsProposalsRefreshRequest;
 pub use proposals::{SnsProposalRequest, SnsProposalsRequest};
+#[cfg(feature = "host")]
+pub use reward::SnsRewardCheckpointRequest;

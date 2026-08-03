@@ -16,12 +16,6 @@ fn sns_help_is_advertised() {
     let proposal_cache_list = render_help(sns_proposal_cache_list_command());
     let proposal_cache_status = render_help(sns_proposal_cache_status_command());
     let proposal_refresh = render_help(sns_proposal_refresh_command());
-    let neuron = render_help(sns_neuron_command());
-    let neuron_list = render_help(sns_neuron_list_command());
-    let neuron_cache = render_help(sns_neuron_cache_command());
-    let neuron_cache_list = render_help(sns_neuron_cache_list_command());
-    let neuron_cache_status = render_help(sns_neuron_cache_status_command());
-    let neuron_refresh = render_help(sns_neuron_refresh_command());
 
     assert!(sns.contains("list"));
     assert!(sns.contains("info"));
@@ -36,7 +30,7 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("Show SNS governance nervous system parameters"));
     assert!(sns.contains("Inspect SNS Root canister inventory and operational health"));
     assert!(sns.contains("List, inspect, and refresh SNS governance proposals"));
-    assert!(sns.contains("List and refresh SNS governance neurons"));
+    assert!(sns.contains("List, inspect, and refresh SNS governance neurons"));
     assert!(list.contains("icq sns list"));
     assert!(list.contains("Collection mode: Live query"));
     assert!(list.contains("--json"));
@@ -79,16 +73,32 @@ fn sns_help_is_advertised() {
     assert!(!proposal_cache_list.contains("--source-endpoint"));
     assert!(!proposal_cache_status.contains("--source-endpoint"));
     assert!(proposal_refresh.contains("Collection mode: Forced live refresh"));
-    assert!(neuron.contains("icq sns neuron"));
-    assert!(neuron.contains("list"));
-    assert!(neuron.contains("refresh"));
-    assert!(neuron.contains("cache"));
+}
+
+#[test]
+fn sns_neuron_help_is_advertised() {
+    let neuron = render_help(sns_neuron_command());
+    let neuron_info = render_help(sns_neuron_info_command());
+    let neuron_list = render_help(sns_neuron_list_command());
+    let neuron_cache = render_help(sns_neuron_cache_command());
+    let neuron_cache_list = render_help(sns_neuron_cache_list_command());
+    let neuron_cache_status = render_help(sns_neuron_cache_status_command());
+    let neuron_refresh = render_help(sns_neuron_refresh_command());
+
+    for subcommand in ["list", "info", "refresh", "cache"] {
+        assert!(neuron.contains(subcommand));
+    }
     assert!(neuron_list.contains("icq sns neuron list"));
     assert!(neuron_list.contains("Collection mode: View-dependent read"));
     assert!(neuron_list.contains("--limit"));
     assert!(neuron_list.contains("--owner"));
     assert!(neuron_list.contains("--verbose"));
     assert!(neuron_list.contains("--sort"));
+    assert!(neuron_info.contains("icq sns neuron info"));
+    assert!(neuron_info.contains("Collection mode: Live query"));
+    assert!(neuron_info.contains("neuron-id"));
+    assert!(neuron_info.contains("--source-endpoint"));
+    assert!(neuron_info.contains("--json"));
     assert!(neuron_cache.contains("icq sns neuron cache"));
     assert!(neuron_cache.contains("list"));
     assert!(neuron_cache.contains("status"));
