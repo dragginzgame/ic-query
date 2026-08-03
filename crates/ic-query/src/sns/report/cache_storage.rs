@@ -2,7 +2,7 @@
 //!
 //! Responsibility: shared SNS snapshot storage and collection-family contract.
 //! Does not own: cache payload models, refresh collection, or publication policy.
-//! Boundary: centralizes discovery, schema/header validation, loading, and error mapping.
+//! Boundary: centralizes discovery, strict id/root lookup, validation, loading, and error mapping.
 
 use crate::{
     cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
@@ -14,7 +14,8 @@ use crate::{
     sns::report::{
         SnsHostError,
         cache_paths::{
-            SnsCacheCollection, sns_snapshot_key_for_cache_path, sns_snapshot_network_cache_dir,
+            SnsCacheCollection, SnsSnapshotCachePaths, sns_snapshot_key_for_cache_path,
+            sns_snapshot_network_cache_dir,
         },
     },
 };
@@ -49,6 +50,14 @@ pub(in crate::sns::report) trait SnsCacheStorageFamily:
 
 pub(in crate::sns::report) type SnsStoredCache<Family> =
     SnapshotEnvelope<SnsCacheMetadata, <Family as SnsCacheStorageFamily>::Data>;
+
+///
+/// SnsStoredCacheWithPath
+///
+/// Loaded SNS snapshot paired with its concrete complete-cache path.
+///
+
+pub(in crate::sns::report) type SnsStoredCacheWithPath<Family> = (PathBuf, SnsStoredCache<Family>);
 
 #[derive(Clone, Copy)]
 struct SnsCacheLoadErrors {
@@ -159,7 +168,7 @@ where
 }
 
 /// Find the unique SNS snapshot path whose validated header claims an id.
-pub(in crate::sns::report) fn find_unique_sns_cache_path_by_id(
+fn find_unique_sns_cache_path_by_id(
     paths: impl IntoIterator<Item = PathBuf>,
     id: usize,
     mut read_id: impl FnMut(&Path) -> Result<usize, SnsHostError>,
@@ -174,6 +183,39 @@ pub(in crate::sns::report) fn find_unique_sns_cache_path_by_id(
         }
     }
     Ok(matching)
+}
+
+/// Load the unique complete SNS cache whose validated header claims an id.
+pub(in crate::sns::report) fn load_sns_cache_by_id<Family>(
+    cache_root: &Path,
+    network: &str,
+    id: usize,
+) -> Result<Option<SnsStoredCacheWithPath<Family>>, SnsHostError>
+where
+    Family: SnsCacheStorageFamily,
+{
+    let path = find_unique_sns_cache_path_by_id(
+        collect_sns_cache_paths::<Family>(cache_root, network)?,
+        id,
+        |path| read_sns_cache_header::<Family>(path, network).map(|header| header.metadata.id),
+    )?;
+    path.map(|path| load_sns_cache_at::<Family>(path.clone(), network).map(|cache| (path, cache)))
+        .transpose()
+}
+
+/// Load one complete SNS cache by root canister principal.
+pub(in crate::sns::report) fn load_sns_cache_for_root<Family>(
+    cache_root: &Path,
+    network: &str,
+    root_canister_id: &str,
+) -> Result<SnsStoredCacheWithPath<Family>, SnsHostError>
+where
+    Family: SnsCacheStorageFamily,
+{
+    let path =
+        SnsSnapshotCachePaths::<Family>::for_root(cache_root, network, root_canister_id).cache_path;
+    let cache = load_sns_cache_at::<Family>(path.clone(), network)?;
+    Ok((path, cache))
 }
 
 /// Load and validate one complete SNS snapshot cache.

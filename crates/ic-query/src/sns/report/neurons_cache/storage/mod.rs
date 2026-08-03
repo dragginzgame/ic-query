@@ -16,7 +16,6 @@ use crate::sns::report::{
 };
 use std::path::PathBuf;
 
-mod errors;
 mod lookup;
 
 pub(super) use lookup::load_sns_neurons_cache_for_input;

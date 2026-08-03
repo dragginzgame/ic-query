@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.26` centralizes strict SNS cache loading by stable list id and Root
+  canister principal, removing duplicate proposal/neuron lookup flows and the
+  redundant neuron lookup-error module. Typed lookup behavior is unchanged.
+
 - `0.25.25` drives SNS cache-list and cache-status reports directly from the
   collection storage marker, removing the duplicate proposal/neuron status
   adapters and remaining list callbacks. Report behavior is unchanged.

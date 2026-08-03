@@ -7,15 +7,9 @@
 use crate::sns::report::{
     SnsHostError,
     cache_paths::sns_snapshot_network_cache_dir,
-    cache_storage::{
-        collect_sns_cache_paths, find_unique_sns_cache_path_by_id, load_sns_cache_at,
-        read_sns_cache_header,
-    },
+    cache_storage::{load_sns_cache_by_id, load_sns_cache_for_root},
     parse_sns_root_canister_input,
-    proposals_cache::{
-        model::SnsProposalsCache,
-        paths::{SnsProposalsCacheCollection, SnsProposalsCachePaths},
-    },
+    proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };
 use std::path::{Path, PathBuf};
 
@@ -26,37 +20,12 @@ pub(in crate::sns::report::proposals_cache) fn load_sns_proposals_cache_for_inpu
     input: &str,
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
     if let Ok(id) = input.parse::<usize>() {
-        return find_sns_proposals_cache_by_id(cache_root, network, id)?.ok_or_else(|| {
-            SnsHostError::MissingProposalsCache {
+        return load_sns_cache_by_id::<SnsProposalsCacheCollection>(cache_root, network, id)?
+            .ok_or_else(|| SnsHostError::MissingProposalsCache {
                 path: sns_snapshot_network_cache_dir(cache_root, network),
-            }
-        });
+            });
     }
 
     let root_canister_id = parse_sns_root_canister_input(input)?;
-    let cache_path =
-        SnsProposalsCachePaths::for_root(cache_root, network, &root_canister_id).cache_path;
-    let cache = load_sns_cache_at::<SnsProposalsCacheCollection>(cache_path.clone(), network)?;
-    Ok((cache_path, cache))
-}
-
-/// Find a complete SNS proposal cache by stable SNS list id.
-pub(in crate::sns::report::proposals_cache) fn find_sns_proposals_cache_by_id(
-    cache_root: &Path,
-    network: &str,
-    id: usize,
-) -> Result<Option<(PathBuf, SnsProposalsCache)>, SnsHostError> {
-    let path = find_unique_sns_cache_path_by_id(
-        collect_sns_cache_paths::<SnsProposalsCacheCollection>(cache_root, network)?,
-        id,
-        |path| {
-            read_sns_cache_header::<SnsProposalsCacheCollection>(path, network)
-                .map(|header| header.metadata.id)
-        },
-    )?;
-    path.map(|path| {
-        load_sns_cache_at::<SnsProposalsCacheCollection>(path.clone(), network)
-            .map(|cache| (path, cache))
-    })
-    .transpose()
+    load_sns_cache_for_root::<SnsProposalsCacheCollection>(cache_root, network, &root_canister_id)
 }
