@@ -198,7 +198,7 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
                 .iter()
                 .map(|cache| {
                     [
-                        cache.cache_status.clone(),
+                        cache.cache_status.to_string(),
                         cache.governance_canister_id.clone(),
                         cache.row_count.to_string(),
                         cache.page_count.to_string(),

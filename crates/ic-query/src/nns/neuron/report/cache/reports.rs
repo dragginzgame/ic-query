@@ -197,7 +197,7 @@ fn cache_provenance(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronReportProve
 
 fn valid_cache_summary(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronCacheSummary {
     NnsNeuronCacheSummary {
-        cache_status: "ok".to_string(),
+        cache_status: crate::cache::CacheValidationStatus::Valid,
         cache_error: None,
         complete: cache.completeness.is_api_exhausted(),
         point_in_time_guaranteed: cache.completeness.point_in_time_guaranteed,
@@ -212,7 +212,7 @@ fn valid_cache_summary(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronCacheSum
 
 fn invalid_cache_summary(path: &Path, error: String) -> NnsNeuronCacheSummary {
     NnsNeuronCacheSummary {
-        cache_status: "invalid".to_string(),
+        cache_status: crate::cache::CacheValidationStatus::Invalid,
         cache_error: Some(error),
         complete: false,
         point_in_time_guaranteed: false,

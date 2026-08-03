@@ -1,15 +1,48 @@
 //! Module: cache::model
 //!
-//! Responsibility: define the local cache-inventory request and report contracts.
+//! Responsibility: define shared cache-validation and local inventory report contracts.
 //! Does not own: filesystem traversal, cache-family validation, or CLI output.
-//! Boundary: exposes generic file, age, and freshness evidence without claiming
-//! family-specific semantic validity.
+//! Boundary: names family validation outcomes and exposes generic file, age,
+//! and freshness evidence without performing family-specific validation.
 
 use serde::Serialize;
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf};
 
 /// Current serialized schema version for cache-status reports.
 pub const CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 2;
+
+///
+/// CacheValidationStatus
+///
+/// Semantic validation result for an existing family-specific cache.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheValidationStatus {
+    /// The cache passed its family-specific schema, identity, and completeness checks.
+    #[serde(rename = "ok")]
+    Valid,
+    /// The cache exists but failed family-specific validation.
+    Invalid,
+}
+
+impl CacheValidationStatus {
+    /// Return the stable serialized status label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Valid => "ok",
+            Self::Invalid => "invalid",
+        }
+    }
+}
+
+impl fmt::Display for CacheValidationStatus {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
 
 ///
 /// CacheFileStatus
@@ -221,6 +254,17 @@ mod tests {
 
     #[test]
     fn typed_statuses_keep_the_existing_json_labels() {
+        for (status, expected) in [
+            (CacheValidationStatus::Valid, "ok"),
+            (CacheValidationStatus::Invalid, "invalid"),
+        ] {
+            assert_eq!(status.as_str(), expected);
+            assert_eq!(status.to_string(), expected);
+            assert_eq!(
+                serde_json::to_value(status).expect("serialize cache validation status"),
+                serde_json::json!(expected)
+            );
+        }
         for (status, expected) in [
             (CacheFileStatus::Fresh, "fresh"),
             (CacheFileStatus::Stale, "stale"),

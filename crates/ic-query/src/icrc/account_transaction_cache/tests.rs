@@ -1,6 +1,7 @@
 use super::*;
 use crate::{
     QueryProgress,
+    cache::CacheValidationStatus,
     icrc::{
         IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCollectionData,
         IcrcAccountTransactionCollectionSource, IcrcAccountTransactionError,
@@ -82,7 +83,7 @@ fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
     assert_eq!(oldest.total_transaction_count, 3);
     assert_eq!(
         status.cache.as_ref().expect("cache summary").cache_status,
-        "ok"
+        CacheValidationStatus::Valid
     );
     assert_eq!(
         status
@@ -130,7 +131,7 @@ fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() 
     assert_eq!(after, before);
     assert_eq!(
         status.cache.as_ref().expect("preserved cache").cache_status,
-        "ok"
+        CacheValidationStatus::Valid
     );
     let attempt = status.latest_attempt.expect("failed attempt");
     assert_eq!(attempt.status, "failed");

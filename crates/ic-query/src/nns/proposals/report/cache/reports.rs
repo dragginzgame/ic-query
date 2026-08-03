@@ -40,9 +40,8 @@ use crate::{
         },
     },
     snapshot_cache::{
-        SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotCompleteness,
-        SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key,
-        validate_snapshot_completeness,
+        SnapshotCompleteness, SnapshotIdentityMismatch, SnapshotKey,
+        load_complete_snapshot_for_key, validate_snapshot_completeness,
     },
 };
 use std::{
@@ -270,7 +269,7 @@ fn nns_proposal_cache_summary(
     let attempt_path = nns_proposal_cache_paths_for_cache_path(&cache_path);
     NnsProposalCacheSummary {
         governance_canister_id: cache.metadata.governance_canister_id,
-        cache_status: SNAPSHOT_CACHE_STATUS_OK.to_string(),
+        cache_status: crate::cache::CacheValidationStatus::Valid,
         cache_error: None,
         complete: cache.completeness.is_api_exhausted(),
         row_count: cache.completeness.row_count,
@@ -291,7 +290,7 @@ fn invalid_nns_proposal_cache_summary(
     let attempt_path = nns_proposal_cache_paths_for_cache_path(&cache_path);
     NnsProposalCacheSummary {
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
+        cache_status: crate::cache::CacheValidationStatus::Invalid,
         cache_error: Some(error.to_string()),
         complete: false,
         row_count: 0,

@@ -1,11 +1,19 @@
-#![cfg(feature = "host")]
-
+use ic_query::cache::CacheValidationStatus;
+#[cfg(feature = "host")]
 use ic_query::cache::{
     CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheFileStatus, CacheRefreshLockStatus,
     CacheStatusRequest, build_cache_status_report, cache_status_report_text,
 };
+#[cfg(feature = "host")]
 use std::path::PathBuf;
 
+#[test]
+fn public_cache_validation_status_preserves_labels_without_host() {
+    assert_eq!(CacheValidationStatus::Valid.as_str(), "ok");
+    assert_eq!(CacheValidationStatus::Invalid.as_str(), "invalid");
+}
+
+#[cfg(feature = "host")]
 #[test]
 fn public_cache_status_api_is_local_and_constructible() {
     let cache_root = PathBuf::from("target/ic-query-cache-public-api-empty-root");

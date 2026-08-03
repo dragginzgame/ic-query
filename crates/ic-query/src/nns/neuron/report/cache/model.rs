@@ -5,6 +5,7 @@
 //! Boundary: defines complete public neuron snapshot rows and report shapes.
 
 use crate::{
+    cache::CacheValidationStatus,
     nns::{
         NnsGovernanceRefreshAttemptStatus, governance::NnsGovernanceCacheMetadata,
         neuron::report::model::NnsNeuronRow,
@@ -107,7 +108,7 @@ pub struct NnsNeuronCacheStatusReport {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronCacheSummary {
     /// Cache validation status.
-    pub cache_status: String,
+    pub cache_status: CacheValidationStatus,
     /// Validation error for an invalid cache.
     pub cache_error: Option<String>,
     /// Whether API exhaustion was proven.

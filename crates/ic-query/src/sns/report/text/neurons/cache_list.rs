@@ -35,7 +35,7 @@ pub fn sns_neurons_cache_list_report_text(report: &SnsCacheListReport) -> String
                 .iter()
                 .map(|cache| {
                     [
-                        cache.cache_status.clone(),
+                        cache.cache_status.to_string(),
                         cache.id.to_string(),
                         cache.name.clone(),
                         short_principal(&cache.root_canister_id),

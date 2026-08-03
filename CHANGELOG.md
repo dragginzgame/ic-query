@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.5` replaces the remaining free-form complete-cache validation strings
+  in NNS neuron/proposal, SNS neuron/proposal, and ICRC account-history
+  summaries with one shared `CacheValidationStatus::{Valid, Invalid}` Rust
+  enum. Existing `ok`/`invalid` JSON labels and CLI text are unchanged.
+
 - `0.26.4` replaces free-form global cache and refresh-lock status strings with
   typed Rust enums while preserving the existing JSON labels and CLI output.
   Cache discovery, generic-header parsing, and lock projection now have

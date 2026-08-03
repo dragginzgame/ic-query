@@ -7,6 +7,7 @@ use super::{
     refresh_nns_neuron_cache_with_source,
 };
 use crate::{
+    cache::CacheValidationStatus,
     nns::{
         LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
     },
@@ -267,7 +268,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     assert!(status.found);
     assert_eq!(
         status.cache.as_ref().expect("cache summary").cache_status,
-        "ok"
+        CacheValidationStatus::Valid
     );
     assert_eq!(
         status.latest_attempt.as_ref().expect("attempt").status,

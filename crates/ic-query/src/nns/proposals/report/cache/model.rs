@@ -5,6 +5,7 @@
 //! Boundary: defines complete proposal snapshot metadata, rows, and reports.
 
 use crate::{
+    cache::CacheValidationStatus,
     nns::{
         NnsGovernanceRefreshAttemptStatus, governance::NnsGovernanceCacheMetadata,
         proposals::report::model::NnsProposalRow,
@@ -99,7 +100,7 @@ pub struct NnsProposalCacheStatusReport {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsProposalCacheSummary {
     pub governance_canister_id: String,
-    pub cache_status: String,
+    pub cache_status: CacheValidationStatus,
     pub cache_error: Option<String>,
     pub complete: bool,
     pub row_count: usize,

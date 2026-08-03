@@ -154,7 +154,7 @@ pub fn nns_neuron_cache_status_report_text(report: &NnsNeuronCacheStatusReport) 
     ];
     if let Some(cache) = report.cache.as_ref() {
         lines.extend([
-            format!("cache_status: {}", sanitize_text(&cache.cache_status)),
+            format!("cache_status: {}", cache.cache_status),
             format!(
                 "cache_error: {}",
                 sanitize_text(cache.cache_error.as_deref().unwrap_or("-"))

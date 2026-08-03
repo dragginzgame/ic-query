@@ -26,9 +26,8 @@ pub use lifecycle::{
     run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
 };
 pub use model::{
-    SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotCompleteness,
-    SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch, SnapshotReport,
-    validate_snapshot_completeness,
+    SnapshotCompleteness, SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
+    SnapshotReport, validate_snapshot_completeness,
 };
 pub use paged::{CompletePagedCollection, PagedCollectionPage, PagedCollectionState};
 pub use paths::{

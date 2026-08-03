@@ -5,7 +5,8 @@
 //! Boundary: keeps common cache-summary fields and ordering consistent.
 
 use crate::{
-    snapshot_cache::{SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK, SnapshotEnvelope},
+    cache::CacheValidationStatus,
+    snapshot_cache::SnapshotEnvelope,
     sns::report::{
         SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status,
@@ -58,7 +59,7 @@ fn valid_sns_cache_summary<Data>(
         name: cache.metadata.name,
         root_canister_id: cache.metadata.root_canister_id,
         governance_canister_id: cache.metadata.governance_canister_id,
-        cache_status: SNAPSHOT_CACHE_STATUS_OK.to_string(),
+        cache_status: CacheValidationStatus::Valid,
         cache_error: None,
         complete: cache.completeness.is_api_exhausted(),
         row_count: cache.completeness.row_count,
@@ -83,7 +84,7 @@ fn invalid_sns_cache_summary(
         name: "-".to_string(),
         root_canister_id: root_from_cache_path(&cache_path),
         governance_canister_id: "-".to_string(),
-        cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
+        cache_status: CacheValidationStatus::Invalid,
         cache_error: Some(error.to_string()),
         complete: false,
         row_count: 0,
@@ -182,7 +183,10 @@ fn root_from_cache_path(cache_path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::find_sns_cache_summary_by_id;
-    use crate::sns::report::{SnsCacheSummary, SnsHostError};
+    use crate::{
+        cache::CacheValidationStatus,
+        sns::report::{SnsCacheSummary, SnsHostError},
+    };
     use std::{cell::Cell, path::PathBuf};
 
     fn summary(id: usize, path: PathBuf) -> SnsCacheSummary {
@@ -192,7 +196,7 @@ mod tests {
             name: "SNS".to_string(),
             root_canister_id: path.clone(),
             governance_canister_id: "governance".to_string(),
-            cache_status: "ok".to_string(),
+            cache_status: CacheValidationStatus::Valid,
             cache_error: None,
             complete: true,
             row_count: 1,

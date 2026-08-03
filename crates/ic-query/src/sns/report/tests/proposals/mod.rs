@@ -1,5 +1,5 @@
 use super::{fixtures::*, *};
-use crate::test_support::temp_dir;
+use crate::{cache::CacheValidationStatus, test_support::temp_dir};
 use std::fs;
 
 mod cache_status;
@@ -26,7 +26,7 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
-    assert_eq!(cache.cache_status, "invalid");
+    assert_eq!(cache.cache_status, CacheValidationStatus::Invalid);
     assert!(
         cache
             .cache_error
@@ -42,7 +42,7 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
     })
     .expect("proposal cache list");
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, "invalid");
+    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Invalid);
     assert!(
         list.caches[0]
             .cache_error

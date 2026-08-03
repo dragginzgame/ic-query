@@ -5,6 +5,7 @@
 //! Boundary: preserves fields common to neuron and proposal cache list/status reports.
 
 use super::SnsRefreshAttemptStatus;
+use crate::cache::CacheValidationStatus;
 use serde::Serialize;
 
 ///
@@ -53,7 +54,7 @@ pub struct SnsCacheSummary {
     pub name: String,
     pub root_canister_id: String,
     pub governance_canister_id: String,
-    pub cache_status: String,
+    pub cache_status: CacheValidationStatus,
     pub cache_error: Option<String>,
     pub complete: bool,
     pub row_count: usize,

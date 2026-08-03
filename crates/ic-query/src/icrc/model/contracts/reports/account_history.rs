@@ -4,6 +4,7 @@
 //! Does not own: ledger-wide history, requests, live transport, cache mechanics, or rendering.
 //! Boundary: owns the stable JSON and persisted snapshot shapes for indexed account history.
 
+use crate::cache::CacheValidationStatus;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -260,7 +261,7 @@ pub struct IcrcAccountTransactionCacheStatusReport {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcAccountTransactionCacheSummary {
     /// Stable cache validation status.
-    pub cache_status: String,
+    pub cache_status: CacheValidationStatus,
     /// Validation error when the existing cache is invalid.
     pub cache_error: Option<String>,
     /// Verified index canister when the cache is valid.

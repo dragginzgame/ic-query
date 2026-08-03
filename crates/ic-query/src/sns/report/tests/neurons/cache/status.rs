@@ -1,5 +1,5 @@
 use crate::sns::report::tests::{fixtures::*, *};
-use crate::test_support::temp_dir;
+use crate::{cache::CacheValidationStatus, test_support::temp_dir};
 use std::fs;
 
 #[test]
@@ -71,7 +71,7 @@ fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     assert_eq!(list.cache_count, 1);
     assert_eq!(list.caches[0].id, 1);
     assert_eq!(list.caches[0].name, "Fixture SNS");
-    assert_eq!(list.caches[0].cache_status, "ok");
+    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
     assert_eq!(list.caches[0].cache_error, None);
     assert_eq!(list.caches[0].row_count, 3);
     assert_eq!(list.caches[0].page_count, 3);
@@ -324,7 +324,7 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
-    assert_eq!(cache.cache_status, "invalid");
+    assert_eq!(cache.cache_status, CacheValidationStatus::Invalid);
     assert!(
         cache
             .cache_error
@@ -340,7 +340,7 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
     })
     .expect("cache list");
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, "invalid");
+    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Invalid);
     assert!(
         list.caches[0]
             .cache_error

@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{
     HostCacheError,
+    cache::CacheValidationStatus,
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
     nns::{
         NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
@@ -168,7 +169,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     .expect("cache list");
 
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, "ok");
+    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
     assert_eq!(list.caches[0].cache_error, None);
     assert_eq!(list.caches[0].row_count, 3);
     assert_eq!(list.caches[0].page_count, 2);
@@ -499,7 +500,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
-    assert_eq!(cache.cache_status, "invalid");
+    assert_eq!(cache.cache_status, CacheValidationStatus::Invalid);
     assert!(
         cache
             .cache_error
@@ -515,7 +516,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
     })
     .expect("cache list");
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, "invalid");
+    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Invalid);
     assert!(
         list.caches[0]
             .cache_error

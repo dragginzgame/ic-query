@@ -13,13 +13,13 @@ use super::{
     },
 };
 use crate::{
+    cache::CacheValidationStatus,
     icrc::model::{
         IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
         IcrcAccountTransactionCacheSummary, IcrcAccountTransactionError,
         IcrcAccountTransactionListReport, IcrcAccountTransactionListRequest,
         IcrcAccountTransactionSort,
     },
-    snapshot_cache::{SNAPSHOT_CACHE_STATUS_INVALID, SNAPSHOT_CACHE_STATUS_OK},
 };
 use std::path::Path;
 
@@ -112,7 +112,7 @@ fn load_cache_summary(
 ) -> IcrcAccountTransactionCacheSummary {
     match load_snapshot_at(path, request) {
         Ok(cached) => IcrcAccountTransactionCacheSummary {
-            cache_status: SNAPSHOT_CACHE_STATUS_OK.to_string(),
+            cache_status: CacheValidationStatus::Valid,
             cache_error: None,
             index_canister_id: Some(cached.snapshot.index_canister_id),
             transaction_count: cached.snapshot.transactions.len(),
@@ -127,7 +127,7 @@ fn load_cache_summary(
             cache_path: cached.path.display().to_string(),
         },
         Err(error) => IcrcAccountTransactionCacheSummary {
-            cache_status: SNAPSHOT_CACHE_STATUS_INVALID.to_string(),
+            cache_status: CacheValidationStatus::Invalid,
             cache_error: Some(error.to_string()),
             index_canister_id: None,
             transaction_count: 0,

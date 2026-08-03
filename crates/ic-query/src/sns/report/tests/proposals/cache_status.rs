@@ -136,7 +136,7 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     .expect("proposal cache list");
     assert_eq!(list.cache_count, 1);
     assert_eq!(list.caches[0].id, 1);
-    assert_eq!(list.caches[0].cache_status, "ok");
+    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
     assert_eq!(list.caches[0].cache_error, None);
     assert_eq!(list.caches[0].row_count, 1);
 
