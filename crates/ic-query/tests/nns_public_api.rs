@@ -115,12 +115,13 @@ use ic_query::nns::topology::{
 };
 use ic_query::nns::topology::{
     NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
-    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRow, NnsTopologyGapsReport,
-    NnsTopologyHealthCheckRow, NnsTopologyHealthReport, NnsTopologyProviderRow,
-    NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyReadRequest,
-    NnsTopologyRefreshReport, NnsTopologyRefreshRequest, NnsTopologyRefreshRow,
-    NnsTopologyRegionRow, NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow,
-    NnsTopologySummaryReport, NnsTopologyVersionsReport, nns_topology_capacity_report_text,
+    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRelationKind,
+    NnsTopologyGapRow, NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyHealthCheckRow,
+    NnsTopologyHealthReport, NnsTopologyProviderRow, NnsTopologyProviderStatus,
+    NnsTopologyProvidersReport, NnsTopologyReadRequest, NnsTopologyRefreshReport,
+    NnsTopologyRefreshRequest, NnsTopologyRefreshRow, NnsTopologyRegionRow,
+    NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow, NnsTopologySummaryReport,
+    NnsTopologyVersionsReport, nns_topology_capacity_report_text,
     nns_topology_coverage_report_text, nns_topology_gaps_report_text,
     nns_topology_health_report_text, nns_topology_providers_report_text,
     nns_topology_refresh_report_text, nns_topology_regions_report_text,
@@ -1188,9 +1189,9 @@ fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
         status: NnsTopologyAssessmentStatus::Attention,
         gap_count: 1,
         gaps: vec![NnsTopologyGapRow {
-            subject_kind: "node".to_string(),
+            subject_kind: NnsTopologyGapSubjectKind::Node,
             subject: "zh3jp-xqaaa-aaaar-qaada-cai".to_string(),
-            missing_relation: "node_operator".to_string(),
+            missing_relation: NnsTopologyGapRelationKind::NodeOperator,
             referenced_id: "qoctq-giaaa-aaaar-qaada-cai".to_string(),
         }],
     };

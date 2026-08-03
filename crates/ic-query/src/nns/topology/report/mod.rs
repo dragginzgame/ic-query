@@ -76,11 +76,12 @@ pub use build::{
 pub use error::NnsTopologyHostError;
 pub use model::{
     NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
-    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRow, NnsTopologyGapsReport,
-    NnsTopologyHealthCheckRow, NnsTopologyHealthReport, NnsTopologyProviderRow,
-    NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
-    NnsTopologyRefreshRow, NnsTopologyRegionRow, NnsTopologyRegionsReport,
-    NnsTopologyRegistryVersionRow, NnsTopologySummaryReport, NnsTopologyVersionsReport,
+    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRelationKind,
+    NnsTopologyGapRow, NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyHealthCheckRow,
+    NnsTopologyHealthReport, NnsTopologyProviderRow, NnsTopologyProviderStatus,
+    NnsTopologyProvidersReport, NnsTopologyRefreshReport, NnsTopologyRefreshRow,
+    NnsTopologyRegionRow, NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow,
+    NnsTopologySummaryReport, NnsTopologyVersionsReport,
 };
 pub use request::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
 #[cfg(feature = "host")]

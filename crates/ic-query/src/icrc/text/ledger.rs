@@ -161,7 +161,7 @@ fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> St
             .map(|row| {
                 [
                     row.key.clone(),
-                    row.value_type.clone(),
+                    row.value_type.as_str().to_string(),
                     truncate_text(
                         &metadata_value_text(&row.key, &row.value, decimals),
                         ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT,

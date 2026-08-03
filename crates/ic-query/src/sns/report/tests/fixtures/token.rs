@@ -41,22 +41,22 @@ impl SnsTokenSource for FixtureSnsTokenSource {
             metadata: vec![
                 SnsTokenMetadataRow {
                     key: "icrc1:name".to_string(),
-                    value_type: "text".to_string(),
+                    value_type: IcrcMetadataValueKind::Text,
                     value: serde_json::json!("Fixture Token"),
                 },
                 SnsTokenMetadataRow {
                     key: "icrc1:decimals".to_string(),
-                    value_type: "nat".to_string(),
+                    value_type: IcrcMetadataValueKind::Nat,
                     value: serde_json::json!("8"),
                 },
                 SnsTokenMetadataRow {
                     key: "icrc1:fee".to_string(),
-                    value_type: "nat".to_string(),
+                    value_type: IcrcMetadataValueKind::Nat,
                     value: serde_json::json!("10_000"),
                 },
                 SnsTokenMetadataRow {
                     key: "icrc1:logo".to_string(),
-                    value_type: "text".to_string(),
+                    value_type: IcrcMetadataValueKind::Text,
                     value: serde_json::json!("data:image/png;base64,fixture"),
                 },
             ],

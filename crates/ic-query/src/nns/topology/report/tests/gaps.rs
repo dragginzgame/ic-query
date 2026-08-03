@@ -15,21 +15,21 @@ fn topology_gaps_report_lists_unknown_join_subjects() {
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
     assert_eq!(report.gap_count, 5);
     assert!(report.gaps.iter().any(|gap| {
-        gap.subject_kind == "node"
+        gap.subject_kind == NnsTopologyGapSubjectKind::Node
             && gap.subject == "node-c"
-            && gap.missing_relation == "node_provider"
+            && gap.missing_relation == NnsTopologyGapRelationKind::NodeProvider
             && gap.referenced_id == "provider-z"
     }));
     assert!(report.gaps.iter().any(|gap| {
-        gap.subject_kind == "node"
+        gap.subject_kind == NnsTopologyGapSubjectKind::Node
             && gap.subject == "node-c"
-            && gap.missing_relation == "node_operator"
+            && gap.missing_relation == NnsTopologyGapRelationKind::NodeOperator
             && gap.referenced_id == "operator-z"
     }));
     assert!(report.gaps.iter().any(|gap| {
-        gap.subject_kind == "node_operator"
+        gap.subject_kind == NnsTopologyGapSubjectKind::NodeOperator
             && gap.subject == "operator-b"
-            && gap.missing_relation == "data_center"
+            && gap.missing_relation == NnsTopologyGapRelationKind::DataCenter
             && gap.referenced_id == "dc-z"
     }));
 }

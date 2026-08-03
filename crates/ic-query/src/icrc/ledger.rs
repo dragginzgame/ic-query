@@ -4,7 +4,7 @@
 //! Does not own: CLI parsing, command-specific reports, SNS lookup, or text rendering.
 //! Boundary: keeps reusable ICRC ledger mechanics independent from report DTOs.
 
-use crate::{agent::build_ic_agent, hex::hex_bytes};
+use crate::{agent::build_ic_agent, hex::hex_bytes, icrc::IcrcMetadataValueKind};
 use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal, types::reference::Func};
 use ic_agent::Agent;
 use serde_json::Value as JsonValue;
@@ -68,7 +68,7 @@ pub struct IcrcLedgerStandardRow {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcLedgerMetadataRow {
     pub key: String,
-    pub value_type: String,
+    pub value_type: IcrcMetadataValueKind,
     pub value: JsonValue,
 }
 
@@ -419,14 +419,14 @@ where
 
 pub fn metadata_row(key: String, value: IcrcMetadataValue) -> IcrcLedgerMetadataRow {
     let (value_type, value) = match value {
-        IcrcMetadataValue::Nat(value) => ("nat", value.to_string()),
-        IcrcMetadataValue::Int(value) => ("int", value.to_string()),
-        IcrcMetadataValue::Text(value) => ("text", value),
-        IcrcMetadataValue::Blob(value) => ("blob", hex_bytes(&value)),
+        IcrcMetadataValue::Nat(value) => (IcrcMetadataValueKind::Nat, value.to_string()),
+        IcrcMetadataValue::Int(value) => (IcrcMetadataValueKind::Int, value.to_string()),
+        IcrcMetadataValue::Text(value) => (IcrcMetadataValueKind::Text, value),
+        IcrcMetadataValue::Blob(value) => (IcrcMetadataValueKind::Blob, hex_bytes(&value)),
     };
     IcrcLedgerMetadataRow {
         key,
-        value_type: value_type.to_string(),
+        value_type,
         value: JsonValue::String(value),
     }
 }
@@ -471,4 +471,41 @@ where
         .call()
         .await
         .map_err(|err| E::agent_call(method, err.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn metadata_conversion_preserves_native_kind_and_value() {
+        for (raw, kind, value) in [
+            (
+                IcrcMetadataValue::Nat(Nat::from(7_u8)),
+                IcrcMetadataValueKind::Nat,
+                "7",
+            ),
+            (
+                IcrcMetadataValue::Int(Int::from(-2_i8)),
+                IcrcMetadataValueKind::Int,
+                "-2",
+            ),
+            (
+                IcrcMetadataValue::Text("token".to_string()),
+                IcrcMetadataValueKind::Text,
+                "token",
+            ),
+            (
+                IcrcMetadataValue::Blob(vec![0x01, 0xab]),
+                IcrcMetadataValueKind::Blob,
+                "01ab",
+            ),
+        ] {
+            let row = metadata_row("key".to_string(), raw);
+
+            assert_eq!(row.key, "key");
+            assert_eq!(row.value_type, kind);
+            assert_eq!(row.value, JsonValue::String(value.to_string()));
+        }
+    }
 }

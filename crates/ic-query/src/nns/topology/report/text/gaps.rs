@@ -38,9 +38,9 @@ fn render_gaps_table(rows: &[NnsTopologyGapRow]) -> String {
         .iter()
         .map(|row| {
             [
-                row.subject_kind.clone(),
+                row.subject_kind.as_str().to_string(),
                 row.subject.clone(),
-                row.missing_relation.clone(),
+                row.missing_relation.as_str().to_string(),
                 row.referenced_id.clone(),
             ]
         })

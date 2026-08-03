@@ -41,9 +41,9 @@ use ic_query::icrc::{
     IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
     IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
     IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
-    IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
-    icrc_account_transaction_page_report_text, icrc_allowance_report_text,
+    IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateReport, IcrcTokenMetadataRow,
+    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
+    IcrcTransactionsRequest, icrc_account_transaction_page_report_text, icrc_allowance_report_text,
     icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
     icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
     icrc_token_report_text, icrc_transactions_report_text, normalize_subaccount_hex,
@@ -601,7 +601,7 @@ fn public_icrc_token_api_is_constructible_and_renderable_without_host() {
         supported_standards: vec![standard_row("ICRC-1")],
         metadata: vec![IcrcTokenMetadataRow {
             key: "icrc1:symbol".to_string(),
-            value_type: "Text".to_string(),
+            value_type: IcrcMetadataValueKind::Text,
             value: json!("ICP"),
         }],
     };

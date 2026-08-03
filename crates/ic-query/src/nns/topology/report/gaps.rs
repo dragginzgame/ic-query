@@ -13,7 +13,7 @@ use crate::nns::{
     node::{NnsNodeListReport, NnsNodeRow},
     node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
     node_provider::NnsNodeProviderListReport,
-    topology::report::NnsTopologyGapRow,
+    topology::report::{NnsTopologyGapRelationKind, NnsTopologyGapRow, NnsTopologyGapSubjectKind},
 };
 
 pub(super) fn topology_gaps_report_from_reports(
@@ -57,25 +57,25 @@ fn collect_node_gaps(
     for node in nodes {
         if !index.has_node_provider(&node.node_provider_principal) {
             gaps.push(topology_gap_row(
-                "node",
+                NnsTopologyGapSubjectKind::Node,
                 &node.node_principal,
-                "node_provider",
+                NnsTopologyGapRelationKind::NodeProvider,
                 &node.node_provider_principal,
             ));
         }
         if !index.has_node_operator(&node.node_operator_principal) {
             gaps.push(topology_gap_row(
-                "node",
+                NnsTopologyGapSubjectKind::Node,
                 &node.node_principal,
-                "node_operator",
+                NnsTopologyGapRelationKind::NodeOperator,
                 &node.node_operator_principal,
             ));
         }
         if !index.has_data_center(&node.data_center_id) {
             gaps.push(topology_gap_row(
-                "node",
+                NnsTopologyGapSubjectKind::Node,
                 &node.node_principal,
-                "data_center",
+                NnsTopologyGapRelationKind::DataCenter,
                 &node.data_center_id,
             ));
         }
@@ -91,17 +91,17 @@ fn collect_node_operator_gaps(
     for operator in operators {
         if !index.has_node_provider(&operator.node_provider_principal) {
             gaps.push(topology_gap_row(
-                "node_operator",
+                NnsTopologyGapSubjectKind::NodeOperator,
                 &operator.node_operator_principal,
-                "node_provider",
+                NnsTopologyGapRelationKind::NodeProvider,
                 &operator.node_provider_principal,
             ));
         }
         if !index.has_data_center(&operator.data_center_id) {
             gaps.push(topology_gap_row(
-                "node_operator",
+                NnsTopologyGapSubjectKind::NodeOperator,
                 &operator.node_operator_principal,
-                "data_center",
+                NnsTopologyGapRelationKind::DataCenter,
                 &operator.data_center_id,
             ));
         }
@@ -127,15 +127,15 @@ fn sort_gap_rows(gaps: &mut [NnsTopologyGapRow]) {
 }
 
 fn topology_gap_row(
-    subject_kind: &str,
+    subject_kind: NnsTopologyGapSubjectKind,
     subject: &str,
-    missing_relation: &str,
+    missing_relation: NnsTopologyGapRelationKind,
     referenced_id: &str,
 ) -> NnsTopologyGapRow {
     NnsTopologyGapRow {
-        subject_kind: subject_kind.to_string(),
+        subject_kind,
         subject: subject.to_string(),
-        missing_relation: missing_relation.to_string(),
+        missing_relation,
         referenced_id: referenced_id.to_string(),
     }
 }

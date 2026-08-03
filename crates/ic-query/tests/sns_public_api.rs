@@ -1,3 +1,4 @@
+use ic_query::icrc::IcrcMetadataValueKind;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
     SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
@@ -644,7 +645,7 @@ fn public_sns_token_api_is_constructible_and_renderable() {
         }],
         metadata: vec![SnsTokenMetadataRow {
             key: "icrc1:symbol".to_string(),
-            value_type: "Text".to_string(),
+            value_type: IcrcMetadataValueKind::Text,
             value: json!("EXT"),
         }],
     };
@@ -1696,7 +1697,7 @@ fn sample_mainnet_sns_token() -> MainnetSnsToken {
         }],
         metadata: vec![SnsTokenMetadataRow {
             key: "icrc1:symbol".to_string(),
-            value_type: "Text".to_string(),
+            value_type: IcrcMetadataValueKind::Text,
             value: json!("EXT"),
         }],
     }

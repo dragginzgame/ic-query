@@ -19,6 +19,6 @@ pub use ledger::{
     IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
     IcrcArchivesReport, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
     IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
-    IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
-    IcrcTransactionBlockRow, IcrcTransactionsReport,
+    IcrcMetadataValueKind, IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport,
+    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
 };

@@ -46,7 +46,10 @@ mod tests;
 #[cfg(feature = "host")]
 use crate::hex::hex_bytes;
 #[cfg(all(test, feature = "host"))]
-use crate::icrc::ledger::{IcrcMetadataValue, metadata_row};
+use crate::icrc::{
+    IcrcMetadataValueKind,
+    ledger::{IcrcMetadataValue, metadata_row},
+};
 #[cfg(all(test, feature = "host"))]
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 #[cfg(all(test, feature = "host"))]

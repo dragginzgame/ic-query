@@ -15,8 +15,8 @@ pub use reports::{
     IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
     IcrcArchivesReport, IcrcBalanceReport, IcrcBlockTypeRow, IcrcBlockTypesReport,
     IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
-    IcrcIndexReport, IcrcTipCertificateReport, IcrcTokenMetadataRow, IcrcTokenReport,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
+    IcrcIndexReport, IcrcMetadataValueKind, IcrcTipCertificateReport, IcrcTokenMetadataRow,
+    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
 };
 pub use requests::{
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,

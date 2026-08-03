@@ -67,9 +67,9 @@ pub use model::{
     IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
     IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
     IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcFollowedArchiveBlockRow,
-    IcrcIndexReport, IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenMetadataRow,
-    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
-    IcrcTransactionsRequest,
+    IcrcIndexReport, IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateReport,
+    IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+    IcrcTransactionsReport, IcrcTransactionsRequest,
 };
 pub use text::{
     icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,

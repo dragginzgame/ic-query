@@ -4,6 +4,7 @@
 //! Does not own: ledger calls, token amount formatting, or rendering.
 //! Boundary: preserves raw token metadata fields for text and JSON output.
 
+use crate::icrc::IcrcMetadataValueKind;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 
@@ -60,6 +61,6 @@ pub struct SnsTokenStandardRow {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsTokenMetadataRow {
     pub key: String,
-    pub value_type: String,
+    pub value_type: IcrcMetadataValueKind,
     pub value: JsonValue,
 }

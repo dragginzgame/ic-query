@@ -22,9 +22,9 @@ use super::{
         IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
         IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcCapabilitiesData,
         IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcFollowedArchiveBlockRow,
-        IcrcIndexData, IcrcLedgerRequest, IcrcTipCertificateData, IcrcTokenData,
-        IcrcTokenMetadataRow, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
-        IcrcTransactionsRequest,
+        IcrcIndexData, IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateData,
+        IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+        IcrcTransactionsData, IcrcTransactionsRequest,
     },
     text::{
         icrc_account_transaction_page_report_text, icrc_allowance_report_text,
@@ -75,17 +75,17 @@ impl IcrcTokenSource for FixtureIcrcSource {
             metadata: vec![
                 IcrcTokenMetadataRow {
                     key: "icrc1:name".to_string(),
-                    value_type: "text".to_string(),
+                    value_type: IcrcMetadataValueKind::Text,
                     value: JsonValue::String("Fixture Token".to_string()),
                 },
                 IcrcTokenMetadataRow {
                     key: "icrc1:fee".to_string(),
-                    value_type: "nat".to_string(),
+                    value_type: IcrcMetadataValueKind::Nat,
                     value: JsonValue::String("123456789".to_string()),
                 },
                 IcrcTokenMetadataRow {
                     key: "icrc1:logo".to_string(),
-                    value_type: "text".to_string(),
+                    value_type: IcrcMetadataValueKind::Text,
                     value: JsonValue::String("data:image/png;base64,fixture".to_string()),
                 },
             ],
@@ -574,6 +574,7 @@ fn token_report_builds_text_and_json_friendly_fields() {
 
     let json = serde_json::to_value(&report).expect("serialize ICRC token report");
     assert_eq!(json["transfer_fee"], json!("123456789"));
+    assert_eq!(json["metadata"][2]["value_type"], json!("text"));
     assert_eq!(
         json["metadata"][2]["value"],
         json!("data:image/png;base64,fixture")

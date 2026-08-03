@@ -78,7 +78,7 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
                 .map(|row| {
                     [
                         row.key.clone(),
-                        row.value_type.clone(),
+                        row.value_type.as_str().to_string(),
                         truncate_text(
                             &token_metadata_value_text(&row.key, &row.value, report.decimals),
                             SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT,

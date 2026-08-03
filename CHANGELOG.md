@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.11` replaces free-form NNS topology-gap classifications and duplicate
+  ICRC/SNS ledger-metadata value types with typed domain enums. Gap construction,
+  native metadata conversion, ordering, and rendering now consume closed
+  vocabularies while existing JSON and CLI labels remain unchanged.
+
 - `0.26.10` replaces free-form ICRC capability status and NNS node Subnet-kind
   strings with typed domain enums. Capability diagnostics, Registry
   projection, node filters, topology counts, and text rendering now consume
