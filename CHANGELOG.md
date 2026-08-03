@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.32` separates NNS Governance economics, cached-metrics, and
+  reward/modulation model families behind the existing explicit facade.
+  Public Rust paths, native response shapes, and behavior are unchanged.
+
 - `0.25.31` separates NNS neuron source-independent pagination, provenance,
   and report assembly from the built-in Governance wire adapter. Public Rust
   paths, source calls, cache contracts, and behavior are unchanged.
