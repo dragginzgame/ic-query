@@ -4,7 +4,7 @@
 //! Does not own: live transport, report assembly, or text rendering.
 //! Boundary: keeps wire-code label conversion separate from source fetching.
 
-use super::model::{
+use super::model::selection::{
     NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE, NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL,
     NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE, NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL,
     NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE,

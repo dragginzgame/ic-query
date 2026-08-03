@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.29` separates the NNS proposal model into request, serialized
+  report/row, and filter/sort vocabulary owners behind the existing facade.
+  Public Rust paths, JSON contracts, and behavior are unchanged.
+
 - `0.25.28` gives SNS proposal and neuron pagination one resolved refresh
   context for request, source, target, attempt, progress, page-cap, incomplete,
   and exhaustion policy. Family-specific cursors, validation, and source calls

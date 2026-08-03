@@ -15,10 +15,12 @@ use crate::{
             NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
             cache::paths::nns_proposal_cache_paths,
             model::{
-                NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
-                NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
                 NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
                 NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
+                selection::{
+                    NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
+                    NNS_PROPOSAL_STATUS_EXECUTED_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+                },
             },
             source::{NnsProposalSource, nns_proposal_row_from_info},
             text::{
