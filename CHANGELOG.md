@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.6` replaces free-form NNS, SNS, and ICRC refresh-attempt lifecycle
+  fields with `CacheRefreshAttemptStatus::{Running, Complete, Failed}`. Writers
+  now accept only those states, while existing sidecar/report JSON and CLI text
+  labels remain unchanged.
+
 - `0.26.5` replaces the remaining free-form complete-cache validation strings
   in NNS neuron/proposal, SNS neuron/proposal, and ICRC account-history
   summaries with one shared `CacheValidationStatus::{Valid, Invalid}` Rust

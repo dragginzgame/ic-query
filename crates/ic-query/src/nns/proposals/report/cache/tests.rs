@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     HostCacheError,
-    cache::CacheValidationStatus,
+    cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
     ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
     nns::{
         NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
@@ -192,7 +192,7 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
             .as_ref()
             .expect("latest attempt")
             .status,
-        "complete"
+        CacheRefreshAttemptStatus::Complete
     );
     assert!(status_text.contains("latest_attempt:"));
     assert!(status_text.contains("status: complete"));

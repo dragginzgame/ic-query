@@ -306,7 +306,7 @@ fn attempt_lines(attempt: Option<&NnsGovernanceRefreshAttemptStatus>) -> Vec<Str
         return vec!["latest_attempt: -".to_string()];
     };
     vec![
-        format!("attempt_status: {}", sanitize_text(&attempt.status)),
+        format!("attempt_status: {}", attempt.status),
         format!("attempt_started_at: {}", sanitize_text(&attempt.started_at)),
         format!("attempt_updated_at: {}", sanitize_text(&attempt.updated_at)),
         format!("attempt_page_size: {}", attempt.page_size),

@@ -5,7 +5,7 @@
 //! Boundary: persists generic refresh-attempt JSON through cache-file primitives.
 
 use super::json::write_snapshot_json;
-use crate::cache_file::CacheFileError;
+use crate::{cache::CacheRefreshAttemptStatus, cache_file::CacheFileError};
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::{
     fs,
@@ -163,7 +163,7 @@ pub fn current_attempt_timestamp(fallback: &str) -> String {
 pub fn validate_snapshot_refresh_attempt<Metadata>(
     attempt: &SnapshotRefreshAttempt<Metadata>,
     expected_network: &str,
-) -> Result<(), String> {
+) -> Result<CacheRefreshAttemptStatus, String> {
     if attempt.schema_version != SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION {
         return Err(format!(
             "schema_version is {}, expected {}",
@@ -188,18 +188,27 @@ pub fn validate_snapshot_refresh_attempt<Metadata>(
     if attempt.pages_fetched == 0 && (attempt.rows_fetched != 0 || attempt.last_cursor.is_some()) {
         return Err("zero-page attempt contains row or cursor progress".to_string());
     }
-    match attempt.status.as_str() {
-        "running" | "complete" if attempt.last_error.is_none() => Ok(()),
-        "failed"
+    let status = CacheRefreshAttemptStatus::from_label(&attempt.status)
+        .ok_or_else(|| format!("unsupported attempt status {}", attempt.status))?;
+    match status {
+        CacheRefreshAttemptStatus::Running | CacheRefreshAttemptStatus::Complete
+            if attempt.last_error.is_none() =>
+        {
+            Ok(status)
+        }
+        CacheRefreshAttemptStatus::Failed
             if attempt
                 .last_error
                 .as_deref()
                 .is_some_and(|error| !error.trim().is_empty()) =>
         {
-            Ok(())
+            Ok(status)
         }
-        "running" | "complete" => Err(format!("{} attempt contains last_error", attempt.status)),
-        "failed" => Err("failed attempt must contain last_error".to_string()),
-        _ => Err(format!("unsupported attempt status {}", attempt.status)),
+        CacheRefreshAttemptStatus::Running | CacheRefreshAttemptStatus::Complete => {
+            Err(format!("{status} attempt contains last_error"))
+        }
+        CacheRefreshAttemptStatus::Failed => {
+            Err("failed attempt must contain last_error".to_string())
+        }
     }
 }

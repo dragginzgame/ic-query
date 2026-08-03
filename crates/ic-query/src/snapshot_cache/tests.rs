@@ -4,7 +4,8 @@ use super::{
     SnapshotKey, SnapshotRefreshAttempt, collect_full_collection_snapshot_paths,
     load_complete_snapshot_for_key, publish_snapshot_with_attempt,
     run_paged_snapshot_refresh_with_progress, run_snapshot_refresh_with_attempts,
-    validate_snapshot_completeness, with_locked_snapshot_refresh,
+    validate_snapshot_completeness, validate_snapshot_refresh_attempt,
+    with_locked_snapshot_refresh,
 };
 use crate::{
     QueryProgressEvent, QueryProgressState,
@@ -241,8 +242,8 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
 }
 
 #[test]
-fn snapshot_refresh_attempt_serializes_flat_metadata() {
-    #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
+    #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
     struct Metadata {
         root_canister_id: String,
     }
@@ -269,6 +270,31 @@ fn snapshot_refresh_attempt_serializes_flat_metadata() {
     assert_eq!(value["status"], "running");
     assert_eq!(value["rows_fetched"], 25);
     assert!(value.get("metadata").is_none());
+
+    for (status, last_error) in [
+        ("running", None),
+        ("complete", None),
+        ("failed", Some("source failed".to_string())),
+    ] {
+        let mut candidate = attempt.clone();
+        candidate.status = status.to_string();
+        candidate.last_error = last_error;
+        assert!(validate_snapshot_refresh_attempt(&candidate, "ic").is_ok());
+    }
+
+    let mut unknown = attempt.clone();
+    unknown.status = "unknown".to_string();
+    assert_eq!(
+        validate_snapshot_refresh_attempt(&unknown, "ic"),
+        Err("unsupported attempt status unknown".to_string())
+    );
+
+    let mut failed_without_error = attempt;
+    failed_without_error.status = "failed".to_string();
+    assert_eq!(
+        validate_snapshot_refresh_attempt(&failed_without_error, "ic"),
+        Err("failed attempt must contain last_error".to_string())
+    );
 }
 
 #[test]

@@ -7,9 +7,9 @@ mod status;
 mod text;
 
 pub use model::{
-    CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheFileStatus, CacheRefreshLockStatus,
-    CacheRefreshLockStatusRow, CacheStatusReport, CacheStatusRequest, CacheStatusRow,
-    CacheValidationStatus,
+    CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheFileStatus, CacheRefreshAttemptStatus,
+    CacheRefreshLockStatus, CacheRefreshLockStatusRow, CacheStatusReport, CacheStatusRequest,
+    CacheStatusRow, CacheValidationStatus,
 };
 #[cfg(feature = "host")]
 pub use status::{CacheStatusError, build_cache_status_report};

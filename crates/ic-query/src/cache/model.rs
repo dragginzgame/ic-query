@@ -45,6 +45,51 @@ impl fmt::Display for CacheValidationStatus {
 }
 
 ///
+/// CacheRefreshAttemptStatus
+///
+/// Lifecycle state for a complete-cache refresh attempt.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheRefreshAttemptStatus {
+    /// A refresh started or published intermediate collection progress.
+    Running,
+    /// A refresh exhausted its source and published a complete cache.
+    Complete,
+    /// A refresh terminated without replacing the complete cache.
+    Failed,
+}
+
+impl CacheRefreshAttemptStatus {
+    /// Return the stable serialized lifecycle label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Running => "running",
+            Self::Complete => "complete",
+            Self::Failed => "failed",
+        }
+    }
+
+    #[cfg(any(feature = "host", test))]
+    pub(crate) fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "running" => Some(Self::Running),
+            "complete" => Some(Self::Complete),
+            "failed" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for CacheRefreshAttemptStatus {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+///
 /// CacheFileStatus
 ///
 /// Generic freshness or validity classification for one complete cache file.
@@ -265,6 +310,23 @@ mod tests {
                 serde_json::json!(expected)
             );
         }
+        for (status, expected) in [
+            (CacheRefreshAttemptStatus::Running, "running"),
+            (CacheRefreshAttemptStatus::Complete, "complete"),
+            (CacheRefreshAttemptStatus::Failed, "failed"),
+        ] {
+            assert_eq!(status.as_str(), expected);
+            assert_eq!(status.to_string(), expected);
+            assert_eq!(
+                CacheRefreshAttemptStatus::from_label(expected),
+                Some(status)
+            );
+            assert_eq!(
+                serde_json::to_value(status).expect("serialize refresh-attempt status"),
+                serde_json::json!(expected)
+            );
+        }
+        assert_eq!(CacheRefreshAttemptStatus::from_label("unknown"), None);
         for (status, expected) in [
             (CacheFileStatus::Fresh, "fresh"),
             (CacheFileStatus::Stale, "stale"),

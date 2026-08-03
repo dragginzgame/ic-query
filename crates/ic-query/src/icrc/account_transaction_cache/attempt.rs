@@ -7,6 +7,7 @@
 use super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT;
 use crate::{
     HostCacheError,
+    cache::CacheRefreshAttemptStatus,
     icrc::{
         live::account_transactions::normalize_transaction_cursor,
         model::{
@@ -60,9 +61,9 @@ pub(super) fn read_refresh_attempt_status(
     )
     .map_err(map_attempt_read_error)?
     .map(|attempt| {
-        validate_attempt(path, request, &attempt)?;
+        let status = validate_attempt(path, request, &attempt)?;
         Ok(IcrcAccountTransactionRefreshAttemptStatus {
-            status: attempt.status,
+            status,
             started_at: attempt.started_at,
             updated_at: attempt.updated_at,
             index_canister_id: attempt.metadata.index_canister_id,
@@ -83,7 +84,7 @@ pub(super) fn write_starting_attempt(
     write_attempt(
         path,
         request,
-        "running",
+        CacheRefreshAttemptStatus::Running,
         request.index_canister_id.clone(),
         SnapshotRefreshProgress::default(),
         None,
@@ -101,7 +102,7 @@ pub(super) fn write_complete_attempt(
     write_attempt(
         path,
         request,
-        "complete",
+        CacheRefreshAttemptStatus::Complete,
         Some(index_canister_id.to_string()),
         SnapshotRefreshProgress::new(pages_fetched, rows_fetched, last_cursor),
         None,
@@ -117,7 +118,7 @@ pub(super) fn write_failed_attempt(
     let _ = write_attempt(
         path,
         request,
-        "failed",
+        CacheRefreshAttemptStatus::Failed,
         index_canister_id.or_else(|| request.index_canister_id.clone()),
         progress,
         Some(error.to_string()),
@@ -152,7 +153,7 @@ fn collection_error_evidence(
 fn write_attempt(
     path: &Path,
     request: &IcrcAccountTransactionRefreshRequest,
-    status: &'static str,
+    status: CacheRefreshAttemptStatus,
     index_canister_id: Option<String>,
     progress: SnapshotRefreshProgress,
     last_error: Option<String>,
@@ -192,12 +193,12 @@ fn validate_attempt(
     path: &Path,
     request: &IcrcAccountTransactionCacheRequest,
     attempt: &AccountTransactionRefreshAttempt,
-) -> Result<(), IcrcAccountTransactionError> {
+) -> Result<CacheRefreshAttemptStatus, IcrcAccountTransactionError> {
     let invalid = |reason| IcrcAccountTransactionError::InvalidRefreshAttempt {
         path: path.to_path_buf(),
         reason,
     };
-    validate_snapshot_refresh_attempt(attempt, MAINNET_NETWORK).map_err(invalid)?;
+    let status = validate_snapshot_refresh_attempt(attempt, MAINNET_NETWORK).map_err(invalid)?;
     if attempt.source_endpoint != request.source_endpoint
         || attempt.metadata.ledger_canister_id != request.ledger_canister_id
         || attempt.metadata.account_owner != request.account_owner
@@ -214,7 +215,7 @@ fn validate_attempt(
     if let Some(cursor) = attempt.last_cursor.as_deref() {
         normalize_transaction_cursor(cursor).map_err(|error| invalid(error.to_string()))?;
     }
-    Ok(())
+    Ok(status)
 }
 
 fn map_attempt_read_error(error: SnapshotRefreshAttemptReadError) -> IcrcAccountTransactionError {

@@ -6,6 +6,7 @@
 
 use super::NNS_NEURON_CACHE_COMPONENT;
 use crate::{
+    cache::CacheRefreshAttemptStatus,
     nns::{
         NnsGovernanceRefreshAttemptStatus, NnsGovernanceRefreshRequest,
         governance::{
@@ -25,7 +26,7 @@ pub(super) fn write_starting_attempt(
     write_attempt_status(
         path,
         request,
-        "running",
+        CacheRefreshAttemptStatus::Running,
         SnapshotRefreshProgress::default(),
         None,
     )
@@ -36,7 +37,13 @@ pub(super) fn write_running_attempt(
     request: &NnsGovernanceRefreshRequest,
     progress: SnapshotRefreshProgress,
 ) -> Result<(), NnsNeuronHostError> {
-    write_attempt_status(path, request, "running", progress, None)
+    write_attempt_status(
+        path,
+        request,
+        CacheRefreshAttemptStatus::Running,
+        progress,
+        None,
+    )
 }
 
 pub(super) fn write_complete_attempt(
@@ -44,7 +51,13 @@ pub(super) fn write_complete_attempt(
     request: &NnsGovernanceRefreshRequest,
     progress: SnapshotRefreshProgress,
 ) -> Result<(), NnsNeuronHostError> {
-    write_attempt_status(path, request, "complete", progress, None)
+    write_attempt_status(
+        path,
+        request,
+        CacheRefreshAttemptStatus::Complete,
+        progress,
+        None,
+    )
 }
 
 pub(super) fn write_failed_attempt(
@@ -72,7 +85,7 @@ pub(super) fn read_attempt_status(
 fn write_attempt_status(
     path: &Path,
     request: &NnsGovernanceRefreshRequest,
-    status: &'static str,
+    status: CacheRefreshAttemptStatus,
     progress: SnapshotRefreshProgress,
     last_error: Option<String>,
 ) -> Result<(), NnsNeuronHostError> {

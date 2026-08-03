@@ -7,7 +7,7 @@ use super::{
     refresh_nns_neuron_cache_with_source,
 };
 use crate::{
-    cache::CacheValidationStatus,
+    cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
     nns::{
         LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
     },
@@ -272,7 +272,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     );
     assert_eq!(
         status.latest_attempt.as_ref().expect("attempt").status,
-        "complete"
+        CacheRefreshAttemptStatus::Complete
     );
     let _ = fs::remove_dir_all(root);
 }
@@ -308,7 +308,7 @@ fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     .expect("cache status");
     assert!(!status.found);
     let attempt = status.latest_attempt.expect("failed attempt");
-    assert_eq!(attempt.status, "failed");
+    assert_eq!(attempt.status, CacheRefreshAttemptStatus::Failed);
     assert_eq!(attempt.pages_fetched, 1);
     assert_eq!(attempt.rows_fetched, 2);
     assert_eq!(attempt.last_cursor.as_deref(), Some("2"));

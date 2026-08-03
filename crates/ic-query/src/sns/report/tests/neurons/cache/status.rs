@@ -50,6 +50,38 @@ fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
 }
 
 #[test]
+fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_as_invalid() {
+    let root = temp_dir("ic-query-sns-neurons-unknown-attempt-lifecycle");
+    let request = sns_neurons_refresh_request(&root, None);
+    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .expect("refresh neurons");
+    let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    let mut attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(&attempt_path).expect("read attempt"))
+            .expect("parse attempt");
+    attempt["status"] = serde_json::json!("unknown");
+    fs::write(
+        &attempt_path,
+        serde_json::to_vec_pretty(&attempt).expect("serialize attempt"),
+    )
+    .expect("write attempt");
+
+    let err = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        ROOT_A,
+    ))
+    .expect_err("unknown attempt lifecycle must remain invalid evidence");
+
+    assert!(matches!(
+        err,
+        SnsHostError::InvalidRefreshAttempt { reason, .. }
+            if reason == "unsupported attempt status unknown"
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let root = temp_dir("ic-query-sns-neurons-cache-status");
     let request = sns_neurons_refresh_request(&root, None);
