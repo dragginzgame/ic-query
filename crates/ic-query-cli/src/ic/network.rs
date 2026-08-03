@@ -86,7 +86,6 @@ pub(super) fn command() -> ClapCommand {
     ClapCommand::new("network")
         .bin_name("icq ic network")
         .about("Inspect bounded official Dashboard network analytics")
-        .subcommand_required(true)
         .subcommand(boundary_node_data_centers_command())
         .subcommand(daily_stats_command())
 }
@@ -184,7 +183,7 @@ mod tests {
         let boundary_nodes = render_help(boundary_node_data_centers_command());
         let daily_stats = render_help(daily_stats_command());
 
-        assert!(network.contains("Usage: icq ic network <COMMAND>"));
+        assert!(network.contains("Usage: icq ic network [COMMAND]"));
         assert!(network.contains("boundary-node-data-centers"));
         assert!(network.contains("daily-stats"));
         assert!(

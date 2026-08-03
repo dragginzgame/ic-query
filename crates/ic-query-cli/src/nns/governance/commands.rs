@@ -38,7 +38,6 @@ pub(in crate::nns) fn governance_command() -> ClapCommand {
     ClapCommand::new("governance")
         .bin_name("icq nns governance")
         .about("Inspect NNS Governance economics, metrics, and rewards")
-        .subcommand_required(true)
         .subcommand(governance_economics_command())
         .subcommand(governance_metrics_command())
         .subcommand(governance_reward_event_command())

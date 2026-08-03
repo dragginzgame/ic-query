@@ -7,6 +7,34 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
 
+/// Prepare the complete Clap tree with shared namespace-help and alphabetical
+/// subcommand-display policies.
+pub fn prepare_command_tree(command: Command) -> Command {
+    let mut command = default_namespaces_to_help(command);
+    command.build();
+    set_equal_subcommand_display_order(&mut command);
+    command
+}
+
+fn default_namespaces_to_help(command: Command) -> Command {
+    let has_subcommands = command.has_subcommands();
+    let command = command.mut_subcommands(default_namespaces_to_help);
+    if has_subcommands {
+        command
+            .arg_required_else_help(true)
+            .subcommand_required(false)
+    } else {
+        command
+    }
+}
+
+fn set_equal_subcommand_display_order(command: &mut Command) {
+    for subcommand in command.get_subcommands_mut() {
+        set_equal_subcommand_display_order(subcommand);
+        *subcommand = subcommand.clone().display_order(0);
+    }
+}
+
 pub fn parse_matches<I>(command: Command, args: I) -> Result<ArgMatches, clap::Error>
 where
     I: IntoIterator<Item = OsString>,

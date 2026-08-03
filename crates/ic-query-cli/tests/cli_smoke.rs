@@ -388,6 +388,70 @@ fn binary_sns_list_help_smoke() {
 }
 
 #[test]
+fn binary_command_namespaces_match_explicit_local_help() {
+    let cases: &[(&[&str], &[&str])] = &[
+        (&[], &["help"]),
+        (&["ic"], &["ic", "help"]),
+        (&["ic", "canister"], &["ic", "canister", "help"]),
+        (&["ic", "network"], &["ic", "network", "help"]),
+        (&["icrc"], &["icrc", "help"]),
+        (&["icrc", "account"], &["icrc", "account", "help"]),
+        (
+            &["icrc", "account", "transaction"],
+            &["icrc", "account", "transaction", "help"],
+        ),
+        (
+            &["icrc", "account", "transaction", "cache"],
+            &["icrc", "account", "transaction", "cache", "help"],
+        ),
+        (&["icrc", "ledger"], &["icrc", "ledger", "help"]),
+        (&["nns"], &["nns", "help"]),
+        (&["nns", "data-center"], &["nns", "data-center", "help"]),
+        (&["nns", "governance"], &["nns", "governance", "help"]),
+        (&["nns", "neuron"], &["nns", "neuron", "help"]),
+        (
+            &["nns", "neuron", "cache"],
+            &["nns", "neuron", "cache", "help"],
+        ),
+        (&["nns", "node"], &["nns", "node", "help"]),
+        (&["nns", "node-operator"], &["nns", "node-operator", "help"]),
+        (&["nns", "node-provider"], &["nns", "node-provider", "help"]),
+        (&["nns", "proposal"], &["nns", "proposal", "help"]),
+        (
+            &["nns", "proposal", "cache"],
+            &["nns", "proposal", "cache", "help"],
+        ),
+        (&["nns", "registry"], &["nns", "registry", "help"]),
+        (&["nns", "subnet"], &["nns", "subnet", "help"]),
+        (&["nns", "topology"], &["nns", "topology", "help"]),
+        (&["sns"], &["sns", "help"]),
+        (&["sns", "canister"], &["sns", "canister", "help"]),
+        (&["sns", "neuron"], &["sns", "neuron", "help"]),
+        (
+            &["sns", "neuron", "cache"],
+            &["sns", "neuron", "cache", "help"],
+        ),
+        (&["sns", "proposal"], &["sns", "proposal", "help"]),
+        (
+            &["sns", "proposal", "cache"],
+            &["sns", "proposal", "cache", "help"],
+        ),
+        (&["sns", "reward"], &["sns", "reward", "help"]),
+        (&["system"], &["system", "help"]),
+    ];
+
+    for (implicit_args, explicit_args) in cases {
+        let implicit = run_icq(implicit_args);
+        let explicit = run_icq(explicit_args);
+
+        assert_success(&implicit);
+        assert_success(&explicit);
+        assert_eq!(stdout_text(&implicit), stdout_text(&explicit));
+        assert!(stderr_text(&implicit).is_empty());
+    }
+}
+
+#[test]
 fn binary_sns_swap_help_smoke() {
     let output = run_icq(&["sns", "swap", "--help"]);
 
@@ -425,6 +489,18 @@ fn binary_sns_metrics_help_smoke() {
 }
 
 #[test]
+fn binary_sns_parameters_help_smoke() {
+    let output = run_icq(&["sns", "parameters", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq sns parameters [OPTIONS] <id|root-principal>"));
+    assert!(stdout.contains("nervous system parameters"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+}
+
+#[test]
 fn binary_sns_canister_list_help_smoke() {
     let output = run_icq(&["sns", "canister", "list", "--help"]);
 
@@ -433,6 +509,24 @@ fn binary_sns_canister_list_help_smoke() {
     assert!(stdout.contains("Usage: icq sns canister list [OPTIONS] <id|root-principal>"));
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("update_canister_list=false"));
+}
+
+#[test]
+fn binary_sns_nested_family_help_uses_operation_before_target() {
+    for (args, usage) in [
+        (
+            &["sns", "neuron", "list", "--help"][..],
+            "Usage: icq sns neuron list [OPTIONS] <id|root-principal>",
+        ),
+        (
+            &["sns", "proposal", "info", "--help"][..],
+            "Usage: icq sns proposal info [OPTIONS] <id|root-principal> <proposal-id>",
+        ),
+    ] {
+        let output = run_icq(args);
+        assert_success(&output);
+        assert!(stdout_text(&output).contains(usage));
+    }
 }
 
 #[test]
@@ -465,7 +559,7 @@ fn binary_nns_topology_help_smoke() {
 
     assert_success(&output);
     let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq nns topology <COMMAND>"));
+    assert!(stdout.contains("Usage: icq nns topology [COMMAND]"));
     assert!(stdout.contains("summary"));
     assert!(stdout.contains("refresh"));
 }

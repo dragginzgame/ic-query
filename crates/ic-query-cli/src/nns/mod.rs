@@ -99,7 +99,6 @@ pub fn command() -> ClapCommand {
     ClapCommand::new("nns")
         .bin_name("icq nns")
         .about("Inspect NNS metadata")
-        .subcommand_required(true)
         .subcommand(subnet::command())
         .subcommand(data_center::command())
         .subcommand(governance::command())

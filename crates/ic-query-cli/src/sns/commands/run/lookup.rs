@@ -55,7 +55,10 @@ pub(super) fn run_sns_metrics(matches: &ArgMatches, network: &str) -> Result<(),
     write_text_or_json(format, &report, sns_metrics_report_text)
 }
 
-pub(super) fn run_sns_params(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+pub(super) fn run_sns_parameters(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
     run_sns_lookup(
         matches,
         network,

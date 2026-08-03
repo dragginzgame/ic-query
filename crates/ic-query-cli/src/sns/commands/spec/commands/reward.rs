@@ -42,7 +42,6 @@ pub(in crate::sns::commands) fn sns_reward_command() -> ClapCommand {
     ClapCommand::new("reward")
         .bin_name("icq sns reward")
         .about("Collect and compare SNS maturity reward evidence")
-        .subcommand_required(true)
         .subcommand(sns_reward_checkpoint_command())
         .subcommand(sns_reward_diff_command())
 }

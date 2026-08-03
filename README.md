@@ -98,8 +98,12 @@ icq nns topology summary --json
 ```
 
 Run `icq help`, `icq help <path>`, or append `--help` to a command for its
-current options and collection mode. The complete command map and cache behavior
-are documented in [CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
+current options and collection mode. A command namespace without its next
+operation displays the same complete local help as its explicit `help`
+subcommand, such as `icq sns reward`. Every
+`Commands` section is ordered alphabetically. The complete command map and
+cache behavior are documented in
+[CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
 
 ## Authority and freshness
 
@@ -144,11 +148,19 @@ icq nns governance economics|metrics|reward-event|maturity-modulation
 icq nns proposal list|info|refresh|cache
 icq nns neuron list|info|refresh|cache
 
-icq sns list|info|token|params|metrics|swap|upgrade
-icq sns canister list
-icq sns proposal list|info|refresh|cache
-icq sns neuron list|info|refresh|cache
-icq sns reward checkpoint|diff
+icq sns list
+icq sns info|metrics|parameters|swap|token|upgrade <SNS>
+icq sns canister list <SNS>
+icq sns neuron cache list
+icq sns neuron cache status <SNS>
+icq sns neuron info <SNS> <neuron-id>
+icq sns neuron list|refresh <SNS>
+icq sns proposal cache list
+icq sns proposal cache status <SNS>
+icq sns proposal info <SNS> <proposal-id>
+icq sns proposal list|refresh <SNS>
+icq sns reward checkpoint <SNS>
+icq sns reward diff <before.json> <after.json>
 
 icq icrc ledger capabilities|token|index|transactions|block-types|archives|tip-certificate
 icq icrc account balance|allowance

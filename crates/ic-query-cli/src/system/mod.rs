@@ -93,7 +93,6 @@ pub fn command() -> ClapCommand {
     ClapCommand::new("system")
         .bin_name("icq system")
         .about("Inspect native IC system-canister metadata")
-        .subcommand_required(true)
         .subcommand(report_command(
             "xdr",
             "Show the certified CMC ICP/XDR conversion rate",
@@ -128,7 +127,7 @@ mod tests {
     #[test]
     fn usage_describes_bounded_native_reports() {
         let text = render_help(command());
-        assert!(text.contains("Usage: icq system <COMMAND>"));
+        assert!(text.contains("Usage: icq system [COMMAND]"));
         assert!(text.contains("xdr"));
         assert!(text.contains("cycles"));
 

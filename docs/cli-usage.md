@@ -3,13 +3,19 @@
 `icq` exposes read-only reports grouped by the authority or protocol family
 that supplies them. This guide describes the stable command hierarchy and
 collection behavior. Run a command with `--help`, or use `icq help <path>`, for
-its complete current option reference.
+its complete current option reference. A command namespace without its next
+operation displays the same complete local help as its explicit `help`
+subcommand. Incomplete leaf operations and invalid values remain errors. Every
+`Commands` section is ordered alphabetically by command name, including the
+generated `help` entry.
 
 ## Common behavior
 
 ```bash
 icq help
 icq help nns
+icq sns
+icq sns reward
 icq nns topology summary --help
 ```
 
@@ -221,7 +227,7 @@ Resolve a deployed SNS by list id or Root principal:
 icq sns list
 icq sns info 1
 icq sns token 1
-icq sns params 1
+icq sns parameters 1
 icq sns metrics 1
 icq sns metrics 23ten-uaaaa-aaaaq-aabia-cai --window 90d --json
 icq sns swap 1

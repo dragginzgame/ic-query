@@ -7,7 +7,7 @@ fn sns_help_is_advertised() {
     let list = render_help(sns_list_command());
     let info = render_help(sns_info_command());
     let token = render_help(sns_token_command());
-    let params = render_help(sns_params_command());
+    let parameters = render_help(sns_parameters_command());
     let canister = render_help(sns_canister_command());
     let canister_list = render_help(sns_canister_list_command());
     let proposal = render_help(sns_proposal_command());
@@ -20,7 +20,7 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("list"));
     assert!(sns.contains("info"));
     assert!(sns.contains("token"));
-    assert!(sns.contains("params"));
+    assert!(sns.contains("parameters"));
     assert!(sns.contains("canister"));
     assert!(sns.contains("proposal"));
     assert!(sns.contains("neuron"));
@@ -41,8 +41,8 @@ fn sns_help_is_advertised() {
     assert!(info.contains("id|root-principal"));
     assert!(token.contains("icq sns token"));
     assert!(token.contains("id|root-principal"));
-    assert!(params.contains("icq sns params"));
-    assert!(params.contains("id|root-principal"));
+    assert!(parameters.contains("icq sns parameters"));
+    assert!(parameters.contains("id|root-principal"));
     assert!(canister.contains("icq sns canister"));
     assert!(canister.contains("list"));
     assert!(canister_list.contains("icq sns canister list"));

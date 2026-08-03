@@ -11,38 +11,37 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
-- `0.26.0` adds a live-only exact SNS neuron detail report backed by native
-  Governance `get_neuron`. It preserves current principal permissions with raw
-  codes and native labels, pending maturity disbursement destination accounts,
-  legacy and topic followees, and fixed-size neuron state without expanding the
-  existing list or cache schema.
+- `0.26.1` replaces the abbreviated `sns params` command with
+  `sns parameters` as a pre-1.0 hard cut with no alias. Nested Canister,
+  neuron, proposal, and reward commands retain the consistent
+  family-operation-identifiers grammar.
 
-- Exact neuron input and source rows now enforce the native 32-byte identifier
-  contract. Unknown permission codes remain raw evidence and make the affected
-  maturity-policy observation unassessable; pending disbursements and known
-  conversion permissions produce typed violations.
+- Command namespaces without a selected operation now render the same complete
+  local help as their explicit `help` subcommand. Every CLI `Commands` section
+  is alphabetized, including the generated `help` entry.
 
-- `0.26.0` also adds `sns reward checkpoint`: a live, strictly paged
-  API-exhausted observation of every SNS neuron's combined maturity,
-  permissions, pending maturity disbursements, and auto-stake state. Complete
-  parameter, reward-event, and running-version responses bracket the walk;
-  unstable brackets, malformed pagination, unknown permission evidence, and
-  parameter-derived collection bounds remain explicit in the typed report.
+```bash
+icq sns
+icq sns info 1
+icq sns parameters 1
+icq sns canister list 1
+icq sns neuron list 1
+icq sns proposal info 1 387
+icq sns reward
+icq sns reward checkpoint 1 --json
+```
 
-- Checkpoint DTOs, bounded text rendering, and pure recomputation of untrusted
-  checkpoint summaries are usable without host features. The live source and
-  builder remain behind `host`; checkpoints are emitted to stdout and never
-  implicitly cached or written by the library.
+- `0.26.0` adds exact live SNS neuron detail and API-exhausted reward
+  checkpoints without enlarging the fixed-size neuron list/cache schema. The
+  reports preserve native neuron identifiers, permissions, followees,
+  maturity state, pending disbursement accounts, complete Governance brackets,
+  strict pagination evidence, collection bounds, and typed policy findings.
 
-- `sns reward diff` locally loads two explicitly selected checkpoint files,
-  revalidates their raw rows and bracket evidence, joins complete neuron ids,
-  and retains signed `maturity_delta_e8s_equivalent` values. Allocation is
-  `valid` only when both policies are observed satisfied, the later event is
-  the immediate successor and its actual distribution postdates the baseline
-  collection, every delta is non-negative and explained, and aggregate plus
-  per-neuron sums exactly equal the native distributed amount. Exact zero
-  distribution returns `no_allocation`; all failed invariants remain typed
-  `invalid` evidence.
+- It also adds a pure no-host checkpoint validator and local-only reward diff.
+  Loaded files are treated as untrusted evidence; allocation is valid only
+  when stable target/event evidence, policy observations, non-negative joined
+  deltas, and native distributed maturity reconcile exactly. Zero distribution
+  and failed invariants remain typed outcomes.
 
 ```bash
 icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --json

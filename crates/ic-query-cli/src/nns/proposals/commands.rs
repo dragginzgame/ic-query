@@ -224,7 +224,6 @@ pub(in crate::nns) fn nns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
         .bin_name("icq nns proposal")
         .about("Inspect NNS governance proposals")
-        .subcommand_required(true)
         .subcommand(nns_proposal_list_command())
         .subcommand(nns_proposal_info_command())
         .subcommand(nns_proposal_refresh_command())
@@ -269,7 +268,6 @@ pub(in crate::nns) fn nns_proposal_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq nns proposal cache")
         .about("Inspect local complete NNS governance proposal snapshots")
-        .subcommand_required(true)
         .subcommand(nns_proposal_cache_list_command())
         .subcommand(nns_proposal_cache_status_command())
         .after_help(collection_help(

@@ -8,7 +8,6 @@ pub(in crate::nns) fn topology_command() -> clap::Command {
     clap::Command::new("topology")
         .bin_name("icq nns topology")
         .about("Inspect joined NNS topology metadata")
-        .subcommand_required(true)
         .subcommand(topology_summary_command())
         .subcommand(topology_coverage_command())
         .subcommand(topology_versions_command())

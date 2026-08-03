@@ -63,7 +63,6 @@ pub fn command() -> ClapCommand {
     ClapCommand::new("icrc")
         .bin_name("icq icrc")
         .about("Inspect generic ICRC ledgers")
-        .subcommand_required(true)
         .subcommand(ledger::command())
         .subcommand(account::command())
 }

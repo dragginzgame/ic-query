@@ -44,7 +44,6 @@ pub(in crate::sns::commands) fn sns_neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
         .bin_name("icq sns neuron")
         .about("List, inspect, and refresh SNS governance neurons")
-        .subcommand_required(true)
         .subcommand(sns_neuron_list_command())
         .subcommand(sns_neuron_info_command())
         .subcommand(super::sns_neuron_refresh_command())

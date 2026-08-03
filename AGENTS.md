@@ -99,6 +99,13 @@ If code or habit conflicts with this file, this file wins.
 - Keep imports at file top, changes scoped to the task, comments limited to
   intent/invariants/non-obvious behavior, and avoid module restructuring unless
   restructuring is the task.
+- Every CLI `Commands` section must print subcommands alphabetically by command
+  name, including Clap's generated `help` command. Enforce this through the
+  shared command-tree boundary rather than relying on builder insertion order.
+- Invoking a CLI command namespace without its next operation must print the
+  same complete local help as its explicit `help` subcommand and exit
+  successfully. This includes namespaces preceded by a valid scope argument;
+  invalid values and incomplete leaf operations remain errors.
 
 ## Testing
 

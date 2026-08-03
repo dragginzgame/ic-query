@@ -10,8 +10,8 @@
 
 SNS proposal listing now treats the complete local proposal snapshot as an
 implementation detail for normal list views. If a valid current complete
-snapshot exists, `icq sns proposal list` reads it and applies view options
-locally.
+snapshot exists, `icq sns proposal list <id|root-principal>` reads it and
+applies view options locally.
 If the snapshot is missing, the command visibly refreshes the complete
 collection, publishes it only after governance pagination is exhausted, and
 then renders the requested view.

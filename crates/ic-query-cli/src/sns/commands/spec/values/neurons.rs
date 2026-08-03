@@ -10,7 +10,7 @@ use ic_query::sns::SnsNeuronsSort;
 ///
 /// SnsNeuronsSortArg
 ///
-/// Command-local clap value accepted by `icq sns neuron list --sort`.
+/// Command-local clap value accepted by `icq sns neuron list <SNS> --sort`.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]

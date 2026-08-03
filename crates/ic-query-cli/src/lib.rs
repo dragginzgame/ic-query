@@ -8,7 +8,7 @@ mod sns;
 mod storage;
 mod system;
 
-use crate::cli::clap::{parse_matches, string_option};
+use crate::cli::clap::{parse_matches, prepare_command_tree, string_option};
 use clap::{Arg, Command, error::ErrorKind};
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::ffi::OsString;
@@ -89,12 +89,15 @@ pub fn run<I>(args: I) -> Result<(), IcqCliError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    let matches = match parse_matches(top_level_command(), args) {
+    let command = cli_command();
+    let matches = match parse_matches(command.clone(), args) {
         Ok(matches) => matches,
         Err(error)
             if matches!(
                 error.kind(),
-                ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+                ErrorKind::DisplayHelp
+                    | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+                    | ErrorKind::DisplayVersion
             ) =>
         {
             print!("{error}");
@@ -102,6 +105,11 @@ where
         }
         Err(error) => return Err(IcqCliError::Usage(error.to_string())),
     };
+
+    if let Some(help) = selected_namespace_help(command, &matches) {
+        print!("{help}");
+        return Ok(());
+    }
 
     let selected_network = string_option(&matches, "network");
     let network = selected_network.as_deref().unwrap_or(MAINNET_NETWORK);
@@ -167,8 +175,26 @@ fn top_level_command() -> Command {
         .subcommand(system::command())
 }
 
+fn cli_command() -> Command {
+    prepare_command_tree(top_level_command())
+}
+
+fn selected_namespace_help(mut command: Command, matches: &clap::ArgMatches) -> Option<String> {
+    let mut selected_command = &mut command;
+    let mut selected_matches = matches;
+    while let Some((name, subcommand_matches)) = selected_matches.subcommand() {
+        selected_command = selected_command.find_subcommand_mut(name)?;
+        selected_matches = subcommand_matches;
+    }
+
+    let has_operational_subcommands = selected_command
+        .get_subcommands()
+        .any(|subcommand| subcommand.get_name() != "help");
+    has_operational_subcommands.then(|| selected_command.render_help().to_string())
+}
+
 fn usage() -> String {
-    let mut command = top_level_command();
+    let mut command = cli_command();
     command.render_help().to_string()
 }
 
@@ -192,6 +218,57 @@ mod tests {
         assert!(text.contains("system"));
         assert!(text.contains("Inspect native IC system-canister metadata"));
         assert!(text.contains("Run `icq <command> --help`"));
+    }
+
+    #[test]
+    fn every_subcommand_uses_alphabetical_help_order() {
+        fn assert_equal_display_order(command: &Command, path: &mut Vec<String>) {
+            for subcommand in command.get_subcommands() {
+                path.push(subcommand.get_name().to_string());
+                assert_eq!(
+                    subcommand.get_display_order(),
+                    0,
+                    "non-alphabetical display rank for {}",
+                    path.join(" ")
+                );
+                assert_equal_display_order(subcommand, path);
+                path.pop();
+            }
+        }
+
+        assert_equal_display_order(&cli_command(), &mut vec!["icq".to_string()]);
+    }
+
+    #[test]
+    fn every_command_namespace_defaults_to_local_help() {
+        fn assert_namespace_policy(command: &Command, path: &mut Vec<String>) {
+            let has_operational_subcommands = command
+                .get_subcommands()
+                .any(|subcommand| subcommand.get_name() != "help");
+            if has_operational_subcommands {
+                assert!(
+                    command.is_arg_required_else_help_set(),
+                    "missing default help policy for {}",
+                    path.join(" ")
+                );
+                assert!(
+                    !command.is_subcommand_required_set(),
+                    "terse missing-subcommand policy remains on {}",
+                    path.join(" ")
+                );
+            }
+
+            for subcommand in command
+                .get_subcommands()
+                .filter(|subcommand| subcommand.get_name() != "help")
+            {
+                path.push(subcommand.get_name().to_string());
+                assert_namespace_policy(subcommand, path);
+                path.pop();
+            }
+        }
+
+        assert_namespace_policy(&cli_command(), &mut vec!["icq".to_string()]);
     }
 
     #[test]
@@ -337,6 +414,20 @@ mod tests {
 
         assert_eq!(error.exit_code(), 2);
         assert!(error.to_string().contains("local-only"));
+    }
+
+    #[test]
+    fn targeted_sns_leaves_require_their_identifiers() {
+        for args in [
+            &["sns", "neuron", "list"][..],
+            &["sns", "proposal", "refresh"][..],
+            &["sns", "reward", "checkpoint"][..],
+        ] {
+            let error = run(args.iter().map(OsString::from))
+                .expect_err("targeted SNS operation must require an SNS selector");
+            assert_eq!(error.exit_code(), 2);
+            assert!(error.to_string().contains("<id|root-principal>"));
+        }
     }
 
     #[test]

@@ -28,7 +28,6 @@ pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("account")
         .bin_name("icq icrc account")
         .about("Inspect ICRC account balances, allowances, and transaction history")
-        .subcommand_required(true)
         .subcommand(icrc_balance_command())
         .subcommand(icrc_allowance_command())
         .subcommand(icrc_account_transaction_command())
@@ -83,7 +82,6 @@ pub(in crate::icrc) fn icrc_account_transaction_command() -> ClapCommand {
     ClapCommand::new("transaction")
         .bin_name("icq icrc account transaction")
         .about("Inspect live pages and complete cached account transaction history")
-        .subcommand_required(true)
         .subcommand(icrc_account_transaction_page_command())
         .subcommand(icrc_account_transaction_list_command())
         .subcommand(icrc_account_transaction_refresh_command())
@@ -194,7 +192,6 @@ pub(in crate::icrc) fn icrc_account_transaction_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq icrc account transaction cache")
         .about("Inspect local complete account-history cache state")
-        .subcommand_required(true)
         .subcommand(icrc_account_transaction_cache_status_command())
 }
 

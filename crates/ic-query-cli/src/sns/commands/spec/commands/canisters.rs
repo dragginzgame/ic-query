@@ -21,7 +21,6 @@ pub(in crate::sns::commands) fn sns_canister_command() -> ClapCommand {
     ClapCommand::new("canister")
         .bin_name("icq sns canister")
         .about("Inspect SNS Root canister inventory and operational health")
-        .subcommand_required(true)
         .subcommand(sns_canister_list_command())
 }
 

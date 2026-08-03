@@ -19,7 +19,6 @@ pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("ledger")
         .bin_name("icq icrc ledger")
         .about("Inspect ledger-wide ICRC metadata and transactions")
-        .subcommand_required(true)
         .subcommand(icrc_capabilities_command())
         .subcommand(icrc_token_command())
         .subcommand(icrc_index_command())

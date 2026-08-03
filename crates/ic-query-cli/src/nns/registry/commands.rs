@@ -15,7 +15,6 @@ pub(in crate::nns) fn registry_command() -> ClapCommand {
     ClapCommand::new("registry")
         .bin_name("icq nns registry")
         .about("Inspect NNS registry metadata")
-        .subcommand_required(true)
         .subcommand(registry_version_command())
 }
 

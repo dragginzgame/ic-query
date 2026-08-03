@@ -99,7 +99,6 @@ pub(super) fn command() -> ClapCommand {
     ClapCommand::new("canister")
         .bin_name("icq ic canister")
         .about("Inspect deployed canister metadata")
-        .subcommand_required(true)
         .subcommand(info_command())
         .subcommand(count_command())
         .subcommand(page_command())
@@ -310,7 +309,7 @@ mod tests {
         let count = render_help(count_command());
         let page = render_help(page_command());
 
-        assert!(canister.contains("Usage: icq ic canister <COMMAND>"));
+        assert!(canister.contains("Usage: icq ic canister [COMMAND]"));
         assert!(canister.contains("info"));
         assert!(canister.contains("count"));
         assert!(canister.contains("page"));

@@ -32,7 +32,6 @@ pub(in crate::nns) fn command_with_list(
     ClapCommand::new(spec.command_name)
         .bin_name(spec.bin_name)
         .about(spec.about)
-        .subcommand_required(true)
         .subcommand(list)
         .subcommand(info_command(spec, default_source_endpoint))
         .subcommand(refresh_command(spec, default_source_endpoint))

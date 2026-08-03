@@ -66,13 +66,13 @@ fn sns_token_parses_input_and_json_format() {
 }
 
 #[test]
-fn sns_params_parses_input_and_json_format() {
+fn sns_parameters_parses_input_and_json_format() {
     let options = parse_test_options(
-        sns_params_command(),
+        sns_parameters_command(),
         &["1", "--json", "--source-endpoint", "https://icp-api.io"],
         SnsLookupOptions::from_matches,
     )
-    .expect("parse params");
+    .expect("parse parameters");
 
     assert_eq!(options.input, "1");
     assert_eq!(options.network, "ic");

@@ -32,7 +32,6 @@ pub(in crate::sns::commands) fn sns_neuron_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq sns neuron cache")
         .about("Inspect local complete SNS governance neuron snapshots")
-        .subcommand_required(true)
         .subcommand(sns_neuron_cache_list_command())
         .subcommand(sns_neuron_cache_status_command())
         .after_help(collection_help(

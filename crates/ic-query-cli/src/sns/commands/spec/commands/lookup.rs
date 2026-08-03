@@ -29,11 +29,11 @@ Examples:
   icq sns token 23ten-uaaaa-aaaaq-aabia-cai
   icq --network ic sns token 1 --json";
 
-const SNS_PARAMS_HELP_AFTER: &str = "\
+const SNS_PARAMETERS_HELP_AFTER: &str = "\
 Examples:
-  icq sns params 1
-  icq sns params 23ten-uaaaa-aaaaq-aabia-cai
-  icq --network ic sns params 1 --json";
+  icq sns parameters 1
+  icq sns parameters 23ten-uaaaa-aaaaq-aabia-cai
+  icq --network ic sns parameters 1 --json";
 
 const SNS_SWAP_HELP_AFTER: &str = "\
 Queries exactly three bounded native swap methods; does not call get_state,
@@ -85,13 +85,13 @@ pub(in crate::sns::commands) fn sns_token_command() -> ClapCommand {
     )
 }
 
-pub(in crate::sns::commands) fn sns_params_command() -> ClapCommand {
+pub(in crate::sns::commands) fn sns_parameters_command() -> ClapCommand {
     sns_lookup_command(
-        "params",
-        "icq sns params",
+        "parameters",
+        "icq sns parameters",
         "Show SNS governance nervous system parameters by list id or root principal",
         "IC API endpoint used for SNS-W and governance queries",
-        SNS_PARAMS_HELP_AFTER,
+        SNS_PARAMETERS_HELP_AFTER,
     )
 }
 
@@ -153,8 +153,8 @@ pub(super) fn sns_lookup_command(
     ClapCommand::new(name)
         .bin_name(bin_name)
         .about(about)
-        .arg(sns_lookup_input_arg())
         .arg(json_arg())
         .arg(source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT).help(source_endpoint_help))
         .after_help(collection_help(COLLECTION_MODE_LIVE, after_help))
+        .arg(sns_lookup_input_arg())
 }

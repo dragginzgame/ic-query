@@ -51,7 +51,6 @@ pub fn command() -> ClapCommand {
     ClapCommand::new("ic")
         .bin_name("icq ic")
         .about("Inspect official IC Dashboard data")
-        .subcommand_required(true)
         .subcommand(canister::command())
         .subcommand(metrics::command())
         .subcommand(network::command())
@@ -81,7 +80,7 @@ mod tests {
     fn usage_discloses_dashboard_command_families() {
         let usage = render_help(command());
 
-        assert!(usage.contains("Usage: icq ic <COMMAND>"));
+        assert!(usage.contains("Usage: icq ic [COMMAND]"));
         assert!(usage.contains("canister"));
         assert!(usage.contains("metrics"));
         assert!(usage.contains("network"));

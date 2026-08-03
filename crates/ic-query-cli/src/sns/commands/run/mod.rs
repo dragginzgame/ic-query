@@ -33,7 +33,7 @@ pub fn run_matches(
         Some(("info", matches)) => lookup::run_sns_info(matches, network),
         Some(("metrics", matches)) => lookup::run_sns_metrics(matches, network),
         Some(("token", matches)) => lookup::run_sns_token(matches, network),
-        Some(("params", matches)) => lookup::run_sns_params(matches, network),
+        Some(("parameters", matches)) => lookup::run_sns_parameters(matches, network),
         Some(("swap", matches)) => lookup::run_sns_swap(matches, network),
         Some(("upgrade", matches)) => lookup::run_sns_upgrade(matches, network),
         Some(("canister", matches)) => canisters::run_sns_canister(matches, network),

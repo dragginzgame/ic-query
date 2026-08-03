@@ -52,7 +52,6 @@ pub(in crate::nns) fn neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
         .bin_name("icq nns neuron")
         .about("Inspect public NNS Governance neuron views")
-        .subcommand_required(true)
         .subcommand(neuron_list_command())
         .subcommand(neuron_info_command())
         .subcommand(neuron_refresh_command())
@@ -162,7 +161,6 @@ pub(in crate::nns) fn neuron_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq nns neuron cache")
         .about("Inspect the local complete public NNS neuron snapshot")
-        .subcommand_required(true)
         .subcommand(neuron_cache_status_command())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

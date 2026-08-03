@@ -99,7 +99,6 @@ pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
         .bin_name("icq sns proposal")
         .about("List, inspect, and refresh SNS governance proposals")
-        .subcommand_required(true)
         .subcommand(sns_proposal_list_command())
         .subcommand(sns_proposal_info_command())
         .subcommand(sns_proposal_refresh_command())
@@ -270,7 +269,6 @@ pub(in crate::sns::commands) fn sns_proposal_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
         .bin_name("icq sns proposal cache")
         .about("Inspect local complete SNS governance proposal snapshots")
-        .subcommand_required(true)
         .subcommand(sns_proposal_cache_list_command())
         .subcommand(sns_proposal_cache_status_command())
         .after_help(collection_help(
