@@ -11,6 +11,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.25.md](docs/changelog/0.25.md)
 
+- `0.25.34` separates official Dashboard canister, metric, and bounded
+  network-resource request contracts behind the existing IC model facade.
+  Public Rust paths, request fields, and behavior are unchanged.
+
 - `0.25.33` separates NNS Governance economics, cached-metrics, and
   reward/modulation text rendering behind the existing facade. Public
   functions and exact human-readable output are unchanged.
