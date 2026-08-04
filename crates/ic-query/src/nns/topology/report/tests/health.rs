@@ -14,7 +14,7 @@ fn topology_health_report_flags_mixed_versions_and_unknown_joins() {
 
     let report = topology_health_report_from_summary(summary);
 
-    assert_eq!(report.schema_version, 2);
+    assert_eq!(report.schema_version, 1);
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
     assert_eq!(report.registry_source_count, 5);
     assert_eq!(report.registry_version_min, Some(42));

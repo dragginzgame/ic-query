@@ -7,8 +7,9 @@
 use crate::{
     hex::hex_bytes,
     sns::report::{
-        MainnetSnsCanisterInventory, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterMethod,
-        SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus, SnsHostError,
+        MainnetSnsCanisterInventory, SnsCanisterCycleBalanceStatus, SnsCanisterGap,
+        SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterRole,
+        SnsCanisterRow, SnsCanisterStatus, SnsHostError,
         live::types::{
             CanisterStatusResult, CanisterStatusType, CanisterSummary,
             GetSnsCanistersSummaryResponse, ListSnsCanistersResponse,
@@ -76,11 +77,111 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
         &mut gaps,
     );
 
-    for canister_id in inventory
-        .extensions
-        .into_iter()
-        .flat_map(|extensions| extensions.extension_canister_ids)
-    {
+    push_extensions(
+        inventory
+            .extensions
+            .into_iter()
+            .flat_map(|extensions| extensions.extension_canister_ids)
+            .collect(),
+        &mut canisters,
+        &mut gaps,
+    );
+
+    let mut inventory = MainnetSnsCanisterInventory {
+        inventory_method: SnsCanisterMethod::ListSnsCanisters,
+        health_method: SnsCanisterMethod::GetSnsCanistersSummary,
+        health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE,
+        health_update_canister_list: false,
+        point_in_time_guaranteed: false,
+        canisters,
+        health_query_gap: None,
+        gaps,
+    };
+    crate::sns::report::source::canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;
+    Ok(inventory)
+}
+
+pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory_without_health(
+    inventory: ListSnsCanistersResponse,
+    reason: String,
+) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
+    let mut canisters = Vec::new();
+    let mut gaps = Vec::new();
+
+    for (role, canister_id) in [
+        (SnsCanisterRole::Root, inventory.root),
+        (SnsCanisterRole::Governance, inventory.governance),
+        (SnsCanisterRole::Ledger, inventory.ledger),
+        (SnsCanisterRole::Swap, inventory.swap),
+        (SnsCanisterRole::Index, inventory.index),
+    ] {
+        push_inventory_only_singleton(role, canister_id, &mut canisters, &mut gaps);
+    }
+    push_inventory_only_many(SnsCanisterRole::Archive, inventory.archives, &mut canisters);
+    push_inventory_only_many(SnsCanisterRole::Dapp, inventory.dapps, &mut canisters);
+    push_extensions(
+        inventory
+            .extensions
+            .into_iter()
+            .flat_map(|extensions| extensions.extension_canister_ids)
+            .collect(),
+        &mut canisters,
+        &mut gaps,
+    );
+
+    let mut inventory = MainnetSnsCanisterInventory {
+        inventory_method: SnsCanisterMethod::ListSnsCanisters,
+        health_method: SnsCanisterMethod::GetSnsCanistersSummary,
+        health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE,
+        health_update_canister_list: false,
+        point_in_time_guaranteed: false,
+        canisters,
+        health_query_gap: Some(SnsCanisterHealthQueryGap {
+            method: SnsCanisterMethod::GetSnsCanistersSummary,
+            reason,
+        }),
+        gaps,
+    };
+    crate::sns::report::source::canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;
+    Ok(inventory)
+}
+
+fn push_inventory_only_singleton(
+    role: SnsCanisterRole,
+    canister_id: Option<Principal>,
+    canisters: &mut Vec<SnsCanisterRow>,
+    gaps: &mut Vec<SnsCanisterGap>,
+) {
+    let Some(canister_id) = canister_id else {
+        gaps.push(gap(
+            SnsCanisterGapKind::InventoryCanisterIdMissing,
+            role,
+            None,
+            None,
+        ));
+        return;
+    };
+    canisters.push(canister_row(role, canister_id.to_text(), None));
+}
+
+fn push_inventory_only_many(
+    role: SnsCanisterRole,
+    canister_ids: Vec<Principal>,
+    canisters: &mut Vec<SnsCanisterRow>,
+) {
+    canisters.extend(
+        canister_ids
+            .into_iter()
+            .map(|canister_id| canister_row(role, canister_id.to_text(), None)),
+    );
+}
+
+fn push_extensions(
+    extension_canister_ids: Vec<Principal>,
+    canisters: &mut Vec<SnsCanisterRow>,
+    gaps: &mut Vec<SnsCanisterGap>,
+) {
+    for canister_id in extension_canister_ids {
         let canister_id = canister_id.to_text();
         canisters.push(canister_row(
             SnsCanisterRole::Extension,
@@ -94,18 +195,6 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
             None,
         ));
     }
-
-    let mut inventory = MainnetSnsCanisterInventory {
-        inventory_method: SnsCanisterMethod::ListSnsCanisters,
-        health_method: SnsCanisterMethod::GetSnsCanistersSummary,
-        health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE,
-        health_update_canister_list: false,
-        point_in_time_guaranteed: false,
-        canisters,
-        gaps,
-    };
-    crate::sns::report::source::canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;
-    Ok(inventory)
 }
 
 fn push_singleton(
@@ -295,6 +384,7 @@ fn canister_row(
             status: None,
             module_hash_hex: None,
             cycles: None,
+            cycle_balance_status: SnsCanisterCycleBalanceStatus::Unavailable,
             memory_size: None,
             idle_cycles_burned_per_day: None,
             controllers: Vec::new(),
@@ -308,6 +398,12 @@ fn canister_row(
         .collect::<Vec<_>>();
     controllers.sort();
 
+    let cycles = nat_decimal_text(&status.cycles);
+    let cycle_balance_status = if cycles == "0" {
+        SnsCanisterCycleBalanceStatus::ReportedZero
+    } else {
+        SnsCanisterCycleBalanceStatus::ReportedNonzero
+    };
     SnsCanisterRow {
         role,
         canister_id,
@@ -317,7 +413,8 @@ fn canister_row(
             CanisterStatusType::Stopped => SnsCanisterStatus::Stopped,
         }),
         module_hash_hex: status.module_hash.map(|value| hex_bytes(&value)),
-        cycles: Some(nat_decimal_text(&status.cycles)),
+        cycles: Some(cycles),
+        cycle_balance_status,
         memory_size: Some(nat_decimal_text(&status.memory_size)),
         idle_cycles_burned_per_day: Some(nat_decimal_text(&status.idle_cycles_burned_per_day)),
         controllers,
@@ -382,17 +479,71 @@ mod tests {
             Some("0102")
         );
         assert_eq!(projected.canisters[0].cycles.as_deref(), Some("1000"));
+        assert_eq!(
+            projected.canisters[0].cycle_balance_status,
+            SnsCanisterCycleBalanceStatus::ReportedNonzero
+        );
         assert_eq!(projected.canisters[0].memory_size.as_deref(), Some("2000"));
         assert_eq!(
             projected.canisters[0].idle_cycles_burned_per_day.as_deref(),
             Some("30")
         );
         assert_eq!(projected.gaps.len(), 1);
+        assert_eq!(projected.health_query_gap, None);
         assert_eq!(
             projected.gaps[0].kind,
             SnsCanisterGapKind::HealthUnsupported
         );
         assert!(!projected.point_in_time_guaranteed);
+    }
+
+    #[test]
+    fn failed_health_query_preserves_inventory_with_unavailable_cycle_evidence() {
+        let projected = mainnet_sns_canister_inventory_without_health(
+            inventory_response(),
+            "SNS ingress method get_sns_canisters_summary failed: reject".to_string(),
+        )
+        .expect("project inventory without health");
+
+        assert_eq!(projected.canisters.len(), 8);
+        assert!(projected.canisters.iter().all(|canister| {
+            canister.status.is_none()
+                && canister.cycles.is_none()
+                && canister.cycle_balance_status == SnsCanisterCycleBalanceStatus::Unavailable
+        }));
+        assert_eq!(
+            projected.health_query_gap.as_ref().map(|gap| gap.method),
+            Some(SnsCanisterMethod::GetSnsCanistersSummary)
+        );
+        assert!(
+            projected
+                .health_query_gap
+                .as_ref()
+                .is_some_and(|gap| gap.reason.contains("reject"))
+        );
+        assert_eq!(projected.gaps.len(), 1);
+        assert_eq!(
+            projected.gaps[0].kind,
+            SnsCanisterGapKind::HealthUnsupported
+        );
+    }
+
+    #[test]
+    fn exact_zero_cycle_balance_is_classified_without_numeric_conversion() {
+        let mut canister_status = status(CanisterStatusType::Stopped);
+        canister_status.cycles = Nat::from(0_u8);
+
+        let row = canister_row(
+            SnsCanisterRole::Root,
+            principal(1).to_text(),
+            Some(canister_status),
+        );
+
+        assert_eq!(row.cycles.as_deref(), Some("0"));
+        assert_eq!(
+            row.cycle_balance_status,
+            SnsCanisterCycleBalanceStatus::ReportedZero
+        );
     }
 
     #[test]

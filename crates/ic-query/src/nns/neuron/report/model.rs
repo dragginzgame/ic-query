@@ -4,6 +4,7 @@
 //! Does not own: live transport, cache IO, or text rendering.
 //! Boundary: preserves the unauthenticated Governance `NeuronInfo` fields without private state.
 
+use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote};
 #[cfg(feature = "host")]
 use serde::Deserialize as SerdeDeserialize;
 use serde::Serialize;
@@ -38,8 +39,8 @@ pub struct NnsNeuronBallotRow {
     pub proposal_id: Option<u64>,
     /// Raw Governance vote discriminant.
     pub vote: i32,
-    /// Stable display label for the raw vote.
-    pub vote_text: String,
+    /// Typed classification and stable display label for the raw vote.
+    pub vote_text: NnsNeuronVote,
 }
 
 ///
@@ -55,16 +56,16 @@ pub struct NnsNeuronRow {
     pub neuron_id: u64,
     /// Raw Governance state discriminant.
     pub state: i32,
-    /// Stable display label for the raw state.
-    pub state_text: String,
+    /// Typed classification and stable display label for the raw state.
+    pub state_text: NnsNeuronState,
     /// Raw optional neuron visibility discriminant.
     pub visibility: Option<i32>,
-    /// Stable display label for the raw visibility.
-    pub visibility_text: String,
+    /// Typed classification and stable display label for the raw visibility.
+    pub visibility_text: NnsNeuronVisibility,
     /// Raw optional neuron-type discriminant.
     pub neuron_type: Option<i32>,
-    /// Stable display label for the raw neuron type.
-    pub neuron_type_text: String,
+    /// Typed classification and stable display label for the raw neuron type.
+    pub neuron_type_text: NnsNeuronType,
     /// Public effective stake, including staked maturity, in e8s.
     pub stake_e8s: u64,
     /// Staked maturity included in effective stake, in e8s when supplied.

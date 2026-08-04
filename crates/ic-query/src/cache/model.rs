@@ -9,7 +9,7 @@ use serde::Serialize;
 use std::{fmt, path::PathBuf};
 
 /// Current serialized schema version for cache-status reports.
-pub const CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 2;
+pub const CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
 
 ///
 /// CacheValidationStatus

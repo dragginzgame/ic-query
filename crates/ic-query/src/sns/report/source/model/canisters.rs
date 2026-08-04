@@ -8,7 +8,8 @@ use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_canonical_lowercase_hex,
     sns::report::{
-        SnsCanisterCallType, SnsCanisterGap, SnsCanisterMethod, SnsCanisterRole, SnsCanisterRow,
+        SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind,
+        SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterRole, SnsCanisterRow,
         SnsHostError,
     },
 };
@@ -38,6 +39,8 @@ pub struct MainnetSnsCanisterInventory {
     pub point_in_time_guaranteed: bool,
     /// Inventory rows returned by the source.
     pub canisters: Vec<SnsCanisterRow>,
+    /// Root health ingress failure retained after successful inventory collection.
+    pub health_query_gap: Option<SnsCanisterHealthQueryGap>,
     /// Explicit inventory or health relation gaps returned by the source.
     pub gaps: Vec<SnsCanisterGap>,
 }
@@ -70,6 +73,8 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_canister_inventory(
             "joined inventory and health cannot claim a point-in-time guarantee".to_string(),
         ));
     }
+
+    validate_health_query_gap(inventory)?;
 
     for canister in &mut inventory.canisters {
         VALIDATOR.canonical_principal("canister_id", &canister.canister_id)?;
@@ -138,6 +143,20 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_canister_inventory(
 }
 
 fn validate_canister_health(canister: &SnsCanisterRow) -> Result<(), SnsHostError> {
+    let expected_cycle_balance_status = match canister.cycles.as_deref() {
+        Some("0") => SnsCanisterCycleBalanceStatus::ReportedZero,
+        Some(_) => SnsCanisterCycleBalanceStatus::ReportedNonzero,
+        None => SnsCanisterCycleBalanceStatus::Unavailable,
+    };
+    if canister.cycle_balance_status != expected_cycle_balance_status {
+        return Err(VALIDATOR.invalid(format!(
+            "canister {} cycle_balance_status is {:?}, expected {:?} for cycles {:?}",
+            canister.canister_id,
+            canister.cycle_balance_status.as_str(),
+            expected_cycle_balance_status.as_str(),
+            canister.cycles
+        )));
+    }
     if canister.status.is_none() {
         if canister.module_hash_hex.is_some()
             || canister.cycles.is_some()
@@ -181,6 +200,39 @@ fn validate_canister_health(canister: &SnsCanisterRow) -> Result<(), SnsHostErro
             "canister {} module_hash_hex is not lowercase even-length hexadecimal text",
             canister.canister_id
         )));
+    }
+    Ok(())
+}
+
+fn validate_health_query_gap(inventory: &MainnetSnsCanisterInventory) -> Result<(), SnsHostError> {
+    let Some(gap) = &inventory.health_query_gap else {
+        return Ok(());
+    };
+    VALIDATOR.exact(
+        "health_query_gap method",
+        SnsCanisterMethod::GetSnsCanistersSummary.as_str(),
+        gap.method.as_str(),
+    )?;
+    if gap.reason.trim().is_empty() {
+        return Err(VALIDATOR.invalid("health_query_gap has an empty reason".to_string()));
+    }
+    if inventory
+        .canisters
+        .iter()
+        .any(|canister| canister.status.is_some())
+    {
+        return Err(VALIDATOR
+            .invalid("health_query_gap cannot coexist with returned canister status".to_string()));
+    }
+    if inventory.gaps.iter().any(|gap| {
+        !matches!(
+            gap.kind,
+            SnsCanisterGapKind::InventoryCanisterIdMissing | SnsCanisterGapKind::HealthUnsupported
+        )
+    }) {
+        return Err(VALIDATOR.invalid(
+            "health_query_gap cannot coexist with health-response relation gaps".to_string(),
+        ));
     }
     Ok(())
 }

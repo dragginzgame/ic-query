@@ -6,7 +6,9 @@
 
 use super::{
     super::{
-        NnsNeuronHostError, enforce_mainnet_network,
+        NnsNeuronHostError,
+        classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote},
+        enforce_mainnet_network,
         model::{NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronRow},
     },
     NnsNeuronPage, NnsNeuronSource, validate_neuron_rows, validate_page_size,
@@ -125,11 +127,11 @@ fn neuron_row_from_wire(wire: NeuronInfoWire) -> Result<NnsNeuronRow, NnsNeuronH
     Ok(NnsNeuronRow {
         neuron_id,
         state: wire.state,
-        state_text: state_text(wire.state),
+        state_text: NnsNeuronState::from_code(wire.state),
         visibility: wire.visibility,
-        visibility_text: optional_code_text(wire.visibility, visibility_label),
+        visibility_text: NnsNeuronVisibility::from_code(wire.visibility),
         neuron_type: wire.neuron_type,
-        neuron_type_text: optional_code_text(wire.neuron_type, neuron_type_label),
+        neuron_type_text: NnsNeuronType::from_code(wire.neuron_type),
         stake_e8s: wire.stake_e8s,
         staked_maturity_e8s_equivalent: wire.staked_maturity_e8s_equivalent,
         dissolve_delay_seconds: wire.dissolve_delay_seconds,
@@ -153,59 +155,10 @@ fn neuron_row_from_wire(wire: NeuronInfoWire) -> Result<NnsNeuronRow, NnsNeuronH
             .map(|ballot| NnsNeuronBallotRow {
                 proposal_id: ballot.proposal_id.map(|proposal| proposal.id),
                 vote: ballot.vote,
-                vote_text: vote_text(ballot.vote),
+                vote_text: NnsNeuronVote::from_code(ballot.vote),
             })
             .collect(),
     })
-}
-
-fn state_text(code: i32) -> String {
-    code_text(code, |code| match code {
-        0 => Some("unspecified"),
-        1 => Some("not-dissolving"),
-        2 => Some("dissolving"),
-        3 => Some("dissolved"),
-        4 => Some("spawning"),
-        _ => None,
-    })
-}
-
-const fn visibility_label(code: i32) -> Option<&'static str> {
-    match code {
-        0 => Some("unspecified"),
-        1 => Some("private"),
-        2 => Some("public"),
-        _ => None,
-    }
-}
-
-const fn neuron_type_label(code: i32) -> Option<&'static str> {
-    match code {
-        0 => Some("unspecified"),
-        1 => Some("seed"),
-        2 => Some("ect"),
-        _ => None,
-    }
-}
-
-fn vote_text(code: i32) -> String {
-    code_text(code, |code| match code {
-        0 => Some("unspecified"),
-        1 => Some("yes"),
-        2 => Some("no"),
-        _ => None,
-    })
-}
-
-fn optional_code_text(
-    code: Option<i32>,
-    label: impl FnOnce(i32) -> Option<&'static str>,
-) -> String {
-    code.map_or_else(|| "unknown".to_string(), |code| code_text(code, label))
-}
-
-fn code_text(code: i32, label: impl FnOnce(i32) -> Option<&'static str>) -> String {
-    label(code).map_or_else(|| format!("unknown({code})"), str::to_string)
 }
 
 #[derive(CandidType)]
@@ -302,35 +255,7 @@ struct KnownNeuronDataWire {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        NnsNeuronHostError, map_neuron_info_error, neuron_type_label, state_text, visibility_label,
-        vote_text,
-    };
-
-    #[test]
-    fn governance_discriminants_keep_stable_native_labels() {
-        assert_eq!(state_text(0), "unspecified");
-        assert_eq!(state_text(1), "not-dissolving");
-        assert_eq!(state_text(2), "dissolving");
-        assert_eq!(state_text(3), "dissolved");
-        assert_eq!(state_text(4), "spawning");
-        assert_eq!(state_text(99), "unknown(99)");
-
-        assert_eq!(visibility_label(0), Some("unspecified"));
-        assert_eq!(visibility_label(1), Some("private"));
-        assert_eq!(visibility_label(2), Some("public"));
-        assert_eq!(visibility_label(99), None);
-
-        assert_eq!(neuron_type_label(0), Some("unspecified"));
-        assert_eq!(neuron_type_label(1), Some("seed"));
-        assert_eq!(neuron_type_label(2), Some("ect"));
-        assert_eq!(neuron_type_label(99), None);
-
-        assert_eq!(vote_text(0), "unspecified");
-        assert_eq!(vote_text(1), "yes");
-        assert_eq!(vote_text(2), "no");
-        assert_eq!(vote_text(99), "unknown(99)");
-    }
+    use super::{NnsNeuronHostError, map_neuron_info_error};
 
     #[test]
     fn neuron_info_maps_only_the_native_not_found_error() {

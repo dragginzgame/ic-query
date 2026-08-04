@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-pub(super) const REFRESH_LOCK_SCHEMA_VERSION: u32 = 2;
+pub(super) const REFRESH_LOCK_SCHEMA_VERSION: u32 = 1;
 
 ///
 /// RefreshLockRequest

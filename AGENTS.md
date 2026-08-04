@@ -22,6 +22,12 @@ If code or habit conflicts with this file, this file wins.
 
 ## Pre-1.0 Compatibility
 
+- Before `1.0.0`, every current emitted or persisted schema version must remain
+  `1`, including report, cache, sidecar, and lock schemas. Breaking shape
+  changes replace the version-1 contract in place; do not increment a schema
+  to `2` or higher, retain an older reader, or add a migration. Treat any
+  existing schema version above `1` as nonconforming debt to remove in a
+  dedicated hard-cut change, not as precedent for another version bump.
 - Before `1.0.0`, every breaking change is a hard cut. Do not preserve old
   behavior through compatibility shims, CLI or Serde aliases, deprecated
   wrappers or re-exports, dual parsers, fallback readers, legacy schema

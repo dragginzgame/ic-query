@@ -63,7 +63,7 @@ pub(super) fn write_refresh_lock_for_test(
 ) {
     fs::create_dir_all(lock_path.parent().expect("lock parent")).expect("create parent");
     let lock = serde_json::json!({
-        "schema_version": 2,
+        "schema_version": 1,
         "network": request.cache.network.clone(),
         "pid": 12345,
         "started_at_unix_ms": started_at_unix_ms,

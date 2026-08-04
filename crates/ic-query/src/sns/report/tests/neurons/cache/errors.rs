@@ -83,7 +83,7 @@ fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
-    cache["schema_version"] = serde_json::json!(1);
+    cache["schema_version"] = serde_json::json!(999);
     fs::write(
         &cache_path,
         serde_json::to_vec_pretty(&cache).expect("serialize cache"),
@@ -99,7 +99,7 @@ fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
     assert!(matches!(
         err,
         SnsHostError::UnsupportedCacheSchemaVersion {
-            version: 1,
+            version: 999,
             expected: SNS_NEURONS_CACHE_SCHEMA_VERSION,
         }
     ));

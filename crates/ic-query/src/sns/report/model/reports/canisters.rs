@@ -81,6 +81,35 @@ impl SnsCanisterStatus {
 }
 
 ///
+/// SnsCanisterCycleBalanceStatus
+///
+/// Factual availability and zero/nonzero classification of one reported cycle balance.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SnsCanisterCycleBalanceStatus {
+    /// Root reported an exact zero cycle balance.
+    ReportedZero,
+    /// Root reported a positive cycle balance.
+    ReportedNonzero,
+    /// Root did not provide operational health for this inventory row.
+    Unavailable,
+}
+
+impl SnsCanisterCycleBalanceStatus {
+    /// Return the stable lowercase cycle-balance observation label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ReportedZero => "reported_zero",
+            Self::ReportedNonzero => "reported_nonzero",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+///
 /// SnsCanisterGapKind
 ///
 /// Typed reason that Root inventory and health evidence could not be joined.
@@ -143,6 +172,20 @@ pub struct SnsCanisterGap {
 }
 
 ///
+/// SnsCanisterHealthQueryGap
+///
+/// Failed Root health ingress retained after the inventory query succeeded.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsCanisterHealthQueryGap {
+    /// Native Root health method that failed.
+    pub method: SnsCanisterMethod,
+    /// Transport, encoding, or decoding failure retained for diagnostics.
+    pub reason: String,
+}
+
+///
 /// SnsCanisterRow
 ///
 /// One canister in the authoritative SNS Root inventory.
@@ -160,6 +203,8 @@ pub struct SnsCanisterRow {
     pub module_hash_hex: Option<String>,
     /// Raw cycle balance as unsigned decimal text.
     pub cycles: Option<String>,
+    /// Factual classification of the returned cycle balance or its absence.
+    pub cycle_balance_status: SnsCanisterCycleBalanceStatus,
     /// Raw memory size in bytes as unsigned decimal text.
     pub memory_size: Option<String>,
     /// Raw idle cycles burned per day as unsigned decimal text.
@@ -208,8 +253,14 @@ pub struct SnsCanisterReport {
     pub canister_count: usize,
     /// Number of inventory canisters with returned operational status.
     pub health_status_count: usize,
+    /// Number of inventory canisters for which Root reported exactly zero cycles.
+    pub reported_zero_cycles_count: usize,
+    /// Number of inventory canisters for which cycle evidence was unavailable.
+    pub cycles_unavailable_count: usize,
     /// Number of explicit inventory or health relation gaps.
     pub gap_count: usize,
+    /// Root health ingress failure retained after successful inventory collection.
+    pub health_query_gap: Option<SnsCanisterHealthQueryGap>,
     /// Canonically ordered inventory rows.
     pub canisters: Vec<SnsCanisterRow>,
     /// Canonically ordered typed relation gaps.

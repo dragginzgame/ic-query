@@ -6,7 +6,7 @@
 
 use crate::sns::report::{
     JoinedMainnetSnsInventory, MainnetSns, MainnetSnsCanisterInventory,
-    SNS_CANISTER_REPORT_SCHEMA_VERSION, SnsCanisterReport,
+    SNS_CANISTER_REPORT_SCHEMA_VERSION, SnsCanisterCycleBalanceStatus, SnsCanisterReport,
 };
 
 pub(in crate::sns::report) fn sns_canister_report_from_parts(
@@ -19,6 +19,20 @@ pub(in crate::sns::report) fn sns_canister_report_from_parts(
         .canisters
         .iter()
         .filter(|canister| canister.status.is_some())
+        .count();
+    let reported_zero_cycles_count = inventory
+        .canisters
+        .iter()
+        .filter(|canister| {
+            canister.cycle_balance_status == SnsCanisterCycleBalanceStatus::ReportedZero
+        })
+        .count();
+    let cycles_unavailable_count = inventory
+        .canisters
+        .iter()
+        .filter(|canister| {
+            canister.cycle_balance_status == SnsCanisterCycleBalanceStatus::Unavailable
+        })
         .count();
     SnsCanisterReport {
         schema_version: SNS_CANISTER_REPORT_SCHEMA_VERSION,
@@ -37,7 +51,10 @@ pub(in crate::sns::report) fn sns_canister_report_from_parts(
         point_in_time_guaranteed: inventory.point_in_time_guaranteed,
         canister_count: inventory.canisters.len(),
         health_status_count,
+        reported_zero_cycles_count,
+        cycles_unavailable_count,
         gap_count: inventory.gaps.len(),
+        health_query_gap: inventory.health_query_gap,
         canisters: inventory.canisters,
         gaps: inventory.gaps,
     }

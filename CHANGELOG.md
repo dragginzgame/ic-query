@@ -11,6 +11,23 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.17` replaces free-form NNS neuron state, visibility, type, and
+  recent-ballot vote labels with typed native classifications. Unknown numeric
+  codes and omitted optional values remain distinct and lossless; live rows,
+  custom sources, and caches now enforce agreement between raw codes and their
+  classifications without changing JSON or CLI labels.
+
+- `0.26.17` adds explicit `reported_zero`, `reported_nonzero`, and
+  `unavailable` cycle-balance evidence to SNS Root canister reports. A failed
+  health query now preserves the discovered inventory with a typed query gap
+  instead of discarding it or conflating unavailable balances with zero.
+
+- `0.26.17` hard-cuts every remaining current schema identifier back to `1`,
+  including cache-status reports, refresh locks, SNS list/neuron reports and
+  neuron snapshots, and NNS topology health. There are no version-2 readers or
+  migrations; refresh version-2 SNS neuron snapshots, and verify any lingering
+  version-2 refresh lock before removing it manually.
+
 - `0.26.16` replaces free-form NNS proposal topic and ballot-vote labels with
   `NnsProposalTopic` and `NnsProposalVote`. Projection, topic filtering,
   sorting, rendering, and caches now use typed native classifications, and the

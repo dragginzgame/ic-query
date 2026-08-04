@@ -9,6 +9,7 @@ mod live;
 use super::{
     NNS_NEURON_FETCHED_BY, NNS_NEURON_INFO_REPORT_SCHEMA_VERSION,
     NNS_NEURON_LIST_REPORT_SCHEMA_VERSION, NNS_NEURON_MAX_PAGE_SIZE, NnsNeuronHostError,
+    classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote},
     enforce_mainnet_network,
     model::{
         NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport, NnsNeuronListRequest,
@@ -112,6 +113,7 @@ pub fn build_nns_neuron_info_report_with_source(
             ),
         });
     }
+    validate_neuron_rows(std::slice::from_ref(&neuron))?;
     Ok(info_report_from_row(request, provenance, neuron))
 }
 
@@ -199,6 +201,44 @@ pub(super) fn validate_page_size(page_size: u32) -> Result<(), NnsNeuronHostErro
 }
 
 pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuronHostError> {
+    for row in rows {
+        if row.state_text != NnsNeuronState::from_code(row.state) {
+            return Err(NnsNeuronHostError::InvalidPage {
+                reason: format!(
+                    "neuron {} state classification {} does not match raw code {}",
+                    row.neuron_id, row.state_text, row.state
+                ),
+            });
+        }
+        if row.visibility_text != NnsNeuronVisibility::from_code(row.visibility) {
+            return Err(NnsNeuronHostError::InvalidPage {
+                reason: format!(
+                    "neuron {} visibility classification {} does not match raw code {:?}",
+                    row.neuron_id, row.visibility_text, row.visibility
+                ),
+            });
+        }
+        if row.neuron_type_text != NnsNeuronType::from_code(row.neuron_type) {
+            return Err(NnsNeuronHostError::InvalidPage {
+                reason: format!(
+                    "neuron {} type classification {} does not match raw code {:?}",
+                    row.neuron_id, row.neuron_type_text, row.neuron_type
+                ),
+            });
+        }
+        if let Some(ballot) = row
+            .recent_ballots
+            .iter()
+            .find(|ballot| ballot.vote_text != NnsNeuronVote::from_code(ballot.vote))
+        {
+            return Err(NnsNeuronHostError::InvalidPage {
+                reason: format!(
+                    "neuron {} ballot vote classification {} does not match raw code {}",
+                    row.neuron_id, ballot.vote_text, ballot.vote
+                ),
+            });
+        }
+    }
     if rows
         .windows(2)
         .any(|pair| pair[0].neuron_id >= pair[1].neuron_id)

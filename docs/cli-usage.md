@@ -299,7 +299,13 @@ icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai --json
 Inventory comes from `list_sns_canisters`. Health comes from
 `get_sns_canisters_summary` with `update_canister_list = false`; `icq` never
 asks Root to mutate its stored archive inventory. The sequential reads retain
-typed relation gaps and do not claim one point-in-time snapshot.
+typed relation gaps and do not claim one point-in-time snapshot. Each JSON
+canister row classifies its raw cycle observation as `reported_zero`,
+`reported_nonzero`, or `unavailable`, while report counts summarize exact-zero
+and unavailable balances. If inventory succeeds but the health ingress fails,
+the report retains inventory with unavailable operational values and a typed
+`health_query_gap` instead of treating absence as zero or discarding the
+inventory.
 
 Proposal and neuron collections:
 
@@ -332,7 +338,8 @@ creation and aging timestamps, source NNS neuron id, auto-stake setting, raw
 dissolve state, voting-power percentage multiplier, vesting period, and fees.
 JSON exposes all of those raw fields; compact text selects the operationally
 useful subset. This adds no follow-up request or cache fanout. Neuron report
-and cache schema 2 require an explicit refresh of older neuron snapshots.
+and cache schema 1 replace the former schema-2 contract in place; an existing
+schema-2 neuron snapshot requires an explicit refresh.
 
 `sns neuron info` is a separate live-only exact lookup. It accepts exactly one
 32-byte neuron id as 64 lowercase hexadecimal characters and calls native

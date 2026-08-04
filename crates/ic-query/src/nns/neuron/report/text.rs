@@ -191,8 +191,8 @@ fn neuron_table(neurons: &[NnsNeuronRow]) -> String {
             .map(|neuron| {
                 [
                     neuron.neuron_id.to_string(),
-                    neuron.state_text.clone(),
-                    neuron.visibility_text.clone(),
+                    neuron.state_text.to_string(),
+                    neuron.visibility_text.to_string(),
                     e8s_decimal_text(neuron.stake_e8s),
                     display_duration_seconds(neuron.dissolve_delay_seconds),
                     optional_u64_text(neuron.deciding_voting_power),

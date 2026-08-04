@@ -32,7 +32,8 @@ use ic_query::nns::neuron::{
 };
 use ic_query::nns::neuron::{
     NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData, NnsNeuronListRequest, NnsNeuronRow,
-    nns_neuron_info_report_text, nns_neuron_list_report_text,
+    NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote, nns_neuron_info_report_text,
+    nns_neuron_list_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::node::{
@@ -297,6 +298,14 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
         neurons: vec![row.clone()],
     };
     assert!(nns_neuron_list_report_text(&report).contains("Neuron 11"));
+    let report_json = serde_json::to_value(&report).expect("serialize NNS neuron list report");
+    assert_eq!(report_json["neurons"][0]["state_text"], "not-dissolving");
+    assert_eq!(report_json["neurons"][0]["visibility_text"], "public");
+    assert_eq!(report_json["neurons"][0]["neuron_type_text"], "unknown");
+    assert_eq!(
+        serde_json::to_value(NnsNeuronVote::Unknown(99)).expect("serialize unknown neuron vote"),
+        "unknown(99)"
+    );
 
     let info = ic_query::nns::neuron::NnsNeuronInfoReport {
         schema_version: 1,
@@ -377,11 +386,11 @@ fn sample_public_neuron(neuron_id: u64) -> NnsNeuronRow {
     NnsNeuronRow {
         neuron_id,
         state: 1,
-        state_text: "not-dissolving".to_string(),
+        state_text: NnsNeuronState::NotDissolving,
         visibility: Some(2),
-        visibility_text: "public".to_string(),
+        visibility_text: NnsNeuronVisibility::Public,
         neuron_type: None,
-        neuron_type_text: "unknown".to_string(),
+        neuron_type_text: NnsNeuronType::Unknown,
         stake_e8s: 100_000_000,
         staked_maturity_e8s_equivalent: None,
         dissolve_delay_seconds: 31_536_000,

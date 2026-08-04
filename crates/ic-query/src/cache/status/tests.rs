@@ -115,7 +115,7 @@ fn write_refresh_lock(
     stale_after_seconds: u64,
 ) {
     let contents = serde_json::json!({
-        "schema_version": 2,
+        "schema_version": 1,
         "network": "ic",
         "pid": 1234,
         "started_at_unix_ms": started_at_unix_secs.saturating_mul(1_000),

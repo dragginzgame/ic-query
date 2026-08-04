@@ -19,7 +19,7 @@ fn new_refresh_lock_records_its_stale_policy() {
     let guard = acquire_refresh_lock(fixture.request(120)).expect("acquire refresh lock");
     let evidence = inspect_refresh_lock(&fixture.lock_path).expect("inspect refresh lock");
 
-    assert_eq!(evidence.schema_version, 2);
+    assert_eq!(evidence.schema_version, 1);
     assert_eq!(evidence.stale_after_seconds, STALE_AFTER_SECONDS);
     assert_eq!(
         evidence.target_path,
@@ -33,7 +33,7 @@ fn new_refresh_lock_records_its_stale_policy() {
 #[test]
 fn corrupted_fresh_refresh_lock_requires_manual_cleanup() {
     let fixture = LockFixture::new("ic-query-corrupted-fresh-refresh-lock");
-    fixture.write_lock(r#"{"schema_version":2,"started_at_unix_ms":"60"}"#);
+    fixture.write_lock(r#"{"schema_version":1,"started_at_unix_ms":"60"}"#);
 
     let err = acquire_refresh_lock(fixture.request(60)).expect_err("corrupted lock is rejected");
 
@@ -46,7 +46,7 @@ fn corrupted_fresh_refresh_lock_requires_manual_cleanup() {
 fn corrupted_stale_refresh_lock_requires_manual_cleanup() {
     let fixture = LockFixture::new("ic-query-corrupted-stale-refresh-lock");
     fixture
-        .write_lock(r#"{"schema_version":2,"network":"ic","pid":999999,"started_at_unix_ms":1,"#);
+        .write_lock(r#"{"schema_version":1,"network":"ic","pid":999999,"started_at_unix_ms":1,"#);
 
     let err = acquire_refresh_lock(fixture.request(120)).expect_err("corrupted lock is rejected");
 
@@ -193,7 +193,7 @@ impl LockFixture {
 
     fn valid_lock_value(&self, started_at_unix_ms: u64) -> serde_json::Value {
         json!({
-            "schema_version": 2,
+            "schema_version": 1,
             "network": NETWORK,
             "pid": 999_999,
             "started_at_unix_ms": started_at_unix_ms,

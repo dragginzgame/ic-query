@@ -1,6 +1,8 @@
+use super::source::validate_neuron_rows;
 use super::{
-    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronHostError,
+    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronHostError,
     NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource,
+    NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote,
     build_nns_neuron_cache_status_report, build_nns_neuron_info_report_from_cache,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
     build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
@@ -98,7 +100,7 @@ fn public_list_and_info_reports_preserve_governance_rows() {
         vec![1, 2]
     );
     assert_eq!(list.neurons[0].visibility, Some(2));
-    assert_eq!(list.neurons[0].visibility_text, "public");
+    assert_eq!(list.neurons[0].visibility_text, NnsNeuronVisibility::Public);
 
     let info_request = NnsNeuronInfoRequest::new(
         MAINNET_NETWORK,
@@ -319,11 +321,11 @@ fn sample_neuron(neuron_id: u64) -> NnsNeuronRow {
     NnsNeuronRow {
         neuron_id,
         state: 1,
-        state_text: "not-dissolving".to_string(),
+        state_text: NnsNeuronState::NotDissolving,
         visibility: Some(2),
-        visibility_text: "public".to_string(),
+        visibility_text: NnsNeuronVisibility::Public,
         neuron_type: None,
-        neuron_type_text: "unknown".to_string(),
+        neuron_type_text: NnsNeuronType::Unknown,
         stake_e8s: neuron_id.saturating_mul(100_000_000),
         staked_maturity_e8s_equivalent: Some(10),
         dissolve_delay_seconds: 31_536_000,
@@ -343,4 +345,43 @@ fn sample_neuron(neuron_id: u64) -> NnsNeuronRow {
         }),
         recent_ballots: Vec::new(),
     }
+}
+
+#[test]
+fn neuron_rows_reject_classifications_that_contradict_raw_codes() {
+    let mut state_mismatch = sample_neuron(1);
+    state_mismatch.state_text = NnsNeuronState::Dissolved;
+    assert!(matches!(
+        validate_neuron_rows(&[state_mismatch]),
+        Err(NnsNeuronHostError::InvalidPage { reason })
+            if reason.contains("state classification dissolved does not match raw code 1")
+    ));
+
+    let mut visibility_mismatch = sample_neuron(1);
+    visibility_mismatch.visibility_text = NnsNeuronVisibility::Private;
+    assert!(matches!(
+        validate_neuron_rows(&[visibility_mismatch]),
+        Err(NnsNeuronHostError::InvalidPage { reason })
+            if reason.contains("visibility classification private does not match raw code Some(2)")
+    ));
+
+    let mut type_mismatch = sample_neuron(1);
+    type_mismatch.neuron_type_text = NnsNeuronType::Seed;
+    assert!(matches!(
+        validate_neuron_rows(&[type_mismatch]),
+        Err(NnsNeuronHostError::InvalidPage { reason })
+            if reason.contains("type classification seed does not match raw code None")
+    ));
+
+    let mut vote_mismatch = sample_neuron(1);
+    vote_mismatch.recent_ballots.push(NnsNeuronBallotRow {
+        proposal_id: Some(7),
+        vote: 1,
+        vote_text: NnsNeuronVote::No,
+    });
+    assert!(matches!(
+        validate_neuron_rows(&[vote_mismatch]),
+        Err(NnsNeuronHostError::InvalidPage { reason })
+            if reason.contains("ballot vote classification no does not match raw code 1")
+    ));
 }

@@ -21,5 +21,6 @@ pub use report::{
 pub use report::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData,
     NnsNeuronBallotRow, NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport,
-    NnsNeuronListRequest, NnsNeuronRow, nns_neuron_info_report_text, nns_neuron_list_report_text,
+    NnsNeuronListRequest, NnsNeuronRow, NnsNeuronState, NnsNeuronType, NnsNeuronVisibility,
+    NnsNeuronVote, nns_neuron_info_report_text, nns_neuron_list_report_text,
 };

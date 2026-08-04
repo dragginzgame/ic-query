@@ -1,7 +1,8 @@
 use ic_query::icrc::IcrcMetadataValueKind;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
-    SnsCanisterCallType, SnsCanisterGapKind, SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole,
+    SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGapKind,
+    SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole,
     SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters,
     SnsInfoReport, SnsListReport, SnsListRequest, SnsListSort, SnsLookupRequest,
     SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
@@ -456,7 +457,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
     assert_eq!(request.sort.as_str(), "id");
 
     let report = SnsListReport {
-        schema_version: 2,
+        schema_version: 1,
         network: request.network,
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -568,6 +569,10 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_sns_canister_api_is_constructible_and_renderable() {
+    let health_query_gap = SnsCanisterHealthQueryGap {
+        method: SnsCanisterMethod::GetSnsCanistersSummary,
+        reason: "health unavailable".to_string(),
+    };
     let report = SnsCanisterReport {
         schema_version: 1,
         network: "ic".to_string(),
@@ -585,13 +590,17 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
         point_in_time_guaranteed: false,
         canister_count: 1,
         health_status_count: 1,
+        reported_zero_cycles_count: 0,
+        cycles_unavailable_count: 0,
         gap_count: 0,
+        health_query_gap: None,
         canisters: vec![SnsCanisterRow {
             role: SnsCanisterRole::Root,
             canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
             status: Some(SnsCanisterStatus::Running),
             module_hash_hex: Some("01020304".to_string()),
             cycles: Some("1000000".to_string()),
+            cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
             memory_size: Some("2000000".to_string()),
             idle_cycles_burned_per_day: Some("3000".to_string()),
             controllers: vec![SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()],
@@ -605,6 +614,10 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
     assert_eq!(SnsCanisterRole::Governance.as_str(), "governance");
     assert_eq!(SnsCanisterStatus::Stopped.as_str(), "stopped");
     assert_eq!(
+        SnsCanisterCycleBalanceStatus::ReportedZero.as_str(),
+        "reported_zero"
+    );
+    assert_eq!(
         SnsCanisterCallType::IngressUpdate.as_str(),
         "ingress_update"
     );
@@ -614,8 +627,17 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
     );
     assert_eq!(json["inventory_method"], "list_sns_canisters");
     assert_eq!(json["health_method"], "get_sns_canisters_summary");
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["reported_zero_cycles_count"], 0);
+    assert_eq!(json["cycles_unavailable_count"], 0);
+    assert!(json["health_query_gap"].is_null());
+    assert_eq!(
+        json["canisters"][0]["cycle_balance_status"],
+        "reported_nonzero"
+    );
     assert!(text.contains("health_call_type: ingress_update"));
     assert!(text.contains("running"));
+    assert_eq!(health_query_gap.reason, "health unavailable");
 }
 
 #[test]
@@ -1327,7 +1349,7 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
     let neurons_report = sample_sns_neurons_report();
     assert!(sns_neurons_report_text(&neurons_report).contains("neuron_count: 1"));
     let neurons_json = serde_json::to_value(&neurons_report).expect("serialize neurons report");
-    assert_eq!(neurons_json["schema_version"], 2);
+    assert_eq!(neurons_json["schema_version"], 1);
     assert_eq!(neurons_json["neurons"][0]["source_nns_neuron_id"], 42);
     assert_eq!(neurons_json["neurons"][0]["auto_stake_maturity"], true);
     assert_eq!(
@@ -1407,10 +1429,12 @@ impl SnsCanisterSource for FixtureSnsSource {
                 status: Some(SnsCanisterStatus::Running),
                 module_hash_hex: Some("01020304".to_string()),
                 cycles: Some("1000000".to_string()),
+                cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
                 memory_size: Some("2000000".to_string()),
                 idle_cycles_burned_per_day: Some("3000".to_string()),
                 controllers: vec![sns.governance_canister_id.clone()],
             }],
+            health_query_gap: None,
             gaps: Vec::new(),
         })
     }
@@ -1860,7 +1884,7 @@ fn sample_sns_governance_parameters() -> SnsGovernanceParameters {
 #[cfg(feature = "host")]
 fn sample_sns_neurons_report() -> SnsNeuronsReport {
     SnsNeuronsReport {
-        schema_version: 2,
+        schema_version: 1,
         network: "ic".to_string(),
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),

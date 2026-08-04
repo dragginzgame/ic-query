@@ -25,7 +25,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
 
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
-    assert_eq!(cache["schema_version"], 2);
+    assert_eq!(cache["schema_version"], 1);
     assert_eq!(cache["domain"], "sns");
     assert_eq!(cache["entity"], ROOT_A);
     assert_eq!(cache["collection"], "neurons");
@@ -102,7 +102,7 @@ fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
     fs::write(
         &lock_path,
         serde_json::to_vec_pretty(&serde_json::json!({
-            "schema_version": 2,
+            "schema_version": 1,
             "network": MAINNET_NETWORK,
             "pid": 999_999,
             "started_at_unix_ms": 1,

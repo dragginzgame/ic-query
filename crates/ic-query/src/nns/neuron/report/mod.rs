@@ -6,6 +6,7 @@
 
 #[cfg(feature = "host")]
 mod cache;
+mod classification;
 mod model;
 #[cfg(feature = "host")]
 mod source;
@@ -27,6 +28,7 @@ pub use cache::{
     refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_progress,
     refresh_nns_neuron_cache_with_source,
 };
+pub use classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote};
 pub use model::{
     NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronInfoReport, NnsNeuronInfoRequest,
     NnsNeuronListReport, NnsNeuronListRequest, NnsNeuronRow,

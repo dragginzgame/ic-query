@@ -98,23 +98,23 @@ pub use catalog_cache::{
 pub use live::LiveSnsSource;
 pub use model::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
-    SnsCanisterCallType, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterMethod, SnsCanisterReport,
-    SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality,
-    SnsDefaultFollowees, SnsDefaultFolloweesRow, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
-    SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
-    SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
-    SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
-    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
-    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
-    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
-    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
-    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
-    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
-    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
-    SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport,
-    SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, SnsRunningVersionResponse,
-    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind,
+    SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole,
+    SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality, SnsDefaultFollowees,
+    SnsDefaultFolloweesRow, SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRequest,
+    SnsListRow, SnsListSort, SnsLookupRequest, SnsMaturityDisbursementRow, SnsMetricsReport,
+    SnsMetricsRequest, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
+    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
+    SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
+    SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
+    SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalFailureReason,
+    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
+    SnsProposalsRequest, SnsProposalsSort, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
+    SnsRewardCheckpointRow, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
+    SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
+    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
+    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
     SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
     SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
@@ -194,7 +194,7 @@ pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
 pub const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
 #[cfg(feature = "host")]
-const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 2;
+const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_CANISTER_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
@@ -214,7 +214,7 @@ const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
-const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 2;
+const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "host")]
 const SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION: u32 = 1;

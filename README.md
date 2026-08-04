@@ -126,9 +126,9 @@ actually make:
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
 and explicit provenance. Text output may shorten or format values for people.
-Report schemas are versioned independently and currently use versions `1` and
-`2`; before 1.0, incompatible report shapes are hard cuts rather than
-compatibility branches.
+Report and persisted schemas are versioned independently and currently use
+version `1`; before 1.0, incompatible shapes replace that version-1 contract
+in place as hard cuts rather than adding compatibility branches or migrations.
 
 See [IC Reporting Adapters](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-reporting-adapters.md) for the
 authority model and follow-up query rules.
