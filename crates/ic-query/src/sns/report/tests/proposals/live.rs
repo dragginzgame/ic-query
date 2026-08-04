@@ -23,7 +23,7 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     );
     assert_eq!(report.proposal.ballot_count, 1);
     assert_eq!(report.proposal.ballots[0].vote_text, "yes");
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.cache_path, None);
     assert_eq!(report.cache_complete, None);
     assert!(text.contains("proposal_id: 42"));
@@ -76,7 +76,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
             .map(|tally| tally.yes),
         Some(10)
     );
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.cache_path, None);
     assert_eq!(report.cache_complete, None);
     assert!(text.contains("status_filter: open"));
@@ -102,7 +102,7 @@ fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
     let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
         .expect("sns proposals report");
 
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.proposer_filter.as_deref(), Some("000102"));
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
@@ -116,7 +116,7 @@ fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
     let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
         .expect("sns proposals report");
 
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.eligibility_filter, "no");
     assert_eq!(report.proposal_count, 0);
     assert!(report.proposals.is_empty());
@@ -132,7 +132,7 @@ fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     let text = sns_proposals_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize live SNS proposals report");
 
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.query_filter.as_deref(), Some("fixture proposal"));
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);

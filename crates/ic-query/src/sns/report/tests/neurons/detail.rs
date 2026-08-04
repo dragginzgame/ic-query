@@ -62,7 +62,7 @@ fn exact_neuron_detail_preserves_native_permission_and_disbursement_evidence() {
     assert_eq!(report.neuron_id, NEURON_A);
     assert_eq!(report.root_canister_id, ROOT_A);
     assert_eq!(report.governance_canister_id, GOVERNANCE_A);
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.detail.neuron.neuron_id, NEURON_A);
     assert_eq!(report.detail.permissions[0].permission_types[4].code, 9);
     assert_eq!(

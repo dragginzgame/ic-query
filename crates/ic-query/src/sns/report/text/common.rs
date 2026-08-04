@@ -8,6 +8,7 @@
 use crate::sns::report::SnsCacheSummary;
 use crate::{
     duration::display_duration_seconds,
+    report::ReportDataSource,
     sns::report::SnsNeuronPermissionList,
     text_value::{sanitize_text, yes_no},
     token_amount::e8s_decimal_text,
@@ -83,11 +84,11 @@ pub(in crate::sns::report::text) fn neuron_id_text(value: &str, verbose: bool) -
 
 pub(in crate::sns::report::text) fn push_report_provenance_lines(
     lines: &mut Vec<String>,
-    data_source: &str,
+    data_source: ReportDataSource,
     cache_path: Option<&str>,
     cache_complete: Option<bool>,
 ) {
-    lines.push(format!("data_source: {}", sanitize_text(data_source)));
+    lines.push(format!("data_source: {data_source}"));
     if let Some(cache_path) = cache_path {
         lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }

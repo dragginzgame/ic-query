@@ -5,6 +5,7 @@
 //! Boundary: preserves variable-size native neuron evidence outside fixed-size list caches.
 
 use super::SnsNeuronRow;
+use crate::report::ReportDataSource;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
@@ -290,7 +291,7 @@ pub struct SnsNeuronDetailReport {
     /// Exact requested neuron identifier.
     pub neuron_id: String,
     /// Explicit report data source; exact detail reports are live-only.
-    pub data_source: String,
+    pub data_source: ReportDataSource,
     /// Full native neuron detail and derived policy observations.
     pub detail: SnsNeuronDetail,
 }

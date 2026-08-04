@@ -4,13 +4,16 @@
 //! Does not own: proposal fetching, cache loading, view filtering/sorting, or rendering.
 //! Boundary: maps resolved proposal rows and provenance into serializable report DTOs.
 
-use crate::nns::proposals::report::{
-    NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-    model::{
-        NnsProposalListReport, NnsProposalListSort, NnsProposalReport,
-        NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
-        NnsProposalStatusFilter, NnsProposalTopicFilter,
+use crate::{
+    nns::proposals::report::{
+        NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+        model::{
+            NnsProposalListReport, NnsProposalListSort, NnsProposalReport,
+            NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
+            NnsProposalStatusFilter, NnsProposalTopicFilter,
+        },
     },
+    report::{ReportDataSource, ReportResultScope},
 };
 use std::path::Path;
 
@@ -21,20 +24,20 @@ use std::path::Path;
 ///
 
 pub(in crate::nns::proposals::report) struct NnsProposalReportProvenance {
-    pub(in crate::nns::proposals::report) data_source: String,
+    pub(in crate::nns::proposals::report) data_source: ReportDataSource,
     pub(in crate::nns::proposals::report) cache_path: Option<String>,
     pub(in crate::nns::proposals::report) cache_complete: Option<bool>,
-    pub(in crate::nns::proposals::report) result_scope: String,
+    pub(in crate::nns::proposals::report) result_scope: ReportResultScope,
 }
 
 impl NnsProposalReportProvenance {
     /// Build provenance for live NNS governance reports.
-    pub(in crate::nns::proposals::report) fn live() -> Self {
+    pub(in crate::nns::proposals::report) const fn live() -> Self {
         Self {
-            data_source: "live".to_string(),
+            data_source: ReportDataSource::Live,
             cache_path: None,
             cache_complete: None,
-            result_scope: "bounded-live".to_string(),
+            result_scope: ReportResultScope::BoundedLive,
         }
     }
 
@@ -44,10 +47,10 @@ impl NnsProposalReportProvenance {
         cache_complete: bool,
     ) -> Self {
         Self {
-            data_source: "cache".to_string(),
+            data_source: ReportDataSource::Cache,
             cache_path: Some(cache_path.display().to_string()),
             cache_complete: Some(cache_complete),
-            result_scope: "complete-cache".to_string(),
+            result_scope: ReportResultScope::CompleteCache,
         }
     }
 }

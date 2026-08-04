@@ -44,7 +44,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
     ];
     push_report_provenance_lines(
         &mut lines,
-        &report.data_source,
+        report.data_source,
         report.cache_path.as_deref(),
         report.cache_complete,
     );

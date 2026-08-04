@@ -34,7 +34,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
     ];
     push_report_provenance_lines(
         &mut lines,
-        &report.data_source,
+        report.data_source,
         report.cache_path.as_deref(),
         report.cache_complete,
     );

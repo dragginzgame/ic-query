@@ -1,4 +1,5 @@
 use ic_query::icrc::IcrcMetadataValueKind;
+use ic_query::report::ReportDataSource;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
     SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGapKind,
@@ -190,7 +191,7 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
         neuron_id: SAMPLE_SNS_NEURON_ID.to_string(),
-        data_source: "live".to_string(),
+        data_source: ReportDataSource::Live,
         detail: sample_sns_neuron_detail(),
     };
 
@@ -215,6 +216,9 @@ fn public_sns_reward_checkpoint_models_round_trip_and_render_without_host() {
         serde_json::from_value(value).expect("strict checkpoint decode");
 
     validate_sns_reward_checkpoint_report(&decoded).expect("pure checkpoint validation");
+    let mut cached = decoded.clone();
+    cached.data_source = ReportDataSource::Cache;
+    assert!(validate_sns_reward_checkpoint_report(&cached).is_err());
     assert_eq!(
         decoded.rows[0].checked_combined_maturity(),
         Some(15_000_000)
@@ -463,7 +467,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        data_source: "live".to_string(),
+        data_source: ReportDataSource::Live,
         cache_path: None,
         cache_complete: None,
         verbose: request.verbose,
@@ -896,7 +900,7 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
             .direction_label(request.sort_direction)
             .to_string(),
         verbose: request.verbose,
-        data_source: "api".to_string(),
+        data_source: ReportDataSource::Live,
         cache_path: None,
         cache_complete: None,
         proposal_count: 1,
@@ -938,7 +942,7 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,
-        data_source: "api".to_string(),
+        data_source: ReportDataSource::Live,
         cache_path: None,
         cache_complete: None,
         proposal: sample_sns_proposal_row(),
@@ -1049,7 +1053,7 @@ fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), S
             .with_show_ballots(true);
     let detail = build_sns_proposal_report_with_source(&detail_request, &source)?;
     assert_eq!(detail.proposal.proposal_id, 42);
-    assert_eq!(detail.data_source, "live");
+    assert_eq!(detail.data_source.as_str(), "live");
 
     let list_request =
         SnsProposalsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1", 10)
@@ -1897,7 +1901,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
         requested_limit: 1,
         owner_principal_id: None,
         verbose: false,
-        data_source: "api".to_string(),
+        data_source: ReportDataSource::Live,
         sort: SnsNeuronsSort::Api.as_str().to_string(),
         cache_path: None,
         cache_complete: None,
@@ -2121,7 +2125,7 @@ fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
         ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
         swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
         index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
-        data_source: "live".to_string(),
+        data_source: ReportDataSource::Live,
         collection_started_at_unix_secs: 1_700_086_400,
         collection_started_at: "2023-11-15T22:13:20Z".to_string(),
         collection_completed_at_unix_secs: 1_700_086_401,

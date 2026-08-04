@@ -5,6 +5,7 @@
 //! Boundary: preserves neuron listing metadata and rows for text and JSON.
 
 use super::row::SnsNeuronRow;
+use crate::report::ReportDataSource;
 use serde::Serialize;
 
 ///
@@ -28,7 +29,7 @@ pub struct SnsNeuronsReport {
     pub requested_limit: u32,
     pub owner_principal_id: Option<String>,
     pub verbose: bool,
-    pub data_source: String,
+    pub data_source: ReportDataSource,
     pub sort: String,
     pub cache_path: Option<String>,
     pub cache_complete: Option<bool>,

@@ -4,6 +4,7 @@
 //! Does not own: SNS-W fetching, metadata lookup, sorting, or rendering.
 //! Boundary: preserves raw report fields for text and JSON output writers.
 
+use crate::report::ReportDataSource;
 use serde::Serialize;
 
 ///
@@ -21,7 +22,7 @@ pub struct SnsListReport {
     pub source_endpoint: String,
     pub fetched_by: String,
     /// Whether the rows came from a live collection or the joined catalog cache.
-    pub data_source: String,
+    pub data_source: ReportDataSource,
     /// Complete snapshot path when `data_source` is `cache`.
     pub cache_path: Option<String>,
     /// Whether the cache provenance represents an API-exhausted complete snapshot.

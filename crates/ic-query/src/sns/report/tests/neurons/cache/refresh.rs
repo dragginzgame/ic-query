@@ -43,7 +43,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .expect("cached neurons report");
 
-    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.data_source.as_str(), "cache");
     assert_eq!(report.sort, "stake");
     assert_eq!(report.total_neuron_count, 3);
     assert_eq!(report.neuron_count, 2);
@@ -79,7 +79,7 @@ fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .expect("previous complete cache remains usable");
 
-    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.data_source.as_str(), "cache");
     assert_eq!(report.total_neuron_count, 3);
     assert_eq!(report.neurons[0].neuron_id, "03".repeat(32));
 

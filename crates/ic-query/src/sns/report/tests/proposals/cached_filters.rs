@@ -14,14 +14,14 @@ fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
         .expect("auto refresh decided proposals cache");
 
-    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.data_source.as_str(), "cache");
     assert_eq!(first.status_filter, "decided");
     assert_eq!(proposal_ids(&first), vec![30]);
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
         .expect("reuse decided proposals cache");
 
-    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.data_source.as_str(), "cache");
     assert_eq!(second.status_filter, "decided");
     assert_eq!(proposal_ids(&second), vec![30]);
     assert!(
@@ -80,14 +80,14 @@ fn sns_proposals_cached_topic_filters_complete_snapshot() {
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
         .expect("auto refresh topic-filtered proposals cache");
 
-    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.data_source.as_str(), "cache");
     assert_eq!(first.topic_filter, "governance");
     assert_eq!(proposal_ids(&first), vec![30, 10]);
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
         .expect("reuse topic-filtered proposals cache");
 
-    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.data_source.as_str(), "cache");
     assert_eq!(second.topic_filter, "governance");
     assert_eq!(proposal_ids(&second), vec![30, 10]);
 
@@ -108,7 +108,7 @@ fn sns_proposals_cached_decided_status_combines_with_topic_filter() {
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
         .expect("auto refresh decided topic-filtered proposals cache");
 
-    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.data_source.as_str(), "cache");
     assert_eq!(first.status_filter, "decided");
     assert_eq!(first.topic_filter, "governance");
     assert_eq!(proposal_ids(&first), vec![30]);
@@ -116,7 +116,7 @@ fn sns_proposals_cached_decided_status_combines_with_topic_filter() {
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
         .expect("reuse decided topic-filtered proposals cache");
 
-    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.data_source.as_str(), "cache");
     assert_eq!(second.status_filter, "decided");
     assert_eq!(second.topic_filter, "governance");
     assert_eq!(proposal_ids(&second), vec![30]);

@@ -12,6 +12,7 @@ use super::{
 };
 use crate::{
     hex::{is_canonical_lowercase_hex, is_lowercase_hex},
+    report::ReportDataSource,
     sns::report::{
         MAINNET_SNS_WASM_CANISTER_ID, SNS_REWARD_CHECKPOINT_MAX_NEURONS,
         SNS_REWARD_CHECKPOINT_PAGE_SIZE, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
@@ -170,7 +171,7 @@ pub struct SnsRewardCheckpointReport {
     /// Stable SNS ledger-index canister identity.
     pub index_canister_id: String,
     /// Explicit source classification; checkpoint reports are live-only.
-    pub data_source: String,
+    pub data_source: ReportDataSource,
     /// Unix timestamp captured immediately before targeted discovery.
     pub collection_started_at_unix_secs: u64,
     /// UTC rendering of `collection_started_at_unix_secs`.
@@ -313,7 +314,7 @@ fn validate_checkpoint_header(
             "checkpoint SNS list id and display name must be non-empty",
         ));
     }
-    if report.data_source != "live" {
+    if report.data_source != ReportDataSource::Live {
         return Err(invalid_validation("checkpoint data_source must be live"));
     }
     if report.collection_status != SnsRewardCollectionStatus::ApiExhaustedObserved {

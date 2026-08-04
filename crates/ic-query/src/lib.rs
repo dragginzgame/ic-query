@@ -36,6 +36,7 @@ mod network;
 pub mod nns;
 #[cfg(feature = "host")]
 mod progress;
+pub mod report;
 #[cfg(feature = "host")]
 mod report_sort;
 #[cfg(feature = "subnet-catalog-host")]

@@ -284,7 +284,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         report.schema_version,
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION
     );
-    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.data_source.as_str(), "cache");
     assert!(report.cache_complete.expect("cache completeness"));
     assert_eq!(report.status_filter, NnsProposalStatus::Executed.as_str());
     assert_eq!(report.topic_filter, NnsProposalTopic::Governance.as_str());
@@ -292,7 +292,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.query_filter.as_deref(), Some("proposal 1"));
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
-    assert_eq!(report.result_scope, "complete-cache");
+    assert_eq!(report.result_scope.as_str(), "complete-cache");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(1));
     assert_eq!(json["query_filter"], "proposal 1");
@@ -426,7 +426,7 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.schema_version, NNS_PROPOSAL_REPORT_SCHEMA_VERSION);
     assert_eq!(report.proposal_id, 2);
     assert_eq!(report.proposal.title.as_deref(), Some("Proposal 2"));
-    assert_eq!(report.data_source, "cache");
+    assert_eq!(report.data_source.as_str(), "cache");
     assert!(report.cache_complete.expect("cache completeness"));
     assert!(
         report

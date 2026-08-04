@@ -7,6 +7,7 @@
 use super::selection::{
     NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTopic, NnsProposalVote,
 };
+use crate::report::{ReportDataSource, ReportResultScope};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -23,7 +24,7 @@ pub struct NnsProposalListReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub data_source: String,
+    pub data_source: ReportDataSource,
     pub cache_path: Option<String>,
     pub cache_complete: Option<bool>,
     pub requested_limit: u32,
@@ -35,7 +36,7 @@ pub struct NnsProposalListReport {
     pub query_filter: Option<String>,
     pub sort: String,
     pub sort_direction: String,
-    pub result_scope: String,
+    pub result_scope: ReportResultScope,
     pub verbose: bool,
     pub proposal_count: usize,
     pub proposals: Vec<NnsProposalRow>,
@@ -55,7 +56,7 @@ pub struct NnsProposalReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub data_source: String,
+    pub data_source: ReportDataSource,
     pub cache_path: Option<String>,
     pub cache_complete: Option<bool>,
     pub proposal_id: u64,

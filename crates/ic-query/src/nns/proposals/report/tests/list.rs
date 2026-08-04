@@ -68,8 +68,8 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert_eq!(report.query_filter, None);
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
-    assert_eq!(report.result_scope, "bounded-live");
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.result_scope.as_str(), "bounded-live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert!(report.cache_path.is_none());
     assert!(report.cache_complete.is_none());
     assert_eq!(report.proposal_count, 1);

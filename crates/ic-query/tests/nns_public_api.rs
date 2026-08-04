@@ -135,6 +135,7 @@ use ic_query::nns::{
     NnsInventoryRefreshRequest, NnsSourceRequest,
 };
 use ic_query::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
+use ic_query::report::{ReportDataSource, ReportResultScope};
 use ic_query::subnet_catalog::SubnetKind;
 #[cfg(feature = "host")]
 use ic_query::subnet_catalog::{
@@ -1034,7 +1035,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        data_source: "cache".to_string(),
+        data_source: ReportDataSource::Cache,
         cache_path: Some("/cache/nns/ic/governance/proposals/full.json".to_string()),
         cache_complete: Some(true),
         requested_limit: request.limit,
@@ -1049,7 +1050,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
             .sort
             .direction_label(request.sort_direction)
             .to_string(),
-        result_scope: "complete-cache".to_string(),
+        result_scope: ReportResultScope::CompleteCache,
         verbose: request.verbose,
         proposal_count: 1,
         proposals: vec![proposal.clone()],
@@ -1077,7 +1078,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: detail_request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        data_source: "live".to_string(),
+        data_source: ReportDataSource::Live,
         cache_path: None,
         cache_complete: None,
         proposal_id: detail_request.proposal_id,
@@ -1636,9 +1637,9 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
     assert_eq!(cache_status_request.cache_root(), root.as_path());
     assert_eq!(cache_list.cache_count, 1);
     assert!(cache_status.found);
-    assert_eq!(proposal_list.data_source, "cache");
+    assert_eq!(proposal_list.data_source.as_str(), "cache");
     assert_eq!(proposal_list.proposal_count, 1);
-    assert_eq!(cached_detail.data_source, "cache");
+    assert_eq!(cached_detail.data_source.as_str(), "cache");
     assert_eq!(cached_detail.proposal_id, 132_411);
     assert!(nns_proposal_cache_path(&root, "ic").is_file());
     assert!(nns_proposal_cache_root(&root, "ic").ends_with("proposals"));
@@ -1700,7 +1701,7 @@ fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
         .expect("proposal refresh report");
 
     assert_eq!(list.proposal_count, 1);
-    assert_eq!(list.data_source, "live");
+    assert_eq!(list.data_source.as_str(), "live");
     assert_eq!(detail.proposal_id, 132_411);
     assert_eq!(detail.proposal.title.as_deref(), Some("Upgrade subnet"));
     assert_eq!(refresh.proposal_count, 1);

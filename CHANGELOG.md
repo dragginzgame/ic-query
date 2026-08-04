@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.18` replaces duplicated NNS and SNS report provenance strings with
+  shared `ReportDataSource` and `ReportResultScope` classifications. Live,
+  cache, bounded-live, and complete-cache assembly, validation, rendering, and
+  JSON now consume one typed vocabulary without changing output labels.
+
 - `0.26.17` replaces free-form NNS neuron state, visibility, type, and
   recent-ballot vote labels with typed native classifications. Unknown numeric
   codes and omitted optional values remain distinct and lossless; live rows,

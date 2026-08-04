@@ -23,7 +23,7 @@ fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert_eq!(report.sns_instances[0].name, "Fixture SNS");
     assert_eq!(report.sns_instances[0].root_canister_id, ROOT_A);
     assert_eq!(report.metadata_error_count, 0);
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.cache_path, None);
     assert_eq!(report.sns_instances[0].metadata_error, None);
     assert!(text.contains("ID   NAME"));
@@ -56,10 +56,10 @@ fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
     )
     .expect("fresh catalog read");
 
-    assert_eq!(first.data_source, "cache");
+    assert_eq!(first.data_source.as_str(), "cache");
     assert_eq!(first.cache_complete, Some(true));
     assert!(sns_list_report_text(&first).contains("cache_complete: yes"));
-    assert_eq!(second.data_source, "cache");
+    assert_eq!(second.data_source.as_str(), "cache");
     assert_eq!(source.inventory_calls.get(), 1);
     assert_eq!(source.metadata_calls.get(), 1);
 

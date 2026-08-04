@@ -53,7 +53,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
             sanitize_text(&report.source_endpoint)
         ),
         format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
-        format!("data_source: {}", sanitize_text(&report.data_source)),
+        format!("data_source: {}", report.data_source),
     ];
     if let Some(cache_path) = report.cache_path.as_ref() {
         lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
@@ -112,7 +112,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
             sanitize_text(&report.source_endpoint)
         ),
         format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
-        format!("data_source: {}", sanitize_text(&report.data_source)),
+        format!("data_source: {}", report.data_source),
     ];
     if let Some(cache_path) = report.cache_path.as_ref() {
         lines.push(format!("cache_path: {}", sanitize_text(cache_path)));

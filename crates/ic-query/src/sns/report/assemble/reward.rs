@@ -5,6 +5,7 @@
 //! Boundary: maps resolved target, stable brackets, rows, and summary into the public DTO.
 
 use crate::{
+    report::ReportDataSource,
     sns::report::{
         JoinedMainnetSnsInventory, MainnetSns, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
         SnsGovernanceParameters, SnsHostError, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
@@ -62,7 +63,7 @@ pub(in crate::sns::report) fn sns_reward_checkpoint_report_from_parts(
         ledger_canister_id: parts.sns.ledger_canister_id,
         swap_canister_id: parts.sns.swap_canister_id,
         index_canister_id: parts.sns.index_canister_id,
-        data_source: "live".to_string(),
+        data_source: ReportDataSource::Live,
         collection_started_at_unix_secs: parts.collection_started_at_unix_secs,
         collection_started_at: format_utc_timestamp_secs(parts.collection_started_at_unix_secs),
         collection_completed_at_unix_secs: parts.collection_completed_at_unix_secs,

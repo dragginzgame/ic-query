@@ -29,7 +29,7 @@ fn nns_proposal_report_renders_detail() {
 
     assert_eq!(report.schema_version, NNS_PROPOSAL_REPORT_SCHEMA_VERSION);
     assert_eq!(report.proposal_id, 101);
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert!(report.cache_path.is_none());
     assert!(report.cache_complete.is_none());
     assert!(report.show_ballots);
@@ -74,7 +74,7 @@ fn nns_proposal_report_truncates_summary_without_verbose() {
     let text = nns_proposal_report_text(&report);
 
     assert!(!report.verbose);
-    assert_eq!(report.data_source, "live");
+    assert_eq!(report.data_source.as_str(), "live");
     assert!(text.contains("verbose: no"));
     assert!(text.contains("data_source: live"));
     assert!(text.contains(&format!("summary: {}...", "x".repeat(240))));
