@@ -6,7 +6,10 @@
 
 #[cfg(feature = "host")]
 use super::HostCacheError;
-use std::path::{Path, PathBuf};
+#[cfg(feature = "host")]
+use std::path::Path;
+#[cfg(feature = "subnet-catalog-host")]
+use std::path::PathBuf;
 
 ///
 /// CacheRefreshReason
@@ -15,11 +18,12 @@ use std::path::{Path, PathBuf};
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg(feature = "host")]
+#[cfg(feature = "subnet-catalog-host")]
 pub enum CacheRefreshReason {
     /// The expected cache file does not exist.
     Missing(PathBuf),
     /// The loaded cache is older than its owner's freshness policy.
+    #[cfg(feature = "host")]
     Stale,
     /// The cache file exists but cannot satisfy its owner's current contract.
     Invalid(PathBuf),
@@ -27,6 +31,7 @@ pub enum CacheRefreshReason {
 
 /// Load a cache, refresh it when the error represents a missing cache, then
 /// load again.
+#[cfg(feature = "host")]
 pub fn load_or_refresh_missing_cache<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     missing_path: impl FnOnce(Error) -> Result<PathBuf, Error>,
@@ -44,7 +49,7 @@ pub fn load_or_refresh_missing_cache<T, Error>(
 
 /// Load a cache, using an owner-defined error policy to refresh recoverable
 /// local state, then load the persisted result again.
-#[cfg(feature = "host")]
+#[cfg(feature = "subnet-catalog-host")]
 pub fn load_or_refresh_cache_with_error_policy<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     refresh_reason: impl FnOnce(Error) -> Result<CacheRefreshReason, Error>,
