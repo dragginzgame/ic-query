@@ -236,6 +236,13 @@ states `certified: false` and `point_in_time_guaranteed: false`. It does not
 read or write a cache, inherit a Registry version, or prove current
 controller/module state.
 
+Every built-in `LiveIcSource` lookup accepts at most
+`MAX_IC_DASHBOARD_RESPONSE_BYTES` (8 MiB) of successful response body before
+JSON decoding. Oversized declared or streamed responses return
+`IcHostError::HttpResponseTooLarge`; incomplete bodies return
+`IcHostError::HttpResponseBody`. Custom source capabilities provide already
+decoded source data and therefore do not pass through this HTTP boundary.
+
 No-default consumers can still construct and render `IcCanisterReport` values
 without pulling in the live HTTP adapter.
 

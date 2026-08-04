@@ -11,7 +11,7 @@ use ic_query::ic::{
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
-    IcMetricRequest, IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT,
+    IcMetricRequest, IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT, MAX_IC_DASHBOARD_RESPONSE_BYTES,
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
     ic_metric_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
@@ -38,6 +38,11 @@ use ic_query::ic::{
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const ICRC_LEDGER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 const SUBNET_ID: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
+
+#[test]
+fn public_dashboard_transport_limit_is_available_without_host() {
+    assert_eq!(MAX_IC_DASHBOARD_RESPONSE_BYTES, 8 * 1024 * 1024);
+}
 
 #[test]
 fn public_ic_boundary_node_api_is_constructible_serializable_and_renderable() {
@@ -481,6 +486,25 @@ fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         .expect("custom ICRC analytics source report");
 
     assert_eq!(report.returned_observation_count, 2);
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn public_host_error_preserves_oversized_dashboard_response_evidence() {
+    let error = IcHostError::HttpResponseTooLarge {
+        url: "https://ic-api.internetcomputer.org/api/v3/canisters".to_string(),
+        max_bytes: MAX_IC_DASHBOARD_RESPONSE_BYTES,
+        observed_bytes: MAX_IC_DASHBOARD_RESPONSE_BYTES + 1,
+    };
+
+    assert!(matches!(
+        error,
+        IcHostError::HttpResponseTooLarge {
+            max_bytes: MAX_IC_DASHBOARD_RESPONSE_BYTES,
+            observed_bytes,
+            ..
+        } if observed_bytes == MAX_IC_DASHBOARD_RESPONSE_BYTES + 1
+    ));
 }
 
 #[cfg(feature = "host")]

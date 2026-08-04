@@ -8,9 +8,13 @@ mod canister;
 mod icrc_analytics;
 mod metric;
 mod network;
+#[cfg(test)]
+mod tests;
 
 use crate::{
-    http_endpoint::parse_http_endpoint, ic::IcHostError, runtime::block_on_current_thread,
+    http_endpoint::parse_http_endpoint,
+    ic::{IcHostError, MAX_IC_DASHBOARD_RESPONSE_BYTES},
+    runtime::block_on_current_thread,
 };
 use reqwest::Client;
 use serde::de::DeserializeOwned;
@@ -31,7 +35,11 @@ fn fetch_live<T>(url: Url) -> Result<T, IcHostError>
 where
     T: DeserializeOwned + Send,
 {
-    block_on_current_thread(fetch_json(http_client()?, url))?
+    block_on_current_thread(fetch_json_with_limit(
+        http_client()?,
+        url,
+        MAX_IC_DASHBOARD_RESPONSE_BYTES,
+    ))?
 }
 
 fn http_client() -> Result<Client, IcHostError> {
@@ -44,12 +52,16 @@ fn http_client() -> Result<Client, IcHostError> {
         })
 }
 
-async fn fetch_json<T>(client: Client, url: Url) -> Result<T, IcHostError>
+async fn fetch_json_with_limit<T>(
+    client: Client,
+    url: Url,
+    max_response_bytes: u64,
+) -> Result<T, IcHostError>
 where
     T: DeserializeOwned,
 {
     let url_text = url.to_string();
-    let response = client
+    let mut response = client
         .get(url)
         .send()
         .await
@@ -64,13 +76,52 @@ where
             status: status.as_u16(),
         });
     }
-    response
-        .json::<T>()
-        .await
-        .map_err(|error| IcHostError::JsonDecode {
-            url: url_text,
-            reason: error.to_string(),
-        })
+
+    let declared_length = response.content_length();
+    if let Some(length) = declared_length
+        && length > max_response_bytes
+    {
+        return Err(response_too_large(&url_text, max_response_bytes, length));
+    }
+
+    let initial_capacity = declared_length
+        .and_then(|length| usize::try_from(length).ok())
+        .unwrap_or_default();
+    let mut body = Vec::with_capacity(initial_capacity);
+    while let Some(chunk) =
+        response
+            .chunk()
+            .await
+            .map_err(|error| IcHostError::HttpResponseBody {
+                url: url_text.clone(),
+                reason: error.to_string(),
+            })?
+    {
+        let observed_bytes = u64::try_from(body.len())
+            .unwrap_or(u64::MAX)
+            .saturating_add(u64::try_from(chunk.len()).unwrap_or(u64::MAX));
+        if observed_bytes > max_response_bytes {
+            return Err(response_too_large(
+                &url_text,
+                max_response_bytes,
+                observed_bytes,
+            ));
+        }
+        body.extend_from_slice(&chunk);
+    }
+
+    serde_json::from_slice(&body).map_err(|error| IcHostError::JsonDecode {
+        url: url_text,
+        reason: error.to_string(),
+    })
+}
+
+fn response_too_large(url: &str, max_bytes: u64, observed_bytes: u64) -> IcHostError {
+    IcHostError::HttpResponseTooLarge {
+        url: url.to_string(),
+        max_bytes,
+        observed_bytes,
+    }
 }
 
 fn dashboard_base_url(endpoint: &str) -> Result<Url, IcHostError> {

@@ -75,6 +75,9 @@ pub const DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT: &str =
 pub const DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT: &str =
     "https://ic-api.internetcomputer.org/api/v4";
 
+/// Maximum response-body size accepted from an official Dashboard HTTP endpoint.
+pub const MAX_IC_DASHBOARD_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
+
 /// Default row limit for one official Dashboard canister page.
 pub const DEFAULT_IC_CANISTER_PAGE_LIMIT: u16 = 50;
 

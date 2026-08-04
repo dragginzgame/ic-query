@@ -71,6 +71,28 @@ pub enum IcHostError {
         status: u16,
     },
 
+    /// The Dashboard response body could not be read completely.
+    #[error("failed to read IC Dashboard response body from {url}: {reason}")]
+    HttpResponseBody {
+        /// Fully resolved request URL.
+        url: String,
+        /// HTTP response-body transport error.
+        reason: String,
+    },
+
+    /// The Dashboard response body exceeded the shared transport ceiling.
+    #[error(
+        "IC Dashboard response from {url} exceeded the {max_bytes}-byte limit (declared or received size at rejection: {observed_bytes} bytes)"
+    )]
+    HttpResponseTooLarge {
+        /// Fully resolved request URL.
+        url: String,
+        /// Maximum response bytes accepted by the transport.
+        max_bytes: u64,
+        /// Declared or consumed bytes observed when the response was rejected.
+        observed_bytes: u64,
+    },
+
     /// The Dashboard response did not match the expected JSON shape.
     #[error("failed to decode IC Dashboard response from {url}: {reason}")]
     JsonDecode {

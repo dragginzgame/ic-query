@@ -210,16 +210,21 @@ Every data-producing command follows one documented collection mode:
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
 
 Dashboard count, page, metric, daily-statistics, boundary-node data-center, and
-ICRC analytics commands always make exactly one REST request. Holder count
-requests no holder rows. A page returns at most 100 canister summaries and
-never follows its cursors automatically. A metric query
+ICRC analytics commands always make exactly one REST request. The shared live
+transport rejects successful response bodies larger than 8 MiB, checking both
+declared and streamed sizes before JSON decoding. Indexed counts request no
+account, holder, or transaction rows. A page returns at most 100 canister
+summaries and never follows its cursors automatically. A metric query
 defaults to one hour at a five-minute step and is capped at 1,000 observations
 per series. Daily statistics default to seven days and are capped at one year
 and 366 rows. The boundary-node report consumes one non-paginated data-center
 resource and makes no per-location calls. Total-supply analytics default to 30
 days at a daily step, retain raw ledger base units, and are capped at 1,000
-observations. None of these commands creates a cache. Successful SNS metrics queries default to a 30-day proposal-count
-window capped at 365 days. They make three targeted client requests, preserve
+observations. Token-value analytics default to 24 hours and are capped at 90
+days and 1,000 rows. None of these commands creates a cache.
+
+Successful SNS metrics queries default to a 30-day proposal-count window
+capped at 365 days. They make three targeted client requests, preserve
 Governance-cached treasury and voting-power timestamps, and do not scan
 transactions, fan out, or create a cache. Paged proposal, neuron, and
 account-history collections retain refresh attempt state. Failed or capped

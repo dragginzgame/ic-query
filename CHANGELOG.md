@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.27.md](docs/changelog/0.27.md)
 
+- `0.27.4` gives every official Dashboard live adapter one shared 8 MiB
+  response-body ceiling. Declared and streamed body sizes are checked before
+  JSON decoding, and oversized or incomplete bodies now return distinct
+  typed host errors without changing live-only or cache behavior.
+
 - `0.27.3` adds a one-request bounded token-value series with a 24-hour,
   1,000-row default and a hard 90-day, 1,000-row ceiling. Reports preserve
   nullable raw price and 24-hour-volume fields, each external provider and

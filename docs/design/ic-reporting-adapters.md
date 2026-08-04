@@ -86,7 +86,11 @@ canonical identifiers, requested limits, ordering, uniqueness, relation
 consistency, and authority claims are validated before projection. Live
 adapters validate HTTP(S) endpoint syntax before constructing their transport
 or making a live call, so malformed endpoint text returns a typed error rather
-than reaching an infallible parser path.
+than reaching an infallible parser path. Every successful `LiveIcSource` HTTP
+body is capped at `MAX_IC_DASHBOARD_RESPONSE_BYTES` before JSON decoding.
+Declared sizes fail before body-collection allocation, and streamed bytes
+enforce the same ceiling for chunked or unknown-length responses. Oversized,
+body-read, JSON, status, and request failures remain distinct typed errors.
 
 ## Collection Rules
 
