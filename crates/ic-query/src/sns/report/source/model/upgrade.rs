@@ -8,13 +8,11 @@ use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_canonical_lowercase_hex,
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsPendingUpgrade, SnsUpgradeQueryGap,
-        SnsVersion,
+        MAINNET_SNS_WASM_CANISTER_ID, SnsCanisterMethod, SnsHostError, SnsPendingUpgrade,
+        SnsUpgradeQueryGap, SnsVersion,
     },
 };
 
-pub(in crate::sns::report) const SNS_RUNNING_VERSION_METHOD: &str = "get_running_sns_version";
-pub(in crate::sns::report) const SNS_NEXT_VERSION_METHOD: &str = "get_next_sns_version";
 pub(in crate::sns::report) const SNS_UPGRADE_QUERY_COUNT: usize = 2;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS upgrade");
 
@@ -31,9 +29,9 @@ pub struct MainnetSnsUpgrade {
     /// SNS-W canister identity queried by the source.
     pub sns_wasm_canister_id: String,
     /// Native Governance running-version query method.
-    pub running_version_method: String,
+    pub running_version_method: SnsCanisterMethod,
     /// Native SNS-W next-version query method.
-    pub next_version_method: String,
+    pub next_version_method: SnsCanisterMethod,
     /// Whether the source can prove one point-in-time snapshot across both queries.
     pub point_in_time_guaranteed: bool,
     /// Governance-reported deployed SNS version.
@@ -64,13 +62,13 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_upgrade(
     )?;
     VALIDATOR.exact(
         "running_version_method",
-        SNS_RUNNING_VERSION_METHOD,
-        &upgrade.running_version_method,
+        SnsCanisterMethod::GetRunningSnsVersion.as_str(),
+        upgrade.running_version_method.as_str(),
     )?;
     VALIDATOR.exact(
         "next_version_method",
-        SNS_NEXT_VERSION_METHOD,
-        &upgrade.next_version_method,
+        SnsCanisterMethod::GetNextSnsVersion.as_str(),
+        upgrade.next_version_method.as_str(),
     )?;
     if upgrade.point_in_time_guaranteed {
         return Err(VALIDATOR.invalid(
@@ -96,8 +94,8 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_upgrade(
         }
         VALIDATOR.exact(
             "next_version_gap.method",
-            SNS_NEXT_VERSION_METHOD,
-            &gap.method,
+            SnsCanisterMethod::GetNextSnsVersion.as_str(),
+            gap.method.as_str(),
         )?;
         if gap.reason.trim().is_empty() {
             return Err(VALIDATOR.invalid("next_version query gap has an empty reason".to_string()));

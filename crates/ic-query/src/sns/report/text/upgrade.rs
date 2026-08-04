@@ -29,8 +29,14 @@ pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
             "point_in_time_guaranteed: {}",
             yes_no(report.point_in_time_guaranteed)
         ),
-        format!("running_version_method: {}", report.running_version_method),
-        format!("next_version_method: {}", report.next_version_method),
+        format!(
+            "running_version_method: {}",
+            report.running_version_method.as_str()
+        ),
+        format!(
+            "next_version_method: {}",
+            report.next_version_method.as_str()
+        ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
         format!(
@@ -52,7 +58,7 @@ pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
             "next_version_gap:".to_string(),
             render_table(
                 &["METHOD", "REASON"],
-                &[[gap.method.clone(), sanitize_text(&gap.reason)]],
+                &[[gap.method.as_str().to_string(), sanitize_text(&gap.reason)]],
                 &[ColumnAlign::Left, ColumnAlign::Left],
             ),
         ]);

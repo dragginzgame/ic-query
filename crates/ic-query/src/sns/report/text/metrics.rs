@@ -20,7 +20,7 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
         format!("name: {}", sanitize_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
-        format!("method: {}", report.method),
+        format!("method: {}", report.method.as_str()),
         format!("call_type: {}", report.call_type.as_str()),
         format!(
             "time_window: {}",

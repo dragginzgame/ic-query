@@ -6,7 +6,7 @@
 
 use super::block_on_sns;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsMetrics, SnsHostError, SnsSourceRequest,
+    MainnetSns, MainnetSnsMetrics, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
     live::{
         convert::mainnet_sns_metrics,
         fetch::governance_canister,
@@ -14,7 +14,6 @@ use crate::sns::report::{
         types::{GetMetricsRequest, GetMetricsResponse, GetMetricsResult},
     },
     model::validate_sns_metrics_time_window,
-    source::SNS_METRICS_METHOD,
 };
 
 /// Fetch one native metrics response from a resolved SNS Governance canister.
@@ -41,7 +40,7 @@ async fn fetch_mainnet_sns_metrics_async(
     let response: GetMetricsResponse = query_canister(
         &agent,
         &governance_canister,
-        SNS_METRICS_METHOD,
+        SnsCanisterMethod::GetMetrics.as_str(),
         "GetMetricsRequest",
         "GetMetricsResponse",
         &GetMetricsRequest {
@@ -64,12 +63,12 @@ fn metrics_response(
             metrics,
         )),
         Some(GetMetricsResult::Err(error)) => Err(SnsHostError::GovernanceError {
-            method: SNS_METRICS_METHOD,
+            method: SnsCanisterMethod::GetMetrics.as_str(),
             error_type: error.error_type,
             message: error.error_message,
         }),
         None => Err(SnsHostError::MissingGovernanceResult {
-            method: SNS_METRICS_METHOD,
+            method: SnsCanisterMethod::GetMetrics.as_str(),
         }),
     }
 }
@@ -98,10 +97,11 @@ mod tests {
         assert!(matches!(
             error,
             SnsHostError::GovernanceError {
-                method: SNS_METRICS_METHOD,
+                method,
                 error_type: 7,
                 message,
-            } if message == "metrics unavailable"
+            } if method == SnsCanisterMethod::GetMetrics.as_str()
+                && message == "metrics unavailable"
         ));
     }
 
@@ -119,8 +119,8 @@ mod tests {
         assert!(matches!(
             error,
             SnsHostError::MissingGovernanceResult {
-                method: SNS_METRICS_METHOD,
-            }
+                method,
+            } if method == SnsCanisterMethod::GetMetrics.as_str()
         ));
     }
 }

@@ -4,6 +4,7 @@
 //! Does not own: Governance or SNS-W calls, source validation, lookup, or rendering.
 //! Boundary: preserves native deployed, pending, and next blessed SNS versions.
 
+use super::invocation::SnsCanisterMethod;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
@@ -72,7 +73,7 @@ pub struct SnsRunningVersionResponse {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsUpgradeQueryGap {
     /// Native SNS-W method that failed.
-    pub method: String,
+    pub method: SnsCanisterMethod,
     /// Transport, encoding, or decoding failure retained for diagnostics.
     pub reason: String,
 }
@@ -106,9 +107,9 @@ pub struct SnsUpgradeReport {
     /// Governance canister queried for deployed and pending versions.
     pub governance_canister_id: String,
     /// Native Governance running-version method.
-    pub running_version_method: String,
+    pub running_version_method: SnsCanisterMethod,
     /// Native SNS-W next-version method.
-    pub next_version_method: String,
+    pub next_version_method: SnsCanisterMethod,
     /// Whether both component responses represent one authoritative point in time.
     pub point_in_time_guaranteed: bool,
     /// Fixed number of bounded upgrade component queries attempted.

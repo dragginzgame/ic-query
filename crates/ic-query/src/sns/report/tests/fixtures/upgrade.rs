@@ -61,8 +61,8 @@ fn fixture_mainnet_sns_upgrade() -> MainnetSnsUpgrade {
     MainnetSnsUpgrade {
         governance_canister_id: GOVERNANCE_A.to_string(),
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        running_version_method: SNS_RUNNING_VERSION_METHOD.to_string(),
-        next_version_method: SNS_NEXT_VERSION_METHOD.to_string(),
+        running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
+        next_version_method: SnsCanisterMethod::GetNextSnsVersion,
         point_in_time_guaranteed: false,
         deployed_version: fixture_sns_version(1),
         pending_upgrade: Some(SnsPendingUpgrade {

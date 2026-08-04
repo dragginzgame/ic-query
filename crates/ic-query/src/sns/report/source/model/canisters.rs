@@ -8,13 +8,12 @@ use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_canonical_lowercase_hex,
     sns::report::{
-        SnsCanisterCallType, SnsCanisterGap, SnsCanisterRole, SnsCanisterRow, SnsHostError,
+        SnsCanisterCallType, SnsCanisterGap, SnsCanisterMethod, SnsCanisterRole, SnsCanisterRow,
+        SnsHostError,
     },
 };
 use std::collections::BTreeMap;
 
-pub(in crate::sns::report) const SNS_CANISTER_INVENTORY_METHOD: &str = "list_sns_canisters";
-pub(in crate::sns::report) const SNS_CANISTER_HEALTH_METHOD: &str = "get_sns_canisters_summary";
 pub(in crate::sns::report) const SNS_CANISTER_HEALTH_CALL_TYPE: SnsCanisterCallType =
     SnsCanisterCallType::IngressUpdate;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS Root canister inventory");
@@ -28,9 +27,9 @@ const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS Root canister
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MainnetSnsCanisterInventory {
     /// Root query method used as the inventory authority.
-    pub inventory_method: String,
+    pub inventory_method: SnsCanisterMethod,
     /// Root ingress method used for operational health.
-    pub health_method: String,
+    pub health_method: SnsCanisterMethod,
     /// Transport kind used for the health call.
     pub health_call_type: SnsCanisterCallType,
     /// Value sent in the Root health request.
@@ -48,13 +47,13 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_canister_inventory(
 ) -> Result<(), SnsHostError> {
     VALIDATOR.exact(
         "inventory_method",
-        SNS_CANISTER_INVENTORY_METHOD,
-        &inventory.inventory_method,
+        SnsCanisterMethod::ListSnsCanisters.as_str(),
+        inventory.inventory_method.as_str(),
     )?;
     VALIDATOR.exact(
         "health_method",
-        SNS_CANISTER_HEALTH_METHOD,
-        &inventory.health_method,
+        SnsCanisterMethod::GetSnsCanistersSummary.as_str(),
+        inventory.health_method.as_str(),
     )?;
     VALIDATOR.exact(
         "health_call_type",

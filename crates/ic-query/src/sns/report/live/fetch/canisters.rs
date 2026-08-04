@@ -6,7 +6,7 @@
 
 use super::block_on_sns;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsCanisterInventory, SnsHostError, SnsSourceRequest,
+    MainnetSns, MainnetSnsCanisterInventory, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
     live::{
         convert::mainnet_sns_canister_inventory,
         query::{principal_from_text, query_canister, sns_agent, update_canister},
@@ -34,7 +34,7 @@ async fn fetch_mainnet_sns_canisters_async(
     let inventory: ListSnsCanistersResponse = query_canister(
         &agent,
         &root_canister,
-        "list_sns_canisters",
+        SnsCanisterMethod::ListSnsCanisters.as_str(),
         "ListSnsCanistersRequest",
         "ListSnsCanistersResponse",
         &ListSnsCanistersRequest {},
@@ -44,7 +44,7 @@ async fn fetch_mainnet_sns_canisters_async(
     let health: GetSnsCanistersSummaryResponse = update_canister(
         &agent,
         &root_canister,
-        "get_sns_canisters_summary",
+        SnsCanisterMethod::GetSnsCanistersSummary.as_str(),
         "GetSnsCanistersSummaryRequest",
         "GetSnsCanistersSummaryResponse",
         &health_request,

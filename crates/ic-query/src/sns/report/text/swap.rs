@@ -55,9 +55,15 @@ fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
             "point_in_time_guaranteed: {}",
             yes_no(report.point_in_time_guaranteed)
         ),
-        format!("lifecycle_method: {}", report.lifecycle_method),
-        format!("sale_parameters_method: {}", report.sale_parameters_method),
-        format!("derived_state_method: {}", report.derived_state_method),
+        format!("lifecycle_method: {}", report.lifecycle_method.as_str()),
+        format!(
+            "sale_parameters_method: {}",
+            report.sale_parameters_method.as_str()
+        ),
+        format!(
+            "derived_state_method: {}",
+            report.derived_state_method.as_str()
+        ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
         format!(
@@ -178,7 +184,7 @@ fn gaps_text(gaps: &[SnsSwapQueryGap]) -> String {
             .map(|gap| {
                 [
                     gap.component.as_str().to_string(),
-                    gap.method.clone(),
+                    gap.method.as_str().to_string(),
                     sanitize_text(&gap.reason),
                 ]
             })

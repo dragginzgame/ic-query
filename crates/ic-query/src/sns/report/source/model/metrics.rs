@@ -8,13 +8,12 @@ use super::validation::SnsSourceValidator;
 use crate::{
     hex::is_lowercase_hex,
     sns::report::{
-        SnsCanisterCallType, SnsHostError, SnsTreasuryKind, SnsTreasuryMetricRow,
-        SnsVotingPowerMetrics,
+        SnsCanisterCallType, SnsCanisterMethod, SnsHostError, SnsTreasuryKind,
+        SnsTreasuryMetricRow, SnsVotingPowerMetrics,
     },
 };
 use std::collections::BTreeSet;
 
-pub(in crate::sns::report) const SNS_METRICS_METHOD: &str = "get_metrics";
 pub(in crate::sns::report) const SNS_METRICS_CALL_TYPE: SnsCanisterCallType =
     SnsCanisterCallType::CompositeQuery;
 const MAX_SNS_TREASURY_METRICS: usize = 16;
@@ -31,7 +30,7 @@ pub struct MainnetSnsMetrics {
     /// Governance canister identity queried by the source.
     pub governance_canister_id: String,
     /// Native Governance method queried by the source.
-    pub method: String,
+    pub method: SnsCanisterMethod,
     /// Native call type used by the source.
     pub call_type: SnsCanisterCallType,
     /// Proposal-count window supplied to Governance.
@@ -65,7 +64,11 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
         expected_governance_canister_id,
         &metrics.governance_canister_id,
     )?;
-    VALIDATOR.exact("method", SNS_METRICS_METHOD, &metrics.method)?;
+    VALIDATOR.exact(
+        "method",
+        SnsCanisterMethod::GetMetrics.as_str(),
+        metrics.method.as_str(),
+    )?;
     VALIDATOR.exact(
         "call_type",
         SNS_METRICS_CALL_TYPE.as_str(),

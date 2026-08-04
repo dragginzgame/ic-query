@@ -6,7 +6,8 @@
 
 use super::block_on_sns;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsSwap, SnsHostError, SnsSourceRequest, SnsSwapComponent, SnsSwapQueryGap,
+    MainnetSns, MainnetSnsSwap, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
+    SnsSwapComponent, SnsSwapQueryGap,
     live::{
         convert::{sns_swap_derived_state, sns_swap_lifecycle, sns_swap_sale_parameters},
         query::{principal_from_text, query_canister, sns_agent},
@@ -15,10 +16,7 @@ use crate::sns::report::{
             SnsSwapQueryRequest,
         },
     },
-    source::{
-        SNS_SWAP_DERIVED_STATE_METHOD, SNS_SWAP_LIFECYCLE_METHOD, SNS_SWAP_SALE_PARAMETERS_METHOD,
-        sns_swap_component_method,
-    },
+    source::sns_swap_component_method,
 };
 
 /// Fetch the three bounded native state components for one resolved SNS swap.
@@ -41,7 +39,7 @@ async fn fetch_mainnet_sns_swap_async(
     let lifecycle = match query_canister::<_, GetLifecycleResponse>(
         &agent,
         &swap_canister,
-        SNS_SWAP_LIFECYCLE_METHOD,
+        SnsCanisterMethod::GetLifecycle.as_str(),
         "SnsSwapQueryRequest",
         "GetLifecycleResponse",
         &request,
@@ -57,7 +55,7 @@ async fn fetch_mainnet_sns_swap_async(
     let sale_parameters = match query_canister::<_, GetSaleParametersResponse>(
         &agent,
         &swap_canister,
-        SNS_SWAP_SALE_PARAMETERS_METHOD,
+        SnsCanisterMethod::GetSaleParameters.as_str(),
         "SnsSwapQueryRequest",
         "GetSaleParametersResponse",
         &request,
@@ -73,7 +71,7 @@ async fn fetch_mainnet_sns_swap_async(
     let derived_state = match query_canister::<_, GetDerivedStateResponse>(
         &agent,
         &swap_canister,
-        SNS_SWAP_DERIVED_STATE_METHOD,
+        SnsCanisterMethod::GetDerivedState.as_str(),
         "SnsSwapQueryRequest",
         "GetDerivedStateResponse",
         &request,
@@ -89,9 +87,9 @@ async fn fetch_mainnet_sns_swap_async(
 
     Ok(MainnetSnsSwap {
         swap_canister_id: sns.swap_canister_id.clone(),
-        lifecycle_method: SNS_SWAP_LIFECYCLE_METHOD.to_string(),
-        sale_parameters_method: SNS_SWAP_SALE_PARAMETERS_METHOD.to_string(),
-        derived_state_method: SNS_SWAP_DERIVED_STATE_METHOD.to_string(),
+        lifecycle_method: SnsCanisterMethod::GetLifecycle,
+        sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
+        derived_state_method: SnsCanisterMethod::GetDerivedState,
         point_in_time_guaranteed: false,
         lifecycle,
         sale_parameters,
@@ -103,7 +101,7 @@ async fn fetch_mainnet_sns_swap_async(
 fn query_gap(component: SnsSwapComponent, error: SnsHostError) -> SnsSwapQueryGap {
     SnsSwapQueryGap {
         component,
-        method: sns_swap_component_method(component).to_string(),
+        method: sns_swap_component_method(component),
         reason: error.to_string(),
     }
 }

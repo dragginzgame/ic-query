@@ -1,7 +1,4 @@
 use super::{FixtureSnsDiscoverySource, INDEX_A, SWAP_A};
-use crate::sns::report::source::{
-    SNS_SWAP_DERIVED_STATE_METHOD, SNS_SWAP_LIFECYCLE_METHOD, SNS_SWAP_SALE_PARAMETERS_METHOD,
-};
 use crate::sns::report::tests::*;
 
 ///
@@ -45,7 +42,7 @@ impl SnsSwapSource for PartialFixtureSnsSwapSource {
         swap.derived_state = None;
         swap.gaps.push(SnsSwapQueryGap {
             component: SnsSwapComponent::DerivedState,
-            method: SNS_SWAP_DERIVED_STATE_METHOD.to_string(),
+            method: SnsCanisterMethod::GetDerivedState,
             reason: "query rejected by fixture".to_string(),
         });
         Ok(swap)
@@ -99,9 +96,9 @@ impl SnsSwapSource for MutatingFixtureSnsSwapSource {
 fn fixture_mainnet_sns_swap(swap_canister_id: &str) -> MainnetSnsSwap {
     MainnetSnsSwap {
         swap_canister_id: swap_canister_id.to_string(),
-        lifecycle_method: SNS_SWAP_LIFECYCLE_METHOD.to_string(),
-        sale_parameters_method: SNS_SWAP_SALE_PARAMETERS_METHOD.to_string(),
-        derived_state_method: SNS_SWAP_DERIVED_STATE_METHOD.to_string(),
+        lifecycle_method: SnsCanisterMethod::GetLifecycle,
+        sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
+        derived_state_method: SnsCanisterMethod::GetDerivedState,
         point_in_time_guaranteed: false,
         lifecycle: Some(SnsSwapLifecycle {
             lifecycle: Some(2),

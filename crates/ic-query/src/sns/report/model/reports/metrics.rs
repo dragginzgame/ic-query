@@ -4,7 +4,7 @@
 //! Does not own: discovery, live calls, source validation, or rendering.
 //! Boundary: preserves raw cached treasury evidence and native optional values.
 
-use super::canisters::SnsCanisterCallType;
+use super::invocation::{SnsCanisterCallType, SnsCanisterMethod};
 use serde::Serialize;
 
 ///
@@ -110,7 +110,7 @@ pub struct SnsMetricsReport {
     /// Governance canister queried for metrics.
     pub governance_canister_id: String,
     /// Native Governance metrics method.
-    pub method: String,
+    pub method: SnsCanisterMethod,
     /// Native call type used for the Governance method.
     pub call_type: SnsCanisterCallType,
     /// Requested recent-proposal window in seconds.

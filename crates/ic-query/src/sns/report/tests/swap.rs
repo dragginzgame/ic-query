@@ -63,7 +63,7 @@ fn sns_swap_retains_partial_query_failure_as_a_typed_gap() {
     assert!(report.sale_parameters.is_some());
     assert!(report.derived_state.is_none());
     assert_eq!(report.gaps[0].component, SnsSwapComponent::DerivedState);
-    assert_eq!(report.gaps[0].method, "get_derived_state");
+    assert_eq!(report.gaps[0].method, SnsCanisterMethod::GetDerivedState);
     assert!(report.gaps[0].reason.contains("query rejected"));
 }
 
@@ -173,8 +173,8 @@ fn sns_swap_rejects_invalid_custom_source_evidence() {
     }
 }
 
-fn wrong_lifecycle_method(swap: &mut MainnetSnsSwap) {
-    swap.lifecycle_method = "get_state".to_string();
+const fn wrong_lifecycle_method(swap: &mut MainnetSnsSwap) {
+    swap.lifecycle_method = SnsCanisterMethod::GetDerivedState;
 }
 
 const fn claim_atomic_snapshot(swap: &mut MainnetSnsSwap) {
@@ -198,7 +198,7 @@ const fn negative_derived_rate(swap: &mut MainnetSnsSwap) {
 fn value_and_gap_for_component(swap: &mut MainnetSnsSwap) {
     swap.gaps.push(SnsSwapQueryGap {
         component: SnsSwapComponent::Lifecycle,
-        method: "get_lifecycle".to_string(),
+        method: SnsCanisterMethod::GetLifecycle,
         reason: "fixture failure".to_string(),
     });
 }
@@ -214,17 +214,17 @@ fn fail_all_components(swap: &mut MainnetSnsSwap) {
     swap.gaps = vec![
         SnsSwapQueryGap {
             component: SnsSwapComponent::Lifecycle,
-            method: "get_lifecycle".to_string(),
+            method: SnsCanisterMethod::GetLifecycle,
             reason: "fixture lifecycle failure".to_string(),
         },
         SnsSwapQueryGap {
             component: SnsSwapComponent::SaleParameters,
-            method: "get_sale_parameters".to_string(),
+            method: SnsCanisterMethod::GetSaleParameters,
             reason: "fixture sale parameters failure".to_string(),
         },
         SnsSwapQueryGap {
             component: SnsSwapComponent::DerivedState,
-            method: "get_derived_state".to_string(),
+            method: SnsCanisterMethod::GetDerivedState,
             reason: "fixture derived state failure".to_string(),
         },
     ];

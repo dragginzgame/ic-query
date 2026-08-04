@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.13` replaces eighteen free-form native SNS method fields across
+  metrics, Root inventory and health, swap, upgrade, and partial-query gaps
+  with `SnsCanisterMethod`. Live calls, source validation, reports, gaps, and
+  rendering now share the exact native method labels while existing JSON and
+  CLI output remain unchanged.
+
 - `0.26.12` replaces free-form SNS metrics and Root-health call-type strings
   with `SnsCanisterCallType`. Source validation, live conversion, reports, and
   rendering now share one typed invocation vocabulary while existing JSON and

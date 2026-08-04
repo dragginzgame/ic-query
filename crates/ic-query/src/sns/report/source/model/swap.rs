@@ -6,14 +6,11 @@
 
 use super::validation::SnsSourceValidator;
 use crate::sns::report::{
-    SnsHostError, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle, SnsSwapQueryGap,
-    SnsSwapSaleParameters,
+    SnsCanisterMethod, SnsHostError, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapQueryGap, SnsSwapSaleParameters,
 };
 use std::collections::BTreeSet;
 
-pub(in crate::sns::report) const SNS_SWAP_LIFECYCLE_METHOD: &str = "get_lifecycle";
-pub(in crate::sns::report) const SNS_SWAP_SALE_PARAMETERS_METHOD: &str = "get_sale_parameters";
-pub(in crate::sns::report) const SNS_SWAP_DERIVED_STATE_METHOD: &str = "get_derived_state";
 pub(in crate::sns::report) const SNS_SWAP_QUERY_COUNT: usize = 3;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS swap");
 
@@ -28,11 +25,11 @@ pub struct MainnetSnsSwap {
     /// Swap canister identity queried by the source.
     pub swap_canister_id: String,
     /// Native lifecycle query method.
-    pub lifecycle_method: String,
+    pub lifecycle_method: SnsCanisterMethod,
     /// Native sale-parameters query method.
-    pub sale_parameters_method: String,
+    pub sale_parameters_method: SnsCanisterMethod,
     /// Native derived-state query method.
-    pub derived_state_method: String,
+    pub derived_state_method: SnsCanisterMethod,
     /// Whether the source can prove one point-in-time snapshot across all queries.
     pub point_in_time_guaranteed: bool,
     /// Lifecycle response, absent only when represented by a matching gap.
@@ -58,18 +55,18 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
     }
     VALIDATOR.exact(
         "lifecycle_method",
-        SNS_SWAP_LIFECYCLE_METHOD,
-        &swap.lifecycle_method,
+        SnsCanisterMethod::GetLifecycle.as_str(),
+        swap.lifecycle_method.as_str(),
     )?;
     VALIDATOR.exact(
         "sale_parameters_method",
-        SNS_SWAP_SALE_PARAMETERS_METHOD,
-        &swap.sale_parameters_method,
+        SnsCanisterMethod::GetSaleParameters.as_str(),
+        swap.sale_parameters_method.as_str(),
     )?;
     VALIDATOR.exact(
         "derived_state_method",
-        SNS_SWAP_DERIVED_STATE_METHOD,
-        &swap.derived_state_method,
+        SnsCanisterMethod::GetDerivedState.as_str(),
+        swap.derived_state_method.as_str(),
     )?;
     if swap.point_in_time_guaranteed {
         return Err(VALIDATOR.invalid(
@@ -110,8 +107,8 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
             return Err(VALIDATOR.invalid(format!(
                 "{} gap method is {:?}, expected {:?}",
                 gap.component.as_str(),
-                gap.method,
-                expected_method
+                gap.method.as_str(),
+                expected_method.as_str()
             )));
         }
         if gap.reason.trim().is_empty() {
@@ -145,11 +142,11 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
 
 pub(in crate::sns::report) const fn sns_swap_component_method(
     component: SnsSwapComponent,
-) -> &'static str {
+) -> SnsCanisterMethod {
     match component {
-        SnsSwapComponent::Lifecycle => SNS_SWAP_LIFECYCLE_METHOD,
-        SnsSwapComponent::SaleParameters => SNS_SWAP_SALE_PARAMETERS_METHOD,
-        SnsSwapComponent::DerivedState => SNS_SWAP_DERIVED_STATE_METHOD,
+        SnsSwapComponent::Lifecycle => SnsCanisterMethod::GetLifecycle,
+        SnsSwapComponent::SaleParameters => SnsCanisterMethod::GetSaleParameters,
+        SnsSwapComponent::DerivedState => SnsCanisterMethod::GetDerivedState,
     }
 }
 

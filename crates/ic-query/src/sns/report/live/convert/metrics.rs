@@ -8,9 +8,9 @@ use super::common::clean_optional_text;
 use crate::{
     hex::hex_bytes,
     sns::report::{
-        MainnetSnsMetrics, SnsTreasuryMetricRow, SnsVotingPowerMetrics,
+        MainnetSnsMetrics, SnsCanisterMethod, SnsTreasuryMetricRow, SnsVotingPowerMetrics,
         live::types::{MetricsWire, TreasuryMetricsWire, VotingPowerMetricsWire},
-        source::{SNS_METRICS_CALL_TYPE, SNS_METRICS_METHOD, sns_treasury_kind},
+        source::{SNS_METRICS_CALL_TYPE, sns_treasury_kind},
     },
 };
 
@@ -21,7 +21,7 @@ pub(in crate::sns::report::live) fn mainnet_sns_metrics(
 ) -> MainnetSnsMetrics {
     MainnetSnsMetrics {
         governance_canister_id,
-        method: SNS_METRICS_METHOD.to_string(),
+        method: SnsCanisterMethod::GetMetrics,
         call_type: SNS_METRICS_CALL_TYPE,
         time_window_seconds,
         point_in_time_guaranteed: false,

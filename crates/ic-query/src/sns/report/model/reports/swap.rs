@@ -4,6 +4,7 @@
 //! Does not own: swap canister calls, source validation, lookup, or rendering.
 //! Boundary: preserves native swap lifecycle, sale parameters, derived state, and query gaps.
 
+use super::invocation::SnsCanisterMethod;
 use serde::Serialize;
 
 ///
@@ -46,7 +47,7 @@ pub struct SnsSwapQueryGap {
     /// Typed swap component whose query failed.
     pub component: SnsSwapComponent,
     /// Native query method that failed.
-    pub method: String,
+    pub method: SnsCanisterMethod,
     /// Transport, encoding, or decoding failure retained for diagnostics.
     pub reason: String,
 }
@@ -168,11 +169,11 @@ pub struct SnsSwapReport {
     /// Swap canister queried for lifecycle and sale state.
     pub swap_canister_id: String,
     /// Native method used for lifecycle state.
-    pub lifecycle_method: String,
+    pub lifecycle_method: SnsCanisterMethod,
     /// Native method used for sale parameters.
-    pub sale_parameters_method: String,
+    pub sale_parameters_method: SnsCanisterMethod,
     /// Native method used for derived participation state.
-    pub derived_state_method: String,
+    pub derived_state_method: SnsCanisterMethod,
     /// Whether all component values represent one authoritative point in time.
     pub point_in_time_guaranteed: bool,
     /// Fixed number of bounded swap component queries attempted.

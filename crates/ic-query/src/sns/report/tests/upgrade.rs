@@ -123,7 +123,7 @@ fn clear_next_version(upgrade: &mut MainnetSnsUpgrade) {
 fn fail_next_version(upgrade: &mut MainnetSnsUpgrade) {
     upgrade.next_version = None;
     upgrade.next_version_gap = Some(SnsUpgradeQueryGap {
-        method: "get_next_sns_version".to_string(),
+        method: SnsCanisterMethod::GetNextSnsVersion,
         reason: "fixture query rejected".to_string(),
     });
 }
@@ -132,8 +132,8 @@ fn wrong_governance_target(upgrade: &mut MainnetSnsUpgrade) {
     upgrade.governance_canister_id = INDEX_A.to_string();
 }
 
-fn wrong_running_method(upgrade: &mut MainnetSnsUpgrade) {
-    upgrade.running_version_method = "get_upgrade_journal".to_string();
+const fn wrong_running_method(upgrade: &mut MainnetSnsUpgrade) {
+    upgrade.running_version_method = SnsCanisterMethod::GetNextSnsVersion;
 }
 
 const fn claim_atomic_snapshot(upgrade: &mut MainnetSnsUpgrade) {
@@ -146,7 +146,7 @@ fn uppercase_hash(upgrade: &mut MainnetSnsUpgrade) {
 
 fn value_and_gap(upgrade: &mut MainnetSnsUpgrade) {
     upgrade.next_version_gap = Some(SnsUpgradeQueryGap {
-        method: "get_next_sns_version".to_string(),
+        method: SnsCanisterMethod::GetNextSnsVersion,
         reason: "fixture query rejected".to_string(),
     });
 }

@@ -10,6 +10,7 @@ mod attempt;
 mod cache;
 mod canisters;
 mod governance;
+mod invocation;
 mod list;
 mod metrics;
 mod neurons;
@@ -24,13 +25,14 @@ pub use attempt::SnsRefreshAttemptStatus;
 #[cfg(feature = "host")]
 pub use cache::{SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary};
 pub use canisters::{
-    SnsCanisterCallType, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole,
-    SnsCanisterRow, SnsCanisterStatus,
+    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
+    SnsCanisterStatus,
 };
 pub use governance::{
     SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
     SnsGovernanceParameters, SnsNeuronPermissionList, SnsVotingRewardsParameters,
 };
+pub use invocation::{SnsCanisterCallType, SnsCanisterMethod};
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
 pub use metrics::{SnsMetricsReport, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
 pub use neurons::{

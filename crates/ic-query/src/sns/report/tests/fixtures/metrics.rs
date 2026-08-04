@@ -1,8 +1,5 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, LEDGER_A, ROOT_A};
-use crate::sns::report::{
-    source::{SNS_METRICS_CALL_TYPE, SNS_METRICS_METHOD},
-    tests::*,
-};
+use crate::sns::report::{source::SNS_METRICS_CALL_TYPE, tests::*};
 
 ///
 /// FixtureSnsMetricsSource
@@ -92,7 +89,7 @@ pub(in crate::sns::report::tests) fn fixture_mainnet_sns_metrics(
 ) -> MainnetSnsMetrics {
     MainnetSnsMetrics {
         governance_canister_id: GOVERNANCE_A.to_string(),
-        method: SNS_METRICS_METHOD.to_string(),
+        method: SnsCanisterMethod::GetMetrics,
         call_type: SNS_METRICS_CALL_TYPE,
         time_window_seconds,
         point_in_time_guaranteed: false,

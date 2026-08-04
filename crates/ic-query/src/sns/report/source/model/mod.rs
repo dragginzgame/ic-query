@@ -18,8 +18,7 @@ mod validation;
 
 pub use canisters::MainnetSnsCanisterInventory;
 pub(in crate::sns::report) use canisters::{
-    SNS_CANISTER_HEALTH_CALL_TYPE, SNS_CANISTER_HEALTH_METHOD, SNS_CANISTER_INVENTORY_METHOD,
-    canonicalize_mainnet_sns_canister_inventory,
+    SNS_CANISTER_HEALTH_CALL_TYPE, canonicalize_mainnet_sns_canister_inventory,
 };
 pub use fetch::SnsSourceRequest;
 pub(in crate::sns::report) use list::{
@@ -29,7 +28,7 @@ pub(in crate::sns::report) use list::{
 pub use list::{MainnetSns, MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsMetadata};
 pub use metrics::MainnetSnsMetrics;
 pub(in crate::sns::report) use metrics::{
-    SNS_METRICS_CALL_TYPE, SNS_METRICS_METHOD, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
+    SNS_METRICS_CALL_TYPE, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
 };
 pub use neurons::{MainnetSnsNeuron, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
 pub(in crate::sns::report) use neurons::{
@@ -43,13 +42,11 @@ pub(in crate::sns::report) use reward::{
 };
 pub use swap::MainnetSnsSwap;
 pub(in crate::sns::report) use swap::{
-    SNS_SWAP_DERIVED_STATE_METHOD, SNS_SWAP_LIFECYCLE_METHOD, SNS_SWAP_QUERY_COUNT,
-    SNS_SWAP_SALE_PARAMETERS_METHOD, canonicalize_mainnet_sns_swap, sns_swap_component_method,
+    SNS_SWAP_QUERY_COUNT, canonicalize_mainnet_sns_swap, sns_swap_component_method,
     sns_swap_lifecycle_name,
 };
 pub use token::MainnetSnsToken;
 pub use upgrade::MainnetSnsUpgrade;
 pub(in crate::sns::report) use upgrade::{
-    SNS_NEXT_VERSION_METHOD, SNS_RUNNING_VERSION_METHOD, SNS_UPGRADE_QUERY_COUNT,
-    canonicalize_mainnet_sns_upgrade,
+    SNS_UPGRADE_QUERY_COUNT, canonicalize_mainnet_sns_upgrade,
 };

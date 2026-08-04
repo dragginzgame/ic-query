@@ -1,21 +1,21 @@
 use ic_query::icrc::IcrcMetadataValueKind;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
-    SnsCanisterCallType, SnsCanisterGapKind, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
-    SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRequest, SnsListSort, SnsLookupRequest, SnsMaturityDisbursementRow,
-    SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
-    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
-    SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
-    SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
-    SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsReport,
-    SnsProposalsRequest, SnsProposalsSort, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
-    SnsRewardCheckpointRow, SnsRewardCollectionStatus, SnsRewardDiffInvalidReasonKind,
-    SnsRewardDiffReport, SnsRewardEvent, SnsRewardProposalId, SnsRunningVersionResponse,
-    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsCanisterCallType, SnsCanisterGapKind, SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole,
+    SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters,
+    SnsInfoReport, SnsListReport, SnsListRequest, SnsListSort, SnsLookupRequest,
+    SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
+    SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
+    SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
+    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
+    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
+    SnsRewardCollectionStatus, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent,
+    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
+    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
     SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
     SnsVotingPowerMetrics, SnsVotingRewardsParameters, build_sns_reward_diff_report,
@@ -528,7 +528,7 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
         name: "Example SNS".to_string(),
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        method: "get_metrics".to_string(),
+        method: SnsCanisterMethod::GetMetrics,
         call_type: SnsCanisterCallType::CompositeQuery,
         time_window_seconds: 86_400,
         point_in_time_guaranteed: false,
@@ -560,6 +560,7 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
 
     assert_eq!(json["treasury_metrics"][0]["treasury"], 1);
     assert_eq!(json["treasury_metrics"][0]["treasury_kind"], "icp");
+    assert_eq!(json["method"], "get_metrics");
     assert_eq!(json["call_type"], "composite_query");
     assert!(text.contains("treasury_metrics_cached: yes"));
     assert!(text.contains("ICP treasury"));
@@ -577,8 +578,8 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
         id: 1,
         name: "Example SNS".to_string(),
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        inventory_method: "list_sns_canisters".to_string(),
-        health_method: "get_sns_canisters_summary".to_string(),
+        inventory_method: SnsCanisterMethod::ListSnsCanisters,
+        health_method: SnsCanisterMethod::GetSnsCanistersSummary,
         health_call_type: SnsCanisterCallType::IngressUpdate,
         health_update_canister_list: false,
         point_in_time_guaranteed: false,
@@ -598,6 +599,7 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
         gaps: Vec::new(),
     };
 
+    let json = serde_json::to_value(&report).expect("serialize public SNS canister report");
     let text = sns_canister_report_text(&report);
 
     assert_eq!(SnsCanisterRole::Governance.as_str(), "governance");
@@ -610,6 +612,8 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
         SnsCanisterGapKind::SummaryMissing.as_str(),
         "summary_missing"
     );
+    assert_eq!(json["inventory_method"], "list_sns_canisters");
+    assert_eq!(json["health_method"], "get_sns_canisters_summary");
     assert!(text.contains("health_call_type: ingress_update"));
     assert!(text.contains("running"));
 }
@@ -712,9 +716,9 @@ fn public_sns_swap_api_is_constructible_serializable_and_renderable() {
         name: "Example SNS".to_string(),
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
         swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
-        lifecycle_method: "get_lifecycle".to_string(),
-        sale_parameters_method: "get_sale_parameters".to_string(),
-        derived_state_method: "get_derived_state".to_string(),
+        lifecycle_method: SnsCanisterMethod::GetLifecycle,
+        sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
+        derived_state_method: SnsCanisterMethod::GetDerivedState,
         point_in_time_guaranteed: false,
         component_query_count: 3,
         successful_component_query_count: 3,
@@ -756,7 +760,7 @@ fn public_sns_swap_api_is_constructible_serializable_and_renderable() {
     };
     let gap = SnsSwapQueryGap {
         component: SnsSwapComponent::DerivedState,
-        method: "get_derived_state".to_string(),
+        method: SnsCanisterMethod::GetDerivedState,
         reason: "fixture rejection".to_string(),
     };
 
@@ -764,6 +768,9 @@ fn public_sns_swap_api_is_constructible_serializable_and_renderable() {
     let json = serde_json::to_value(&report).expect("serialize swap report");
 
     assert!(text.contains("lifecycle_name"));
+    assert_eq!(json["lifecycle_method"], "get_lifecycle");
+    assert_eq!(json["sale_parameters_method"], "get_sale_parameters");
+    assert_eq!(json["derived_state_method"], "get_derived_state");
     assert_eq!(json["lifecycle"]["lifecycle"], 2);
     assert_eq!(
         serde_json::to_value(gap).expect("serialize swap gap")["component"],
@@ -786,8 +793,8 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
         name: "Example SNS".to_string(),
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        running_version_method: "get_running_sns_version".to_string(),
-        next_version_method: "get_next_sns_version".to_string(),
+        running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
+        next_version_method: SnsCanisterMethod::GetNextSnsVersion,
         point_in_time_guaranteed: false,
         component_query_count: 2,
         successful_component_query_count: 2,
@@ -803,7 +810,7 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
         next_version_gap: None,
     };
     let gap = SnsUpgradeQueryGap {
-        method: "get_next_sns_version".to_string(),
+        method: SnsCanisterMethod::GetNextSnsVersion,
         reason: "fixture rejection".to_string(),
     };
 
@@ -811,6 +818,8 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
     let json = serde_json::to_value(&report).expect("serialize upgrade report");
 
     assert!(text.contains("next_version: available"));
+    assert_eq!(json["running_version_method"], "get_running_sns_version");
+    assert_eq!(json["next_version_method"], "get_next_sns_version");
     assert_eq!(json["deployed_version"]["root_wasm_hash_hex"], "01");
     assert_eq!(
         serde_json::to_value(gap).expect("serialize upgrade gap")["method"],
@@ -971,7 +980,7 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
     let metrics_request =
         SnsMetricsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
     let metrics = build_sns_metrics_report_with_source(&metrics_request, &source)?;
-    assert_eq!(metrics.method, "get_metrics");
+    assert_eq!(metrics.method, SnsCanisterMethod::GetMetrics);
     assert_eq!(metrics.treasury_metric_count, 1);
 
     let canisters = build_sns_canister_report_with_source(&info_request, &source)?;
@@ -1387,8 +1396,8 @@ impl SnsCanisterSource for FixtureSnsSource {
         sns: &MainnetSns,
     ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
         Ok(MainnetSnsCanisterInventory {
-            inventory_method: "list_sns_canisters".to_string(),
-            health_method: "get_sns_canisters_summary".to_string(),
+            inventory_method: SnsCanisterMethod::ListSnsCanisters,
+            health_method: SnsCanisterMethod::GetSnsCanistersSummary,
             health_call_type: SnsCanisterCallType::IngressUpdate,
             health_update_canister_list: false,
             point_in_time_guaranteed: false,
@@ -1712,9 +1721,9 @@ fn sample_mainnet_sns_token() -> MainnetSnsToken {
 fn sample_mainnet_sns_swap() -> MainnetSnsSwap {
     MainnetSnsSwap {
         swap_canister_id: SAMPLE_SNS_SWAP_CANISTER_ID.to_string(),
-        lifecycle_method: "get_lifecycle".to_string(),
-        sale_parameters_method: "get_sale_parameters".to_string(),
-        derived_state_method: "get_derived_state".to_string(),
+        lifecycle_method: SnsCanisterMethod::GetLifecycle,
+        sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
+        derived_state_method: SnsCanisterMethod::GetDerivedState,
         point_in_time_guaranteed: false,
         lifecycle: Some(SnsSwapLifecycle {
             lifecycle: Some(3),
@@ -1740,7 +1749,7 @@ fn sample_mainnet_sns_swap() -> MainnetSnsSwap {
 fn sample_mainnet_sns_metrics(time_window_seconds: u64) -> MainnetSnsMetrics {
     MainnetSnsMetrics {
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        method: "get_metrics".to_string(),
+        method: SnsCanisterMethod::GetMetrics,
         call_type: SnsCanisterCallType::CompositeQuery,
         time_window_seconds,
         point_in_time_guaranteed: false,
@@ -1783,8 +1792,8 @@ fn sample_mainnet_sns_upgrade() -> MainnetSnsUpgrade {
     MainnetSnsUpgrade {
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        running_version_method: "get_running_sns_version".to_string(),
-        next_version_method: "get_next_sns_version".to_string(),
+        running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
+        next_version_method: SnsCanisterMethod::GetNextSnsVersion,
         point_in_time_guaranteed: false,
         deployed_version: sample_sns_version("01"),
         pending_upgrade: None,

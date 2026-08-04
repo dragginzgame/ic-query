@@ -7,16 +7,13 @@
 use crate::{
     hex::hex_bytes,
     sns::report::{
-        MainnetSnsCanisterInventory, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterRole,
-        SnsCanisterRow, SnsCanisterStatus, SnsHostError,
+        MainnetSnsCanisterInventory, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterMethod,
+        SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus, SnsHostError,
         live::types::{
             CanisterStatusResult, CanisterStatusType, CanisterSummary,
             GetSnsCanistersSummaryResponse, ListSnsCanistersResponse,
         },
-        source::{
-            SNS_CANISTER_HEALTH_CALL_TYPE, SNS_CANISTER_HEALTH_METHOD,
-            SNS_CANISTER_INVENTORY_METHOD,
-        },
+        source::SNS_CANISTER_HEALTH_CALL_TYPE,
     },
 };
 use candid::Principal;
@@ -99,8 +96,8 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
     }
 
     let mut inventory = MainnetSnsCanisterInventory {
-        inventory_method: SNS_CANISTER_INVENTORY_METHOD.to_string(),
-        health_method: SNS_CANISTER_HEALTH_METHOD.to_string(),
+        inventory_method: SnsCanisterMethod::ListSnsCanisters,
+        health_method: SnsCanisterMethod::GetSnsCanistersSummary,
         health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE,
         health_update_canister_list: false,
         point_in_time_guaranteed: false,

@@ -19,8 +19,8 @@ impl SnsCanisterSource for FixtureSnsCanisterSource {
     ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
         assert_eq!(sns.root_canister_id, ROOT_A);
         Ok(MainnetSnsCanisterInventory {
-            inventory_method: "list_sns_canisters".to_string(),
-            health_method: "get_sns_canisters_summary".to_string(),
+            inventory_method: SnsCanisterMethod::ListSnsCanisters,
+            health_method: SnsCanisterMethod::GetSnsCanistersSummary,
             health_call_type: SnsCanisterCallType::IngressUpdate,
             health_update_canister_list: false,
             point_in_time_guaranteed: false,

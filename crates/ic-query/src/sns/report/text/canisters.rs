@@ -27,11 +27,8 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
             "point_in_time_guaranteed: {}",
             yes_no(report.point_in_time_guaranteed)
         ),
-        format!(
-            "inventory_method: {}",
-            sanitize_text(&report.inventory_method)
-        ),
-        format!("health_method: {}", sanitize_text(&report.health_method)),
+        format!("inventory_method: {}", report.inventory_method.as_str()),
+        format!("health_method: {}", report.health_method.as_str()),
         format!("health_call_type: {}", report.health_call_type.as_str()),
         format!(
             "health_update_canister_list: {}",

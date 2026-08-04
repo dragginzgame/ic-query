@@ -6,7 +6,7 @@
 
 use super::block_on_sns;
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsUpgrade, SnsHostError,
+    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsUpgrade, SnsCanisterMethod, SnsHostError,
     SnsRunningVersionResponse, SnsSourceRequest, SnsUpgradeQueryGap,
     live::{
         convert::{sns_pending_upgrade, sns_running_version_response, sns_version},
@@ -16,7 +16,6 @@ use crate::sns::report::{
             GetRunningSnsVersionResponse,
         },
     },
-    source::{SNS_NEXT_VERSION_METHOD, SNS_RUNNING_VERSION_METHOD},
 };
 use candid::Principal;
 use ic_agent::Agent;
@@ -52,7 +51,7 @@ async fn fetch_mainnet_sns_upgrade_async(
         running
             .deployed_version
             .ok_or_else(|| SnsHostError::MissingRunningSnsVersion {
-                method: SNS_RUNNING_VERSION_METHOD,
+                method: SnsCanisterMethod::GetRunningSnsVersion.as_str(),
                 governance_canister_id: sns.governance_canister_id.clone(),
             })?;
     let deployed_version = sns_version(deployed_wire.clone());
@@ -65,7 +64,7 @@ async fn fetch_mainnet_sns_upgrade_async(
     let (next_version, next_version_gap) = match query_canister::<_, GetNextSnsVersionResponse>(
         &agent,
         &sns_wasm_canister,
-        SNS_NEXT_VERSION_METHOD,
+        SnsCanisterMethod::GetNextSnsVersion.as_str(),
         "GetNextSnsVersionRequest",
         "GetNextSnsVersionResponse",
         &next_request,
@@ -78,7 +77,7 @@ async fn fetch_mainnet_sns_upgrade_async(
             (
                 None,
                 Some(SnsUpgradeQueryGap {
-                    method: SNS_NEXT_VERSION_METHOD.to_string(),
+                    method: SnsCanisterMethod::GetNextSnsVersion,
                     reason: reason.trim().to_string(),
                 }),
             )
@@ -88,8 +87,8 @@ async fn fetch_mainnet_sns_upgrade_async(
     Ok(MainnetSnsUpgrade {
         governance_canister_id: sns.governance_canister_id.clone(),
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        running_version_method: SNS_RUNNING_VERSION_METHOD.to_string(),
-        next_version_method: SNS_NEXT_VERSION_METHOD.to_string(),
+        running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
+        next_version_method: SnsCanisterMethod::GetNextSnsVersion,
         point_in_time_guaranteed: false,
         deployed_version,
         pending_upgrade,
@@ -116,7 +115,7 @@ async fn query_running_sns_version(
     query_canister(
         agent,
         governance_canister,
-        SNS_RUNNING_VERSION_METHOD,
+        SnsCanisterMethod::GetRunningSnsVersion.as_str(),
         "GetRunningSnsVersionRequest",
         "GetRunningSnsVersionResponse",
         &GetRunningSnsVersionRequest {},
