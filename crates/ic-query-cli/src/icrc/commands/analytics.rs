@@ -16,30 +16,37 @@ pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("analytics")
         .bin_name("icq icrc analytics")
         .about("Inspect bounded official ICRC analytics")
+        .subcommand(icrc_analytics_account_command())
         .subcommand(icrc_analytics_holder_command())
         .subcommand(icrc_analytics_total_supply_command())
+        .subcommand(icrc_analytics_transaction_command())
+}
+
+pub(in crate::icrc) fn icrc_analytics_account_command() -> ClapCommand {
+    indexed_count_namespace("account", "accounts")
+}
+
+#[cfg(test)]
+pub(in crate::icrc) fn icrc_analytics_account_count_command() -> ClapCommand {
+    indexed_count_command("account", "accounts")
 }
 
 pub(in crate::icrc) fn icrc_analytics_holder_command() -> ClapCommand {
-    ClapCommand::new("holder")
-        .bin_name("icq icrc analytics holder")
-        .about("Inspect holder analytics for one indexed ICRC ledger")
-        .subcommand(icrc_analytics_holder_count_command())
+    indexed_count_namespace("holder", "holders")
 }
 
+#[cfg(test)]
 pub(in crate::icrc) fn icrc_analytics_holder_count_command() -> ClapCommand {
-    with_common_analytics_options(
-        ClapCommand::new("count")
-            .bin_name("icq icrc analytics holder count")
-            .about("Show the current indexed holder count for one ICRC ledger")
-            .long_about(
-                "Show the current holder count for one ledger indexed by the official IC Dashboard ICRC analytics API. The command makes exactly one live request, requests no holder rows, performs no enumeration or follow-up calls, and does not use a cache. The count is off-chain and non-certified.",
-            )
-            .after_help(collection_help(
-                COLLECTION_MODE_LIVE,
-                "Examples:\n  icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai --json",
-            )),
-    )
+    indexed_count_command("holder", "holders")
+}
+
+pub(in crate::icrc) fn icrc_analytics_transaction_command() -> ClapCommand {
+    indexed_count_namespace("transaction", "transactions")
+}
+
+#[cfg(test)]
+pub(in crate::icrc) fn icrc_analytics_transaction_count_command() -> ClapCommand {
+    indexed_count_command("transaction", "transactions")
 }
 
 pub(in crate::icrc) fn icrc_analytics_total_supply_command() -> ClapCommand {
@@ -92,4 +99,32 @@ fn with_common_analytics_options(command: ClapCommand) -> ClapCommand {
                 .help("Official IC Dashboard ICRC analytics API base endpoint"),
         )
         .arg(json_arg())
+}
+
+fn indexed_count_namespace(entity: &'static str, plural: &'static str) -> ClapCommand {
+    ClapCommand::new(entity)
+        .bin_name(format!("icq icrc analytics {entity}"))
+        .about(format!(
+            "Inspect indexed {entity} analytics for one ICRC ledger"
+        ))
+        .subcommand(indexed_count_command(entity, plural))
+}
+
+fn indexed_count_command(entity: &'static str, plural: &'static str) -> ClapCommand {
+    with_common_analytics_options(
+        ClapCommand::new("count")
+            .bin_name(format!("icq icrc analytics {entity} count"))
+            .about(format!(
+                "Show the current indexed {entity} count for one ICRC ledger"
+            ))
+            .long_about(format!(
+                "Show the current {entity} count for one ledger indexed by the official IC Dashboard ICRC analytics API. The command makes exactly one live request, requests no {plural} rows, performs no enumeration or follow-up calls, and does not use a cache. The count is off-chain and non-certified."
+            ))
+            .after_help(collection_help(
+                COLLECTION_MODE_LIVE,
+                &format!(
+                    "Examples:\n  icq icrc analytics {entity} count mxzaz-hqaaa-aaaar-qaada-cai\n  icq icrc analytics {entity} count mxzaz-hqaaa-aaaar-qaada-cai --json"
+                ),
+            )),
+    )
 }

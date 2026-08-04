@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.27.md](docs/changelog/0.27.md)
 
+- `0.27.2` adds one-request indexed account and transaction counts alongside
+  holder count. All three scalar endpoints now share one typed count kind,
+  request, report, source method, builder, renderer, live URL path, and CLI
+  dispatch flow; none requests rows, follows a cursor, or creates a cache.
+
+```bash
+icq icrc analytics account count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai --json
+```
+
 - `0.27.1` adds a one-request official ICRC holder count without requesting or
   enumerating holder rows. Total-supply and holder-count reports now share one
   public analytics ledger target, one CLI target parser, one `LiveIcSource`

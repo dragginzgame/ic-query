@@ -18,45 +18,56 @@ const ICRC_SUPPLY_START: u64 = 1_785_542_400;
 const ICRC_SUPPLY_END: u64 = 1_785_801_600;
 
 #[test]
-fn icrc_holder_count_preserves_index_total_and_dashboard_provenance() {
-    let source = IcrcAnalyticsFixture::default();
-    let request = icrc_analytics_request();
+fn icrc_indexed_counts_preserve_kind_total_and_dashboard_provenance() {
+    for kind in [
+        IcIcrcIndexedCountKind::Account,
+        IcIcrcIndexedCountKind::Holder,
+        IcIcrcIndexedCountKind::Transaction,
+    ] {
+        let source = IcrcAnalyticsFixture::default();
+        let request = icrc_indexed_count_request(kind);
 
-    let report = build_icrc_holder_count_report_with_source(&request, &source)
-        .expect("ICRC holder-count report");
-    let text = icrc_holder_count_report_text(&report);
+        let report = build_icrc_indexed_count_report_with_source(&request, &source)
+            .expect("ICRC indexed-count report");
+        let text = icrc_indexed_count_report_text(&report);
 
-    assert_eq!(source.calls.get(), 1);
-    assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
-    assert_eq!(report.total, 78_272);
-    assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
-    assert!(!report.provenance.certified);
-    assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
-    assert!(text.contains("total: 78272"));
+        assert_eq!(source.calls.get(), 1);
+        assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
+        assert_eq!(report.kind, kind);
+        assert_eq!(report.total, indexed_count_total(kind));
+        assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
+        assert!(!report.provenance.certified);
+        assert!(!report.provenance.point_in_time_guaranteed);
+        assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
+        assert!(text.contains(&format!("kind: {kind}")));
+    }
 }
 
 #[test]
-fn icrc_holder_count_validates_request_and_custom_source_identity() {
+fn icrc_indexed_count_validates_request_and_custom_source_identity() {
     let source = IcrcAnalyticsFixture::default();
-    let mut request = icrc_analytics_request();
-    request.ledger_canister_id = "not a principal".to_string();
+    let mut request = icrc_indexed_count_request(IcIcrcIndexedCountKind::Holder);
+    request.analytics.ledger_canister_id = "not a principal".to_string();
 
-    let error = build_icrc_holder_count_report_with_source(&request, &source)
-        .expect_err("invalid holder-count request must fail");
+    let error = build_icrc_indexed_count_report_with_source(&request, &source)
+        .expect_err("invalid indexed-count request must fail");
     assert!(matches!(error, IcHostError::InvalidPrincipal { .. }));
     assert_eq!(source.calls.get(), 0);
 
     for mutation in [
         IcrcAnalyticsMutation::WrongEndpoint,
         IcrcAnalyticsMutation::WrongLedger,
+        IcrcAnalyticsMutation::WrongKind,
     ] {
         let source = IcrcAnalyticsFixture {
             mutation: RefCell::new(Some(mutation)),
             ..IcrcAnalyticsFixture::default()
         };
-        let error = build_icrc_holder_count_report_with_source(&icrc_analytics_request(), &source)
-            .expect_err("invalid holder-count source identity must fail");
+        let error = build_icrc_indexed_count_report_with_source(
+            &icrc_indexed_count_request(IcIcrcIndexedCountKind::Holder),
+            &source,
+        )
+        .expect_err("invalid indexed-count source identity must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
@@ -527,12 +538,12 @@ fn live_icrc_analytics_source_validates_bounds_before_endpoint_or_http_request()
 }
 
 #[test]
-fn live_icrc_holder_count_validates_principal_before_endpoint_or_http_request() {
+fn live_icrc_indexed_count_validates_principal_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
     let error = LiveIcSource
-        .fetch_holder_count(&request, "not a principal")
-        .expect_err("invalid holder-count principal must fail first");
+        .fetch_indexed_count(&request, "not a principal", IcIcrcIndexedCountKind::Holder)
+        .expect_err("invalid indexed-count principal must fail first");
 
     assert!(matches!(
         error,
@@ -800,6 +811,21 @@ fn icrc_analytics_request() -> IcIcrcAnalyticsRequest {
     )
 }
 
+fn icrc_indexed_count_request(kind: IcIcrcIndexedCountKind) -> IcIcrcIndexedCountRequest {
+    IcIcrcIndexedCountRequest {
+        analytics: icrc_analytics_request(),
+        kind,
+    }
+}
+
+const fn indexed_count_total(kind: IcIcrcIndexedCountKind) -> u64 {
+    match kind {
+        IcIcrcIndexedCountKind::Account => 83_127,
+        IcIcrcIndexedCountKind::Holder => 78_272,
+        IcIcrcIndexedCountKind::Transaction => 12_345_678,
+    }
+}
+
 fn daily_stats_request() -> IcDailyStatsRequest {
     IcDailyStatsRequest::new(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
@@ -949,6 +975,7 @@ struct MetricFixture {
 enum IcrcAnalyticsMutation {
     WrongEndpoint,
     WrongLedger,
+    WrongKind,
     WrongQuery,
     DuplicateTimestamp,
     OutsideWindow,
@@ -963,16 +990,18 @@ struct IcrcAnalyticsFixture {
 }
 
 impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
-    fn fetch_holder_count(
+    fn fetch_indexed_count(
         &self,
         request: &IcSourceRequest,
         ledger_canister_id: &str,
-    ) -> Result<IcIcrcHolderCountSourceData, IcHostError> {
+        kind: IcIcrcIndexedCountKind,
+    ) -> Result<IcIcrcIndexedCountSourceData, IcHostError> {
         self.calls.set(self.calls.get() + 1);
-        let mut data = IcIcrcHolderCountSourceData {
+        let mut data = IcIcrcIndexedCountSourceData {
             source: request.clone(),
             ledger_canister_id: ledger_canister_id.to_string(),
-            total: 78_272,
+            kind,
+            total: indexed_count_total(kind),
         };
         match self.mutation.borrow_mut().take() {
             Some(IcrcAnalyticsMutation::WrongEndpoint) => {
@@ -980,6 +1009,9 @@ impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
             }
             Some(IcrcAnalyticsMutation::WrongLedger) => {
                 data.ledger_canister_id = CANISTER_ID.to_string();
+            }
+            Some(IcrcAnalyticsMutation::WrongKind) => {
+                data.kind = IcIcrcIndexedCountKind::Account;
             }
             _ => {}
         }
@@ -1033,7 +1065,7 @@ impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
                     })
                     .collect();
             }
-            None => {}
+            Some(IcrcAnalyticsMutation::WrongKind) | None => {}
         }
         Ok(data)
     }

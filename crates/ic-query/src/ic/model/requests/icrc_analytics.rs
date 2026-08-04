@@ -5,6 +5,7 @@
 //! Boundary: shares one ledger target while keeping series bounds operation-specific.
 
 use serde::Serialize;
+use std::fmt;
 
 ///
 /// IcIcrcAnalyticsRequest
@@ -34,6 +35,84 @@ impl IcIcrcAnalyticsRequest {
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
             ledger_canister_id: ledger_canister_id.into(),
+        }
+    }
+}
+
+///
+/// IcIcrcIndexedCountKind
+///
+/// Scalar ledger resource counted by the official ICRC analytics index.
+///
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IcIcrcIndexedCountKind {
+    /// Accounts represented by the index.
+    Account,
+    /// Holders represented by the index.
+    Holder,
+    /// Transactions represented by the index.
+    Transaction,
+}
+
+impl IcIcrcIndexedCountKind {
+    /// Return the stable singular resource label used in reports.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Account => "account",
+            Self::Holder => "holder",
+            Self::Transaction => "transaction",
+        }
+    }
+
+    #[cfg(feature = "host")]
+    pub(crate) const fn resource_path_segment(self) -> &'static str {
+        match self {
+            Self::Account => "accounts",
+            Self::Holder => "holders",
+            Self::Transaction => "transactions",
+        }
+    }
+}
+
+impl fmt::Display for IcIcrcIndexedCountKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+///
+/// IcIcrcIndexedCountRequest
+///
+/// Request for one scalar count from the official ICRC analytics index.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcIndexedCountRequest {
+    /// Shared analytics endpoint, collection time, and ledger identity.
+    pub analytics: IcIcrcAnalyticsRequest,
+    /// Indexed resource to count.
+    pub kind: IcIcrcIndexedCountKind,
+}
+
+impl IcIcrcIndexedCountRequest {
+    /// Construct one live indexed-count request.
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+        kind: IcIcrcIndexedCountKind,
+    ) -> Self {
+        Self {
+            analytics: IcIcrcAnalyticsRequest::new(
+                source_endpoint,
+                now_unix_secs,
+                ledger_canister_id,
+            ),
+            kind,
         }
     }
 }

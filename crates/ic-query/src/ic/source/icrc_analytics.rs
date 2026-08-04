@@ -9,8 +9,8 @@ use super::{
     validate_provenance,
 };
 use crate::ic::{
-    IcHostError, IcIcrcHolderCountReport, IcIcrcHolderCountSourceData, IcIcrcTotalSupplyQuery,
-    IcIcrcTotalSupplyReport, IcIcrcTotalSupplySourceData, IcSourceRequest,
+    IcHostError, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountSourceData,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport, IcIcrcTotalSupplySourceData, IcSourceRequest,
     MAX_ICRC_ANALYTICS_OBSERVATIONS, MIN_ICRC_ANALYTICS_TIMESTAMP,
 };
 
@@ -21,12 +21,13 @@ use crate::ic::{
 ///
 
 pub trait IcIcrcAnalyticsSource {
-    /// Fetch the current holder count without requesting holder rows.
-    fn fetch_holder_count(
+    /// Fetch one current scalar count without requesting indexed rows.
+    fn fetch_indexed_count(
         &self,
         request: &IcSourceRequest,
         ledger_canister_id: &str,
-    ) -> Result<IcIcrcHolderCountSourceData, IcHostError>;
+        kind: IcIcrcIndexedCountKind,
+    ) -> Result<IcIcrcIndexedCountSourceData, IcHostError>;
 
     /// Fetch one total-supply series without pagination or automatic follow-up calls.
     fn fetch_total_supply_series(
@@ -37,20 +38,28 @@ pub trait IcIcrcAnalyticsSource {
     ) -> Result<IcIcrcTotalSupplySourceData, IcHostError>;
 }
 
-pub(in crate::ic) fn icrc_holder_count_report_from_source(
+pub(in crate::ic) fn icrc_indexed_count_report_from_source(
     request: &IcSourceRequest,
     ledger_canister_id: &str,
-    source: IcIcrcHolderCountSourceData,
-) -> Result<IcIcrcHolderCountReport, IcHostError> {
+    kind: IcIcrcIndexedCountKind,
+    source: IcIcrcIndexedCountSourceData,
+) -> Result<IcIcrcIndexedCountReport, IcHostError> {
     validate_provenance(request, &source.source)?;
     validate_principal_match(
         "ledger_canister_id",
         ledger_canister_id,
         &source.ledger_canister_id,
     )?;
-    Ok(IcIcrcHolderCountReport {
+    if source.kind != kind {
+        return invalid_source(format!(
+            "ICRC indexed-count kind is {:?}, expected requested kind {kind:?}",
+            source.kind
+        ));
+    }
+    Ok(IcIcrcIndexedCountReport {
         provenance: report_provenance(source.source),
         ledger_canister_id: source.ledger_canister_id,
+        kind: source.kind,
         total: source.total,
     })
 }

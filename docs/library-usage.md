@@ -375,21 +375,23 @@ total supply adds one explicit time window:
 ```rust
 use ic_query::ic::{
     DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
-    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcAnalyticsRequest,
-    IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
-    build_icrc_holder_count_report, build_icrc_total_supply_report,
+    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcIndexedCountKind,
+    IcIcrcIndexedCountRequest, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery,
+    IcIcrcTotalSupplyRequest, build_icrc_indexed_count_report, build_icrc_total_supply_report,
 };
 
-fn indexed_holder_count(
+fn indexed_count(
     ledger_canister_id: &str,
     now_unix_secs: u64,
+    kind: IcIcrcIndexedCountKind,
 ) -> Result<u64, IcHostError> {
-    let request = IcIcrcAnalyticsRequest::new(
+    let request = IcIcrcIndexedCountRequest::new(
         DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
         now_unix_secs,
         ledger_canister_id,
+        kind,
     );
-    Ok(build_icrc_holder_count_report(&request)?.total)
+    Ok(build_icrc_indexed_count_report(&request)?.total)
 }
 
 fn total_supply_history(
@@ -411,8 +413,9 @@ fn total_supply_history(
 ```
 
 Each builder makes exactly one request and never reads or writes a cache.
-Holder count requests no rows or cursor. Total supply accepts only hourly or
-daily steps, caps the requested and returned series at 1,000 observations, and
+Account, holder, and transaction counts request no rows or cursors and retain
+their exact typed kind in the report. Total supply accepts only hourly or daily
+steps, caps the requested and returned series at 1,000 observations, and
 preserves raw base-unit strings. Their provenance is explicitly off-chain and
 non-certified. `IcIcrcAnalyticsSource` lets host consumers supply a fixture,
 mirror, or proxy through the same request and result validation; no-default

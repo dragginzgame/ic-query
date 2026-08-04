@@ -16,8 +16,8 @@ pub use build::{
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
-    build_ic_metric_report_with_source, build_icrc_holder_count_report,
-    build_icrc_holder_count_report_with_source, build_icrc_total_supply_report,
+    build_ic_metric_report_with_source, build_icrc_indexed_count_report,
+    build_icrc_indexed_count_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
 };
 #[cfg(feature = "host")]
@@ -30,14 +30,15 @@ pub use model::{
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
     IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
     IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcAnalyticsRequest,
-    IcIcrcHolderCountReport, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery,
-    IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation,
-    IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
+    IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
+    IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
+    IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
+    IcMetricRequest, IcMetricSeries,
 };
 #[cfg(feature = "host")]
 pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
-    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcHolderCountSourceData,
+    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcIndexedCountSourceData,
     IcIcrcTotalSupplySourceData, IcMetricSourceData, IcSourceRequest,
 };
 #[cfg(feature = "host")]
@@ -48,7 +49,7 @@ pub use source::{
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, icrc_holder_count_report_text, icrc_total_supply_report_text,
+    ic_metric_report_text, icrc_indexed_count_report_text, icrc_total_supply_report_text,
 };
 
 /// Default base endpoint for the official IC Dashboard API.

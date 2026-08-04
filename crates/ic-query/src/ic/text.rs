@@ -9,7 +9,7 @@ use crate::{
     ic::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
         IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
-        IcIcrcHolderCountReport, IcIcrcTotalSupplyReport, IcMetricKind, IcMetricReport,
+        IcIcrcIndexedCountReport, IcIcrcTotalSupplyReport, IcMetricKind, IcMetricReport,
     },
     text_value::{sanitize_text, yes_no},
 };
@@ -108,15 +108,16 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
     lines.join("\n")
 }
 
-/// Render one official ICRC holder-count report as human-facing text.
+/// Render one official ICRC indexed-count report as human-facing text.
 #[must_use]
-pub fn icrc_holder_count_report_text(report: &IcIcrcHolderCountReport) -> String {
+pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> String {
     let mut lines = report_header(&report.provenance);
     lines.extend([
         format!(
             "ledger_canister_id: {}",
             sanitize_text(&report.ledger_canister_id)
         ),
+        format!("kind: {}", report.kind),
         format!("total: {}", report.total),
     ]);
     append_report_footer(&mut lines, &report.provenance);

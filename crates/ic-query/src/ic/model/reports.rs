@@ -5,7 +5,8 @@
 //! Boundary: preserves raw Dashboard values and explicit off-chain provenance.
 
 use super::requests::{
-    IcCanisterFilters, IcDailyStatsQuery, IcIcrcTotalSupplyQuery, IcMetricQuery,
+    IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTotalSupplyQuery,
+    IcMetricQuery,
 };
 use serde::Serialize;
 
@@ -140,19 +141,21 @@ pub struct IcIcrcTotalSupplyReport {
 }
 
 ///
-/// IcIcrcHolderCountReport
+/// IcIcrcIndexedCountReport
 ///
-/// One current holder count from the official Dashboard ICRC API.
+/// One current scalar count from the official Dashboard ICRC index.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcIcrcHolderCountReport {
+pub struct IcIcrcIndexedCountReport {
     /// Shared Dashboard provenance, flattened in serialized report JSON.
     #[serde(flatten)]
     pub provenance: IcDashboardReportProvenance,
     /// Canonical ICRC ledger canister principal requested from the API.
     pub ledger_canister_id: String,
-    /// Number of holder rows currently represented by the Dashboard index.
+    /// Indexed resource represented by this count.
+    pub kind: IcIcrcIndexedCountKind,
+    /// Number of matching resources currently represented by the Dashboard index.
     pub total: u64,
 }
 

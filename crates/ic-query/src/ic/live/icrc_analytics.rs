@@ -6,25 +6,31 @@
 
 use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
 use crate::ic::{
-    IcHostError, IcIcrcAnalyticsSource, IcIcrcHolderCountSourceData, IcIcrcTotalSupplyObservation,
-    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplySourceData, IcSourceRequest, source,
+    IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountKind, IcIcrcIndexedCountSourceData,
+    IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplySourceData,
+    IcSourceRequest, source,
 };
 use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
 impl IcIcrcAnalyticsSource for LiveIcSource {
-    fn fetch_holder_count(
+    fn fetch_indexed_count(
         &self,
         request: &IcSourceRequest,
         ledger_canister_id: &str,
-    ) -> Result<IcIcrcHolderCountSourceData, IcHostError> {
+        kind: IcIcrcIndexedCountKind,
+    ) -> Result<IcIcrcIndexedCountSourceData, IcHostError> {
         let ledger_canister_id =
             source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-        let wire: HolderCount =
-            fetch_live(holder_count_url(&request.endpoint, &ledger_canister_id)?)?;
-        Ok(IcIcrcHolderCountSourceData {
+        let wire: IndexedCount = fetch_live(indexed_count_url(
+            &request.endpoint,
+            &ledger_canister_id,
+            kind,
+        )?)?;
+        Ok(IcIcrcIndexedCountSourceData {
             source: request.clone(),
             ledger_canister_id,
+            kind,
             total: wire.total,
         })
     }
@@ -73,8 +79,16 @@ fn total_supply_url(
     Ok(url)
 }
 
-fn holder_count_url(endpoint: &str, ledger_canister_id: &str) -> Result<Url, IcHostError> {
-    ledger_resource_url(endpoint, ledger_canister_id, &["holders", "count"])
+fn indexed_count_url(
+    endpoint: &str,
+    ledger_canister_id: &str,
+    kind: IcIcrcIndexedCountKind,
+) -> Result<Url, IcHostError> {
+    ledger_resource_url(
+        endpoint,
+        ledger_canister_id,
+        &[kind.resource_path_segment(), "count"],
+    )
 }
 
 fn ledger_resource_url(
@@ -94,7 +108,7 @@ struct TotalSupplySeries {
 }
 
 #[derive(SerdeDeserialize)]
-struct HolderCount {
+struct IndexedCount {
     total: u64,
 }
 
@@ -135,26 +149,35 @@ mod tests {
     }
 
     #[test]
-    fn holder_count_url_selects_one_non_paginated_resource() {
-        let url = holder_count_url(
-            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-            "mxzaz-hqaaa-aaaar-qaada-cai",
-        )
-        .expect("holder-count URL");
+    fn indexed_count_urls_select_one_non_paginated_resource() {
+        for (kind, resource) in [
+            (IcIcrcIndexedCountKind::Account, "accounts"),
+            (IcIcrcIndexedCountKind::Holder, "holders"),
+            (IcIcrcIndexedCountKind::Transaction, "transactions"),
+        ] {
+            let url = indexed_count_url(
+                DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+                "mxzaz-hqaaa-aaaar-qaada-cai",
+                kind,
+            )
+            .expect("indexed-count URL");
 
-        assert_eq!(
-            url.as_str(),
-            "https://icrc-api.internetcomputer.org/api/v2/ledgers/mxzaz-hqaaa-aaaar-qaada-cai/holders/count"
-        );
+            assert_eq!(
+                url.as_str(),
+                format!(
+                    "https://icrc-api.internetcomputer.org/api/v2/ledgers/mxzaz-hqaaa-aaaar-qaada-cai/{resource}/count"
+                )
+            );
+        }
     }
 
     #[test]
-    fn holder_count_wire_preserves_total_and_ignores_additive_fields() {
-        let wire: HolderCount = serde_json::from_value(serde_json::json!({
+    fn indexed_count_wire_preserves_total_and_ignores_additive_fields() {
+        let wire: IndexedCount = serde_json::from_value(serde_json::json!({
             "total": 78_272_u64,
             "future_field": true
         }))
-        .expect("current holder-count payload");
+        .expect("current indexed-count payload");
 
         assert_eq!(wire.total, 78_272);
     }

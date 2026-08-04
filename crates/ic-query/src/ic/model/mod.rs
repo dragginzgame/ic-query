@@ -14,7 +14,7 @@ mod requests;
 #[cfg(feature = "host")]
 pub use data::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
-    IcCanisterSourceData, IcDailyStatsSourceData, IcIcrcHolderCountSourceData,
+    IcCanisterSourceData, IcDailyStatsSourceData, IcIcrcIndexedCountSourceData,
     IcIcrcTotalSupplySourceData, IcMetricSourceData, IcSourceRequest,
 };
 #[cfg(feature = "host")]
@@ -23,12 +23,12 @@ pub use reports::{
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcCanisterCountReport,
     IcCanisterPageController, IcCanisterPageReport, IcCanisterPageRow, IcCanisterReport,
     IcCanisterUpgrade, IcDailyStatsReport, IcDailyStatsRow, IcDashboardReportProvenance,
-    IcIcrcHolderCountReport, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyReport,
+    IcIcrcIndexedCountReport, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyReport,
     IcMetricObservation, IcMetricReport, IcMetricSeries,
 };
 pub use requests::{
     IcBoundaryNodeDataCentersRequest, IcCanisterCountRequest, IcCanisterFilters,
     IcCanisterPageRequest, IcCanisterRequest, IcDailyStatsQuery, IcDailyStatsRequest,
-    IcIcrcAnalyticsRequest, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, IcMetricKind,
-    IcMetricQuery, IcMetricRequest,
+    IcIcrcAnalyticsRequest, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricQuery, IcMetricRequest,
 };

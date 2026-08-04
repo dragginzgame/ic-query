@@ -10,13 +10,14 @@ use crate::{
         IcCanisterCollectionSource, IcCanisterCountReport, IcCanisterCountRequest,
         IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport, IcCanisterRequest,
         IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest, IcHostError,
-        IcIcrcAnalyticsRequest, IcIcrcAnalyticsSource, IcIcrcHolderCountReport,
-        IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport, IcMetricRequest,
-        IcMetricSource, IcNetworkSource, IcSourceRequest, LiveIcSource,
+        IcIcrcAnalyticsRequest, IcIcrcAnalyticsSource, IcIcrcIndexedCountReport,
+        IcIcrcIndexedCountRequest, IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest,
+        IcMetricReport, IcMetricRequest, IcMetricSource, IcNetworkSource, IcSourceRequest,
+        LiveIcSource,
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
             canonical_page_cursor, canonical_request_principal, count_report_from_source,
-            daily_stats_report_from_source, icrc_holder_count_report_from_source,
+            daily_stats_report_from_source, icrc_indexed_count_report_from_source,
             icrc_total_supply_report_from_source, metric_report_from_source, normalized_filters,
             page_report_from_source, report_from_source, validate_daily_stats_request,
             validate_icrc_total_supply_request, validate_metric_request, validate_page_limit,
@@ -100,21 +101,27 @@ pub fn build_icrc_total_supply_report_with_source(
     )
 }
 
-/// Build one live holder-count report from the official Dashboard ICRC API.
-pub fn build_icrc_holder_count_report(
-    request: &IcIcrcAnalyticsRequest,
-) -> Result<IcIcrcHolderCountReport, IcHostError> {
-    build_icrc_holder_count_report_with_source(request, &LiveIcSource)
+/// Build one live indexed-count report from the official Dashboard ICRC API.
+pub fn build_icrc_indexed_count_report(
+    request: &IcIcrcIndexedCountRequest,
+) -> Result<IcIcrcIndexedCountReport, IcHostError> {
+    build_icrc_indexed_count_report_with_source(request, &LiveIcSource)
 }
 
-/// Build one holder-count report through a custom Dashboard source capability.
-pub fn build_icrc_holder_count_report_with_source(
-    request: &IcIcrcAnalyticsRequest,
+/// Build one indexed-count report through a custom Dashboard source capability.
+pub fn build_icrc_indexed_count_report_with_source(
+    request: &IcIcrcIndexedCountRequest,
     source: &dyn IcIcrcAnalyticsSource,
-) -> Result<IcIcrcHolderCountReport, IcHostError> {
-    let (source_request, ledger_canister_id) = icrc_analytics_target(request)?;
-    let source_data = source.fetch_holder_count(&source_request, &ledger_canister_id)?;
-    icrc_holder_count_report_from_source(&source_request, &ledger_canister_id, source_data)
+) -> Result<IcIcrcIndexedCountReport, IcHostError> {
+    let (source_request, ledger_canister_id) = icrc_analytics_target(&request.analytics)?;
+    let source_data =
+        source.fetch_indexed_count(&source_request, &ledger_canister_id, request.kind)?;
+    icrc_indexed_count_report_from_source(
+        &source_request,
+        &ledger_canister_id,
+        request.kind,
+        source_data,
+    )
 }
 
 fn icrc_analytics_target(

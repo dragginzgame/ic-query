@@ -393,7 +393,9 @@ states that local checkpoint content is not authenticated.
 Bounded official ICRC analytics:
 
 ```bash
+icq icrc analytics account count mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai \
   --start 1785542400 --end 1785801600 --step 86400 --json
@@ -407,11 +409,12 @@ It follows no cursor, performs no per-row or native-ledger follow-up, and never
 reads or writes a cache. Values remain unsigned decimal strings in raw ledger
 base units.
 
-`analytics holder count` makes one v2 request for only the current indexed
-holder total. It has no list limit, cursor, filter, or page because it does not
-request holder rows. The count is a Dashboard-index value rather than a scan
-performed by `ic-query`, and the command never follows up against the ledger or
-creates a cache.
+`analytics account|holder|transaction count` each makes one v2 request for
+only the current unfiltered indexed total. These commands have no list limit,
+cursor, filter, or page because they do not request indexed rows. Counts are
+Dashboard-index values rather than scans performed by `ic-query`; the commands
+never follow up against the ledger or create a cache. Account and holder counts
+remain distinct API classifications.
 
 This is timestamped off-chain analytics with `certified: false` and
 `point_in_time_guaranteed: false`. A valid ledger principal does not guarantee

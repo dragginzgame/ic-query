@@ -18,9 +18,10 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::ic::{
-    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcIcrcAnalyticsRequest, IcIcrcTotalSupplyQuery,
-    IcIcrcTotalSupplyRequest, MIN_ICRC_ANALYTICS_TIMESTAMP, build_icrc_holder_count_report,
-    build_icrc_total_supply_report, icrc_holder_count_report_text, icrc_total_supply_report_text,
+    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, MIN_ICRC_ANALYTICS_TIMESTAMP,
+    build_icrc_indexed_count_report, build_icrc_total_supply_report,
+    icrc_indexed_count_report_text, icrc_total_supply_report_text,
 };
 use ic_query::icrc::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
@@ -52,28 +53,43 @@ pub fn run_matches(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
 
 fn run_icrc_analytics(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("holder", matches)) => run_icrc_analytics_holder(matches),
+        Some(("account", matches)) => {
+            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Account)
+        }
+        Some(("holder", matches)) => {
+            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Holder)
+        }
         Some(("total-supply", matches)) => run_icrc_analytics_total_supply(matches),
+        Some(("transaction", matches)) => {
+            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Transaction)
+        }
         _ => unreachable!("clap requires a known ICRC analytics subcommand"),
     }
 }
 
-fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+fn run_icrc_analytics_indexed_count(
+    matches: &ArgMatches,
+    kind: IcIcrcIndexedCountKind,
+) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("count", matches)) => run_icrc_analytics_holder_count(matches),
-        _ => unreachable!("clap requires a known ICRC holder subcommand"),
+        Some(("count", matches)) => run_icrc_analytics_indexed_count_leaf(matches, kind),
+        _ => unreachable!("clap requires a known ICRC indexed-count subcommand"),
     }
 }
 
-fn run_icrc_analytics_holder_count(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+fn run_icrc_analytics_indexed_count_leaf(
+    matches: &ArgMatches,
+    kind: IcIcrcIndexedCountKind,
+) -> Result<(), IcrcCommandError> {
     let options = IcrcLedgerOptions::from_matches(matches);
-    let request = IcIcrcAnalyticsRequest::new(
+    let request = IcIcrcIndexedCountRequest::new(
         options.source_endpoint,
         current_unix_secs()?,
         options.ledger_canister_id,
+        kind,
     );
-    let report = build_icrc_holder_count_report(&request)?;
-    write_text_or_json(options.format, &report, icrc_holder_count_report_text)
+    let report = build_icrc_indexed_count_report(&request)?;
+    write_text_or_json(options.format, &report, icrc_indexed_count_report_text)
 }
 
 fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {

@@ -221,19 +221,25 @@ fn binary_icrc_analytics_total_supply_help_smoke() {
 }
 
 #[test]
-fn binary_icrc_analytics_holder_count_help_smoke() {
-    let output = run_icq(&["icrc", "analytics", "holder", "count", "--help"]);
+fn binary_icrc_analytics_indexed_count_help_smoke() {
+    for (entity, plural) in [
+        ("account", "accounts"),
+        ("holder", "holders"),
+        ("transaction", "transactions"),
+    ] {
+        let output = run_icq(&["icrc", "analytics", entity, "count", "--help"]);
 
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(
-        stdout.contains("Usage: icq icrc analytics holder count [OPTIONS] <ledger-canister-id>")
-    );
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-    assert!(stdout.contains("exactly one live request"));
-    assert!(stdout.contains("requests no holder rows"));
-    assert!(stdout.contains("does not use a cache"));
+        assert_success(&output);
+        let stdout = stdout_text(&output);
+        assert!(stdout.contains(&format!(
+            "Usage: icq icrc analytics {entity} count [OPTIONS] <ledger-canister-id>"
+        )));
+        assert!(stdout.contains("--source-endpoint <url>"));
+        assert!(stdout.contains("--json"));
+        assert!(stdout.contains("exactly one live request"));
+        assert!(stdout.contains(&format!("requests no {plural} rows")));
+        assert!(stdout.contains("does not use a cache"));
+    }
 }
 
 #[test]
@@ -432,8 +438,16 @@ fn binary_command_namespaces_match_explicit_local_help() {
         (&["icrc", "account"], &["icrc", "account", "help"]),
         (&["icrc", "analytics"], &["icrc", "analytics", "help"]),
         (
+            &["icrc", "analytics", "account"],
+            &["icrc", "analytics", "account", "help"],
+        ),
+        (
             &["icrc", "analytics", "holder"],
             &["icrc", "analytics", "holder", "help"],
+        ),
+        (
+            &["icrc", "analytics", "transaction"],
+            &["icrc", "analytics", "transaction", "help"],
         ),
         (
             &["icrc", "account", "transaction"],
