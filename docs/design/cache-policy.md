@@ -33,9 +33,10 @@ Cache-backed reads should follow this sequence:
 3. Refresh or create the cache through the command-owned refresh path.
 4. Load the cache again and build the report from the cached data.
 
-Errors other than a missing cache are not refresh triggers. Parse failures,
-schema mismatches, network mismatches, and IO failures should be reported to
-the user instead of silently replacing local state.
+Errors other than a missing cache are not refresh triggers by default. Parse
+failures, schema mismatches, network mismatches, and IO failures should be
+reported unless the owning command explicitly defines a bounded invalid-cache
+recovery policy. Cache-only and status operations never opt into recovery.
 
 Use `cache_file::load_or_refresh_missing_cache` for this policy when the
 command already has:
@@ -45,8 +46,10 @@ command already has:
 - a typed missing-cache error that contains the expected cache path
 
 For small fixed-cost snapshots with an explicit age policy, use the distinct
-refresh-if-stale flow. It refreshes only a missing or older complete snapshot;
-invalid caches remain errors and forced refresh remains a separate operation.
+refresh-if-stale flow. It refreshes a missing or older complete snapshot;
+invalid caches remain errors unless the owner uses the separate error-policy
+helper to classify specific local content failures as recoverable. Read and
+permission failures should not be classified as invalid content.
 
 ## Manual Refresh
 
@@ -122,10 +125,14 @@ Governance metadata result, and raw Swap lifecycle result. A fresh catalog
 avoids all SNS-W, Governance, and Swap calls. Lifecycle selection is a view:
 the default retains code `3` (`committed`, successfully launched), while
 `--all` exposes every cached lifecycle and query-error row without changing
-snapshot identity. Missing or stale state is visibly refreshed under one lock
-and published atomically; invalid state is not silently replaced. `sns
-refresh` forces replacement. Targeted SNS commands retain targeted discovery
-and do not refresh or depend on the all-SNS catalog.
+snapshot identity. Missing, stale, malformed, incompatible, identity-mismatched,
+or semantically invalid content is visibly refreshed under one lock. The new
+snapshot replaces the old path atomically only after validation, so a failed
+refresh leaves the original invalid file in place. Cache-only and cache-status
+operations still report the invalid evidence without a network call, and read
+or permission failures remain errors. `sns refresh` forces replacement.
+Targeted SNS commands retain targeted discovery and do not refresh or depend
+on the all-SNS catalog.
 
 The current registered age policies are:
 
@@ -133,7 +140,7 @@ The current registered age policies are:
 | --- | ---: | --- |
 | Subnet catalog | 7 days | Refreshes missing; reports stale age without replacing |
 | Exact-version NNS Subnet topology | 24 hours | Explicit refresh-if-stale API |
-| Joined deployed-SNS catalog | 1 hour | `sns list` refreshes missing or stale |
+| Joined deployed-SNS catalog | 1 hour | `sns list` refreshes missing, stale, or invalid content |
 
 Other complete proposal, neuron, inventory, and transaction caches remain
 `unmanaged` by age unless their owning operation explicitly defines a policy.

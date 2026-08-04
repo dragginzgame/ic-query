@@ -7,6 +7,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+- `sns list` now visibly refreshes malformed, incompatible, or semantically
+  invalid joined catalogs as well as missing and stale ones. A replacement is
+  published atomically only after successful validation; failed refreshes
+  preserve the original invalid file, while cache-only and status APIs remain
+  local and strict.
+
 ## [0.26.x] - 2026-08-03 - SNS maturity reward evidence
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)

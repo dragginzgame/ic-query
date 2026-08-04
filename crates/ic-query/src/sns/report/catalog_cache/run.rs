@@ -11,7 +11,10 @@ use super::{
 use crate::{
     QueryProgress, QueryProgressEvent,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest, load_or_refresh_stale_cache},
+    cache_file::{
+        CacheRefreshReason, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
+        load_or_refresh_stale_cache_with_error_policy,
+    },
     freshness::freshness_facts,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotIdentityMismatch,
@@ -127,7 +130,7 @@ pub fn build_sns_list_report_from_cache(
     Ok(list_report_from_cache(request, cached))
 }
 
-/// Build an SNS list report, visibly refreshing a missing or one-hour-stale catalog.
+/// Build an SNS list report, visibly refreshing an unusable or one-hour-stale catalog.
 pub fn build_sns_list_report_from_cache_or_refresh(
     request: &SnsListRequest,
     cache_root: &Path,
@@ -149,14 +152,15 @@ pub fn build_sns_list_report_from_cache_or_refresh_with_source(
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsListReport, SnsHostError> {
     let refresh = refresh_request(request, cache_root);
-    let cached = load_or_refresh_stale_cache(
+    let cache_path = sns_catalog_cache_path(cache_root, &request.network);
+    let cached = load_or_refresh_stale_cache_with_error_policy(
         || load_observed_sns_catalog(&refresh.cache, request.now_unix_secs),
         |cached| catalog_is_stale(cached, request.now_unix_secs),
-        missing_catalog_cache_path,
+        |error| catalog_cache_refresh_reason(error, &cache_path),
         |_| {
             progress.report(QueryProgressEvent::CacheRefresh {
                 component: CACHE_COMPONENT.to_string(),
-                path: sns_catalog_cache_path(cache_root, &request.network),
+                path: cache_path.clone(),
                 source_endpoint: request.source_endpoint.clone(),
             });
             refresh_sns_catalog_with_source(&refresh, source)?;
@@ -370,9 +374,19 @@ fn refresh_request(request: &SnsListRequest, cache_root: &Path) -> SnsCatalogRef
     )
 }
 
-fn missing_catalog_cache_path(error: SnsHostError) -> Result<PathBuf, SnsHostError> {
+fn catalog_cache_refresh_reason(
+    error: SnsHostError,
+    expected_path: &Path,
+) -> Result<CacheRefreshReason, SnsHostError> {
     match error {
-        SnsHostError::MissingCatalogCache { path } => Ok(path),
+        SnsHostError::MissingCatalogCache { path } => Ok(CacheRefreshReason::Missing(path)),
+        SnsHostError::ParseCache { path, .. }
+        | SnsHostError::InvalidCache { path, .. }
+        | SnsHostError::CacheIdentityMismatch { path, .. } => Ok(CacheRefreshReason::Invalid(path)),
+        SnsHostError::UnsupportedCacheSchemaVersion { .. }
+        | SnsHostError::CacheNetworkMismatch { .. } => {
+            Ok(CacheRefreshReason::Invalid(expected_path.to_path_buf()))
+        }
         error => Err(error),
     }
 }

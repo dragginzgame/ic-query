@@ -14,11 +14,11 @@ use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum QueryProgressEvent {
-    /// A missing cache is about to be created from a live endpoint.
+    /// A cache-backed read is about to refresh from a live endpoint.
     CacheRefresh {
         /// Human-readable cache component name.
         component: String,
-        /// Missing cache path that triggered the refresh.
+        /// Cache path that will receive the validated replacement.
         path: PathBuf,
         /// Explicit live endpoint used to create the cache.
         source_endpoint: String,

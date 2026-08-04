@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::QueryProgressEvent;
 use std::{
     cell::{Cell, RefCell},
     fs,
@@ -100,7 +101,7 @@ fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
 }
 
 #[test]
-fn invalid_sns_catalog_is_not_silently_refreshed() {
+fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     let root = temp_catalog_root("ic-query-invalid-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -112,25 +113,99 @@ fn invalid_sns_catalog_is_not_silently_refreshed() {
         &mut progress,
     )
     .expect("initial catalog");
-    fs::write(sns_catalog_cache_path(&root, MAINNET_NETWORK), "not-json").expect("corrupt catalog");
+    let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
+    fs::write(&path, "not-json").expect("corrupt catalog");
 
-    let error = build_sns_list_report_from_cache_or_refresh_with_source(
+    let cache_only_error = build_sns_list_report_from_cache(&request, &root)
+        .expect_err("cache-only read preserves invalid evidence");
+    assert!(matches!(cache_only_error, SnsHostError::ParseCache { .. }));
+
+    let mut refresh_events = Vec::new();
+    let mut recording_progress = |event| refresh_events.push(event);
+    let report = build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
         &source,
-        &mut progress,
+        &mut recording_progress,
     )
-    .expect_err("invalid cache remains visible");
+    .expect("invalid cache refreshes");
 
-    assert!(matches!(error, SnsHostError::ParseCache { .. }));
-    assert_eq!(source.inventory.get(), 1);
-    assert_eq!(source.metadata.get(), 1);
-    assert_eq!(source.lifecycles.get(), 1);
+    assert!(matches!(
+        refresh_events.as_slice(),
+        [QueryProgressEvent::CacheRefresh {
+            component,
+            path: refresh_path,
+            source_endpoint,
+        }] if component == "SNS catalog"
+            && refresh_path == &path
+            && source_endpoint == &request.source_endpoint
+    ));
+    assert_eq!(report.data_source.as_str(), "cache");
+    assert_eq!(source.inventory.get(), 2);
+    assert_eq!(source.metadata.get(), 2);
+    assert_eq!(source.lifecycles.get(), 2);
+    assert_ne!(
+        fs::read_to_string(path).expect("read refreshed cache"),
+        "not-json"
+    );
     let _ = fs::remove_dir_all(root);
 }
 
 #[test]
-fn sns_catalog_without_lifecycle_evidence_requires_explicit_refresh() {
+fn sns_list_refreshes_incompatible_catalog_headers() {
+    for (case, mutate) in [
+        (
+            "schema",
+            (|cache: &mut serde_json::Value| {
+                cache["schema_version"] = serde_json::json!(999);
+            }) as fn(&mut serde_json::Value),
+        ),
+        ("network", |cache: &mut serde_json::Value| {
+            cache["network"] = serde_json::json!("local");
+        }),
+        ("identity", |cache: &mut serde_json::Value| {
+            cache["domain"] = serde_json::json!("wrong");
+        }),
+    ] {
+        let root = temp_catalog_root(&format!("ic-query-incompatible-sns-catalog-{case}"));
+        let source = CountingDiscoverySource::default();
+        let mut progress = crate::progress::IgnoreQueryProgress;
+        let request = list_request(false);
+        build_sns_list_report_from_cache_or_refresh_with_source(
+            &request,
+            &root,
+            &source,
+            &mut progress,
+        )
+        .expect("initial catalog");
+
+        let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
+        let mut cache =
+            serde_json::from_slice::<serde_json::Value>(&fs::read(&path).expect("read catalog"))
+                .expect("parse catalog");
+        mutate(&mut cache);
+        fs::write(
+            &path,
+            serde_json::to_vec_pretty(&cache).expect("serialize catalog"),
+        )
+        .expect("write incompatible catalog");
+
+        build_sns_list_report_from_cache_or_refresh_with_source(
+            &request,
+            &root,
+            &source,
+            &mut progress,
+        )
+        .expect("incompatible catalog refreshes");
+        assert_eq!(source.inventory.get(), 2);
+        assert_eq!(source.metadata.get(), 2);
+        assert_eq!(source.lifecycles.get(), 2);
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
+fn sns_list_refreshes_catalog_without_required_lifecycle_evidence() {
     let root = temp_catalog_root("ic-query-old-shape-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -160,27 +235,23 @@ fn sns_catalog_without_lifecycle_evidence_requires_explicit_refresh() {
     )
     .expect("write old-shape catalog");
 
-    let error = build_sns_list_report_from_cache_or_refresh_with_source(
+    let report = build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
         &source,
         &mut progress,
     )
-    .expect_err("old catalog shape must remain visible");
+    .expect("old catalog shape refreshes");
 
-    assert!(matches!(
-        error,
-        SnsHostError::InvalidCache { reason, .. }
-            if reason.contains("neither a value nor lifecycle_error")
-    ));
-    assert_eq!(source.inventory.get(), 1);
-    assert_eq!(source.metadata.get(), 1);
-    assert_eq!(source.lifecycles.get(), 1);
+    assert_eq!(report.sns_instances[0].lifecycle, Some(3));
+    assert_eq!(source.inventory.get(), 2);
+    assert_eq!(source.metadata.get(), 2);
+    assert_eq!(source.lifecycles.get(), 2);
     let _ = fs::remove_dir_all(root);
 }
 
 #[test]
-fn future_sns_catalog_is_not_silently_refreshed() {
+fn sns_list_refreshes_future_dated_catalog() {
     let root = temp_catalog_root("ic-query-future-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -205,20 +276,52 @@ fn future_sns_catalog_is_not_silently_refreshed() {
     )
     .expect("write future catalog");
 
-    let error = build_sns_list_report_from_cache_or_refresh_with_source(
+    let report = build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
         &source,
         &mut progress,
     )
-    .expect_err("future cache remains visible");
+    .expect("future cache refreshes");
 
-    assert!(
-        matches!(error, SnsHostError::InvalidCache { reason, .. } if reason.contains("future"))
+    assert_eq!(
+        report.fetched_at,
+        format_utc_timestamp_secs(request.now_unix_secs)
     );
-    assert_eq!(source.inventory.get(), 1);
-    assert_eq!(source.metadata.get(), 1);
-    assert_eq!(source.lifecycles.get(), 1);
+    assert_eq!(source.inventory.get(), 2);
+    assert_eq!(source.metadata.get(), 2);
+    assert_eq!(source.lifecycles.get(), 2);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn failed_invalid_catalog_refresh_preserves_original_file() {
+    let root = temp_catalog_root("ic-query-failed-invalid-sns-catalog-refresh");
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    let request = list_request(false);
+    build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &CountingDiscoverySource::default(),
+        &mut progress,
+    )
+    .expect("initial catalog");
+
+    let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
+    fs::write(&path, "not-json").expect("corrupt catalog");
+    let error = build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &MutatingInventorySource(invalid_inventory_root),
+        &mut progress,
+    )
+    .expect_err("failed refresh remains visible");
+
+    assert!(matches!(error, SnsHostError::InvalidSourceData { .. }));
+    assert_eq!(
+        fs::read_to_string(path).expect("read preserved invalid cache"),
+        "not-json"
+    );
     let _ = fs::remove_dir_all(root);
 }
 

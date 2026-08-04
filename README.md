@@ -214,6 +214,10 @@ account-history collections retain refresh attempt state. Failed or capped
 refreshes do not replace the last complete snapshot.
 `sns list` uses a one-hour joined catalog cache containing Governance metadata
 and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
+Missing, stale, malformed, incompatible, or semantically invalid catalogs
+produce visible refresh progress and are replaced only after a valid complete
+snapshot is ready; failed refreshes leave the prior file untouched. Cache-only
+and cache-status operations remain local and report invalid evidence directly.
 The default view includes lifecycle `3` (`committed`, successfully launched)
 SNSes; `sns list --all` also shows failed/aborted, pending, unknown, and
 lifecycle-query-error rows. `sns refresh` forces replacement. Targeted SNS

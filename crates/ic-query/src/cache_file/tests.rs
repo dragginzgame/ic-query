@@ -1,17 +1,21 @@
 use super::policy::CacheRefreshReason;
-use super::{load_or_refresh_missing_cache, load_or_refresh_stale_cache};
+use super::{
+    load_or_refresh_missing_cache, load_or_refresh_stale_cache,
+    load_or_refresh_stale_cache_with_error_policy,
+};
 use std::{cell::Cell, path::PathBuf};
 
 #[derive(Debug, Eq, PartialEq)]
 enum PolicyError {
     Missing(PathBuf),
+    Invalid(PathBuf),
     Other,
 }
 
 fn missing_path(err: PolicyError) -> Result<PathBuf, PolicyError> {
     match err {
         PolicyError::Missing(path) => Ok(path),
-        err @ PolicyError::Other => Err(err),
+        err @ (PolicyError::Invalid(_) | PolicyError::Other) => Err(err),
     }
 }
 
@@ -126,4 +130,36 @@ fn stale_policy_reports_missing_path_to_refresh() {
 
     assert_eq!(loaded, Ok("fresh"));
     assert_eq!(loads.get(), 2);
+}
+
+#[test]
+fn owner_error_policy_refreshes_invalid_cache_then_loads_again() {
+    let loads = Cell::new(0);
+    let refreshes = Cell::new(0);
+    let path = PathBuf::from("/tmp/invalid.json");
+
+    let loaded = load_or_refresh_stale_cache_with_error_policy(
+        || {
+            loads.set(loads.get() + 1);
+            if loads.get() == 1 {
+                Err(PolicyError::Invalid(path.clone()))
+            } else {
+                Ok("refreshed")
+            }
+        },
+        |_| false,
+        |error| match error {
+            PolicyError::Invalid(path) => Ok(CacheRefreshReason::Invalid(path)),
+            error => Err(error),
+        },
+        |reason| {
+            assert_eq!(reason, CacheRefreshReason::Invalid(path.clone()));
+            refreshes.set(refreshes.get() + 1);
+            Ok(())
+        },
+    );
+
+    assert_eq!(loaded, Ok("refreshed"));
+    assert_eq!(loads.get(), 2);
+    assert_eq!(refreshes.get(), 1);
 }

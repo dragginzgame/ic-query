@@ -1,6 +1,6 @@
 //! Module: cache_file
 //!
-//! Responsibility: shared cache-file IO, locking, and missing-cache policy.
+//! Responsibility: shared cache-file IO, locking, and refresh policy.
 //! Does not own: command-specific cache schemas, report DTOs, or live refreshes.
 //! Boundary: exposes reusable cache mechanics used by NNS and SNS report modules.
 
@@ -26,7 +26,9 @@ pub use lock::{RefreshLockEvidence, inspect_refresh_lock};
 pub use lock::{RefreshLockRequest, with_refresh_lock};
 pub use policy::load_or_refresh_missing_cache;
 #[cfg(feature = "host")]
-pub use policy::load_or_refresh_stale_cache;
+pub use policy::{
+    CacheRefreshReason, load_or_refresh_stale_cache, load_or_refresh_stale_cache_with_error_policy,
+};
 #[cfg(feature = "host")]
 pub use write::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};
 pub use write::{create_parent_directory, write_text_atomically, write_text_output};
