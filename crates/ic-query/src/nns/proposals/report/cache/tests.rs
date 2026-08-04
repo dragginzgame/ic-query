@@ -18,11 +18,8 @@ use crate::{
             model::{
                 NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
                 NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
-                NnsProposalTopicFilter,
-                selection::{
-                    NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
-                    NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-                },
+                NnsProposalTopic, NnsProposalTopicFilter,
+                selection::{NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL},
             },
             source::{NnsProposalSource, nns_proposal_row_from_info},
             text::{
@@ -290,7 +287,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.data_source, "cache");
     assert!(report.cache_complete.expect("cache completeness"));
     assert_eq!(report.status_filter, NnsProposalStatus::Executed.as_str());
-    assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
+    assert_eq!(report.topic_filter, NnsProposalTopic::Governance.as_str());
     assert_eq!(report.proposer_filter, Some(99));
     assert_eq!(report.query_filter.as_deref(), Some("proposal 1"));
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);

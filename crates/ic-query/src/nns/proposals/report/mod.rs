@@ -8,8 +8,6 @@
 mod assemble;
 #[cfg(feature = "host")]
 mod cache;
-#[cfg(feature = "host")]
-mod labels;
 mod model;
 #[cfg(feature = "host")]
 mod source;
@@ -43,7 +41,7 @@ pub use model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter,
     NnsProposalRow, NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
-    NnsProposalTally, NnsProposalTopicFilter,
+    NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
 };
 #[cfg(feature = "host")]
 pub use source::{

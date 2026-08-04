@@ -93,8 +93,8 @@ use ic_query::nns::proposals::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter,
     NnsProposalRow, NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
-    NnsProposalTally, NnsProposalTopicFilter, nns_proposal_list_report_text,
-    nns_proposal_report_text,
+    NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
+    nns_proposal_list_report_text, nns_proposal_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::registry::{
@@ -1049,8 +1049,10 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     let list_json = serde_json::to_value(&list_report).expect("serialize NNS proposal list report");
     let list_text = nns_proposal_list_report_text(&list_report);
 
+    assert_eq!(list_json["proposals"][0]["topic_text"], "governance");
     assert_eq!(list_json["proposals"][0]["status_text"], "executed");
     assert_eq!(list_json["proposals"][0]["reward_status_text"], "settled");
+    assert_eq!(list_json["proposals"][0]["ballots"][0]["vote_text"], "yes");
     assert!(list_text.contains("proposal_count: 1"));
     assert!(list_text.contains("topic_filter: governance"));
     assert!(list_text.contains("proposal_details:"));
@@ -2280,7 +2282,7 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
         proposal_id: Some(132_411),
         proposer_neuron_id: Some(12_345),
         topic: 4,
-        topic_text: "governance".to_string(),
+        topic_text: NnsProposalTopic::Governance,
         status: 4,
         status_text: NnsProposalStatus::Executed,
         reward_status: 3,
@@ -2312,7 +2314,7 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
         ballots: vec![NnsProposalBallotRow {
             neuron_id: 12_345,
             vote: 1,
-            vote_text: "yes".to_string(),
+            vote_text: NnsProposalVote::Yes,
             voting_power: 100_000_000,
         }],
     }

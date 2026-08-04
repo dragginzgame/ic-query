@@ -13,11 +13,11 @@ use super::{
         nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
     },
     enforce_mainnet_network,
-    labels::{nns_topic_text, nns_vote_text},
     model::{
         NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalReport,
         NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
-        NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally,
+        NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
+        NnsProposalVote,
     },
     view::{
         proposal_matches_proposer, proposal_matches_query, proposal_matches_topic,
@@ -151,7 +151,7 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
         proposal_id: info.id.map(|id| id.id),
         proposer_neuron_id: info.proposer.map(|id| id.id),
         topic: info.topic,
-        topic_text: nns_topic_text(info.topic).to_string(),
+        topic_text: NnsProposalTopic::from_code(info.topic),
         status: info.status,
         status_text: NnsProposalStatus::from_code(info.status),
         reward_status: info.reward_status,
@@ -201,7 +201,7 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
         .map(|(neuron_id, ballot)| NnsProposalBallotRow {
             neuron_id,
             vote: ballot.vote,
-            vote_text: nns_vote_text(ballot.vote).to_string(),
+            vote_text: NnsProposalVote::from_code(ballot.vote),
             voting_power: ballot.voting_power,
         })
         .collect::<Vec<_>>();

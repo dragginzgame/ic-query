@@ -71,7 +71,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
                 .map(|proposal| {
                     [
                         optional_u64_text(proposal.proposal_id),
-                        proposal.topic_text.clone(),
+                        proposal.topic_text.as_str().to_string(),
                         proposal.status_text.as_str().to_string(),
                         proposal.proposed_at.clone(),
                         proposal_title(proposal),
@@ -277,7 +277,7 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
         ),
         format!(
             "topic: {} ({})",
-            sanitize_text(&proposal.topic_text),
+            sanitize_text(proposal.topic_text.as_str()),
             proposal.topic
         ),
         format!(
@@ -371,7 +371,7 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
             .map(|ballot| {
                 [
                     ballot.neuron_id.to_string(),
-                    ballot.vote_text.clone(),
+                    ballot.vote_text.as_str().to_string(),
                     e8s_decimal_text(ballot.voting_power),
                 ]
             })

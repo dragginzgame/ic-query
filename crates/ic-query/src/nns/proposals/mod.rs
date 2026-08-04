@@ -25,5 +25,6 @@ pub use report::{
     NnsProposalListRequest, NnsProposalListSort, NnsProposalReport, NnsProposalRequest,
     NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
     NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally,
-    NnsProposalTopicFilter, nns_proposal_list_report_text, nns_proposal_report_text,
+    NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote, nns_proposal_list_report_text,
+    nns_proposal_report_text,
 };

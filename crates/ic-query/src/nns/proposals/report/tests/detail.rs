@@ -8,7 +8,7 @@ fn nns_proposal_report_renders_detail() {
         proposals: Vec::new(),
         proposal: proposal_info(
             101,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NnsProposalTopic::Governance.code(),
             NnsProposalStatus::Executed.code(),
             "Bravo",
             20,
@@ -36,10 +36,7 @@ fn nns_proposal_report_renders_detail() {
     assert!(report.verbose);
     assert_eq!(report.proposal.title.as_deref(), Some("Bravo"));
     assert_eq!(report.proposal.ballots[0].neuron_id, 1);
-    assert_eq!(
-        report.proposal.ballots[0].vote_text,
-        NNS_PROPOSAL_VOTE_YES_LABEL
-    );
+    assert_eq!(report.proposal.ballots[0].vote_text, NnsProposalVote::Yes);
     assert!(text.contains("action: motion"));
     assert!(text.contains("latest_tally_yes: 20"));
     assert!(text.contains("show_ballots: yes"));
@@ -56,7 +53,7 @@ fn nns_proposal_report_truncates_summary_without_verbose() {
         proposals: Vec::new(),
         proposal: proposal_info_with_summary(
             101,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NnsProposalTopic::Governance.code(),
             NnsProposalStatus::Executed.code(),
             "Bravo",
             20,

@@ -154,80 +154,178 @@ impl NnsProposalRewardStatus {
     }
 }
 
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_VOTE_UNSPECIFIED_LABEL: &str = "unspecified";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_VOTE_YES_LABEL: &str = "yes";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_VOTE_NO_LABEL: &str = "no";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_VOTE_YES_CODE: i32 = 1;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_VOTE_NO_CODE: i32 = 2;
+///
+/// NnsProposalVote
+///
+/// Native NNS Governance ballot vote.
+///
 
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_ANY_LABEL: &str = "any";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL: &str = "neuron-management";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_LABEL: &str = "exchange-rate";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_LABEL: &str = "network-economics";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL: &str = "governance";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_ADMIN_LABEL: &str = "node-admin";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_LABEL: &str =
-    "participant-management";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_LABEL: &str = "subnet-management";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_LABEL: &str =
-    "network-canister-management";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_KYC_LABEL: &str = "kyc";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_LABEL: &str =
-    "node-provider-rewards";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_LABEL: &str =
-    "ic-os-version-deployment";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_LABEL: &str =
-    "ic-os-version-election";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_LABEL: &str =
-    "sns-and-community-fund";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_LABEL: &str =
-    "api-boundary-node-management";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_LABEL: &str = "subnet-rental";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_LABEL: &str =
-    "application-canister-management";
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL: &str =
-    "protocol-canister-management";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_UNSPECIFIED_LABEL: &str = "unspecified";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_CODE: i32 = 1;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_CODE: i32 = 2;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_CODE: i32 = 3;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE: i32 = 4;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_ADMIN_CODE: i32 = 5;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_CODE: i32 = 6;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE: i32 = 7;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_CODE: i32 = 8;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_KYC_CODE: i32 = 9;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_CODE: i32 = 10;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_CODE: i32 = 12;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_CODE: i32 = 13;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_CODE: i32 = 14;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_CODE: i32 = 15;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_CODE: i32 = 16;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE: i32 = 17;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE: i32 = 18;
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NnsProposalVote {
+    /// Unspecified or unrecognized native vote code.
+    Unspecified,
+    /// Affirmative ballot.
+    Yes,
+    /// Negative ballot.
+    No,
+}
+
+impl NnsProposalVote {
+    /// Classify one raw native vote code.
+    #[must_use]
+    pub const fn from_code(code: i32) -> Self {
+        match code {
+            1 => Self::Yes,
+            2 => Self::No,
+            _ => Self::Unspecified,
+        }
+    }
+
+    /// Return the canonical native code for this classification.
+    #[must_use]
+    pub const fn code(self) -> i32 {
+        match self {
+            Self::Unspecified => 0,
+            Self::Yes => 1,
+            Self::No => 2,
+        }
+    }
+
+    /// Return the stable JSON and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unspecified => "unspecified",
+            Self::Yes => "yes",
+            Self::No => "no",
+        }
+    }
+}
+
+///
+/// NnsProposalTopic
+///
+/// Native NNS Governance proposal topic.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NnsProposalTopic {
+    /// Unspecified or unrecognized native topic code.
+    Unspecified,
+    /// Neuron management.
+    NeuronManagement,
+    /// Exchange-rate management.
+    ExchangeRate,
+    /// Network economics.
+    NetworkEconomics,
+    /// Governance policy.
+    Governance,
+    /// Node administration.
+    NodeAdmin,
+    /// Participant management.
+    ParticipantManagement,
+    /// Subnet management.
+    SubnetManagement,
+    /// Network-canister management.
+    NetworkCanisterManagement,
+    /// Know-your-customer policy.
+    Kyc,
+    /// Node-provider rewards.
+    NodeProviderRewards,
+    /// IC OS version deployment.
+    IcOsVersionDeployment,
+    /// IC OS version election.
+    IcOsVersionElection,
+    /// SNS and Community Fund policy.
+    SnsAndCommunityFund,
+    /// API boundary-node management.
+    ApiBoundaryNodeManagement,
+    /// Subnet rental.
+    SubnetRental,
+    /// Application-canister management.
+    ApplicationCanisterManagement,
+    /// Protocol-canister management.
+    ProtocolCanisterManagement,
+}
+
+impl NnsProposalTopic {
+    /// Classify one raw native topic code.
+    #[must_use]
+    pub const fn from_code(code: i32) -> Self {
+        match code {
+            1 => Self::NeuronManagement,
+            2 => Self::ExchangeRate,
+            3 => Self::NetworkEconomics,
+            4 => Self::Governance,
+            5 => Self::NodeAdmin,
+            6 => Self::ParticipantManagement,
+            7 => Self::SubnetManagement,
+            8 => Self::NetworkCanisterManagement,
+            9 => Self::Kyc,
+            10 => Self::NodeProviderRewards,
+            12 => Self::IcOsVersionDeployment,
+            13 => Self::IcOsVersionElection,
+            14 => Self::SnsAndCommunityFund,
+            15 => Self::ApiBoundaryNodeManagement,
+            16 => Self::SubnetRental,
+            17 => Self::ApplicationCanisterManagement,
+            18 => Self::ProtocolCanisterManagement,
+            _ => Self::Unspecified,
+        }
+    }
+
+    /// Return the canonical native code for this classification.
+    #[must_use]
+    pub const fn code(self) -> i32 {
+        match self {
+            Self::Unspecified => 0,
+            Self::NeuronManagement => 1,
+            Self::ExchangeRate => 2,
+            Self::NetworkEconomics => 3,
+            Self::Governance => 4,
+            Self::NodeAdmin => 5,
+            Self::ParticipantManagement => 6,
+            Self::SubnetManagement => 7,
+            Self::NetworkCanisterManagement => 8,
+            Self::Kyc => 9,
+            Self::NodeProviderRewards => 10,
+            Self::IcOsVersionDeployment => 12,
+            Self::IcOsVersionElection => 13,
+            Self::SnsAndCommunityFund => 14,
+            Self::ApiBoundaryNodeManagement => 15,
+            Self::SubnetRental => 16,
+            Self::ApplicationCanisterManagement => 17,
+            Self::ProtocolCanisterManagement => 18,
+        }
+    }
+
+    /// Return the stable JSON and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unspecified => "unspecified",
+            Self::NeuronManagement => "neuron-management",
+            Self::ExchangeRate => "exchange-rate",
+            Self::NetworkEconomics => "network-economics",
+            Self::Governance => "governance",
+            Self::NodeAdmin => "node-admin",
+            Self::ParticipantManagement => "participant-management",
+            Self::SubnetManagement => "subnet-management",
+            Self::NetworkCanisterManagement => "network-canister-management",
+            Self::Kyc => "kyc",
+            Self::NodeProviderRewards => "node-provider-rewards",
+            Self::IcOsVersionDeployment => "ic-os-version-deployment",
+            Self::IcOsVersionElection => "ic-os-version-election",
+            Self::SnsAndCommunityFund => "sns-and-community-fund",
+            Self::ApiBoundaryNodeManagement => "api-boundary-node-management",
+            Self::SubnetRental => "subnet-rental",
+            Self::ApplicationCanisterManagement => "application-canister-management",
+            Self::ProtocolCanisterManagement => "protocol-canister-management",
+        }
+    }
+}
 
 ///
 /// NnsProposalListSort
@@ -455,29 +553,27 @@ impl NnsProposalTopicFilter {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Any => NNS_PROPOSAL_TOPIC_ANY_LABEL,
-            Self::NeuronManagement => NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_LABEL,
-            Self::ExchangeRate => NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_LABEL,
-            Self::NetworkEconomics => NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_LABEL,
-            Self::Governance => NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
-            Self::NodeAdmin => NNS_PROPOSAL_TOPIC_NODE_ADMIN_LABEL,
-            Self::ParticipantManagement => NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_LABEL,
-            Self::SubnetManagement => NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_LABEL,
-            Self::NetworkCanisterManagement => NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_LABEL,
-            Self::Kyc => NNS_PROPOSAL_TOPIC_KYC_LABEL,
-            Self::NodeProviderRewards => NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_LABEL,
-            Self::IcOsVersionDeployment => NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_LABEL,
-            Self::IcOsVersionElection => NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_LABEL,
-            Self::SnsAndCommunityFund => NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_LABEL,
-            Self::ApiBoundaryNodeManagement => {
-                NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_LABEL
-            }
-            Self::SubnetRental => NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_LABEL,
+            Self::Any => "any",
+            Self::NeuronManagement => NnsProposalTopic::NeuronManagement.as_str(),
+            Self::ExchangeRate => NnsProposalTopic::ExchangeRate.as_str(),
+            Self::NetworkEconomics => NnsProposalTopic::NetworkEconomics.as_str(),
+            Self::Governance => NnsProposalTopic::Governance.as_str(),
+            Self::NodeAdmin => NnsProposalTopic::NodeAdmin.as_str(),
+            Self::ParticipantManagement => NnsProposalTopic::ParticipantManagement.as_str(),
+            Self::SubnetManagement => NnsProposalTopic::SubnetManagement.as_str(),
+            Self::NetworkCanisterManagement => NnsProposalTopic::NetworkCanisterManagement.as_str(),
+            Self::Kyc => NnsProposalTopic::Kyc.as_str(),
+            Self::NodeProviderRewards => NnsProposalTopic::NodeProviderRewards.as_str(),
+            Self::IcOsVersionDeployment => NnsProposalTopic::IcOsVersionDeployment.as_str(),
+            Self::IcOsVersionElection => NnsProposalTopic::IcOsVersionElection.as_str(),
+            Self::SnsAndCommunityFund => NnsProposalTopic::SnsAndCommunityFund.as_str(),
+            Self::ApiBoundaryNodeManagement => NnsProposalTopic::ApiBoundaryNodeManagement.as_str(),
+            Self::SubnetRental => NnsProposalTopic::SubnetRental.as_str(),
             Self::ApplicationCanisterManagement => {
-                NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_LABEL
+                NnsProposalTopic::ApplicationCanisterManagement.as_str()
             }
             Self::ProtocolCanisterManagement => {
-                NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL
+                NnsProposalTopic::ProtocolCanisterManagement.as_str()
             }
         }
     }
@@ -486,30 +582,30 @@ impl NnsProposalTopicFilter {
     pub(in crate::nns) const fn topic_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
-            Self::NeuronManagement => Some(NNS_PROPOSAL_TOPIC_NEURON_MANAGEMENT_CODE),
-            Self::ExchangeRate => Some(NNS_PROPOSAL_TOPIC_EXCHANGE_RATE_CODE),
-            Self::NetworkEconomics => Some(NNS_PROPOSAL_TOPIC_NETWORK_ECONOMICS_CODE),
-            Self::Governance => Some(NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE),
-            Self::NodeAdmin => Some(NNS_PROPOSAL_TOPIC_NODE_ADMIN_CODE),
-            Self::ParticipantManagement => Some(NNS_PROPOSAL_TOPIC_PARTICIPANT_MANAGEMENT_CODE),
-            Self::SubnetManagement => Some(NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE),
+            Self::NeuronManagement => Some(NnsProposalTopic::NeuronManagement.code()),
+            Self::ExchangeRate => Some(NnsProposalTopic::ExchangeRate.code()),
+            Self::NetworkEconomics => Some(NnsProposalTopic::NetworkEconomics.code()),
+            Self::Governance => Some(NnsProposalTopic::Governance.code()),
+            Self::NodeAdmin => Some(NnsProposalTopic::NodeAdmin.code()),
+            Self::ParticipantManagement => Some(NnsProposalTopic::ParticipantManagement.code()),
+            Self::SubnetManagement => Some(NnsProposalTopic::SubnetManagement.code()),
             Self::NetworkCanisterManagement => {
-                Some(NNS_PROPOSAL_TOPIC_NETWORK_CANISTER_MANAGEMENT_CODE)
+                Some(NnsProposalTopic::NetworkCanisterManagement.code())
             }
-            Self::Kyc => Some(NNS_PROPOSAL_TOPIC_KYC_CODE),
-            Self::NodeProviderRewards => Some(NNS_PROPOSAL_TOPIC_NODE_PROVIDER_REWARDS_CODE),
-            Self::IcOsVersionDeployment => Some(NNS_PROPOSAL_TOPIC_IC_OS_VERSION_DEPLOYMENT_CODE),
-            Self::IcOsVersionElection => Some(NNS_PROPOSAL_TOPIC_IC_OS_VERSION_ELECTION_CODE),
-            Self::SnsAndCommunityFund => Some(NNS_PROPOSAL_TOPIC_SNS_AND_COMMUNITY_FUND_CODE),
+            Self::Kyc => Some(NnsProposalTopic::Kyc.code()),
+            Self::NodeProviderRewards => Some(NnsProposalTopic::NodeProviderRewards.code()),
+            Self::IcOsVersionDeployment => Some(NnsProposalTopic::IcOsVersionDeployment.code()),
+            Self::IcOsVersionElection => Some(NnsProposalTopic::IcOsVersionElection.code()),
+            Self::SnsAndCommunityFund => Some(NnsProposalTopic::SnsAndCommunityFund.code()),
             Self::ApiBoundaryNodeManagement => {
-                Some(NNS_PROPOSAL_TOPIC_API_BOUNDARY_NODE_MANAGEMENT_CODE)
+                Some(NnsProposalTopic::ApiBoundaryNodeManagement.code())
             }
-            Self::SubnetRental => Some(NNS_PROPOSAL_TOPIC_SUBNET_RENTAL_CODE),
+            Self::SubnetRental => Some(NnsProposalTopic::SubnetRental.code()),
             Self::ApplicationCanisterManagement => {
-                Some(NNS_PROPOSAL_TOPIC_APPLICATION_CANISTER_MANAGEMENT_CODE)
+                Some(NnsProposalTopic::ApplicationCanisterManagement.code())
             }
             Self::ProtocolCanisterManagement => {
-                Some(NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE)
+                Some(NnsProposalTopic::ProtocolCanisterManagement.code())
             }
         }
     }
@@ -555,6 +651,92 @@ mod tests {
         assert_eq!(
             NnsProposalRewardStatus::from_code(99),
             NnsProposalRewardStatus::Unspecified
+        );
+    }
+
+    #[test]
+    fn proposal_vote_codes_and_labels_round_trip() {
+        for (vote, code, label) in [
+            (NnsProposalVote::Unspecified, 0, "unspecified"),
+            (NnsProposalVote::Yes, 1, "yes"),
+            (NnsProposalVote::No, 2, "no"),
+        ] {
+            assert_eq!(vote.code(), code);
+            assert_eq!(NnsProposalVote::from_code(code), vote);
+            assert_json_label(vote, label);
+        }
+        assert_eq!(NnsProposalVote::from_code(99), NnsProposalVote::Unspecified);
+    }
+
+    #[test]
+    fn proposal_topic_codes_and_labels_round_trip() {
+        for (topic, code, label) in [
+            (NnsProposalTopic::Unspecified, 0, "unspecified"),
+            (NnsProposalTopic::NeuronManagement, 1, "neuron-management"),
+            (NnsProposalTopic::ExchangeRate, 2, "exchange-rate"),
+            (NnsProposalTopic::NetworkEconomics, 3, "network-economics"),
+            (NnsProposalTopic::Governance, 4, "governance"),
+            (NnsProposalTopic::NodeAdmin, 5, "node-admin"),
+            (
+                NnsProposalTopic::ParticipantManagement,
+                6,
+                "participant-management",
+            ),
+            (NnsProposalTopic::SubnetManagement, 7, "subnet-management"),
+            (
+                NnsProposalTopic::NetworkCanisterManagement,
+                8,
+                "network-canister-management",
+            ),
+            (NnsProposalTopic::Kyc, 9, "kyc"),
+            (
+                NnsProposalTopic::NodeProviderRewards,
+                10,
+                "node-provider-rewards",
+            ),
+            (
+                NnsProposalTopic::IcOsVersionDeployment,
+                12,
+                "ic-os-version-deployment",
+            ),
+            (
+                NnsProposalTopic::IcOsVersionElection,
+                13,
+                "ic-os-version-election",
+            ),
+            (
+                NnsProposalTopic::SnsAndCommunityFund,
+                14,
+                "sns-and-community-fund",
+            ),
+            (
+                NnsProposalTopic::ApiBoundaryNodeManagement,
+                15,
+                "api-boundary-node-management",
+            ),
+            (NnsProposalTopic::SubnetRental, 16, "subnet-rental"),
+            (
+                NnsProposalTopic::ApplicationCanisterManagement,
+                17,
+                "application-canister-management",
+            ),
+            (
+                NnsProposalTopic::ProtocolCanisterManagement,
+                18,
+                "protocol-canister-management",
+            ),
+        ] {
+            assert_eq!(topic.code(), code);
+            assert_eq!(NnsProposalTopic::from_code(code), topic);
+            assert_json_label(topic, label);
+        }
+        assert_eq!(
+            NnsProposalTopic::from_code(11),
+            NnsProposalTopic::Unspecified
+        );
+        assert_eq!(
+            NnsProposalTopic::from_code(99),
+            NnsProposalTopic::Unspecified
         );
     }
 

@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.16` replaces free-form NNS proposal topic and ballot-vote labels with
+  `NnsProposalTopic` and `NnsProposalVote`. Projection, topic filtering,
+  sorting, rendering, and caches now use typed native classifications, and the
+  redundant numeric-to-label module is removed without changing JSON or CLI
+  labels.
+
 - `0.26.15` replaces free-form NNS proposal decision-status and reward-status
   labels with `NnsProposalStatus` and `NnsProposalRewardStatus`. Native
   projection, filters, sorting, rendering, and caches now share one code/label

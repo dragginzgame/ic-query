@@ -8,7 +8,7 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
         proposals: vec![
             proposal_info_with_reward_status(
                 101,
-                NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+                NnsProposalTopic::Governance.code(),
                 NnsProposalStatus::Executed.code(),
                 NnsProposalRewardStatus::Settled.code(),
                 "Settled proposal",
@@ -16,7 +16,7 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
             ),
             proposal_info_with_reward_status(
                 102,
-                NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+                NnsProposalTopic::Governance.code(),
                 NnsProposalStatus::Executed.code(),
                 NnsProposalRewardStatus::AcceptVotes.code(),
                 "Accept votes proposal",
@@ -24,7 +24,7 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
             ),
             proposal_info_with_reward_status(
                 103,
-                NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+                NnsProposalTopic::Governance.code(),
                 NnsProposalStatus::Executed.code(),
                 NnsProposalRewardStatus::Ineligible.code(),
                 "Ineligible proposal",
@@ -33,7 +33,7 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
         ],
         proposal: proposal_info(
             101,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NnsProposalTopic::Governance.code(),
             NnsProposalStatus::Executed.code(),
             "Settled proposal",
             20,
@@ -75,7 +75,7 @@ fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
         ],
         proposal: proposal_info(
             101,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NnsProposalTopic::Governance.code(),
             NnsProposalStatus::Executed.code(),
             "Deadline proposal",
             20,
@@ -121,7 +121,7 @@ fn nns_proposal_list_report_sorts_by_tally_time() {
         ],
         proposal: proposal_info(
             101,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NnsProposalTopic::Governance.code(),
             NnsProposalStatus::Executed.code(),
             "Tally timestamp proposal",
             20,

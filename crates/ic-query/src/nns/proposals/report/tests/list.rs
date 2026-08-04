@@ -8,14 +8,14 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         proposals: vec![
             proposal_info(
                 101,
-                NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+                NnsProposalTopic::Governance.code(),
                 NnsProposalStatus::Executed.code(),
                 "Bravo",
                 20,
             ),
             proposal_info(
                 102,
-                NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE,
+                NnsProposalTopic::SubnetManagement.code(),
                 NnsProposalStatus::Executed.code(),
                 "Alpha",
                 10,
@@ -23,7 +23,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         ],
         proposal: proposal_info(
             101,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NnsProposalTopic::Governance.code(),
             NnsProposalStatus::Executed.code(),
             "Bravo",
             20,
@@ -63,7 +63,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         report.reward_status_filter,
         NnsProposalRewardStatus::Settled.as_str()
     );
-    assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
+    assert_eq!(report.topic_filter, NnsProposalTopic::Governance.as_str());
     assert_eq!(report.proposer_filter, Some(99));
     assert_eq!(report.query_filter, None);
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
@@ -83,7 +83,8 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         NnsProposalRewardStatus::Settled.as_str()
     )));
     assert!(text.contains(&format!(
-        "topic_filter: {NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL}"
+        "topic_filter: {}",
+        NnsProposalTopic::Governance.as_str()
     )));
     assert!(text.contains("proposer_filter: 99"));
     assert!(text.contains("data_source: live"));
@@ -122,14 +123,14 @@ fn nns_proposal_list_report_filters_by_query() {
         proposals: vec![
             proposal_info(
                 101,
-                NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+                NnsProposalTopic::Governance.code(),
                 NnsProposalStatus::Executed.code(),
                 "Subnet upgrade",
                 20,
             ),
             proposal_info(
                 102,
-                NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+                NnsProposalTopic::Governance.code(),
                 NnsProposalStatus::Executed.code(),
                 "Node provider reward",
                 10,
@@ -137,7 +138,7 @@ fn nns_proposal_list_report_filters_by_query() {
         ],
         proposal: proposal_info(
             101,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NnsProposalTopic::Governance.code(),
             NnsProposalStatus::Executed.code(),
             "Subnet upgrade",
             20,
@@ -163,7 +164,7 @@ fn nns_proposal_list_report_filters_by_query() {
 fn nns_proposal_query_filter_matches_searchable_text_fields() {
     let proposal = nns_proposal_row_from_info(proposal_info_with_summary(
         101,
-        NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+        NnsProposalTopic::Governance.code(),
         NnsProposalStatus::Executed.code(),
         "Subnet upgrade",
         20,
