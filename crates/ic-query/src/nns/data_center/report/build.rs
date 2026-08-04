@@ -1,8 +1,10 @@
 use super::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION,
     NnsDataCenterHostError, NnsDataCenterInfoReport, NnsDataCenterListReport,
-    NnsInventoryInfoRequest, NnsInventoryListRequest, cache::load_cached_nns_data_center_report,
-    refresh::refresh_nns_data_center_cache_with_source, resolve::resolve_data_center,
+    NnsInventoryInfoRequest, NnsInventoryListRequest,
+    cache::{load_cached_nns_data_center_report, nns_data_center_cache_path},
+    refresh::refresh_nns_data_center_cache_with_source,
+    resolve::resolve_data_center,
     source::NnsDataCenterSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
@@ -25,6 +27,7 @@ pub fn build_nns_data_center_list_report_with_source(
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
     load_or_refresh_nns_inventory_report(
         request,
+        nns_data_center_cache_path(&request.cache.cache_root, &request.cache.network),
         DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS,
         |cache| load_cached_nns_data_center_report(cache).map(|cached| cached.report),
         |refresh_request| {

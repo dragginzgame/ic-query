@@ -7,26 +7,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-- `sns list` now visibly refreshes malformed, incompatible, or semantically
-  invalid joined catalogs as well as missing and stale ones. A replacement is
-  published atomically only after successful validation; failed refreshes
-  preserve the original invalid file, while cache-only and status APIs remain
-  local and strict.
-
 ## [0.26.x] - 2026-08-03 - SNS maturity reward evidence
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
-- `0.26.19` replaces free-form SNS proposal action and ballot-vote labels with
-  typed native classifications that retain generic action ids and unknown
-  action or vote codes, with shared validation across live, custom-source,
-  refresh, and cache paths. It also adds compact, terminal-aware metadata
-  health to `sns list`, retains each SNS's raw Swap lifecycle in the joined
-  catalog, defaults the list to successfully launched lifecycle `3` SNSes, and
-  adds `--all` for every lifecycle. It also standardizes human-readable cycles
-  and byte sizes across SNS health, Dashboard cycle-burn rates, Subnet pricing,
-  CMC conversions, caches, and certificate evidence. Canonical proposal labels
-  and exact quantity JSON values remain unchanged.
+- `0.26.20` extends recoverable invalid-content refresh from the SNS catalog to
+  bounded Subnet and NNS inventory caches and to explicit topology and ICRC
+  account-history read-through APIs. Validated replacements remain atomic;
+  failed refreshes preserve the original file, cache-only and status operations
+  stay local and strict, NNS inventory custom sources are validated before
+  publication, and complete Governance histories retain explicit recovery.
+
+- `0.26.19` adds typed native SNS proposal actions and votes, lifecycle-aware
+  SNS catalog rows and filtering, terminal-aware metadata health, and shared
+  human-readable cycle and byte quantities. `sns list` also atomically repairs
+  malformed, incompatible, or invalid joined catalogs. Raw codes, unknown
+  evidence, canonical JSON labels, and exact JSON quantities remain lossless.
 
 ```bash
 icq sns list --all

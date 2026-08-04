@@ -11,6 +11,9 @@ This note describes the shared cache behavior expected across `ic-query`.
   exists.
 - A missing cache should be created automatically only for read commands whose
   full refresh policy is fixed by the report layer.
+- Recoverable invalid cache content should be replaced automatically only when
+  the same operation already owns a bounded or explicitly selected live
+  refresh policy.
 - Commands whose complete snapshots can be expensive or require user-controlled
   page limits may require an explicit refresh before cache-backed reads.
 - Live network calls must remain visible in output when a command refreshes or
@@ -23,39 +26,41 @@ This note describes the shared cache behavior expected across `ic-query`.
   lock, including age, size, and applicable stale policy, without making a
   network request.
 
-## Shared Missing-Cache Flow
+## Shared Read-Through Flow
 
 Cache-backed reads should follow this sequence:
 
 1. Try to load the complete cache.
-2. If the cache is missing, print the standard refresh announcement with the
-   component name, cache path, and source endpoint.
-3. Refresh or create the cache through the command-owned refresh path.
-4. Load the cache again and build the report from the cached data.
+2. Classify a missing cache or a recoverable local content failure using the
+   owning family's exact cache identity. Preserve filesystem and unrelated
+   source failures.
+3. Print the standard refresh announcement when the command owns visible
+   progress, including the component name, cache path, and source endpoint.
+4. Refresh or create the cache through the command-owned refresh path.
+5. Load the cache again and build the report from the cached data.
 
-Errors other than a missing cache are not refresh triggers by default. Parse
-failures, schema mismatches, network mismatches, and IO failures should be
-reported unless the owning command explicitly defines a bounded invalid-cache
-recovery policy. Cache-only and status operations never opt into recovery.
+Errors other than a missing cache are not refresh triggers by default. Parse,
+schema, network-content, identity, and semantic failures may be recoverable
+when the owner can reproduce the exact cache through an already-authorized
+refresh. IO, permission, lock, and unrelated source failures remain errors.
+Cache-only and status operations never opt into recovery.
 
-Use `cache_file::load_or_refresh_missing_cache` for this policy when the
-command already has:
+Use the owner-error-policy helpers when the operation already has:
 
 - a cache loader
 - a refresh implementation
-- a typed missing-cache error that contains the expected cache path
+- an exact expected cache path and typed recoverable-content errors
 
 For small fixed-cost snapshots with an explicit age policy, use the distinct
-refresh-if-stale flow. It refreshes a missing or older complete snapshot;
-invalid caches remain errors unless the owner uses the separate error-policy
-helper to classify specific local content failures as recoverable. Read and
-permission failures should not be classified as invalid content.
+refresh-if-stale flow. It refreshes a missing, owner-classified invalid, or
+older complete snapshot. Read and permission failures must not be classified
+as invalid content.
 
 ## Manual Refresh
 
 Manual refresh commands always refresh explicitly and should report refresh
 progress or status through their owning report modules. They do not need the
-missing-cache helper because the user has already requested refresh behavior.
+read-through helper because the user has already requested refresh behavior.
 
 ## Refresh Locks
 
@@ -106,18 +111,43 @@ Complete snapshot loaders also reject unknown top-level fields and authority
 claims that the owning source cannot make, including a true point-in-time
 guarantee for paginated Governance or index histories. Current-shape loading
 therefore cannot silently reinterpret a foreign or newer flattened snapshot.
-Cache status and cache list commands should render malformed, unsupported, or
+Cache status and cache list commands render malformed, unsupported, or
 identity-mismatched local snapshot files as invalid local cache rows instead of
-silently ignoring them or making live calls. Normal cache-backed report reads
-should still reject those invalid snapshots.
+silently ignoring them or making live calls. Direct cache-only report reads
+also reject those invalid snapshots; only explicit read-through policies may
+replace them.
 
 ## Current Coverage
 
-The shared missing-cache flow is used by:
+Bounded automatic read-through, including invalid-content recovery, is used by:
 
-- subnet catalog loads
-- cached NNS node, node-provider, node-operator, and data-center list reports
-- SNS proposal list auto-cache creation
+- subnet catalog list and information reports
+- NNS node, node-provider, node-operator, and data-center list/information reports
+- the joined deployed-SNS catalog
+
+The shared NNS inventory boundary validates fixed canister identities, schema,
+timestamps, endpoints, and declared row counts. Custom-source evidence is
+rejected before publication when it does not match the exact refresh request.
+
+The exact-version NNS Subnet topology and ICRC account-transaction libraries
+apply the same recovery only through their explicit refresh-if-missing and
+refresh-if-stale APIs. Their direct cache loaders remain local and strict.
+
+SNS proposal list auto-cache creation remains missing-only. Numeric SNS ids
+are resolved from cache headers, so an invalid header may not truthfully
+identify which SNS should be recollected. Proposal and neuron histories can
+also require complete Governance pagination and therefore retain explicit
+invalid-cache recovery.
+
+| Cache family | Missing-content policy | Invalid-content policy |
+| --- | --- | --- |
+| Subnet catalog | Automatic bounded refresh | Automatic bounded refresh |
+| NNS node/provider/operator/data-center inventory | Automatic bounded refresh | Automatic bounded refresh |
+| Joined deployed-SNS catalog | Automatic bounded refresh | Automatic bounded refresh |
+| Exact-version NNS Subnet topology | Caller selects missing/stale read-through | Same selected read-through operation refreshes invalid content |
+| ICRC account transactions | CLI is local-only; library caller may select read-through | Same selected library read-through operation refreshes invalid content |
+| SNS proposals | Automatic only when the requested complete cache is unambiguously missing | Explicit refresh |
+| NNS proposals and NNS/SNS neurons | Explicit complete refresh or documented live fallback | Explicit refresh |
 
 `sns list` uses a distinct one-hour refresh-if-stale policy for one bounded,
 joined deployed-SNS catalog. The complete snapshot retains every SNS-W row,
@@ -138,8 +168,8 @@ The current registered age policies are:
 
 | Cache | Stale after | Read behavior |
 | --- | ---: | --- |
-| Subnet catalog | 7 days | Refreshes missing; reports stale age without replacing |
-| Exact-version NNS Subnet topology | 24 hours | Explicit refresh-if-stale API |
+| Subnet catalog | 7 days | Refreshes missing or invalid content; reports stale age without replacing |
+| Exact-version NNS Subnet topology | 24 hours | Explicit refresh-if-missing/stale APIs also replace invalid content |
 | Joined deployed-SNS catalog | 1 hour | `sns list` refreshes missing, stale, or invalid content |
 
 Other complete proposal, neuron, inventory, and transaction caches remain

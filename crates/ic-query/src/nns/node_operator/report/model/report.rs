@@ -32,6 +32,15 @@ impl JsonCacheReport for NnsNodeOperatorListReport {
     }
 }
 
+#[cfg(feature = "host")]
+impl_nns_inventory_report!(
+    NnsNodeOperatorListReport,
+    super::super::NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
+    "node_operator",
+    node_operator_count,
+    node_operators,
+);
+
 ///
 /// NnsNodeOperatorRow
 ///

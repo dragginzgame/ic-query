@@ -1,7 +1,4 @@
-use crate::{
-    HostCacheError, ic_registry::RegistryFetchError, nns::inventory::NnsInventoryHostError,
-};
-use std::path::PathBuf;
+use crate::{HostCacheError, ic_registry::RegistryFetchError};
 use thiserror::Error as ThisError;
 
 ///
@@ -23,6 +20,13 @@ pub enum NnsNodeOperatorHostError {
     #[error("live NNS node-operator refresh failed: {0}")]
     NnsQuery(#[from] RegistryFetchError),
 
+    /// A custom source returned evidence that violates the node-operator inventory contract.
+    #[error("invalid NNS node-operator source data: {reason}")]
+    InvalidSourceData {
+        /// Deterministic source-contract failure.
+        reason: String,
+    },
+
     #[error("node operator {input:?} did not match the mainnet NNS node-operator list")]
     NodeOperatorNotFound { input: String },
 
@@ -33,11 +37,4 @@ pub enum NnsNodeOperatorHostError {
     },
 }
 
-impl NnsInventoryHostError for NnsNodeOperatorHostError {
-    fn missing_cache_path(self) -> Result<PathBuf, Self> {
-        match self {
-            Self::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
-            error => Err(error),
-        }
-    }
-}
+impl_nns_inventory_host_error!(NnsNodeOperatorHostError, "node-operator");

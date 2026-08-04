@@ -86,6 +86,39 @@ fn missing_and_stale_refresh_policies_are_explicitly_distinct() {
 }
 
 #[test]
+fn read_through_topology_refreshes_invalid_cache_but_cache_only_remains_strict() {
+    let root = temp_dir("ic-query-subnet-topology-invalid-cache");
+    let request = refresh_request(&root, NOW);
+    let path = nns_subnet_topology_cache_path(&root, MAINNET_NETWORK);
+    fs::create_dir_all(path.parent().expect("cache parent")).expect("create cache parent");
+    let mut invalid = fixture_report(1, "2023-11-14T22:13:20Z");
+    invalid.subnets[0].node_providers[0].node_count = 0;
+    let invalid_json = serde_json::to_string_pretty(&invalid).expect("serialize invalid cache");
+    fs::write(&path, &invalid_json).expect("write invalid cache");
+
+    let error = load_cached_nns_subnet_topology(&request.cache)
+        .expect_err("cache-only load remains strict");
+    assert!(matches!(
+        error,
+        NnsSubnetTopologyHostError::Validation(
+            NnsSubnetTopologyValidationError::ZeroNodeProviderCount { .. }
+        )
+    ));
+
+    let source = FixtureSource::new(42, None);
+    let cached = load_or_refresh_missing_nns_subnet_topology_with_source(&request, &source)
+        .expect("invalid cache refreshes");
+
+    assert_eq!(cached.report.registry_version, 42);
+    assert_eq!(source.calls.get(), 1);
+    assert_ne!(
+        fs::read_to_string(path).expect("refreshed cache"),
+        invalid_json
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn invalid_refresh_preserves_the_last_complete_snapshot() {
     let root = temp_dir("ic-query-subnet-topology-invalid-refresh");
     let request = refresh_request(&root, NOW);

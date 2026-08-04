@@ -6,9 +6,10 @@ use super::{
 };
 use crate::{
     cache_file::{
-        HostCacheError, HostJsonCacheErrorMapper, LoadJsonCacheRequest, RefreshLockRequest,
-        create_parent_directory, load_json_cache, load_or_refresh_missing_cache,
-        load_or_refresh_stale_cache, with_refresh_lock, write_text_atomically,
+        CacheRefreshReason, HostCacheError, HostJsonCacheErrorMapper, LoadJsonCacheRequest,
+        RefreshLockRequest, create_parent_directory, host_cache_refresh_reason, load_json_cache,
+        load_or_refresh_cache_with_error_policy, load_or_refresh_stale_cache_with_error_policy,
+        with_refresh_lock, write_text_atomically,
     },
     freshness::freshness_facts,
     nns::LiveNnsSource,
@@ -110,21 +111,23 @@ pub fn refresh_nns_subnet_topology_with_source(
     )
 }
 
-/// Load the joined cache, refreshing only when it is missing.
+/// Load the joined cache, refreshing when it is missing or invalid.
 pub fn load_or_refresh_missing_nns_subnet_topology(
     request: &NnsSubnetTopologyRefreshRequest,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     load_or_refresh_missing_nns_subnet_topology_with_source(request, &LiveNnsSource)
 }
 
-/// Load the joined cache or use a caller-supplied source only when it is missing.
+/// Load the joined cache or replace missing or invalid content with a caller-supplied source.
 pub fn load_or_refresh_missing_nns_subnet_topology_with_source(
     request: &NnsSubnetTopologyRefreshRequest,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    load_or_refresh_missing_cache(
+    let expected_path =
+        nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
+    load_or_refresh_cache_with_error_policy(
         || load_cached_nns_subnet_topology(&request.cache),
-        missing_subnet_topology_cache_path,
+        |error| subnet_topology_cache_refresh_reason(error, &expected_path),
         |_| {
             refresh_nns_subnet_topology_with_source(request, source)?;
             Ok(())
@@ -132,7 +135,7 @@ pub fn load_or_refresh_missing_nns_subnet_topology_with_source(
     )
 }
 
-/// Load the joined cache, refreshing when it is missing or stale.
+/// Load the joined cache, refreshing when it is missing, invalid, or stale.
 pub fn load_or_refresh_stale_nns_subnet_topology(
     request: &NnsSubnetTopologyRefreshRequest,
     stale_after_seconds: u64,
@@ -144,13 +147,15 @@ pub fn load_or_refresh_stale_nns_subnet_topology(
     )
 }
 
-/// Load the joined cache or use a caller-supplied source when it is missing or stale.
+/// Load the joined cache or use a caller-supplied source when it is unusable or stale.
 pub fn load_or_refresh_stale_nns_subnet_topology_with_source(
     request: &NnsSubnetTopologyRefreshRequest,
     stale_after_seconds: u64,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    load_or_refresh_stale_cache(
+    let expected_path =
+        nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
+    load_or_refresh_stale_cache_with_error_policy(
         || load_cached_nns_subnet_topology(&request.cache),
         |cached| {
             nns_subnet_topology_freshness(
@@ -160,7 +165,7 @@ pub fn load_or_refresh_stale_nns_subnet_topology_with_source(
             )
             .stale
         },
-        missing_subnet_topology_cache_path,
+        |error| subnet_topology_cache_refresh_reason(error, &expected_path),
         |_| {
             refresh_nns_subnet_topology_with_source(request, source)?;
             Ok(())
@@ -218,11 +223,18 @@ fn validate_report_identity(
     Ok(())
 }
 
-fn missing_subnet_topology_cache_path(
+fn subnet_topology_cache_refresh_reason(
     error: NnsSubnetTopologyHostError,
-) -> Result<PathBuf, NnsSubnetTopologyHostError> {
+    expected_path: &Path,
+) -> Result<CacheRefreshReason, NnsSubnetTopologyHostError> {
     match error {
-        NnsSubnetTopologyHostError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
+        NnsSubnetTopologyHostError::Cache(error) => host_cache_refresh_reason(error, expected_path)
+            .map_err(NnsSubnetTopologyHostError::Cache),
+        NnsSubnetTopologyHostError::RefreshNetworkMismatch { .. }
+        | NnsSubnetTopologyHostError::RegistryCanisterMismatch { .. }
+        | NnsSubnetTopologyHostError::Validation(_) => {
+            Ok(CacheRefreshReason::Invalid(expected_path.to_path_buf()))
+        }
         error => Err(error),
     }
 }

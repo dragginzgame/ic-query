@@ -27,7 +27,8 @@ pub use lock::{RefreshLockRequest, with_refresh_lock};
 pub use policy::load_or_refresh_missing_cache;
 #[cfg(feature = "host")]
 pub use policy::{
-    CacheRefreshReason, load_or_refresh_stale_cache, load_or_refresh_stale_cache_with_error_policy,
+    CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache_with_error_policy,
+    load_or_refresh_stale_cache_with_error_policy,
 };
 #[cfg(feature = "host")]
 pub use write::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};

@@ -43,6 +43,58 @@ fn list_report_refreshes_missing_catalog() {
 }
 
 #[test]
+fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
+    let root = temp_dir("ic-query-subnet-list-invalid-refresh");
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    fs::create_dir_all(path.parent().expect("catalog parent")).expect("create parent");
+    fs::write(&path, "not-json").expect("write invalid catalog");
+    let request = list_request(&root);
+
+    let error = load_cached_subnet_catalog(&request.cache).expect_err("cache-only load is strict");
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::Catalog(CatalogError::Json(_))
+    ));
+
+    let mut catalog = fixture_catalog();
+    catalog.registry_version = 987_654;
+    let report =
+        build_subnet_catalog_list_report_with_source(&request, &FixtureRefreshSource::ok(catalog))
+            .expect("invalid catalog refreshes");
+
+    assert_eq!(report.registry_version, 987_654);
+    assert_ne!(
+        fs::read_to_string(path).expect("refreshed catalog"),
+        "not-json"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn failed_invalid_catalog_refresh_preserves_original_file() {
+    let root = temp_dir("ic-query-subnet-list-invalid-refresh-failure");
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    fs::create_dir_all(path.parent().expect("catalog parent")).expect("create parent");
+    fs::write(&path, "not-json").expect("write invalid catalog");
+
+    let error = build_subnet_catalog_list_report_with_source(
+        &list_request(&root),
+        &FixtureRefreshSource::err(),
+    )
+    .expect_err("failed refresh remains visible");
+
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets)
+    ));
+    assert_eq!(
+        fs::read_to_string(path).expect("preserved invalid catalog"),
+        "not-json"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn list_report_verbose_text_keeps_full_metadata() {
     let root = temp_dir("ic-query-subnet-list-verbose");
     write_catalog(&root, fixture_catalog());

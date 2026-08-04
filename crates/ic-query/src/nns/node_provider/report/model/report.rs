@@ -33,6 +33,25 @@ impl JsonCacheReport for NnsNodeProviderListReport {
     }
 }
 
+#[cfg(feature = "host")]
+impl_nns_inventory_report!(
+    NnsNodeProviderListReport,
+    super::super::NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
+    "node_provider",
+    node_provider_count,
+    node_providers,
+    |report: &NnsNodeProviderListReport| {
+        if report.governance_canister_id != crate::ic_registry::MAINNET_GOVERNANCE_CANISTER_ID {
+            return Err(format!(
+                "governance_canister_id is {}, expected {}",
+                report.governance_canister_id,
+                crate::ic_registry::MAINNET_GOVERNANCE_CANISTER_ID
+            ));
+        }
+        Ok(())
+    },
+);
+
 ///
 /// NnsNodeProviderRow
 ///

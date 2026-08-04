@@ -210,6 +210,17 @@ pub enum HostCacheError {
         source: serde_json::Error,
     },
 
+    /// The component cache parsed but failed its semantic contract.
+    #[error("invalid {component} cache at {}: {reason}", path.display())]
+    InvalidCache {
+        /// Component owning the cache.
+        component: &'static str,
+        /// Invalid cache path.
+        path: PathBuf,
+        /// Deterministic validation failure.
+        reason: String,
+    },
+
     /// Serializing a component cache report failed.
     #[error("failed to serialize {component} cache JSON for {}: {source}", path.display())]
     SerializeCache {
@@ -282,6 +293,16 @@ impl HostCacheError {
             component,
             path,
             source,
+        }
+    }
+
+    /// Build a typed semantic cache-validation error.
+    #[must_use]
+    pub const fn invalid_cache(component: &'static str, path: PathBuf, reason: String) -> Self {
+        Self::InvalidCache {
+            component,
+            path,
+            reason,
         }
     }
 

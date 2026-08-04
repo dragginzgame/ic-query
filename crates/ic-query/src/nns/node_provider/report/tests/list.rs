@@ -63,3 +63,14 @@ fn node_provider_list_rejects_local_network() {
 
     assert!(err.to_string().contains("supports only the mainnet `ic`"));
 }
+
+#[test]
+fn node_provider_inventory_validation_rejects_wrong_governance_identity() {
+    let mut report = node_provider_report_fixture();
+    report.governance_canister_id = "aaaaa-aa".to_string();
+
+    let reason = crate::nns::inventory::NnsInventoryReport::validate(&report)
+        .expect_err("wrong Governance identity");
+
+    assert!(reason.contains("governance_canister_id"));
+}

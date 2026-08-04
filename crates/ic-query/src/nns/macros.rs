@@ -1,5 +1,84 @@
 //! Code generation for structurally identical NNS leaf report mechanics.
 
+macro_rules! impl_nns_inventory_host_error {
+    ($host_error:ty, $component:expr $(,)?) => {
+        impl $crate::nns::inventory::NnsInventoryHostError for $host_error {
+            fn cache_refresh_reason(
+                self,
+                expected_path: std::path::PathBuf,
+            ) -> Result<$crate::cache_file::CacheRefreshReason, Self> {
+                match self {
+                    Self::Cache(error) => {
+                        $crate::cache_file::host_cache_refresh_reason(error, &expected_path)
+                            .map_err(Self::Cache)
+                    }
+                    error => Err(error),
+                }
+            }
+
+            fn invalid_cache(path: std::path::PathBuf, reason: String) -> Self {
+                Self::Cache($crate::HostCacheError::invalid_cache(
+                    $component, path, reason,
+                ))
+            }
+
+            fn invalid_source_data(reason: String) -> Self {
+                Self::InvalidSourceData { reason }
+            }
+        }
+    };
+}
+
+macro_rules! impl_nns_inventory_report {
+    (
+        $report:ty,
+        $schema_version:expr,
+        $item_name:literal,
+        $count_field:ident,
+        $rows_field:ident
+        $(, $validate_family:expr)?
+        $(,)?
+    ) => {
+        impl $crate::nns::inventory::NnsInventoryReport for $report {
+            const SCHEMA_VERSION: u32 = $schema_version;
+            const ITEM_NAME: &'static str = $item_name;
+
+            fn schema_version(&self) -> u32 {
+                self.schema_version
+            }
+
+            fn network(&self) -> &str {
+                &self.network
+            }
+
+            fn registry_canister_id(&self) -> &str {
+                &self.registry_canister_id
+            }
+
+            fn fetched_at(&self) -> &str {
+                &self.fetched_at
+            }
+
+            fn source_endpoint(&self) -> &str {
+                &self.source_endpoint
+            }
+
+            fn declared_row_count(&self) -> usize {
+                self.$count_field
+            }
+
+            fn row_count(&self) -> usize {
+                self.$rows_field.len()
+            }
+
+            fn validate_family(&self) -> Result<(), String> {
+                $(($validate_family)(self)?;)?
+                Ok(())
+            }
+        }
+    };
+}
+
 macro_rules! nns_leaf_cache {
     (
         $cache_path_fn:ident,
@@ -27,13 +106,21 @@ macro_rules! nns_leaf_cache {
             request: &$cache_request,
         ) -> Result<$crate::cache_file::CachedJsonReport<$list_report>, $host_error> {
             super::enforce_mainnet_network(&request.network)?;
-            $crate::nns::leaf::load_nns_leaf_json_cache(
+            let cached = $crate::nns::leaf::load_nns_leaf_json_cache(
                 request,
                 $component_dir,
                 $cache_file,
                 $schema_version,
             )
-            .map_err(Into::into)
+            .map_err(<$host_error as From<$crate::HostCacheError>>::from)?;
+            <$list_report as $crate::nns::inventory::NnsInventoryReport>::validate(&cached.report)
+                .map_err(|reason| {
+                    <$host_error as $crate::nns::inventory::NnsInventoryHostError>::invalid_cache(
+                        cached.path.clone(),
+                        reason,
+                    )
+                })?;
+            Ok(cached)
         }
 
         fn nns_leaf_cache_paths(

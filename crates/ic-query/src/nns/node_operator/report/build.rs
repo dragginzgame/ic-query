@@ -2,8 +2,9 @@ use super::{
     DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION,
     NnsInventoryInfoRequest, NnsInventoryListRequest, NnsNodeOperatorHostError,
     NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
-    cache::load_cached_nns_node_operator_report,
-    refresh::refresh_nns_node_operator_cache_with_source, resolve::resolve_node_operator,
+    cache::{load_cached_nns_node_operator_report, nns_node_operator_cache_path},
+    refresh::refresh_nns_node_operator_cache_with_source,
+    resolve::resolve_node_operator,
     source::NnsNodeOperatorSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
@@ -26,6 +27,7 @@ pub fn build_nns_node_operator_list_report_with_source(
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
     load_or_refresh_nns_inventory_report(
         request,
+        nns_node_operator_cache_path(&request.cache.cache_root, &request.cache.network),
         DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS,
         |cache| load_cached_nns_node_operator_report(cache).map(|cached| cached.report),
         |refresh_request| {

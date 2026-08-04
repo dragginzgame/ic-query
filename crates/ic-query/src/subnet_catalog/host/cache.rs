@@ -3,7 +3,7 @@ use super::{
     error::enforce_mainnet_network, refresh_subnet_catalog_with_source, subnet_catalog_path,
 };
 use crate::{
-    cache_file::load_or_refresh_missing_cache,
+    cache_file::{CacheRefreshReason, load_or_refresh_cache_with_error_policy},
     nns::LiveNnsSource,
     subnet_catalog::{DEFAULT_REFRESH_LOCK_STALE_SECONDS, SubnetCatalog, parse_catalog_json},
 };
@@ -66,7 +66,7 @@ pub fn load_cached_subnet_catalog(
     Ok(CachedSubnetCatalog { path, catalog })
 }
 
-/// Load a subnet catalog from the host cache, refreshing it from mainnet if it is missing.
+/// Load a subnet catalog from the host cache, refreshing recoverable local content failures.
 pub fn load_or_refresh_subnet_catalog(
     request: &SubnetCatalogCacheRequest,
     source_endpoint: &str,
@@ -86,11 +86,17 @@ pub fn load_or_refresh_subnet_catalog_with_source(
     now_unix_secs: u64,
     source: &dyn SubnetCatalogSource,
 ) -> Result<CachedSubnetCatalog, SubnetCatalogHostError> {
-    load_or_refresh_missing_cache(
+    let expected_path = subnet_catalog_path(&request.cache_root, &request.network);
+    load_or_refresh_cache_with_error_policy(
         || load_cached_subnet_catalog(request),
-        |err| match err {
-            SubnetCatalogHostError::MissingCatalog { path } => Ok(path),
-            err => Err(err),
+        |error| match error {
+            SubnetCatalogHostError::MissingCatalog { path } => {
+                Ok(CacheRefreshReason::Missing(path))
+            }
+            SubnetCatalogHostError::NetworkMismatch { .. } | SubnetCatalogHostError::Catalog(_) => {
+                Ok(CacheRefreshReason::Invalid(expected_path.clone()))
+            }
+            error => Err(error),
         },
         |_| {
             let refresh_request = SubnetCatalogRefreshRequest::new(

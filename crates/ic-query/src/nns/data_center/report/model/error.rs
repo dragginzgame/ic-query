@@ -1,7 +1,4 @@
-use crate::{
-    HostCacheError, ic_registry::RegistryFetchError, nns::inventory::NnsInventoryHostError,
-};
-use std::path::PathBuf;
+use crate::{HostCacheError, ic_registry::RegistryFetchError};
 use thiserror::Error as ThisError;
 
 ///
@@ -23,6 +20,13 @@ pub enum NnsDataCenterHostError {
     #[error("live NNS data-center refresh failed: {0}")]
     NnsQuery(#[from] RegistryFetchError),
 
+    /// A custom source returned evidence that violates the data-center inventory contract.
+    #[error("invalid NNS data-center source data: {reason}")]
+    InvalidSourceData {
+        /// Deterministic source-contract failure.
+        reason: String,
+    },
+
     #[error("data center {input:?} did not match the mainnet NNS data-center list")]
     DataCenterNotFound { input: String },
 
@@ -33,11 +37,4 @@ pub enum NnsDataCenterHostError {
     },
 }
 
-impl NnsInventoryHostError for NnsDataCenterHostError {
-    fn missing_cache_path(self) -> Result<PathBuf, Self> {
-        match self {
-            Self::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
-            error => Err(error),
-        }
-    }
-}
+impl_nns_inventory_host_error!(NnsDataCenterHostError, "data-center");

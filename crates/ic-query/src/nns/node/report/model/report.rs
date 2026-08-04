@@ -33,6 +33,15 @@ impl JsonCacheReport for NnsNodeListReport {
     }
 }
 
+#[cfg(feature = "host")]
+impl_nns_inventory_report!(
+    NnsNodeListReport,
+    super::super::NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
+    "node",
+    node_count,
+    nodes,
+);
+
 ///
 /// NnsNodeRow
 ///

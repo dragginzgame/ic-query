@@ -1,12 +1,14 @@
 use super::{
     NnsInventoryCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
     NnsNodeListRequest, NnsNodeRow, NnsNodeSource, build_nns_node_list_report_with_source,
-    filter_node_list_report, nns_node_list_report_text, resolve_node,
+    cache::load_cached_nns_node_report, filter_node_list_report, nns_node_cache_path,
+    nns_node_list_report_text, resolve_node,
 };
 use crate::ic_registry::MainnetNode;
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind};
 use crate::test_support::temp_dir;
+use std::fs;
 
 #[test]
 fn live_node_source_rejects_non_mainnet_before_agent_construction() {
@@ -53,6 +55,70 @@ fn node_report_uses_live_registry_source() {
         report.nodes[0].node_principal,
         "ryjl3-tyaaa-aaaaa-aaaba-cai"
     );
+}
+
+#[test]
+fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
+    let cache = test_cache_request(MAINNET_NETWORK, "invalid-cache-refresh");
+    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
+    fs::create_dir_all(path.parent().expect("cache parent")).expect("create cache parent");
+    let mut invalid = node_report_fixture();
+    invalid.node_count = 2;
+    let invalid_json = serde_json::to_string_pretty(&invalid).expect("serialize invalid cache");
+    fs::write(&path, &invalid_json).expect("write invalid cache");
+    let request = NnsNodeListRequest {
+        cache: cache.clone(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_780_531_200,
+        filters: NnsNodeListFilters::default(),
+    };
+
+    let error = load_cached_nns_node_report(&cache).expect_err("cache-only load is strict");
+    assert!(matches!(
+        error,
+        NnsNodeHostError::Cache(crate::HostCacheError::InvalidCache { .. })
+    ));
+
+    let report = build_nns_node_list_report_with_source(
+        &request,
+        &FixtureNodeSource {
+            nodes: vec![node_fixture()],
+        },
+    )
+    .expect("invalid cache refreshes");
+
+    assert_eq!(report.registry_version, 42);
+    assert_ne!(
+        fs::read_to_string(path).expect("refreshed cache"),
+        invalid_json
+    );
+    let _ = fs::remove_dir_all(cache.cache_root);
+}
+
+#[test]
+fn invalid_node_source_does_not_replace_existing_invalid_cache() {
+    let cache = test_cache_request(MAINNET_NETWORK, "invalid-source-preserves-cache");
+    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
+    fs::create_dir_all(path.parent().expect("cache parent")).expect("create cache parent");
+    fs::write(&path, "not-json").expect("write invalid cache");
+    let request = NnsNodeListRequest {
+        cache: cache.clone(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        now_unix_secs: 1_780_531_200,
+        filters: NnsNodeListFilters::default(),
+    };
+
+    let error = build_nns_node_list_report_with_source(&request, &InvalidNodeSource)
+        .expect_err("invalid source is rejected before publication");
+
+    assert!(
+        matches!(error, NnsNodeHostError::InvalidSourceData { reason } if reason.contains("node_count"))
+    );
+    assert_eq!(
+        fs::read_to_string(path).expect("preserved invalid cache"),
+        "not-json"
+    );
+    let _ = fs::remove_dir_all(cache.cache_root);
 }
 
 #[test]
@@ -163,6 +229,21 @@ fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
 
 struct FixtureNodeSource {
     nodes: Vec<MainnetNode>,
+}
+
+struct InvalidNodeSource;
+
+impl NnsNodeSource for InvalidNodeSource {
+    fn fetch_node_list_report(
+        &self,
+        request: &NnsSourceRequest,
+    ) -> Result<NnsNodeListReport, NnsNodeHostError> {
+        let mut report = node_report_fixture();
+        report.fetched_at.clone_from(&request.fetched_at);
+        report.source_endpoint.clone_from(&request.endpoint);
+        report.node_count = 2;
+        Ok(report)
+    }
 }
 
 impl NnsNodeSource for FixtureNodeSource {

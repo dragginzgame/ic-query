@@ -193,8 +193,8 @@ Every data-producing command follows one documented collection mode:
 | Mode | Network access | Cache writes |
 | --- | --- | --- |
 | Live query | Always | Never |
-| Cache-backed, refresh if missing | Only when the complete cache is absent | Publishes a validated complete snapshot |
-| Cache-backed, refresh if stale | Only when the complete cache is absent or older than its documented policy | Publishes a validated complete snapshot |
+| Cache-backed, refresh if missing | When the complete cache is absent or its local content is recoverably invalid | Publishes a validated complete snapshot |
+| Cache-backed, refresh if stale | When the complete cache is absent, recoverably invalid, or older than its documented policy | Publishes a validated complete snapshot |
 | Cache-preferred, live fallback | Only when cached data cannot satisfy the lookup | Only an explicit refresh writes complete collections |
 | Local-only inspection | Never | Never |
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
@@ -212,6 +212,14 @@ Governance-cached treasury and voting-power timestamps, and do not scan
 transactions, fan out, or create a cache. Paged proposal, neuron, and
 account-history collections retain refresh attempt state. Failed or capped
 refreshes do not replace the last complete snapshot.
+
+Bounded Subnet and NNS Registry inventory read-through operations repair
+malformed, incompatible, or invalid local content through their existing live
+refresh path. Exact-version topology and ICRC account-history library callers
+receive the same behavior only through explicitly selected read-through APIs.
+Direct cache loads, cache status, filesystem failures, and complete Governance
+history caches remain strict.
+
 `sns list` uses a one-hour joined catalog cache containing Governance metadata
 and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
 Missing, stale, malformed, incompatible, or semantically invalid catalogs

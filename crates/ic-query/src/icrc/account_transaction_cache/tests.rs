@@ -227,6 +227,43 @@ fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn read_through_account_history_refreshes_invalid_cache_but_cache_only_remains_strict() {
+    let root = temp_dir("ic-query-icrc-account-invalid-cache");
+    let cache = cache_request(&root);
+    refresh_icrc_account_transaction_cache_with_source(
+        &refresh_request(cache.clone(), 1_700_000_000),
+        &SuccessSource::new(vec![row("6")]),
+    )
+    .expect("seed complete cache");
+    let path = icrc_account_transaction_cache_path(&cache).expect("cache path");
+    let mut invalid =
+        serde_json::from_slice::<serde_json::Value>(&fs::read(&path).expect("read cache"))
+            .expect("parse cache");
+    invalid["completeness"]["row_count"] = json!(2);
+    let invalid_json = serde_json::to_vec_pretty(&invalid).expect("serialize invalid cache");
+    fs::write(&path, &invalid_json).expect("write invalid cache");
+
+    let error =
+        load_cached_icrc_account_transactions(&cache).expect_err("cache-only load remains strict");
+    assert!(matches!(
+        error,
+        IcrcAccountTransactionError::InvalidCache { .. }
+    ));
+
+    let source = SuccessSource::new(vec![row("7")]);
+    let cached = load_or_refresh_missing_icrc_account_transactions_with_source(
+        &refresh_request(cache, 1_700_000_000),
+        &source,
+    )
+    .expect("invalid cache refreshes");
+
+    assert_eq!(cached.snapshot.transactions.len(), 1);
+    assert_eq!(source.calls.load(Ordering::Relaxed), 1);
+    assert_ne!(fs::read(path).expect("refreshed cache"), invalid_json);
+    let _ = fs::remove_dir_all(root);
+}
+
 fn cache_request(root: &Path) -> IcrcAccountTransactionCacheRequest {
     IcrcAccountTransactionCacheRequest::new(
         root,

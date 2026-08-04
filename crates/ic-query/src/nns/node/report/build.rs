@@ -1,9 +1,12 @@
 use super::{
     DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_INFO_REPORT_SCHEMA_VERSION,
     NnsInventoryInfoRequest, NnsNodeHostError, NnsNodeInfoReport, NnsNodeListFilters,
-    NnsNodeListReport, NnsNodeListRequest, cache::load_cached_nns_node_report,
-    filters::filter_node_list_report, refresh::refresh_nns_node_cache_with_source,
-    resolve::resolve_node, source::NnsNodeSource,
+    NnsNodeListReport, NnsNodeListRequest,
+    cache::{load_cached_nns_node_report, nns_node_cache_path},
+    filters::filter_node_list_report,
+    refresh::refresh_nns_node_cache_with_source,
+    resolve::resolve_node,
+    source::NnsNodeSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
 
@@ -25,6 +28,7 @@ pub fn build_nns_node_list_report_with_source(
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
     let report = load_or_refresh_nns_inventory_report(
         request,
+        nns_node_cache_path(&request.cache.cache_root, &request.cache.network),
         DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
         |cache| load_cached_nns_node_report(cache).map(|cached| cached.report),
         |refresh_request| refresh_nns_node_cache_with_source(refresh_request, source).map(|_| ()),

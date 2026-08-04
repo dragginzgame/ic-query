@@ -9,14 +9,17 @@ use super::{
     attempt::{write_complete_attempt, write_failed_attempt, write_starting_attempt},
     storage::{
         ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION, cache_paths,
-        load_cached_icrc_account_transactions, normalize_cache_request, snapshot_is_stale,
-        validate_snapshot,
+        icrc_account_transaction_cache_path, load_cached_icrc_account_transactions,
+        normalize_cache_request, snapshot_is_stale, validate_snapshot,
     },
 };
 use crate::{
     HostCacheError, QueryProgress,
     cache::CacheCollectionCompleteness,
-    cache_file::{load_or_refresh_missing_cache, load_or_refresh_stale_cache},
+    cache_file::{
+        CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache_with_error_policy,
+        load_or_refresh_stale_cache_with_error_policy,
+    },
     icrc::{
         ledger::principal_from_text,
         live::{
@@ -36,8 +39,6 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
-use std::path::PathBuf;
-
 const ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 /// Force a complete live refresh and atomically replace its cache.
@@ -103,21 +104,22 @@ fn refresh_icrc_account_transaction_cache_with_source_and_progress(
     )
 }
 
-/// Load a complete cache, refreshing only when it is missing.
+/// Load a complete cache, refreshing when it is missing or invalid.
 pub fn load_or_refresh_missing_icrc_account_transactions(
     request: &IcrcAccountTransactionRefreshRequest,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     load_or_refresh_missing_icrc_account_transactions_with_source(request, &LiveIcrcSource)
 }
 
-/// Load a complete cache or use the supplied source only when it is missing.
+/// Load a complete cache or replace missing or invalid content with the supplied source.
 pub fn load_or_refresh_missing_icrc_account_transactions_with_source(
     request: &IcrcAccountTransactionRefreshRequest,
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    load_or_refresh_missing_cache(
+    let expected_path = icrc_account_transaction_cache_path(&request.cache)?;
+    load_or_refresh_cache_with_error_policy(
         || load_cached_icrc_account_transactions(&request.cache),
-        missing_account_transaction_cache_path,
+        |error| account_transaction_cache_refresh_reason(error, &expected_path),
         |_| {
             refresh_icrc_account_transaction_cache_with_source(request, source)?;
             Ok(())
@@ -125,7 +127,7 @@ pub fn load_or_refresh_missing_icrc_account_transactions_with_source(
     )
 }
 
-/// Load a complete cache, refreshing when it is missing or stale.
+/// Load a complete cache, refreshing when it is missing, invalid, or stale.
 pub fn load_or_refresh_stale_icrc_account_transactions(
     request: &IcrcAccountTransactionRefreshRequest,
     stale_after_seconds: u64,
@@ -137,13 +139,14 @@ pub fn load_or_refresh_stale_icrc_account_transactions(
     )
 }
 
-/// Load a complete cache or use the supplied source when it is missing or stale.
+/// Load a complete cache or use the supplied source when it is unusable or stale.
 pub fn load_or_refresh_stale_icrc_account_transactions_with_source(
     request: &IcrcAccountTransactionRefreshRequest,
     stale_after_seconds: u64,
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    load_or_refresh_stale_cache(
+    let expected_path = icrc_account_transaction_cache_path(&request.cache)?;
+    load_or_refresh_stale_cache_with_error_policy(
         || load_cached_icrc_account_transactions(&request.cache),
         |snapshot| {
             snapshot_is_stale(
@@ -152,7 +155,7 @@ pub fn load_or_refresh_stale_icrc_account_transactions_with_source(
                 stale_after_seconds,
             )
         },
-        missing_account_transaction_cache_path,
+        |error| account_transaction_cache_refresh_reason(error, &expected_path),
         |_| {
             refresh_icrc_account_transaction_cache_with_source(request, source)?;
             Ok(())
@@ -334,11 +337,18 @@ fn cache_operation_error(source: crate::CacheFileError) -> IcrcAccountTransactio
     HostCacheError::operation(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, source).into()
 }
 
-fn missing_account_transaction_cache_path(
+fn account_transaction_cache_refresh_reason(
     error: IcrcAccountTransactionError,
-) -> Result<PathBuf, IcrcAccountTransactionError> {
+    expected_path: &std::path::Path,
+) -> Result<CacheRefreshReason, IcrcAccountTransactionError> {
     match error {
-        IcrcAccountTransactionError::Cache(HostCacheError::MissingCache { path, .. }) => Ok(path),
+        IcrcAccountTransactionError::Cache(error) => {
+            host_cache_refresh_reason(error, expected_path)
+                .map_err(IcrcAccountTransactionError::Cache)
+        }
+        IcrcAccountTransactionError::InvalidCache { path, .. } => {
+            Ok(CacheRefreshReason::Invalid(path))
+        }
         error => Err(error),
     }
 }
