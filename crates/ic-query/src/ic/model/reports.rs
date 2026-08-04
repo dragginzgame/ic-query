@@ -5,8 +5,8 @@
 //! Boundary: preserves raw Dashboard values and explicit off-chain provenance.
 
 use super::requests::{
-    IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTotalSupplyQuery,
-    IcMetricQuery,
+    IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
+    IcIcrcTotalSupplyQuery, IcMetricQuery,
 };
 use serde::Serialize;
 
@@ -157,6 +157,54 @@ pub struct IcIcrcIndexedCountReport {
     pub kind: IcIcrcIndexedCountKind,
     /// Number of matching resources currently represented by the Dashboard index.
     pub total: u64,
+}
+
+///
+/// IcIcrcTokenValueRow
+///
+/// One raw externally sourced token-value record returned by the Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcTokenValueRow {
+    /// Raw legacy price field in USD, when returned.
+    pub price: Option<String>,
+    /// Raw legacy 24-hour volume field in USD, when returned.
+    pub volume_24h: Option<String>,
+    /// Raw explicit price-in-USD field, when returned.
+    pub price_usd: Option<String>,
+    /// Raw explicit 24-hour volume-in-USD field, when returned.
+    pub volume_24h_usd: Option<String>,
+    /// External value provider named by the Dashboard, when returned.
+    pub source: Option<String>,
+    /// External value-provider URL returned by the Dashboard, when present.
+    pub source_url: Option<String>,
+    /// Observation timestamp as Unix seconds.
+    pub timestamp_unix_secs: u64,
+}
+
+///
+/// IcIcrcTokenValueReport
+///
+/// One bounded token-value series from the official Dashboard ICRC API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcTokenValueReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Canonical ICRC ledger canister principal requested from the API.
+    pub ledger_canister_id: String,
+    /// Exact requested time and row bounds, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcIcrcTokenValueQuery,
+    /// Number of rows returned by the API.
+    pub returned_row_count: usize,
+    /// Whether the response reached the requested limit and may be truncated.
+    pub limit_reached: bool,
+    /// Raw token-value rows in nondecreasing timestamp order.
+    pub rows: Vec<IcIcrcTokenValueRow>,
 }
 
 ///

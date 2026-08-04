@@ -395,10 +395,13 @@ Bounded official ICRC analytics:
 ```bash
 icq icrc analytics account count mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai
-icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics token-values mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics token-values mxzaz-hqaaa-aaaar-qaada-cai \
+  --start 1785542400 --end 1785628800 --limit 100 --json
 icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai \
   --start 1785542400 --end 1785801600 --step 86400 --json
+icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai
 ```
 
 `analytics total-supply` makes one request to the official IC Dashboard ICRC
@@ -415,6 +418,13 @@ cursor, filter, or page because they do not request indexed rows. Counts are
 Dashboard-index values rather than scans performed by `ic-query`; the commands
 never follow up against the ledger or create a cache. Account and holder counts
 remain distinct API classifications.
+
+`analytics token-values` makes one v2 request for a bounded range of external
+price and 24-hour trading-volume observations. It defaults to 24 hours and
+1,000 rows, rejects ranges longer than 90 days or limits above 1,000, and marks
+`limit_reached` when the response may be truncated. It preserves both raw
+value field pairs plus each external provider name and URL. It does not page,
+query the ledger, normalize or endorse market values, or create a cache.
 
 This is timestamped off-chain analytics with `certified: false` and
 `point_in_time_guaranteed: false`. A valid ledger principal does not guarantee

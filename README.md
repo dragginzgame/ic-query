@@ -17,11 +17,11 @@ local-only inspection visibly distinct.
 
 | Family | Current surface |
 | --- | --- |
-| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, and one-ledger ICRC total-supply history plus indexed account, holder, and transaction counts |
+| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
-| ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply and indexed-count analytics |
+| ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
 
 The living [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md) records the broader reporting
@@ -87,8 +87,9 @@ icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
 icq icrc analytics account count mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai
-icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics token-values mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai
 
 # Native system-canister reports
 icq system xdr
@@ -177,6 +178,7 @@ icq icrc account allowance|balance
 icq icrc account transaction cache|list|page|refresh
 icq icrc analytics account count <ledger-canister-id>
 icq icrc analytics holder count <ledger-canister-id>
+icq icrc analytics token-values <ledger-canister-id>
 icq icrc analytics total-supply <ledger-canister-id>
 icq icrc analytics transaction count <ledger-canister-id>
 icq icrc ledger archives|block-types|capabilities|index|tip-certificate|token|transactions

@@ -374,10 +374,13 @@ total supply adds one explicit time window:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
+    DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, DEFAULT_ICRC_TOKEN_VALUE_LIMIT,
+    DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
     DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcIndexedCountKind,
-    IcIcrcIndexedCountRequest, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery,
-    IcIcrcTotalSupplyRequest, build_icrc_indexed_count_report, build_icrc_total_supply_report,
+    IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery, IcIcrcTokenValueRequest,
+    IcIcrcTokenValueRow, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery,
+    IcIcrcTotalSupplyRequest, build_icrc_indexed_count_report, build_icrc_token_value_report,
+    build_icrc_total_supply_report,
 };
 
 fn indexed_count(
@@ -410,17 +413,36 @@ fn total_supply_history(
     );
     Ok(build_icrc_total_supply_report(&request)?.observations)
 }
+
+fn token_value_history(
+    ledger_canister_id: &str,
+    now_unix_secs: u64,
+) -> Result<Vec<IcIcrcTokenValueRow>, IcHostError> {
+    let request = IcIcrcTokenValueRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        ledger_canister_id,
+        IcIcrcTokenValueQuery::new(
+            now_unix_secs.saturating_sub(DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS),
+            now_unix_secs,
+            DEFAULT_ICRC_TOKEN_VALUE_LIMIT,
+        ),
+    );
+    Ok(build_icrc_token_value_report(&request)?.rows)
+}
 ```
 
 Each builder makes exactly one request and never reads or writes a cache.
 Account, holder, and transaction counts request no rows or cursors and retain
-their exact typed kind in the report. Total supply accepts only hourly or daily
-steps, caps the requested and returned series at 1,000 observations, and
-preserves raw base-unit strings. Their provenance is explicitly off-chain and
-non-certified. `IcIcrcAnalyticsSource` lets host consumers supply a fixture,
-mirror, or proxy through the same request and result validation; no-default
-consumers can construct, serialize, and render the query and report DTOs
-without enabling HTTP transport.
+their exact typed kind in the report. Token values preserve nullable raw
+external prices, 24-hour volumes, provider names, and URLs across a maximum
+90-day/1,000-row request and expose possible limit truncation. Total supply
+accepts only hourly or daily steps, caps the requested and returned series at
+1,000 observations, and preserves raw base-unit strings. Their provenance is
+explicitly off-chain and non-certified. `IcIcrcAnalyticsSource` lets host
+consumers supply a fixture, mirror, or proxy through the same request and
+result validation; no-default consumers can construct, serialize, and render
+the query and report DTOs without enabling HTTP transport.
 
 ## Certified CMC Example
 

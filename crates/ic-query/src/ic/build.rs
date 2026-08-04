@@ -11,15 +11,16 @@ use crate::{
         IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport, IcCanisterRequest,
         IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest, IcHostError,
         IcIcrcAnalyticsRequest, IcIcrcAnalyticsSource, IcIcrcIndexedCountReport,
-        IcIcrcIndexedCountRequest, IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest,
-        IcMetricReport, IcMetricRequest, IcMetricSource, IcNetworkSource, IcSourceRequest,
-        LiveIcSource,
+        IcIcrcIndexedCountRequest, IcIcrcTokenValueReport, IcIcrcTokenValueRequest,
+        IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport, IcMetricRequest,
+        IcMetricSource, IcNetworkSource, IcSourceRequest, LiveIcSource,
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
             canonical_page_cursor, canonical_request_principal, count_report_from_source,
             daily_stats_report_from_source, icrc_indexed_count_report_from_source,
-            icrc_total_supply_report_from_source, metric_report_from_source, normalized_filters,
-            page_report_from_source, report_from_source, validate_daily_stats_request,
+            icrc_token_value_report_from_source, icrc_total_supply_report_from_source,
+            metric_report_from_source, normalized_filters, page_report_from_source,
+            report_from_source, validate_daily_stats_request, validate_icrc_token_value_request,
             validate_icrc_total_supply_request, validate_metric_request, validate_page_limit,
         },
     },
@@ -120,6 +121,30 @@ pub fn build_icrc_indexed_count_report_with_source(
         &source_request,
         &ledger_canister_id,
         request.kind,
+        source_data,
+    )
+}
+
+/// Build one live, bounded token-value series from the official Dashboard ICRC API.
+pub fn build_icrc_token_value_report(
+    request: &IcIcrcTokenValueRequest,
+) -> Result<IcIcrcTokenValueReport, IcHostError> {
+    build_icrc_token_value_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded token-value series through a custom Dashboard source capability.
+pub fn build_icrc_token_value_report_with_source(
+    request: &IcIcrcTokenValueRequest,
+    source: &dyn IcIcrcAnalyticsSource,
+) -> Result<IcIcrcTokenValueReport, IcHostError> {
+    validate_icrc_token_value_request(request.analytics.now_unix_secs, &request.query)?;
+    let (source_request, ledger_canister_id) = icrc_analytics_target(&request.analytics)?;
+    let source_data =
+        source.fetch_token_value_series(&source_request, &ledger_canister_id, &request.query)?;
+    icrc_token_value_report_from_source(
+        &source_request,
+        &ledger_canister_id,
+        &request.query,
         source_data,
     )
 }

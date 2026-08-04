@@ -8,27 +8,30 @@ use ic_query::ic::{
     IcCanisterPageRow, IcCanisterReport, IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery,
     IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
     IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
+    IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
     IcMetricRequest, IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT,
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, icrc_indexed_count_report_text, icrc_total_supply_report_text,
+    ic_metric_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
+    icrc_total_supply_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::ic::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCollectionSource, IcCanisterCountSourceData,
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
-    IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountSourceData, IcIcrcTotalSupplySourceData,
-    IcMetricSource, IcMetricSourceData, IcNetworkSource, IcSourceRequest, LiveIcSource,
-    build_ic_boundary_node_data_centers_report,
+    IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
+    IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData,
+    IcNetworkSource, IcSourceRequest, LiveIcSource, build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
     build_ic_canister_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
     build_ic_metric_report_with_source, build_icrc_indexed_count_report,
-    build_icrc_indexed_count_report_with_source, build_icrc_total_supply_report,
+    build_icrc_indexed_count_report_with_source, build_icrc_token_value_report,
+    build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
 };
 
@@ -198,6 +201,41 @@ fn public_icrc_indexed_count_api_is_constructible_serializable_and_renderable() 
         assert_eq!(json["total"], 78_272);
         assert_eq!(json["certified"], false);
     }
+}
+
+#[test]
+fn public_icrc_token_value_api_is_constructible_serializable_and_renderable() {
+    let request = IcIcrcTokenValueRequest::new(
+        "https://icrc-api.internetcomputer.org/api/v2",
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+        IcIcrcTokenValueQuery::new(1_785_542_400, 1_785_628_800, 100),
+    );
+    let report = IcIcrcTokenValueReport {
+        provenance: public_provenance(request.analytics.source_endpoint),
+        ledger_canister_id: request.analytics.ledger_canister_id,
+        query: request.query,
+        returned_row_count: 1,
+        limit_reached: false,
+        rows: vec![IcIcrcTokenValueRow {
+            price: Some("63710.86993032754".to_string()),
+            volume_24h: None,
+            price_usd: Some("63710.86993032754".to_string()),
+            volume_24h_usd: Some("23337.881075287027".to_string()),
+            source: Some("ICPSwap-API".to_string()),
+            source_url: Some("https://app.icpswap.com/".to_string()),
+            timestamp_unix_secs: 1_785_542_517,
+        }],
+    };
+
+    let text = icrc_token_value_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serializable ICRC token-value report");
+
+    assert!(text.contains("source=ICPSwap-API"));
+    assert!(text.contains("limit_reached: no"));
+    assert_eq!(json["limit"], 100);
+    assert_eq!(json["rows"][0]["volume_24h"], serde_json::Value::Null);
+    assert_eq!(json["rows"][0]["timestamp_unix_secs"], 1_785_542_517_u64);
 }
 
 #[test]
@@ -398,6 +436,12 @@ fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         &dyn IcIcrcAnalyticsSource,
     ) -> Result<IcIcrcIndexedCountReport, IcHostError> =
         build_icrc_indexed_count_report_with_source;
+    let _: fn(&IcIcrcTokenValueRequest) -> Result<IcIcrcTokenValueReport, IcHostError> =
+        build_icrc_token_value_report;
+    let _: fn(
+        &IcIcrcTokenValueRequest,
+        &dyn IcIcrcAnalyticsSource,
+    ) -> Result<IcIcrcTokenValueReport, IcHostError> = build_icrc_token_value_report_with_source;
     let _: fn(&IcIcrcTotalSupplyRequest) -> Result<IcIcrcTotalSupplyReport, IcHostError> =
         build_icrc_total_supply_report;
     let _: fn(
@@ -416,6 +460,16 @@ fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         .expect("custom ICRC indexed-count source report");
     assert_eq!(count.kind, IcIcrcIndexedCountKind::Transaction);
     assert_eq!(count.total, 78_272);
+
+    let token_value_request = IcIcrcTokenValueRequest::new(
+        "https://icrc-api.internetcomputer.org/api/v2",
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+        IcIcrcTokenValueQuery::new(1_785_542_400, 1_785_628_800, 100),
+    );
+    let token_values = build_icrc_token_value_report_with_source(&token_value_request, &source)
+        .expect("custom ICRC token-value source report");
+    assert_eq!(token_values.returned_row_count, 1);
 
     let request = IcIcrcTotalSupplyRequest::new(
         "https://icrc-api.internetcomputer.org/api/v2",
@@ -524,6 +578,28 @@ impl IcIcrcAnalyticsSource for FixtureSource {
             ledger_canister_id: ledger_canister_id.to_string(),
             kind,
             total: 78_272,
+        })
+    }
+
+    fn fetch_token_value_series(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcTokenValueQuery,
+    ) -> Result<IcIcrcTokenValueSourceData, IcHostError> {
+        Ok(IcIcrcTokenValueSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            rows: vec![IcIcrcTokenValueSourceRow {
+                price: Some("63710.86993032754".to_string()),
+                volume_24h: None,
+                price_usd: Some("63710.86993032754".to_string()),
+                volume_24h_usd: Some("23337.881075287027".to_string()),
+                source: Some("ICPSwap-API".to_string()),
+                source_url: Some("https://app.icpswap.com/".to_string()),
+                timestamp_unix_secs: Some(query.start_unix_secs),
+            }],
         })
     }
 

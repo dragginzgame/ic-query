@@ -20,8 +20,9 @@ pub(in crate::icrc) use account::{
 pub(in crate::icrc) use analytics::{
     command as icrc_analytics_command, icrc_analytics_account_command,
     icrc_analytics_account_count_command, icrc_analytics_holder_command,
-    icrc_analytics_holder_count_command, icrc_analytics_total_supply_command,
-    icrc_analytics_transaction_command, icrc_analytics_transaction_count_command,
+    icrc_analytics_holder_count_command, icrc_analytics_token_values_command,
+    icrc_analytics_total_supply_command, icrc_analytics_transaction_command,
+    icrc_analytics_transaction_count_command,
 };
 #[cfg(test)]
 pub(in crate::icrc) use ledger::{
@@ -34,8 +35,9 @@ pub use dispatch::run_matches;
 pub(in crate::icrc) use options::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTotalSupplyOptions,
-    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTokenValueOptions,
+    IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
+    IcrcTransactionsOptions,
 };
 
 use crate::cli::{

@@ -74,6 +74,84 @@ fn icrc_indexed_count_validates_request_and_custom_source_identity() {
 }
 
 #[test]
+fn icrc_token_values_preserve_raw_external_rows_bounds_and_provenance() {
+    let source = IcrcAnalyticsFixture::default();
+    let request = icrc_token_value_request();
+
+    let report = build_icrc_token_value_report_with_source(&request, &source)
+        .expect("bounded ICRC token-value report");
+    let text = icrc_token_value_report_text(&report);
+
+    assert_eq!(source.calls.get(), 1);
+    assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
+    assert_eq!(report.query, request.query);
+    assert_eq!(report.returned_row_count, 2);
+    assert!(report.limit_reached);
+    assert_eq!(report.rows[0].price.as_deref(), Some("63710.86993032754"));
+    assert_eq!(report.rows[1].volume_24h, None);
+    assert_eq!(report.rows[0].source.as_deref(), Some("ICPSwap-API"));
+    assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
+    assert!(text.contains("limit_reached: yes"));
+    assert!(text.contains("source=ICPSwap-API"));
+}
+
+#[test]
+fn icrc_token_value_request_is_validated_before_source_calls() {
+    let mutations: [fn(&mut IcIcrcTokenValueRequest); 6] = [
+        |request| request.analytics.ledger_canister_id = "not a principal".to_string(),
+        |request| request.query.end_unix_secs = request.query.start_unix_secs - 1,
+        |request| {
+            request.query.end_unix_secs =
+                request.query.start_unix_secs + MAX_ICRC_TOKEN_VALUE_WINDOW_SECS + 1;
+            request.analytics.now_unix_secs = request.query.end_unix_secs;
+        },
+        |request| request.query.limit = 0,
+        |request| request.query.limit = MAX_ICRC_TOKEN_VALUE_ROWS + 1,
+        |request| request.query.end_unix_secs = request.analytics.now_unix_secs + 1,
+    ];
+
+    for mutate in mutations {
+        let source = IcrcAnalyticsFixture::default();
+        let mut request = icrc_token_value_request();
+        mutate(&mut request);
+
+        let error = build_icrc_token_value_report_with_source(&request, &source)
+            .expect_err("invalid token-value request must fail");
+
+        assert!(matches!(
+            error,
+            IcHostError::InvalidRequest { .. } | IcHostError::InvalidPrincipal { .. }
+        ));
+        assert_eq!(source.calls.get(), 0);
+    }
+}
+
+#[test]
+fn icrc_token_value_custom_source_contract_is_validated() {
+    for mutation in [
+        IcrcAnalyticsMutation::WrongEndpoint,
+        IcrcAnalyticsMutation::WrongLedger,
+        IcrcAnalyticsMutation::TokenWrongQuery,
+        IcrcAnalyticsMutation::TokenTooManyRows,
+        IcrcAnalyticsMutation::TokenMissingTimestamp,
+        IcrcAnalyticsMutation::TokenOutsideWindow,
+        IcrcAnalyticsMutation::TokenUnordered,
+    ] {
+        let source = IcrcAnalyticsFixture {
+            mutation: RefCell::new(Some(mutation)),
+            ..IcrcAnalyticsFixture::default()
+        };
+
+        let error = build_icrc_token_value_report_with_source(&icrc_token_value_request(), &source)
+            .expect_err("invalid token-value source data must fail");
+
+        assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+    }
+}
+
+#[test]
 fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance() {
     let source = IcrcAnalyticsFixture::default();
     let request = icrc_total_supply_request();
@@ -818,6 +896,13 @@ fn icrc_indexed_count_request(kind: IcIcrcIndexedCountKind) -> IcIcrcIndexedCoun
     }
 }
 
+fn icrc_token_value_request() -> IcIcrcTokenValueRequest {
+    IcIcrcTokenValueRequest {
+        analytics: icrc_analytics_request(),
+        query: IcIcrcTokenValueQuery::new(ICRC_SUPPLY_START, ICRC_SUPPLY_END, 2),
+    }
+}
+
 const fn indexed_count_total(kind: IcIcrcIndexedCountKind) -> u64 {
     match kind {
         IcIcrcIndexedCountKind::Account => 83_127,
@@ -981,6 +1066,11 @@ enum IcrcAnalyticsMutation {
     OutsideWindow,
     InvalidValue,
     TooManyObservations,
+    TokenWrongQuery,
+    TokenTooManyRows,
+    TokenMissingTimestamp,
+    TokenOutsideWindow,
+    TokenUnordered,
 }
 
 #[derive(Default)]
@@ -1014,6 +1104,66 @@ impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
                 data.kind = IcIcrcIndexedCountKind::Account;
             }
             _ => {}
+        }
+        Ok(data)
+    }
+
+    fn fetch_token_value_series(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcTokenValueQuery,
+    ) -> Result<IcIcrcTokenValueSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        let row = |timestamp_unix_secs| IcIcrcTokenValueSourceRow {
+            price: Some("63710.86993032754".to_string()),
+            volume_24h: Some("23337.881075287027".to_string()),
+            price_usd: Some("63710.86993032754".to_string()),
+            volume_24h_usd: Some("23337.881075287027".to_string()),
+            source: Some("ICPSwap-API".to_string()),
+            source_url: Some(
+                "https://app.icpswap.com/info-tokens/details/mxzaz-hqaaa-aaaar-qaada-cai"
+                    .to_string(),
+            ),
+            timestamp_unix_secs: Some(timestamp_unix_secs),
+        };
+        let mut data = IcIcrcTokenValueSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            rows: vec![row(ICRC_SUPPLY_START), row(ICRC_SUPPLY_END)],
+        };
+        data.rows[1].volume_24h = None;
+        match self.mutation.borrow_mut().take() {
+            Some(IcrcAnalyticsMutation::WrongEndpoint) => {
+                data.source.endpoint = "https://example.com/api/v2".to_string();
+            }
+            Some(IcrcAnalyticsMutation::WrongLedger) => {
+                data.ledger_canister_id = CANISTER_ID.to_string();
+            }
+            Some(IcrcAnalyticsMutation::TokenWrongQuery) => data.query.start_unix_secs += 1,
+            Some(IcrcAnalyticsMutation::TokenTooManyRows) => {
+                data.rows.push(row(ICRC_SUPPLY_END));
+            }
+            Some(IcrcAnalyticsMutation::TokenMissingTimestamp) => {
+                data.rows[0].timestamp_unix_secs = None;
+            }
+            Some(IcrcAnalyticsMutation::TokenOutsideWindow) => {
+                data.rows[1].timestamp_unix_secs = Some(ICRC_SUPPLY_END + 1);
+            }
+            Some(IcrcAnalyticsMutation::TokenUnordered) => {
+                data.rows[0].timestamp_unix_secs = Some(ICRC_SUPPLY_END);
+                data.rows[1].timestamp_unix_secs = Some(ICRC_SUPPLY_START);
+            }
+            Some(
+                IcrcAnalyticsMutation::WrongKind
+                | IcrcAnalyticsMutation::WrongQuery
+                | IcrcAnalyticsMutation::DuplicateTimestamp
+                | IcrcAnalyticsMutation::OutsideWindow
+                | IcrcAnalyticsMutation::InvalidValue
+                | IcrcAnalyticsMutation::TooManyObservations,
+            )
+            | None => {}
         }
         Ok(data)
     }
@@ -1065,7 +1215,15 @@ impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
                     })
                     .collect();
             }
-            Some(IcrcAnalyticsMutation::WrongKind) | None => {}
+            Some(
+                IcrcAnalyticsMutation::WrongKind
+                | IcrcAnalyticsMutation::TokenWrongQuery
+                | IcrcAnalyticsMutation::TokenTooManyRows
+                | IcrcAnalyticsMutation::TokenMissingTimestamp
+                | IcrcAnalyticsMutation::TokenOutsideWindow
+                | IcrcAnalyticsMutation::TokenUnordered,
+            )
+            | None => {}
         }
         Ok(data)
     }

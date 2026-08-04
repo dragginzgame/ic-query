@@ -10,8 +10,8 @@ use super::{
         IcIcrcTotalSupplyObservation, IcMetricSeries,
     },
     requests::{
-        IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTotalSupplyQuery,
-        IcMetricQuery,
+        IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
+        IcIcrcTotalSupplyQuery, IcMetricQuery,
     },
 };
 
@@ -171,6 +171,48 @@ pub struct IcIcrcIndexedCountSourceData {
     pub kind: IcIcrcIndexedCountKind,
     /// Number of matching resources reported by the source.
     pub total: u64,
+}
+
+///
+/// IcIcrcTokenValueSourceRow
+///
+/// One untrusted raw token-value record returned by an analytics source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcTokenValueSourceRow {
+    /// Raw legacy price field, when returned.
+    pub price: Option<String>,
+    /// Raw legacy 24-hour volume field, when returned.
+    pub volume_24h: Option<String>,
+    /// Raw explicit price-in-USD field, when returned.
+    pub price_usd: Option<String>,
+    /// Raw explicit 24-hour volume-in-USD field, when returned.
+    pub volume_24h_usd: Option<String>,
+    /// External value provider, when returned.
+    pub source: Option<String>,
+    /// External value-provider URL, when returned.
+    pub source_url: Option<String>,
+    /// Raw optional observation timestamp returned by the source.
+    pub timestamp_unix_secs: Option<u64>,
+}
+
+///
+/// IcIcrcTokenValueSourceData
+///
+/// Raw bounded token-value series and provenance returned by a source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcTokenValueSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Canonical ledger canister principal queried by the source.
+    pub ledger_canister_id: String,
+    /// Token-value query applied by the source.
+    pub query: IcIcrcTokenValueQuery,
+    /// Untrusted raw rows returned by the source.
+    pub rows: Vec<IcIcrcTokenValueSourceRow>,
 }
 
 ///

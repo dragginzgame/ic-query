@@ -25,8 +25,10 @@ pub(super) use canister::{
     validate_page_limit, validate_principal_match,
 };
 pub(super) use icrc_analytics::{
-    icrc_indexed_count_report_from_source, icrc_total_supply_report_from_source,
-    validate_icrc_total_supply_query, validate_icrc_total_supply_request,
+    icrc_indexed_count_report_from_source, icrc_token_value_report_from_source,
+    icrc_total_supply_report_from_source, validate_icrc_token_value_query,
+    validate_icrc_token_value_request, validate_icrc_total_supply_query,
+    validate_icrc_total_supply_request,
 };
 pub(super) use metric::{
     metric_report_from_source, validate_metric_query, validate_metric_request,

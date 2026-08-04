@@ -9,9 +9,10 @@ use crate::{
     ic::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
         IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
-        IcIcrcIndexedCountReport, IcIcrcTotalSupplyReport, IcMetricKind, IcMetricReport,
+        IcIcrcIndexedCountReport, IcIcrcTokenValueReport, IcIcrcTotalSupplyReport, IcMetricKind,
+        IcMetricReport,
     },
-    text_value::{sanitize_text, yes_no},
+    text_value::{optional_text, sanitize_text, yes_no},
 };
 
 /// Render one official boundary-node data-center report as human-facing text.
@@ -121,6 +122,42 @@ pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> Stri
         format!("total: {}", report.total),
     ]);
     append_report_footer(&mut lines, &report.provenance);
+    lines.join("\n")
+}
+
+/// Render one bounded official ICRC token-value series as human-facing text.
+#[must_use]
+pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!(
+            "ledger_canister_id: {}",
+            sanitize_text(&report.ledger_canister_id)
+        ),
+        format!("start_unix_secs: {}", report.query.start_unix_secs),
+        format!("end_unix_secs: {}", report.query.end_unix_secs),
+        format!("limit: {}", report.query.limit),
+        format!("returned_row_count: {}", report.returned_row_count),
+        format!("limit_reached: {}", yes_no(report.limit_reached)),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push("token_values:".to_string());
+        lines.extend(report.rows.iter().map(|row| {
+            format!(
+                "  {}  price={}  volume_24h={}  price_usd={}  volume_24h_usd={}  source={}  source_url={}",
+                row.timestamp_unix_secs,
+                optional_text(row.price.as_ref()),
+                optional_text(row.volume_24h.as_ref()),
+                optional_text(row.price_usd.as_ref()),
+                optional_text(row.volume_24h_usd.as_ref()),
+                optional_text(row.source.as_ref()),
+                optional_text(row.source_url.as_ref()),
+            )
+        }));
+    }
     lines.join("\n")
 }
 

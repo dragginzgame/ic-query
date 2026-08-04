@@ -7,8 +7,9 @@
 use super::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTotalSupplyOptions,
-    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTokenValueOptions,
+    IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
+    IcrcTransactionsOptions,
 };
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
@@ -18,10 +19,12 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::ic::{
-    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
-    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, MIN_ICRC_ANALYTICS_TIMESTAMP,
-    build_icrc_indexed_count_report, build_icrc_total_supply_report,
-    icrc_indexed_count_report_text, icrc_total_supply_report_text,
+    DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
+    IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery,
+    IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
+    MIN_ICRC_ANALYTICS_TIMESTAMP, build_icrc_indexed_count_report, build_icrc_token_value_report,
+    build_icrc_total_supply_report, icrc_indexed_count_report_text, icrc_token_value_report_text,
+    icrc_total_supply_report_text,
 };
 use ic_query::icrc::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
@@ -59,12 +62,32 @@ fn run_icrc_analytics(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
         Some(("holder", matches)) => {
             run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Holder)
         }
+        Some(("token-values", matches)) => run_icrc_analytics_token_values(matches),
         Some(("total-supply", matches)) => run_icrc_analytics_total_supply(matches),
         Some(("transaction", matches)) => {
             run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Transaction)
         }
         _ => unreachable!("clap requires a known ICRC analytics subcommand"),
     }
+}
+
+fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcAnalyticsTokenValueOptions::from_matches(matches);
+    let window = options.window;
+    let target = window.target;
+    let now_unix_secs = current_unix_secs()?;
+    let end_unix_secs = window.end_unix_secs.unwrap_or(now_unix_secs);
+    let start_unix_secs = window
+        .start_unix_secs
+        .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS));
+    let request = IcIcrcTokenValueRequest::new(
+        target.source_endpoint,
+        now_unix_secs,
+        target.ledger_canister_id,
+        IcIcrcTokenValueQuery::new(start_unix_secs, end_unix_secs, options.limit),
+    );
+    let report = build_icrc_token_value_report(&request)?;
+    write_text_or_json(target.format, &report, icrc_token_value_report_text)
 }
 
 fn run_icrc_analytics_indexed_count(
@@ -94,10 +117,11 @@ fn run_icrc_analytics_indexed_count_leaf(
 
 fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAnalyticsTotalSupplyOptions::from_matches(matches);
-    let target = options.target;
+    let window = options.window;
+    let target = window.target;
     let now_unix_secs = current_unix_secs()?;
-    let end_unix_secs = options.end_unix_secs.unwrap_or(now_unix_secs);
-    let start_unix_secs = options.start_unix_secs.unwrap_or_else(|| {
+    let end_unix_secs = window.end_unix_secs.unwrap_or(now_unix_secs);
+    let start_unix_secs = window.start_unix_secs.unwrap_or_else(|| {
         end_unix_secs
             .saturating_sub(DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS)
             .max(MIN_ICRC_ANALYTICS_TIMESTAMP)

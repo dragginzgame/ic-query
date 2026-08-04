@@ -18,6 +18,29 @@ use clap::ArgMatches;
 use ic_query::{ic::DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, icrc::IcrcAccountTransactionSort};
 
 ///
+/// IcrcAnalyticsWindowOptions
+///
+/// Shared ledger target and optional time bounds for official ICRC analytics.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAnalyticsWindowOptions {
+    pub(in crate::icrc) target: IcrcLedgerOptions,
+    pub(in crate::icrc) start_unix_secs: Option<u64>,
+    pub(in crate::icrc) end_unix_secs: Option<u64>,
+}
+
+impl IcrcAnalyticsWindowOptions {
+    fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            target: IcrcLedgerOptions::from_matches(matches),
+            start_unix_secs: typed_option(matches, START_ARG),
+            end_unix_secs: typed_option(matches, END_ARG),
+        }
+    }
+}
+
+///
 /// IcrcAnalyticsTotalSupplyOptions
 ///
 /// Clap-parsed bounds plus the shared target for one official total-supply series.
@@ -25,9 +48,7 @@ use ic_query::{ic::DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, icrc::IcrcAccountTransac
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAnalyticsTotalSupplyOptions {
-    pub(in crate::icrc) target: IcrcLedgerOptions,
-    pub(in crate::icrc) start_unix_secs: Option<u64>,
-    pub(in crate::icrc) end_unix_secs: Option<u64>,
+    pub(in crate::icrc) window: IcrcAnalyticsWindowOptions,
     pub(in crate::icrc) step_secs: u32,
 }
 
@@ -40,10 +61,29 @@ impl IcrcAnalyticsTotalSupplyOptions {
                     .expect("clap restricts ICRC analytics step values")
             });
         Self {
-            target: IcrcLedgerOptions::from_matches(matches),
-            start_unix_secs: typed_option(matches, START_ARG),
-            end_unix_secs: typed_option(matches, END_ARG),
+            window: IcrcAnalyticsWindowOptions::from_matches(matches),
             step_secs,
+        }
+    }
+}
+
+///
+/// IcrcAnalyticsTokenValueOptions
+///
+/// Clap-parsed time and row bounds for one official token-value series.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAnalyticsTokenValueOptions {
+    pub(in crate::icrc) window: IcrcAnalyticsWindowOptions,
+    pub(in crate::icrc) limit: u16,
+}
+
+impl IcrcAnalyticsTokenValueOptions {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            window: IcrcAnalyticsWindowOptions::from_matches(matches),
+            limit: required_typed(matches, LIMIT_ARG),
         }
     }
 }

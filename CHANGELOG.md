@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.27.md](docs/changelog/0.27.md)
 
+- `0.27.3` adds a one-request bounded token-value series with a 24-hour,
+  1,000-row default and a hard 90-day, 1,000-row ceiling. Reports preserve
+  nullable raw price and 24-hour-volume fields, each external provider and
+  URL, exact Dashboard provenance, and explicit possible truncation when the
+  requested limit is reached.
+
+```bash
+icq icrc analytics token-values mxzaz-hqaaa-aaaar-qaada-cai --limit 100 --json
+```
+
 - `0.27.2` adds one-request indexed account and transaction counts alongside
   holder count. All three scalar endpoints now share one typed count kind,
   request, report, source method, builder, renderer, live URL path, and CLI

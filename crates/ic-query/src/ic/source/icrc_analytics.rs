@@ -10,8 +10,10 @@ use super::{
 };
 use crate::ic::{
     IcHostError, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountSourceData,
+    IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRow, IcIcrcTokenValueSourceData,
     IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport, IcIcrcTotalSupplySourceData, IcSourceRequest,
-    MAX_ICRC_ANALYTICS_OBSERVATIONS, MIN_ICRC_ANALYTICS_TIMESTAMP,
+    MAX_ICRC_ANALYTICS_OBSERVATIONS, MAX_ICRC_TOKEN_VALUE_ROWS, MAX_ICRC_TOKEN_VALUE_WINDOW_SECS,
+    MIN_ICRC_ANALYTICS_TIMESTAMP,
 };
 
 ///
@@ -29,6 +31,14 @@ pub trait IcIcrcAnalyticsSource {
         kind: IcIcrcIndexedCountKind,
     ) -> Result<IcIcrcIndexedCountSourceData, IcHostError>;
 
+    /// Fetch one bounded token-value series without pagination or follow-up calls.
+    fn fetch_token_value_series(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcTokenValueQuery,
+    ) -> Result<IcIcrcTokenValueSourceData, IcHostError>;
+
     /// Fetch one total-supply series without pagination or automatic follow-up calls.
     fn fetch_total_supply_series(
         &self,
@@ -36,6 +46,109 @@ pub trait IcIcrcAnalyticsSource {
         ledger_canister_id: &str,
         query: &IcIcrcTotalSupplyQuery,
     ) -> Result<IcIcrcTotalSupplySourceData, IcHostError>;
+}
+
+pub(in crate::ic) fn validate_icrc_token_value_request(
+    now_unix_secs: u64,
+    query: &IcIcrcTokenValueQuery,
+) -> Result<(), IcHostError> {
+    validate_icrc_token_value_query(query)?;
+    if query.end_unix_secs > now_unix_secs {
+        return invalid_request(
+            "query.end_unix_secs",
+            "must not be later than the collection time",
+        );
+    }
+    Ok(())
+}
+
+pub(in crate::ic) fn validate_icrc_token_value_query(
+    query: &IcIcrcTokenValueQuery,
+) -> Result<(), IcHostError> {
+    if query.end_unix_secs < query.start_unix_secs {
+        return invalid_request(
+            "query.end_unix_secs",
+            "must be greater than or equal to query.start_unix_secs",
+        );
+    }
+    if query.end_unix_secs - query.start_unix_secs > MAX_ICRC_TOKEN_VALUE_WINDOW_SECS {
+        return invalid_request(
+            "query",
+            format!("window must not exceed {MAX_ICRC_TOKEN_VALUE_WINDOW_SECS} seconds"),
+        );
+    }
+    if !(1..=MAX_ICRC_TOKEN_VALUE_ROWS).contains(&query.limit) {
+        return invalid_request(
+            "query.limit",
+            format!("must be between 1 and {MAX_ICRC_TOKEN_VALUE_ROWS}"),
+        );
+    }
+    Ok(())
+}
+
+pub(in crate::ic) fn icrc_token_value_report_from_source(
+    request: &IcSourceRequest,
+    ledger_canister_id: &str,
+    query: &IcIcrcTokenValueQuery,
+    source: IcIcrcTokenValueSourceData,
+) -> Result<IcIcrcTokenValueReport, IcHostError> {
+    validate_provenance(request, &source.source)?;
+    validate_principal_match(
+        "ledger_canister_id",
+        ledger_canister_id,
+        &source.ledger_canister_id,
+    )?;
+    if source.query != *query {
+        return invalid_source(format!(
+            "ICRC token-value query is {:?}, expected requested query {query:?}",
+            source.query
+        ));
+    }
+
+    let returned_row_count = source.rows.len();
+    if returned_row_count > usize::from(query.limit)
+        || returned_row_count > usize::from(MAX_ICRC_TOKEN_VALUE_ROWS)
+    {
+        return invalid_source(format!(
+            "token-value series returned {returned_row_count} rows for a request limited to {}",
+            query.limit
+        ));
+    }
+
+    let mut previous_timestamp = None;
+    let mut rows = Vec::with_capacity(returned_row_count);
+    for (index, row) in source.rows.into_iter().enumerate() {
+        let Some(timestamp_unix_secs) = row.timestamp_unix_secs else {
+            return invalid_source(format!("token-value row {index} is missing its timestamp"));
+        };
+        if !(query.start_unix_secs..=query.end_unix_secs).contains(&timestamp_unix_secs) {
+            return invalid_source(format!(
+                "token-value row {index} timestamp {timestamp_unix_secs} is outside the requested window"
+            ));
+        }
+        if previous_timestamp.is_some_and(|previous| previous > timestamp_unix_secs) {
+            return invalid_source("token-value rows must be ordered by nondecreasing timestamp");
+        }
+        previous_timestamp = Some(timestamp_unix_secs);
+        rows.push(IcIcrcTokenValueRow {
+            price: row.price,
+            volume_24h: row.volume_24h,
+            price_usd: row.price_usd,
+            volume_24h_usd: row.volume_24h_usd,
+            source: row.source,
+            source_url: row.source_url,
+            timestamp_unix_secs,
+        });
+    }
+
+    Ok(IcIcrcTokenValueReport {
+        provenance: report_provenance(source.source),
+        ledger_canister_id: source.ledger_canister_id,
+        query: source.query,
+        returned_row_count,
+        limit_reached: returned_row_count == usize::from(query.limit),
+        rows,
+    })
 }
 
 pub(in crate::ic) fn icrc_indexed_count_report_from_source(

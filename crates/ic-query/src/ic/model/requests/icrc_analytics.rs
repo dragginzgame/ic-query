@@ -118,6 +118,68 @@ impl IcIcrcIndexedCountRequest {
 }
 
 ///
+/// IcIcrcTokenValueQuery
+///
+/// One explicitly bounded token-value series query for an ICRC ledger.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcTokenValueQuery {
+    /// Query start as Unix seconds.
+    pub start_unix_secs: u64,
+    /// Query end as Unix seconds.
+    pub end_unix_secs: u64,
+    /// Maximum rows requested from the official API.
+    pub limit: u16,
+}
+
+impl IcIcrcTokenValueQuery {
+    /// Construct one explicit token-value query window.
+    #[must_use]
+    pub const fn new(start_unix_secs: u64, end_unix_secs: u64, limit: u16) -> Self {
+        Self {
+            start_unix_secs,
+            end_unix_secs,
+            limit,
+        }
+    }
+}
+
+///
+/// IcIcrcTokenValueRequest
+///
+/// Request accepted by the bounded official ICRC token-value report builder.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcTokenValueRequest {
+    /// Shared analytics endpoint, collection time, and ledger identity.
+    pub analytics: IcIcrcAnalyticsRequest,
+    /// Explicitly bounded token-value query.
+    pub query: IcIcrcTokenValueQuery,
+}
+
+impl IcIcrcTokenValueRequest {
+    /// Construct one bounded live ICRC token-value request.
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+        query: IcIcrcTokenValueQuery,
+    ) -> Self {
+        Self {
+            analytics: IcIcrcAnalyticsRequest::new(
+                source_endpoint,
+                now_unix_secs,
+                ledger_canister_id,
+            ),
+            query,
+        }
+    }
+}
+
+///
 /// IcIcrcTotalSupplyQuery
 ///
 /// One explicitly bounded total-supply series query for an ICRC ledger.

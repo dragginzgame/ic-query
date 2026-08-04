@@ -14,7 +14,8 @@ pub use canisters::{
 };
 pub use icrc_analytics::{
     IcIcrcAnalyticsRequest, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
-    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
+    IcIcrcTokenValueQuery, IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery,
+    IcIcrcTotalSupplyRequest,
 };
 pub use metrics::{IcMetricKind, IcMetricQuery, IcMetricRequest};
 pub use network::{IcBoundaryNodeDataCentersRequest, IcDailyStatsQuery, IcDailyStatsRequest};

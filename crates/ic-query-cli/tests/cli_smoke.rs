@@ -221,6 +221,25 @@ fn binary_icrc_analytics_total_supply_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_analytics_token_values_help_smoke() {
+    let output = run_icq(&["icrc", "analytics", "token-values", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(
+        stdout.contains("Usage: icq icrc analytics token-values [OPTIONS] <ledger-canister-id>")
+    );
+    assert!(stdout.contains("--start <unix-seconds>"));
+    assert!(stdout.contains("--end <unix-seconds>"));
+    assert!(stdout.contains("--limit <rows>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("exactly one live request"));
+    assert!(stdout.contains("external provider name and URL"));
+    assert!(stdout.contains("does not use a cache"));
+}
+
+#[test]
 fn binary_icrc_analytics_indexed_count_help_smoke() {
     for (entity, plural) in [
         ("account", "accounts"),

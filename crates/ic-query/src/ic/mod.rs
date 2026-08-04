@@ -17,7 +17,8 @@ pub use build::{
     build_ic_canister_page_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
     build_ic_metric_report_with_source, build_icrc_indexed_count_report,
-    build_icrc_indexed_count_report_with_source, build_icrc_total_supply_report,
+    build_icrc_indexed_count_report_with_source, build_icrc_token_value_report,
+    build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
 };
 #[cfg(feature = "host")]
@@ -31,6 +32,7 @@ pub use model::{
     IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
     IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcAnalyticsRequest,
     IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
+    IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
     IcMetricRequest, IcMetricSeries,
@@ -39,7 +41,8 @@ pub use model::{
 pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
     IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcIndexedCountSourceData,
-    IcIcrcTotalSupplySourceData, IcMetricSourceData, IcSourceRequest,
+    IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData,
+    IcMetricSourceData, IcSourceRequest,
 };
 #[cfg(feature = "host")]
 pub use source::{
@@ -49,7 +52,8 @@ pub use source::{
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, icrc_indexed_count_report_text, icrc_total_supply_report_text,
+    ic_metric_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
+    icrc_total_supply_report_text,
 };
 
 /// Default base endpoint for the official IC Dashboard API.
@@ -103,6 +107,18 @@ pub const MIN_ICRC_ANALYTICS_TIMESTAMP: u64 = 1_620_328_530;
 
 /// Maximum requested observations accepted for one ICRC analytics series.
 pub const MAX_ICRC_ANALYTICS_OBSERVATIONS: u64 = 1_000;
+
+/// Default relative window for one ICRC token-value analytics query.
+pub const DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS: u64 = 24 * 60 * 60;
+
+/// Default row limit for one ICRC token-value analytics query.
+pub const DEFAULT_ICRC_TOKEN_VALUE_LIMIT: u16 = 1_000;
+
+/// Largest time window accepted for one ICRC token-value query.
+pub const MAX_ICRC_TOKEN_VALUE_WINDOW_SECS: u64 = 90 * 24 * 60 * 60;
+
+/// Maximum token-value rows requested or accepted by one report.
+pub const MAX_ICRC_TOKEN_VALUE_ROWS: u16 = 1_000;
 
 /// Default relative window for one Dashboard daily-statistics query.
 pub const DEFAULT_IC_DAILY_STATS_WINDOW_SECS: u64 = 7 * 24 * 60 * 60;
