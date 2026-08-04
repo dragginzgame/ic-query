@@ -6,7 +6,7 @@
 
 use super::{block_on_sns, governance_canister};
 use crate::sns::report::{
-    SnsGovernanceParameters, SnsHostError,
+    SnsCanisterMethod, SnsGovernanceParameters, SnsHostError,
     live::{
         convert::sns_governance_parameters,
         query::{query_canister, sns_agent},
@@ -29,11 +29,12 @@ async fn fetch_mainnet_sns_params_async(
 ) -> Result<SnsGovernanceParameters, SnsHostError> {
     let agent = sns_agent(request)?;
     let governance_canister = governance_canister(sns)?;
+    let method = SnsCanisterMethod::GetNervousSystemParameters.as_str();
     let parameters: SnsGovernanceParametersWire = query_canister(
         &agent,
         &governance_canister,
-        "get_nervous_system_parameters",
-        "get_nervous_system_parameters",
+        method,
+        method,
         "SnsGovernanceParameters",
         &(),
     )

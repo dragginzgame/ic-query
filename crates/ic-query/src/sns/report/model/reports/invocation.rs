@@ -38,18 +38,34 @@ impl SnsCanisterCallType {
 ///
 /// SnsCanisterMethod
 ///
-/// Native SNS canister method recorded by a bounded report adapter.
+/// Native canister method invoked or recorded by a typed SNS report adapter.
 ///
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SnsCanisterMethod {
+    /// SNS-W deployed-instance inventory query.
+    ListDeployedSnses,
+    /// SNS Governance metadata query.
+    GetMetadata,
     /// SNS Root inventory query.
     ListSnsCanisters,
     /// SNS Root operational-health update.
     GetSnsCanistersSummary,
     /// SNS Governance cached-metrics composite query.
     GetMetrics,
+    /// SNS Governance nervous-system-parameters query.
+    GetNervousSystemParameters,
+    /// SNS Governance bounded proposal-list query.
+    ListProposals,
+    /// SNS Governance exact proposal query.
+    GetProposal,
+    /// SNS Governance bounded neuron-list query.
+    ListNeurons,
+    /// SNS Governance exact neuron query.
+    GetNeuron,
+    /// SNS Governance latest-reward-event query.
+    GetLatestRewardEvent,
     /// SNS swap lifecycle query.
     GetLifecycle,
     /// SNS swap sale-parameters query.
@@ -67,9 +83,17 @@ impl SnsCanisterMethod {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::ListDeployedSnses => "list_deployed_snses",
+            Self::GetMetadata => "get_metadata",
             Self::ListSnsCanisters => "list_sns_canisters",
             Self::GetSnsCanistersSummary => "get_sns_canisters_summary",
             Self::GetMetrics => "get_metrics",
+            Self::GetNervousSystemParameters => "get_nervous_system_parameters",
+            Self::ListProposals => "list_proposals",
+            Self::GetProposal => "get_proposal",
+            Self::ListNeurons => "list_neurons",
+            Self::GetNeuron => "get_neuron",
+            Self::GetLatestRewardEvent => "get_latest_reward_event",
             Self::GetLifecycle => "get_lifecycle",
             Self::GetSaleParameters => "get_sale_parameters",
             Self::GetDerivedState => "get_derived_state",
@@ -98,12 +122,26 @@ mod tests {
     #[test]
     fn canister_method_labels_round_trip() {
         for (method, label) in [
+            (SnsCanisterMethod::ListDeployedSnses, "list_deployed_snses"),
+            (SnsCanisterMethod::GetMetadata, "get_metadata"),
             (SnsCanisterMethod::ListSnsCanisters, "list_sns_canisters"),
             (
                 SnsCanisterMethod::GetSnsCanistersSummary,
                 "get_sns_canisters_summary",
             ),
             (SnsCanisterMethod::GetMetrics, "get_metrics"),
+            (
+                SnsCanisterMethod::GetNervousSystemParameters,
+                "get_nervous_system_parameters",
+            ),
+            (SnsCanisterMethod::ListProposals, "list_proposals"),
+            (SnsCanisterMethod::GetProposal, "get_proposal"),
+            (SnsCanisterMethod::ListNeurons, "list_neurons"),
+            (SnsCanisterMethod::GetNeuron, "get_neuron"),
+            (
+                SnsCanisterMethod::GetLatestRewardEvent,
+                "get_latest_reward_event",
+            ),
             (SnsCanisterMethod::GetLifecycle, "get_lifecycle"),
             (SnsCanisterMethod::GetSaleParameters, "get_sale_parameters"),
             (SnsCanisterMethod::GetDerivedState, "get_derived_state"),

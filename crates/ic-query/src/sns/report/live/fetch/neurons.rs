@@ -6,7 +6,7 @@
 
 use super::block_on_sns;
 use crate::sns::report::{
-    SnsHostError,
+    SnsCanisterMethod, SnsHostError,
     live::{
         convert::{mainnet_sns_neuron, sns_neuron_row},
         fetch::governance_canister,
@@ -22,8 +22,6 @@ use crate::sns::report::{
         validate_mainnet_sns_neuron_page,
     },
 };
-
-const GET_NEURON_METHOD: &str = "get_neuron";
 
 /// Fetch one exact full SNS neuron for one resolved mainnet SNS.
 pub(in crate::sns::report::live) fn fetch_mainnet_sns_neuron(
@@ -87,10 +85,11 @@ async fn fetch_mainnet_sns_neuron_async(
     let parsed_neuron_id = sns_neuron_id_from_text(neuron_id)?;
     let agent = sns_agent(request)?;
     let governance_canister = governance_canister(sns)?;
+    let method = SnsCanisterMethod::GetNeuron.as_str();
     let response: GetNeuronResponse = query_canister(
         &agent,
         &governance_canister,
-        GET_NEURON_METHOD,
+        method,
         "GetNeuronRequest",
         "GetNeuronResponse",
         &GetNeuronRequest {
@@ -100,13 +99,12 @@ async fn fetch_mainnet_sns_neuron_async(
     .await?;
     let neuron = match response
         .result
-        .ok_or(SnsHostError::MissingGovernanceResult {
-            method: GET_NEURON_METHOD,
-        })? {
+        .ok_or(SnsHostError::MissingGovernanceResult { method })?
+    {
         GetNeuronResult::Neuron(neuron) => mainnet_sns_neuron(*neuron)?,
         GetNeuronResult::Error(error) => {
             return Err(SnsHostError::GovernanceError {
-                method: GET_NEURON_METHOD,
+                method,
                 error_type: error.error_type,
                 message: error.error_message,
             });
@@ -131,7 +129,7 @@ async fn fetch_mainnet_sns_neuron_page_async(
     let response: ListNeuronsResponse = query_canister(
         &agent,
         &governance_canister,
-        "list_neurons",
+        SnsCanisterMethod::ListNeurons.as_str(),
         "ListNeuronsRequest",
         "ListNeuronsResponse",
         &ListNeuronsRequest {

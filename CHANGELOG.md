@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.14` completes `SnsCanisterMethod` coverage for all sixteen fixed
+  SNS-native method names used by the live adapters. Discovery, metadata,
+  parameters, proposals, neurons, and reward collection now share the same
+  typed vocabulary as metrics, Root, swap, and upgrade; the ICRC-106 ledger
+  method remains protocol-owned and raw.
+
 - `0.26.13` replaces eighteen free-form native SNS method fields across
   metrics, Root inventory and health, swap, upgrade, and partial-query gaps
   with `SnsCanisterMethod`. Live calls, source validation, reports, gaps, and

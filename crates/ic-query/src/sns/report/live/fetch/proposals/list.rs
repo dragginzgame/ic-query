@@ -5,7 +5,7 @@
 //! Boundary: builds list_proposals requests and maps responses into source models.
 
 use crate::sns::report::{
-    SnsHostError, SnsProposalTopicFilter,
+    SnsCanisterMethod, SnsHostError, SnsProposalTopicFilter,
     live::{
         convert::sns_proposal_row,
         fetch::governance_canister,
@@ -31,7 +31,7 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
     let response: ListProposalsResponse = query_canister(
         &agent,
         &governance_canister,
-        "list_proposals",
+        SnsCanisterMethod::ListProposals.as_str(),
         "ListProposalsRequest",
         "ListProposalsResponse",
         &ListProposalsRequest {

@@ -17,8 +17,8 @@ use crate::sns::report::live::{
     },
 };
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, SNS_METADATA_CONCURRENCY, SnsHostError, SnsSourceRequest,
-    enforce_mainnet_network,
+    MAINNET_SNS_WASM_CANISTER_ID, SNS_METADATA_CONCURRENCY, SnsCanisterMethod, SnsHostError,
+    SnsSourceRequest, enforce_mainnet_network,
     source::{MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsMetadata},
 };
 use crate::subnet_catalog::MAINNET_NETWORK;
@@ -42,7 +42,7 @@ async fn fetch_mainnet_sns_inventory_async(
     let response: ListDeployedSnsesResponse = query_canister(
         &agent,
         &sns_wasm_canister,
-        "list_deployed_snses",
+        SnsCanisterMethod::ListDeployedSnses.as_str(),
         "ListDeployedSnsesRequest",
         "ListDeployedSnsesResponse",
         &ListDeployedSnsesRequest {},
@@ -131,7 +131,7 @@ async fn fetch_governance_metadata(
     query_canister(
         agent,
         governance_canister,
-        "get_metadata",
+        SnsCanisterMethod::GetMetadata.as_str(),
         "GetMetadataRequest",
         "GetMetadataResponse",
         &GetMetadataRequest {},

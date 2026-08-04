@@ -5,7 +5,7 @@
 //! Boundary: maps get_proposal Candid responses into source-layer proposal data.
 
 use crate::sns::report::{
-    SnsHostError,
+    SnsCanisterMethod, SnsHostError,
     live::{
         convert::sns_proposal_row,
         fetch::governance_canister,
@@ -23,10 +23,11 @@ pub(super) async fn fetch_mainnet_sns_proposal_async(
 ) -> Result<MainnetSnsProposal, SnsHostError> {
     let agent = sns_agent(request)?;
     let governance_canister = governance_canister(sns)?;
+    let method = SnsCanisterMethod::GetProposal.as_str();
     let response: GetProposalResponse = query_canister(
         &agent,
         &governance_canister,
-        "get_proposal",
+        method,
         "GetProposalRequest",
         "GetProposalResponse",
         &GetProposalRequest {
@@ -39,12 +40,10 @@ pub(super) async fn fetch_mainnet_sns_proposal_async(
             proposal: sns_proposal_row(*proposal)?,
         }),
         Some(GetProposalResult::Error(err)) => Err(SnsHostError::GovernanceError {
-            method: "get_proposal",
+            method,
             error_type: err.error_type,
             message: err.error_message,
         }),
-        None => Err(SnsHostError::MissingGovernanceResult {
-            method: "get_proposal",
-        }),
+        None => Err(SnsHostError::MissingGovernanceResult { method }),
     }
 }
