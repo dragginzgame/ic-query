@@ -91,6 +91,17 @@ fn bounded_transport_distinguishes_body_read_and_json_decode_failures() {
     assert!(matches!(decode_error, IcHostError::JsonDecode { .. }));
 }
 
+#[test]
+fn dashboard_transport_rejects_redirects_without_following_the_location() {
+    let server = serve_once(redirect_response("https://example.com/other-authority"));
+
+    let error =
+        fetch_test_json::<TestPayload>(&server.url, 100).expect_err("redirect must be rejected");
+    server.finish();
+
+    assert!(matches!(error, IcHostError::HttpStatus { status: 302, .. }));
+}
+
 fn fetch_test_json<T>(url: &Url, max_response_bytes: u64) -> Result<T, IcHostError>
 where
     T: DeserializeOwned + Send,
@@ -140,4 +151,11 @@ fn chunked_response(chunks: &[&[u8]]) -> Vec<u8> {
     }
     response.extend_from_slice(b"0\r\n\r\n");
     response
+}
+
+fn redirect_response(location: &str) -> Vec<u8> {
+    format!(
+        "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    )
+    .into_bytes()
 }

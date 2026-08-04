@@ -52,8 +52,9 @@ The default endpoint is:
 https://ic-api.internetcomputer.org/api/v4
 ```
 
-The base endpoint must be HTTP(S), include a host, and contain no query or
-fragment. The report uses the shared Dashboard provenance contract:
+The base endpoint must be credential-free HTTP(S), include a host, and contain
+no query or fragment. Redirects are not followed. The report uses the shared
+Dashboard provenance contract:
 
 - `network: ic`;
 - `authority: official_ic_dashboard_api`;

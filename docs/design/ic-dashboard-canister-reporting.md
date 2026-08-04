@@ -118,9 +118,9 @@ The default count/page endpoint is:
 https://ic-api.internetcomputer.org/api/v4
 ```
 
-The base endpoint must be an HTTP(S) URL with a host and without a query or
-fragment. The canister path is appended only after the request principal has
-been parsed and canonicalized.
+The base endpoint must be a credential-free HTTP(S) URL with a host and without
+a query or fragment. Redirects are not followed. The canister path is appended
+only after the request principal has been parsed and canonicalized.
 
 The official API represents mainnet and the report records `network: ic`.
 The `ic` command family uses endpoint plus canister identity and rejects the

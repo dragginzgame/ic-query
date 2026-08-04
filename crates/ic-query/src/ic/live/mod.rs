@@ -16,7 +16,7 @@ use crate::{
     ic::{IcHostError, MAX_IC_DASHBOARD_RESPONSE_BYTES},
     runtime::block_on_current_thread,
 };
-use reqwest::Client;
+use reqwest::{Client, redirect::Policy as RedirectPolicy};
 use serde::de::DeserializeOwned;
 use std::time::Duration;
 use url::Url;
@@ -46,6 +46,7 @@ fn http_client() -> Result<Client, IcHostError> {
     Client::builder()
         .user_agent(concat!("ic-query/", env!("CARGO_PKG_VERSION")))
         .timeout(HTTP_TIMEOUT)
+        .redirect(RedirectPolicy::none())
         .build()
         .map_err(|error| IcHostError::HttpClientBuild {
             reason: error.to_string(),
@@ -125,15 +126,7 @@ fn response_too_large(url: &str, max_bytes: u64, observed_bytes: u64) -> IcHostE
 }
 
 fn dashboard_base_url(endpoint: &str) -> Result<Url, IcHostError> {
-    let url = parse_http_endpoint(endpoint).map_err(|reason| invalid_endpoint(endpoint, reason))?;
-    if url.query().is_some() || url.fragment().is_some() {
-        return Err(invalid_endpoint(
-            endpoint,
-            "base endpoint must not include a query or fragment",
-        ));
-    }
-
-    Ok(url)
+    parse_http_endpoint(endpoint).map_err(|reason| invalid_endpoint(endpoint, reason))
 }
 
 fn append_path_segments(endpoint: &str, url: &mut Url, path: &[&str]) -> Result<(), IcHostError> {

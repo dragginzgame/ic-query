@@ -242,6 +242,13 @@ JSON decoding. Oversized declared or streamed responses return
 `IcHostError::HttpResponseTooLarge`; incomplete bodies return
 `IcHostError::HttpResponseBody`. Custom source capabilities provide already
 decoded source data and therefore do not pass through this HTTP boundary.
+Dashboard redirects are not followed; a 3xx response remains an
+`IcHostError::HttpStatus` for the requested URL.
+
+The shared live endpoint parser rejects credentials, queries, and fragments
+for Dashboard and native agent base URLs. Every native `ic-agent` constructed
+by the library also limits each response body to 8 MiB. These transport rules
+do not change cache policy or turn targeted calls into collection operations.
 
 No-default consumers can still construct and render `IcCanisterReport` values
 without pulling in the live HTTP adapter.

@@ -86,11 +86,19 @@ canonical identifiers, requested limits, ordering, uniqueness, relation
 consistency, and authority claims are validated before projection. Live
 adapters validate HTTP(S) endpoint syntax before constructing their transport
 or making a live call, so malformed endpoint text returns a typed error rather
-than reaching an infallible parser path. Every successful `LiveIcSource` HTTP
-body is capped at `MAX_IC_DASHBOARD_RESPONSE_BYTES` before JSON decoding.
-Declared sizes fail before body-collection allocation, and streamed bytes
-enforce the same ceiling for chunked or unknown-length responses. Oversized,
-body-read, JSON, status, and request failures remain distinct typed errors.
+than reaching an infallible parser path. The shared parser requires a
+credential-free base URL with no query or fragment. Every successful
+`LiveIcSource` HTTP body is capped at `MAX_IC_DASHBOARD_RESPONSE_BYTES` before
+JSON decoding. Declared sizes fail before body-collection allocation, and
+streamed bytes enforce the same ceiling for chunked or unknown-length
+responses. Redirects are disabled so source provenance cannot silently name a
+pre-redirect URL. Oversized, body-read, JSON, status, and request failures
+remain distinct typed errors.
+
+Every native agent returned by the shared builder sets an 8 MiB response-body
+ceiling through `ic-agent` itself. Registry, NNS, SNS, ICRC, and CMC adapters
+therefore share the same finite per-call transport policy without merging
+their report-specific paging, cache, provenance, or validation contracts.
 
 ## Collection Rules
 

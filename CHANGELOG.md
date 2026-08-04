@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.27.md](docs/changelog/0.27.md)
 
+- `0.27.5` makes every live base endpoint credential-, query-, and
+  fragment-free before transport construction, disables redirects for official
+  Dashboard requests, and caps every native `ic-agent` response at 8 MiB.
+  Valid endpoints, call counts, report schemas, and cache behavior are
+  unchanged.
+
 - `0.27.4` gives every official Dashboard live adapter one shared 8 MiB
   response-body ceiling. Declared and streamed body sizes are checked before
   JSON decoding, and oversized or incomplete bodies now return distinct

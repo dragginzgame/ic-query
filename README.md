@@ -194,7 +194,10 @@ Dashboard canister and ICRC commands identify their target using a stable
 entity id and an explicit API endpoint; Dashboard metric and network-resource
 commands use an official resource identity and endpoint. These families reject
 the global `--network` option; use the command’s `--source-endpoint` option when
-an endpoint override is needed.
+an endpoint override is needed. Every live endpoint must be a credential-free
+HTTP(S) base URL with a host and no query or fragment. Official Dashboard
+requests do not follow redirects, so provenance always names the endpoint that
+returned the response.
 
 ## Collection and cache behavior
 
@@ -222,6 +225,11 @@ resource and makes no per-location calls. Total-supply analytics default to 30
 days at a daily step, retain raw ledger base units, and are capped at 1,000
 observations. Token-value analytics default to 24 hours and are capped at 90
 days and 1,000 rows. None of these commands creates a cache.
+
+Native Registry, NNS, SNS, ICRC, and CMC calls also cap every `ic-agent`
+response body at 8 MiB. This is a per-call transport bound; paged collection,
+atomic cache publication, and explicit refresh policies retain their existing
+report-specific row and call limits.
 
 Successful SNS metrics queries default to a 30-day proposal-count window
 capped at 365 days. They make three targeted client requests, preserve

@@ -74,8 +74,9 @@ The default endpoint is:
 https://metrics-api.internetcomputer.org/api/v1
 ```
 
-The endpoint must be HTTP(S), include a host, and contain no query or fragment.
-The report uses the shared Dashboard authority and provenance contract:
+The endpoint must be credential-free HTTP(S), include a host, and contain no
+query or fragment. Redirects are not followed. The report uses the shared
+Dashboard authority and provenance contract:
 
 - `network: ic`;
 - `authority: official_ic_dashboard_api`;

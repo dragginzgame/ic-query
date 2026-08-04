@@ -60,7 +60,9 @@ Official Dashboard canister and ICRC commands identify their target using an
 entity principal plus `--source-endpoint`. Dashboard metric and network
 resource commands use an official resource identity and `--source-endpoint`.
 These families reject the top-level `--network` option instead of silently
-ignoring it.
+ignoring it. Every override must be a credential-free HTTP(S) base URL with a
+host and no query or fragment. Official Dashboard requests reject redirects;
+native `ic-agent` calls cap each response body at 8 MiB.
 
 ## Official IC Dashboard
 
