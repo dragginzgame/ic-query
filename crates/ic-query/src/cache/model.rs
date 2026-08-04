@@ -2,8 +2,8 @@
 //!
 //! Responsibility: define shared cache-validation and local inventory report contracts.
 //! Does not own: filesystem traversal, cache-family validation, or CLI output.
-//! Boundary: names family validation outcomes and exposes generic file, age,
-//! and freshness evidence without performing family-specific validation.
+//! Boundary: names family validation outcomes and exposes generic header, age,
+//! recovery-policy, and lock evidence without performing family-specific validation.
 
 use serde::Serialize;
 use std::{fmt, path::PathBuf};
@@ -90,25 +90,51 @@ impl fmt::Display for CacheRefreshAttemptStatus {
 }
 
 ///
-/// CacheFileStatus
+/// CacheHeaderStatus
 ///
-/// Generic freshness or validity classification for one complete cache file.
+/// Generic header-integrity classification for one complete cache file.
 ///
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum CacheFileStatus {
+pub enum CacheHeaderStatus {
+    /// The generic cache header is readable.
+    Readable,
+    /// The generic cache header cannot be read or parsed.
+    Invalid,
+}
+
+impl CacheHeaderStatus {
+    /// Return the stable serialized status label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Readable => "readable",
+            Self::Invalid => "invalid",
+        }
+    }
+}
+
+///
+/// CacheAgeStatus
+///
+/// Caller-relative age classification for one complete cache file.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheAgeStatus {
     /// The cache is within its registered family stale threshold.
     Fresh,
     /// The cache is older than its registered family stale threshold.
     Stale,
     /// The cache has a readable age but no registered family stale threshold.
     Unmanaged,
-    /// The generic cache header or timestamp is unreadable or invalid.
-    Invalid,
+    /// The cache age cannot be calculated from its generic timestamp evidence.
+    Unknown,
 }
 
-impl CacheFileStatus {
+impl CacheAgeStatus {
     /// Return the stable serialized status label.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -116,7 +142,39 @@ impl CacheFileStatus {
             Self::Fresh => "fresh",
             Self::Stale => "stale",
             Self::Unmanaged => "unmanaged",
-            Self::Invalid => "invalid",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+///
+/// CacheRecoveryPolicy
+///
+/// Owner policy for replacing recoverable invalid content at a canonical cache path.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheRecoveryPolicy {
+    /// An ordinary owner read-through replaces recoverable invalid content.
+    Automatic,
+    /// Recovery requires an explicitly selected refresh operation.
+    Explicit,
+    /// Ordinary read-through creates a missing cache but does not replace invalid content.
+    MissingOnly,
+    /// The path does not identify a current canonical cache owner.
+    Unknown,
+}
+
+impl CacheRecoveryPolicy {
+    /// Return the stable serialized policy label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Automatic => "automatic",
+            Self::Explicit => "explicit",
+            Self::MissingOnly => "missing_only",
+            Self::Unknown => "unknown",
         }
     }
 }
@@ -195,16 +253,22 @@ pub struct CacheStatusReport {
     pub scan_limit: usize,
     /// Whether additional cache or refresh-lock candidates existed beyond the scan limit.
     pub truncated: bool,
+    /// Whether the generic inventory performed family-specific semantic validation.
+    pub family_validation_performed: bool,
     /// Number of cache rows returned.
     pub cache_count: usize,
+    /// Number of caches with readable generic headers.
+    pub readable_header_count: usize,
+    /// Number of caches with unreadable or malformed generic headers.
+    pub invalid_header_count: usize,
     /// Number of caches fresh under an explicit family policy.
     pub fresh_count: usize,
     /// Number of caches stale under an explicit family policy.
     pub stale_count: usize,
     /// Number of readable caches whose family has no registered age policy.
-    pub unmanaged_count: usize,
-    /// Number of files whose generic cache header or timestamp was invalid.
-    pub invalid_count: usize,
+    pub unmanaged_age_count: usize,
+    /// Number of caches whose age cannot be calculated from generic evidence.
+    pub unknown_age_count: usize,
     /// Sum of filesystem sizes for returned cache files.
     pub total_size_bytes: u64,
     /// Canonically path-ordered cache rows.
@@ -237,8 +301,12 @@ pub struct CacheStatusRow {
     pub cache_path: String,
     /// Cache-root-relative path.
     pub relative_path: String,
-    /// Generic freshness or validity classification.
-    pub status: CacheFileStatus,
+    /// Generic cache-header integrity without family-specific semantic validation.
+    pub header_status: CacheHeaderStatus,
+    /// Caller-relative age classification kept separate from header integrity.
+    pub age_status: CacheAgeStatus,
+    /// Owner policy for recovering invalid content at this canonical path.
+    pub recovery_policy: CacheRecoveryPolicy,
     /// Serialized cache schema version when readable.
     pub schema_version: Option<u32>,
     /// Serialized network identity when present.
@@ -251,8 +319,8 @@ pub struct CacheStatusRow {
     pub stale_after_seconds: Option<u64>,
     /// Filesystem size of this cache file.
     pub size_bytes: u64,
-    /// Generic header or timestamp error; family-specific validation is separate.
-    pub error: Option<String>,
+    /// Generic header or timestamp inspection error; family-specific validation is separate.
+    pub inspection_error: Option<String>,
 }
 
 ///
@@ -298,7 +366,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn typed_statuses_keep_the_existing_json_labels() {
+    fn typed_statuses_keep_stable_json_labels() {
         for (status, expected) in [
             (CacheValidationStatus::Valid, "ok"),
             (CacheValidationStatus::Invalid, "invalid"),
@@ -328,14 +396,36 @@ mod tests {
         }
         assert_eq!(CacheRefreshAttemptStatus::from_label("unknown"), None);
         for (status, expected) in [
-            (CacheFileStatus::Fresh, "fresh"),
-            (CacheFileStatus::Stale, "stale"),
-            (CacheFileStatus::Unmanaged, "unmanaged"),
-            (CacheFileStatus::Invalid, "invalid"),
+            (CacheHeaderStatus::Readable, "readable"),
+            (CacheHeaderStatus::Invalid, "invalid"),
         ] {
             assert_eq!(status.as_str(), expected);
             assert_eq!(
-                serde_json::to_value(status).expect("serialize cache status"),
+                serde_json::to_value(status).expect("serialize cache header status"),
+                serde_json::json!(expected)
+            );
+        }
+        for (status, expected) in [
+            (CacheAgeStatus::Fresh, "fresh"),
+            (CacheAgeStatus::Stale, "stale"),
+            (CacheAgeStatus::Unmanaged, "unmanaged"),
+            (CacheAgeStatus::Unknown, "unknown"),
+        ] {
+            assert_eq!(status.as_str(), expected);
+            assert_eq!(
+                serde_json::to_value(status).expect("serialize cache age status"),
+                serde_json::json!(expected)
+            );
+        }
+        for (policy, expected) in [
+            (CacheRecoveryPolicy::Automatic, "automatic"),
+            (CacheRecoveryPolicy::Explicit, "explicit"),
+            (CacheRecoveryPolicy::MissingOnly, "missing_only"),
+            (CacheRecoveryPolicy::Unknown, "unknown"),
+        ] {
+            assert_eq!(policy.as_str(), expected);
+            assert_eq!(
+                serde_json::to_value(policy).expect("serialize cache recovery policy"),
                 serde_json::json!(expected)
             );
         }

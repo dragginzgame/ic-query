@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.21` makes `cache status` distinguish generic header integrity from
+  cache age and shows each canonical family's automatic, explicit, or
+  missing-only invalid-content recovery policy. The bounded local inventory
+  still performs no family-specific semantic validation, full history scan,
+  network call, or mutation. Maintained user, library, adapter, and roadmap
+  documentation is refreshed against the current CLI and schema contracts.
+
+```bash
+icq cache status
+```
+
 - `0.26.20` extends recoverable invalid-content refresh from the SNS catalog to
   bounded Subnet and NNS inventory caches and to explicit topology and ICRC
   account-history read-through APIs. Validated replacements remain atomic;

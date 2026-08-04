@@ -1,9 +1,9 @@
 use super::*;
-use crate::subnet_catalog::parse_utc_timestamp_secs;
+use crate::{cache::CacheRecoveryPolicy, subnet_catalog::parse_utc_timestamp_secs};
 use std::{fs, path::Path, time::SystemTime};
 
 #[test]
-fn status_reports_managed_unmanaged_and_invalid_caches_without_attempts() {
+fn status_separates_header_age_and_recovery_evidence_without_attempts() {
     let root = temp_dir("ic-query-cache-status");
     write_cache(
         &root.join("nns/ic/subnet-catalog/catalog.json"),
@@ -17,29 +17,75 @@ fn status_reports_managed_unmanaged_and_invalid_caches_without_attempts() {
         &root.join("sns/ic/root/proposals/full.refresh-attempt.json"),
         r#"{"schema_version":1}"#,
     );
+    write_cache(
+        &root.join("sns/ic/root/proposals/full.json"),
+        r#"{"schema_version":1,"network":"ic","fetched_at":"not-a-timestamp","domain":"sns","entity":"root","collection":"proposals"}"#,
+    );
+    write_cache(
+        &root.join("legacy/ic/full.json"),
+        r#"{"schema_version":1,"network":"ic","fetched_at":"2026-08-03T00:00:00Z","domain":"sns","entity":"catalog","collection":"discovery"}"#,
+    );
     write_cache(&root.join("nns/ic/node/nodes.json"), "not-json");
 
     let now = parse_utc_timestamp_secs("2026-08-04T00:00:00Z").expect("timestamp");
     let report =
         build_cache_status_report(&CacheStatusRequest::new(&root, now)).expect("cache status");
 
-    assert_eq!(report.cache_count, 3);
+    assert_eq!(report.cache_count, 5);
+    assert!(!report.family_validation_performed);
+    assert_eq!(report.readable_header_count, 4);
+    assert_eq!(report.invalid_header_count, 1);
     assert_eq!(report.fresh_count, 1);
-    assert_eq!(report.unmanaged_count, 1);
-    assert_eq!(report.invalid_count, 1);
+    assert_eq!(report.unmanaged_age_count, 2);
+    assert_eq!(report.unknown_age_count, 2);
     assert!(!report.truncated);
-    assert!(
-        report
-            .caches
-            .iter()
-            .any(|row| { row.component == "nns/nodes" && row.status == CacheFileStatus::Invalid })
+    let invalid_node = report
+        .caches
+        .iter()
+        .find(|row| row.component == "nns/nodes")
+        .expect("invalid node cache row");
+    assert_eq!(invalid_node.header_status, CacheHeaderStatus::Invalid);
+    assert_eq!(invalid_node.age_status, CacheAgeStatus::Unknown);
+    assert_eq!(invalid_node.recovery_policy, CacheRecoveryPolicy::Automatic);
+    let nns_proposals = report
+        .caches
+        .iter()
+        .find(|row| row.component == "nns/governance/proposals")
+        .expect("NNS proposal cache row");
+    assert_eq!(nns_proposals.header_status, CacheHeaderStatus::Readable);
+    assert_eq!(nns_proposals.age_status, CacheAgeStatus::Unmanaged);
+    assert_eq!(nns_proposals.recovery_policy, CacheRecoveryPolicy::Explicit);
+    let sns_proposals = report
+        .caches
+        .iter()
+        .find(|row| row.relative_path == "sns/ic/root/proposals/full.json")
+        .expect("SNS proposal cache row");
+    assert_eq!(sns_proposals.header_status, CacheHeaderStatus::Readable);
+    assert_eq!(sns_proposals.age_status, CacheAgeStatus::Unknown);
+    assert_eq!(
+        sns_proposals.recovery_policy,
+        CacheRecoveryPolicy::MissingOnly
     );
-    assert!(
-        report
-            .caches
-            .iter()
-            .any(|row| row.component == "nns/governance/proposals")
+    assert!(sns_proposals.inspection_error.is_some());
+    let claimed_sns_catalog = report
+        .caches
+        .iter()
+        .find(|row| row.relative_path == "legacy/ic/full.json")
+        .expect("orphaned cache row");
+    assert_eq!(
+        claimed_sns_catalog.recovery_policy,
+        CacheRecoveryPolicy::Unknown
     );
+    assert_eq!(claimed_sns_catalog.age_status, CacheAgeStatus::Unmanaged);
+    assert_eq!(claimed_sns_catalog.stale_after_seconds, None);
+    let text = crate::cache::cache_status_report_text(&report);
+    assert!(text.contains("family_validation_performed: no"));
+    let header = text
+        .lines()
+        .find(|line| line.starts_with("HEADER"))
+        .expect("cache status table header");
+    assert!(header.contains("AGE STATE"));
+    assert!(header.contains("RECOVERY"));
     let _ = fs::remove_dir_all(root);
 }
 

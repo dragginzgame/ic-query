@@ -4,7 +4,7 @@
 //! Does not own: directory traversal, refresh locks, or family-specific validation.
 //! Boundary: stops large unmanaged histories at their leading payload boundary.
 
-use super::super::{CacheFileStatus, CacheStatusRow};
+use super::super::{CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy, CacheStatusRow};
 use crate::{
     nns::topology::DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
     sns::DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
@@ -164,7 +164,7 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
         .clone()
         .or_else(|| header.collection_completed_at.clone());
     let Some(fetched_at_text) = fetched_at else {
-        return invalid_header_row(
+        return unknown_age_row(
             relative,
             path,
             relative_path,
@@ -175,7 +175,7 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
         );
     };
     let Some(fetched_at_unix_secs) = parse_utc_timestamp_secs(&fetched_at_text) else {
-        return invalid_header_row(
+        return unknown_age_row(
             relative,
             path,
             relative_path,
@@ -186,7 +186,7 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
         );
     };
     let Some(age_seconds) = now_unix_secs.checked_sub(fetched_at_unix_secs) else {
-        return invalid_header_row(
+        return unknown_age_row(
             relative,
             path,
             relative_path,
@@ -196,26 +196,28 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
             "cache timestamp is in the future".to_string(),
         );
     };
-    let stale_after_seconds = stale_after_seconds(relative, &header);
-    let status = stale_after_seconds.map_or(CacheFileStatus::Unmanaged, |threshold| {
+    let stale_after_seconds = registered_age_policy(relative);
+    let age_status = stale_after_seconds.map_or(CacheAgeStatus::Unmanaged, |threshold| {
         if age_seconds > threshold {
-            CacheFileStatus::Stale
+            CacheAgeStatus::Stale
         } else {
-            CacheFileStatus::Fresh
+            CacheAgeStatus::Fresh
         }
     });
     CacheStatusRow {
         component: component(relative, &header),
         cache_path: path.display().to_string(),
         relative_path,
-        status,
+        header_status: CacheHeaderStatus::Readable,
+        age_status,
+        recovery_policy: recovery_policy(relative),
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at: Some(fetched_at_text),
         age_seconds: Some(age_seconds),
         stale_after_seconds,
         size_bytes,
-        error: None,
+        inspection_error: None,
     }
 }
 
@@ -223,7 +225,7 @@ fn read_cache_header(
     relative: &Path,
     reader: impl Read,
 ) -> Result<GenericCacheHeader, serde_json::Error> {
-    if has_registered_age_policy_path(relative) {
+    if registered_age_policy(relative).is_some() {
         return serde_json::from_reader::<_, FullGenericCacheHeader>(reader).map(Into::into);
     }
     let mut deserializer = serde_json::Deserializer::from_reader(reader);
@@ -243,15 +245,6 @@ fn read_cache_header(
         }
         Err(error) => Err(error),
     }
-}
-
-fn has_registered_age_policy_path(relative: &Path) -> bool {
-    matches!(
-        path_parts(relative).as_slice(),
-        ["nns", _, "subnet-catalog", "catalog.json"]
-            | ["nns", _, "subnet-topology", "report.json"]
-            | ["sns", _, "catalog", "discovery", "full.json"]
-    )
 }
 
 fn path_parts(relative: &Path) -> Vec<&str> {
@@ -296,12 +289,37 @@ fn root_component(parts: &[&str]) -> String {
 
 fn registered_age_policy(relative: &Path) -> Option<u64> {
     match path_parts(relative).as_slice() {
-        ["nns", _, "subnet-catalog", ..] => Some(DEFAULT_STALE_AFTER_SECONDS),
-        ["nns", _, "subnet-topology", ..] => Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS),
-        ["sns", _, "catalog", "discovery", "full.json"] => {
+        ["nns", "ic", "subnet-catalog", "catalog.json"] => Some(DEFAULT_STALE_AFTER_SECONDS),
+        ["nns", "ic", "subnet-topology", "report.json"] => {
+            Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS)
+        }
+        ["sns", "ic", "catalog", "discovery", "full.json"] => {
             Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS)
         }
         _ => None,
+    }
+}
+
+fn recovery_policy(relative: &Path) -> CacheRecoveryPolicy {
+    match path_parts(relative).as_slice() {
+        ["nns", "ic", "subnet-catalog", "catalog.json"]
+        | ["nns", "ic", "node", "nodes.json"]
+        | ["nns", "ic", "node-provider", "providers.json"]
+        | ["nns", "ic", "node-operator", "operators.json"]
+        | ["nns", "ic", "data-center", "data-centers.json"]
+        | ["sns", "ic", "catalog", "discovery", "full.json"] => CacheRecoveryPolicy::Automatic,
+        ["sns", "ic", _, "proposals", "full.json"] => CacheRecoveryPolicy::MissingOnly,
+        ["nns", "ic", "subnet-topology", "report.json"]
+        | [
+            "nns",
+            "ic",
+            "governance",
+            "proposals" | "neurons",
+            "full.json",
+        ]
+        | ["sns", "ic", _, "neurons", "full.json"]
+        | ["icrc", "ic", _, "transactions", "full.json"] => CacheRecoveryPolicy::Explicit,
+        _ => CacheRecoveryPolicy::Unknown,
     }
 }
 
@@ -316,18 +334,20 @@ fn invalid_row(
         component: component_from_path(relative),
         cache_path: path.display().to_string(),
         relative_path,
-        status: CacheFileStatus::Invalid,
+        header_status: CacheHeaderStatus::Invalid,
+        age_status: CacheAgeStatus::Unknown,
+        recovery_policy: recovery_policy(relative),
         schema_version: None,
         network: None,
         fetched_at: None,
         age_seconds: None,
-        stale_after_seconds: None,
+        stale_after_seconds: registered_age_policy(relative),
         size_bytes,
-        error,
+        inspection_error: error,
     }
 }
 
-fn invalid_header_row(
+fn unknown_age_row(
     relative: &Path,
     path: &Path,
     relative_path: String,
@@ -336,29 +356,22 @@ fn invalid_header_row(
     fetched_at: Option<String>,
     error: String,
 ) -> CacheStatusRow {
-    let stale_after_seconds = stale_after_seconds(relative, &header);
+    let stale_after_seconds = registered_age_policy(relative);
     CacheStatusRow {
         component: component(relative, &header),
         cache_path: path.display().to_string(),
         relative_path,
-        status: CacheFileStatus::Invalid,
+        header_status: CacheHeaderStatus::Readable,
+        age_status: CacheAgeStatus::Unknown,
+        recovery_policy: recovery_policy(relative),
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at,
         age_seconds: None,
         stale_after_seconds,
         size_bytes,
-        error: Some(error),
+        inspection_error: Some(error),
     }
-}
-
-fn stale_after_seconds(relative: &Path, header: &GenericCacheHeader) -> Option<u64> {
-    registered_age_policy(relative).or_else(|| {
-        (header.domain.as_deref() == Some("sns")
-            && header.entity.as_deref() == Some("catalog")
-            && header.collection.as_deref() == Some("discovery"))
-        .then_some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS)
-    })
 }
 
 fn component(relative: &Path, header: &GenericCacheHeader) -> String {
@@ -428,6 +441,83 @@ mod tests {
             ),
         ] {
             assert_eq!(component_from_path(Path::new(path)), expected);
+        }
+    }
+
+    #[test]
+    fn recovery_policy_follows_only_current_canonical_cache_paths() {
+        for (path, expected) in [
+            (
+                "nns/ic/subnet-catalog/catalog.json",
+                CacheRecoveryPolicy::Automatic,
+            ),
+            ("nns/ic/node/nodes.json", CacheRecoveryPolicy::Automatic),
+            (
+                "nns/ic/node-provider/providers.json",
+                CacheRecoveryPolicy::Automatic,
+            ),
+            (
+                "nns/ic/node-operator/operators.json",
+                CacheRecoveryPolicy::Automatic,
+            ),
+            (
+                "nns/ic/data-center/data-centers.json",
+                CacheRecoveryPolicy::Automatic,
+            ),
+            (
+                "sns/ic/catalog/discovery/full.json",
+                CacheRecoveryPolicy::Automatic,
+            ),
+            (
+                "nns/ic/subnet-topology/report.json",
+                CacheRecoveryPolicy::Explicit,
+            ),
+            (
+                "nns/ic/governance/proposals/full.json",
+                CacheRecoveryPolicy::Explicit,
+            ),
+            (
+                "nns/ic/governance/neurons/full.json",
+                CacheRecoveryPolicy::Explicit,
+            ),
+            (
+                "sns/ic/root/neurons/full.json",
+                CacheRecoveryPolicy::Explicit,
+            ),
+            (
+                "icrc/ic/account/transactions/full.json",
+                CacheRecoveryPolicy::Explicit,
+            ),
+            (
+                "sns/ic/root/proposals/full.json",
+                CacheRecoveryPolicy::MissingOnly,
+            ),
+            ("nns/local/node/nodes.json", CacheRecoveryPolicy::Unknown),
+            ("legacy/ic/full.json", CacheRecoveryPolicy::Unknown),
+        ] {
+            assert_eq!(recovery_policy(Path::new(path)), expected, "{path}");
+        }
+    }
+
+    #[test]
+    fn age_policy_follows_only_current_canonical_mainnet_paths() {
+        for (path, expected) in [
+            (
+                "nns/ic/subnet-catalog/catalog.json",
+                Some(DEFAULT_STALE_AFTER_SECONDS),
+            ),
+            (
+                "nns/ic/subnet-topology/report.json",
+                Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS),
+            ),
+            (
+                "sns/ic/catalog/discovery/full.json",
+                Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS),
+            ),
+            ("nns/local/subnet-catalog/catalog.json", None),
+            ("legacy/ic/full.json", None),
+        ] {
+            assert_eq!(registered_age_policy(Path::new(path)), expected, "{path}");
         }
     }
 }

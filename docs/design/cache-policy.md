@@ -94,16 +94,27 @@ same domain-then-network ordering. Before 1.0, replaced path layouts are not
 used by typed loaders or migrated automatically. The generic global inventory
 may still expose an orphaned old file as unmanaged local evidence.
 
-The global report parses generic header and timestamp evidence. `fresh` and
-`stale` are emitted only for families with an explicit age policy;
-`unmanaged` means that a readable cache has no such policy, not that its data
-is current. `invalid` identifies an unreadable generic header or timestamp and
-does not replace the owning family's stricter semantic validator. Every valid
-timestamp receives a caller-relative age even when freshness is unmanaged.
-Large unmanaged proposal, neuron, and transaction histories are inspected only
-through their leading header/completeness boundary, so cross-family status does
-not load or scan complete row arrays. The small families that receive a
-managed `fresh` or `stale` label are fully JSON-checked first.
+The global report separates generic header integrity from timestamp age.
+`header_status` is `readable` or `invalid`; a readable header is not a claim
+that the complete payload passed its owning family's semantic validator.
+`age_status` is `fresh` or `stale` only for families with an explicit age
+policy, `unmanaged` when a valid age has no threshold, and `unknown` when the
+header or timestamp cannot supply an age. A malformed or future timestamp can
+therefore remain a readable header with unknown age rather than collapsing two
+different facts into one status.
+
+The report sets `family_validation_performed` to false and derives registered
+age thresholds and `recovery_policy` only from current canonical mainnet paths,
+never from untrusted cache claims. `automatic` means an ordinary owner
+read-through may replace recoverable invalid content, `explicit` requires a
+selected refresh operation, `missing_only` means normal read-through creates
+only absent content, and `unknown` identifies a file without a current
+canonical owner. Large unmanaged proposal, neuron, and transaction histories
+are inspected only through their leading header/completeness boundary, so
+cross-family status does not load or scan complete row arrays. Small
+age-managed files are fully JSON-parsed for syntax, but their family-specific
+semantic validators remain authoritative.
+
 Complete snapshot caches carry required logical identity fields and are
 validated against the expected cache key on load. Identity-less snapshots are
 unsupported and require an explicit refresh.
@@ -111,11 +122,12 @@ Complete snapshot loaders also reject unknown top-level fields and authority
 claims that the owning source cannot make, including a true point-in-time
 guarantee for paginated Governance or index histories. Current-shape loading
 therefore cannot silently reinterpret a foreign or newer flattened snapshot.
-Cache status and cache list commands render malformed, unsupported, or
-identity-mismatched local snapshot files as invalid local cache rows instead of
-silently ignoring them or making live calls. Direct cache-only report reads
-also reject those invalid snapshots; only explicit read-through policies may
-replace them.
+Family-specific cache status and cache list commands render malformed,
+unsupported, or identity-mismatched local snapshot files as invalid local
+cache rows instead of silently ignoring them or making live calls. The global
+inventory reports only failures visible at its generic bounded inspection
+scope. Direct cache-only report reads also reject invalid snapshots; only the
+owning read-through policies may replace them.
 
 ## Current Coverage
 
@@ -139,15 +151,15 @@ identify which SNS should be recollected. Proposal and neuron histories can
 also require complete Governance pagination and therefore retain explicit
 invalid-cache recovery.
 
-| Cache family | Missing-content policy | Invalid-content policy |
-| --- | --- | --- |
-| Subnet catalog | Automatic bounded refresh | Automatic bounded refresh |
-| NNS node/provider/operator/data-center inventory | Automatic bounded refresh | Automatic bounded refresh |
-| Joined deployed-SNS catalog | Automatic bounded refresh | Automatic bounded refresh |
-| Exact-version NNS Subnet topology | Caller selects missing/stale read-through | Same selected read-through operation refreshes invalid content |
-| ICRC account transactions | CLI is local-only; library caller may select read-through | Same selected library read-through operation refreshes invalid content |
-| SNS proposals | Automatic only when the requested complete cache is unambiguously missing | Explicit refresh |
-| NNS proposals and NNS/SNS neurons | Explicit complete refresh or documented live fallback | Explicit refresh |
+| Cache family | Missing-content policy | Invalid-content policy | Status recovery label |
+| --- | --- | --- | --- |
+| Subnet catalog | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
+| NNS node/provider/operator/data-center inventory | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
+| Joined deployed-SNS catalog | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
+| Exact-version NNS Subnet topology | Caller selects missing/stale read-through | Same selected read-through operation refreshes invalid content | `explicit` |
+| ICRC account transactions | CLI is local-only; library caller may select read-through | Same selected library read-through operation refreshes invalid content | `explicit` |
+| SNS proposals | Automatic only when the requested complete cache is unambiguously missing | Explicit refresh | `missing_only` |
+| NNS proposals and NNS/SNS neurons | Explicit complete refresh or documented live fallback | Explicit refresh | `explicit` |
 
 `sns list` uses a distinct one-hour refresh-if-stale policy for one bounded,
 joined deployed-SNS catalog. The complete snapshot retains every SNS-W row,

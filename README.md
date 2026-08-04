@@ -139,21 +139,21 @@ authority model and follow-up query rules.
 ```text
 icq cache status
 
-icq ic canister info|count|page
+icq ic canister count|info|page
 icq ic metrics <metric>
 icq ic network boundary-node-data-centers
 icq ic network daily-stats
 
+icq nns data-center info|list|refresh
+icq nns governance economics|maturity-modulation|metrics|reward-event
+icq nns neuron cache|info|list|refresh
+icq nns node info|list|refresh
+icq nns node-operator info|list|refresh
+icq nns node-provider info|list|refresh
+icq nns proposal cache|info|list|refresh
 icq nns registry version
-icq nns subnet list|info|refresh
-icq nns node list|info|refresh
-icq nns node-provider list|info|refresh
-icq nns node-operator list|info|refresh
-icq nns data-center list|info|refresh
-icq nns topology summary|coverage|versions|health|gaps|capacity|regions|providers|refresh
-icq nns governance economics|metrics|reward-event|maturity-modulation
-icq nns proposal list|info|refresh|cache
-icq nns neuron list|info|refresh|cache
+icq nns subnet info|list|refresh
+icq nns topology capacity|coverage|gaps|health|providers|refresh|regions|summary|versions
 
 icq sns list|refresh
 icq sns info|metrics|parameters|swap|token|upgrade <SNS>
@@ -169,11 +169,11 @@ icq sns proposal list|refresh <SNS>
 icq sns reward checkpoint <SNS>
 icq sns reward diff <before.json> <after.json>
 
-icq icrc ledger capabilities|token|index|transactions|block-types|archives|tip-certificate
-icq icrc account balance|allowance
-icq icrc account transaction page|list|refresh|cache
+icq icrc account allowance|balance
+icq icrc account transaction cache|list|page|refresh
+icq icrc ledger archives|block-types|capabilities|index|tip-certificate|token|transactions
 
-icq system xdr|cycles
+icq system cycles|xdr
 ```
 
 The top-level `--network` option supplies network identity to NNS, SNS, and
@@ -217,15 +217,18 @@ Bounded Subnet and NNS Registry inventory read-through operations repair
 malformed, incompatible, or invalid local content through their existing live
 refresh path. Exact-version topology and ICRC account-history library callers
 receive the same behavior only through explicitly selected read-through APIs.
-Direct cache loads, cache status, filesystem failures, and complete Governance
-history caches remain strict.
+Direct cache loads, filesystem failures, and complete Governance history
+caches remain strict. Cache-status operations stay local: family-specific
+status reports validate their owned snapshots, while the bounded top-level
+inventory inspects generic headers only.
 
 `sns list` uses a one-hour joined catalog cache containing Governance metadata
 and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
 Missing, stale, malformed, incompatible, or semantically invalid catalogs
 produce visible refresh progress and are replaced only after a valid complete
 snapshot is ready; failed refreshes leave the prior file untouched. Cache-only
-and cache-status operations remain local and report invalid evidence directly.
+and family-specific cache-status operations remain local and report invalid
+evidence directly.
 The default view includes lifecycle `3` (`committed`, successfully launched)
 SNSes; `sns list --all` also shows failed/aborted, pending, unknown, and
 lifecycle-query-error rows. `sns refresh` forces replacement. Targeted SNS
@@ -249,9 +252,12 @@ It does not inspect project files or read and migrate former project-local
 Network-scoped cache paths consistently begin with
 `<cache-root>/<domain>/<network>/...`.
 Use `icq cache status` to inspect known complete caches across that root,
-including ages, sizes, stale policies, and fresh, stale, unmanaged, or invalid
-status. It also reports active, stale, and invalid refresh locks without live
-calls, process probes, or cache mutation.
+including generic header integrity, separate fresh/stale/unmanaged/unknown age,
+sizes, stale thresholds, and automatic/explicit/missing-only invalid-content
+recovery policy. The bounded inventory explicitly reports that it did not
+perform family-specific semantic validation. It also reports active, stale,
+and invalid refresh locks without live calls, process probes, full history
+scans, or cache mutation.
 
 ## Library
 
@@ -279,7 +285,8 @@ not a `no_std` promise.
 
 Public report families are exposed from:
 
-- `ic_query::cache` with the `host` feature
+- `ic_query::cache` for shared models, with inventory builders and rendering
+  under the `host` feature
 - `ic_query::ic`
 - `ic_query::icrc`
 - `ic_query::nns`

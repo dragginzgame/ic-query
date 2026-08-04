@@ -19,11 +19,17 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
         format!("cache_root: {}", sanitize_text(&report.cache_root)),
         format!("cache_root_found: {}", yes_no(report.cache_root_found)),
         format!("inspected_at: {}", sanitize_text(&report.inspected_at)),
+        format!(
+            "family_validation_performed: {}",
+            yes_no(report.family_validation_performed)
+        ),
         format!("cache_count: {}", report.cache_count),
+        format!("readable_headers: {}", report.readable_header_count),
+        format!("invalid_headers: {}", report.invalid_header_count),
         format!("fresh: {}", report.fresh_count),
         format!("stale: {}", report.stale_count),
-        format!("unmanaged: {}", report.unmanaged_count),
-        format!("invalid: {}", report.invalid_count),
+        format!("unmanaged_age: {}", report.unmanaged_age_count),
+        format!("unknown_age: {}", report.unknown_age_count),
         format!(
             "total_size_bytes: {}",
             byte_count_text(u128::from(report.total_size_bytes))
@@ -50,13 +56,24 @@ fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
     if !report.caches.is_empty() {
         lines.push(String::new());
         lines.push(render_table(
-            &["STATUS", "COMPONENT", "AGE", "STALE AFTER", "BYTES", "PATH"],
+            &[
+                "HEADER",
+                "AGE STATE",
+                "INVALID RECOVERY",
+                "COMPONENT",
+                "AGE",
+                "STALE AFTER",
+                "BYTES",
+                "PATH",
+            ],
             &report
                 .caches
                 .iter()
                 .map(|row| {
                     [
-                        row.status.as_str().to_string(),
+                        row.header_status.as_str().to_string(),
+                        row.age_status.as_str().to_string(),
+                        row.recovery_policy.as_str().to_string(),
                         row.component.clone(),
                         row.age_seconds
                             .map_or_else(|| "-".to_string(), display_duration_seconds),
@@ -70,17 +87,23 @@ fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
             &[
                 ColumnAlign::Left,
                 ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Left,
                 ColumnAlign::Right,
                 ColumnAlign::Right,
                 ColumnAlign::Right,
                 ColumnAlign::Left,
             ],
         ));
-        for row in report.caches.iter().filter(|row| row.error.is_some()) {
+        for row in report
+            .caches
+            .iter()
+            .filter(|row| row.inspection_error.is_some())
+        {
             lines.push(format!(
-                "cache_error[{}]: {}",
+                "cache_inspection_error[{}]: {}",
                 sanitize_text(&row.relative_path),
-                sanitize_text(row.error.as_deref().unwrap_or_default())
+                sanitize_text(row.inspection_error.as_deref().unwrap_or_default())
             ));
         }
     }

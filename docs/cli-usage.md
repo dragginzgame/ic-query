@@ -24,9 +24,9 @@ Report commands use human-facing text by default and accept
 identifiers, native numeric fields, source endpoints, collection timestamps,
 and authority guarantees.
 
-Report schemas are versioned independently and currently use `schema_version`
-values `1` and `2`. Before 1.0, incompatible shape changes replace the previous
-contract without aliases or legacy readers.
+Report and persisted schemas are versioned independently and currently use
+`schema_version` value `1`. Before 1.0, incompatible shape changes replace the
+previous contract in place without aliases, legacy readers, or migrations.
 
 Inspect all known complete caches under the selected user-level root without a
 network call or mutation:
@@ -36,10 +36,12 @@ icq cache status
 icq cache status --json
 ```
 
-The report calculates age for every readable collection timestamp. It labels
-only caches with an explicit age policy as `fresh` or `stale`; `unmanaged`
-means no registered age policy exists and is not a freshness claim. Because
-the report spans all cached networks, `icq cache` rejects `--network`.
+The report separates generic header integrity from age. It labels only caches
+with an explicit age policy as `fresh` or `stale`; `unmanaged` means a valid
+age has no registered threshold, while missing or invalid timestamp evidence
+has `unknown` age. It also shows the canonical owner's invalid-content
+recovery policy as `automatic`, `explicit`, `missing_only`, or `unknown`.
+Because the report spans all cached networks, `icq cache` rejects `--network`.
 
 ## Target identity
 
@@ -447,17 +449,22 @@ The CLI selects one user-level cache root:
 
 It never discovers or migrates repository-local `.icq` directories.
 
-`icq cache status` inventories known complete snapshots across this root,
-including each path, generic component identity, collection age, file size,
-and applicable age threshold. It also reports active, stale, malformed, and
+`icq cache status` inventories known complete snapshots across this root. Each
+row keeps generic header integrity, age state, file size, applicable stale
+threshold, invalid-content recovery policy, and inspection errors separate.
+The report sets `family_validation_performed` to `false`: readable generic
+headers are not claims that an owning family's semantic validator would accept
+the complete payload. It also reports active, stale, malformed, and
 future-dated refresh locks from their recorded owner, target, acquisition time,
-and stale policy. The scan is local-only, bounded to 10,000 cache and lock
-candidates, skips symlinks and refresh-attempt sidecars, and never refreshes,
-repairs, removes, probes process liveness, or otherwise validates
-family-specific report semantics. Large unmanaged histories stop at their
-header/completeness boundary instead of scanning complete row arrays; the
-small age-managed families are fully JSON-checked before receiving `fresh` or
-`stale`.
+and stale policy.
+
+The scan is local-only, bounded to 10,000 cache and lock candidates, skips
+symlinks and refresh-attempt sidecars, and never refreshes, repairs, removes,
+or probes process liveness. Large unmanaged histories stop at their leading
+header/completeness boundary instead of scanning complete row arrays. Small
+age-managed files are fully JSON-parsed for syntax before receiving `fresh` or
+`stale`, but family-specific loaders remain authoritative for identity and
+semantic validation.
 
 Complete snapshot refreshes use a lock. Paged proposal, neuron, and
 account-history collections also use a separate attempt sidecar so a failed or

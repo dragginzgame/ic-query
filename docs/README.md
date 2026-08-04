@@ -26,7 +26,7 @@ icq icrc account transaction --help
 | Document | Contract owned |
 | --- | --- |
 | [IC Reporting Adapters](design/ic-reporting-adapters.md) | Authority families, provenance, validation, and typed follow-up queries |
-| [Cache Policy](design/cache-policy.md) | Cache identity, refresh behavior, locking, and local inspection |
+| [Cache Policy](design/cache-policy.md) | Cache identity, refresh and invalid-content recovery, locking, and local inspection |
 | [0.22 Structural Consolidation](design/0.22/0.22-design.md) | Ordered CLI, inventory, snapshot, feature, and module-ownership cleanup |
 | [0.23 Bounded SNS Completeness](design/0.23/0.23-design.md) | Targeted discovery hard cut plus bounded native swap and upgrade evidence |
 | [0.24 Bounded SNS Governance Metrics](design/0.24/0.24-design.md) | Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp evidence |

@@ -55,7 +55,7 @@ pub fn command() -> ClapCommand {
         .subcommand(
             ClapCommand::new("status")
                 .bin_name("icq cache status")
-                .about("Show complete caches, age policies, and refresh locks")
+                .about("Show cache headers, age, invalid recovery, and refresh locks")
                 .arg(json_arg())
                 .after_help(collection_help(
                     COLLECTION_MODE_CACHE_ONLY,
@@ -90,6 +90,7 @@ mod tests {
         let status = command().find_subcommand("status").expect("status").clone();
         let help = render_help(status);
         assert!(help.contains("--json"));
+        assert!(help.contains("invalid recovery"));
         assert!(help.contains(COLLECTION_MODE_CACHE_ONLY));
     }
 

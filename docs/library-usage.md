@@ -450,11 +450,12 @@ fn render_cache_status(
 }
 ```
 
-This inventory is bounded and local-only. It reports generic cache age and
-file evidence plus self-described refresh-lock state through typed
-`CacheFileStatus` and `CacheRefreshLockStatus` values; it does not probe lock
-processes or mutate local files. Family-specific loaders remain authoritative
-for semantic cache validation.
+This inventory is bounded and local-only. It reports separate generic
+`CacheHeaderStatus`, `CacheAgeStatus`, and `CacheRecoveryPolicy` evidence plus
+self-described `CacheRefreshLockStatus`. The report records that it did not
+perform family-specific semantic validation, does not scan large history
+payloads, probe lock processes, or mutate local files, and leaves owning
+family loaders authoritative for complete validation.
 
 Native tools can use the same subnet catalog cache/report path as
 `icq nns subnet info` without spawning `icq`:
@@ -702,8 +703,8 @@ through the public builder; whole-collection neuron sorts expect a prior
 explicit refresh, matching the CLI cache policy. `SnsNeuronRow` preserves the
 fixed-size native Governance values from the same `list_neurons` response,
 including `SnsNeuronDissolveState`; variable permission and followee graphs
-are not collected implicitly. Neuron report and cache schema 2 reject older
-snapshot shapes and require an explicit refresh.
+are not collected implicitly. The current neuron report and cache schema is 1;
+any other snapshot shape is rejected and requires an explicit refresh.
 
 ```rust
 use std::path::Path;

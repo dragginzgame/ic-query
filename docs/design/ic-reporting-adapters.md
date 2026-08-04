@@ -56,6 +56,10 @@ one trait per query.
 Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp
 evidence shares one `SnsMetricsSource` capability for Governance `get_metrics`
 rather than reconstructing treasury state through ledger-history scans.
+Exact neuron permission/followee detail uses `SnsNeuronSource`, while bracketed
+API-exhausted maturity checkpoint collection uses `SnsRewardSource`. Both
+capabilities remain on `LiveSnsSource`; variable-size detail and reward
+evidence do not expand the ordinary fixed-size neuron collection cache.
 Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
 focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
 `LiveIcSource`; bounded aggregate network time series use one `IcMetricSource`
@@ -139,8 +143,15 @@ than reaching an infallible parser path.
   aging, vesting, source-NNS id, auto-stake setting, and voting multiplier.
   Bounded live rows and complete refresh pages share canonical id, timestamp,
   uniqueness, and requested-limit validation. Variable permission, followee,
-  and pending-disbursement graphs remain outside collection caches and would
-  require an explicit detail capability with visibility semantics.
+  and pending-disbursement graphs remain outside collection caches;
+  `sns neuron info` follows one exact 32-byte neuron id through the explicit
+  `SnsNeuronSource` detail capability instead.
+- SNS reward checkpoint reporting strictly exhausts ordered native neuron
+  pages beneath the Governance parameter ceiling and brackets the walk with
+  complete parameters, latest reward event, and running version responses.
+  Local diff projection treats checkpoints as untrusted, recomputes their raw
+  policy and maturity evidence, and reports an allocation only after exact
+  immediate-event reconciliation.
 - NNS and SNS complete collections page until exhausted.
 - NNS neuron reporting follows the native ascending `get_neuron_index`
   cursor, preserves publicly readable `NeuronInfo` fields, and atomically
@@ -213,7 +224,7 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Explicit SNS neuron permission/followee/pending-disbursement detail plus transaction-level treasury history or current-ledger verification beyond the implemented fixed-size neurons, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
+| 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, reward checkpoints, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC holders, supply history, and transaction aggregates | Add official ICRC analytics capabilities without presenting them as direct ledger state |

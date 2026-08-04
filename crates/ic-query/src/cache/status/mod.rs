@@ -11,7 +11,7 @@ mod locks;
 mod tests;
 
 use super::{
-    CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheFileStatus, CacheRefreshLockStatus,
+    CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheAgeStatus, CacheHeaderStatus, CacheRefreshLockStatus,
     CacheRefreshLockStatusRow, CacheStatusReport, CacheStatusRequest, CacheStatusRow,
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
@@ -66,11 +66,14 @@ pub fn build_cache_status_report(
         cache_root_found,
         scan_limit: CACHE_STATUS_SCAN_LIMIT,
         truncated: inventory.truncated,
+        family_validation_performed: false,
         cache_count: caches.len(),
-        fresh_count: count_cache_status(&caches, CacheFileStatus::Fresh),
-        stale_count: count_cache_status(&caches, CacheFileStatus::Stale),
-        unmanaged_count: count_cache_status(&caches, CacheFileStatus::Unmanaged),
-        invalid_count: count_cache_status(&caches, CacheFileStatus::Invalid),
+        readable_header_count: count_cache_header_status(&caches, CacheHeaderStatus::Readable),
+        invalid_header_count: count_cache_header_status(&caches, CacheHeaderStatus::Invalid),
+        fresh_count: count_cache_age_status(&caches, CacheAgeStatus::Fresh),
+        stale_count: count_cache_age_status(&caches, CacheAgeStatus::Stale),
+        unmanaged_age_count: count_cache_age_status(&caches, CacheAgeStatus::Unmanaged),
+        unknown_age_count: count_cache_age_status(&caches, CacheAgeStatus::Unknown),
         total_size_bytes: caches.iter().map(|row| row.size_bytes).sum(),
         caches,
         refresh_lock_count: refresh_locks.len(),
@@ -91,8 +94,14 @@ pub fn build_cache_status_report(
     })
 }
 
-fn count_cache_status(rows: &[CacheStatusRow], status: CacheFileStatus) -> usize {
-    rows.iter().filter(|row| row.status == status).count()
+fn count_cache_header_status(rows: &[CacheStatusRow], status: CacheHeaderStatus) -> usize {
+    rows.iter()
+        .filter(|row| row.header_status == status)
+        .count()
+}
+
+fn count_cache_age_status(rows: &[CacheStatusRow], status: CacheAgeStatus) -> usize {
+    rows.iter().filter(|row| row.age_status == status).count()
 }
 
 fn count_refresh_lock_status(
