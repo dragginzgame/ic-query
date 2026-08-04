@@ -12,6 +12,8 @@ mod network;
 pub use canisters::{
     IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest,
 };
-pub use icrc_analytics::{IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest};
+pub use icrc_analytics::{
+    IcIcrcAnalyticsRequest, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
+};
 pub use metrics::{IcMetricKind, IcMetricQuery, IcMetricRequest};
 pub use network::{IcBoundaryNodeDataCentersRequest, IcDailyStatsQuery, IcDailyStatsRequest};

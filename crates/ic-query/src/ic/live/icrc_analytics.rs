@@ -2,17 +2,33 @@
 //!
 //! Responsibility: live official ICRC analytics URL construction and wire decoding.
 //! Does not own: native ledger calls, report projection, bounds policy, or rendering.
-//! Boundary: fetches one bounded total-supply series and preserves raw base-unit values.
+//! Boundary: fetches one selected ledger resource without pagination or follow-up calls.
 
 use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
 use crate::ic::{
-    IcHostError, IcIcrcAnalyticsSource, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery,
-    IcIcrcTotalSupplySourceData, IcSourceRequest, source,
+    IcHostError, IcIcrcAnalyticsSource, IcIcrcHolderCountSourceData, IcIcrcTotalSupplyObservation,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplySourceData, IcSourceRequest, source,
 };
 use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
 impl IcIcrcAnalyticsSource for LiveIcSource {
+    fn fetch_holder_count(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+    ) -> Result<IcIcrcHolderCountSourceData, IcHostError> {
+        let ledger_canister_id =
+            source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
+        let wire: HolderCount =
+            fetch_live(holder_count_url(&request.endpoint, &ledger_canister_id)?)?;
+        Ok(IcIcrcHolderCountSourceData {
+            source: request.clone(),
+            ledger_canister_id,
+            total: wire.total,
+        })
+    }
+
     fn fetch_total_supply_series(
         &self,
         request: &IcSourceRequest,
@@ -47,12 +63,7 @@ fn total_supply_url(
     ledger_canister_id: &str,
     query: &IcIcrcTotalSupplyQuery,
 ) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(
-        endpoint,
-        &mut url,
-        &["ledgers", ledger_canister_id, "total-supply"],
-    )?;
+    let mut url = ledger_resource_url(endpoint, ledger_canister_id, &["total-supply"])?;
     {
         let mut pairs = url.query_pairs_mut();
         pairs.append_pair("start", &query.start_unix_secs.to_string());
@@ -62,9 +73,29 @@ fn total_supply_url(
     Ok(url)
 }
 
+fn holder_count_url(endpoint: &str, ledger_canister_id: &str) -> Result<Url, IcHostError> {
+    ledger_resource_url(endpoint, ledger_canister_id, &["holders", "count"])
+}
+
+fn ledger_resource_url(
+    endpoint: &str,
+    ledger_canister_id: &str,
+    resource_path: &[&str],
+) -> Result<Url, IcHostError> {
+    let mut url = dashboard_base_url(endpoint)?;
+    append_path_segments(endpoint, &mut url, &["ledgers", ledger_canister_id])?;
+    append_path_segments(endpoint, &mut url, resource_path)?;
+    Ok(url)
+}
+
 #[derive(SerdeDeserialize)]
 struct TotalSupplySeries {
     data: Vec<(u64, String)>,
+}
+
+#[derive(SerdeDeserialize)]
+struct HolderCount {
+    total: u64,
 }
 
 #[cfg(test)]
@@ -101,5 +132,30 @@ mod tests {
         .expect("current total-supply payload");
 
         assert_eq!(wire.data, [(1_785_542_400, "23326766272".to_string())]);
+    }
+
+    #[test]
+    fn holder_count_url_selects_one_non_paginated_resource() {
+        let url = holder_count_url(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            "mxzaz-hqaaa-aaaar-qaada-cai",
+        )
+        .expect("holder-count URL");
+
+        assert_eq!(
+            url.as_str(),
+            "https://icrc-api.internetcomputer.org/api/v2/ledgers/mxzaz-hqaaa-aaaar-qaada-cai/holders/count"
+        );
+    }
+
+    #[test]
+    fn holder_count_wire_preserves_total_and_ignores_additive_fields() {
+        let wire: HolderCount = serde_json::from_value(serde_json::json!({
+            "total": 78_272_u64,
+            "future_field": true
+        }))
+        .expect("current holder-count payload");
+
+        assert_eq!(wire.total, 78_272);
     }
 }

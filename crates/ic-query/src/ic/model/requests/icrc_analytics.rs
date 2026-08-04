@@ -2,9 +2,41 @@
 //!
 //! Responsibility: bounded official ICRC analytics request contracts.
 //! Does not own: native ledger queries, transport, source validation, or reports.
-//! Boundary: captures one ledger-scoped total-supply series and explicit time bounds.
+//! Boundary: shares one ledger target while keeping series bounds operation-specific.
 
 use serde::Serialize;
+
+///
+/// IcIcrcAnalyticsRequest
+///
+/// Shared endpoint, collection time, and ledger target for official ICRC analytics.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcAnalyticsRequest {
+    /// Official ICRC analytics API base endpoint.
+    pub source_endpoint: String,
+    /// Collection time as Unix seconds.
+    pub now_unix_secs: u64,
+    /// ICRC ledger canister principal requested from the analytics service.
+    pub ledger_canister_id: String,
+}
+
+impl IcIcrcAnalyticsRequest {
+    /// Construct one official ICRC analytics target.
+    #[must_use]
+    pub fn new(
+        source_endpoint: impl Into<String>,
+        now_unix_secs: u64,
+        ledger_canister_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_endpoint: source_endpoint.into(),
+            now_unix_secs,
+            ledger_canister_id: ledger_canister_id.into(),
+        }
+    }
+}
 
 ///
 /// IcIcrcTotalSupplyQuery
@@ -42,12 +74,8 @@ impl IcIcrcTotalSupplyQuery {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcIcrcTotalSupplyRequest {
-    /// Official ICRC analytics API base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
-    /// ICRC ledger canister principal requested from the analytics service.
-    pub ledger_canister_id: String,
+    /// Shared analytics endpoint, collection time, and ledger identity.
+    pub analytics: IcIcrcAnalyticsRequest,
     /// Explicitly bounded total-supply query.
     pub query: IcIcrcTotalSupplyQuery,
 }
@@ -62,9 +90,11 @@ impl IcIcrcTotalSupplyRequest {
         query: IcIcrcTotalSupplyQuery,
     ) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
+            analytics: IcIcrcAnalyticsRequest::new(
+                source_endpoint,
+                now_unix_secs,
+                ledger_canister_id,
+            ),
             query,
         }
     }

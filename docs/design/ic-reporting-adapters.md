@@ -219,6 +219,10 @@ than reaching an infallible parser path.
   ledger follow-up, enumeration, or cache call. A valid principal is not a
   claim that the Dashboard indexes that ledger, and the off-chain series does
   not replace direct current `icrc1_total_supply` evidence.
+- Official Dashboard ICRC holder-count reporting reuses the same canonical
+  analytics ledger target and `IcIcrcAnalyticsSource`. It requests only the
+  v2 count resource, preserves the returned non-negative total, and performs
+  no holder-row request, cursor traversal, per-holder lookup, or cache write.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -236,7 +240,7 @@ Expansion should proceed in layers:
 | 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, reward checkpoints, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
-| 2 | ICRC holders, circulating-supply policy, burns, and transaction aggregates beyond the implemented bounded total-supply history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard values as direct ledger state or introducing implicit enumeration |
+| 2 | ICRC holder rows/details, circulating-supply policy, burns, and transaction aggregates beyond the implemented holder count and bounded total-supply history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard values as direct ledger state or introducing implicit enumeration |
 | 3 | Internet Identity, Bitcoin, XRC, and other protocol-canister reports beyond the implemented CMC family | Add one authority-family adapter only when multiple coherent reports justify it |
 
 New report work first identifies whether its authority is a canister, Registry

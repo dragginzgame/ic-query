@@ -2,15 +2,16 @@
 //!
 //! Responsibility: official ICRC analytics source contract, bounds, and projection.
 //! Does not own: native ledger queries, HTTP transport, command parsing, or rendering.
-//! Boundary: validates one ledger-scoped total-supply series before report construction.
+//! Boundary: validates ledger-scoped scalar and bounded-series evidence before reports.
 
 use super::{
     invalid_request, invalid_source, report_provenance, validate_principal_match,
     validate_provenance,
 };
 use crate::ic::{
-    IcHostError, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport, IcIcrcTotalSupplySourceData,
-    IcSourceRequest, MAX_ICRC_ANALYTICS_OBSERVATIONS, MIN_ICRC_ANALYTICS_TIMESTAMP,
+    IcHostError, IcIcrcHolderCountReport, IcIcrcHolderCountSourceData, IcIcrcTotalSupplyQuery,
+    IcIcrcTotalSupplyReport, IcIcrcTotalSupplySourceData, IcSourceRequest,
+    MAX_ICRC_ANALYTICS_OBSERVATIONS, MIN_ICRC_ANALYTICS_TIMESTAMP,
 };
 
 ///
@@ -20,6 +21,13 @@ use crate::ic::{
 ///
 
 pub trait IcIcrcAnalyticsSource {
+    /// Fetch the current holder count without requesting holder rows.
+    fn fetch_holder_count(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+    ) -> Result<IcIcrcHolderCountSourceData, IcHostError>;
+
     /// Fetch one total-supply series without pagination or automatic follow-up calls.
     fn fetch_total_supply_series(
         &self,
@@ -27,6 +35,24 @@ pub trait IcIcrcAnalyticsSource {
         ledger_canister_id: &str,
         query: &IcIcrcTotalSupplyQuery,
     ) -> Result<IcIcrcTotalSupplySourceData, IcHostError>;
+}
+
+pub(in crate::ic) fn icrc_holder_count_report_from_source(
+    request: &IcSourceRequest,
+    ledger_canister_id: &str,
+    source: IcIcrcHolderCountSourceData,
+) -> Result<IcIcrcHolderCountReport, IcHostError> {
+    validate_provenance(request, &source.source)?;
+    validate_principal_match(
+        "ledger_canister_id",
+        ledger_canister_id,
+        &source.ledger_canister_id,
+    )?;
+    Ok(IcIcrcHolderCountReport {
+        provenance: report_provenance(source.source),
+        ledger_canister_id: source.ledger_canister_id,
+        total: source.total,
+    })
 }
 
 pub(in crate::ic) fn validate_icrc_total_supply_request(

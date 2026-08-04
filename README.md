@@ -17,11 +17,11 @@ local-only inspection visibly distinct.
 
 | Family | Current surface |
 | --- | --- |
-| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, and one-ledger ICRC total-supply history |
+| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, and one-ledger ICRC total-supply history and holder counts |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
-| ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply analytics |
+| ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply and holder-count analytics |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
 
 The living [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md) records the broader reporting
@@ -85,6 +85,7 @@ icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 # Generic ICRC reports
 icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
+icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai
 
 # Native system-canister reports
@@ -172,6 +173,7 @@ icq sns reward diff <before.json> <after.json>
 
 icq icrc account allowance|balance
 icq icrc account transaction cache|list|page|refresh
+icq icrc analytics holder count <ledger-canister-id>
 icq icrc analytics total-supply <ledger-canister-id>
 icq icrc ledger archives|block-types|capabilities|index|tip-certificate|token|transactions
 
@@ -202,8 +204,9 @@ Every data-producing command follows one documented collection mode:
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
 
 Dashboard count, page, metric, daily-statistics, boundary-node data-center, and
-ICRC total-supply analytics commands always make exactly one REST request. A page returns at most 100
-canister summaries and never follows its cursors automatically. A metric query
+ICRC analytics commands always make exactly one REST request. Holder count
+requests no holder rows. A page returns at most 100 canister summaries and
+never follows its cursors automatically. A metric query
 defaults to one hour at a five-minute step and is capped at 1,000 observations
 per series. Daily statistics default to seven days and are capped at one year
 and 366 rows. The boundary-node report consumes one non-paginated data-center

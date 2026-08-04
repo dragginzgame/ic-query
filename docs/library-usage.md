@@ -369,14 +369,28 @@ days, and never read or write a cache.
 
 Official ICRC analytics remain on `LiveIcSource` rather than the native
 `LiveIcrcSource` because the values come from the Dashboard REST service. A
-total-supply request identifies one ledger and one explicit time window:
+shared analytics request identifies one ledger, endpoint, and collection time;
+total supply adds one explicit time window:
 
 ```rust
 use ic_query::ic::{
     DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
-    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcTotalSupplyObservation,
-    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, build_icrc_total_supply_report,
+    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcAnalyticsRequest,
+    IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
+    build_icrc_holder_count_report, build_icrc_total_supply_report,
 };
+
+fn indexed_holder_count(
+    ledger_canister_id: &str,
+    now_unix_secs: u64,
+) -> Result<u64, IcHostError> {
+    let request = IcIcrcAnalyticsRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        ledger_canister_id,
+    );
+    Ok(build_icrc_holder_count_report(&request)?.total)
+}
 
 fn total_supply_history(
     ledger_canister_id: &str,
@@ -396,13 +410,14 @@ fn total_supply_history(
 }
 ```
 
-The builder makes exactly one request, accepts only hourly or daily steps,
-caps the requested and returned series at 1,000 observations, preserves raw
-base-unit strings, and never reads or writes a cache. Its provenance is
-explicitly off-chain and non-certified. `IcIcrcAnalyticsSource` lets host
-consumers supply a fixture, mirror, or proxy through the same request and
-result validation; no-default consumers can construct, serialize, and render
-the query and report DTOs without enabling HTTP transport.
+Each builder makes exactly one request and never reads or writes a cache.
+Holder count requests no rows or cursor. Total supply accepts only hourly or
+daily steps, caps the requested and returned series at 1,000 observations, and
+preserves raw base-unit strings. Their provenance is explicitly off-chain and
+non-certified. `IcIcrcAnalyticsSource` lets host consumers supply a fixture,
+mirror, or proxy through the same request and result validation; no-default
+consumers can construct, serialize, and render the query and report DTOs
+without enabling HTTP transport.
 
 ## Certified CMC Example
 

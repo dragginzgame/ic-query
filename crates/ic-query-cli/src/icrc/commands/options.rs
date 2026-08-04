@@ -20,17 +20,15 @@ use ic_query::{ic::DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, icrc::IcrcAccountTransac
 ///
 /// IcrcAnalyticsTotalSupplyOptions
 ///
-/// Clap-parsed bounds and ledger identity for one official total-supply series.
+/// Clap-parsed bounds plus the shared target for one official total-supply series.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::icrc) struct IcrcAnalyticsTotalSupplyOptions {
-    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) target: IcrcLedgerOptions,
     pub(in crate::icrc) start_unix_secs: Option<u64>,
     pub(in crate::icrc) end_unix_secs: Option<u64>,
     pub(in crate::icrc) step_secs: u32,
-    pub(in crate::icrc) format: OutputFormat,
-    pub(in crate::icrc) source_endpoint: String,
 }
 
 impl IcrcAnalyticsTotalSupplyOptions {
@@ -42,12 +40,10 @@ impl IcrcAnalyticsTotalSupplyOptions {
                     .expect("clap restricts ICRC analytics step values")
             });
         Self {
-            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            target: IcrcLedgerOptions::from_matches(matches),
             start_unix_secs: typed_option(matches, START_ARG),
             end_unix_secs: typed_option(matches, END_ARG),
             step_secs,
-            format: format_from_matches(matches),
-            source_endpoint: source_endpoint_from_matches(matches),
         }
     }
 }

@@ -6,7 +6,8 @@ use super::commands::{
     icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_command,
     icrc_account_transaction_command, icrc_account_transaction_list_command,
     icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
-    icrc_allowance_command, icrc_analytics_command, icrc_analytics_total_supply_command,
+    icrc_allowance_command, icrc_analytics_command, icrc_analytics_holder_command,
+    icrc_analytics_holder_count_command, icrc_analytics_total_supply_command,
     icrc_archives_command, icrc_balance_command, icrc_block_types_command,
     icrc_capabilities_command, icrc_index_command, icrc_ledger_command,
     icrc_tip_certificate_command, icrc_token_command, icrc_transactions_command,
@@ -292,12 +293,12 @@ fn analytics_total_supply_options_parse_bounds_endpoint_and_format() {
         IcrcAnalyticsTotalSupplyOptions::from_matches,
     );
 
-    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.target.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.start_unix_secs, Some(1_785_542_400));
     assert_eq!(options.end_unix_secs, Some(1_785_801_600));
     assert_eq!(options.step_secs, 3_600);
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://example.com/api/v2");
+    assert_eq!(options.target.format, OutputFormat::Json);
+    assert_eq!(options.target.source_endpoint, "https://example.com/api/v2");
 }
 
 #[test]
@@ -311,11 +312,29 @@ fn analytics_total_supply_options_apply_bounded_defaults() {
     assert_eq!(options.start_unix_secs, None);
     assert_eq!(options.end_unix_secs, None);
     assert_eq!(options.step_secs, 86_400);
-    assert_eq!(options.format, OutputFormat::Text);
+    assert_eq!(options.target.format, OutputFormat::Text);
     assert_eq!(
-        options.source_endpoint,
+        options.target.source_endpoint,
         "https://icrc-api.internetcomputer.org/api/v2"
     );
+}
+
+#[test]
+fn analytics_holder_count_options_reuse_the_shared_ledger_target() {
+    let options = parse_test_options(
+        icrc_analytics_holder_count_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            "--json",
+            "--source-endpoint",
+            "https://example.com/api/v2",
+        ],
+        IcrcLedgerOptions::from_matches,
+    );
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, "https://example.com/api/v2");
 }
 
 #[test]
@@ -324,6 +343,8 @@ fn usage_mentions_icrc_command_surface() {
     let ledger = render_help(icrc_ledger_command());
     let account = render_help(icrc_account_command());
     let analytics = render_help(icrc_analytics_command());
+    let analytics_holder = render_help(icrc_analytics_holder_command());
+    let analytics_holder_count = render_help(icrc_analytics_holder_count_command());
     let analytics_total_supply = render_help(icrc_analytics_total_supply_command());
     let token = render_help(icrc_token_command());
     let capabilities = render_help(icrc_capabilities_command());
@@ -346,7 +367,10 @@ fn usage_mentions_icrc_command_surface() {
         (root.as_str(), "ledger"),
         (root.as_str(), "account"),
         (root.as_str(), "analytics"),
+        (analytics.as_str(), "holder"),
         (analytics.as_str(), "total-supply"),
+        (analytics_holder.as_str(), "count"),
+        (analytics_holder_count.as_str(), "ledger-canister-id"),
         (analytics_total_supply.as_str(), "ledger-canister-id"),
         (analytics_total_supply.as_str(), "--start"),
         (analytics_total_supply.as_str(), "--end"),
@@ -382,6 +406,8 @@ fn usage_mentions_icrc_command_surface() {
     assert!(balance.contains("icq icrc account balance"));
     assert!(account_transaction.contains("icq icrc account transaction"));
     assert!(account_transaction_page.contains("icq icrc account transaction page"));
+    assert!(analytics_holder_count.contains("current indexed holder count"));
+    assert!(analytics_holder_count.contains("Official IC Dashboard ICRC analytics API"));
     assert!(analytics_total_supply.contains("bounded historical total supply"));
     assert!(analytics_total_supply.contains("Official IC Dashboard ICRC analytics API"));
 
@@ -396,6 +422,7 @@ fn usage_mentions_icrc_command_surface() {
         block_types,
         archives,
         tip_certificate,
+        analytics_holder_count,
         analytics_total_supply,
     ] {
         assert!(usage.contains("Collection mode: Live query"));

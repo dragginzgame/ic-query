@@ -140,6 +140,23 @@ pub struct IcIcrcTotalSupplyReport {
 }
 
 ///
+/// IcIcrcHolderCountReport
+///
+/// One current holder count from the official Dashboard ICRC API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcHolderCountReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Canonical ICRC ledger canister principal requested from the API.
+    pub ledger_canister_id: String,
+    /// Number of holder rows currently represented by the Dashboard index.
+    pub total: u64,
+}
+
+///
 /// IcDailyStatsRow
 ///
 /// Selected raw daily network-activity values returned by the Dashboard API.

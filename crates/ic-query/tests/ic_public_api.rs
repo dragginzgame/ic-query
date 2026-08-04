@@ -7,26 +7,28 @@ use ic_query::ic::{
     IcCanisterFilters, IcCanisterPageController, IcCanisterPageReport, IcCanisterPageRequest,
     IcCanisterPageRow, IcCanisterReport, IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery,
     IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
-    IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
-    IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
-    IcMetricRequest, IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT,
-    ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
-    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, icrc_total_supply_report_text,
+    IcIcrcAnalyticsRequest, IcIcrcHolderCountReport, IcIcrcTotalSupplyObservation,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricKind,
+    IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
+    MAX_IC_CANISTER_PAGE_LIMIT, ic_boundary_node_data_centers_report_text,
+    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
+    ic_daily_stats_report_text, ic_metric_report_text, icrc_holder_count_report_text,
+    icrc_total_supply_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::ic::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCollectionSource, IcCanisterCountSourceData,
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
-    IcHostError, IcIcrcAnalyticsSource, IcIcrcTotalSupplySourceData, IcMetricSource,
-    IcMetricSourceData, IcNetworkSource, IcSourceRequest, LiveIcSource,
+    IcHostError, IcIcrcAnalyticsSource, IcIcrcHolderCountSourceData, IcIcrcTotalSupplySourceData,
+    IcMetricSource, IcMetricSourceData, IcNetworkSource, IcSourceRequest, LiveIcSource,
     build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
     build_ic_canister_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
-    build_ic_metric_report_with_source, build_icrc_total_supply_report,
+    build_ic_metric_report_with_source, build_icrc_holder_count_report,
+    build_icrc_holder_count_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
 };
 
@@ -135,8 +137,8 @@ fn public_icrc_analytics_api_is_constructible_serializable_and_renderable() {
         query.clone(),
     );
     let report = IcIcrcTotalSupplyReport {
-        provenance: public_provenance(request.source_endpoint),
-        ledger_canister_id: request.ledger_canister_id,
+        provenance: public_provenance(request.analytics.source_endpoint),
+        ledger_canister_id: request.analytics.ledger_canister_id,
         query,
         requested_observation_limit: 2,
         returned_observation_count: 2,
@@ -164,6 +166,28 @@ fn public_icrc_analytics_api_is_constructible_serializable_and_renderable() {
     );
     assert_eq!(json["certified"], false);
     assert!(json.get("query").is_none());
+}
+
+#[test]
+fn public_icrc_holder_count_api_is_constructible_serializable_and_renderable() {
+    let request = IcIcrcAnalyticsRequest::new(
+        "https://icrc-api.internetcomputer.org/api/v2",
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+    );
+    let report = IcIcrcHolderCountReport {
+        provenance: public_provenance(request.source_endpoint),
+        ledger_canister_id: request.ledger_canister_id,
+        total: 78_272,
+    };
+
+    let text = icrc_holder_count_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serializable ICRC holder-count report");
+
+    assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
+    assert!(text.contains("total: 78272"));
+    assert_eq!(json["total"], 78_272);
+    assert_eq!(json["certified"], false);
 }
 
 #[test]
@@ -357,6 +381,12 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
 #[cfg(feature = "host")]
 #[test]
 fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
+    let _: fn(&IcIcrcAnalyticsRequest) -> Result<IcIcrcHolderCountReport, IcHostError> =
+        build_icrc_holder_count_report;
+    let _: fn(
+        &IcIcrcAnalyticsRequest,
+        &dyn IcIcrcAnalyticsSource,
+    ) -> Result<IcIcrcHolderCountReport, IcHostError> = build_icrc_holder_count_report_with_source;
     let _: fn(&IcIcrcTotalSupplyRequest) -> Result<IcIcrcTotalSupplyReport, IcHostError> =
         build_icrc_total_supply_report;
     let _: fn(
@@ -365,6 +395,15 @@ fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
     ) -> Result<IcIcrcTotalSupplyReport, IcHostError> = build_icrc_total_supply_report_with_source;
 
     let source = FixtureSource;
+    let analytics_request = IcIcrcAnalyticsRequest::new(
+        "https://icrc-api.internetcomputer.org/api/v2",
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+    );
+    let holders = build_icrc_holder_count_report_with_source(&analytics_request, &source)
+        .expect("custom ICRC holder-count source report");
+    assert_eq!(holders.total, 78_272);
+
     let request = IcIcrcTotalSupplyRequest::new(
         "https://icrc-api.internetcomputer.org/api/v2",
         1_785_628_800,
@@ -461,6 +500,18 @@ impl IcMetricSource for FixtureSource {
 
 #[cfg(feature = "host")]
 impl IcIcrcAnalyticsSource for FixtureSource {
+    fn fetch_holder_count(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+    ) -> Result<IcIcrcHolderCountSourceData, IcHostError> {
+        Ok(IcIcrcHolderCountSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            total: 78_272,
+        })
+    }
+
     fn fetch_total_supply_series(
         &self,
         request: &IcSourceRequest,

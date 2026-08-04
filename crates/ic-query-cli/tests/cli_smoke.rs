@@ -221,6 +221,22 @@ fn binary_icrc_analytics_total_supply_help_smoke() {
 }
 
 #[test]
+fn binary_icrc_analytics_holder_count_help_smoke() {
+    let output = run_icq(&["icrc", "analytics", "holder", "count", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(
+        stdout.contains("Usage: icq icrc analytics holder count [OPTIONS] <ledger-canister-id>")
+    );
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("exactly one live request"));
+    assert!(stdout.contains("requests no holder rows"));
+    assert!(stdout.contains("does not use a cache"));
+}
+
+#[test]
 fn binary_icrc_allowance_help_smoke() {
     let output = run_icq(&["icrc", "account", "allowance", "--help"]);
 
@@ -415,6 +431,10 @@ fn binary_command_namespaces_match_explicit_local_help() {
         (&["icrc"], &["icrc", "help"]),
         (&["icrc", "account"], &["icrc", "account", "help"]),
         (&["icrc", "analytics"], &["icrc", "analytics", "help"]),
+        (
+            &["icrc", "analytics", "holder"],
+            &["icrc", "analytics", "holder", "help"],
+        ),
         (
             &["icrc", "account", "transaction"],
             &["icrc", "account", "transaction", "help"],

@@ -153,6 +153,22 @@ pub struct IcIcrcTotalSupplySourceData {
 }
 
 ///
+/// IcIcrcHolderCountSourceData
+///
+/// Raw holder count and provenance returned by an official ICRC analytics source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcHolderCountSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Canonical ledger canister principal queried by the source.
+    pub ledger_canister_id: String,
+    /// Number of holder rows reported by the source.
+    pub total: u64,
+}
+
+///
 /// IcDailyStatsSourceData
 ///
 /// Raw bounded daily network-activity rows and provenance returned by a source.

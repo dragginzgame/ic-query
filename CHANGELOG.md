@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.27.md](docs/changelog/0.27.md)
 
+- `0.27.1` adds a one-request official ICRC holder count without requesting or
+  enumerating holder rows. Total-supply and holder-count reports now share one
+  public analytics ledger target, one CLI target parser, one `LiveIcSource`
+  capability, and the existing non-certified Dashboard provenance contract.
+
+```bash
+icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai
+```
+
 - `0.27.0` adds a live-only, one-request historical total-supply series for
   one ledger indexed by the official IC Dashboard ICRC analytics API. Public
   requests, reports, renderers, fixture-source builders, and the live adapter

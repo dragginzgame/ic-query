@@ -18,7 +18,8 @@ pub(in crate::icrc) use account::{
 };
 #[cfg(test)]
 pub(in crate::icrc) use analytics::{
-    command as icrc_analytics_command, icrc_analytics_total_supply_command,
+    command as icrc_analytics_command, icrc_analytics_holder_command,
+    icrc_analytics_holder_count_command, icrc_analytics_total_supply_command,
 };
 #[cfg(test)]
 pub(in crate::icrc) use ledger::{

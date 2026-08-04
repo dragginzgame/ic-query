@@ -18,6 +18,51 @@ const ICRC_SUPPLY_START: u64 = 1_785_542_400;
 const ICRC_SUPPLY_END: u64 = 1_785_801_600;
 
 #[test]
+fn icrc_holder_count_preserves_index_total_and_dashboard_provenance() {
+    let source = IcrcAnalyticsFixture::default();
+    let request = icrc_analytics_request();
+
+    let report = build_icrc_holder_count_report_with_source(&request, &source)
+        .expect("ICRC holder-count report");
+    let text = icrc_holder_count_report_text(&report);
+
+    assert_eq!(source.calls.get(), 1);
+    assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
+    assert_eq!(report.total, 78_272);
+    assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
+    assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
+    assert!(text.contains("total: 78272"));
+}
+
+#[test]
+fn icrc_holder_count_validates_request_and_custom_source_identity() {
+    let source = IcrcAnalyticsFixture::default();
+    let mut request = icrc_analytics_request();
+    request.ledger_canister_id = "not a principal".to_string();
+
+    let error = build_icrc_holder_count_report_with_source(&request, &source)
+        .expect_err("invalid holder-count request must fail");
+    assert!(matches!(error, IcHostError::InvalidPrincipal { .. }));
+    assert_eq!(source.calls.get(), 0);
+
+    for mutation in [
+        IcrcAnalyticsMutation::WrongEndpoint,
+        IcrcAnalyticsMutation::WrongLedger,
+    ] {
+        let source = IcrcAnalyticsFixture {
+            mutation: RefCell::new(Some(mutation)),
+            ..IcrcAnalyticsFixture::default()
+        };
+        let error = build_icrc_holder_count_report_with_source(&icrc_analytics_request(), &source)
+            .expect_err("invalid holder-count source identity must fail");
+
+        assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+    }
+}
+
+#[test]
 fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance() {
     let source = IcrcAnalyticsFixture::default();
     let request = icrc_total_supply_request();
@@ -45,11 +90,11 @@ fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance() {
 #[test]
 fn icrc_total_supply_request_is_validated_before_source_calls() {
     let mutations: [fn(&mut IcIcrcTotalSupplyRequest); 6] = [
-        |request| request.ledger_canister_id = "not a principal".to_string(),
+        |request| request.analytics.ledger_canister_id = "not a principal".to_string(),
         |request| request.query.start_unix_secs = MIN_ICRC_ANALYTICS_TIMESTAMP - 1,
         |request| request.query.end_unix_secs = request.query.start_unix_secs - 1,
         |request| request.query.step_secs = 60,
-        |request| request.query.end_unix_secs = request.now_unix_secs + 1,
+        |request| request.query.end_unix_secs = request.analytics.now_unix_secs + 1,
         |request| {
             request.query.end_unix_secs = request.query.start_unix_secs
                 + MAX_ICRC_ANALYTICS_OBSERVATIONS * u64::from(request.query.step_secs);
@@ -482,6 +527,23 @@ fn live_icrc_analytics_source_validates_bounds_before_endpoint_or_http_request()
 }
 
 #[test]
+fn live_icrc_holder_count_validates_principal_before_endpoint_or_http_request() {
+    let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
+
+    let error = LiveIcSource
+        .fetch_holder_count(&request, "not a principal")
+        .expect_err("invalid holder-count principal must fail first");
+
+    assert!(matches!(
+        error,
+        IcHostError::InvalidPrincipal {
+            field: "ledger_canister_id",
+            ..
+        }
+    ));
+}
+
+#[test]
 fn live_network_source_rejects_invalid_endpoint_before_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
@@ -719,15 +781,22 @@ fn metric_request() -> IcMetricRequest {
 }
 
 fn icrc_total_supply_request() -> IcIcrcTotalSupplyRequest {
-    IcIcrcTotalSupplyRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
-        ICRC_LEDGER_ID,
-        IcIcrcTotalSupplyQuery::new(
+    let analytics = icrc_analytics_request();
+    IcIcrcTotalSupplyRequest {
+        analytics,
+        query: IcIcrcTotalSupplyQuery::new(
             ICRC_SUPPLY_START,
             ICRC_SUPPLY_END,
             DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
         ),
+    }
+}
+
+fn icrc_analytics_request() -> IcIcrcAnalyticsRequest {
+    IcIcrcAnalyticsRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
     )
 }
 
@@ -894,6 +963,29 @@ struct IcrcAnalyticsFixture {
 }
 
 impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
+    fn fetch_holder_count(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+    ) -> Result<IcIcrcHolderCountSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        let mut data = IcIcrcHolderCountSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            total: 78_272,
+        };
+        match self.mutation.borrow_mut().take() {
+            Some(IcrcAnalyticsMutation::WrongEndpoint) => {
+                data.source.endpoint = "https://example.com/api/v2".to_string();
+            }
+            Some(IcrcAnalyticsMutation::WrongLedger) => {
+                data.ledger_canister_id = CANISTER_ID.to_string();
+            }
+            _ => {}
+        }
+        Ok(data)
+    }
+
     fn fetch_total_supply_series(
         &self,
         request: &IcSourceRequest,
