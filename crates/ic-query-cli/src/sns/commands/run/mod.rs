@@ -25,11 +25,20 @@ use clap::ArgMatches;
 use ic_query::{
     QueryProgress, QueryProgressEvent,
     sns::{
-        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, SnsCatalogRefreshRequest, SnsListRequest,
-        build_sns_list_report_from_cache_or_refresh, refresh_sns_catalog, sns_catalog_cache_path,
-        sns_catalog_refresh_report_text, sns_list_report_text,
+        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, SnsCatalogRefreshRequest, SnsListReport,
+        SnsListRequest, build_sns_list_report_from_cache_or_refresh, refresh_sns_catalog,
+        sns_catalog_cache_path, sns_catalog_refresh_report_text, sns_list_report_text,
     },
 };
+use std::{
+    env,
+    io::{self, IsTerminal},
+};
+
+const ANSI_GREEN: &str = "\u{1b}[32m";
+const ANSI_YELLOW: &str = "\u{1b}[33m";
+const ANSI_RED: &str = "\u{1b}[31m";
+const ANSI_RESET: &str = "\u{1b}[0m";
 pub fn command() -> clap::Command {
     sns_command()
 }
@@ -63,6 +72,7 @@ fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandErr
         network: options.network,
         source_endpoint: options.source_endpoint,
         now_unix_secs: command_unix_secs()?,
+        all_lifecycles: options.all_lifecycles,
         verbose: options.verbose,
         sort: options.sort.into(),
     };
@@ -72,7 +82,36 @@ fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandErr
         &command_cache_root()?,
         &mut progress,
     )?;
-    write_text_or_json(format, &report, sns_list_report_text)
+    write_text_or_json(format, &report, sns_list_cli_text)
+}
+
+fn sns_list_cli_text(report: &SnsListReport) -> String {
+    let text = sns_list_report_text(report);
+    if io::stdout().is_terminal() && env::var_os("NO_COLOR").is_none() {
+        color_sns_metadata_statuses(&text)
+    } else {
+        text
+    }
+}
+
+fn color_sns_metadata_statuses(text: &str) -> String {
+    text.lines()
+        .map(|line| {
+            for (status, color) in [
+                ("ok", ANSI_GREEN),
+                ("no_wasm", ANSI_YELLOW),
+                ("error", ANSI_RED),
+            ] {
+                if let Some(prefix) = line.strip_suffix(status)
+                    && prefix.ends_with("   ")
+                {
+                    return format!("{prefix}{color}{status}{ANSI_RESET}");
+                }
+            }
+            line.to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
@@ -95,4 +134,20 @@ fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommand
     });
     let report = refresh_sns_catalog(&request)?;
     write_text_or_json(format, &report, sns_catalog_refresh_report_text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::color_sns_metadata_statuses;
+
+    #[test]
+    fn sns_list_metadata_status_color_preserves_table_alignment() {
+        let text = "ID   NAME      METADATA\n--   -------   --------\n 1   Ready     ok\n 2   Missing   no_wasm\n 3   Failed    error";
+        let colored = color_sns_metadata_statuses(text);
+
+        assert!(colored.contains("Ready     \u{1b}[32mok\u{1b}[0m"));
+        assert!(colored.contains("Missing   \u{1b}[33mno_wasm\u{1b}[0m"));
+        assert!(colored.contains("Failed    \u{1b}[31merror\u{1b}[0m"));
+        assert!(colored.contains("NAME      METADATA"));
+    }
 }

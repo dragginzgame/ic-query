@@ -11,9 +11,9 @@ use super::{
 };
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow,
-    SnsNeuronsSort, SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalsSort, source::MainnetSns,
+    SnsNeuronsSort, SnsProposalAction, SnsProposalDecisionState, SnsProposalEligibilityFilter,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsSort, source::MainnetSns,
 };
 
 #[test]
@@ -173,9 +173,9 @@ fn proposal_title_sort_orders_case_insensitive_with_id_tiebreaker() {
 #[test]
 fn proposal_action_sort_orders_descending_with_id_tiebreaker() {
     let mut proposals = vec![
-        proposal_row_with_action(2, "motion"),
-        proposal_row_with_action(10, "upgrade-sns-controlled-canister"),
-        proposal_row_with_action(1, "motion"),
+        proposal_row_with_action(2, SnsProposalAction::Motion),
+        proposal_row_with_action(10, SnsProposalAction::UpgradeSnsControlledCanister),
+        proposal_row_with_action(1, SnsProposalAction::Motion),
     ];
 
     sort_sns_proposal_rows(
@@ -446,6 +446,9 @@ fn mainnet_sns(id: usize, name: &str) -> MainnetSns {
         swap_canister_id: format!("{id}-swap"),
         index_canister_id: format!("{id}-index"),
         metadata_error: None,
+        lifecycle: None,
+        lifecycle_name: None,
+        lifecycle_error: None,
     }
 }
 
@@ -517,7 +520,8 @@ fn proposal_with_proposer(proposer_neuron_id: Option<&str>) -> SnsProposalRow {
 fn proposal_with_query_text() -> SnsProposalRow {
     SnsProposalRow {
         title: "Treasury motion".to_string(),
-        action: "upgrade-sns-controlled-canister".to_string(),
+        action_id: 3,
+        action: SnsProposalAction::UpgradeSnsControlledCanister,
         summary: "Committee review".to_string(),
         url: Some("https://forum.example/proposal".to_string()),
         payload_text_rendering: Some("Payload preview".to_string()),
@@ -550,9 +554,10 @@ fn proposal_row_with_title(proposal_id: u64, title: &str) -> SnsProposalRow {
     }
 }
 
-fn proposal_row_with_action(proposal_id: u64, action: &str) -> SnsProposalRow {
+fn proposal_row_with_action(proposal_id: u64, action: SnsProposalAction) -> SnsProposalRow {
     SnsProposalRow {
-        action: action.to_string(),
+        action_id: action.id(),
+        action,
         ..proposal_row(proposal_id, 100)
     }
 }
@@ -643,7 +648,7 @@ fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
     SnsProposalRow {
         proposal_id,
         action_id: 0,
-        action: "motion".to_string(),
+        action: SnsProposalAction::Unspecified,
         title: String::new(),
         summary: String::new(),
         url: None,

@@ -6,7 +6,9 @@
 
 use crate::snapshot_cache::{PagedCollectionPage, PagedCollectionState};
 use crate::sns::report::{
-    SnsProposalRow, proposals_cache::model::CompleteSnsProposals, source::MainnetSnsProposalPage,
+    SnsHostError, SnsProposalRow,
+    proposals_cache::model::CompleteSnsProposals,
+    source::{MainnetSnsProposalPage, validate_mainnet_sns_proposal_page},
 };
 
 ///
@@ -45,14 +47,19 @@ impl SnsProposalsCollectionState {
         self.pages.has_next_cursor()
     }
 
-    pub(super) fn ingest_page(&mut self, page: MainnetSnsProposalPage) -> PagedCollectionPage {
+    pub(super) fn ingest_page(
+        &mut self,
+        page: MainnetSnsProposalPage,
+        requested_limit: u32,
+    ) -> Result<PagedCollectionPage, SnsHostError> {
+        validate_mainnet_sns_proposal_page(&page, requested_limit)?;
         let last_cursor = page.proposals.last().map(|proposal| proposal.proposal_id);
-        self.pages.ingest_page(
+        Ok(self.pages.ingest_page(
             page.proposals,
             last_cursor,
             ToString::to_string,
             |proposal| proposal.proposal_id.to_string(),
-        )
+        ))
     }
 
     pub(super) fn into_complete(self) -> CompleteSnsProposals {

@@ -17,6 +17,7 @@ pub struct SnsListRequest {
     pub network: String,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
+    pub all_lifecycles: bool,
     pub verbose: bool,
     pub sort: SnsListSort,
 }
@@ -32,6 +33,7 @@ impl SnsListRequest {
             network: network.into(),
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
+            all_lifecycles: false,
             verbose: false,
             sort: SnsListSort::default(),
         }
@@ -40,6 +42,12 @@ impl SnsListRequest {
     #[must_use]
     pub const fn with_verbose(mut self, verbose: bool) -> Self {
         self.verbose = verbose;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_all_lifecycles(mut self, all_lifecycles: bool) -> Self {
+        self.all_lifecycles = all_lifecycles;
         self
     }
 

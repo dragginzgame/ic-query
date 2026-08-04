@@ -19,7 +19,10 @@ use crate::{
         proposals_cache::{
             build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
         },
-        source::{SnsProposalSource, SnsProposalsSource},
+        source::{
+            SnsProposalSource, SnsProposalsSource, validate_mainnet_sns_proposal,
+            validate_mainnet_sns_proposals,
+        },
         view::{
             proposal_matches_eligibility, proposal_matches_proposer, proposal_matches_query,
             sort_sns_proposal_rows,
@@ -65,6 +68,7 @@ pub fn build_sns_proposal_report_with_source(
     let lookup = resolve_sns_lookup(&lookup_request, source)?;
     let proposal =
         source.fetch_sns_proposal(&lookup.fetch_request, &lookup.sns, request.proposal_id)?;
+    validate_mainnet_sns_proposal(&proposal, request.proposal_id)?;
     Ok(sns_proposal_report_from_parts(SnsProposalReportParts {
         list: lookup.list,
         id: lookup.id,
@@ -132,6 +136,7 @@ fn build_sns_proposals_report_live(
         &include_status,
         request.topic,
     )?;
+    validate_mainnet_sns_proposals(&proposals, request.limit)?;
     proposals
         .proposals
         .retain(|proposal| proposal_matches_eligibility(proposal, request.eligibility));

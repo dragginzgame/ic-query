@@ -67,7 +67,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
                 .map(|proposal| {
                     [
                         proposal.proposal_id.to_string(),
-                        proposal.action.clone(),
+                        proposal.action.to_string(),
                         proposal.decision_state.as_str().to_string(),
                         proposal.created_at.clone(),
                         proposal_title_for_list(proposal, report.verbose),

@@ -7,6 +7,7 @@
 use super::CacheStatusReport;
 use crate::{
     duration::display_duration_seconds,
+    human_quantity::byte_count_text,
     table::{ColumnAlign, render_table},
     text_value::{sanitize_text, yes_no},
 };
@@ -23,7 +24,10 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
         format!("stale: {}", report.stale_count),
         format!("unmanaged: {}", report.unmanaged_count),
         format!("invalid: {}", report.invalid_count),
-        format!("total_size_bytes: {}", report.total_size_bytes),
+        format!(
+            "total_size_bytes: {}",
+            byte_count_text(u128::from(report.total_size_bytes))
+        ),
         format!("refresh_locks: {}", report.refresh_lock_count),
         format!("active_refresh_locks: {}", report.active_refresh_lock_count),
         format!("stale_refresh_locks: {}", report.stale_refresh_lock_count),
@@ -33,7 +37,7 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
         ),
         format!(
             "refresh_lock_size_bytes: {}",
-            report.refresh_lock_size_bytes
+            byte_count_text(u128::from(report.refresh_lock_size_bytes))
         ),
         format!("truncated: {}", yes_no(report.truncated)),
     ];
@@ -58,7 +62,7 @@ fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
                             .map_or_else(|| "-".to_string(), display_duration_seconds),
                         row.stale_after_seconds
                             .map_or_else(|| "-".to_string(), display_duration_seconds),
-                        row.size_bytes.to_string(),
+                        byte_count_text(u128::from(row.size_bytes)),
                         row.relative_path.clone(),
                     ]
                 })

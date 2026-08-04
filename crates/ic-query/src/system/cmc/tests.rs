@@ -67,9 +67,9 @@ fn cycles_report_uses_the_exact_protocol_conversion() {
     );
 
     let text = cmc_cycles_report_text(&report);
-    assert!(text.contains("cycles_per_xdr: 1000000000000"));
+    assert!(text.contains("cycles_per_xdr: 1 T"));
     assert!(text.contains("cycles_per_xdr_source: ic_protocol_constant"));
-    assert!(text.contains("cycles_per_icp: 4916400000000"));
+    assert!(text.contains("cycles_per_icp: 4.92 T"));
 }
 
 #[test]

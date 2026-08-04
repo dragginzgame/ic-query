@@ -1,3 +1,4 @@
+use crate::sns::report::source::sns_swap_lifecycle_name;
 use crate::sns::report::tests::*;
 
 pub(in crate::sns::report::tests) const ROOT_A: &str = "be2us-64aaa-aaaaa-qaabq-cai";
@@ -5,7 +6,7 @@ pub(in crate::sns::report::tests) const GOVERNANCE_A: &str = "bkyz2-fmaaa-aaaaa-
 pub(in crate::sns::report::tests) const LEDGER_A: &str = "bd3sg-teaaa-aaaaa-qaaba-cai";
 pub(in crate::sns::report::tests) const SWAP_A: &str = "br5f7-7uaaa-aaaaa-qaaca-cai";
 pub(in crate::sns::report::tests) const INDEX_A: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
-const ROOT_B: &str = "bd3sg-teaaa-aaaaa-qaaba-cai";
+pub(in crate::sns::report::tests) const ROOT_B: &str = "bd3sg-teaaa-aaaaa-qaaba-cai";
 const GOVERNANCE_B: &str = "br5f7-7uaaa-aaaaa-qaaca-cai";
 const LEDGER_B: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
 const SWAP_B: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
@@ -36,6 +37,16 @@ impl SnsDiscoverySource for FixtureSnsDiscoverySource {
             .iter()
             .map(|target| fixture_metadata(target, None))
             .collect())
+    }
+}
+
+impl SnsCatalogSource for FixtureSnsDiscoverySource {
+    fn fetch_sns_lifecycles(
+        &self,
+        _request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
+        Ok(fixture_lifecycles(targets, |_| 3))
     }
 }
 
@@ -76,6 +87,22 @@ impl SnsDiscoverySource for UnsortedFixtureSnsDiscoverySource {
     }
 }
 
+impl SnsCatalogSource for UnsortedFixtureSnsDiscoverySource {
+    fn fetch_sns_lifecycles(
+        &self,
+        _request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
+        Ok(fixture_lifecycles(targets, |target| {
+            if target.root_canister_id == ROOT_A {
+                3
+            } else {
+                4
+            }
+        }))
+    }
+}
+
 ///
 /// MetadataErrorFixtureSnsDiscoverySource
 ///
@@ -103,6 +130,16 @@ impl SnsDiscoverySource for MetadataErrorFixtureSnsDiscoverySource {
                 fixture_metadata(target, Some("get_metadata: Canister has no Wasm module"))
             })
             .collect())
+    }
+}
+
+impl SnsCatalogSource for MetadataErrorFixtureSnsDiscoverySource {
+    fn fetch_sns_lifecycles(
+        &self,
+        _request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
+        Ok(fixture_lifecycles(targets, |_| 3))
     }
 }
 
@@ -136,6 +173,9 @@ pub(in crate::sns::report::tests) fn fixture_sns_a() -> MainnetSns {
         swap_canister_id: SWAP_A.to_string(),
         index_canister_id: INDEX_A.to_string(),
         metadata_error: None,
+        lifecycle: None,
+        lifecycle_name: None,
+        lifecycle_error: None,
     }
 }
 
@@ -188,4 +228,22 @@ fn fixture_metadata(
         url: url.map(str::to_string),
         metadata_error: None,
     }
+}
+
+fn fixture_lifecycles(
+    targets: &[MainnetSnsCanisters],
+    lifecycle: impl Fn(&MainnetSnsCanisters) -> i32,
+) -> Vec<MainnetSnsLifecycle> {
+    targets
+        .iter()
+        .map(|target| {
+            let lifecycle = lifecycle(target);
+            MainnetSnsLifecycle {
+                root_canister_id: target.root_canister_id.clone(),
+                lifecycle: Some(lifecycle),
+                lifecycle_name: sns_swap_lifecycle_name(Some(lifecycle)).map(str::to_string),
+                lifecycle_error: None,
+            }
+        })
+        .collect()
 }

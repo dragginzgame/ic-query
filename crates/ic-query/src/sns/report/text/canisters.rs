@@ -5,6 +5,7 @@
 //! Boundary: presents raw report fields compactly without changing the JSON contract.
 
 use crate::{
+    human_quantity::{decimal_byte_count_text, decimal_cycle_count_text},
     sns::report::SnsCanisterReport,
     table::{ColumnAlign, render_table},
     text_value::{optional_text, sanitize_text, truncate_text, yes_no},
@@ -106,8 +107,14 @@ fn canisters_table(report: &SnsCanisterReport) -> String {
                         || "-".to_string(),
                         |hash| truncate_text(hash, MODULE_HASH_TEXT_CHARS),
                     ),
-                    optional_text(canister.cycles.as_ref()),
-                    optional_text(canister.memory_size.as_ref()),
+                    canister
+                        .cycles
+                        .as_deref()
+                        .map_or_else(|| "-".to_string(), decimal_cycle_count_text),
+                    canister
+                        .memory_size
+                        .as_deref()
+                        .map_or_else(|| "-".to_string(), decimal_byte_count_text),
                     canister.controllers.len().to_string(),
                 ]
             })

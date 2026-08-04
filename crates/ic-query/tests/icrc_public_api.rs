@@ -897,7 +897,7 @@ fn public_icrc_tip_certificate_api_is_constructible_and_renderable_without_host(
     let text = icrc_tip_certificate_report_text(&report);
 
     assert!(text.contains("certificate_present: true"));
-    assert!(text.contains("certificate_bytes: 3"));
+    assert!(text.contains("certificate_bytes: 3 B"));
     assert!(text.contains("hash_tree_hex: aabb"));
 }
 

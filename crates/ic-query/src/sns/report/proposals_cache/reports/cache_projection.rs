@@ -45,6 +45,9 @@ pub(super) fn project_sns_proposals_cache(cache: SnsProposalsCache) -> SnsPropos
         swap_canister_id: String::new(),
         index_canister_id: String::new(),
         metadata_error: None,
+        lifecycle: None,
+        lifecycle_name: None,
+        lifecycle_error: None,
     };
     SnsProposalsCacheProjection {
         list,

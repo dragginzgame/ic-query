@@ -2,7 +2,7 @@
 //!
 //! Responsibility: define deployed-SNS catalog cache requests and refresh reports.
 //! Does not own: cache IO, live collection, or list projection.
-//! Boundary: keeps cache identity separate from list sorting and verbosity.
+//! Boundary: keeps cache identity separate from list filtering, sorting, and verbosity.
 
 use serde::Serialize;
 use std::path::PathBuf;
@@ -42,7 +42,7 @@ impl SnsCatalogCacheRequest {
 pub struct SnsCatalogRefreshRequest {
     /// Cache identity and root.
     pub cache: SnsCatalogCacheRequest,
-    /// Explicit IC API endpoint used for SNS-W and Governance queries.
+    /// Explicit IC API endpoint used for SNS-W, Governance, and Swap queries.
     pub source_endpoint: String,
     /// Collection start time supplied by the caller.
     pub now_unix_secs: u64,
@@ -97,4 +97,6 @@ pub struct SnsCatalogRefreshReport {
     pub sns_count: usize,
     /// Number of rows retaining a bounded metadata error.
     pub metadata_error_count: usize,
+    /// Number of rows retaining a bounded lifecycle error.
+    pub lifecycle_error_count: usize,
 }

@@ -16,6 +16,9 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
         "sns_wasm_canister_id: {}",
         report.sns_wasm_canister_id
     ));
+    lines.push(format!("all_lifecycles: {}", yes_no(report.all_lifecycles)));
+    lines.push(format!("catalog_sns_count: {}", report.catalog_sns_count));
+    lines.push(format!("excluded_sns_count: {}", report.excluded_sns_count));
     lines.push(format!("sns_count: {}", report.sns_count));
     lines.push(format!("fetched_at: {}", sanitize_text(&report.fetched_at)));
     lines.push(format!("data_source: {}", report.data_source));
@@ -31,6 +34,10 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
     ));
     lines.push(format!("sort: {}", report.sort));
     lines.push(format!("metadata_errors: {}", report.metadata_error_count));
+    lines.push(format!(
+        "lifecycle_errors: {}",
+        report.lifecycle_error_count
+    ));
     if !report.sns_instances.is_empty() {
         lines.push(String::new());
         lines.push(render_table(
@@ -42,6 +49,8 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                 "LEDGER",
                 "SWAP",
                 "INDEX",
+                "LIFECYCLE",
+                "METADATA",
             ],
             &report
                 .sns_instances
@@ -55,6 +64,12 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                         principal_for_list(&sns.ledger_canister_id, report.verbose),
                         principal_for_list(&sns.swap_canister_id, report.verbose),
                         principal_for_list(&sns.index_canister_id, report.verbose),
+                        lifecycle_status(
+                            sns.lifecycle_name.as_deref(),
+                            sns.lifecycle_error.as_deref(),
+                        )
+                        .to_string(),
+                        metadata_status(sns.metadata_error.as_deref()).to_string(),
                     ]
                 })
                 .collect::<Vec<_>>(),
@@ -66,25 +81,28 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                 ColumnAlign::Left,
                 ColumnAlign::Left,
                 ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Left,
             ],
         ));
     }
-    if report.verbose && report.metadata_error_count > 0 {
-        lines.push(String::new());
-        lines.push("metadata_error_details:".to_string());
-        for (governance_canister_id, error) in report.sns_instances.iter().filter_map(|sns| {
-            sns.metadata_error
-                .as_deref()
-                .map(|error| (&sns.governance_canister_id, error))
-        }) {
-            lines.push(format!(
-                "- {}: {}",
-                sanitize_text(governance_canister_id),
-                sanitize_text(error)
-            ));
-        }
-    }
     lines.join("\n")
+}
+
+const fn lifecycle_status<'a>(name: Option<&'a str>, error: Option<&str>) -> &'a str {
+    match (name, error) {
+        (Some(name), None) => name,
+        (None, Some(_)) => "error",
+        _ => "-",
+    }
+}
+
+fn metadata_status(error: Option<&str>) -> &'static str {
+    match error {
+        None => "ok",
+        Some(error) if error.contains("no Wasm module") => "no_wasm",
+        Some(_) => "error",
+    }
 }
 
 fn principal_for_list(value: &str, verbose: bool) -> String {

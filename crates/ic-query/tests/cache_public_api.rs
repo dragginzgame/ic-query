@@ -35,7 +35,7 @@ fn public_cache_models_preserve_evidence_without_host() {
 fn public_cache_status_api_is_local_and_constructible() {
     let cache_root = PathBuf::from("target/ic-query-cache-public-api-empty-root");
     let request = CacheStatusRequest::new(&cache_root, 1_700_000_000);
-    let report = build_cache_status_report(&request).expect("local cache inventory");
+    let mut report = build_cache_status_report(&request).expect("local cache inventory");
 
     assert_eq!(report.schema_version, CACHE_STATUS_REPORT_SCHEMA_VERSION);
     assert_eq!(report.cache_root, cache_root.display().to_string());
@@ -44,5 +44,13 @@ fn public_cache_status_api_is_local_and_constructible() {
     assert_eq!(report.refresh_lock_count, 0);
     assert_eq!(CacheFileStatus::Unmanaged.as_str(), "unmanaged");
     assert_eq!(CacheRefreshLockStatus::Active.as_str(), "active");
-    assert!(cache_status_report_text(&report).contains("cache_count: 0"));
+    report.total_size_bytes = 1_372;
+    report.refresh_lock_size_bytes = 1_024;
+    let text = cache_status_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize cache status report");
+    assert!(text.contains("cache_count: 0"));
+    assert!(text.contains("total_size_bytes: 1.34 KiB"));
+    assert!(text.contains("refresh_lock_size_bytes: 1 KiB"));
+    assert_eq!(json["total_size_bytes"], 1_372);
+    assert_eq!(json["refresh_lock_size_bytes"], 1_024);
 }

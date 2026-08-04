@@ -40,6 +40,7 @@ fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
     assert!(text.contains("reported_zero_cycles_count: 1"));
     assert!(text.contains("cycles_unavailable_count: 1"));
     assert!(text.contains("health_query_status: succeeded"));
+    assert!(text.contains("1.91 MiB"));
     assert!(text.contains("health_unsupported"));
 }
 

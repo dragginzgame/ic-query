@@ -155,6 +155,25 @@ fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
 }
 
 #[test]
+fn cycle_burn_metric_formats_text_and_preserves_raw_json() {
+    let mut report =
+        build_ic_metric_report_with_source(&metric_request(), &MetricFixture::default())
+            .expect("bounded Dashboard metric report");
+    report.query.metric = IcMetricKind::CycleBurnRate;
+    report.series[0].name = "cycle_burn_rate".to_string();
+    report.series[0].observations[0].value = "40067084771.847176".to_string();
+
+    let text = ic_metric_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize cycle-burn metric report");
+
+    assert!(text.contains("1699996400  40.07 B"));
+    assert_eq!(
+        json["series"][0]["observations"][0]["value"],
+        "40067084771.847176"
+    );
+}
+
+#[test]
 fn metric_request_bounds_are_validated_before_source_calls() {
     let source = MetricFixture::default();
     let mut request = metric_request();

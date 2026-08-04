@@ -10,14 +10,15 @@ use ic_query::sns::{
     SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
     SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
-    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
-    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
-    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
-    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
-    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
-    SnsRewardCollectionStatus, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent,
-    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
-    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalAction, SnsProposalBallotRow,
+    SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalFailureReason,
+    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
+    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalVote,
+    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsRewardAllocationStatus,
+    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCollectionStatus,
+    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent, SnsRewardProposalId,
+    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
     SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
     SnsVotingPowerMetrics, SnsVotingRewardsParameters, build_sns_reward_diff_report,
@@ -32,20 +33,21 @@ use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron, MainnetSnsNeuronPage,
-    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsCatalogCacheRequest,
-    SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsDiscoverySource, SnsHostError,
-    SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource, SnsNeuronsRefreshReport,
-    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
-    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsRefreshReport,
-    SnsProposalsRefreshRequest, SnsProposalsSource, SnsRewardCheckpointRequest, SnsRewardSource,
-    SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
-    build_sns_canister_report_with_source, build_sns_info_report,
-    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_from_cache,
-    build_sns_list_report_from_cache_or_refresh, build_sns_list_report_with_source,
-    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
+    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
+    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource,
+    SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsCatalogSource,
+    SnsDiscoverySource, SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest,
+    SnsNeuronSource, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsReport,
+    SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsProposalsSource,
+    SnsRewardCheckpointRequest, SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
+    SnsUpgradeSource, build_sns_canister_report, build_sns_canister_report_with_source,
+    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
+    build_sns_list_report_from_cache, build_sns_list_report_from_cache_or_refresh,
+    build_sns_list_report_with_source, build_sns_metrics_report,
+    build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
     build_sns_neuron_detail_report_with_source, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, build_sns_neurons_report,
     build_sns_neurons_report_with_source, build_sns_params_report,
@@ -454,6 +456,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_700_000_000,
+        all_lifecycles: false,
         verbose: false,
         sort: SnsListSort::Id,
     };
@@ -470,10 +473,14 @@ fn public_sns_list_api_is_constructible_and_renderable() {
         data_source: ReportDataSource::Live,
         cache_path: None,
         cache_complete: None,
+        all_lifecycles: request.all_lifecycles,
         verbose: request.verbose,
         sort: request.sort.as_str().to_string(),
+        catalog_sns_count: 0,
+        excluded_sns_count: 0,
         sns_count: 0,
         metadata_error_count: 0,
+        lifecycle_error_count: 0,
         sns_instances: Vec::new(),
     };
 
@@ -639,8 +646,13 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
         json["canisters"][0]["cycle_balance_status"],
         "reported_nonzero"
     );
+    assert_eq!(json["canisters"][0]["cycles"], "1000000");
+    assert_eq!(json["canisters"][0]["memory_size"], "2000000");
+    assert_eq!(json["canisters"][0]["idle_cycles_burned_per_day"], "3000");
     assert!(text.contains("health_call_type: ingress_update"));
     assert!(text.contains("running"));
+    assert!(text.contains("1 M"));
+    assert!(text.contains("1.91 MiB"));
     assert_eq!(health_query_gap.reason, "health unavailable");
 }
 
@@ -908,11 +920,17 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
     };
 
     let text = sns_proposals_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize SNS proposals report");
 
     assert!(text.contains("proposal_count: 1"));
     assert!(text.contains("topic_filter: governance"));
     assert!(text.contains("proposal_details:"));
     assert!(text.contains("title: Upgrade SNS"));
+    assert_eq!(
+        json["proposals"][0]["action"],
+        "upgrade_sns_to_next_version"
+    );
+    assert_eq!(json["proposals"][0]["ballots"][0]["vote_text"], "yes");
 }
 
 #[test]
@@ -949,11 +967,14 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
     };
 
     let text = sns_proposal_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize SNS proposal report");
 
     assert!(text.contains("proposal_id: 42"));
     assert!(text.contains("show_ballots: yes"));
     assert!(text.contains("ballots:"));
     assert!(text.contains("Upgrade SNS"));
+    assert_eq!(json["proposal"]["action"], "upgrade_sns_to_next_version");
+    assert_eq!(json["proposal"]["ballots"][0]["vote_text"], "yes");
 }
 
 #[cfg(feature = "host")]
@@ -1232,6 +1253,7 @@ fn public_sns_host_api_exposes_catalog_cache_contract() {
         replaced_existing_cache: false,
         sns_count: 1,
         metadata_error_count: 0,
+        lifecycle_error_count: 0,
     };
     assert!(sns_catalog_refresh_report_text(&refresh_report).contains("sns_count: 1"));
 }
@@ -1409,6 +1431,26 @@ impl SnsDiscoverySource for FixtureSnsSource {
                 description: Some("Example description".to_string()),
                 url: Some("https://example.com/sns".to_string()),
                 metadata_error: None,
+            })
+            .collect())
+    }
+}
+
+#[cfg(feature = "host")]
+impl SnsCatalogSource for FixtureSnsSource {
+    fn fetch_sns_lifecycles(
+        &self,
+        request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
+        assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+        Ok(targets
+            .iter()
+            .map(|target| MainnetSnsLifecycle {
+                root_canister_id: target.root_canister_id.clone(),
+                lifecycle: Some(3),
+                lifecycle_name: Some("committed".to_string()),
+                lifecycle_error: None,
             })
             .collect())
     }
@@ -1989,7 +2031,7 @@ fn sample_sns_proposal_row() -> SnsProposalRow {
     SnsProposalRow {
         proposal_id: 42,
         action_id: 7,
-        action: "UpgradeSnsControlledCanister".to_string(),
+        action: SnsProposalAction::UpgradeSnsToNextVersion,
         title: "Upgrade SNS".to_string(),
         summary: "Upgrade the SNS controlled canister.".to_string(),
         url: Some("https://example.com/proposal/42".to_string()),
@@ -2022,7 +2064,7 @@ fn sample_sns_proposal_row() -> SnsProposalRow {
         ballots: vec![SnsProposalBallotRow {
             neuron_id: "0102030405060708".to_string(),
             vote: 1,
-            vote_text: "yes".to_string(),
+            vote_text: SnsProposalVote::Yes,
             cast_timestamp_seconds: 1_700_000_200,
             cast_at: Some("2023-11-14T22:16:40Z".to_string()),
             voting_power: 100_000_000,

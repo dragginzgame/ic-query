@@ -25,7 +25,7 @@ fn sns_help_is_advertised() {
     assert!(sns.contains("canister"));
     assert!(sns.contains("proposal"));
     assert!(sns.contains("neuron"));
-    assert!(sns.contains("List deployed mainnet SNS instances"));
+    assert!(sns.contains("List successfully launched mainnet SNS instances"));
     assert!(sns.contains("Resolve a deployed SNS"));
     assert!(sns.contains("Show SNS ledger token metadata"));
     assert!(sns.contains("Show SNS governance nervous system parameters"));
@@ -170,13 +170,14 @@ fn sns_swap_help_is_advertised() {
 #[test]
 fn sns_list_usage_snapshot() {
     let expected = "\
-List deployed mainnet SNS instances
+List successfully launched mainnet SNS instances
 
 Usage: icq sns list [OPTIONS]
 
 Options:
+      --all                    Include every Swap lifecycle; default shows committed (successfully launched) SNSes
       --json                   Print raw JSON instead of human-readable text
-      --source-endpoint <url>  IC API endpoint used for SNS-W and governance metadata queries [default: https://icp-api.io]
+      --source-endpoint <url>  IC API endpoint used for SNS-W, Governance, and Swap queries [default: https://icp-api.io]
       --verbose                Show full canister IDs in text output
       --sort <id|name>         Text/JSON row order; ids follow the SNS-W response order [default: id] [possible values: id, name]
   -h, --help                   Print help
@@ -188,6 +189,7 @@ or older than one hour. Targeted SNS commands retain bounded targeted discovery.
 
 Examples:
   icq sns list
+  icq sns list --all
   icq sns list --sort name
   icq sns list --verbose
   icq --network ic sns list --json

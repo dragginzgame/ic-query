@@ -1,4 +1,5 @@
 use crate::{
+    human_quantity::cycle_count_text,
     subnet_catalog::SubnetCatalogInfoReport,
     text_value::{sanitize_text, yes_no},
 };
@@ -78,7 +79,7 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
         "cycles_per_billion_instructions: {}",
         report
             .cycles_per_billion_instructions
-            .map_or_else(|| "not_applicable".to_string(), |cycles| cycles.to_string())
+            .map_or_else(|| "not_applicable".to_string(), cycle_count_text)
     ));
     if let Some(rate_source) = &report.rate_source {
         lines.push(safe_line("rate_source", rate_source));

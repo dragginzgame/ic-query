@@ -53,6 +53,7 @@ or older than one hour. Targeted SNS commands retain bounded targeted discovery.
 
 Examples:
   icq sns list
+  icq sns list --all
   icq sns list --sort name
   icq sns list --verbose
   icq --network ic sns list --json
@@ -84,11 +85,14 @@ pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq sns list")
-        .about("List deployed mainnet SNS instances")
+        .about("List successfully launched mainnet SNS instances")
+        .arg(flag_arg("all").long("all").help(
+            "Include every Swap lifecycle; default shows committed (successfully launched) SNSes",
+        ))
         .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W and governance metadata queries"),
+                .help("IC API endpoint used for SNS-W, Governance, and Swap queries"),
         )
         .arg(
             flag_arg("verbose")
@@ -109,7 +113,7 @@ pub(in crate::sns::commands) fn sns_refresh_command() -> ClapCommand {
         .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W and governance metadata queries"),
+                .help("IC API endpoint used for SNS-W, Governance, and Swap queries"),
         )
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,

@@ -24,6 +24,7 @@ pub(in crate::sns::commands) struct SnsListOptions {
     pub(in crate::sns::commands) network: String,
     pub(in crate::sns::commands) format: OutputFormat,
     pub(in crate::sns::commands) source_endpoint: String,
+    pub(in crate::sns::commands) all_lifecycles: bool,
     pub(in crate::sns::commands) verbose: bool,
     pub(in crate::sns::commands) sort: SnsListSortArg,
 }
@@ -57,6 +58,7 @@ impl SnsListOptions {
             network: network.to_string(),
             format: output_format(matches),
             source_endpoint: required_string(matches, "source-endpoint"),
+            all_lifecycles: matches.get_flag("all"),
             verbose: matches.get_flag("verbose"),
             sort: required_typed(matches, "sort"),
         }

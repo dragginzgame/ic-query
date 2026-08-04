@@ -6,11 +6,11 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron, MainnetSnsNeuronPage,
-    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter, SnsRewardEvent,
-    SnsRunningVersionResponse, SnsSourceRequest,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
+    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
+    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter,
+    SnsRewardEvent, SnsRunningVersionResponse, SnsSourceRequest,
 };
 
 ///
@@ -32,6 +32,21 @@ pub trait SnsDiscoverySource {
         request: &SnsSourceRequest,
         targets: &[MainnetSnsCanisters],
     ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError>;
+}
+
+///
+/// SnsCatalogSource
+///
+/// Source contract for enriching a complete deployed-SNS catalog with Swap lifecycles.
+///
+
+pub trait SnsCatalogSource: SnsDiscoverySource {
+    /// Fetch lifecycle evidence for exactly the supplied deployed-SNS targets.
+    fn fetch_sns_lifecycles(
+        &self,
+        request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError>;
 }
 
 ///

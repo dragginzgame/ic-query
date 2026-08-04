@@ -12,8 +12,9 @@ use crate::sns::report::{
         model::{SNS_PROPOSALS_CACHE_FIELDS, SnsProposalsCacheRows},
         paths::SnsProposalsCacheCollection,
     },
+    source::validate_sns_proposal_rows,
 };
-use std::{collections::HashSet, path::PathBuf};
+use std::path::PathBuf;
 
 mod lookup;
 
@@ -35,15 +36,6 @@ impl SnsCacheStorageFamily for SnsProposalsCacheCollection {
     }
 
     fn validate_rows(data: &Self::Data) -> Result<(), String> {
-        let mut proposal_ids = HashSet::new();
-        if let Some(duplicate) = data
-            .proposals
-            .iter()
-            .map(|proposal| proposal.proposal_id)
-            .find(|proposal_id| !proposal_ids.insert(*proposal_id))
-        {
-            return Err(format!("duplicate proposal id {duplicate}"));
-        }
-        Ok(())
+        validate_sns_proposal_rows(&data.proposals)
     }
 }

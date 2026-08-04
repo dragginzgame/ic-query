@@ -2,7 +2,7 @@
 //!
 //! Responsibility: load, refresh, validate, and project the deployed-SNS catalog cache.
 //! Does not own: source transport, text rendering, or process output.
-//! Boundary: one network-level atomic snapshot prevents repeated all-SNS metadata fan-out.
+//! Boundary: one network-level atomic snapshot prevents repeated all-SNS enrichment fan-out.
 
 use super::{
     SNS_CATALOG_CACHE_SCHEMA_VERSION, SNS_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
@@ -25,10 +25,10 @@ use crate::{
         enforce_mainnet_network,
         live::LiveSnsSource,
         source::{
-            JoinedMainnetSnsInventory, MainnetSns, SnsDiscoverySource,
-            validate_joined_mainnet_sns_inventory,
+            JoinedMainnetSnsInventory, MainnetSns, SnsCatalogSource,
+            validate_joined_mainnet_sns_catalog,
         },
-        view::sort_mainnet_sns_instances,
+        view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
     },
     subnet_catalog::parse_utc_timestamp_secs,
 };
@@ -145,7 +145,7 @@ pub fn build_sns_list_report_from_cache_or_refresh(
 pub fn build_sns_list_report_from_cache_or_refresh_with_source(
     request: &SnsListRequest,
     cache_root: &Path,
-    source: &dyn SnsDiscoverySource,
+    source: &dyn SnsCatalogSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsListReport, SnsHostError> {
     let refresh = refresh_request(request, cache_root);
@@ -176,7 +176,7 @@ pub fn refresh_sns_catalog(
 /// Force a catalog refresh through a caller-supplied discovery source.
 pub fn refresh_sns_catalog_with_source(
     request: &SnsCatalogRefreshRequest,
-    source: &dyn SnsDiscoverySource,
+    source: &dyn SnsCatalogSource,
 ) -> Result<SnsCatalogRefreshReport, SnsHostError> {
     enforce_mainnet_network(&request.cache.network)?;
     let paths = catalog_paths(&request.cache.cache_root, &request.cache.network);
@@ -196,11 +196,16 @@ pub fn refresh_sns_catalog_with_source(
                 request.now_unix_secs,
             );
             let list = fetch_joined_sns_catalog(&list_request, source)?;
-            validate_joined_mainnet_sns_inventory(&list)?;
+            validate_joined_mainnet_sns_catalog(&list)?;
             let metadata_error_count = list
                 .sns_instances
                 .iter()
                 .filter(|sns| sns.metadata_error.is_some())
+                .count();
+            let lifecycle_error_count = list
+                .sns_instances
+                .iter()
+                .filter(|sns| sns.lifecycle_error.is_some())
                 .count();
             let sns_count = list.sns_instances.len();
             let cache = cache_from_list(list);
@@ -221,6 +226,7 @@ pub fn refresh_sns_catalog_with_source(
                 replaced_existing_cache: state.replaced_existing_snapshot,
                 sns_count,
                 metadata_error_count,
+                lifecycle_error_count,
             })
         },
     )
@@ -263,7 +269,7 @@ fn validate_catalog_cache(path: &Path, cache: &SnsCatalogCache) -> Result<(), Sn
         .map_err(invalid)?;
     if cache.completeness.point_in_time_guaranteed {
         return Err(invalid(
-            "sequential SNS metadata queries cannot claim a point-in-time guarantee".to_string(),
+            "sequential SNS enrichment queries cannot claim a point-in-time guarantee".to_string(),
         ));
     }
     if cache.metadata.sns_wasm_canister_id != MAINNET_SNS_WASM_CANISTER_ID {
@@ -277,8 +283,8 @@ fn validate_catalog_cache(path: &Path, cache: &SnsCatalogCache) -> Result<(), Sn
             "fetched_at is not a canonical UTC timestamp".to_string(),
         ));
     }
-    validate_joined_mainnet_sns_inventory(&joined_from_cache(cache))
-        .map_err(|error| invalid(format!("cached joined SNS inventory is invalid: {error}")))
+    validate_joined_mainnet_sns_catalog(&joined_from_cache(cache))
+        .map_err(|error| invalid(format!("cached joined SNS catalog is invalid: {error}")))
 }
 
 fn load_observed_sns_catalog(
@@ -332,9 +338,13 @@ fn joined_from_cache(cache: &SnsCatalogCache) -> JoinedMainnetSnsInventory {
 
 fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) -> SnsListReport {
     let mut list = joined_from_cache(&cached.cache);
+    let catalog_sns_count = list.sns_instances.len();
+    filter_mainnet_sns_instances(&mut list.sns_instances, request.all_lifecycles);
     sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
     sns_list_report_from_list(
         list,
+        catalog_sns_count,
+        request.all_lifecycles,
         request.verbose,
         request.sort,
         SnsReportProvenance::cache(&cached.path, true),

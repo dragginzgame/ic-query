@@ -11,6 +11,21 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.19` replaces free-form SNS proposal action and ballot-vote labels with
+  typed native classifications that retain generic action ids and unknown
+  action or vote codes, with shared validation across live, custom-source,
+  refresh, and cache paths. It also adds compact, terminal-aware metadata
+  health to `sns list`, retains each SNS's raw Swap lifecycle in the joined
+  catalog, defaults the list to successfully launched lifecycle `3` SNSes, and
+  adds `--all` for every lifecycle. It also standardizes human-readable cycles
+  and byte sizes across SNS health, Dashboard cycle-burn rates, Subnet pricing,
+  CMC conversions, caches, and certificate evidence. Canonical proposal labels
+  and exact quantity JSON values remain unchanged.
+
+```bash
+icq sns list --all
+```
+
 - `0.26.18` replaces duplicated NNS and SNS report provenance strings with
   shared `ReportDataSource` and `ReportResultScope` classifications. Live,
   cache, bounded-live, and complete-cache assembly, validation, rendering, and

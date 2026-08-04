@@ -2,7 +2,7 @@
 //!
 //! Responsibility: render deployed-SNS catalog refresh results.
 //! Does not own: refresh execution, cache IO, or JSON output.
-//! Boundary: keeps replacement and metadata-gap evidence visible to operators.
+//! Boundary: keeps replacement and enrichment-gap evidence visible to operators.
 
 use super::SnsCatalogRefreshReport;
 use crate::text_value::{sanitize_text, yes_no};
@@ -19,6 +19,7 @@ pub fn sns_catalog_refresh_report_text(report: &SnsCatalogRefreshReport) -> Stri
         ),
         format!("sns_count: {}", report.sns_count),
         format!("metadata_errors: {}", report.metadata_error_count),
+        format!("lifecycle_errors: {}", report.lifecycle_error_count),
         format!(
             "replaced_existing_cache: {}",
             yes_no(report.replaced_existing_cache)

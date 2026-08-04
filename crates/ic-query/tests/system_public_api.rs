@@ -26,15 +26,20 @@ fn public_cmc_reports_are_constructible_serializable_and_renderable() {
         certification: certification(),
     };
 
-    assert!(cmc_xdr_report_text(&xdr).contains("xdr_per_icp: 4.9164"));
-    assert!(cmc_cycles_report_text(&cycles).contains("cycles_per_icp: 4916400000000"));
+    let xdr_text = cmc_xdr_report_text(&xdr);
+    let cycles_text = cmc_cycles_report_text(&cycles);
+    assert!(xdr_text.contains("xdr_per_icp: 4.9164"));
+    assert!(xdr_text.contains("certificate_bytes: 2 B"));
+    assert!(cycles_text.contains("cycles_per_icp: 4.92 T"));
 
     let xdr_json = serde_json::to_value(xdr).expect("serialize public CMC XDR report");
     let cycles_json = serde_json::to_value(cycles).expect("serialize public CMC cycles report");
     assert_eq!(xdr_json["cmc_canister_id"], MAINNET_CMC_CANISTER_ID);
     assert_eq!(xdr_json["rate"]["xdr_permyriad_per_icp"], 49_164);
     assert_eq!(cycles_json["cycles_per_xdr"], 1_000_000_000_000_u64);
+    assert_eq!(cycles_json["cycles_per_icp"], 4_916_400_000_000_u64);
     assert_eq!(cycles_json["certification"]["certificate_verified"], true);
+    assert_eq!(cycles_json["certification"]["certificate_bytes"], 2);
 }
 
 #[cfg(feature = "host")]

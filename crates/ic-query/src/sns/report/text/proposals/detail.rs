@@ -27,10 +27,11 @@ pub(super) fn proposal_detail_lines(
     proposal: &SnsProposalRow,
     detail_limit: Option<usize>,
 ) -> Vec<String> {
+    let action = proposal.action.label();
     let mut lines = vec![
         format!("- proposal_id: {}", proposal.proposal_id),
         format!("  action_id: {}", proposal.action_id),
-        format!("  action: {}", sanitize_text(&proposal.action)),
+        format!("  action: {}", sanitize_text(&action)),
         format!(
             "  decision_state: {}",
             sanitize_text(proposal.decision_state.as_str())
@@ -111,7 +112,7 @@ pub(super) fn proposal_ballot_table(
             .map(|ballot| {
                 [
                     neuron_id_text(&ballot.neuron_id, verbose),
-                    ballot.vote_text.clone(),
+                    ballot.vote_text.to_string(),
                     e8s_decimal_text(ballot.voting_power),
                     optional_text(ballot.cast_at.as_ref()),
                 ]

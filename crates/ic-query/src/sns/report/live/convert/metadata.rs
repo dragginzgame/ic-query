@@ -6,8 +6,10 @@
 
 use crate::sns::report::SnsHostError;
 
-/// Return a compact metadata-fetch error summary when the error is displayable.
-pub(in crate::sns::report::live) fn metadata_error_summary(err: &SnsHostError) -> Option<String> {
+/// Return a compact bounded-query error summary when the error is displayable.
+pub(in crate::sns::report::live) fn bounded_query_error_summary(
+    err: &SnsHostError,
+) -> Option<String> {
     let summary = match err {
         SnsHostError::AgentCall { method, reason } => Some(format!("{method}: {reason}")),
         SnsHostError::CandidEncode { message, reason } => {

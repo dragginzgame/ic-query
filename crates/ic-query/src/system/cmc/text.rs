@@ -5,7 +5,10 @@
 //! Boundary: keeps raw machine values in report models while formatting XDR only for text.
 
 use super::{CmcCertification, CmcCyclesReport, CmcReportContext, CmcXdrReport};
-use crate::text_value::sanitize_text;
+use crate::{
+    human_quantity::{byte_count_text, cycle_count_text},
+    text_value::sanitize_text,
+};
 
 /// Render one certified CMC ICP/XDR report.
 #[must_use]
@@ -40,9 +43,15 @@ pub fn cmc_cycles_report_text(report: &CmcCyclesReport) -> String {
             "xdr_per_icp: {}",
             permyriad_text(report.rate.xdr_permyriad_per_icp)
         ),
-        format!("cycles_per_xdr: {}", report.cycles_per_xdr),
+        format!(
+            "cycles_per_xdr: {}",
+            cycle_count_text(report.cycles_per_xdr)
+        ),
         format!("cycles_per_xdr_source: {}", report.cycles_per_xdr_source),
-        format!("cycles_per_icp: {}", report.cycles_per_icp),
+        format!(
+            "cycles_per_icp: {}",
+            cycle_count_text(report.cycles_per_icp)
+        ),
         format!("cycles_per_icp_formula: {}", report.cycles_per_icp_formula),
     ]);
     lines.extend(certification_lines(&report.certification));
@@ -68,8 +77,14 @@ fn certification_lines(certification: &CmcCertification) -> [String; 3] {
             "certificate_verified: {}",
             certification.certificate_verified
         ),
-        format!("certificate_bytes: {}", certification.certificate_bytes),
-        format!("hash_tree_bytes: {}", certification.hash_tree_bytes),
+        format!(
+            "certificate_bytes: {}",
+            byte_count_text(certification.certificate_bytes as u128)
+        ),
+        format!(
+            "hash_tree_bytes: {}",
+            byte_count_text(certification.hash_tree_bytes as u128)
+        ),
     ]
 }
 

@@ -72,6 +72,13 @@ Snapshots outside the current schema and required field set are rejected. The
 reader does not detect, upgrade, or reinterpret predecessor shapes; refresh the
 collection explicitly to create a current snapshot.
 
+Proposal rows retain raw action and ballot-vote codes beside typed canonical
+classifications. Public sources, refresh pages, and cache loads all enforce
+that those pairs agree, that `ballot_count` equals the number of retained
+ballot rows, and that proposal ids are unique within the collection. A
+contradictory row is invalid source or cache evidence rather than a value the
+view layer repairs.
+
 ## Cache Contract
 
 The cache key describes the collected data, not the rendered view:

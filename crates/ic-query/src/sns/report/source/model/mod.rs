@@ -22,10 +22,12 @@ pub(in crate::sns::report) use canisters::{
 };
 pub use fetch::SnsSourceRequest;
 pub(in crate::sns::report) use list::{
-    JoinedMainnetSnsInventory, join_mainnet_sns_inventory, validate_joined_mainnet_sns_inventory,
-    validate_mainnet_sns_inventory,
+    JoinedMainnetSnsInventory, join_mainnet_sns_inventory, join_mainnet_sns_lifecycles,
+    validate_joined_mainnet_sns_catalog, validate_mainnet_sns_inventory,
 };
-pub use list::{MainnetSns, MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsMetadata};
+pub use list::{
+    MainnetSns, MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
+};
 pub use metrics::MainnetSnsMetrics;
 pub(in crate::sns::report) use metrics::{
     SNS_METRICS_CALL_TYPE, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
@@ -36,6 +38,10 @@ pub(in crate::sns::report) use neurons::{
     validate_mainnet_sns_neurons, validate_sns_neuron_rows,
 };
 pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
+pub(in crate::sns::report) use proposals::{
+    validate_mainnet_sns_proposal, validate_mainnet_sns_proposal_page,
+    validate_mainnet_sns_proposals, validate_sns_proposal_rows,
+};
 pub use reward::MainnetSnsRewardNeuronPage;
 pub(in crate::sns::report) use reward::{
     SnsRewardCollectionState, validate_mainnet_sns_reward_neuron_page,

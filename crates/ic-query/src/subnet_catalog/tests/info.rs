@@ -7,6 +7,7 @@ fn info_report_resolves_canister_and_marks_application_chargeable() {
     let request = info_request(&root, CANISTER_A);
 
     let report = build_subnet_catalog_info_report(&request).expect("info report");
+    let json = serde_json::to_value(&report).expect("serialize subnet info report");
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(report.resolved_as, "canister");
@@ -17,6 +18,11 @@ fn info_report_resolves_canister_and_marks_application_chargeable() {
         "charged_user_canister_subnet"
     );
     assert_eq!(report.cycles_per_billion_instructions, Some(2_615_384_616));
+    assert!(
+        subnet_catalog_info_report_text(&report)
+            .contains("cycles_per_billion_instructions: 2.62 B")
+    );
+    assert_eq!(json["cycles_per_billion_instructions"], 2_615_384_616_u64);
 }
 
 #[test]

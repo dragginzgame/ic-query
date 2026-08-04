@@ -27,6 +27,7 @@ mod freshness;
 mod hex;
 #[cfg(feature = "subnet-catalog-host")]
 mod http_endpoint;
+mod human_quantity;
 pub mod ic;
 #[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;

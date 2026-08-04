@@ -5,19 +5,16 @@
 //! Boundary: maps live proposal data into report rows used by text and JSON output.
 
 mod ballot;
-mod labels;
 mod timestamp;
 
 use super::common::clean_optional_text;
 use crate::sns::report::{
-    SnsHostError, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalRow,
-    SnsProposalTally, hex_bytes, live::types::SnsGovernanceProposalData,
+    SnsHostError, SnsProposalAction, SnsProposalDecisionState, SnsProposalFailureReason,
+    SnsProposalRow, SnsProposalTally, hex_bytes,
+    live::types::{SnsGovernanceProposalData, SnsTopic},
 };
 use ballot::sns_proposal_ballot_row;
-use labels::{proposal_action_text, proposal_topic_text};
 use timestamp::{nonzero_timestamp, optional_timestamp_text};
-
-pub(super) use labels::proposal_topic_text as sns_topic_text;
 
 /// Convert one SNS governance proposal wire row into a report row.
 pub(in crate::sns::report::live) fn sns_proposal_row(
@@ -39,7 +36,7 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
     Ok(SnsProposalRow {
         proposal_id,
         action_id: proposal.action,
-        action: proposal_action_text(proposal.action),
+        action: SnsProposalAction::from_id(proposal.action),
         title: proposal_fields.title,
         summary: proposal_fields.summary,
         url: clean_optional_text(Some(proposal_fields.url)),
@@ -47,7 +44,7 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
         status: Some(proposal.status),
         topic: proposal
             .topic
-            .map(|topic| proposal_topic_text(topic).to_string()),
+            .map(|topic| sns_topic_text(topic).to_string()),
         reject_cost_e8s: proposal.reject_cost_e8s,
         proposal_creation_timestamp_seconds: proposal.proposal_creation_timestamp_seconds,
         created_at: crate::subnet_catalog::format_utc_timestamp_secs(
@@ -81,6 +78,19 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
             .and_then(|value| clean_optional_text(Some(value))),
         proposer_neuron_id: proposal.proposer.map(|id| hex_bytes(&id.id)),
     })
+}
+
+/// Convert an SNS Governance topic into its stable report label.
+pub(super) const fn sns_topic_text(topic: SnsTopic) -> &'static str {
+    match topic {
+        SnsTopic::DaoCommunitySettings => "dao-community-settings",
+        SnsTopic::SnsFrameworkManagement => "sns-framework-management",
+        SnsTopic::DappCanisterManagement => "dapp-canister-management",
+        SnsTopic::ApplicationBusinessLogic => "application-business-logic",
+        SnsTopic::Governance => "governance",
+        SnsTopic::TreasuryAssetManagement => "treasury-asset-management",
+        SnsTopic::CriticalDappOperations => "critical-dapp-operations",
+    }
 }
 
 const fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> SnsProposalDecisionState {

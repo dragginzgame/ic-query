@@ -35,8 +35,8 @@ pub(in crate::sns::report::tests) use reward::{
 };
 pub(in crate::sns::report::tests) use sns::{
     FixtureSnsDiscoverySource, GOVERNANCE_A, INDEX_A, LEDGER_A,
-    MetadataErrorFixtureSnsDiscoverySource, ROOT_A, SWAP_A, UnsortedFixtureSnsDiscoverySource,
-    fixture_canisters_a, fixture_sns_a,
+    MetadataErrorFixtureSnsDiscoverySource, ROOT_A, ROOT_B, SWAP_A,
+    UnsortedFixtureSnsDiscoverySource, fixture_canisters_a, fixture_sns_a,
 };
 pub(in crate::sns::report::tests) use swap::{
     FixtureSnsSwapSource, MutatingFixtureSnsSwapSource, PartialFixtureSnsSwapSource,

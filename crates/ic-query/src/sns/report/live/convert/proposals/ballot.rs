@@ -4,8 +4,8 @@
 //! Does not own: governance transport, proposal row assembly, or rendering.
 //! Boundary: maps live ballot tuples into report ballot rows.
 
-use super::{labels::ballot_vote_text, timestamp::optional_timestamp_text};
-use crate::sns::report::{SnsProposalBallotRow, live::types::SnsGovernanceBallot};
+use super::timestamp::optional_timestamp_text;
+use crate::sns::report::{SnsProposalBallotRow, SnsProposalVote, live::types::SnsGovernanceBallot};
 
 /// Convert one SNS governance ballot tuple into a report ballot row.
 pub(super) fn sns_proposal_ballot_row(
@@ -14,7 +14,7 @@ pub(super) fn sns_proposal_ballot_row(
     SnsProposalBallotRow {
         neuron_id,
         vote: ballot.vote,
-        vote_text: ballot_vote_text(ballot.vote),
+        vote_text: SnsProposalVote::from_code(ballot.vote),
         cast_timestamp_seconds: ballot.cast_timestamp_seconds,
         cast_at: optional_timestamp_text(ballot.cast_timestamp_seconds),
         voting_power: ballot.voting_power,

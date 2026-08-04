@@ -27,10 +27,14 @@ pub struct SnsListReport {
     pub cache_path: Option<String>,
     /// Whether the cache provenance represents an API-exhausted complete snapshot.
     pub cache_complete: Option<bool>,
+    pub all_lifecycles: bool,
     pub verbose: bool,
     pub sort: String,
+    pub catalog_sns_count: usize,
+    pub excluded_sns_count: usize,
     pub sns_count: usize,
     pub metadata_error_count: usize,
+    pub lifecycle_error_count: usize,
     pub sns_instances: Vec<SnsListRow>,
 }
 
@@ -50,6 +54,9 @@ pub struct SnsListRow {
     pub swap_canister_id: String,
     pub index_canister_id: String,
     pub metadata_error: Option<String>,
+    pub lifecycle: Option<i32>,
+    pub lifecycle_name: Option<String>,
+    pub lifecycle_error: Option<String>,
 }
 
 ///

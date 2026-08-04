@@ -999,8 +999,8 @@ fn tip_certificate_report_builds_text_and_json_friendly_fields() {
 
     let text = icrc_tip_certificate_report_text(&report);
     assert!(text.contains("certificate_present: true"));
-    assert!(text.contains("certificate_bytes: 3"));
-    assert!(text.contains("hash_tree_bytes: 2"));
+    assert!(text.contains("certificate_bytes: 3 B"));
+    assert!(text.contains("hash_tree_bytes: 2 B"));
     assert!(text.contains("certificate_hex: 010203"));
     assert!(text.contains("hash_tree_hex: aabb"));
 
@@ -1053,6 +1053,33 @@ fn capabilities_report_builds_text_and_json_friendly_fields() {
     assert_eq!(
         json["capabilities"][1]["error"],
         json!("Canister has no query method")
+    );
+}
+
+#[test]
+fn capability_byte_detail_formats_text_and_preserves_raw_json() {
+    let request = IcrcLedgerRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+    };
+    let mut report = build_icrc_capabilities_report_with_source(&request, &FixtureIcrcSource)
+        .expect("build ICRC capabilities report");
+    report.capabilities = vec![IcrcCapabilityRow {
+        capability: "ICRC-3 tip certificate".to_string(),
+        method: "icrc3_get_tip_certificate".to_string(),
+        status: IcrcCapabilityStatus::Available,
+        details: Some("verified certificate 2048 bytes, hash tree 1536 bytes".to_string()),
+        error: None,
+    }];
+
+    let text = icrc_capabilities_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize ICRC capabilities report");
+
+    assert!(text.contains("verified certificate 2 KiB, hash tree 1.5 KiB"));
+    assert_eq!(
+        json["capabilities"][0]["details"],
+        "verified certificate 2048 bytes, hash tree 1536 bytes"
     );
 }
 

@@ -6,6 +6,7 @@
 
 use super::{LEFT_2_ALIGNMENTS, push_table_section};
 use crate::{
+    human_quantity::byte_count_text,
     icrc::model::{
         IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcIndexReport, IcrcTipCertificateReport,
         IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
@@ -88,11 +89,11 @@ pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> St
         format!("certificate_present: {}", report.certificate_present),
         format!(
             "certificate_bytes: {}",
-            optional_usize_text(report.certificate_bytes)
+            optional_byte_count_text(report.certificate_bytes)
         ),
         format!(
             "hash_tree_bytes: {}",
-            optional_usize_text(report.hash_tree_bytes)
+            optional_byte_count_text(report.hash_tree_bytes)
         ),
         format!(
             "certificate_hex: {}",
@@ -196,8 +197,8 @@ fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
     )
 }
 
-fn optional_usize_text(value: Option<usize>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| value.to_string())
+fn optional_byte_count_text(value: Option<usize>) -> String {
+    value.map_or_else(|| "-".to_string(), |value| byte_count_text(value as u128))
 }
 
 fn optional_truncated_text(value: Option<&String>, limit: usize) -> String {
@@ -206,5 +207,28 @@ fn optional_truncated_text(value: Option<&String>, limit: usize) -> String {
 
 fn capability_detail_text(row: &IcrcCapabilityRow) -> String {
     let detail = row.details.as_ref().or(row.error.as_ref());
-    optional_truncated_text(detail, ICRC_DETAIL_TEXT_LIMIT)
+    detail.map_or_else(
+        || "-".to_string(),
+        |detail| {
+            let formatted = if row.method == "icrc3_get_tip_certificate" {
+                formatted_tip_certificate_detail(detail).unwrap_or_else(|| detail.clone())
+            } else {
+                detail.clone()
+            };
+            truncate_text(&formatted, ICRC_DETAIL_TEXT_LIMIT)
+        },
+    )
+}
+
+fn formatted_tip_certificate_detail(detail: &str) -> Option<String> {
+    let values = detail.strip_prefix("verified certificate ")?;
+    let (certificate, hash_tree) = values.split_once(" bytes, hash tree ")?;
+    let hash_tree = hash_tree.strip_suffix(" bytes")?;
+    let certificate = certificate.parse::<u128>().ok()?;
+    let hash_tree = hash_tree.parse::<u128>().ok()?;
+    Some(format!(
+        "verified certificate {}, hash tree {}",
+        byte_count_text(certificate),
+        byte_count_text(hash_tree)
+    ))
 }

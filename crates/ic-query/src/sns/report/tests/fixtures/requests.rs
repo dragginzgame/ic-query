@@ -7,6 +7,7 @@ pub(in crate::sns::report::tests) fn list_request(verbose: bool) -> SnsListReque
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
+        all_lifecycles: false,
         verbose,
         sort: SnsListSort::Id,
     }

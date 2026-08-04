@@ -86,8 +86,9 @@ pub(in crate::sns::report) fn proposal_matches_query(
     let Some(query) = query else {
         return true;
     };
+    let action = proposal.action.label();
     optional_text_contains_case_insensitive(Some(&proposal.title), query)
-        || optional_text_contains_case_insensitive(Some(&proposal.action), query)
+        || optional_text_contains_case_insensitive(Some(&action), query)
         || optional_text_contains_case_insensitive(Some(&proposal.summary), query)
         || optional_text_contains_case_insensitive(proposal.url.as_deref(), query)
         || optional_text_contains_case_insensitive(
@@ -124,7 +125,7 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
             sort_by_text(proposals, direction, |proposal| proposal.title.as_str());
         }
         SnsProposalsSort::Action => {
-            sort_by_text(proposals, direction, |proposal| proposal.action.as_str());
+            sort_by_action(proposals, direction);
         }
         SnsProposalsSort::ActionId => {
             sort_by_optional_u64(proposals, direction, |proposal| Some(proposal.action_id));
@@ -195,6 +196,18 @@ fn sort_by_text(
     proposals.sort_by(|left, right| {
         compare_ascii_case_insensitive_text(key(left), key(right), descending)
             .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
+    });
+}
+
+fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDirection) {
+    let descending = matches!(direction, SnsProposalSortDirection::Desc);
+    proposals.sort_by(|left, right| {
+        compare_ascii_case_insensitive_text(
+            left.action.label().as_ref(),
+            right.action.label().as_ref(),
+            descending,
+        )
+        .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 

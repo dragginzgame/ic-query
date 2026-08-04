@@ -76,7 +76,8 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
             self.context.request.page_size(),
             self.state.before_proposal_id(),
         )?;
-        Ok(self.state.ingest_page(page))
+        self.state
+            .ingest_page(page, self.context.request.page_size())
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

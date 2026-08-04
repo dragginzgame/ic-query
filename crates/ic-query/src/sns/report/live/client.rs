@@ -6,18 +6,19 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron, MainnetSnsNeuronPage,
-    MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsCanisterSource, SnsDiscoverySource, SnsGovernanceParameters, SnsHostError, SnsMetricsSource,
-    SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalTopicFilter, SnsProposalsSource, SnsRewardEvent, SnsRewardSource,
-    SnsRunningVersionResponse, SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
+    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
+    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource,
+    SnsGovernanceParameters, SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronSource,
+    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalTopicFilter,
+    SnsProposalsSource, SnsRewardEvent, SnsRewardSource, SnsRunningVersionResponse,
+    SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
     live::fetch::{
-        fetch_mainnet_sns_canisters, fetch_mainnet_sns_inventory, fetch_mainnet_sns_metadata,
-        fetch_mainnet_sns_metrics, fetch_mainnet_sns_neuron, fetch_mainnet_sns_neuron_page,
-        fetch_mainnet_sns_neurons, fetch_mainnet_sns_params, fetch_mainnet_sns_proposal,
-        fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
+        fetch_mainnet_sns_canisters, fetch_mainnet_sns_inventory, fetch_mainnet_sns_lifecycles,
+        fetch_mainnet_sns_metadata, fetch_mainnet_sns_metrics, fetch_mainnet_sns_neuron,
+        fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons, fetch_mainnet_sns_params,
+        fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
         fetch_mainnet_sns_reward_event, fetch_mainnet_sns_reward_neuron_page,
         fetch_mainnet_sns_running_version, fetch_mainnet_sns_swap, fetch_mainnet_sns_token,
         fetch_mainnet_sns_upgrade,
@@ -46,6 +47,16 @@ impl SnsDiscoverySource for LiveSnsSource {
         targets: &[MainnetSnsCanisters],
     ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
         fetch_mainnet_sns_metadata(request, targets)
+    }
+}
+
+impl SnsCatalogSource for LiveSnsSource {
+    fn fetch_sns_lifecycles(
+        &self,
+        request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
+        fetch_mainnet_sns_lifecycles(request, targets)
     }
 }
 

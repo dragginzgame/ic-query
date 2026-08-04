@@ -1,5 +1,102 @@
 use super::*;
 
+struct InvalidSnsProposalSource;
+
+delegate_sns_discovery!(InvalidSnsProposalSource);
+
+impl SnsProposalSource for InvalidSnsProposalSource {
+    fn fetch_sns_proposal(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        _proposal_id: u64,
+    ) -> Result<MainnetSnsProposal, SnsHostError> {
+        let mut proposal = fixture_proposal_row();
+        proposal.action = SnsProposalAction::UpgradeSnsControlledCanister;
+        Ok(MainnetSnsProposal { proposal })
+    }
+}
+
+struct InvalidSnsProposalsSource;
+
+delegate_sns_discovery!(InvalidSnsProposalsSource);
+
+impl SnsProposalsSource for InvalidSnsProposalsSource {
+    fn fetch_sns_proposals(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+        _include_status: &[i32],
+        _topic: SnsProposalTopicFilter,
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        let mut proposal = fixture_proposal_row();
+        proposal.ballots[0].vote_text = SnsProposalVote::No;
+        Ok(MainnetSnsProposals {
+            proposals: vec![proposal],
+        })
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        let mut proposal = fixture_proposal_row();
+        proposal.ballot_count = 2;
+        Ok(MainnetSnsProposalPage {
+            proposals: vec![proposal],
+        })
+    }
+}
+
+#[test]
+fn sns_proposal_builders_reject_invalid_custom_source_rows() {
+    let detail_error =
+        build_sns_proposal_report_with_source(&proposal_request("1"), &InvalidSnsProposalSource)
+            .expect_err("invalid exact proposal");
+    assert!(matches!(
+        detail_error,
+        SnsHostError::InvalidSourceData {
+            capability: "SNS proposal",
+            reason,
+        } if reason.contains("action classification")
+    ));
+
+    let list_error =
+        build_sns_proposals_report_with_source(&proposals_request("1"), &InvalidSnsProposalsSource)
+            .expect_err("invalid bounded proposals");
+    assert!(matches!(
+        list_error,
+        SnsHostError::InvalidSourceData {
+            capability: "SNS proposals",
+            reason,
+        } if reason.contains("vote classification")
+    ));
+}
+
+#[test]
+fn sns_proposal_refresh_rejects_invalid_custom_source_page() {
+    let root = crate::test_support::temp_dir("ic-query-invalid-sns-proposal-page");
+    let error = refresh_sns_proposals_cache_with_source(
+        &sns_proposals_refresh_request(&root, None),
+        &InvalidSnsProposalsSource,
+    )
+    .expect_err("invalid proposal page");
+
+    assert!(matches!(
+        error,
+        SnsHostError::InvalidSourceData {
+            capability: "SNS proposal page",
+            reason,
+        } if reason.contains("ballot_count")
+    ));
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[test]
 fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     let request = proposal_request("1");
@@ -16,13 +113,13 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert_eq!(report.proposal_id, 42);
     assert!(report.show_ballots);
     assert_eq!(report.proposal.proposal_id, 42);
-    assert_eq!(report.proposal.action, "motion");
+    assert_eq!(report.proposal.action, SnsProposalAction::Motion);
     assert_eq!(
         report.proposal.decision_state,
         SnsProposalDecisionState::Open
     );
     assert_eq!(report.proposal.ballot_count, 1);
-    assert_eq!(report.proposal.ballots[0].vote_text, "yes");
+    assert_eq!(report.proposal.ballots[0].vote_text, SnsProposalVote::Yes);
     assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.cache_path, None);
     assert_eq!(report.cache_complete, None);
@@ -62,7 +159,7 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.sort_direction, "none");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
-    assert_eq!(report.proposals[0].action, "motion");
+    assert_eq!(report.proposals[0].action, SnsProposalAction::Motion);
     assert_eq!(
         report.proposals[0].decision_state,
         SnsProposalDecisionState::Open

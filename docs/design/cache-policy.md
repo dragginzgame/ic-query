@@ -16,7 +16,8 @@ This note describes the shared cache behavior expected across `ic-query`.
 - Live network calls must remain visible in output when a command refreshes or
   creates a cache.
 - Cache keys describe collected data, not view options. Sorting, limits,
-  verbosity, and text formatting must not create separate complete snapshots.
+  lifecycle filtering, verbosity, and text formatting must not create separate
+  complete snapshots.
 - Failed refreshes should not replace a previously complete cache.
 - Operators should be able to inspect every known complete cache and refresh
   lock, including age, size, and applicable stale policy, without making a
@@ -116,11 +117,15 @@ The shared missing-cache flow is used by:
 - SNS proposal list auto-cache creation
 
 `sns list` uses a distinct one-hour refresh-if-stale policy for one bounded,
-joined deployed-SNS catalog. A fresh catalog avoids all SNS-W and Governance
-metadata calls. Missing or stale state is visibly refreshed under one lock and
-published atomically; invalid state is not silently replaced. `sns refresh`
-forces replacement. Targeted SNS commands retain targeted discovery and do
-not refresh or depend on the all-SNS catalog.
+joined deployed-SNS catalog. The complete snapshot retains every SNS-W row,
+Governance metadata result, and raw Swap lifecycle result. A fresh catalog
+avoids all SNS-W, Governance, and Swap calls. Lifecycle selection is a view:
+the default retains code `3` (`committed`, successfully launched), while
+`--all` exposes every cached lifecycle and query-error row without changing
+snapshot identity. Missing or stale state is visibly refreshed under one lock
+and published atomically; invalid state is not silently replaced. `sns
+refresh` forces replacement. Targeted SNS commands retain targeted discovery
+and do not refresh or depend on the all-SNS catalog.
 
 The current registered age policies are:
 

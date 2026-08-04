@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::sns::report::source::validate_sns_proposal_rows;
 use crate::{cache::CacheValidationStatus, test_support::temp_dir};
 use std::fs;
 
@@ -51,6 +52,42 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
     );
 }
 
+#[test]
+fn sns_proposal_rows_reject_derived_fields_that_contradict_raw_evidence() {
+    let valid = fixture_proposal_row();
+    assert!(validate_sns_proposal_rows(std::slice::from_ref(&valid)).is_ok());
+
+    let mut action_mismatch = valid.clone();
+    action_mismatch.action = SnsProposalAction::UpgradeSnsControlledCanister;
+    assert!(
+        validate_sns_proposal_rows(&[action_mismatch])
+            .expect_err("action mismatch")
+            .contains("action classification upgrade_sns_controlled_canister does not match raw action id 1")
+    );
+
+    let mut vote_mismatch = valid.clone();
+    vote_mismatch.ballots[0].vote_text = SnsProposalVote::No;
+    assert!(
+        validate_sns_proposal_rows(&[vote_mismatch])
+            .expect_err("vote mismatch")
+            .contains("vote classification no does not match raw vote code 1")
+    );
+
+    let mut ballot_count_mismatch = valid.clone();
+    ballot_count_mismatch.ballot_count = 2;
+    assert!(
+        validate_sns_proposal_rows(&[ballot_count_mismatch])
+            .expect_err("ballot count mismatch")
+            .contains("ballot_count 2 does not match 1 ballot rows")
+    );
+
+    assert!(
+        validate_sns_proposal_rows(&[valid.clone(), valid])
+            .expect_err("duplicate proposal id")
+            .contains("duplicate proposal id 42")
+    );
+}
+
 struct UnsortedSnsProposalsSource;
 
 delegate_sns_discovery!(UnsortedSnsProposalsSource);
@@ -93,7 +130,6 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     status: SNS_PROPOSAL_STATUS_EXECUTED_CODE,
                     topic: SnsProposalTopicFilter::Governance,
                     title: "Zulu proposal",
-                    action: "motion",
                     action_id: 2,
                     tally: (1_700_005_100, 90, 10, 100),
                     ballot_count: 4,
@@ -113,7 +149,6 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     status: SNS_PROPOSAL_STATUS_REJECTED_CODE,
                     topic: SnsProposalTopicFilter::TreasuryAssetManagement,
                     title: "Alpha proposal",
-                    action: "upgrade-sns-controlled-canister",
                     action_id: 9,
                     tally: (1_700_005_300, 5, 10, 15),
                     ballot_count: 2,
@@ -133,7 +168,6 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     status: SNS_PROPOSAL_STATUS_ADOPTED_CODE,
                     topic: SnsProposalTopicFilter::Governance,
                     title: "Beta proposal",
-                    action: "motion",
                     action_id: 5,
                     tally: (1_700_005_200, 50, 25, 75),
                     ballot_count: 6,
@@ -324,7 +358,6 @@ struct ProposalRowFixture {
     status: i32,
     topic: SnsProposalTopicFilter,
     title: &'static str,
-    action: &'static str,
     action_id: u64,
     tally: (u64, u64, u64, u64),
     ballot_count: usize,
@@ -336,14 +369,16 @@ struct ProposalRowFixture {
 }
 
 fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
+    let base = fixture_proposal_row();
+    let ballot = base.ballots[0].clone();
     SnsProposalRow {
         proposal_id: fixture.proposal_id,
         decision_state: fixture.decision_state,
         status: Some(fixture.status),
         topic: Some(fixture.topic.as_str().to_string()),
         title: fixture.title.to_string(),
-        action: fixture.action.to_string(),
         action_id: fixture.action_id,
+        action: SnsProposalAction::from_id(fixture.action_id),
         proposal_creation_timestamp_seconds: fixture.created_at_secs,
         created_at: format_utc_timestamp_secs(fixture.created_at_secs),
         decided_timestamp_seconds: fixture.decided_at_secs,
@@ -354,6 +389,7 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         failed_at: fixture.failed_at_secs.map(format_utc_timestamp_secs),
         reject_cost_e8s: fixture.reject_cost_e8s,
         ballot_count: fixture.ballot_count,
+        ballots: vec![ballot; fixture.ballot_count],
         reward_event_round: fixture.reward_event_round,
         reward_event_end_timestamp_seconds: fixture.reward_event_end_timestamp_seconds,
         is_eligible_for_rewards: fixture.is_eligible_for_rewards,
@@ -364,6 +400,6 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
             no: fixture.tally.2,
             total: fixture.tally.3,
         }),
-        ..fixture_proposal_row()
+        ..base
     }
 }

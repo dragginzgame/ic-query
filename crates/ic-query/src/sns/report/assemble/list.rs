@@ -12,6 +12,8 @@ use crate::sns::report::{
 
 pub(in crate::sns::report) fn sns_list_report_from_list(
     list: JoinedMainnetSnsInventory,
+    catalog_sns_count: usize,
+    all_lifecycles: bool,
     verbose: bool,
     sort: SnsListSort,
     provenance: SnsReportProvenance,
@@ -28,6 +30,10 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         .iter()
         .filter(|sns| sns.metadata_error.is_some())
         .count();
+    let lifecycle_error_count = sns_instances
+        .iter()
+        .filter(|sns| sns.lifecycle_error.is_some())
+        .count();
     let sns_instances = sns_instances
         .into_iter()
         .map(|sns| SnsListRow {
@@ -39,6 +45,9 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
             swap_canister_id: sns.swap_canister_id,
             index_canister_id: sns.index_canister_id,
             metadata_error: sns.metadata_error,
+            lifecycle: sns.lifecycle,
+            lifecycle_name: sns.lifecycle_name,
+            lifecycle_error: sns.lifecycle_error,
         })
         .collect::<Vec<_>>();
     SnsListReport {
@@ -51,10 +60,14 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         data_source: provenance.data_source,
         cache_path: provenance.cache_path,
         cache_complete: provenance.cache_complete,
+        all_lifecycles,
         verbose,
         sort: sort.as_str().to_string(),
+        catalog_sns_count,
+        excluded_sns_count: catalog_sns_count.saturating_sub(sns_instances.len()),
         sns_count: sns_instances.len(),
         metadata_error_count,
+        lifecycle_error_count,
         sns_instances,
     }
 }

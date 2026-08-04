@@ -13,6 +13,6 @@ mod row;
 pub use refresh::SnsProposalsRefreshReport;
 pub use report::{SnsProposalReport, SnsProposalsReport};
 pub use row::{
-    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalRow,
-    SnsProposalTally,
+    SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
+    SnsProposalRow, SnsProposalTally, SnsProposalVote,
 };

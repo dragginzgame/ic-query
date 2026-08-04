@@ -251,6 +251,48 @@ fn sns_proposals_cache_status_reports_unsupported_schema() {
 }
 
 #[test]
+fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
+    for (case, mutate, expected_error) in [
+        (
+            "action",
+            (|cache: &mut serde_json::Value| {
+                cache["proposals"][0]["action_id"] = serde_json::json!(3);
+            }) as fn(&mut serde_json::Value),
+            "action classification motion does not match raw action id 3",
+        ),
+        (
+            "vote",
+            |cache: &mut serde_json::Value| {
+                cache["proposals"][0]["ballots"][0]["vote"] = serde_json::json!(2);
+            },
+            "vote classification yes does not match raw vote code 2",
+        ),
+        (
+            "ballot-count",
+            |cache: &mut serde_json::Value| {
+                cache["proposals"][0]["ballot_count"] = serde_json::json!(2);
+            },
+            "ballot_count 2 does not match 1 ballot rows",
+        ),
+    ] {
+        let root = temp_dir(&format!("ic-query-sns-proposals-status-{case}"));
+        let cache_path = refresh_fixture_sns_proposals_cache(&root);
+        let mut cache: serde_json::Value =
+            serde_json::from_slice(&fs::read(&cache_path).expect("read cache"))
+                .expect("parse cache");
+        mutate(&mut cache);
+        fs::write(
+            &cache_path,
+            serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+        )
+        .expect("write cache");
+
+        assert_invalid_sns_proposals_cache_status(&root, expected_error);
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
 fn sns_proposals_cache_status_rejects_unknown_fields_and_false_authority() {
     for (field, value, expected_error) in [
         (

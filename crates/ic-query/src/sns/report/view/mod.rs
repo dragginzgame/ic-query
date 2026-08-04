@@ -10,7 +10,7 @@ mod proposals;
 #[cfg(test)]
 mod tests;
 
-pub(in crate::sns::report) use list::sort_mainnet_sns_instances;
+pub(in crate::sns::report) use list::{filter_mainnet_sns_instances, sort_mainnet_sns_instances};
 pub(in crate::sns::report) use neurons::sort_sns_neurons;
 pub(in crate::sns::report) use proposals::{
     proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,

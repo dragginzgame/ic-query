@@ -72,6 +72,7 @@ icq nns governance economics
 
 # Deployed SNS reports
 icq sns list
+icq sns list --all
 icq sns refresh
 icq sns canister list 1
 icq sns metrics 1
@@ -211,9 +212,13 @@ Governance-cached treasury and voting-power timestamps, and do not scan
 transactions, fan out, or create a cache. Paged proposal, neuron, and
 account-history collections retain refresh attempt state. Failed or capped
 refreshes do not replace the last complete snapshot.
-`sns list` uses a one-hour joined catalog cache, so consecutive fresh reads
-make no live calls; `sns refresh` forces replacement. Targeted SNS commands
-keep their bounded targeted discovery and never refresh the all-SNS catalog.
+`sns list` uses a one-hour joined catalog cache containing Governance metadata
+and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
+The default view includes lifecycle `3` (`committed`, successfully launched)
+SNSes; `sns list --all` also shows failed/aborted, pending, unknown, and
+lifecycle-query-error rows. `sns refresh` forces replacement. Targeted SNS
+commands keep their bounded targeted discovery and never refresh the all-SNS
+catalog.
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do

@@ -43,7 +43,9 @@ maturity-modulation reports share one `NnsGovernanceSource` capability and the
 same `NnsSourceRequest`; they remain live point-value reports rather than
 creating another complete-collection cache.
 SNS capabilities share `SnsSourceRequest`, including explicit network and
-collection provenance. SNS Root inventory and health use one
+collection provenance. Complete catalog enrichment uses `SnsCatalogSource` to
+add exact-target Swap lifecycles to `SnsDiscoverySource` inventory and
+Governance metadata. SNS Root inventory and health use one
 `SnsCanisterSource` capability on `LiveSnsSource` rather than separate
 adapters for the Root inventory query and read-only health ingress.
 Bounded swap lifecycle, sale parameters, and derived state similarly share one
@@ -102,7 +104,11 @@ than reaching an infallible parser path.
   providers at one Registry version.
 - SNS discovery first reads unenriched SNS-W inventory. Direct id/Root lookup
   resolves that inventory before requesting metadata for exactly one target;
-  unknown lookup requests no metadata, and only `sns list` enriches every row.
+  unknown lookup requests no metadata. Only `sns list` enriches every row with
+  Governance metadata and Swap `get_lifecycle`, then stores the full joined
+  catalog. Its default view retains lifecycle code `3` (`committed`); `--all`
+  includes every lifecycle and bounded lifecycle-query error while preserving
+  SNS-W ids.
 - SNS Root reporting resolves one deployed SNS, uses `list_sns_canisters` as
   membership authority, and joins `get_sns_canisters_summary` health with
   `update_canister_list = false`. The sequential reads retain typed gaps and

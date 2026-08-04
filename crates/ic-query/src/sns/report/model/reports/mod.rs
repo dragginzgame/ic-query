@@ -59,8 +59,8 @@ pub use params::SnsParamsReport;
 #[cfg(feature = "host")]
 pub use proposals::SnsProposalsRefreshReport;
 pub use proposals::{
-    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport,
-    SnsProposalRow, SnsProposalTally, SnsProposalsReport,
+    SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
+    SnsProposalReport, SnsProposalRow, SnsProposalTally, SnsProposalVote, SnsProposalsReport,
 };
 pub use swap::{
     SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,

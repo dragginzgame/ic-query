@@ -5,10 +5,11 @@
 //! Boundary: keeps raw values intact in JSON while making nullable text fields readable.
 
 use crate::{
+    human_quantity::decimal_cycle_rate_text,
     ic::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
         IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
-        IcMetricReport,
+        IcMetricKind, IcMetricReport,
     },
     text_value::{sanitize_text, yes_no},
 };
@@ -100,11 +101,19 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
             format!(
                 "  {}  {}",
                 observation.timestamp_unix_secs,
-                sanitize_text(&observation.value)
+                metric_observation_text(report.query.metric, &observation.value)
             )
         }));
     }
     lines.join("\n")
+}
+
+fn metric_observation_text(metric: IcMetricKind, value: &str) -> String {
+    if metric == IcMetricKind::CycleBurnRate {
+        decimal_cycle_rate_text(value)
+    } else {
+        sanitize_text(value)
+    }
 }
 
 /// Render one official Dashboard canister report as human-facing text.
