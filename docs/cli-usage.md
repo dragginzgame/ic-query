@@ -390,6 +390,30 @@ states that local checkpoint content is not authenticated.
 
 ## ICRC
 
+Bounded official ICRC analytics:
+
+```bash
+icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai \
+  --start 1785542400 --end 1785801600 --step 86400 --json
+```
+
+`analytics total-supply` makes one request to the official IC Dashboard ICRC
+analytics API for one canonical ledger principal. It defaults to the preceding
+30 days at a daily step; only hourly (`3600`) and daily (`86400`) steps are
+accepted, and requested and returned series are capped at 1,000 observations.
+It follows no cursor, performs no per-row or native-ledger follow-up, and never
+reads or writes a cache. Values remain unsigned decimal strings in raw ledger
+base units.
+
+This is timestamped off-chain analytics with `certified: false` and
+`point_in_time_guaranteed: false`. A valid ledger principal does not guarantee
+that the Dashboard service indexes that ledger. Use `icq icrc ledger token`
+for current supply reported directly by `icrc1_total_supply`; the two reports
+are not silently reconciled. See
+[0.27 Bounded Official ICRC Analytics](design/0.27/0.27-design.md) for the
+authority and bounds contract.
+
 Ledger-wide live reports:
 
 ```bash

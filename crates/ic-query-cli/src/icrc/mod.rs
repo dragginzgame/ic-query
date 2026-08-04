@@ -27,6 +27,9 @@ pub enum IcrcCommandError {
     Query(#[from] ic_query::icrc::IcrcError),
 
     #[error(transparent)]
+    Analytics(#[from] ic_query::ic::IcHostError),
+
+    #[error(transparent)]
     AccountTransaction(#[from] ic_query::icrc::IcrcAccountTransactionError),
 
     #[error(transparent)]

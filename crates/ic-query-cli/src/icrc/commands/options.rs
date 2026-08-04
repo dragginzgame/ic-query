@@ -5,17 +5,52 @@
 //! Boundary: validates command arguments before dispatch constructs public requests.
 
 use super::{
-    FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG,
-    LIMIT_ARG, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG,
-    PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG, START_ARG,
-    SUBACCOUNT_ARG, format_from_matches, source_endpoint_from_matches,
+    END_ARG, FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG,
+    LEDGER_CANISTER_ID_ARG, LIMIT_ARG, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG,
+    PAGE_SIZE_ARG, PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG,
+    START_ARG, STEP_ARG, SUBACCOUNT_ARG, format_from_matches, source_endpoint_from_matches,
 };
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option},
     common::OutputFormat,
 };
 use clap::ArgMatches;
-use ic_query::icrc::IcrcAccountTransactionSort;
+use ic_query::{ic::DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, icrc::IcrcAccountTransactionSort};
+
+///
+/// IcrcAnalyticsTotalSupplyOptions
+///
+/// Clap-parsed bounds and ledger identity for one official total-supply series.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAnalyticsTotalSupplyOptions {
+    pub(in crate::icrc) ledger_canister_id: String,
+    pub(in crate::icrc) start_unix_secs: Option<u64>,
+    pub(in crate::icrc) end_unix_secs: Option<u64>,
+    pub(in crate::icrc) step_secs: u32,
+    pub(in crate::icrc) format: OutputFormat,
+    pub(in crate::icrc) source_endpoint: String,
+}
+
+impl IcrcAnalyticsTotalSupplyOptions {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
+        let step_secs =
+            string_option(matches, STEP_ARG).map_or(DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, |value| {
+                value
+                    .parse()
+                    .expect("clap restricts ICRC analytics step values")
+            });
+        Self {
+            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
+            start_unix_secs: typed_option(matches, START_ARG),
+            end_unix_secs: typed_option(matches, END_ARG),
+            step_secs,
+            format: format_from_matches(matches),
+            source_endpoint: source_endpoint_from_matches(matches),
+        }
+    }
+}
 
 ///
 /// IcrcLedgerOptions

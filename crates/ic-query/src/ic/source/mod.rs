@@ -5,6 +5,7 @@
 //! Boundary: treats live and custom source provenance as untrusted authority data.
 
 mod canister;
+mod icrc_analytics;
 mod metric;
 mod network;
 
@@ -14,12 +15,18 @@ use crate::ic::{
 };
 
 pub use canister::{IcCanisterCollectionSource, IcCanisterSource};
+pub use icrc_analytics::IcIcrcAnalyticsSource;
 pub use metric::IcMetricSource;
 pub use network::IcNetworkSource;
 
 pub(super) use canister::{
-    canonical_canister_id, canonical_page_cursor, count_report_from_source, normalized_filters,
-    page_report_from_source, report_from_source, validate_page_limit,
+    canonical_canister_id, canonical_page_cursor, canonical_request_principal,
+    count_report_from_source, normalized_filters, page_report_from_source, report_from_source,
+    validate_page_limit, validate_principal_match,
+};
+pub(super) use icrc_analytics::{
+    icrc_total_supply_report_from_source, validate_icrc_total_supply_query,
+    validate_icrc_total_supply_request,
 };
 pub(super) use metric::{
     metric_report_from_source, validate_metric_query, validate_metric_request,

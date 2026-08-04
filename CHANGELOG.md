@@ -7,6 +7,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.27.x] - 2026-08-04 - bounded official ICRC analytics
+
+Detailed release notes: [docs/changelog/0.27.md](docs/changelog/0.27.md)
+
+- `0.27.0` adds a live-only, one-request historical total-supply series for
+  one ledger indexed by the official IC Dashboard ICRC analytics API. Public
+  requests, reports, renderers, fixture-source builders, and the live adapter
+  preserve exact bounds, raw base-unit strings, and explicit non-certified
+  Dashboard provenance. Daily queries default to 30 days and all queries are
+  capped at 1,000 requested and returned observations; the operation performs
+  no enumeration, pagination, follow-up calls, or caching.
+
+```bash
+icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai
+```
+
 ## [0.26.x] - 2026-08-03 - SNS maturity reward evidence
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)

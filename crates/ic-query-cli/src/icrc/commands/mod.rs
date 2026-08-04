@@ -5,6 +5,7 @@
 //! Boundary: keeps ledger and account grammar separate behind one ICRC facade.
 
 mod account;
+mod analytics;
 mod dispatch;
 mod ledger;
 mod options;
@@ -14,6 +15,10 @@ pub(in crate::icrc) use account::{
     icrc_account_transaction_cache_status_command, icrc_account_transaction_command,
     icrc_account_transaction_list_command, icrc_account_transaction_page_command,
     icrc_account_transaction_refresh_command, icrc_allowance_command, icrc_balance_command,
+};
+#[cfg(test)]
+pub(in crate::icrc) use analytics::{
+    command as icrc_analytics_command, icrc_analytics_total_supply_command,
 };
 #[cfg(test)]
 pub(in crate::icrc) use ledger::{
@@ -26,8 +31,8 @@ pub use dispatch::run_matches;
 pub(in crate::icrc) use options::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
-    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTotalSupplyOptions,
+    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 
 use crate::cli::{
@@ -50,6 +55,8 @@ const SUBACCOUNT_ARG: &str = "subaccount";
 const OWNER_SUBACCOUNT_ARG: &str = "owner-subaccount";
 const SPENDER_SUBACCOUNT_ARG: &str = "spender-subaccount";
 const START_ARG: &str = "start";
+const END_ARG: &str = "end";
+const STEP_ARG: &str = "step";
 const LIMIT_ARG: &str = "limit";
 const PAGE_SIZE_ARG: &str = "page-size";
 const MAX_PAGES_ARG: &str = "max-pages";
@@ -62,9 +69,10 @@ const ICRC_SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for ICRC ledger qu
 pub fn command() -> ClapCommand {
     ClapCommand::new("icrc")
         .bin_name("icq icrc")
-        .about("Inspect generic ICRC ledgers")
+        .about("Inspect generic ICRC ledgers and official analytics")
         .subcommand(ledger::command())
         .subcommand(account::command())
+        .subcommand(analytics::command())
 }
 
 fn ledger_canister_id_arg() -> clap::Arg {

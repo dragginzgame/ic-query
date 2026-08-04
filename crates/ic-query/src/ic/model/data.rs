@@ -7,9 +7,9 @@
 use super::{
     reports::{
         IcBoundaryNodeDataCenterRow, IcCanisterPageRow, IcCanisterUpgrade, IcDailyStatsRow,
-        IcMetricSeries,
+        IcIcrcTotalSupplyObservation, IcMetricSeries,
     },
-    requests::{IcCanisterFilters, IcDailyStatsQuery, IcMetricQuery},
+    requests::{IcCanisterFilters, IcDailyStatsQuery, IcIcrcTotalSupplyQuery, IcMetricQuery},
 };
 
 ///
@@ -132,6 +132,24 @@ pub struct IcMetricSourceData {
     pub query: IcMetricQuery,
     /// Raw named time series returned by the source.
     pub series: Vec<IcMetricSeries>,
+}
+
+///
+/// IcIcrcTotalSupplySourceData
+///
+/// Raw bounded ICRC total-supply series and provenance returned by a source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcTotalSupplySourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Canonical ledger canister principal queried by the source.
+    pub ledger_canister_id: String,
+    /// Total-supply query applied by the source.
+    pub query: IcIcrcTotalSupplyQuery,
+    /// Raw observations returned by the source.
+    pub observations: Vec<IcIcrcTotalSupplyObservation>,
 }
 
 ///

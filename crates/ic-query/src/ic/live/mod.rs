@@ -5,6 +5,7 @@
 //! Boundary: performs one read-only REST lookup for the selected Dashboard capability.
 
 mod canister;
+mod icrc_analytics;
 mod metric;
 mod network;
 

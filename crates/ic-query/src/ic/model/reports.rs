@@ -4,7 +4,9 @@
 //! Does not own: requests, host source data, errors, transport, or projection.
 //! Boundary: preserves raw Dashboard values and explicit off-chain provenance.
 
-use super::requests::{IcCanisterFilters, IcDailyStatsQuery, IcMetricQuery};
+use super::requests::{
+    IcCanisterFilters, IcDailyStatsQuery, IcIcrcTotalSupplyQuery, IcMetricQuery,
+};
 use serde::Serialize;
 
 ///
@@ -97,6 +99,44 @@ pub struct IcMetricReport {
     pub returned_observation_count: usize,
     /// Raw named time series in canonical series-name order.
     pub series: Vec<IcMetricSeries>,
+}
+
+///
+/// IcIcrcTotalSupplyObservation
+///
+/// One raw ICRC ledger total-supply observation returned by the Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcTotalSupplyObservation {
+    /// Observation timestamp as Unix seconds.
+    pub timestamp_unix_secs: u64,
+    /// Raw total supply in ledger base units.
+    pub total_supply_base_units: String,
+}
+
+///
+/// IcIcrcTotalSupplyReport
+///
+/// One bounded total-supply series from the official Dashboard ICRC API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcTotalSupplyReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Canonical ICRC ledger canister principal requested from the API.
+    pub ledger_canister_id: String,
+    /// Exact requested time bounds, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcIcrcTotalSupplyQuery,
+    /// Maximum observations implied by the requested inclusive window.
+    pub requested_observation_limit: u64,
+    /// Number of observations returned by the API.
+    pub returned_observation_count: usize,
+    /// Raw observations in strictly increasing timestamp order.
+    pub observations: Vec<IcIcrcTotalSupplyObservation>,
 }
 
 ///

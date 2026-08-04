@@ -7,26 +7,31 @@ use ic_query::ic::{
     IcCanisterFilters, IcCanisterPageController, IcCanisterPageReport, IcCanisterPageRequest,
     IcCanisterPageRow, IcCanisterReport, IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery,
     IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
-    IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest,
-    IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT, ic_boundary_node_data_centers_report_text,
-    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
-    ic_daily_stats_report_text, ic_metric_report_text,
+    IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
+    IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
+    IcMetricRequest, IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT,
+    ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
+    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
+    ic_metric_report_text, icrc_total_supply_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::ic::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCollectionSource, IcCanisterCountSourceData,
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
-    IcHostError, IcMetricSource, IcMetricSourceData, IcNetworkSource, IcSourceRequest,
-    LiveIcSource, build_ic_boundary_node_data_centers_report,
+    IcHostError, IcIcrcAnalyticsSource, IcIcrcTotalSupplySourceData, IcMetricSource,
+    IcMetricSourceData, IcNetworkSource, IcSourceRequest, LiveIcSource,
+    build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
     build_ic_canister_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
-    build_ic_metric_report_with_source,
+    build_ic_metric_report_with_source, build_icrc_total_supply_report,
+    build_icrc_total_supply_report_with_source,
 };
 
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
+const ICRC_LEDGER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 const SUBNET_ID: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
 
 #[test]
@@ -117,6 +122,47 @@ fn public_ic_metric_api_is_constructible_serializable_and_renderable() {
         "21089992048.10834"
     );
     assert!(json.get("provenance").is_none());
+    assert!(json.get("query").is_none());
+}
+
+#[test]
+fn public_icrc_analytics_api_is_constructible_serializable_and_renderable() {
+    let query = IcIcrcTotalSupplyQuery::new(1_785_542_400, 1_785_628_800, 86_400);
+    let request = IcIcrcTotalSupplyRequest::new(
+        "https://icrc-api.internetcomputer.org/api/v2",
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+        query.clone(),
+    );
+    let report = IcIcrcTotalSupplyReport {
+        provenance: public_provenance(request.source_endpoint),
+        ledger_canister_id: request.ledger_canister_id,
+        query,
+        requested_observation_limit: 2,
+        returned_observation_count: 2,
+        observations: vec![
+            IcIcrcTotalSupplyObservation {
+                timestamp_unix_secs: 1_785_542_400,
+                total_supply_base_units: "23309479199".to_string(),
+            },
+            IcIcrcTotalSupplyObservation {
+                timestamp_unix_secs: 1_785_628_800,
+                total_supply_base_units: "23680995300".to_string(),
+            },
+        ],
+    };
+
+    let text = icrc_total_supply_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serializable ICRC analytics report");
+
+    assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
+    assert!(text.contains("23309479199"));
+    assert_eq!(json["step_secs"], 86_400);
+    assert_eq!(
+        json["observations"][1]["total_supply_base_units"],
+        "23680995300"
+    );
+    assert_eq!(json["certified"], false);
     assert!(json.get("query").is_none());
 }
 
@@ -309,6 +355,29 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
 }
 
 #[cfg(feature = "host")]
+#[test]
+fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
+    let _: fn(&IcIcrcTotalSupplyRequest) -> Result<IcIcrcTotalSupplyReport, IcHostError> =
+        build_icrc_total_supply_report;
+    let _: fn(
+        &IcIcrcTotalSupplyRequest,
+        &dyn IcIcrcAnalyticsSource,
+    ) -> Result<IcIcrcTotalSupplyReport, IcHostError> = build_icrc_total_supply_report_with_source;
+
+    let source = FixtureSource;
+    let request = IcIcrcTotalSupplyRequest::new(
+        "https://icrc-api.internetcomputer.org/api/v2",
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+        IcIcrcTotalSupplyQuery::new(1_785_542_400, 1_785_628_800, 86_400),
+    );
+    let report = build_icrc_total_supply_report_with_source(&request, &source)
+        .expect("custom ICRC analytics source report");
+
+    assert_eq!(report.returned_observation_count, 2);
+}
+
+#[cfg(feature = "host")]
 struct FixtureSource;
 
 #[cfg(feature = "host")]
@@ -386,6 +455,32 @@ impl IcMetricSource for FixtureSource {
                     value: "21089992048.10834".to_string(),
                 }],
             }],
+        })
+    }
+}
+
+#[cfg(feature = "host")]
+impl IcIcrcAnalyticsSource for FixtureSource {
+    fn fetch_total_supply_series(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcTotalSupplyQuery,
+    ) -> Result<IcIcrcTotalSupplySourceData, IcHostError> {
+        Ok(IcIcrcTotalSupplySourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            observations: vec![
+                IcIcrcTotalSupplyObservation {
+                    timestamp_unix_secs: query.start_unix_secs,
+                    total_supply_base_units: "23309479199".to_string(),
+                },
+                IcIcrcTotalSupplyObservation {
+                    timestamp_unix_secs: query.end_unix_secs,
+                    total_supply_base_units: "23680995300".to_string(),
+                },
+            ],
         })
     }
 }

@@ -13,6 +13,88 @@ const METRIC_START: u64 = 1_699_996_400;
 const METRIC_END: u64 = 1_700_000_000;
 const DAILY_STATS_START: u64 = 1_784_937_600;
 const DAILY_STATS_END: u64 = 1_785_542_400;
+const ICRC_LEDGER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
+const ICRC_SUPPLY_START: u64 = 1_785_542_400;
+const ICRC_SUPPLY_END: u64 = 1_785_801_600;
+
+#[test]
+fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance() {
+    let source = IcrcAnalyticsFixture::default();
+    let request = icrc_total_supply_request();
+
+    let report = build_icrc_total_supply_report_with_source(&request, &source)
+        .expect("bounded ICRC total-supply report");
+    let text = icrc_total_supply_report_text(&report);
+
+    assert_eq!(source.calls.get(), 1);
+    assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
+    assert_eq!(report.query, request.query);
+    assert_eq!(report.requested_observation_limit, 4);
+    assert_eq!(report.returned_observation_count, 2);
+    assert_eq!(
+        report.observations[0].total_supply_base_units,
+        "23326766272"
+    );
+    assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
+    assert!(!report.provenance.certified);
+    assert!(!report.provenance.point_in_time_guaranteed);
+    assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
+    assert!(text.contains("1785542400  23326766272"));
+}
+
+#[test]
+fn icrc_total_supply_request_is_validated_before_source_calls() {
+    let mutations: [fn(&mut IcIcrcTotalSupplyRequest); 6] = [
+        |request| request.ledger_canister_id = "not a principal".to_string(),
+        |request| request.query.start_unix_secs = MIN_ICRC_ANALYTICS_TIMESTAMP - 1,
+        |request| request.query.end_unix_secs = request.query.start_unix_secs - 1,
+        |request| request.query.step_secs = 60,
+        |request| request.query.end_unix_secs = request.now_unix_secs + 1,
+        |request| {
+            request.query.end_unix_secs = request.query.start_unix_secs
+                + MAX_ICRC_ANALYTICS_OBSERVATIONS * u64::from(request.query.step_secs);
+        },
+    ];
+
+    for mutate in mutations {
+        let source = IcrcAnalyticsFixture::default();
+        let mut request = icrc_total_supply_request();
+        mutate(&mut request);
+
+        let error = build_icrc_total_supply_report_with_source(&request, &source)
+            .expect_err("invalid ICRC analytics request must fail");
+
+        assert!(matches!(
+            error,
+            IcHostError::InvalidRequest { .. } | IcHostError::InvalidPrincipal { .. }
+        ));
+        assert_eq!(source.calls.get(), 0);
+    }
+}
+
+#[test]
+fn icrc_total_supply_custom_source_contract_is_validated() {
+    for mutation in [
+        IcrcAnalyticsMutation::WrongEndpoint,
+        IcrcAnalyticsMutation::WrongLedger,
+        IcrcAnalyticsMutation::WrongQuery,
+        IcrcAnalyticsMutation::DuplicateTimestamp,
+        IcrcAnalyticsMutation::OutsideWindow,
+        IcrcAnalyticsMutation::InvalidValue,
+        IcrcAnalyticsMutation::TooManyObservations,
+    ] {
+        let source = IcrcAnalyticsFixture {
+            mutation: RefCell::new(Some(mutation)),
+            ..IcrcAnalyticsFixture::default()
+        };
+
+        let error =
+            build_icrc_total_supply_report_with_source(&icrc_total_supply_request(), &source)
+                .expect_err("invalid ICRC analytics source data must fail");
+
+        assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+    }
+}
 
 #[test]
 fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance() {
@@ -378,6 +460,28 @@ fn live_metric_source_validates_bounds_before_endpoint_or_http_request() {
 }
 
 #[test]
+fn live_icrc_analytics_source_validates_bounds_before_endpoint_or_http_request() {
+    let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
+    let query = IcIcrcTotalSupplyQuery::new(
+        MIN_ICRC_ANALYTICS_TIMESTAMP - 1,
+        MIN_ICRC_ANALYTICS_TIMESTAMP,
+        DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
+    );
+
+    let error = LiveIcSource
+        .fetch_total_supply_series(&request, ICRC_LEDGER_ID, &query)
+        .expect_err("invalid ICRC analytics bounds must fail first");
+
+    assert!(matches!(
+        error,
+        IcHostError::InvalidRequest {
+            field: "query.start_unix_secs",
+            ..
+        }
+    ));
+}
+
+#[test]
 fn live_network_source_rejects_invalid_endpoint_before_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
@@ -614,6 +718,19 @@ fn metric_request() -> IcMetricRequest {
     )
 }
 
+fn icrc_total_supply_request() -> IcIcrcTotalSupplyRequest {
+    IcIcrcTotalSupplyRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
+        IcIcrcTotalSupplyQuery::new(
+            ICRC_SUPPLY_START,
+            ICRC_SUPPLY_END,
+            DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
+        ),
+    )
+}
+
 fn daily_stats_request() -> IcDailyStatsRequest {
     IcDailyStatsRequest::new(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
@@ -757,6 +874,77 @@ enum MetricMutation {
 struct MetricFixture {
     calls: Cell<usize>,
     mutation: RefCell<Option<MetricMutation>>,
+}
+
+#[derive(Clone, Copy)]
+enum IcrcAnalyticsMutation {
+    WrongEndpoint,
+    WrongLedger,
+    WrongQuery,
+    DuplicateTimestamp,
+    OutsideWindow,
+    InvalidValue,
+    TooManyObservations,
+}
+
+#[derive(Default)]
+struct IcrcAnalyticsFixture {
+    calls: Cell<usize>,
+    mutation: RefCell<Option<IcrcAnalyticsMutation>>,
+}
+
+impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
+    fn fetch_total_supply_series(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcTotalSupplyQuery,
+    ) -> Result<IcIcrcTotalSupplySourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        let mut data = IcIcrcTotalSupplySourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            observations: vec![
+                IcIcrcTotalSupplyObservation {
+                    timestamp_unix_secs: ICRC_SUPPLY_START,
+                    total_supply_base_units: "23326766272".to_string(),
+                },
+                IcIcrcTotalSupplyObservation {
+                    timestamp_unix_secs: ICRC_SUPPLY_END,
+                    total_supply_base_units: "24147111595".to_string(),
+                },
+            ],
+        };
+        match self.mutation.borrow_mut().take() {
+            Some(IcrcAnalyticsMutation::WrongEndpoint) => {
+                data.source.endpoint = "https://example.com/api/v2".to_string();
+            }
+            Some(IcrcAnalyticsMutation::WrongLedger) => {
+                data.ledger_canister_id = CANISTER_ID.to_string();
+            }
+            Some(IcrcAnalyticsMutation::WrongQuery) => data.query.start_unix_secs += 1,
+            Some(IcrcAnalyticsMutation::DuplicateTimestamp) => {
+                data.observations[1].timestamp_unix_secs = ICRC_SUPPLY_START;
+            }
+            Some(IcrcAnalyticsMutation::OutsideWindow) => {
+                data.observations[1].timestamp_unix_secs = ICRC_SUPPLY_END + 1;
+            }
+            Some(IcrcAnalyticsMutation::InvalidValue) => {
+                data.observations[0].total_supply_base_units = "023326766272".to_string();
+            }
+            Some(IcrcAnalyticsMutation::TooManyObservations) => {
+                data.observations = (0..5)
+                    .map(|offset| IcIcrcTotalSupplyObservation {
+                        timestamp_unix_secs: ICRC_SUPPLY_START + offset,
+                        total_supply_base_units: "1".to_string(),
+                    })
+                    .collect();
+            }
+            None => {}
+        }
+        Ok(data)
+    }
 }
 
 impl IcMetricSource for MetricFixture {

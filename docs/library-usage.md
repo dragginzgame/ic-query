@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.26", default-features = false, features = ["host"] }
+ic-query = { version = "0.27", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -19,7 +19,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.26", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.27", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -33,7 +33,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.26", default-features = false }
+ic-query = { version = "0.27", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -75,7 +75,9 @@ The CLI module layout is intentionally mirrored at the family level:
 
 - `icq cache ...` maps to host-only `ic_query::cache`.
 - `icq ic ...` maps to `ic_query::ic`.
-- `icq icrc ...` maps to `ic_query::icrc`.
+- Native `icq icrc ledger` and `account` operations map to
+  `ic_query::icrc`; official REST-backed `icq icrc analytics` reports map to
+  `ic_query::ic` so their Dashboard authority and live adapter stay explicit.
 - `icq nns proposal ...` maps to `ic_query::nns::proposals`.
 - `icq nns neuron ...` maps to `ic_query::nns::neuron`.
 - `icq nns governance ...` maps to `ic_query::nns::governance`.
@@ -118,7 +120,8 @@ NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
 list/info/token/params/metrics/swap/upgrade/canister, SNS proposal, and SNS
 neuron host APIs expose
 this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
-`IcMetricSource`, `IcNetworkSource`, and narrow ICRC capabilities such as
+`IcMetricSource`, `IcNetworkSource`, `IcIcrcAnalyticsSource`, and narrow native
+ICRC capabilities such as
 `IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,
 `build_icrc_*_report_with_source`,
@@ -202,7 +205,7 @@ fn render_registry_version_with_source(
 See [IC Reporting Adapters](design/ic-reporting-adapters.md) for the extension
 rules and prioritized reporting backlog.
 
-## Official Dashboard Canister Examples
+## Official Dashboard Examples
 
 Native tools can build the same bounded official Dashboard report as
 `icq ic canister info` without spawning the CLI:
@@ -363,6 +366,43 @@ fn daily_average_transaction_rates(
 Daily-statistics builders make one request, accept at most a 366-day window
 and 366 rows, preserve selected rate values as raw strings, tolerate missing
 days, and never read or write a cache.
+
+Official ICRC analytics remain on `LiveIcSource` rather than the native
+`LiveIcrcSource` because the values come from the Dashboard REST service. A
+total-supply request identifies one ledger and one explicit time window:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
+    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcTotalSupplyObservation,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, build_icrc_total_supply_report,
+};
+
+fn total_supply_history(
+    ledger_canister_id: &str,
+    now_unix_secs: u64,
+) -> Result<Vec<IcIcrcTotalSupplyObservation>, IcHostError> {
+    let request = IcIcrcTotalSupplyRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        ledger_canister_id,
+        IcIcrcTotalSupplyQuery::new(
+            now_unix_secs.saturating_sub(DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS),
+            now_unix_secs,
+            DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
+        ),
+    );
+    Ok(build_icrc_total_supply_report(&request)?.observations)
+}
+```
+
+The builder makes exactly one request, accepts only hourly or daily steps,
+caps the requested and returned series at 1,000 observations, preserves raw
+base-unit strings, and never reads or writes a cache. Its provenance is
+explicitly off-chain and non-certified. `IcIcrcAnalyticsSource` lets host
+consumers supply a fixture, mirror, or proxy through the same request and
+result validation; no-default consumers can construct, serialize, and render
+the query and report DTOs without enabling HTTP transport.
 
 ## Certified CMC Example
 

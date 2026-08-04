@@ -1,14 +1,15 @@
 use super::commands::{
     IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
     IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
-    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
-    command as icrc_command, icrc_account_command, icrc_account_transaction_cache_command,
-    icrc_account_transaction_cache_status_command, icrc_account_transaction_command,
-    icrc_account_transaction_list_command, icrc_account_transaction_page_command,
-    icrc_account_transaction_refresh_command, icrc_allowance_command, icrc_archives_command,
-    icrc_balance_command, icrc_block_types_command, icrc_capabilities_command, icrc_index_command,
-    icrc_ledger_command, icrc_tip_certificate_command, icrc_token_command,
-    icrc_transactions_command,
+    IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
+    IcrcTransactionsOptions, command as icrc_command, icrc_account_command,
+    icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_command,
+    icrc_account_transaction_command, icrc_account_transaction_list_command,
+    icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
+    icrc_allowance_command, icrc_analytics_command, icrc_analytics_total_supply_command,
+    icrc_archives_command, icrc_balance_command, icrc_block_types_command,
+    icrc_capabilities_command, icrc_index_command, icrc_ledger_command,
+    icrc_tip_certificate_command, icrc_token_command, icrc_transactions_command,
 };
 use crate::cli::{
     clap::{parse_matches, render_help},
@@ -273,10 +274,57 @@ fn tip_certificate_options_parse_through_clap() {
 }
 
 #[test]
+fn analytics_total_supply_options_parse_bounds_endpoint_and_format() {
+    let options = parse_test_options(
+        icrc_analytics_total_supply_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            "--start",
+            "1785542400",
+            "--end",
+            "1785801600",
+            "--step",
+            "3600",
+            "--json",
+            "--source-endpoint",
+            "https://example.com/api/v2",
+        ],
+        IcrcAnalyticsTotalSupplyOptions::from_matches,
+    );
+
+    assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.start_unix_secs, Some(1_785_542_400));
+    assert_eq!(options.end_unix_secs, Some(1_785_801_600));
+    assert_eq!(options.step_secs, 3_600);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.source_endpoint, "https://example.com/api/v2");
+}
+
+#[test]
+fn analytics_total_supply_options_apply_bounded_defaults() {
+    let options = parse_test_options(
+        icrc_analytics_total_supply_command(),
+        &[LEDGER_CANISTER_ID],
+        IcrcAnalyticsTotalSupplyOptions::from_matches,
+    );
+
+    assert_eq!(options.start_unix_secs, None);
+    assert_eq!(options.end_unix_secs, None);
+    assert_eq!(options.step_secs, 86_400);
+    assert_eq!(options.format, OutputFormat::Text);
+    assert_eq!(
+        options.source_endpoint,
+        "https://icrc-api.internetcomputer.org/api/v2"
+    );
+}
+
+#[test]
 fn usage_mentions_icrc_command_surface() {
     let root = render_help(icrc_command());
     let ledger = render_help(icrc_ledger_command());
     let account = render_help(icrc_account_command());
+    let analytics = render_help(icrc_analytics_command());
+    let analytics_total_supply = render_help(icrc_analytics_total_supply_command());
     let token = render_help(icrc_token_command());
     let capabilities = render_help(icrc_capabilities_command());
     let balance = render_help(icrc_balance_command());
@@ -297,6 +345,12 @@ fn usage_mentions_icrc_command_surface() {
     for (usage, needle) in [
         (root.as_str(), "ledger"),
         (root.as_str(), "account"),
+        (root.as_str(), "analytics"),
+        (analytics.as_str(), "total-supply"),
+        (analytics_total_supply.as_str(), "ledger-canister-id"),
+        (analytics_total_supply.as_str(), "--start"),
+        (analytics_total_supply.as_str(), "--end"),
+        (analytics_total_supply.as_str(), "--step"),
         (ledger.as_str(), "capabilities"),
         (ledger.as_str(), "transactions"),
         (account.as_str(), "balance"),
@@ -328,6 +382,8 @@ fn usage_mentions_icrc_command_surface() {
     assert!(balance.contains("icq icrc account balance"));
     assert!(account_transaction.contains("icq icrc account transaction"));
     assert!(account_transaction_page.contains("icq icrc account transaction page"));
+    assert!(analytics_total_supply.contains("bounded historical total supply"));
+    assert!(analytics_total_supply.contains("Official IC Dashboard ICRC analytics API"));
 
     for usage in [
         token,
@@ -340,6 +396,7 @@ fn usage_mentions_icrc_command_surface() {
         block_types,
         archives,
         tip_certificate,
+        analytics_total_supply,
     ] {
         assert!(usage.contains("Collection mode: Live query"));
     }

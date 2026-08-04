@@ -224,7 +224,10 @@ pub(in crate::ic) fn page_report_from_source(
     })
 }
 
-fn canonical_request_principal(field: &'static str, value: &str) -> Result<String, IcHostError> {
+pub(in crate::ic) fn canonical_request_principal(
+    field: &'static str,
+    value: &str,
+) -> Result<String, IcHostError> {
     Principal::from_text(value)
         .map(|principal| principal.to_text())
         .map_err(|error| IcHostError::InvalidPrincipal {
@@ -337,7 +340,7 @@ fn validate_page_boundary_cursor(
     Ok(())
 }
 
-fn validate_principal_match(
+pub(in crate::ic) fn validate_principal_match(
     field: &'static str,
     expected: &str,
     actual: &str,

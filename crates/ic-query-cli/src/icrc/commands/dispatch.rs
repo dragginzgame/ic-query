@@ -7,8 +7,8 @@
 use super::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
-    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTotalSupplyOptions,
+    IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
@@ -17,6 +17,10 @@ use crate::{
     storage::cache_root,
 };
 use clap::ArgMatches;
+use ic_query::ic::{
+    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
+    MIN_ICRC_ANALYTICS_TIMESTAMP, build_icrc_total_supply_report, icrc_total_supply_report_text,
+};
 use ic_query::icrc::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
@@ -40,8 +44,35 @@ pub fn run_matches(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
         Some(("ledger", matches)) => run_icrc_ledger(matches),
         Some(("account", matches)) => run_icrc_account(matches),
+        Some(("analytics", matches)) => run_icrc_analytics(matches),
         _ => unreachable!("clap requires a known ICRC subcommand"),
     }
+}
+
+fn run_icrc_analytics(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("total-supply", matches)) => run_icrc_analytics_total_supply(matches),
+        _ => unreachable!("clap requires a known ICRC analytics subcommand"),
+    }
+}
+
+fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    let options = IcrcAnalyticsTotalSupplyOptions::from_matches(matches);
+    let now_unix_secs = current_unix_secs()?;
+    let end_unix_secs = options.end_unix_secs.unwrap_or(now_unix_secs);
+    let start_unix_secs = options.start_unix_secs.unwrap_or_else(|| {
+        end_unix_secs
+            .saturating_sub(DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS)
+            .max(MIN_ICRC_ANALYTICS_TIMESTAMP)
+    });
+    let request = IcIcrcTotalSupplyRequest::new(
+        options.source_endpoint,
+        now_unix_secs,
+        options.ledger_canister_id,
+        IcIcrcTotalSupplyQuery::new(start_unix_secs, end_unix_secs, options.step_secs),
+    );
+    let report = build_icrc_total_supply_report(&request)?;
+    write_text_or_json(options.format, &report, icrc_total_supply_report_text)
 }
 
 fn run_icrc_ledger(matches: &ArgMatches) -> Result<(), IcrcCommandError> {

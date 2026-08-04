@@ -9,7 +9,7 @@ use crate::{
     ic::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
         IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
-        IcMetricKind, IcMetricReport,
+        IcIcrcTotalSupplyReport, IcMetricKind, IcMetricReport,
     },
     text_value::{sanitize_text, yes_no},
 };
@@ -102,6 +102,43 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
                 "  {}  {}",
                 observation.timestamp_unix_secs,
                 metric_observation_text(report.query.metric, &observation.value)
+            )
+        }));
+    }
+    lines.join("\n")
+}
+
+/// Render one bounded official ICRC total-supply series as human-facing text.
+#[must_use]
+pub fn icrc_total_supply_report_text(report: &IcIcrcTotalSupplyReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!(
+            "ledger_canister_id: {}",
+            sanitize_text(&report.ledger_canister_id)
+        ),
+        format!("start_unix_secs: {}", report.query.start_unix_secs),
+        format!("end_unix_secs: {}", report.query.end_unix_secs),
+        format!("step_secs: {}", report.query.step_secs),
+        format!(
+            "requested_observation_limit: {}",
+            report.requested_observation_limit
+        ),
+        format!(
+            "returned_observation_count: {}",
+            report.returned_observation_count
+        ),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.observations.is_empty() {
+        lines.push(String::new());
+        lines.push("total_supply_base_units:".to_string());
+        lines.extend(report.observations.iter().map(|observation| {
+            format!(
+                "  {}  {}",
+                observation.timestamp_unix_secs,
+                sanitize_text(&observation.total_supply_base_units)
             )
         }));
     }

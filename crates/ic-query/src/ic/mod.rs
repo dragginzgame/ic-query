@@ -16,7 +16,8 @@ pub use build::{
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
-    build_ic_metric_report_with_source,
+    build_ic_metric_report_with_source, build_icrc_total_supply_report,
+    build_icrc_total_supply_report_with_source,
 };
 #[cfg(feature = "host")]
 pub use build::{build_ic_canister_report, build_ic_canister_report_with_source};
@@ -27,20 +28,26 @@ pub use model::{
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
     IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
-    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcMetricKind,
-    IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
+    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
+    IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
+    IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
+    IcMetricRequest, IcMetricSeries,
 };
 #[cfg(feature = "host")]
 pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
-    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcMetricSourceData, IcSourceRequest,
+    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcTotalSupplySourceData,
+    IcMetricSourceData, IcSourceRequest,
 };
 #[cfg(feature = "host")]
-pub use source::{IcCanisterCollectionSource, IcCanisterSource, IcMetricSource, IcNetworkSource};
+pub use source::{
+    IcCanisterCollectionSource, IcCanisterSource, IcIcrcAnalyticsSource, IcMetricSource,
+    IcNetworkSource,
+};
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text,
+    ic_metric_report_text, icrc_total_supply_report_text,
 };
 
 /// Default base endpoint for the official IC Dashboard API.
@@ -53,6 +60,10 @@ pub const DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT: &str =
 /// Default base endpoint for the official IC Dashboard Metrics API.
 pub const DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT: &str =
     "https://metrics-api.internetcomputer.org/api/v1";
+
+/// Default base endpoint for the official Dashboard ICRC analytics API.
+pub const DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT: &str =
+    "https://icrc-api.internetcomputer.org/api/v2";
 
 /// Default base endpoint for official boundary-node data-center queries.
 pub const DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT: &str =
@@ -78,6 +89,18 @@ pub const MAX_IC_METRIC_STEP_SECS: u32 = 259_200;
 
 /// Maximum requested observations accepted per metric series.
 pub const MAX_IC_METRIC_OBSERVATIONS_PER_SERIES: u64 = 1_000;
+
+/// Default relative window for one ICRC total-supply analytics query.
+pub const DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS: u64 = 30 * 24 * 60 * 60;
+
+/// Default interval between ICRC total-supply observations.
+pub const DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS: u32 = 86_400;
+
+/// Earliest timestamp accepted by the official Dashboard ICRC analytics API.
+pub const MIN_ICRC_ANALYTICS_TIMESTAMP: u64 = 1_620_328_530;
+
+/// Maximum requested observations accepted for one ICRC analytics series.
+pub const MAX_ICRC_ANALYTICS_OBSERVATIONS: u64 = 1_000;
 
 /// Default relative window for one Dashboard daily-statistics query.
 pub const DEFAULT_IC_DAILY_STATS_WINDOW_SECS: u64 = 7 * 24 * 60 * 60;

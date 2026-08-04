@@ -9,14 +9,16 @@ use crate::{
         IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
         IcCanisterCollectionSource, IcCanisterCountReport, IcCanisterCountRequest,
         IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport, IcCanisterRequest,
-        IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest, IcHostError, IcMetricReport,
+        IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest, IcHostError,
+        IcIcrcAnalyticsSource, IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport,
         IcMetricRequest, IcMetricSource, IcNetworkSource, IcSourceRequest, LiveIcSource,
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
-            canonical_page_cursor, count_report_from_source, daily_stats_report_from_source,
+            canonical_page_cursor, canonical_request_principal, count_report_from_source,
+            daily_stats_report_from_source, icrc_total_supply_report_from_source,
             metric_report_from_source, normalized_filters, page_report_from_source,
-            report_from_source, validate_daily_stats_request, validate_metric_request,
-            validate_page_limit,
+            report_from_source, validate_daily_stats_request, validate_icrc_total_supply_request,
+            validate_metric_request, validate_page_limit,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -71,6 +73,32 @@ pub fn build_ic_metric_report_with_source(
     let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
     let source_data = source.fetch_metric(&source_request, &request.query)?;
     metric_report_from_source(&source_request, &request.query, source_data)
+}
+
+/// Build one live, bounded total-supply series from the official Dashboard ICRC API.
+pub fn build_icrc_total_supply_report(
+    request: &IcIcrcTotalSupplyRequest,
+) -> Result<IcIcrcTotalSupplyReport, IcHostError> {
+    build_icrc_total_supply_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded ICRC total-supply series through a custom Dashboard source capability.
+pub fn build_icrc_total_supply_report_with_source(
+    request: &IcIcrcTotalSupplyRequest,
+    source: &dyn IcIcrcAnalyticsSource,
+) -> Result<IcIcrcTotalSupplyReport, IcHostError> {
+    validate_icrc_total_supply_request(request.now_unix_secs, &request.query)?;
+    let ledger_canister_id =
+        canonical_request_principal("ledger_canister_id", &request.ledger_canister_id)?;
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data =
+        source.fetch_total_supply_series(&source_request, &ledger_canister_id, &request.query)?;
+    icrc_total_supply_report_from_source(
+        &source_request,
+        &ledger_canister_id,
+        &request.query,
+        source_data,
+    )
 }
 
 /// Build one live canister report from the official IC Dashboard API.
