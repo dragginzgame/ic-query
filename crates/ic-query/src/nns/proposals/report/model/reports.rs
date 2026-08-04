@@ -4,6 +4,7 @@
 //! Does not own: request selection, source transport, or text rendering.
 //! Boundary: defines the stable JSON contract for NNS proposal output.
 
+use super::selection::{NnsProposalRewardStatus, NnsProposalStatus};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -74,9 +75,9 @@ pub struct NnsProposalRow {
     pub topic: i32,
     pub topic_text: String,
     pub status: i32,
-    pub status_text: String,
+    pub status_text: NnsProposalStatus,
     pub reward_status: i32,
-    pub reward_status_text: String,
+    pub reward_status_text: NnsProposalRewardStatus,
     pub title: Option<String>,
     pub summary: String,
     pub url: String,

@@ -11,6 +11,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.26.md](docs/changelog/0.26.md)
 
+- `0.26.15` replaces free-form NNS proposal decision-status and reward-status
+  labels with `NnsProposalStatus` and `NnsProposalRewardStatus`. Native
+  projection, filters, sorting, rendering, and caches now share one code/label
+  vocabulary while existing JSON and CLI labels remain unchanged.
+
 - `0.26.14` completes `SnsCanisterMethod` coverage for all sixteen fixed
   SNS-native method names used by the live adapters. Discovery, metadata,
   parameters, proposals, neurons, and reward collection now share the same

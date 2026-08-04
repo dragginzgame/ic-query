@@ -1,21 +1,18 @@
 use super::{
     NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
     NnsProposalHostError,
-    labels::{nns_proposal_status_text, nns_reward_status_text, nns_topic_text},
+    labels::nns_topic_text,
     model::{
         NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
-        NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
-        NnsProposalStatusFilter, NnsProposalTopicFilter,
+        NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
+        NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
+        NnsProposalTopicFilter,
         selection::{
-            NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE,
-            NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE, NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE,
-            NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL,
-            NNS_PROPOSAL_SORT_DEADLINE_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
-            NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL, NNS_PROPOSAL_SORT_TALLY_TIME_LABEL,
-            NNS_PROPOSAL_SORT_TITLE_LABEL, NNS_PROPOSAL_SORT_VOTING_POWER_LABEL,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE, NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-            NNS_PROPOSAL_STATUS_OPEN_CODE, NNS_PROPOSAL_STATUS_OPEN_LABEL,
-            NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
+            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
+            NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
+            NNS_PROPOSAL_SORT_TALLY_TIME_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
+            NNS_PROPOSAL_SORT_VOTING_POWER_LABEL, NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
+            NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL,
             NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE,
             NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_LABEL,
             NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE, NNS_PROPOSAL_VOTE_YES_LABEL,
@@ -177,7 +174,7 @@ fn proposal_info_with_deadline_and_voting_power(
         ..proposal_info(
             proposal_id,
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            NnsProposalStatus::Executed.code(),
             "Sortable proposal",
             20,
         )
@@ -200,7 +197,7 @@ fn proposal_info_with_tally_timestamp(
         ..proposal_info(
             proposal_id,
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            NnsProposalStatus::Executed.code(),
             "Tally timestamp proposal",
             20,
         )
@@ -215,7 +212,7 @@ fn proposal_info_with_proposer(proposal_id: u64, proposer_neuron_id: u64) -> Nns
         ..proposal_info(
             proposal_id,
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            NnsProposalStatus::Executed.code(),
             "Proposer proposal",
             20,
         )

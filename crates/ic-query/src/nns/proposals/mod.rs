@@ -23,7 +23,7 @@ pub use report::{
 pub use report::{
     DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalBallotRow, NnsProposalListReport,
     NnsProposalListRequest, NnsProposalListSort, NnsProposalReport, NnsProposalRequest,
-    NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
-    NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopicFilter,
-    nns_proposal_list_report_text, nns_proposal_report_text,
+    NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
+    NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally,
+    NnsProposalTopicFilter, nns_proposal_list_report_text, nns_proposal_report_text,
 };

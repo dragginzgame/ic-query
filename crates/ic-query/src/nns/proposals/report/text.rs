@@ -72,7 +72,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
                     [
                         optional_u64_text(proposal.proposal_id),
                         proposal.topic_text.clone(),
-                        proposal.status_text.clone(),
+                        proposal.status_text.as_str().to_string(),
                         proposal.proposed_at.clone(),
                         proposal_title(proposal),
                     ]
@@ -282,12 +282,12 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
         ),
         format!(
             "status: {} ({})",
-            sanitize_text(&proposal.status_text),
+            sanitize_text(proposal.status_text.as_str()),
             proposal.status
         ),
         format!(
             "reward_status: {} ({})",
-            sanitize_text(&proposal.reward_status_text),
+            sanitize_text(proposal.reward_status_text.as_str()),
             proposal.reward_status
         ),
         format!(

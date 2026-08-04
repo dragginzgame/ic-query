@@ -4,6 +4,8 @@
 //! Does not own: request DTOs, serialized report DTOs, or report rendering.
 //! Boundary: keeps public selection types and their canonical labels/codes together.
 
+use serde::{Deserialize, Serialize};
+
 pub(in crate::nns) const NNS_PROPOSAL_SORT_API_LABEL: &str = "api";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_ID_LABEL: &str = "id";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_STATUS_LABEL: &str = "status";
@@ -29,40 +31,128 @@ pub(in crate::nns) const NNS_PROPOSAL_SORT_ASC_LABEL: &str = "asc";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_DESC_LABEL: &str = "desc";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_NONE_LABEL: &str = "none";
 
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_ANY_LABEL: &str = "any";
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_OPEN_LABEL: &str = "open";
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_REJECTED_LABEL: &str = "rejected";
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_ADOPTED_LABEL: &str = "adopted";
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_EXECUTED_LABEL: &str = "executed";
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_FAILED_LABEL: &str = "failed";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_UNSPECIFIED_LABEL: &str = "unspecified";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_OPEN_CODE: i32 = 1;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_REJECTED_CODE: i32 = 2;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_ADOPTED_CODE: i32 = 3;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_EXECUTED_CODE: i32 = 4;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_STATUS_FAILED_CODE: i32 = 5;
+///
+/// NnsProposalStatus
+///
+/// Native NNS Governance proposal decision status.
+///
 
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL: &str = "accept-votes";
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL: &str = "ready-to-settle";
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL: &str = "settled";
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL: &str = "ineligible";
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL: &str = "any";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_UNSPECIFIED_LABEL: &str = "unspecified";
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE: i32 = 1;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE: i32 = 2;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE: i32 = 3;
-#[cfg(feature = "host")]
-pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE: i32 = 4;
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NnsProposalStatus {
+    /// Unspecified or unrecognized native status code.
+    Unspecified,
+    /// Proposal remains open for voting.
+    Open,
+    /// Proposal was rejected.
+    Rejected,
+    /// Proposal was adopted but has not completed execution.
+    Adopted,
+    /// Proposal executed successfully.
+    Executed,
+    /// Proposal execution failed.
+    Failed,
+}
+
+impl NnsProposalStatus {
+    /// Classify one raw native status code.
+    #[must_use]
+    pub const fn from_code(code: i32) -> Self {
+        match code {
+            1 => Self::Open,
+            2 => Self::Rejected,
+            3 => Self::Adopted,
+            4 => Self::Executed,
+            5 => Self::Failed,
+            _ => Self::Unspecified,
+        }
+    }
+
+    /// Return the canonical native code for this classification.
+    #[must_use]
+    pub const fn code(self) -> i32 {
+        match self {
+            Self::Unspecified => 0,
+            Self::Open => 1,
+            Self::Rejected => 2,
+            Self::Adopted => 3,
+            Self::Executed => 4,
+            Self::Failed => 5,
+        }
+    }
+
+    /// Return the stable JSON and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unspecified => "unspecified",
+            Self::Open => "open",
+            Self::Rejected => "rejected",
+            Self::Adopted => "adopted",
+            Self::Executed => "executed",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+///
+/// NnsProposalRewardStatus
+///
+/// Native NNS Governance proposal reward-settlement status.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NnsProposalRewardStatus {
+    /// Unspecified or unrecognized native reward-status code.
+    Unspecified,
+    /// Proposal still accepts votes for reward purposes.
+    AcceptVotes,
+    /// Proposal is ready for reward settlement.
+    ReadyToSettle,
+    /// Proposal rewards have settled.
+    Settled,
+    /// Proposal is not eligible for voting rewards.
+    Ineligible,
+}
+
+impl NnsProposalRewardStatus {
+    /// Classify one raw native reward-status code.
+    #[must_use]
+    pub const fn from_code(code: i32) -> Self {
+        match code {
+            1 => Self::AcceptVotes,
+            2 => Self::ReadyToSettle,
+            3 => Self::Settled,
+            4 => Self::Ineligible,
+            _ => Self::Unspecified,
+        }
+    }
+
+    /// Return the canonical native code for this classification.
+    #[must_use]
+    pub const fn code(self) -> i32 {
+        match self {
+            Self::Unspecified => 0,
+            Self::AcceptVotes => 1,
+            Self::ReadyToSettle => 2,
+            Self::Settled => 3,
+            Self::Ineligible => 4,
+        }
+    }
+
+    /// Return the stable JSON and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unspecified => "unspecified",
+            Self::AcceptVotes => "accept-votes",
+            Self::ReadyToSettle => "ready-to-settle",
+            Self::Settled => "settled",
+            Self::Ineligible => "ineligible",
+        }
+    }
+}
 
 #[cfg(feature = "host")]
 pub(in crate::nns) const NNS_PROPOSAL_VOTE_UNSPECIFIED_LABEL: &str = "unspecified";
@@ -286,11 +376,11 @@ impl NnsProposalRewardStatusFilter {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Any => NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
-            Self::AcceptVotes => NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_LABEL,
-            Self::ReadyToSettle => NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_LABEL,
-            Self::Settled => NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL,
-            Self::Ineligible => NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_LABEL,
+            Self::Any => "any",
+            Self::AcceptVotes => NnsProposalRewardStatus::AcceptVotes.as_str(),
+            Self::ReadyToSettle => NnsProposalRewardStatus::ReadyToSettle.as_str(),
+            Self::Settled => NnsProposalRewardStatus::Settled.as_str(),
+            Self::Ineligible => NnsProposalRewardStatus::Ineligible.as_str(),
         }
     }
 
@@ -298,10 +388,10 @@ impl NnsProposalRewardStatusFilter {
     pub(in crate::nns) const fn governance_reward_status_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
-            Self::AcceptVotes => Some(NNS_PROPOSAL_REWARD_STATUS_ACCEPT_VOTES_CODE),
-            Self::ReadyToSettle => Some(NNS_PROPOSAL_REWARD_STATUS_READY_TO_SETTLE_CODE),
-            Self::Settled => Some(NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE),
-            Self::Ineligible => Some(NNS_PROPOSAL_REWARD_STATUS_INELIGIBLE_CODE),
+            Self::AcceptVotes => Some(NnsProposalRewardStatus::AcceptVotes.code()),
+            Self::ReadyToSettle => Some(NnsProposalRewardStatus::ReadyToSettle.code()),
+            Self::Settled => Some(NnsProposalRewardStatus::Settled.code()),
+            Self::Ineligible => Some(NnsProposalRewardStatus::Ineligible.code()),
         }
     }
 }
@@ -310,12 +400,12 @@ impl NnsProposalStatusFilter {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Any => NNS_PROPOSAL_STATUS_ANY_LABEL,
-            Self::Open => NNS_PROPOSAL_STATUS_OPEN_LABEL,
-            Self::Rejected => NNS_PROPOSAL_STATUS_REJECTED_LABEL,
-            Self::Adopted => NNS_PROPOSAL_STATUS_ADOPTED_LABEL,
-            Self::Executed => NNS_PROPOSAL_STATUS_EXECUTED_LABEL,
-            Self::Failed => NNS_PROPOSAL_STATUS_FAILED_LABEL,
+            Self::Any => "any",
+            Self::Open => NnsProposalStatus::Open.as_str(),
+            Self::Rejected => NnsProposalStatus::Rejected.as_str(),
+            Self::Adopted => NnsProposalStatus::Adopted.as_str(),
+            Self::Executed => NnsProposalStatus::Executed.as_str(),
+            Self::Failed => NnsProposalStatus::Failed.as_str(),
         }
     }
 
@@ -323,11 +413,11 @@ impl NnsProposalStatusFilter {
     pub(in crate::nns) const fn governance_status_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
-            Self::Open => Some(NNS_PROPOSAL_STATUS_OPEN_CODE),
-            Self::Rejected => Some(NNS_PROPOSAL_STATUS_REJECTED_CODE),
-            Self::Adopted => Some(NNS_PROPOSAL_STATUS_ADOPTED_CODE),
-            Self::Executed => Some(NNS_PROPOSAL_STATUS_EXECUTED_CODE),
-            Self::Failed => Some(NNS_PROPOSAL_STATUS_FAILED_CODE),
+            Self::Open => Some(NnsProposalStatus::Open.code()),
+            Self::Rejected => Some(NnsProposalStatus::Rejected.code()),
+            Self::Adopted => Some(NnsProposalStatus::Adopted.code()),
+            Self::Executed => Some(NnsProposalStatus::Executed.code()),
+            Self::Failed => Some(NnsProposalStatus::Failed.code()),
         }
     }
 }
@@ -422,5 +512,63 @@ impl NnsProposalTopicFilter {
                 Some(NNS_PROPOSAL_TOPIC_PROTOCOL_CANISTER_MANAGEMENT_CODE)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn proposal_status_codes_and_labels_round_trip() {
+        for (status, code, label) in [
+            (NnsProposalStatus::Unspecified, 0, "unspecified"),
+            (NnsProposalStatus::Open, 1, "open"),
+            (NnsProposalStatus::Rejected, 2, "rejected"),
+            (NnsProposalStatus::Adopted, 3, "adopted"),
+            (NnsProposalStatus::Executed, 4, "executed"),
+            (NnsProposalStatus::Failed, 5, "failed"),
+        ] {
+            assert_eq!(status.code(), code);
+            assert_eq!(NnsProposalStatus::from_code(code), status);
+            assert_json_label(status, label);
+        }
+        assert_eq!(
+            NnsProposalStatus::from_code(99),
+            NnsProposalStatus::Unspecified
+        );
+    }
+
+    #[test]
+    fn proposal_reward_status_codes_and_labels_round_trip() {
+        for (status, code, label) in [
+            (NnsProposalRewardStatus::Unspecified, 0, "unspecified"),
+            (NnsProposalRewardStatus::AcceptVotes, 1, "accept-votes"),
+            (NnsProposalRewardStatus::ReadyToSettle, 2, "ready-to-settle"),
+            (NnsProposalRewardStatus::Settled, 3, "settled"),
+            (NnsProposalRewardStatus::Ineligible, 4, "ineligible"),
+        ] {
+            assert_eq!(status.code(), code);
+            assert_eq!(NnsProposalRewardStatus::from_code(code), status);
+            assert_json_label(status, label);
+        }
+        assert_eq!(
+            NnsProposalRewardStatus::from_code(99),
+            NnsProposalRewardStatus::Unspecified
+        );
+    }
+
+    fn assert_json_label<T>(value: T, label: &str)
+    where
+        T: Copy + std::fmt::Debug + Eq + Serialize + serde::de::DeserializeOwned,
+    {
+        assert_eq!(
+            serde_json::to_string(&value).unwrap(),
+            format!("\"{label}\"")
+        );
+        assert_eq!(
+            serde_json::from_str::<T>(&format!("\"{label}\"")).unwrap(),
+            value
+        );
     }
 }

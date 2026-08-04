@@ -3,20 +3,20 @@ use super::*;
 #[test]
 fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     let source = FixtureSource {
-        expected_status: vec![NNS_PROPOSAL_STATUS_EXECUTED_CODE],
-        expected_reward_status: vec![NNS_PROPOSAL_REWARD_STATUS_SETTLED_CODE],
+        expected_status: vec![NnsProposalStatus::Executed.code()],
+        expected_reward_status: vec![NnsProposalRewardStatus::Settled.code()],
         proposals: vec![
             proposal_info(
                 101,
                 NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-                NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+                NnsProposalStatus::Executed.code(),
                 "Bravo",
                 20,
             ),
             proposal_info(
                 102,
                 NNS_PROPOSAL_TOPIC_SUBNET_MANAGEMENT_CODE,
-                NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+                NnsProposalStatus::Executed.code(),
                 "Alpha",
                 10,
             ),
@@ -24,7 +24,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         proposal: proposal_info(
             101,
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            NnsProposalStatus::Executed.code(),
             "Bravo",
             20,
         ),
@@ -58,10 +58,10 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         report.governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
-    assert_eq!(report.status_filter, NNS_PROPOSAL_STATUS_EXECUTED_LABEL);
+    assert_eq!(report.status_filter, NnsProposalStatus::Executed.as_str());
     assert_eq!(
         report.reward_status_filter,
-        NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL
+        NnsProposalRewardStatus::Settled.as_str()
     );
     assert_eq!(report.topic_filter, NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL);
     assert_eq!(report.proposer_filter, Some(99));
@@ -75,10 +75,12 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(101));
     assert!(text.contains(&format!(
-        "status_filter: {NNS_PROPOSAL_STATUS_EXECUTED_LABEL}"
+        "status_filter: {}",
+        NnsProposalStatus::Executed.as_str()
     )));
     assert!(text.contains(&format!(
-        "reward_status_filter: {NNS_PROPOSAL_REWARD_STATUS_SETTLED_LABEL}"
+        "reward_status_filter: {}",
+        NnsProposalRewardStatus::Settled.as_str()
     )));
     assert!(text.contains(&format!(
         "topic_filter: {NNS_PROPOSAL_TOPIC_GOVERNANCE_LABEL}"
@@ -121,14 +123,14 @@ fn nns_proposal_list_report_filters_by_query() {
             proposal_info(
                 101,
                 NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-                NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+                NnsProposalStatus::Executed.code(),
                 "Subnet upgrade",
                 20,
             ),
             proposal_info(
                 102,
                 NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-                NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+                NnsProposalStatus::Executed.code(),
                 "Node provider reward",
                 10,
             ),
@@ -136,7 +138,7 @@ fn nns_proposal_list_report_filters_by_query() {
         proposal: proposal_info(
             101,
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            NnsProposalStatus::Executed.code(),
             "Subnet upgrade",
             20,
         ),
@@ -162,7 +164,7 @@ fn nns_proposal_query_filter_matches_searchable_text_fields() {
     let proposal = nns_proposal_row_from_info(proposal_info_with_summary(
         101,
         NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-        NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+        NnsProposalStatus::Executed.code(),
         "Subnet upgrade",
         20,
         "Committee review",

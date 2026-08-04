@@ -91,9 +91,10 @@ use ic_query::nns::proposals::{
 };
 use ic_query::nns::proposals::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
-    NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow,
-    NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopicFilter,
-    nns_proposal_list_report_text, nns_proposal_report_text,
+    NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter,
+    NnsProposalRow, NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
+    NnsProposalTally, NnsProposalTopicFilter, nns_proposal_list_report_text,
+    nns_proposal_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::nns::registry::{
@@ -1045,8 +1046,11 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         proposals: vec![proposal.clone()],
     };
 
+    let list_json = serde_json::to_value(&list_report).expect("serialize NNS proposal list report");
     let list_text = nns_proposal_list_report_text(&list_report);
 
+    assert_eq!(list_json["proposals"][0]["status_text"], "executed");
+    assert_eq!(list_json["proposals"][0]["reward_status_text"], "settled");
     assert!(list_text.contains("proposal_count: 1"));
     assert!(list_text.contains("topic_filter: governance"));
     assert!(list_text.contains("proposal_details:"));
@@ -2278,9 +2282,9 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
         topic: 4,
         topic_text: "governance".to_string(),
         status: 4,
-        status_text: "executed".to_string(),
+        status_text: NnsProposalStatus::Executed,
         reward_status: 3,
-        reward_status_text: "settled".to_string(),
+        reward_status_text: NnsProposalRewardStatus::Settled,
         title: Some("Upgrade subnet".to_string()),
         summary: "Upgrade subnet replica version.".to_string(),
         url: "https://dashboard.internetcomputer.org/proposal/132411".to_string(),

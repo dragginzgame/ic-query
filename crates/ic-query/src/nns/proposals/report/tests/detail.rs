@@ -9,7 +9,7 @@ fn nns_proposal_report_renders_detail() {
         proposal: proposal_info(
             101,
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            NnsProposalStatus::Executed.code(),
             "Bravo",
             20,
         ),
@@ -57,7 +57,7 @@ fn nns_proposal_report_truncates_summary_without_verbose() {
         proposal: proposal_info_with_summary(
             101,
             NNS_PROPOSAL_TOPIC_GOVERNANCE_CODE,
-            NNS_PROPOSAL_STATUS_EXECUTED_CODE,
+            NnsProposalStatus::Executed.code(),
             "Bravo",
             20,
             &"x".repeat(260),

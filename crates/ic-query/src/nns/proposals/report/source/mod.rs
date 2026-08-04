@@ -13,11 +13,11 @@ use super::{
         nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
     },
     enforce_mainnet_network,
-    labels::{nns_proposal_status_text, nns_reward_status_text, nns_topic_text, nns_vote_text},
+    labels::{nns_topic_text, nns_vote_text},
     model::{
         NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalReport,
-        NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter,
-        NnsProposalTally,
+        NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
+        NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally,
     },
     view::{
         proposal_matches_proposer, proposal_matches_query, proposal_matches_topic,
@@ -153,9 +153,9 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
         topic: info.topic,
         topic_text: nns_topic_text(info.topic).to_string(),
         status: info.status,
-        status_text: nns_proposal_status_text(info.status).to_string(),
+        status_text: NnsProposalStatus::from_code(info.status),
         reward_status: info.reward_status,
-        reward_status_text: nns_reward_status_text(info.reward_status).to_string(),
+        reward_status_text: NnsProposalRewardStatus::from_code(info.reward_status),
         title: proposal
             .as_ref()
             .and_then(|proposal| proposal.title.clone()),
