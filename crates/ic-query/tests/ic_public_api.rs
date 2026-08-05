@@ -11,17 +11,17 @@ use ic_query::ic::{
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
-    IcMetricRequest, IcMetricSeries, IcNodeAssignmentStatusCounts, IcNodeProviderStatusReport,
-    IcNodeStatusCounts, IcNodeStatusGroupCounts, IcNodeStatusObservation, IcNodeStatusReport,
-    IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
-    IcSubnetStatusReport, MAX_IC_CANISTER_PAGE_LIMIT, MAX_IC_DASHBOARD_RESPONSE_BYTES,
-    ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
-    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, ic_node_provider_status_report_from_snapshot,
-    ic_node_provider_status_report_text, ic_node_status_report_from_snapshot,
-    ic_node_status_report_text, ic_subnet_status_report_from_snapshot,
-    ic_subnet_status_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
-    icrc_total_supply_report_text,
+    IcMetricRequest, IcMetricSeries, IcNodeAssignmentStatusCounts, IcNodeCountComparison,
+    IcNodeProviderStatusReport, IcNodeStatusCounts, IcNodeStatusGroupCounts,
+    IcNodeStatusObservation, IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope,
+    IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport, MAX_IC_CANISTER_PAGE_LIMIT,
+    MAX_IC_DASHBOARD_RESPONSE_BYTES, ic_boundary_node_data_centers_report_text,
+    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
+    ic_daily_stats_report_text, ic_metric_report_text,
+    ic_node_provider_status_report_from_snapshot, ic_node_provider_status_report_text,
+    ic_node_status_report_from_snapshot, ic_node_status_report_text,
+    ic_subnet_status_report_from_snapshot, ic_subnet_status_report_text,
+    icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 #[cfg(feature = "host")]
 use ic_query::ic::{
@@ -67,8 +67,14 @@ fn public_node_status_api_is_constructible_serializable_and_renderable_without_h
     assert!(ic_node_status_report_text(&node_report).contains("DOWN"));
     assert!(ic_subnet_status_report_text(&subnet_report).contains("+NON-UP >F"));
     assert!(ic_node_provider_status_report_text(&provider_report).contains("Provider"));
+    assert_eq!(
+        provider_report.providers[0].unassigned_up_vs_assigned_up,
+        IcNodeCountComparison::Equal
+    );
     let node_json = serde_json::to_value(node_report).expect("serializable node status report");
     let json = serde_json::to_value(subnet_report).expect("serializable Subnet status report");
+    let provider_json =
+        serde_json::to_value(provider_report).expect("serializable provider status report");
     assert_eq!(json["authority"], "official_ic_dashboard_api");
     assert_eq!(json["cloud_engine_nodes_included"], false);
     assert_eq!(
@@ -76,6 +82,10 @@ fn public_node_status_api_is_constructible_serializable_and_renderable_without_h
         1
     );
     assert_eq!(json["subnets"][0]["statuses"]["down"], 1);
+    assert_eq!(
+        provider_json["providers"][0]["unassigned_non_up_vs_assigned_non_up"],
+        "less"
+    );
 }
 
 #[test]

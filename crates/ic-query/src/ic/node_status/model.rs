@@ -150,6 +150,63 @@ pub struct IcNodeStatusGroupCounts {
 }
 
 ///
+/// IcNodeCountComparison
+///
+/// Ordering of one observed node count relative to another.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IcNodeCountComparison {
+    /// The left-hand count is smaller.
+    Less,
+    /// The two counts are equal.
+    Equal,
+    /// The left-hand count is larger.
+    Greater,
+}
+
+impl IcNodeCountComparison {
+    /// Compare a left-hand count with a right-hand count.
+    #[must_use]
+    pub const fn from_counts(left: usize, right: usize) -> Self {
+        if left < right {
+            Self::Less
+        } else if left > right {
+            Self::Greater
+        } else {
+            Self::Equal
+        }
+    }
+
+    /// Return the stable lowercase label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Less => "less",
+            Self::Equal => "equal",
+            Self::Greater => "greater",
+        }
+    }
+}
+
+///
+/// IcNodeCountComparisonCounts
+///
+/// Number of provider groups in each node-count comparison outcome.
+///
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
+pub struct IcNodeCountComparisonCounts {
+    /// Provider groups whose left-hand count is smaller.
+    pub less: usize,
+    /// Provider groups whose counts are equal.
+    pub equal: usize,
+    /// Provider groups whose left-hand count is larger.
+    pub greater: usize,
+}
+
+///
 /// IcNodeStatusRow
 ///
 /// One raw node observation retained from the official Dashboard node resource.
@@ -452,6 +509,10 @@ pub struct IcNodeProviderStatusRow {
     pub node_provider_name: String,
     /// Operational-status and assignment totals for the provider.
     pub counts: IcNodeStatusGroupCounts,
+    /// Unassigned up-node count compared with assigned up-node count.
+    pub unassigned_up_vs_assigned_up: IcNodeCountComparison,
+    /// Unassigned non-up-node count compared with assigned non-up-node count.
+    pub unassigned_non_up_vs_assigned_non_up: IcNodeCountComparison,
     /// Raw non-up node evidence in canonical node order.
     pub non_up_nodes: Vec<IcNodeStatusRow>,
 }
@@ -473,6 +534,10 @@ pub struct IcNodeProviderStatusReport {
     pub provider_count: usize,
     /// Number of provider groups containing a non-up node.
     pub attention_provider_count: usize,
+    /// All-provider outcomes for unassigned up nodes compared with assigned up nodes.
+    pub unassigned_up_vs_assigned_up_provider_counts: IcNodeCountComparisonCounts,
+    /// All-provider outcomes for unassigned non-up nodes compared with assigned non-up nodes.
+    pub unassigned_non_up_vs_assigned_non_up_provider_counts: IcNodeCountComparisonCounts,
     /// Whether fully-up providers are included without a target.
     pub include_all: bool,
     /// Target text supplied by the caller.

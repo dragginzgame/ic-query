@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.28.md](docs/changelog/0.28.md)
 
+- `0.28.2` adds typed less/equal/greater comparisons of each provider's
+  unassigned versus assigned up and conservative non-up node counts. Reports
+  include all-provider comparison totals and compact text labels, while the
+  projection now constructs each provider aggregate once; calls and cache
+  identity are unchanged.
+
 - `0.28.1` separates status-report provenance and summaries from their tables
   with a blank line. It also rejects empty live/custom node snapshots,
   noncanonical cached row order, and semantically invalid rows supplied to pure

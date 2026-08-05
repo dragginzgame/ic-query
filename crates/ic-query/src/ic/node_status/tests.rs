@@ -23,6 +23,17 @@ fn raw_operational_status_classification_is_conservative() {
 }
 
 #[test]
+fn node_count_comparison_covers_every_ordering() {
+    for (left, right, expected) in [
+        (1, 2, IcNodeCountComparison::Less),
+        (2, 2, IcNodeCountComparison::Equal),
+        (3, 2, IcNodeCountComparison::Greater),
+    ] {
+        assert_eq!(IcNodeCountComparison::from_counts(left, right), expected);
+    }
+}
+
+#[test]
 fn all_status_views_share_one_snapshot_and_attention_filter() {
     let snapshot = fixture_snapshot();
 
@@ -44,6 +55,14 @@ fn all_status_views_share_one_snapshot_and_attention_filter() {
         .expect("assigned provider");
     assert_eq!(assigned_provider.counts.assignment_statuses.assigned.up, 1);
     assert_eq!(
+        assigned_provider.unassigned_up_vs_assigned_up,
+        IcNodeCountComparison::Less
+    );
+    assert_eq!(
+        assigned_provider.unassigned_non_up_vs_assigned_non_up,
+        IcNodeCountComparison::Less
+    );
+    assert_eq!(
         assigned_provider.counts.assignment_statuses.assigned.down,
         1
     );
@@ -59,6 +78,30 @@ fn all_status_views_share_one_snapshot_and_attention_filter() {
             .unassigned
             .degraded,
         1
+    );
+    assert_eq!(
+        unassigned_provider.unassigned_up_vs_assigned_up,
+        IcNodeCountComparison::Equal
+    );
+    assert_eq!(
+        unassigned_provider.unassigned_non_up_vs_assigned_non_up,
+        IcNodeCountComparison::Greater
+    );
+    assert_eq!(
+        providers.unassigned_up_vs_assigned_up_provider_counts,
+        IcNodeCountComparisonCounts {
+            less: 1,
+            equal: 1,
+            greater: 0,
+        }
+    );
+    assert_eq!(
+        providers.unassigned_non_up_vs_assigned_non_up_provider_counts,
+        IcNodeCountComparisonCounts {
+            less: 1,
+            equal: 0,
+            greater: 1,
+        }
     );
     assert_eq!(nodes.observation, subnets.observation);
     assert_eq!(nodes.observation, providers.observation);
@@ -89,9 +132,12 @@ fn status_text_separates_preambles_and_tables() {
         "later evidence must be a separate visual section"
     );
     assert!(
-        provider_text.contains("returned=2\n\nNODE PROVIDER"),
+        provider_text.contains("non_up=1/0/1\n\nNODE PROVIDER"),
         "provider preamble must be visually separate from its table"
     );
+    assert!(provider_text.contains("UNASN VS ASN UP/NON-UP"));
+    assert!(provider_text.contains("less/less"));
+    assert!(provider_text.contains("equal/greater"));
 }
 
 #[test]

@@ -111,6 +111,21 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
         "node_providers: total={} attention={} returned={}",
         report.provider_count, report.attention_provider_count, report.returned_provider_count
     ));
+    sections.push(format!(
+        "unassigned_vs_assigned providers (less/equal/greater): up={}/{}/{} non_up={}/{}/{}",
+        report.unassigned_up_vs_assigned_up_provider_counts.less,
+        report.unassigned_up_vs_assigned_up_provider_counts.equal,
+        report.unassigned_up_vs_assigned_up_provider_counts.greater,
+        report
+            .unassigned_non_up_vs_assigned_non_up_provider_counts
+            .less,
+        report
+            .unassigned_non_up_vs_assigned_non_up_provider_counts
+            .equal,
+        report
+            .unassigned_non_up_vs_assigned_non_up_provider_counts
+            .greater,
+    ));
     let headers = [
         "NODE PROVIDER",
         "NAME",
@@ -124,6 +139,7 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
         "UNASSIGNED UP/NON-UP",
         "API BN UP/NON-UP",
         "UNKNOWN ASN UP/NON-UP",
+        "UNASN VS ASN UP/NON-UP",
     ];
     let rows = report
         .providers
@@ -142,6 +158,11 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
                 up_non_up(&row.counts.assignment_statuses.unassigned),
                 up_non_up(&row.counts.assignment_statuses.api_boundary),
                 up_non_up(&row.counts.assignment_statuses.unknown),
+                format!(
+                    "{}/{}",
+                    row.unassigned_up_vs_assigned_up.as_str(),
+                    row.unassigned_non_up_vs_assigned_non_up.as_str()
+                ),
             ]
         })
         .collect::<Vec<_>>();
@@ -163,6 +184,7 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
                 ColumnAlign::Right,
                 ColumnAlign::Right,
                 ColumnAlign::Right,
+                ColumnAlign::Left,
             ],
         ),
     );

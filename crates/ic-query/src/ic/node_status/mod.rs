@@ -28,11 +28,12 @@ pub(in crate::ic) use counts::{node_status_counts, node_status_group_counts};
 #[cfg(feature = "host")]
 pub use model::IcNodeStatusSourceData;
 pub use model::{
-    IcNodeAssignmentStatusCounts, IcNodeOperationalStatus, IcNodeProviderStatusReport,
-    IcNodeProviderStatusRow, IcNodeStatusCacheEvidence, IcNodeStatusCounts,
-    IcNodeStatusGroupCounts, IcNodeStatusObservation, IcNodeStatusProjectionError,
-    IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot,
-    IcNodeStatusSnapshotRequest, IcNodeStatusView, IcSubnetStatusReport, IcSubnetStatusRow,
+    IcNodeAssignmentStatusCounts, IcNodeCountComparison, IcNodeCountComparisonCounts,
+    IcNodeOperationalStatus, IcNodeProviderStatusReport, IcNodeProviderStatusRow,
+    IcNodeStatusCacheEvidence, IcNodeStatusCounts, IcNodeStatusGroupCounts,
+    IcNodeStatusObservation, IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow,
+    IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusSnapshotRequest, IcNodeStatusView,
+    IcSubnetStatusReport, IcSubnetStatusRow,
 };
 #[cfg(feature = "host")]
 pub use model::{

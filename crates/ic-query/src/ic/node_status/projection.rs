@@ -5,11 +5,11 @@
 //! Boundary: keeps targets and attention filters as views over one collected identity.
 
 use super::{
-    IcNodeProviderStatusReport, IcNodeProviderStatusRow, IcNodeStatusCounts,
-    IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope,
-    IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport, IcSubnetStatusRow,
-    node_status_counts, node_status_group_counts, validate_canonical_node_status_rows,
-    validate_default_node_scope,
+    IcNodeCountComparison, IcNodeCountComparisonCounts, IcNodeProviderStatusReport,
+    IcNodeProviderStatusRow, IcNodeStatusCounts, IcNodeStatusProjectionError, IcNodeStatusReport,
+    IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
+    IcSubnetStatusReport, IcSubnetStatusRow, node_status_counts, node_status_group_counts,
+    validate_canonical_node_status_rows, validate_default_node_scope,
 };
 use std::collections::BTreeMap;
 
@@ -118,20 +118,32 @@ pub fn ic_node_provider_status_report_from_snapshot(
         grouped.keys().map(String::as_str),
         "node_provider_principal",
     )?;
-    let provider_count = grouped.len();
-    let attention_provider_count = grouped
-        .values()
-        .filter(|nodes| counts_for(nodes.iter().copied()).non_up() > 0)
-        .count();
-    let providers = grouped
+    let all_providers = grouped
         .into_iter()
-        .filter(|(provider_id, nodes)| {
+        .map(|(provider_id, nodes)| provider_row(provider_id, &nodes))
+        .collect::<Vec<_>>();
+    let provider_count = all_providers.len();
+    let attention_provider_count = all_providers
+        .iter()
+        .filter(|row| row.counts.statuses.non_up() > 0)
+        .count();
+    let mut up_comparisons = IcNodeCountComparisonCounts::default();
+    let mut non_up_comparisons = IcNodeCountComparisonCounts::default();
+    for provider in &all_providers {
+        increment_comparison(&mut up_comparisons, provider.unassigned_up_vs_assigned_up);
+        increment_comparison(
+            &mut non_up_comparisons,
+            provider.unassigned_non_up_vs_assigned_non_up,
+        );
+    }
+    let providers = all_providers
+        .into_iter()
+        .filter(|row| {
             resolution.as_ref().map_or_else(
-                || view.include_all || counts_for(nodes.iter().copied()).non_up() > 0,
-                |resolution| provider_id == &resolution.resolved,
+                || view.include_all || row.counts.statuses.non_up() > 0,
+                |resolution| row.node_provider_id == resolution.resolved,
             )
         })
-        .map(|(provider_id, nodes)| provider_row(provider_id, &nodes))
         .collect::<Vec<_>>();
 
     Ok(IcNodeProviderStatusReport {
@@ -139,6 +151,8 @@ pub fn ic_node_provider_status_report_from_snapshot(
         snapshot_node_count: snapshot.node_count,
         provider_count,
         attention_provider_count,
+        unassigned_up_vs_assigned_up_provider_counts: up_comparisons,
+        unassigned_non_up_vs_assigned_non_up_provider_counts: non_up_comparisons,
         include_all: view.include_all,
         requested_target: view.target.clone(),
         resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
@@ -181,11 +195,33 @@ fn provider_row(node_provider_id: String, nodes: &[&IcNodeStatusRow]) -> IcNodeP
         .filter(|node| node.is_non_up())
         .map(|node| (*node).clone())
         .collect();
+    let counts = node_status_group_counts(nodes.iter().copied());
+    let assigned = &counts.assignment_statuses.assigned;
+    let unassigned = &counts.assignment_statuses.unassigned;
     IcNodeProviderStatusRow {
         node_provider_id,
         node_provider_name,
-        counts: node_status_group_counts(nodes.iter().copied()),
+        unassigned_up_vs_assigned_up: IcNodeCountComparison::from_counts(
+            unassigned.up,
+            assigned.up,
+        ),
+        unassigned_non_up_vs_assigned_non_up: IcNodeCountComparison::from_counts(
+            unassigned.non_up(),
+            assigned.non_up(),
+        ),
+        counts,
         non_up_nodes,
+    }
+}
+
+const fn increment_comparison(
+    counts: &mut IcNodeCountComparisonCounts,
+    comparison: IcNodeCountComparison,
+) {
+    match comparison {
+        IcNodeCountComparison::Less => counts.less += 1,
+        IcNodeCountComparison::Equal => counts.equal += 1,
+        IcNodeCountComparison::Greater => counts.greater += 1,
     }
 }
 

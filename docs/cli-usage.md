@@ -186,9 +186,11 @@ Status JSON preserves raw Dashboard `UP`, `DOWN`, `DEGRADED`, `DISABLED`, and
 unknown future values, assignment/type evidence, alerts, provider/operator,
 version, location, and hardware fields. Subnet rows derive separate down-only
 and conservative non-up distances from `floor((n - 1) / 3)`. Provider rows
-include a complete status-by-assignment cross-tab, so assigned
-and unassigned up/down or non-up totals can be compared directly. These are
-timestamped off-chain observations with `certified: false` and
+include a complete status-by-assignment cross-tab plus typed `less`, `equal`,
+or `greater` outcomes for unassigned versus assigned up and conservative
+non-up counts. Report-level totals group every observed provider by those
+outcomes before view filtering. These are timestamped off-chain observations
+with `certified: false` and
 `point_in_time_guaranteed: false`; the recorded default public-mainnet scope
 also excludes cloud-engine nodes.
 
