@@ -14,6 +14,22 @@ Use `host` for native tools that need live calls, filesystem caches, refresh
 operations, or cache-backed report builders. The library has no CLI feature;
 `icq` parsing and dispatch are owned by `ic-query-cli`.
 
+For official Dashboard REST reports and the shared observed node-status cache,
+use the independent Dashboard feature:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["dashboard-host"] }
+```
+
+`dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
+builders, and the confined node-status cache. It enables Reqwest, Tokio, URL,
+and the capability-filesystem dependencies required by those APIs. It does not
+enable `ic-agent`, Registry protobuf decoding, `serde_cbor`, or native
+NNS/SNS/ICRC host adapters. Reqwest can retain cryptographic implementations
+such as SHA-256 transitively; dependency checks distinguish those transitives
+from ic-query's own direct optional edges.
+
 For a native embedder that needs only the live/cache Subnet catalog API, use
 the narrower feature:
 

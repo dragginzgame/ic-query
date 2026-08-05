@@ -506,7 +506,7 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
     let _ = fs::remove_dir_all(root);
 }
 
-fn identity_cache_error(err: CacheFileError) -> CacheFileError {
+const fn identity_cache_error(err: CacheFileError) -> CacheFileError {
     err
 }
 

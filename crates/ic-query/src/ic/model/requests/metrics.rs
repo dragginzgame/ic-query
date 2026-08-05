@@ -69,7 +69,7 @@ impl IcMetricKind {
         }
     }
 
-    #[cfg(feature = "host")]
+    #[cfg(feature = "dashboard-host")]
     pub(crate) const fn series_names(self) -> &'static [&'static str] {
         match self {
             Self::InstructionRate => &["instruction_rate"],

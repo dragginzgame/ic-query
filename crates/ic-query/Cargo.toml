@@ -35,9 +35,16 @@ url = { version = "2.5.8", optional = true }
 [features]
 default = []
 host = [
+    "dashboard-host",
     "nns-topology-host",
-    "dep:reqwest",
     "dep:serde_cbor",
+]
+dashboard-host = [
+    "dep:cap-fs-ext",
+    "dep:cap-std",
+    "dep:reqwest",
+    "dep:tokio",
+    "dep:url",
 ]
 nns-topology-host = ["subnet-catalog-host"]
 subnet-catalog-host = [

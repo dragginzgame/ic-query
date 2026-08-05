@@ -67,7 +67,7 @@ impl IcIcrcIndexedCountKind {
         }
     }
 
-    #[cfg(feature = "host")]
+    #[cfg(feature = "dashboard-host")]
     pub(crate) const fn resource_path_segment(self) -> &'static str {
         match self {
             Self::Account => "accounts",

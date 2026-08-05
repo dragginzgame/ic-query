@@ -7,7 +7,7 @@
 use crate::ic::IcDashboardReportProvenance;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::fmt;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
 
@@ -355,7 +355,7 @@ impl IcNodeStatusSnapshotRequest {
 /// Untrusted raw node rows and provenance returned by a Dashboard source capability.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcNodeStatusSourceData {
     /// Source-call provenance echoed by the source.
@@ -598,7 +598,7 @@ pub enum IcNodeStatusProjectionError {
 /// Stable identity of one network-level observed node-status cache.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcNodeStatusCacheRequest {
     /// Root directory containing all `ic-query` caches.
@@ -607,7 +607,7 @@ pub struct IcNodeStatusCacheRequest {
     pub network: String,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcNodeStatusCacheRequest {
     /// Construct one observed node-status cache identity.
     #[must_use]
@@ -625,7 +625,7 @@ impl IcNodeStatusCacheRequest {
 /// Settings for one forced observed node-status snapshot refresh.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcNodeStatusRefreshRequest {
     /// Stable cache identity.
@@ -638,7 +638,7 @@ pub struct IcNodeStatusRefreshRequest {
     pub lock_stale_after_seconds: u64,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcNodeStatusRefreshRequest {
     /// Construct one forced node-status snapshot refresh request.
     #[must_use]
@@ -664,7 +664,7 @@ impl IcNodeStatusRefreshRequest {
 /// Cache-backed status-view request shared by node, Subnet, and provider reports.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcNodeStatusReadRequest {
     /// Live and cache settings used when refresh is required.
@@ -675,7 +675,7 @@ pub struct IcNodeStatusReadRequest {
     pub force_refresh: bool,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcNodeStatusReadRequest {
     /// Construct one stale-refresh status-view request.
     #[must_use]
@@ -719,7 +719,7 @@ impl IcNodeStatusReadRequest {
 /// Result of atomically replacing the complete observed node-status cache.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcNodeStatusRefreshReport {
     /// Cache/report schema version.
@@ -750,7 +750,7 @@ pub struct IcNodeStatusRefreshReport {
 /// Host source, cache, and projection failures for observed node-status reports.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[derive(Debug, ThisError)]
 pub enum IcNodeStatusHostError {
     /// The observed Dashboard source supports only public mainnet identity.

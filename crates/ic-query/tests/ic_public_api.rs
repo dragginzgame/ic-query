@@ -1,4 +1,4 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 use ic_query::HostCacheError;
 use ic_query::ic::{
     DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_CANISTER_PAGE_LIMIT,
@@ -25,7 +25,7 @@ use ic_query::ic::{
     ic_subnet_status_report_from_snapshot, ic_subnet_status_report_text,
     icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 use ic_query::ic::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCollectionSource, IcCanisterCountSourceData,
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
@@ -373,9 +373,9 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
     assert!(page_json.get("provenance").is_none());
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
-fn public_host_api_exposes_live_and_custom_source_builders() {
+fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
     type Builder = fn(&IcCanisterRequest) -> Result<IcCanisterReport, IcHostError>;
     type CustomBuilder =
         fn(&IcCanisterRequest, &dyn IcCanisterSource) -> Result<IcCanisterReport, IcHostError>;
@@ -478,9 +478,9 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
     assert_eq!(daily_stats.returned_day_count, 1);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
-fn public_host_api_exposes_live_and_custom_node_status_builders() {
+fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
     let _: fn(&IcNodeStatusSnapshotRequest) -> Result<IcNodeStatusSnapshot, IcHostError> =
         build_ic_node_status_snapshot;
     let _: fn(
@@ -509,9 +509,9 @@ fn public_host_api_exposes_live_and_custom_node_status_builders() {
     ));
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
-fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
+fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
     let _: fn(&IcIcrcIndexedCountRequest) -> Result<IcIcrcIndexedCountReport, IcHostError> =
         build_icrc_indexed_count_report;
     let _: fn(
@@ -566,9 +566,9 @@ fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
     assert_eq!(report.returned_observation_count, 2);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
-fn public_host_error_preserves_oversized_dashboard_response_evidence() {
+fn public_dashboard_host_error_preserves_oversized_response_evidence() {
     let error = IcHostError::HttpResponseTooLarge {
         url: "https://ic-api.internetcomputer.org/api/v3/canisters".to_string(),
         max_bytes: MAX_IC_DASHBOARD_RESPONSE_BYTES,
@@ -585,10 +585,10 @@ fn public_host_error_preserves_oversized_dashboard_response_evidence() {
     ));
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 struct FixtureSource;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcCanisterSource for FixtureSource {
     fn fetch_canister(
         &self,
@@ -611,7 +611,7 @@ impl IcCanisterSource for FixtureSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcCanisterCollectionSource for FixtureSource {
     fn fetch_canister_count(
         &self,
@@ -646,7 +646,7 @@ impl IcCanisterCollectionSource for FixtureSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcMetricSource for FixtureSource {
     fn fetch_metric(
         &self,
@@ -667,7 +667,7 @@ impl IcMetricSource for FixtureSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcIcrcAnalyticsSource for FixtureSource {
     fn fetch_indexed_count(
         &self,
@@ -729,7 +729,7 @@ impl IcIcrcAnalyticsSource for FixtureSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcNetworkSource for FixtureSource {
     fn fetch_boundary_node_data_centers(
         &self,
@@ -754,7 +754,7 @@ impl IcNetworkSource for FixtureSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcNodeStatusSource for FixtureSource {
     fn fetch_node_status_snapshot(
         &self,

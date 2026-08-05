@@ -4,7 +4,7 @@
 //! Does not own: HTTP transport, Registry authority, command parsing, or process output.
 //! Boundary: derives node, Subnet, and provider views from one finite off-chain snapshot.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 mod cache;
 mod counts;
 mod model;
@@ -12,7 +12,7 @@ mod projection;
 mod text;
 mod validation;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use cache::{
     build_ic_node_provider_status_report, build_ic_node_provider_status_report_with_source,
     build_ic_node_status_report, build_ic_node_status_report_with_source,
@@ -25,7 +25,7 @@ pub use cache::{
     refresh_ic_node_status_snapshot_with_source,
 };
 pub(in crate::ic) use counts::node_status_group_counts;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use model::IcNodeStatusSourceData;
 pub use model::{
     IcNodeAssignmentStatusCounts, IcNodeCountComparison, IcNodeCountComparisonCounts,
@@ -35,7 +35,7 @@ pub use model::{
     IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusSnapshotRequest, IcNodeStatusView,
     IcSubnetStatusReport, IcSubnetStatusRow,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use model::{
     IcNodeStatusCacheRequest, IcNodeStatusHostError, IcNodeStatusReadRequest,
     IcNodeStatusRefreshReport, IcNodeStatusRefreshRequest,
@@ -44,12 +44,12 @@ pub use projection::{
     ic_node_provider_status_report_from_snapshot, ic_node_status_report_from_snapshot,
     ic_subnet_status_report_from_snapshot,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use text::ic_node_status_refresh_report_text;
 pub use text::{
     ic_node_provider_status_report_text, ic_node_status_report_text, ic_subnet_status_report_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub(in crate::ic) use validation::canonicalize_node_status_rows;
 pub(in crate::ic) use validation::{
     validate_canonical_node_status_rows, validate_default_node_scope,

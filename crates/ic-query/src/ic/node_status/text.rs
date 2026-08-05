@@ -4,7 +4,7 @@
 //! Does not own: source collection, cache policy, projection, or JSON output.
 //! Boundary: keeps compact operational display separate from raw report fields.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 use super::IcNodeStatusRefreshReport;
 use super::{
     IcNodeAssignmentStatusCounts, IcNodeCountComparisonCounts, IcNodeProviderStatusReport,
@@ -188,7 +188,7 @@ fn push_table_section(sections: &mut Vec<String>, table: String) {
 }
 
 /// Render a human-readable forced node-status cache refresh report.
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[must_use]
 pub fn ic_node_status_refresh_report_text(report: &IcNodeStatusRefreshReport) -> String {
     [

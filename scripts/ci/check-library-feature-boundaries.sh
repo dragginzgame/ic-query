@@ -24,6 +24,20 @@ forbidden_direct_registry_host_dependencies=(
   serde_cbor
 )
 
+forbidden_dashboard_host_dependencies=(
+  ic-agent
+  prost
+  serde_cbor
+)
+
+forbidden_direct_dashboard_host_dependencies=(
+  futures
+  ic-agent
+  prost
+  serde_cbor
+  sha2
+)
+
 check_tree_absent() {
   local label="$1"
   shift
@@ -75,6 +89,8 @@ cargo check -p ic-query --no-default-features --locked
 cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked
 run_quiet "ic-query --features host" \
   cargo check -p ic-query --no-default-features --features host --locked
+run_quiet "ic-query --features dashboard-host" \
+  cargo check -p ic-query --no-default-features --features dashboard-host --locked
 run_quiet "ic-query --features subnet-catalog-host" \
   cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
 run_quiet "ic-query --features nns-topology-host" \
@@ -84,6 +100,7 @@ cargo test -p ic-query --test downstream_usage --no-default-features --features 
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --locked
+cargo test -p ic-query --test ic_public_api --no-default-features --features dashboard-host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --features host --locked
@@ -132,6 +149,25 @@ check_tree_absent "ic-query --features host --no-default-features" \
   -p ic-query \
   --no-default-features \
   --features host
+
+check_tree_absent "ic-query --features dashboard-host" \
+  "${forbidden_dashboard_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features dashboard-host
+
+# Reqwest may retain packages such as SHA-256 implementations transitively.
+# This gate separately proves that ic-query does not activate its Registry,
+# certification, or async-source dependencies directly for Dashboard use.
+check_tree_absent "ic-query --features dashboard-host direct dependencies" \
+  "${forbidden_direct_dashboard_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features dashboard-host \
+  -e normal \
+  --depth 1
 
 # `ic-agent` may retain these package names transitively. The focused feature
 # promises only that ic-query's own optional transport/certification edges stay

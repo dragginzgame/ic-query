@@ -34,7 +34,7 @@ pub fn catalog_stale_status(
     }
 }
 
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
     let value = value.strip_suffix('Z')?;
     let (date, time) = value.split_once('T')?;
@@ -96,7 +96,7 @@ fn civil_from_days(days: i64) -> (i64, i64, i64) {
     (year, month, day)
 }
 
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
     let month = i64::from(month);
     let day = i64::from(day);

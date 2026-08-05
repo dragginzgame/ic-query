@@ -1,13 +1,13 @@
 use super::*;
 use crate::ic::IcDashboardReportProvenance;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 use crate::{
     HostCacheError,
     ic::{IcHostError, IcNodeStatusSource, IcNodeStatusSourceData, IcSourceRequest},
     progress::IgnoreQueryProgress,
     subnet_catalog::parse_utc_timestamp_secs,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 use std::{cell::Cell, fs, path::PathBuf, time::SystemTime};
 
 #[test]
@@ -212,7 +212,7 @@ fn pure_projections_reject_invalid_raw_relation_evidence() {
     ));
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn non_mainnet_refresh_fails_before_calling_the_source() {
     let source = FixtureSource::default();
@@ -234,7 +234,7 @@ fn non_mainnet_refresh_fails_before_calling_the_source() {
     assert_eq!(source.calls.get(), 0);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
     let root = temp_dir("ic-node-status-stale");
@@ -282,7 +282,7 @@ fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn malformed_cache_recovers_while_strict_load_remains_typed() {
     let root = temp_dir("ic-node-status-invalid");
@@ -313,7 +313,7 @@ fn malformed_cache_recovers_while_strict_load_remains_typed() {
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
     let root = temp_dir("ic-node-status-cache-order");
@@ -357,7 +357,7 @@ fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn forced_refresh_reports_atomic_replacement() {
     let root = temp_dir("ic-node-status-force");
@@ -382,7 +382,7 @@ fn forced_refresh_reports_atomic_replacement() {
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
     let source = RowsSource {
@@ -413,7 +413,7 @@ fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
     assert_eq!(snapshot.counts.statuses.up, 1);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
     let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
@@ -466,7 +466,7 @@ fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
     ));
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn custom_source_rejects_invalid_principals_assignment_and_scope_evidence() {
     let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
@@ -504,7 +504,7 @@ fn custom_source_rejects_invalid_principals_assignment_and_scope_evidence() {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn custom_source_rejects_rows_above_the_fixed_ceiling() {
     let row = fixture_node(
@@ -528,7 +528,7 @@ fn custom_source_rejects_rows_above_the_fixed_ceiling() {
     assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[test]
 fn custom_source_rejects_an_empty_mainnet_snapshot() {
     let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
@@ -619,18 +619,18 @@ fn fixture_node(
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 #[derive(Default)]
 struct FixtureSource {
     calls: Cell<usize>,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 struct RowsSource {
     nodes: Vec<IcNodeStatusRow>,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcNodeStatusSource for RowsSource {
     fn fetch_node_status_snapshot(
         &self,
@@ -645,7 +645,7 @@ impl IcNodeStatusSource for RowsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl IcNodeStatusSource for FixtureSource {
     fn fetch_node_status_snapshot(
         &self,
@@ -667,7 +667,7 @@ impl IcNodeStatusSource for FixtureSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 fn refresh_request(root: &std::path::Path, now_unix_secs: u64) -> IcNodeStatusRefreshRequest {
     IcNodeStatusRefreshRequest::new(
         root,
@@ -678,12 +678,12 @@ fn refresh_request(root: &std::path::Path, now_unix_secs: u64) -> IcNodeStatusRe
     )
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 fn fixture_now() -> u64 {
     parse_utc_timestamp_secs("2026-08-04T12:00:00Z").expect("fixture timestamp")
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 fn temp_dir(label: &str) -> PathBuf {
     let nonce = SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

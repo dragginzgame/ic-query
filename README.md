@@ -370,6 +370,21 @@ Library builders do not write to stdout or stderr. Paged refresh APIs can emit
 typed `QueryProgressEvent` values to a caller-provided sink; terminal rendering
 remains an `ic-query-cli` responsibility.
 
+Enable `dashboard-host` when an embedder needs only the official Dashboard
+REST reports and the shared observed node-status cache:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["dashboard-host"] }
+```
+
+This exposes `LiveIcSource`, its custom-source traits and builders, and the
+confined node-status cache without enabling `ic-agent`, Registry protobufs,
+native NNS/SNS/ICRC host adapters, or CBOR certification. Reqwest may retain
+cryptographic packages such as SHA-256 implementations transitively; the
+feature promises the absence of ic-query's direct Registry and certification
+edges, not every similarly named transitive package.
+
 Enable the narrower `subnet-catalog-host` feature when a native embedder needs
 only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
 decoding, runtime bridge, capability-filesystem dependencies, and other cache

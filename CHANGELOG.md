@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
 
+- `0.29.5` adds the independent `dashboard-host` library feature for official
+  Dashboard REST reports and the confined observed node-status cache. It
+  excludes `ic-agent`, Registry protobufs, CBOR certification, and native
+  NNS/SNS/ICRC host adapters while `host` remains the complete union. Report
+  and cache schemas, paths, live calls, and CLI behavior are unchanged.
+
 - `0.29.4` adds the focused `nns-topology-host` library feature as a strict
   superset of `subnet-catalog-host`. It exposes the exact-version joined NNS
   Subnet/node/operator/provider live and cache API without enabling ic-query's

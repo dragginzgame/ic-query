@@ -61,6 +61,7 @@ impl<'de> Visitor<'de> for TopLevelKeysVisitor {
     }
 }
 
+#[cfg(feature = "nns-topology-host")]
 pub fn load_json_cache<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     errors: Errors,
@@ -72,7 +73,7 @@ where
     load_json_cache_inner(request, None, errors)
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub fn load_json_cache_strict<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],

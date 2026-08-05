@@ -1,16 +1,16 @@
 //! Official IC Dashboard API report models, adapters, builders, and renderers.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 mod build;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 mod live;
 mod model;
 mod node_status;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 mod source;
 mod text;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use build::{
     build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
@@ -23,9 +23,9 @@ pub use build::{
     build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use build::{build_ic_canister_report, build_ic_canister_report_with_source};
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use live::LiveIcSource;
 pub use model::{
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
@@ -39,7 +39,7 @@ pub use model::{
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
     IcMetricRequest, IcMetricSeries,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
     IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcIndexedCountSourceData,
@@ -59,7 +59,7 @@ pub use node_status::{
     ic_node_status_report_text, ic_subnet_status_report_from_snapshot,
     ic_subnet_status_report_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use node_status::{
     IcNodeStatusCacheRequest, IcNodeStatusHostError, IcNodeStatusReadRequest,
     IcNodeStatusRefreshReport, IcNodeStatusRefreshRequest, IcNodeStatusSourceData,
@@ -74,7 +74,7 @@ pub use node_status::{
     load_or_refresh_stale_ic_node_status_snapshot_with_source, refresh_ic_node_status_snapshot,
     refresh_ic_node_status_snapshot_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use source::{
     IcCanisterCollectionSource, IcCanisterSource, IcIcrcAnalyticsSource, IcMetricSource,
     IcNetworkSource, IcNodeStatusSource,
@@ -168,12 +168,12 @@ pub const MAX_IC_DAILY_STATS_ROWS: usize = 366;
 /// Maximum boundary-node data-center rows accepted from one source response.
 pub const MAX_IC_BOUNDARY_NODE_DATA_CENTERS: usize = 1_000;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 const IC_DASHBOARD_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 const IC_DASHBOARD_AUTHORITY: &str = "official_ic_dashboard_api";
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 const IC_DASHBOARD_NETWORK: &str = "ic";
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "dashboard-host"))]
 mod tests;

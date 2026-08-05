@@ -30,16 +30,19 @@ pub trait LoadJsonCacheErrorMapper {
 /// Maps generic JSON cache failures to the shared component-labelled host error.
 ///
 
+#[cfg(feature = "nns-topology-host")]
 pub struct HostJsonCacheErrorMapper {
     component: &'static str,
 }
 
+#[cfg(feature = "nns-topology-host")]
 impl HostJsonCacheErrorMapper {
     pub const fn new(component: &'static str) -> Self {
         Self { component }
     }
 }
 
+#[cfg(feature = "nns-topology-host")]
 impl LoadJsonCacheErrorMapper for HostJsonCacheErrorMapper {
     type Error = HostCacheError;
 
@@ -71,13 +74,13 @@ impl LoadJsonCacheErrorMapper for HostJsonCacheErrorMapper {
 /// generic JSON cache failure through [`HostCacheError`].
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub struct OwnerJsonCacheErrorMapper<Error> {
     component: &'static str,
     missing_cache: fn(PathBuf) -> Error,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl<Error> OwnerJsonCacheErrorMapper<Error> {
     /// Build one mapper for a component with specialized missing-cache guidance.
     pub const fn new(component: &'static str, missing_cache: fn(PathBuf) -> Error) -> Self {
@@ -88,7 +91,7 @@ impl<Error> OwnerJsonCacheErrorMapper<Error> {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 impl<Error> LoadJsonCacheErrorMapper for OwnerJsonCacheErrorMapper<Error>
 where
     Error: From<HostCacheError>,

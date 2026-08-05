@@ -4,7 +4,9 @@
 //! Does not own: snapshot path discovery, refresh attempts, or family-specific schemas.
 //! Boundary: validates complete snapshot envelopes through cache-file JSON helpers.
 
-use super::{SnapshotHeader, SnapshotIdentityMismatch, SnapshotKey, SnapshotReport};
+#[cfg(feature = "host")]
+use super::SnapshotHeader;
+use super::{SnapshotIdentityMismatch, SnapshotKey, SnapshotReport};
 use crate::{
     cache::CacheCollectionCompleteness,
     cache_file::{
@@ -51,6 +53,7 @@ where
     Ok(snapshot)
 }
 
+#[cfg(feature = "host")]
 pub fn load_snapshot_header<Metadata, Errors>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],

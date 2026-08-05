@@ -10,7 +10,8 @@
 //! `ic-agent`, Reqwest, Tokio, or `futures`, but they may still use ordinary
 //! `std` types such as `String` and `Vec`.
 //!
-//! Enable `subnet-catalog-host` for the focused live/cache Subnet catalog API,
+//! Enable `dashboard-host` for official Dashboard live/cache APIs,
+//! `subnet-catalog-host` for the focused live/cache Subnet catalog API,
 //! `nns-topology-host` for that API plus exact-version joined NNS Subnet
 //! topology, or `host` for every native live-call adapter and runtime helper.
 //! CLI parsing and process IO belong to the separate `ic-query-cli` crate.
@@ -18,38 +19,38 @@
 #[cfg(feature = "subnet-catalog-host")]
 mod agent;
 pub mod cache;
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 mod cache_file;
 #[cfg(feature = "host")]
 mod certification;
 pub mod duration;
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 mod freshness;
 mod hex;
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 mod http_endpoint;
 mod human_quantity;
 pub mod ic;
 #[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;
 pub mod icrc;
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 mod network;
 pub mod nns;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 mod progress;
 pub mod report;
 #[cfg(feature = "host")]
 mod report_sort;
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 mod runtime;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub(crate) mod snapshot_cache;
 pub mod sns;
 pub mod subnet_catalog;
 pub mod system;
 
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
 pub use cache_file::{CacheFileError, HostCacheError};
 mod table;
 #[cfg(feature = "host")]
@@ -58,11 +59,11 @@ mod text_value;
 mod token_amount;
 mod token_metadata_text;
 
-#[cfg(all(test, feature = "subnet-catalog-host"))]
+#[cfg(all(test, any(feature = "dashboard-host", feature = "subnet-catalog-host")))]
 mod test_support;
 
 #[cfg(test)]
 mod tests;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use progress::{QueryProgress, QueryProgressEvent, QueryProgressState};

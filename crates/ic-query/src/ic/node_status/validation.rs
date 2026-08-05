@@ -8,7 +8,7 @@ use super::{IcNodeStatusRow, MAX_IC_NODE_STATUS_ROWS};
 use candid::Principal;
 use std::collections::{HashMap, HashSet};
 
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub(in crate::ic) fn canonicalize_node_status_rows(
     nodes: &mut [IcNodeStatusRow],
 ) -> Result<(), String> {

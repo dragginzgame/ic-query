@@ -8,14 +8,16 @@ mod errors;
 mod load;
 mod model;
 
+#[cfg(feature = "nns-topology-host")]
 pub use errors::HostJsonCacheErrorMapper;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use errors::LoadJsonCacheErrorMapper;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use errors::OwnerJsonCacheErrorMapper;
+#[cfg(feature = "nns-topology-host")]
 pub use load::load_json_cache;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use load::load_json_cache_strict;
-#[cfg(feature = "host")]
+#[cfg(feature = "dashboard-host")]
 pub use model::CachedJsonReport;
 pub use model::{JsonCacheReport, LoadJsonCacheRequest};
