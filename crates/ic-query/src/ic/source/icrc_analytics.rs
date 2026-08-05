@@ -5,8 +5,8 @@
 //! Boundary: validates ledger-scoped scalar and bounded-series evidence before reports.
 
 use super::{
-    invalid_request, invalid_source, report_provenance, validate_collection_end,
-    validate_principal_match, validate_provenance,
+    inclusive_observation_count, invalid_request, invalid_source, report_provenance,
+    validate_collection_end, validate_principal_match, validate_provenance,
 };
 use crate::ic::{
     IcHostError, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountSourceData,
@@ -198,7 +198,8 @@ pub(in crate::ic) fn validate_icrc_total_supply_query(
         return invalid_request("query.step_secs", "must be either 3600 or 86400");
     }
 
-    let requested_observations = icrc_total_supply_observation_limit(query);
+    let requested_observations =
+        inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);
     if requested_observations > MAX_ICRC_ANALYTICS_OBSERVATIONS {
         return invalid_request(
             "query",
@@ -229,7 +230,8 @@ pub(in crate::ic) fn icrc_total_supply_report_from_source(
         ));
     }
 
-    let requested_observation_limit = icrc_total_supply_observation_limit(query);
+    let requested_observation_limit =
+        inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);
     let returned_count = u64::try_from(source.observations.len()).unwrap_or(u64::MAX);
     if returned_count > requested_observation_limit
         || returned_count > MAX_ICRC_ANALYTICS_OBSERVATIONS
@@ -270,10 +272,6 @@ pub(in crate::ic) fn icrc_total_supply_report_from_source(
         returned_observation_count: source.observations.len(),
         observations: source.observations,
     })
-}
-
-pub(in crate::ic) fn icrc_total_supply_observation_limit(query: &IcIcrcTotalSupplyQuery) -> u64 {
-    (query.end_unix_secs - query.start_unix_secs) / u64::from(query.step_secs) + 1
 }
 
 fn is_canonical_unsigned_decimal(value: &str) -> bool {

@@ -51,15 +51,9 @@ impl IcCanisterCollectionSource for LiveIcSource {
         before: Option<&str>,
     ) -> Result<IcCanisterPageSourceData, IcHostError> {
         source::validate_page_limit(limit)?;
-        if after.is_some() && before.is_some() {
-            return Err(IcHostError::InvalidRequest {
-                field: "pagination",
-                reason: "after and before are mutually exclusive".to_string(),
-            });
-        }
+        source::validate_page_cursor_exclusivity(after, before)?;
         let filters = source::normalized_filters(filters)?;
-        let after = source::canonical_page_cursor("after", after)?;
-        let before = source::canonical_page_cursor("before", before)?;
+        let (after, before) = source::canonical_page_cursors(after, before)?;
         let url = canister_collection_url(
             &request.endpoint,
             &filters,

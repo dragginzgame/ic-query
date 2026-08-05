@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.28.md](docs/changelog/0.28.md)
 
+- `0.28.4` consolidates official Dashboard adapter invariants without changing
+  reports: canister page cursors now have one normalization path for public
+  builders and direct live-source calls, shared principal validation lives at
+  the common source boundary, and bounded metric/ICRC series use one inclusive
+  observation-count rule. Commands, JSON, text, calls, and caches are
+  unchanged.
+
 - `0.28.3` consolidates the observed-status projection internals without
   changing reports: Subnet aggregates are constructed once before view
   filtering, node/Subnet/provider selection and non-up evidence reuse shared

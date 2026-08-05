@@ -14,6 +14,7 @@ use crate::ic::{
     IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
     IcDashboardReportProvenance, IcHostError, IcSourceRequest,
 };
+use candid::Principal;
 
 pub use canister::{IcCanisterCollectionSource, IcCanisterSource};
 pub use icrc_analytics::IcIcrcAnalyticsSource;
@@ -22,9 +23,9 @@ pub use network::IcNetworkSource;
 pub use node_status::IcNodeStatusSource;
 
 pub(super) use canister::{
-    canonical_canister_id, canonical_page_cursor, canonical_request_principal,
-    count_report_from_source, normalized_filters, page_report_from_source, report_from_source,
-    validate_page_limit, validate_principal_match,
+    canonical_canister_id, canonical_page_cursors, count_report_from_source, normalized_filters,
+    page_report_from_source, report_from_source, validate_page_cursor_exclusivity,
+    validate_page_limit,
 };
 pub(super) use icrc_analytics::{
     icrc_indexed_count_report_from_source, icrc_token_value_report_from_source,
@@ -71,6 +72,44 @@ fn validate_provenance(
     Ok(())
 }
 
+pub(in crate::ic) fn canonical_request_principal(
+    field: &'static str,
+    value: &str,
+) -> Result<String, IcHostError> {
+    Principal::from_text(value)
+        .map(|principal| principal.to_text())
+        .map_err(|error| IcHostError::InvalidPrincipal {
+            field,
+            reason: error.to_string(),
+        })
+}
+
+fn validate_canonical_principal(field: &'static str, value: &str) -> Result<(), IcHostError> {
+    let principal = Principal::from_text(value)
+        .map_err(|error| invalid_source_value(format!("{field} {value:?}: {error}")))?;
+    let canonical = principal.to_text();
+    if canonical != value {
+        return invalid_source(format!(
+            "{field} {value:?} is not canonical principal text; expected {canonical:?}"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_principal_match(
+    field: &'static str,
+    expected: &str,
+    actual: &str,
+) -> Result<(), IcHostError> {
+    validate_canonical_principal(field, actual)?;
+    if actual == expected {
+        return Ok(());
+    }
+    invalid_source(format!(
+        "{field} is {actual:?}, expected requested principal {expected:?}"
+    ))
+}
+
 fn validate_collection_end(now_unix_secs: u64, end_unix_secs: u64) -> Result<(), IcHostError> {
     if end_unix_secs > now_unix_secs {
         return invalid_request(
@@ -79,6 +118,10 @@ fn validate_collection_end(now_unix_secs: u64, end_unix_secs: u64) -> Result<(),
         );
     }
     Ok(())
+}
+
+fn inclusive_observation_count(start_unix_secs: u64, end_unix_secs: u64, step_secs: u32) -> u64 {
+    (end_unix_secs - start_unix_secs) / u64::from(step_secs) + 1
 }
 
 fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {

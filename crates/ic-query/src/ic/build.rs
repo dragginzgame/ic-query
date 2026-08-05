@@ -17,13 +17,13 @@ use crate::{
         IcNodeStatusSource, IcSourceRequest, LiveIcSource,
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
-            canonical_page_cursor, canonical_request_principal, count_report_from_source,
+            canonical_page_cursors, canonical_request_principal, count_report_from_source,
             daily_stats_report_from_source, icrc_indexed_count_report_from_source,
             icrc_token_value_report_from_source, icrc_total_supply_report_from_source,
             metric_report_from_source, node_status_snapshot_from_source, normalized_filters,
             page_report_from_source, report_from_source, validate_daily_stats_request,
             validate_icrc_token_value_request, validate_icrc_total_supply_request,
-            validate_metric_request, validate_page_limit,
+            validate_metric_request, validate_page_cursor_exclusivity, validate_page_limit,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -228,16 +228,10 @@ pub fn build_ic_canister_page_report_with_source(
     source: &dyn IcCanisterCollectionSource,
 ) -> Result<IcCanisterPageReport, IcHostError> {
     validate_page_limit(request.limit)?;
-    if request.after.is_some() && request.before.is_some() {
-        return Err(IcHostError::InvalidRequest {
-            field: "pagination",
-            reason: "after and before are mutually exclusive".to_string(),
-        });
-    }
-
+    validate_page_cursor_exclusivity(request.after.as_deref(), request.before.as_deref())?;
     let filters = normalized_filters(&request.filters)?;
-    let after = canonical_page_cursor("after", request.after.as_deref())?;
-    let before = canonical_page_cursor("before", request.before.as_deref())?;
+    let (after, before) =
+        canonical_page_cursors(request.after.as_deref(), request.before.as_deref())?;
     let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
     let source_data = source.fetch_canister_page(
         &source_request,

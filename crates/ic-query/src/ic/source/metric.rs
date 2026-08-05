@@ -5,8 +5,8 @@
 //! Boundary: validates one explicitly bounded metric response before report construction.
 
 use super::{
-    invalid_request, invalid_source, report_provenance, validate_collection_end,
-    validate_provenance,
+    inclusive_observation_count, invalid_request, invalid_source, report_provenance,
+    validate_collection_end, validate_provenance,
 };
 use crate::ic::{
     IcHostError, IcMetricQuery, IcMetricReport, IcMetricSeries, IcMetricSourceData,
@@ -57,7 +57,8 @@ pub(in crate::ic) fn validate_metric_query(query: &IcMetricQuery) -> Result<(), 
         );
     }
 
-    let requested_observations = metric_observation_limit(query);
+    let requested_observations =
+        inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);
     if requested_observations > MAX_IC_METRIC_OBSERVATIONS_PER_SERIES {
         return invalid_request(
             "query",
@@ -118,8 +119,12 @@ fn validate_metric_series(
         ));
     }
 
-    let requested_observation_limit = usize::try_from(metric_observation_limit(query))
-        .expect("metric observation limit fits usize");
+    let requested_observation_limit = usize::try_from(inclusive_observation_count(
+        query.start_unix_secs,
+        query.end_unix_secs,
+        query.step_secs,
+    ))
+    .expect("metric observation limit fits usize");
     for series in series {
         if series.observations.len() > requested_observation_limit {
             return invalid_source(format!(
@@ -156,8 +161,4 @@ fn validate_metric_series(
         }
     }
     Ok(())
-}
-
-fn metric_observation_limit(query: &IcMetricQuery) -> u64 {
-    (query.end_unix_secs - query.start_unix_secs) / u64::from(query.step_secs) + 1
 }

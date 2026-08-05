@@ -5,7 +5,8 @@
 //! Boundary: validates canister source data before constructing canonical reports.
 
 use super::{
-    invalid_request, invalid_source, invalid_source_value, report_provenance, validate_provenance,
+    canonical_request_principal, invalid_request, invalid_source, report_provenance,
+    validate_canonical_principal, validate_principal_match, validate_provenance,
 };
 use crate::{
     hex::is_lowercase_hex,
@@ -15,7 +16,6 @@ use crate::{
         IcCanisterUpgrade, IcHostError, IcSourceRequest, MAX_IC_CANISTER_PAGE_LIMIT,
     },
 };
-use candid::Principal;
 use std::collections::HashSet;
 
 ///
@@ -88,13 +88,24 @@ pub(in crate::ic) fn normalized_filters(
     Ok(filters)
 }
 
-pub(in crate::ic) fn canonical_page_cursor(
-    field: &'static str,
-    cursor: Option<&str>,
-) -> Result<Option<String>, IcHostError> {
-    cursor
-        .map(|value| canonical_request_principal(field, value))
-        .transpose()
+pub(in crate::ic) fn validate_page_cursor_exclusivity(
+    after: Option<&str>,
+    before: Option<&str>,
+) -> Result<(), IcHostError> {
+    if after.is_some() && before.is_some() {
+        return invalid_request("pagination", "after and before are mutually exclusive");
+    }
+    Ok(())
+}
+
+pub(in crate::ic) fn canonical_page_cursors(
+    after: Option<&str>,
+    before: Option<&str>,
+) -> Result<(Option<String>, Option<String>), IcHostError> {
+    Ok((
+        canonical_page_cursor("after", after)?,
+        canonical_page_cursor("before", before)?,
+    ))
 }
 
 pub(in crate::ic) fn validate_page_limit(limit: u16) -> Result<(), IcHostError> {
@@ -224,18 +235,6 @@ pub(in crate::ic) fn page_report_from_source(
     })
 }
 
-pub(in crate::ic) fn canonical_request_principal(
-    field: &'static str,
-    value: &str,
-) -> Result<String, IcHostError> {
-    Principal::from_text(value)
-        .map(|principal| principal.to_text())
-        .map_err(|error| IcHostError::InvalidPrincipal {
-            field,
-            reason: error.to_string(),
-        })
-}
-
 fn normalize_string_filters(field: &'static str, values: &mut [String]) -> Result<(), IcHostError> {
     if values.iter().any(String::is_empty) {
         return invalid_request(field, "values must not be empty");
@@ -245,6 +244,15 @@ fn normalize_string_filters(field: &'static str, values: &mut [String]) -> Resul
         return invalid_request(field, "values must be unique");
     }
     Ok(())
+}
+
+fn canonical_page_cursor(
+    field: &'static str,
+    cursor: Option<&str>,
+) -> Result<Option<String>, IcHostError> {
+    cursor
+        .map(|value| canonical_request_principal(field, value))
+        .transpose()
 }
 
 fn validate_filter_match(
@@ -335,32 +343,6 @@ fn validate_page_boundary_cursor(
         return invalid_source(format!(
             "{field} is {cursor:?}, expected page boundary {:?}",
             boundary.canister_id
-        ));
-    }
-    Ok(())
-}
-
-pub(in crate::ic) fn validate_principal_match(
-    field: &'static str,
-    expected: &str,
-    actual: &str,
-) -> Result<(), IcHostError> {
-    validate_canonical_principal(field, actual)?;
-    if actual == expected {
-        return Ok(());
-    }
-    invalid_source(format!(
-        "{field} is {actual:?}, expected requested principal {expected:?}"
-    ))
-}
-
-fn validate_canonical_principal(field: &'static str, value: &str) -> Result<(), IcHostError> {
-    let principal = Principal::from_text(value)
-        .map_err(|error| invalid_source_value(format!("{field} {value:?}: {error}")))?;
-    let canonical = principal.to_text();
-    if canonical != value {
-        return invalid_source(format!(
-            "{field} {value:?} is not canonical principal text; expected {canonical:?}"
         ));
     }
     Ok(())

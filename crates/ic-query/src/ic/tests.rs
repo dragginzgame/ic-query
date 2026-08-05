@@ -696,15 +696,20 @@ fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
             },
         )
         .expect_err("invalid count filter must fail first");
-    let page_error = LiveIcSource
-        .fetch_canister_page(
-            &source_request,
-            &IcCanisterFilters::default(),
-            MAX_IC_CANISTER_PAGE_LIMIT + 1,
-            None,
-            None,
-        )
-        .expect_err("invalid page limit must fail first");
+    let page_error = |limit, after, before| {
+        LiveIcSource
+            .fetch_canister_page(
+                &source_request,
+                &IcCanisterFilters::default(),
+                limit,
+                after,
+                before,
+            )
+            .expect_err("invalid page request must fail before endpoint use")
+    };
+    let page_limit_error = page_error(MAX_IC_CANISTER_PAGE_LIMIT + 1, None, None);
+    let conflicting_cursor_error = page_error(1, Some(PAGE_CANISTER_ID), Some(PAGE_CANISTER_ID));
+    let invalid_cursor_error = page_error(1, Some("not a principal"), None);
 
     assert!(matches!(
         count_error,
@@ -714,8 +719,19 @@ fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
         }
     ));
     assert!(matches!(
-        page_error,
+        page_limit_error,
         IcHostError::InvalidRequest { field: "limit", .. }
+    ));
+    assert!(matches!(
+        conflicting_cursor_error,
+        IcHostError::InvalidRequest {
+            field: "pagination",
+            ..
+        }
+    ));
+    assert!(matches!(
+        invalid_cursor_error,
+        IcHostError::InvalidPrincipal { field: "after", .. }
     ));
 }
 
