@@ -37,7 +37,7 @@ mod tests {
     use super::*;
     use crate::runtime::block_on_current_thread;
     use candid::Principal;
-    use ic_agent::AgentError;
+    use ic_agent::{AgentError, agent_error::TransportError};
     use std::{
         io::{Read, Write},
         net::TcpListener,
@@ -89,7 +89,12 @@ mod tests {
         .expect_err("oversized native response must fail");
         server.join().expect("test replica");
 
-        assert!(matches!(error, AgentError::TransportError(_)));
-        assert!(error.to_string().contains("length limit"));
+        assert!(
+            matches!(
+                error,
+                AgentError::TransportError(TransportError::Generic(_))
+            ),
+            "unexpected bounded-response error: {error:?}"
+        );
     }
 }
