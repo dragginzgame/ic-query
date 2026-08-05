@@ -160,6 +160,7 @@ pub fn refresh_sns_catalog_with_source(
     let paths = catalog_paths(&request.cache.cache_root, &request.cache.network);
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
+            cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
             network: &request.cache.network,
@@ -188,6 +189,7 @@ pub fn refresh_sns_catalog_with_source(
             let sns_count = list.sns_instances.len();
             let cache = cache_from_list(list);
             write_snapshot_json(
+                &request.cache.cache_root,
                 &paths.snapshot_path,
                 &cache,
                 |path, source| {
@@ -224,6 +226,7 @@ fn load_cached_sns_catalog(
     let key = catalog_key(&request.network);
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            cache_root: &request.cache_root,
             path: path.clone(),
             network: &request.network,
             expected_schema_version: SNS_CATALOG_CACHE_SCHEMA_VERSION,

@@ -31,6 +31,7 @@ where
     );
     load_json_cache(
         LoadJsonCacheRequest {
+            cache_root: cache.cache_root(),
             path: paths.cache_path,
             network: cache.network(),
             expected_schema_version,
@@ -59,6 +60,7 @@ where
     );
     write_json_refresh_cache(
         RefreshCacheWriteRequest {
+            cache_root: cache.cache_root(),
             cache_path: &paths.cache_path,
             lock_path: &paths.lock_path,
             network: cache.network(),

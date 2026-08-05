@@ -4,12 +4,12 @@
 //! Does not own: cache replacement, refresh locking, or JSON serialization.
 //! Boundary: creates parent directories and writes/syncs the requested output path.
 
-use super::path::create_parent_directory;
+use super::path::create_output_parent_directory;
 use crate::cache_file::CacheFileError;
 use std::{fs, io::Write, path::Path};
 
 pub fn write_text_output(output_path: &Path, contents: &str) -> Result<(), CacheFileError> {
-    create_parent_directory(output_path)?;
+    create_output_parent_directory(output_path)?;
     let mut output =
         fs::File::create(output_path).map_err(|source| CacheFileError::WriteOutput {
             path: output_path.to_path_buf(),

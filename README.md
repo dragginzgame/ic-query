@@ -297,6 +297,17 @@ It does not inspect project files or read and migrate former project-local
 [Cache Policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md).
 Network-scoped cache paths consistently begin with
 `<cache-root>/<domain>/<network>/...`.
+
+Managed cache loads, discovery, refresh locks, and publication are confined to
+that root. On Unix, symbolic links, path escapes, nonregular managed files,
+group/other-accessible directories, and files not using mode `0600` are
+rejected. New managed directories use mode `0700`; new cache and lock files use
+mode `0600`. These authority failures are not treated as invalid JSON that a
+read-through call may silently replace. Explicit caller-selected output files
+are outside this cache policy. The `0.29.1` hard cut does not migrate or loosen
+older permissive caches: remove the old cache root or restrict its directories
+and files before use.
+
 Use `icq cache status` to inspect known complete caches across that root,
 including generic header integrity, separate fresh/stale/unmanaged/unknown age,
 sizes, stale thresholds, and automatic/explicit/missing-only invalid-content
@@ -352,12 +363,12 @@ remains an `ic-query-cli` responsibility.
 
 Enable the narrower `subnet-catalog-host` feature when a native embedder needs
 only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
-decoding, runtime bridge, and cache dependencies required by that API while
-leaving `ic-query`'s direct optional Dashboard `reqwest` transport and
-`serde_cbor` certification dependencies disabled. Because the feature still
-includes `ic-agent`, both packages may remain in its transitive dependency
-graph. The full `host` feature remains the choice for all reporting adapters
-and is a strict superset.
+decoding, runtime bridge, capability-filesystem dependencies, and other cache
+dependencies required by that API while leaving `ic-query`'s direct optional
+Dashboard `reqwest` transport and `serde_cbor` certification dependencies
+disabled. Because the feature still includes `ic-agent`, both packages may
+remain in its transitive dependency graph. The full `host` feature remains the
+choice for all reporting adapters and is a strict superset.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return

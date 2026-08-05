@@ -290,8 +290,8 @@ fn malformed_cache_recovers_while_strict_load_remains_typed() {
     let now = fixture_now();
     let request = refresh_request(&root, now);
     let cache_path = ic_node_status_cache_path(&root, "ic");
-    fs::create_dir_all(cache_path.parent().expect("cache parent")).expect("create cache parent");
-    fs::write(&cache_path, "not-json").expect("write malformed cache");
+    crate::cache_file::write_managed_text_atomically(&root, &cache_path, "not-json")
+        .expect("write malformed cache");
 
     let strict = load_cached_ic_node_status_snapshot(&request.cache, now)
         .expect_err("strict load rejects malformed cache");

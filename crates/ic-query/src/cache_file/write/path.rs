@@ -1,8 +1,8 @@
 //! Module: cache_file::write::path
 //!
-//! Responsibility: validate cache write target directories.
-//! Does not own: file writes, refresh locking, or JSON serialization.
-//! Boundary: creates parents, resolves target directories, and syncs directories.
+//! Responsibility: create parent directories for caller-selected output paths.
+//! Does not own: managed cache paths, refresh locking, or JSON serialization.
+//! Boundary: output paths intentionally remain outside cache-root confinement.
 
 use crate::cache_file::CacheFileError;
 use std::{fs, io, path::Path};
@@ -14,20 +14,11 @@ fn create_directory(path: &Path) -> Result<(), CacheFileError> {
     })
 }
 
-pub fn create_parent_directory(target_path: &Path) -> Result<(), CacheFileError> {
+pub(super) fn create_output_parent_directory(target_path: &Path) -> Result<(), CacheFileError> {
     create_directory(target_directory(target_path)?)
 }
 
-pub(super) fn sync_directory(path: &Path) -> Result<(), CacheFileError> {
-    fs::File::open(path)
-        .and_then(|dir| dir.sync_all())
-        .map_err(|source| CacheFileError::SyncDirectory {
-            path: path.to_path_buf(),
-            source,
-        })
-}
-
-pub(super) fn target_directory(target_path: &Path) -> Result<&Path, CacheFileError> {
+fn target_directory(target_path: &Path) -> Result<&Path, CacheFileError> {
     let parent = target_path
         .parent()
         .ok_or_else(|| invalid_target_path_error(target_path))?;

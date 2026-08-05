@@ -530,6 +530,16 @@ The CLI selects one user-level cache root:
 
 It never discovers or migrates repository-local `.icq` directories.
 
+Managed cache IO is capability-rooted beneath the selected cache root. On Unix,
+every traversed managed directory must deny group and other access, and every
+managed cache or lock file must be a regular `0600` file. New directories use
+`0700`; new files use `0600`. Symlinks, path escapes, nonregular files, and
+unsafe modes fail as storage-authority errors and do not trigger automatic
+invalid-content repair. Explicit output paths supplied by a caller are not
+managed cache paths. There is no compatibility migration for permissive cache
+trees created before `0.29.1`; remove the old tree or secure its directories and
+files before using it.
+
 `icq cache status` inventories known complete snapshots across this root. Each
 row keeps generic header integrity, age state, file size, applicable stale
 threshold, invalid-content recovery policy, and inspection errors separate.
@@ -539,13 +549,14 @@ the complete payload. It also reports active, stale, malformed, and
 future-dated refresh locks from their recorded owner, target, acquisition time,
 and stale policy.
 
-The scan is local-only, bounded to 10,000 cache and lock candidates, skips
-symlinks and refresh-attempt sidecars, and never refreshes, repairs, removes,
-or probes process liveness. Large unmanaged histories stop at their leading
-header/completeness boundary instead of scanning complete row arrays. Small
-age-managed files are fully JSON-parsed for syntax before receiving `fresh` or
-`stale`, but family-specific loaders remain authoritative for identity and
-semantic validation.
+The scan is local-only, bounded to 10,000 cache and lock candidates, rejects
+symlinks, skips refresh-attempt sidecars as report rows, and never refreshes,
+repairs, removes, or probes process liveness. It still validates the authority
+of every traversed cache-root entry. Large unmanaged histories stop at their
+leading header/completeness boundary instead of scanning complete row arrays.
+Small age-managed files are fully JSON-parsed for syntax before receiving
+`fresh` or `stale`, but family-specific loaders remain authoritative for
+identity and semantic validation.
 
 Complete snapshot refreshes use a lock. Paged proposal, neuron, and
 account-history collections also use a separate attempt sidecar so a failed or

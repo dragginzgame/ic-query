@@ -56,6 +56,7 @@ pub(super) fn read_refresh_attempt_status(
     request: &IcrcAccountTransactionCacheRequest,
 ) -> Result<Option<IcrcAccountTransactionRefreshAttemptStatus>, IcrcAccountTransactionError> {
     read_snapshot_refresh_attempt_strict::<AccountTransactionRefreshAttempt>(
+        &request.cache_root,
         path,
         ATTEMPT_METADATA_FIELDS,
     )
@@ -179,6 +180,7 @@ fn write_attempt(
         last_error,
     };
     write_snapshot_refresh_attempt(
+        &request.cache.cache_root,
         path,
         &attempt,
         |path, source| {
@@ -220,9 +222,8 @@ fn validate_attempt(
 
 fn map_attempt_read_error(error: SnapshotRefreshAttemptReadError) -> IcrcAccountTransactionError {
     match error {
-        SnapshotRefreshAttemptReadError::Read { path, source } => {
-            HostCacheError::read_cache(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, path, source)
-                .into()
+        SnapshotRefreshAttemptReadError::Operation(source) => {
+            HostCacheError::operation(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, source).into()
         }
         SnapshotRefreshAttemptReadError::Parse { path, source } => {
             HostCacheError::parse_cache(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, path, source)

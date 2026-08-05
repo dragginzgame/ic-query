@@ -85,9 +85,13 @@ pub fn build_icrc_account_transaction_cache_status_report(
 ) -> Result<IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionError> {
     let request = normalize_cache_request(request)?;
     let paths = cache_paths(&request);
-    let cache = paths
-        .snapshot_path
-        .is_file()
+    let cache = crate::cache_file::managed_file_exists(&request.cache_root, &paths.snapshot_path)
+        .map_err(|source| {
+            crate::HostCacheError::operation(
+                super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
+                source,
+            )
+        })?
         .then(|| load_cache_summary(&paths.snapshot_path, &request));
     let latest_attempt = read_refresh_attempt_status(&paths.refresh_attempt_path, &request)?;
     Ok(IcrcAccountTransactionCacheStatusReport {

@@ -14,11 +14,10 @@ use super::{
     CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheAgeStatus, CacheHeaderStatus, CacheRefreshLockStatus,
     CacheRefreshLockStatusRow, CacheStatusReport, CacheStatusRequest, CacheStatusRow,
 };
-use crate::subnet_catalog::format_utc_timestamp_secs;
-use discovery::{CACHE_STATUS_SCAN_LIMIT, CacheInventoryPaths, collect_inventory_paths};
+use crate::{CacheFileError, subnet_catalog::format_utc_timestamp_secs};
+use discovery::{CACHE_STATUS_SCAN_LIMIT, collect_inventory_paths};
 use header::cache_status_row;
 use locks::refresh_lock_status_row;
-use std::path::PathBuf;
 use thiserror::Error as ThisError;
 
 ///
@@ -29,36 +28,27 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum CacheStatusError {
-    /// A cache directory could not be inspected.
-    #[error("failed to inspect cache directory at {}: {source}", path.display())]
-    ReadDirectory {
-        /// Directory that could not be inspected.
-        path: PathBuf,
-        /// Underlying filesystem failure.
-        source: std::io::Error,
-    },
+    /// Capability-rooted managed cache inspection failed.
+    #[error(transparent)]
+    CacheOperation(#[from] CacheFileError),
 }
 
 /// Build a bounded local-only inventory of every known cache and refresh lock.
 pub fn build_cache_status_report(
     request: &CacheStatusRequest,
 ) -> Result<CacheStatusReport, CacheStatusError> {
-    let cache_root_found = request.cache_root.is_dir();
-    let inventory = if cache_root_found {
-        collect_inventory_paths(&request.cache_root)?
-    } else {
-        CacheInventoryPaths::default()
-    };
+    let inventory = collect_inventory_paths(&request.cache_root)?;
+    let cache_root_found = inventory.root_found;
     let caches = inventory
         .caches
         .into_iter()
         .map(|path| cache_status_row(&request.cache_root, &path, request.now_unix_secs))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     let refresh_locks = inventory
         .refresh_locks
         .into_iter()
         .map(|path| refresh_lock_status_row(&request.cache_root, &path, request.now_unix_secs))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(CacheStatusReport {
         schema_version: CACHE_STATUS_REPORT_SCHEMA_VERSION,
         cache_root: request.cache_root.display().to_string(),

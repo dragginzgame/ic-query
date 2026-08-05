@@ -5,8 +5,8 @@ use super::{
 };
 use crate::{
     cache_file::{
-        RefreshLockRequest, create_parent_directory, with_refresh_lock, write_text_atomically,
-        write_text_output,
+        RefreshLockRequest, create_managed_parent_directory, managed_file_exists,
+        with_refresh_lock, write_managed_text_atomically, write_text_output,
     },
     nns::{LiveNnsSource, NnsSourceRequest},
     subnet_catalog::{
@@ -88,9 +88,11 @@ pub fn refresh_subnet_catalog_with_source(
     let catalog_path = subnet_catalog_path(&request.cache.cache_root, &request.cache.network);
     let lock_path =
         subnet_catalog_refresh_lock_path(&request.cache.cache_root, &request.cache.network);
-    create_parent_directory(&catalog_path).map_err(subnet_cache_error)?;
+    create_managed_parent_directory(&request.cache.cache_root, &catalog_path)
+        .map_err(subnet_cache_error)?;
     with_refresh_lock(
         RefreshLockRequest {
+            cache_root: &request.cache.cache_root,
             lock_path: &lock_path,
             target_path: &catalog_path,
             network: &request.cache.network,
@@ -99,7 +101,9 @@ pub fn refresh_subnet_catalog_with_source(
         },
         subnet_cache_error,
         || {
-            let replaced_existing_catalog = catalog_path.is_file();
+            let replaced_existing_catalog =
+                managed_file_exists(&request.cache.cache_root, &catalog_path)
+                    .map_err(subnet_cache_error)?;
             let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
             let fetch_request = NnsSourceRequest::new(
                 &request.cache.network,
@@ -120,7 +124,12 @@ pub fn refresh_subnet_catalog_with_source(
                 write_text_output(output_path, &catalog_json).map_err(subnet_cache_error)?;
             }
             if !request.dry_run {
-                write_text_atomically(&catalog_path, &catalog_json).map_err(subnet_cache_error)?;
+                write_managed_text_atomically(
+                    &request.cache.cache_root,
+                    &catalog_path,
+                    &catalog_json,
+                )
+                .map_err(subnet_cache_error)?;
             }
             Ok(SubnetCatalogRefreshReport {
                 schema_version: SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,

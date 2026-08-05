@@ -26,6 +26,24 @@ This note describes the shared cache behavior expected across `ic-query`.
   lock, including age, size, and applicable stale policy, without making a
   network request.
 
+## Managed Filesystem Authority
+
+Managed loads, collection discovery, cache-status traversal, refresh locks,
+attempt sidecars, and publication resolve from one opened capability root. A
+managed path must remain beneath that root without parent traversal, and no
+root, parent, or final component may be a symbolic link. Loads require regular
+files. On Unix, managed directories deny group and other access, newly created
+directories use mode `0700`, and managed cache and lock files use exactly
+`0600`.
+
+Confinement, nonregular-path, and unsafe-mode failures are filesystem authority
+errors. Cache-only operations report them directly, and read-through policies
+must not reinterpret them as invalid content that authorizes a live refresh.
+Publication uses a same-directory exclusively created temporary file, syncs the
+file, atomically renames it, and syncs its parent directory. Explicit
+caller-selected exports are not managed cache files. There is no legacy reader,
+permission repair, deletion, or migration for older permissive cache trees.
+
 ## Shared Read-Through Flow
 
 Cache-backed reads should follow this sequence:
@@ -91,9 +109,10 @@ list and status operations use their typed snapshot paths and validators. The
 top-level `icq cache status` command performs a bounded cross-family inventory
 of known complete-cache and refresh-lock filenames across every network
 directory under the selected user-level root; it does not inspect
-refresh-attempt sidecars, follow symlinks, refresh files, delete files, or probe
-recorded process ids. The scan bound applies to cache and lock candidates
-together.
+refresh-attempt sidecars as report rows, follow symlinks, refresh files, delete
+files, or probe recorded process ids. It validates every traversed entry under
+the capability root and rejects symbolic links or unsafe managed modes. The
+scan bound applies to cache and lock candidates together.
 
 Network-scoped caches use `<cache-root>/<domain>/<network>/...` as their common
 top-level layout. NNS Registry leaf and Subnet caches therefore live below

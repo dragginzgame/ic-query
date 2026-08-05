@@ -65,6 +65,7 @@ fn refresh_with_source_and_progress(
     let paths = nns_neuron_cache_paths(&request.cache_root, &request.network);
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
+            cache_root: &request.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
             network: &request.network,

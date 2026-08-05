@@ -5,10 +5,12 @@
 //! Boundary: persists generic refresh-attempt JSON through cache-file primitives.
 
 use super::json::write_snapshot_json;
-use crate::{cache::CacheRefreshAttemptStatus, cache_file::CacheFileError};
+use crate::{
+    cache::CacheRefreshAttemptStatus,
+    cache_file::{CacheFileError, read_managed_file},
+};
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::{
-    fs,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -23,10 +25,8 @@ pub const SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug)]
 pub enum SnapshotRefreshAttemptReadError {
-    Read {
-        path: PathBuf,
-        source: std::io::Error,
-    },
+    /// Capability-rooted cache access failed.
+    Operation(CacheFileError),
     Parse {
         path: PathBuf,
         source: serde_json::Error,
@@ -85,21 +85,17 @@ pub struct SnapshotRefreshAttempt<Metadata> {
 }
 
 pub fn read_snapshot_refresh_attempt_strict<T>(
+    cache_root: &Path,
     path: &Path,
     metadata_fields: &[&str],
 ) -> Result<Option<T>, SnapshotRefreshAttemptReadError>
 where
     T: DeserializeOwned,
 {
-    let data = match fs::read(path) {
-        Ok(data) => data,
-        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(source) => {
-            return Err(SnapshotRefreshAttemptReadError::Read {
-                path: path.to_path_buf(),
-                source,
-            });
-        }
+    let Some(data) =
+        read_managed_file(cache_root, path).map_err(SnapshotRefreshAttemptReadError::Operation)?
+    else {
+        return Ok(None);
     };
     let value: serde_json::Value =
         serde_json::from_slice(&data).map_err(|source| SnapshotRefreshAttemptReadError::Parse {
@@ -142,6 +138,7 @@ fn attempt_field_is_supported(field: &str, metadata_fields: &[&str]) -> bool {
 }
 
 pub fn write_snapshot_refresh_attempt<T, Error>(
+    cache_root: &Path,
     path: &Path,
     attempt: &T,
     serialize_error: impl FnOnce(PathBuf, serde_json::Error) -> Error,
@@ -150,7 +147,7 @@ pub fn write_snapshot_refresh_attempt<T, Error>(
 where
     T: Serialize,
 {
-    write_snapshot_json(path, attempt, serialize_error, write_error)
+    write_snapshot_json(cache_root, path, attempt, serialize_error, write_error)
 }
 
 pub fn current_attempt_timestamp(fallback: &str) -> String {

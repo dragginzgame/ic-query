@@ -15,6 +15,57 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum CacheFileError {
+    /// The current platform cannot provide the required managed-cache guarantees.
+    #[error("managed cache confinement is unsupported on platform {platform}")]
+    UnsupportedConfinementPlatform {
+        /// Compile-time platform identifier.
+        platform: &'static str,
+    },
+
+    /// A supplied managed path is not a strict descendant of its cache root.
+    #[error(
+        "managed cache path {} is not confined beneath root {}: {reason}",
+        path.display(),
+        root.display()
+    )]
+    Confinement {
+        /// Caller-supplied capability root.
+        root: PathBuf,
+        /// Managed path that was rejected.
+        path: PathBuf,
+        /// Deterministic confinement failure.
+        reason: String,
+    },
+
+    /// Opening or resolving a managed cache path failed.
+    #[error(
+        "failed to resolve managed cache path {} beneath {}: {source}",
+        path.display(),
+        root.display()
+    )]
+    OpenManagedPath {
+        /// Caller-supplied capability root.
+        root: PathBuf,
+        /// Managed path being resolved.
+        path: PathBuf,
+        /// Underlying filesystem error.
+        source: io::Error,
+    },
+
+    /// A managed directory or file has broader Unix permissions than allowed.
+    #[error(
+        "unsafe managed cache permissions at {}: mode {actual_mode:#o}, required {required_mode}",
+        path.display()
+    )]
+    UnsafeManagedPermissions {
+        /// Managed directory or file with unsafe access bits.
+        path: PathBuf,
+        /// Observed Unix permission bits.
+        actual_mode: u32,
+        /// Stable required-mode description.
+        required_mode: &'static str,
+    },
+
     /// Creating the parent directory for a cache failed.
     #[error("failed to create cache directory at {}: {source}", path.display())]
     CreateDirectory {

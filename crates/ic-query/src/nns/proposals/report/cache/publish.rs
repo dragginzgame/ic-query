@@ -65,6 +65,7 @@ pub(super) fn publish_complete_nns_proposal_cache(
     let attempt_finalization_error = publish_snapshot_with_attempt(
         || {
             write_snapshot_json(
+                &request.cache_root,
                 &paths.snapshot_path,
                 &cache,
                 |path, source| {

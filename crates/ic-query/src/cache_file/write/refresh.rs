@@ -4,10 +4,11 @@
 //! Does not own: command-specific reports, cache paths, or live refreshes.
 //! Boundary: serializes refresh output under the shared refresh-lock guard.
 
-use super::{create_parent_directory, write_text_atomically, write_text_output};
+use super::write_text_output;
 use crate::cache_file::{
-    CacheFileError,
+    CacheFileError, create_managed_parent_directory,
     lock::{RefreshLockRequest, with_refresh_lock},
+    managed_file_exists, write_managed_text_atomically,
 };
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -20,6 +21,8 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone, Copy, Debug)]
 pub struct RefreshCacheWriteRequest<'a, T> {
+    /// Capability root that confines the managed cache and lock paths.
+    pub cache_root: &'a Path,
     pub cache_path: &'a Path,
     pub lock_path: &'a Path,
     pub network: &'a str,
@@ -53,9 +56,11 @@ pub fn write_json_refresh_cache<T, E>(
 where
     T: Serialize,
 {
-    create_parent_directory(request.cache_path).map_err(&cache_error)?;
+    create_managed_parent_directory(request.cache_root, request.cache_path)
+        .map_err(&cache_error)?;
     with_refresh_lock(
         RefreshLockRequest {
+            cache_root: request.cache_root,
             lock_path: request.lock_path,
             target_path: request.cache_path,
             network: request.network,
@@ -64,14 +69,17 @@ where
         },
         &cache_error,
         || {
-            let replaced_existing_cache = request.cache_path.is_file();
+            let replaced_existing_cache =
+                managed_file_exists(request.cache_root, request.cache_path)
+                    .map_err(&cache_error)?;
             let report_json = serde_json::to_string_pretty(request.report)
                 .map_err(|source| serialize_cache(request.cache_path.to_path_buf(), source))?;
             if let Some(output_path) = request.output_path {
                 write_text_output(output_path, &report_json).map_err(&cache_error)?;
             }
             if !request.dry_run {
-                write_text_atomically(request.cache_path, &report_json).map_err(&cache_error)?;
+                write_managed_text_atomically(request.cache_root, request.cache_path, &report_json)
+                    .map_err(&cache_error)?;
             }
             Ok(RefreshCacheWriteResult {
                 cache_path: request.cache_path.display().to_string(),

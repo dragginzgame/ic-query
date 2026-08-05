@@ -6,6 +6,8 @@
 
 use super::super::{CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy, CacheStatusRow};
 use crate::{
+    CacheFileError,
+    cache_file::open_managed_file,
     ic::DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
     nns::topology::DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
     sns::DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
@@ -17,7 +19,6 @@ use serde::{
 };
 use std::{
     fmt,
-    fs::File,
     io::{BufReader, Read},
     path::Path,
 };
@@ -149,23 +150,47 @@ fn begins_cache_payload(key: &str) -> bool {
     )
 }
 
-pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> CacheStatusRow {
+pub(super) fn cache_status_row(
+    root: &Path,
+    path: &Path,
+    now_unix_secs: u64,
+) -> Result<CacheStatusRow, CacheFileError> {
     let relative = path.strip_prefix(root).unwrap_or(path);
     let relative_path = relative.display().to_string();
-    let size_bytes = path.metadata().map_or(0, |metadata| metadata.len());
-    let header = File::open(path)
-        .map(BufReader::new)
-        .map_err(|error| error.to_string())
-        .and_then(|reader| read_cache_header(relative, reader).map_err(|error| error.to_string()));
+    let Some(file) = open_managed_file(root, path)? else {
+        return Ok(invalid_row(
+            relative,
+            path,
+            relative_path,
+            0,
+            Some("cache file disappeared during inspection".to_string()),
+        ));
+    };
+    let size_bytes = file
+        .metadata()
+        .map_err(|source| CacheFileError::OpenManagedPath {
+            root: root.to_path_buf(),
+            path: path.to_path_buf(),
+            source,
+        })?
+        .len();
+    let header =
+        read_cache_header(relative, BufReader::new(file)).map_err(|error| error.to_string());
     let Ok(header) = header else {
-        return invalid_row(relative, path, relative_path, size_bytes, header.err());
+        return Ok(invalid_row(
+            relative,
+            path,
+            relative_path,
+            size_bytes,
+            header.err(),
+        ));
     };
     let fetched_at = header
         .fetched_at
         .clone()
         .or_else(|| header.collection_completed_at.clone());
     let Some(fetched_at_text) = fetched_at else {
-        return unknown_age_row(
+        return Ok(unknown_age_row(
             relative,
             path,
             relative_path,
@@ -173,10 +198,10 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
             header,
             None,
             "cache has no fetched_at or collection_completed_at timestamp".to_string(),
-        );
+        ));
     };
     let Some(fetched_at_unix_secs) = parse_utc_timestamp_secs(&fetched_at_text) else {
-        return unknown_age_row(
+        return Ok(unknown_age_row(
             relative,
             path,
             relative_path,
@@ -184,10 +209,10 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
             header,
             Some(fetched_at_text),
             "cache timestamp is not canonical UTC".to_string(),
-        );
+        ));
     };
     let Some(age_seconds) = now_unix_secs.checked_sub(fetched_at_unix_secs) else {
-        return unknown_age_row(
+        return Ok(unknown_age_row(
             relative,
             path,
             relative_path,
@@ -195,7 +220,7 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
             header,
             Some(fetched_at_text),
             "cache timestamp is in the future".to_string(),
-        );
+        ));
     };
     let stale_after_seconds = registered_age_policy(relative);
     let age_status = stale_after_seconds.map_or(CacheAgeStatus::Unmanaged, |threshold| {
@@ -205,7 +230,7 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
             CacheAgeStatus::Fresh
         }
     });
-    CacheStatusRow {
+    Ok(CacheStatusRow {
         component: component(relative, &header),
         cache_path: path.display().to_string(),
         relative_path,
@@ -219,7 +244,7 @@ pub(super) fn cache_status_row(root: &Path, path: &Path, now_unix_secs: u64) -> 
         stale_after_seconds,
         size_bytes,
         inspection_error: None,
-    }
+    })
 }
 
 fn read_cache_header(

@@ -1,4 +1,8 @@
 use super::{fixtures::*, *};
+use crate::{CacheFileError, HostCacheError};
+
+#[cfg(unix)]
+use std::os::unix::fs::{PermissionsExt, symlink};
 
 #[test]
 fn catalog_path_lives_under_cache_root() {
@@ -74,8 +78,8 @@ fn cache_only_policy_never_invokes_the_supplied_source() {
 fn missing_only_policy_does_not_repair_invalid_content() {
     let root = temp_dir("ic-query-subnet-missing-only-invalid");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
-    fs::create_dir_all(path.parent().expect("cache parent")).expect("cache parent");
-    fs::write(&path, "not-json").expect("invalid cache");
+    crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
+        .expect("invalid cache");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::RefreshMissing {
             source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
@@ -156,4 +160,59 @@ fn stale_and_forced_policies_report_exact_dispositions() {
     let _ = fs::remove_dir_all(root);
     assert_eq!(forced.disposition, CacheDisposition::ForcedRefresh);
     assert_eq!(forced.catalog.provenance().registry_version, 987_655);
+}
+
+#[cfg(unix)]
+#[test]
+fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
+    let root = temp_dir("ic-query-subnet-symlink-parent");
+    let outside = temp_dir("ic-query-subnet-symlink-outside");
+    crate::cache_file::write_managed_text_atomically(&root, &root.join("seed"), "seed")
+        .expect("create confined root");
+    fs::create_dir_all(&outside).expect("create outside");
+    symlink(&outside, root.join("nns")).expect("link managed parent");
+    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+        .with_policy(CatalogReadPolicy::RefreshMissingOrInvalid {
+            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+        });
+
+    let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+        .expect_err("symlink is not recoverable invalid content");
+
+    assert_eq!(error.category(), SubnetCatalogErrorCategory::Confinement);
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::Cache(HostCacheError::Operation {
+            source: CacheFileError::Confinement { .. },
+            ..
+        })
+    ));
+    let _ = fs::remove_dir_all(root);
+    let _ = fs::remove_dir_all(outside);
+}
+
+#[cfg(unix)]
+#[test]
+fn catalog_load_rejects_unsafe_managed_file_mode() {
+    let root = temp_dir("ic-query-subnet-unsafe-mode");
+    write_catalog(&root, fixture_catalog());
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("widen cache mode");
+
+    let error = load_cached_subnet_catalog(&cache_only_load_request(&root))
+        .expect_err("unsafe mode rejected");
+
+    assert_eq!(error.category(), SubnetCatalogErrorCategory::Confinement);
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::Cache(HostCacheError::Operation {
+            source: CacheFileError::UnsafeManagedPermissions {
+                actual_mode: 0o644,
+                ..
+            },
+            ..
+        })
+    ));
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).expect("restore cache mode");
+    let _ = fs::remove_dir_all(root);
 }

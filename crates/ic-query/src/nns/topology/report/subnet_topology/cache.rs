@@ -7,9 +7,10 @@ use super::{
 use crate::{
     cache_file::{
         CacheRefreshReason, HostCacheError, HostJsonCacheErrorMapper, LoadJsonCacheRequest,
-        RefreshLockRequest, create_parent_directory, host_cache_refresh_reason, load_json_cache,
-        load_or_refresh_cache_with_error_policy, load_or_refresh_stale_cache_with_error_policy,
-        with_refresh_lock, write_text_atomically,
+        RefreshLockRequest, create_managed_parent_directory, host_cache_refresh_reason,
+        load_json_cache, load_or_refresh_cache_with_error_policy,
+        load_or_refresh_stale_cache_with_error_policy, with_refresh_lock,
+        write_managed_text_atomically,
     },
     freshness::freshness_facts,
     nns::LiveNnsSource,
@@ -44,6 +45,7 @@ pub fn load_cached_nns_subnet_topology(
     enforce_mainnet_network(&request.network)?;
     let cached = load_json_cache(
         LoadJsonCacheRequest {
+            cache_root: &request.cache_root,
             path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
             network: &request.network,
             expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
@@ -75,10 +77,11 @@ pub fn refresh_nns_subnet_topology_with_source(
         nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
     let lock_path =
         nns_subnet_topology_refresh_lock_path(&request.cache.cache_root, &request.cache.network);
-    create_parent_directory(&cache_path)
+    create_managed_parent_directory(&request.cache.cache_root, &cache_path)
         .map_err(|error| HostCacheError::operation(CACHE_COMPONENT, error))?;
     with_refresh_lock(
         RefreshLockRequest {
+            cache_root: &request.cache.cache_root,
             lock_path: &lock_path,
             target_path: &cache_path,
             network: &request.cache.network,
@@ -101,7 +104,7 @@ pub fn refresh_nns_subnet_topology_with_source(
             let report_json = serde_json::to_string_pretty(&report).map_err(|source| {
                 HostCacheError::serialize_cache(CACHE_COMPONENT, cache_path.clone(), source)
             })?;
-            write_text_atomically(&cache_path, &report_json)
+            write_managed_text_atomically(&request.cache.cache_root, &cache_path, &report_json)
                 .map_err(|error| HostCacheError::operation(CACHE_COMPONENT, error))?;
             Ok(CachedNnsSubnetTopologyReport {
                 path: cache_path.clone(),

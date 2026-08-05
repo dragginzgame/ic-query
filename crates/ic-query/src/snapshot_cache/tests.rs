@@ -15,7 +15,7 @@ use crate::{
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::{
     cell::RefCell,
-    fs, io,
+    fs,
     path::{Path, PathBuf},
 };
 
@@ -45,15 +45,12 @@ fn collect_full_collection_snapshot_paths_lists_sorted_entity_snapshots() {
     let b_path = network_dir.join("b-root").join("neurons").join("full.json");
     let a_path = network_dir.join("a-root").join("neurons").join("full.json");
     let ignored_path = network_dir.join("c-root").join("tokens").join("full.json");
-    fs::create_dir_all(b_path.parent().expect("b snapshot parent")).expect("create b snapshot dir");
-    fs::create_dir_all(a_path.parent().expect("a snapshot parent")).expect("create a snapshot dir");
-    fs::create_dir_all(ignored_path.parent().expect("ignored snapshot parent"))
-        .expect("create ignored snapshot dir");
-    fs::write(&b_path, "{}").expect("write b snapshot");
-    fs::write(&a_path, "{}").expect("write a snapshot");
-    fs::write(&ignored_path, "{}").expect("write ignored snapshot");
+    for path in [&b_path, &a_path, &ignored_path] {
+        crate::cache_file::write_managed_text_atomically(&root, path, "{}")
+            .expect("write snapshot fixture");
+    }
 
-    let paths = collect_full_collection_snapshot_paths(&network_dir, "neurons")
+    let paths = collect_full_collection_snapshot_paths(&root, &network_dir, "neurons")
         .expect("collect snapshot paths");
 
     assert_eq!(paths, vec![a_path, b_path]);
@@ -193,6 +190,7 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
     let key = SnapshotKey::full("sns", "ic", "root", "neurons");
     let error = load_complete_snapshot_for_key::<FixtureSnapshot, _>(
         LoadJsonCacheRequest {
+            cache_root: &root,
             path,
             network: "ic",
             expected_schema_version: 2,
@@ -468,6 +466,7 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
 
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
+            cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
             network: "ic",
@@ -477,7 +476,8 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
         identity_cache_error,
         |state| {
             observed.borrow_mut().push(state.replaced_existing_snapshot);
-            fs::write(&snapshot_path, "{}").expect("write snapshot during refresh");
+            crate::cache_file::write_managed_text_atomically(&root, &snapshot_path, "{}")
+                .expect("write snapshot during refresh");
             Ok(())
         },
     )
@@ -485,6 +485,7 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
 
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
+            cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
             network: "ic",
@@ -512,7 +513,7 @@ fn identity_cache_error(err: CacheFileError) -> CacheFileError {
 #[derive(Debug, Eq, PartialEq)]
 enum SnapshotLoadTestError {
     Missing(PathBuf),
-    Read(PathBuf),
+    Operation,
     Parse(PathBuf),
     UnsupportedSchema { version: u32, expected: u32 },
     NetworkMismatch { requested: String, actual: String },
@@ -529,8 +530,8 @@ impl LoadJsonCacheErrorMapper for SnapshotLoadTestErrors {
         SnapshotLoadTestError::Missing(path)
     }
 
-    fn read_cache(&self, path: PathBuf, _source: io::Error) -> Self::Error {
-        SnapshotLoadTestError::Read(path)
+    fn cache_operation(&self, _source: CacheFileError) -> Self::Error {
+        SnapshotLoadTestError::Operation
     }
 
     fn parse_cache(&self, path: PathBuf, _source: serde_json::Error) -> Self::Error {
@@ -579,6 +580,7 @@ fn load_fixture_snapshot(
 ) -> Result<FixtureSnapshot, SnapshotLoadTestError> {
     load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            cache_root: path.parent().expect("fixture cache root"),
             path: path.to_path_buf(),
             network: "ic",
             expected_schema_version: 1,
@@ -592,11 +594,11 @@ fn load_fixture_snapshot(
 }
 
 fn write_snapshot_fixture(path: &Path, value: serde_json::Value) {
-    fs::create_dir_all(path.parent().expect("snapshot fixture parent"))
-        .expect("create snapshot fixture parent");
-    fs::write(
+    let cache_root = path.parent().expect("snapshot fixture parent");
+    crate::cache_file::write_managed_text_atomically(
+        cache_root,
         path,
-        serde_json::to_vec_pretty(&value).expect("serialize snapshot fixture"),
+        &serde_json::to_string_pretty(&value).expect("serialize snapshot fixture"),
     )
     .expect("write snapshot fixture");
 }

@@ -45,10 +45,10 @@ pub(super) fn cache_only_load_request(root: &Path) -> SubnetCatalogLoadRequest {
 
 pub(super) fn write_catalog(root: &Path, catalog: RawSubnetCatalog) {
     let path = subnet_catalog_path(root, MAINNET_NETWORK);
-    fs::create_dir_all(path.parent().expect("catalog parent")).expect("create parent");
-    fs::write(
-        path,
-        serde_json::to_vec_pretty(&catalog).expect("serialize catalog"),
+    crate::cache_file::write_managed_text_atomically(
+        root,
+        &path,
+        &serde_json::to_string_pretty(&catalog).expect("serialize catalog"),
     )
     .expect("write catalog");
 }
@@ -70,7 +70,6 @@ pub(super) fn write_refresh_lock_for_test(
     request: &SubnetCatalogRefreshRequest,
     started_at_unix_ms: u64,
 ) {
-    fs::create_dir_all(lock_path.parent().expect("lock parent")).expect("create parent");
     let lock = serde_json::json!({
         "schema_version": 1,
         "network": request.cache.network.clone(),
@@ -81,9 +80,10 @@ pub(super) fn write_refresh_lock_for_test(
             .display()
             .to_string(),
     });
-    fs::write(
+    crate::cache_file::write_managed_text_atomically(
+        &request.cache.cache_root,
         lock_path,
-        serde_json::to_vec_pretty(&lock).expect("serialize lock"),
+        &serde_json::to_string_pretty(&lock).expect("serialize lock"),
     )
     .expect("write lock");
 }

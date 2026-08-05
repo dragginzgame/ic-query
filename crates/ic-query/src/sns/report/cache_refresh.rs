@@ -93,6 +93,7 @@ where
     let context_paths = paths.clone();
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
+            cache_root: request.cache_root(),
             snapshot_path: &paths.cache_path,
             refresh_lock_path: &paths.lock_path,
             network: request.network(),
@@ -161,6 +162,7 @@ where
     publish_snapshot_with_attempt(
         || {
             write_snapshot_json(
+                context.request.cache_root(),
                 &context.paths.cache_path,
                 &cache,
                 |path, source| {

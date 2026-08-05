@@ -10,27 +10,28 @@ use super::{
     guard::RefreshLockGuard,
     model::{REFRESH_LOCK_SCHEMA_VERSION, RefreshLockFile, RefreshLockRequest},
 };
-use crate::cache_file::CacheFileError;
-use std::{fs, io, io::Write, path::Path};
+use crate::cache_file::{
+    CacheFileError,
+    confined::{ConfinedManagedPath, managed_path_for_create},
+};
+use std::{io, io::Write, path::Path};
 
 pub(super) fn acquire_refresh_lock(
     request: RefreshLockRequest<'_>,
 ) -> Result<RefreshLockGuard, CacheFileError> {
     let now_unix_ms = request.now_unix_secs.saturating_mul(1_000);
-    match fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(request.lock_path)
-    {
+    let lock_path = managed_path_for_create(request.cache_root, request.lock_path)?;
+    match lock_path.create_new_file() {
         Ok(file) => {
             if let Err(err) = write_refresh_lock_file(file, request, now_unix_ms) {
-                let _ = fs::remove_file(request.lock_path);
+                let _ = lock_path.remove_file();
                 return Err(err);
             }
-            Ok(RefreshLockGuard::new(request.lock_path.to_path_buf()))
+            lock_path.sync_parent()?;
+            Ok(RefreshLockGuard::new(lock_path))
         }
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
-            let existing = read_refresh_lock(request.lock_path)?;
+            let existing = read_refresh_lock(&lock_path)?;
             validate_refresh_lock(request, &existing)?;
             validate_refresh_lock_time(request.lock_path, &existing, now_unix_ms)?;
             if lock_is_stale(
@@ -56,7 +57,7 @@ pub(super) fn acquire_refresh_lock(
 }
 
 fn write_refresh_lock_file(
-    mut file: fs::File,
+    mut file: cap_std::fs::File,
     request: RefreshLockRequest<'_>,
     now_unix_ms: u64,
 ) -> Result<(), CacheFileError> {
@@ -80,21 +81,35 @@ fn write_refresh_lock_file(
 }
 
 #[cfg(any(feature = "host", test))]
-pub fn inspect_refresh_lock(path: &Path) -> Result<RefreshLockEvidence, CacheFileError> {
-    read_refresh_lock(path).map(Into::into)
+pub fn inspect_refresh_lock(
+    cache_root: &Path,
+    path: &Path,
+) -> Result<RefreshLockEvidence, CacheFileError> {
+    let managed = managed_path_for_create(cache_root, path)?;
+    read_refresh_lock(&managed).map(Into::into)
 }
 
-fn read_refresh_lock(path: &Path) -> Result<RefreshLockFile, CacheFileError> {
-    let data = fs::read(path).map_err(|source| CacheFileError::ReadRefreshLock {
-        path: path.to_path_buf(),
-        source,
+fn read_refresh_lock(path: &ConfinedManagedPath) -> Result<RefreshLockFile, CacheFileError> {
+    let display_path = path.display_path();
+    let mut file = path
+        .open_regular_file()?
+        .ok_or_else(|| CacheFileError::ReadRefreshLock {
+            path: display_path.to_path_buf(),
+            source: io::Error::new(io::ErrorKind::NotFound, "refresh lock disappeared"),
+        })?;
+    let mut data = Vec::new();
+    std::io::Read::read_to_end(&mut file, &mut data).map_err(|source| {
+        CacheFileError::ReadRefreshLock {
+            path: display_path.to_path_buf(),
+            source,
+        }
     })?;
     let lock: RefreshLockFile =
         serde_json::from_slice(&data).map_err(|source| CacheFileError::ParseRefreshLock {
-            path: path.to_path_buf(),
+            path: display_path.to_path_buf(),
             source,
         })?;
-    validate_refresh_lock_shape(path, &lock)?;
+    validate_refresh_lock_shape(display_path, &lock)?;
     Ok(lock)
 }
 

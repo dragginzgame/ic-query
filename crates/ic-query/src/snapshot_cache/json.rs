@@ -9,7 +9,7 @@ use crate::{
     cache::CacheCollectionCompleteness,
     cache_file::{
         CacheFileError, CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-        load_json_cache_strict, write_text_atomically,
+        load_json_cache_strict, write_managed_text_atomically,
     },
 };
 use serde::{Serialize, de::DeserializeOwned};
@@ -66,6 +66,7 @@ where
 }
 
 pub fn write_snapshot_json<T, Error>(
+    cache_root: &Path,
     path: &Path,
     snapshot: &T,
     serialize_error: impl FnOnce(PathBuf, serde_json::Error) -> Error,
@@ -76,7 +77,7 @@ where
 {
     let data = serde_json::to_string_pretty(snapshot)
         .map_err(|source| serialize_error(path.to_path_buf(), source))?;
-    write_text_atomically(path, &data).map_err(write_error)
+    write_managed_text_atomically(cache_root, path, &data).map_err(write_error)
 }
 
 fn snapshot_identity_mismatch(

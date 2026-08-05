@@ -16,7 +16,7 @@ use super::{
 };
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper},
+    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper, managed_file_exists},
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
         NnsGovernanceCacheRequest,
@@ -53,8 +53,9 @@ pub fn build_nns_proposal_cache_list_report(
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
     let snapshot_path = paths.snapshot_path;
-    let caches = if snapshot_path.is_file() {
+    let caches = if proposal_cache_exists(&request.cache_root, &snapshot_path)? {
         vec![load_nns_proposal_cache_summary(
+            &request.cache_root,
             snapshot_path,
             &request.network,
         )]
@@ -78,15 +79,20 @@ pub fn build_nns_proposal_cache_status_report(
 ) -> Result<NnsProposalCacheStatusReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
-    let cache = if paths.snapshot_path.is_file() {
+    let cache = if proposal_cache_exists(&request.cache_root, &paths.snapshot_path)? {
         Some(load_nns_proposal_cache_summary(
+            &request.cache_root,
             paths.snapshot_path.clone(),
             &request.network,
         ))
     } else {
         None
     };
-    let latest_attempt = read_attempt_status_strict(&paths.refresh_attempt_path, &request.network)?;
+    let latest_attempt = read_attempt_status_strict(
+        &request.cache_root,
+        &paths.refresh_attempt_path,
+        &request.network,
+    )?;
     Ok(NnsProposalCacheStatusReport {
         schema_version: NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
@@ -108,10 +114,10 @@ pub fn build_nns_proposal_list_report_from_cache(
 ) -> Result<Option<NnsProposalListReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(cache_root, &request.network);
-    if !paths.snapshot_path.is_file() {
+    if !proposal_cache_exists(cache_root, &paths.snapshot_path)? {
         return Ok(None);
     }
-    let cache = load_nns_proposal_cache(paths.snapshot_path.clone(), &request.network)?;
+    let cache = load_nns_proposal_cache(cache_root, paths.snapshot_path.clone(), &request.network)?;
     Ok(Some(nns_proposal_list_report_from_cache(
         request,
         paths.snapshot_path,
@@ -126,10 +132,10 @@ pub fn build_nns_proposal_report_from_cache(
 ) -> Result<Option<NnsProposalReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(cache_root, &request.network);
-    if !paths.snapshot_path.is_file() {
+    if !proposal_cache_exists(cache_root, &paths.snapshot_path)? {
         return Ok(None);
     }
-    let cache = load_nns_proposal_cache(paths.snapshot_path.clone(), &request.network)?;
+    let cache = load_nns_proposal_cache(cache_root, paths.snapshot_path.clone(), &request.network)?;
     Ok(nns_proposal_report_from_cache(
         request,
         paths.snapshot_path,
@@ -137,20 +143,35 @@ pub fn build_nns_proposal_report_from_cache(
     ))
 }
 
-fn load_nns_proposal_cache_summary(cache_path: PathBuf, network: &str) -> NnsProposalCacheSummary {
-    match load_nns_proposal_cache(cache_path.clone(), network) {
-        Ok(cache) => nns_proposal_cache_summary(cache_path, cache),
-        Err(error) => invalid_nns_proposal_cache_summary(cache_path, error),
+fn proposal_cache_exists(cache_root: &Path, path: &Path) -> Result<bool, NnsProposalHostError> {
+    managed_file_exists(cache_root, path).map_err(|source| {
+        NnsProposalHostError::Cache(crate::HostCacheError::operation(
+            NNS_PROPOSAL_CACHE_COMPONENT,
+            source,
+        ))
+    })
+}
+
+fn load_nns_proposal_cache_summary(
+    cache_root: &Path,
+    cache_path: PathBuf,
+    network: &str,
+) -> NnsProposalCacheSummary {
+    match load_nns_proposal_cache(cache_root, cache_path.clone(), network) {
+        Ok(cache) => nns_proposal_cache_summary(cache_root, cache_path, cache),
+        Err(error) => invalid_nns_proposal_cache_summary(cache_root, cache_path, error),
     }
 }
 
 fn load_nns_proposal_cache(
+    cache_root: &Path,
     cache_path: PathBuf,
     network: &str,
 ) -> Result<NnsProposalCache, NnsProposalHostError> {
     let key = SnapshotKey::full("nns", network, "governance", "proposals");
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            cache_root,
             path: cache_path.clone(),
             network,
             expected_schema_version: NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
@@ -259,6 +280,7 @@ fn nns_proposal_report_from_cache(
 }
 
 fn nns_proposal_cache_summary(
+    cache_root: &Path,
     cache_path: PathBuf,
     cache: NnsProposalCache,
 ) -> NnsProposalCacheSummary {
@@ -275,11 +297,12 @@ fn nns_proposal_cache_summary(
         source_endpoint: cache.source_endpoint,
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
-        latest_attempt: read_attempt_status(&attempt_path),
+        latest_attempt: read_attempt_status(cache_root, &attempt_path),
     }
 }
 
 fn invalid_nns_proposal_cache_summary(
+    cache_root: &Path,
     cache_path: PathBuf,
     error: NnsProposalHostError,
 ) -> NnsProposalCacheSummary {
@@ -296,7 +319,7 @@ fn invalid_nns_proposal_cache_summary(
         source_endpoint: "-".to_string(),
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
-        latest_attempt: read_attempt_status(&attempt_path),
+        latest_attempt: read_attempt_status(cache_root, &attempt_path),
     }
 }
 

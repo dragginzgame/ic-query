@@ -96,6 +96,7 @@ pub(super) fn load_snapshot_at(
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     let cached = load_json_cache_strict(
         LoadJsonCacheRequest {
+            cache_root: &request.cache_root,
             path: path.to_path_buf(),
             network: MAINNET_NETWORK,
             expected_schema_version: ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION,

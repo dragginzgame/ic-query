@@ -651,6 +651,13 @@ fn binary_version_smoke() {
 fn binary_local_cache_commands_emit_json_without_live_calls() {
     let root = temp_cache_root("ic-query-cli-cache-json");
     fs::create_dir_all(&root).expect("create temporary cache root");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700))
+            .expect("secure temporary cache root");
+    }
 
     let nns_status = run_icq_in_root(&root, &["nns", "proposal", "cache", "status", "--json"]);
     assert_success(&nns_status);

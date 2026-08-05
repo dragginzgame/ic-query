@@ -90,11 +90,11 @@ fn read_through_topology_refreshes_invalid_cache_but_cache_only_remains_strict()
     let root = temp_dir("ic-query-subnet-topology-invalid-cache");
     let request = refresh_request(&root, NOW);
     let path = nns_subnet_topology_cache_path(&root, MAINNET_NETWORK);
-    fs::create_dir_all(path.parent().expect("cache parent")).expect("create cache parent");
     let mut invalid = fixture_report(1, "2023-11-14T22:13:20Z");
     invalid.subnets[0].node_providers[0].node_count = 0;
     let invalid_json = serde_json::to_string_pretty(&invalid).expect("serialize invalid cache");
-    fs::write(&path, &invalid_json).expect("write invalid cache");
+    crate::cache_file::write_managed_text_atomically(&root, &path, &invalid_json)
+        .expect("write invalid cache");
 
     let error = load_cached_nns_subnet_topology(&request.cache)
         .expect_err("cache-only load remains strict");

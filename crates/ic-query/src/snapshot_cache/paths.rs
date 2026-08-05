@@ -5,10 +5,8 @@
 //! Boundary: maps logical snapshot keys to cache-root filesystem locations.
 
 use super::SnapshotKey;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use crate::cache_file::{CacheFileError, collect_managed_collection_files};
+use std::path::{Path, PathBuf};
 
 ///
 /// SnapshotJsonPaths
@@ -52,39 +50,34 @@ pub fn snapshot_network_dir(cache_root: &Path, domain: &str, network: &str) -> P
 
 /// Collect sorted complete-snapshot paths for every entity in a collection.
 pub fn collect_full_collection_snapshot_paths(
+    cache_root: &Path,
     network_dir: &Path,
     collection: &str,
-) -> std::io::Result<Vec<PathBuf>> {
-    collect_full_collection_paths(network_dir, collection, "full.json")
+) -> Result<Vec<PathBuf>, CacheFileError> {
+    collect_full_collection_paths(cache_root, network_dir, collection, "full.json")
 }
 
 /// Collect sorted refresh-attempt paths for every entity in a collection.
 pub fn collect_full_collection_attempt_paths(
+    cache_root: &Path,
     network_dir: &Path,
     collection: &str,
-) -> std::io::Result<Vec<PathBuf>> {
-    collect_full_collection_paths(network_dir, collection, "full.refresh-attempt.json")
+) -> Result<Vec<PathBuf>, CacheFileError> {
+    collect_full_collection_paths(
+        cache_root,
+        network_dir,
+        collection,
+        "full.refresh-attempt.json",
+    )
 }
 
 fn collect_full_collection_paths(
+    cache_root: &Path,
     network_dir: &Path,
     collection: &str,
     file_name: &str,
-) -> std::io::Result<Vec<PathBuf>> {
-    let entries = match fs::read_dir(network_dir) {
-        Ok(entries) => entries,
-        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(source) => return Err(source),
-    };
-    let mut paths = Vec::new();
-    for entry in entries {
-        let path = entry?.path().join(collection).join(file_name);
-        if path.is_file() {
-            paths.push(path);
-        }
-    }
-    paths.sort();
-    Ok(paths)
+) -> Result<Vec<PathBuf>, CacheFileError> {
+    collect_managed_collection_files(cache_root, network_dir, collection, file_name)
 }
 
 fn snapshot_collection_dir(cache_root: &Path, key: &SnapshotKey) -> PathBuf {

@@ -2,12 +2,18 @@ use super::{
     acquire::{acquire_refresh_lock, inspect_refresh_lock},
     model::RefreshLockRequest,
 };
-use crate::{cache_file::CacheFileError, test_support::temp_dir};
+use crate::{
+    cache_file::{CacheFileError, create_managed_parent_directory, write_managed_text_atomically},
+    test_support::temp_dir,
+};
 use serde_json::json;
 use std::{
     fs,
     path::{Path, PathBuf},
 };
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 const NETWORK: &str = "ic";
 const STALE_AFTER_SECONDS: u64 = 60;
@@ -17,7 +23,8 @@ fn new_refresh_lock_records_its_stale_policy() {
     let fixture = LockFixture::new("ic-query-recorded-refresh-lock-policy");
 
     let guard = acquire_refresh_lock(fixture.request(120)).expect("acquire refresh lock");
-    let evidence = inspect_refresh_lock(&fixture.lock_path).expect("inspect refresh lock");
+    let evidence =
+        inspect_refresh_lock(&fixture.root, &fixture.lock_path).expect("inspect refresh lock");
 
     assert_eq!(evidence.schema_version, 1);
     assert_eq!(evidence.stale_after_seconds, STALE_AFTER_SECONDS);
@@ -145,6 +152,28 @@ fn existing_refresh_lock_uses_its_recorded_stale_policy() {
     fixture.cleanup();
 }
 
+#[cfg(unix)]
+#[test]
+fn existing_refresh_lock_rejects_unsafe_file_mode() {
+    let fixture = LockFixture::new("ic-query-unsafe-refresh-lock-mode");
+    fixture.write_valid_lock(100_000);
+    fs::set_permissions(&fixture.lock_path, fs::Permissions::from_mode(0o644))
+        .expect("widen lock mode");
+
+    let error = acquire_refresh_lock(fixture.request(120)).expect_err("unsafe lock is rejected");
+
+    assert!(matches!(
+        error,
+        CacheFileError::UnsafeManagedPermissions {
+            actual_mode: 0o644,
+            ..
+        }
+    ));
+    fs::set_permissions(&fixture.lock_path, fs::Permissions::from_mode(0o600))
+        .expect("restore lock mode");
+    fixture.cleanup();
+}
+
 fn assert_parse_refresh_lock_error(err: CacheFileError, lock_path: &Path) {
     let message = err.to_string();
     match err {
@@ -165,7 +194,7 @@ impl LockFixture {
         let root = temp_dir(prefix);
         let target_path = root.join("test").join("full.json");
         let lock_path = target_path.with_file_name("full.refresh.lock");
-        fs::create_dir_all(lock_path.parent().expect("lock parent")).expect("create lock parent");
+        create_managed_parent_directory(&root, &lock_path).expect("create lock parent");
         Self {
             root,
             lock_path,
@@ -175,6 +204,7 @@ impl LockFixture {
 
     fn request(&self, now_unix_secs: u64) -> RefreshLockRequest<'_> {
         RefreshLockRequest {
+            cache_root: &self.root,
             lock_path: &self.lock_path,
             target_path: &self.target_path,
             network: NETWORK,
@@ -184,7 +214,7 @@ impl LockFixture {
     }
 
     fn write_lock(&self, contents: &str) {
-        fs::write(&self.lock_path, contents).expect("write lock");
+        write_managed_text_atomically(&self.root, &self.lock_path, contents).expect("write lock");
     }
 
     fn write_valid_lock(&self, started_at_unix_ms: u64) {
@@ -203,9 +233,10 @@ impl LockFixture {
     }
 
     fn write_lock_value(&self, value: &serde_json::Value) {
-        fs::write(
+        write_managed_text_atomically(
+            &self.root,
             &self.lock_path,
-            serde_json::to_vec_pretty(value).expect("serialize lock"),
+            &serde_json::to_string_pretty(value).expect("serialize lock"),
         )
         .expect("write lock");
     }

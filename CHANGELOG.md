@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
 
+- `0.29.1` hard-cuts every managed cache family to capability-rooted load,
+  discovery, refresh-lock, and atomic-publication operations. On Unix it
+  rejects symlinks, path escapes, nonregular managed files, permissive
+  directories, and files not using mode `0600`; new directories and files use
+  `0700` and `0600`. Cache paths, schemas, network behavior, and CLI grammar are
+  unchanged. Older permissive cache trees are not migrated or repaired
+  automatically and must be removed or secured before use.
+
 - `0.29.0` hard-cuts the Subnet Catalog Rust and persisted-report contracts to
   separate raw JSON from validated evidence, label current single-endpoint
   Registry collection `uncertified_query`, retain raw Registry Subnet types,

@@ -19,6 +19,8 @@ use ic_query::subnet_catalog::{
     subnet_catalog_list_report_text, subnet_catalog_list_report_verbose_text, subnet_catalog_path,
     subnet_catalog_refresh_lock_path, subnet_catalog_refresh_report_text,
 };
+#[cfg(all(feature = "subnet-catalog-host", unix))]
+use std::os::unix::fs::PermissionsExt;
 #[cfg(feature = "subnet-catalog-host")]
 use std::{
     fs,
@@ -188,13 +190,32 @@ type SubnetCatalogRefreshFn =
 #[must_use]
 fn write_fixture_catalog(root: &Path) -> PathBuf {
     let path = subnet_catalog_path(root, MAINNET_NETWORK);
-    fs::create_dir_all(path.parent().expect("catalog parent")).expect("create catalog parent");
+    create_managed_fixture_parent(root, &path);
     fs::write(
         &path,
         catalog_to_pretty_json(&fixture_catalog()).expect("catalog serializes"),
     )
     .expect("write catalog");
+    #[cfg(unix)]
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).expect("secure catalog file");
     path
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn create_managed_fixture_parent(root: &Path, path: &Path) {
+    let parent = path.parent().expect("catalog parent");
+    fs::create_dir_all(parent).expect("create catalog parent");
+    #[cfg(unix)]
+    {
+        let mut directory = root.to_path_buf();
+        fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
+            .expect("secure catalog root");
+        for component in parent.strip_prefix(root).expect("parent beneath root") {
+            directory.push(component);
+            fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
+                .expect("secure catalog directory");
+        }
+    }
 }
 
 #[cfg(feature = "subnet-catalog-host")]

@@ -199,9 +199,8 @@ fn sns_proposals_cache_status_reports_missing_cache() {
 fn sns_proposals_cache_status_surfaces_malformed_attempt_sidecar() {
     let root = temp_dir("ic-query-sns-proposals-malformed-attempt");
     let attempt_path = sns_proposals_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
-    fs::create_dir_all(attempt_path.parent().expect("attempt parent"))
-        .expect("create attempt parent");
-    fs::write(&attempt_path, "{").expect("write malformed attempt");
+    crate::cache_file::write_managed_text_atomically(&root, &attempt_path, "{")
+        .expect("write malformed attempt");
 
     let err = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest::new(
         &root,

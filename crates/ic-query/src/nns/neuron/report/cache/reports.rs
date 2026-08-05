@@ -19,7 +19,9 @@ use super::{
 use crate::{
     HostCacheError,
     cache::validate_cache_collection_completeness,
-    cache_file::{HostJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache_strict},
+    cache_file::{
+        HostJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache_strict, managed_file_exists,
+    },
     nns::{
         NnsGovernanceCacheRequest,
         governance::validate_governance_cache_metadata,
@@ -46,7 +48,7 @@ pub fn build_nns_neuron_list_report_from_cache(
     validate_page_size(request.limit)?;
     enforce_mainnet_network(&request.network)?;
     let path = nns_neuron_cache_path(cache_root, &request.network);
-    let cache = match load_cache_at(&path, &request.network) {
+    let cache = match load_cache_at(cache_root, &path, &request.network) {
         Ok(cache) => cache,
         Err(error) if is_missing_cache(&error) => return Ok(None),
         Err(error) => return Err(error),
@@ -81,7 +83,7 @@ pub fn build_nns_neuron_info_report_from_cache(
 ) -> Result<Option<NnsNeuronInfoReport>, NnsNeuronHostError> {
     enforce_mainnet_network(&request.network)?;
     let path = nns_neuron_cache_path(cache_root, &request.network);
-    let cache = match load_cache_at(&path, &request.network) {
+    let cache = match load_cache_at(cache_root, &path, &request.network) {
         Ok(cache) => cache,
         Err(error) if is_missing_cache(&error) => return Ok(None),
         Err(error) => return Err(error),
@@ -104,10 +106,11 @@ pub fn build_nns_neuron_cache_status_report(
 ) -> Result<NnsNeuronCacheStatusReport, NnsNeuronHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_neuron_cache_paths(&request.cache_root, &request.network);
-    let found = paths.snapshot_path.is_file();
+    let found = managed_file_exists(&request.cache_root, &paths.snapshot_path)
+        .map_err(|source| HostCacheError::operation(NNS_NEURON_CACHE_COMPONENT, source))?;
     let cache = if found {
         Some(
-            match load_cache_at(&paths.snapshot_path, &request.network) {
+            match load_cache_at(&request.cache_root, &paths.snapshot_path, &request.network) {
                 Ok(cache) => valid_cache_summary(&paths.snapshot_path, &cache),
                 Err(error) => invalid_cache_summary(&paths.snapshot_path, error.to_string()),
             },
@@ -115,7 +118,11 @@ pub fn build_nns_neuron_cache_status_report(
     } else {
         None
     };
-    let latest_attempt = read_attempt_status(&paths.refresh_attempt_path, &request.network)?;
+    let latest_attempt = read_attempt_status(
+        &request.cache_root,
+        &paths.refresh_attempt_path,
+        &request.network,
+    )?;
     Ok(NnsNeuronCacheStatusReport {
         schema_version: NNS_NEURON_CACHE_STATUS_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
@@ -133,9 +140,14 @@ pub fn build_nns_neuron_cache_status_report(
     })
 }
 
-fn load_cache_at(path: &Path, network: &str) -> Result<NnsNeuronCache, NnsNeuronHostError> {
+fn load_cache_at(
+    cache_root: &Path,
+    path: &Path,
+    network: &str,
+) -> Result<NnsNeuronCache, NnsNeuronHostError> {
     let cached = load_json_cache_strict::<NnsNeuronCache, _>(
         LoadJsonCacheRequest {
+            cache_root,
             path: path.to_path_buf(),
             network,
             expected_schema_version: NNS_NEURON_CACHE_SCHEMA_VERSION,

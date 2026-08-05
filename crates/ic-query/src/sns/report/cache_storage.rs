@@ -126,17 +126,14 @@ where
     Family: SnsCacheStorageFamily,
 {
     let root = sns_snapshot_network_cache_dir(cache_root, network);
-    collect_full_collection_snapshot_paths(&root, Family::COLLECTION).map_err(|source| {
-        SnsHostError::from(HostCacheError::read_cache(
-            SNS_CACHE_COMPONENT,
-            root,
-            source,
-        ))
-    })
+    collect_full_collection_snapshot_paths(cache_root, &root, Family::COLLECTION).map_err(
+        |source| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, source)),
+    )
 }
 
 /// Read and validate one SNS snapshot cache header.
 pub(in crate::sns::report) fn read_sns_cache_header<Family>(
+    cache_root: &Path,
     path: &Path,
     network: &str,
 ) -> Result<SnapshotHeader<SnsCacheHeaderMetadata>, SnsHostError>
@@ -145,6 +142,7 @@ where
 {
     load_snapshot_header(
         LoadJsonCacheRequest {
+            cache_root,
             path: path.to_path_buf(),
             network,
             expected_schema_version: Family::CACHE_SCHEMA_VERSION,
@@ -184,10 +182,15 @@ where
     let path = find_unique_sns_cache_path_by_id(
         collect_sns_cache_paths::<Family>(cache_root, network)?,
         id,
-        |path| read_sns_cache_header::<Family>(path, network).map(|header| header.metadata.id),
+        |path| {
+            read_sns_cache_header::<Family>(cache_root, path, network)
+                .map(|header| header.metadata.id)
+        },
     )?;
-    path.map(|path| load_sns_cache_at::<Family>(path.clone(), network).map(|cache| (path, cache)))
-        .transpose()
+    path.map(|path| {
+        load_sns_cache_at::<Family>(cache_root, path.clone(), network).map(|cache| (path, cache))
+    })
+    .transpose()
 }
 
 /// Load one complete SNS cache by root canister principal.
@@ -201,12 +204,13 @@ where
 {
     let path =
         SnsSnapshotCachePaths::<Family>::for_root(cache_root, network, root_canister_id).cache_path;
-    let cache = load_sns_cache_at::<Family>(path.clone(), network)?;
+    let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network)?;
     Ok((path, cache))
 }
 
 /// Load and validate one complete SNS snapshot cache.
 pub(in crate::sns::report) fn load_sns_cache_at<Family>(
+    cache_root: &Path,
     path: PathBuf,
     network: &str,
 ) -> Result<SnsStoredCache<Family>, SnsHostError>
@@ -217,6 +221,7 @@ where
     let errors = SnsCacheLoadErrors::for_family::<Family>();
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            cache_root,
             path: path.clone(),
             network,
             expected_schema_version: Family::CACHE_SCHEMA_VERSION,

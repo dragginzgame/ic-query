@@ -20,18 +20,32 @@ use crate::{
 };
 use std::path::Path;
 
-pub(super) fn read_attempt_status(path: &Path) -> Option<NnsGovernanceRefreshAttemptStatus> {
-    read_governance_refresh_attempt_status(path, MAINNET_NETWORK, NNS_PROPOSAL_CACHE_COMPONENT)
-        .ok()
-        .flatten()
+pub(super) fn read_attempt_status(
+    cache_root: &Path,
+    path: &Path,
+) -> Option<NnsGovernanceRefreshAttemptStatus> {
+    read_governance_refresh_attempt_status(
+        cache_root,
+        path,
+        MAINNET_NETWORK,
+        NNS_PROPOSAL_CACHE_COMPONENT,
+    )
+    .ok()
+    .flatten()
 }
 
 pub(super) fn read_attempt_status_strict(
+    cache_root: &Path,
     path: &Path,
     expected_network: &str,
 ) -> Result<Option<NnsGovernanceRefreshAttemptStatus>, NnsProposalHostError> {
-    read_governance_refresh_attempt_status(path, expected_network, NNS_PROPOSAL_CACHE_COMPONENT)
-        .map_err(map_attempt_read_error)
+    read_governance_refresh_attempt_status(
+        cache_root,
+        path,
+        expected_network,
+        NNS_PROPOSAL_CACHE_COMPONENT,
+    )
+    .map_err(map_attempt_read_error)
 }
 
 pub(super) fn write_starting_attempt(

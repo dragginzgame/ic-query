@@ -4,7 +4,7 @@
 //! Does not own: filesystem IO, refresh policy, or command-specific report fields.
 //! Boundary: defines minimal metadata needed for schema and network validation.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 ///
 /// CachedJsonReport
@@ -37,6 +37,8 @@ pub trait JsonCacheReport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LoadJsonCacheRequest<'a> {
+    /// Capability root that confines the managed cache path.
+    pub cache_root: &'a Path,
     pub path: PathBuf,
     pub network: &'a str,
     pub expected_schema_version: u32,

@@ -8,11 +8,12 @@ use super::{
     errors::LoadJsonCacheErrorMapper,
     model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest},
 };
+use crate::cache_file::read_managed_text;
 use serde::{
     Deserialize,
     de::{DeserializeOwned, Error as _, IgnoredAny, MapAccess, Visitor},
 };
-use std::{collections::BTreeSet, fmt, fs};
+use std::{collections::BTreeSet, fmt};
 
 struct TopLevelKeys(BTreeSet<String>);
 
@@ -93,11 +94,11 @@ where
     Errors: LoadJsonCacheErrorMapper,
 {
     let path = request.path;
-    if !path.is_file() {
+    let Some(data) = read_managed_text(request.cache_root, &path)
+        .map_err(|source| errors.cache_operation(source))?
+    else {
         return Err(errors.missing_cache(path));
-    }
-    let data =
-        fs::read_to_string(&path).map_err(|source| errors.read_cache(path.clone(), source))?;
+    };
     if let Some(supported_fields) = supported_fields {
         let top_level = serde_json::from_str::<TopLevelKeys>(&data)
             .map_err(|source| errors.parse_cache(path.clone(), source))?;

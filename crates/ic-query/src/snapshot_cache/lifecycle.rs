@@ -5,7 +5,8 @@
 //! Boundary: wraps command-owned refresh actions in shared lock/attempt sequencing.
 
 use crate::cache_file::{
-    CacheFileError, RefreshLockRequest, create_parent_directory, with_refresh_lock,
+    CacheFileError, RefreshLockRequest, create_managed_parent_directory, managed_file_exists,
+    with_refresh_lock,
 };
 use std::{fmt::Display, path::Path};
 
@@ -17,6 +18,8 @@ use std::{fmt::Display, path::Path};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LockedSnapshotRefreshRequest<'a> {
+    /// Capability root that confines the snapshot and refresh lock.
+    pub cache_root: &'a Path,
     pub snapshot_path: &'a Path,
     pub refresh_lock_path: &'a Path,
     pub network: &'a str,
@@ -40,12 +43,15 @@ pub fn with_locked_snapshot_refresh<T, Error>(
     cache_error: impl Fn(CacheFileError) -> Error,
     action: impl FnOnce(LockedSnapshotRefreshState) -> Result<T, Error>,
 ) -> Result<T, Error> {
-    create_parent_directory(request.snapshot_path).map_err(&cache_error)?;
+    create_managed_parent_directory(request.cache_root, request.snapshot_path)
+        .map_err(&cache_error)?;
     let state = LockedSnapshotRefreshState {
-        replaced_existing_snapshot: request.snapshot_path.is_file(),
+        replaced_existing_snapshot: managed_file_exists(request.cache_root, request.snapshot_path)
+            .map_err(&cache_error)?,
     };
     with_refresh_lock(
         RefreshLockRequest {
+            cache_root: request.cache_root,
             lock_path: request.refresh_lock_path,
             target_path: request.snapshot_path,
             network: request.network,

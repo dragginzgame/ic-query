@@ -9,6 +9,7 @@ use super::{
     header::component_from_path,
 };
 use crate::{
+    CacheFileError,
     cache_file::{RefreshLockEvidence, inspect_refresh_lock},
     subnet_catalog::format_utc_timestamp_secs,
 };
@@ -23,14 +24,14 @@ struct RefreshLockRowContext<'path> {
 }
 
 impl<'path> RefreshLockRowContext<'path> {
-    fn new(root: &'path Path, path: &'path Path) -> Self {
+    fn new(root: &'path Path, path: &'path Path, size_bytes: u64) -> Self {
         let relative = path.strip_prefix(root).unwrap_or(path);
         Self {
             root,
             path,
             relative,
             relative_path: relative.display().to_string(),
-            size_bytes: path.metadata().map_or(0, |metadata| metadata.len()),
+            size_bytes,
         }
     }
 }
@@ -39,28 +40,50 @@ pub(super) fn refresh_lock_status_row(
     root: &Path,
     path: &Path,
     now_unix_secs: u64,
-) -> CacheRefreshLockStatusRow {
-    let context = RefreshLockRowContext::new(root, path);
-    let evidence = match inspect_refresh_lock(path) {
+) -> Result<CacheRefreshLockStatusRow, CacheFileError> {
+    let size_bytes = crate::cache_file::open_managed_file(root, path)?
+        .map(|file| {
+            file.metadata()
+                .map(|metadata| metadata.len())
+                .map_err(|source| CacheFileError::OpenManagedPath {
+                    root: root.to_path_buf(),
+                    path: path.to_path_buf(),
+                    source,
+                })
+        })
+        .transpose()?
+        .unwrap_or(0);
+    let context = RefreshLockRowContext::new(root, path, size_bytes);
+    let evidence = match inspect_refresh_lock(root, path) {
         Ok(evidence) => evidence,
-        Err(error) => {
-            return invalid_refresh_lock_row(context, error.to_string());
+        Err(
+            error @ (CacheFileError::ParseRefreshLock { .. }
+            | CacheFileError::InvalidRefreshLock { .. }),
+        ) => {
+            return Ok(invalid_refresh_lock_row(context, error.to_string()));
         }
+        Err(error) => return Err(error),
     };
     let now_unix_ms = now_unix_secs.saturating_mul(1_000);
     let Some(age_unix_ms) = now_unix_ms.checked_sub(evidence.started_at_unix_ms) else {
-        return invalid_refresh_lock_evidence_row(
+        return Ok(invalid_refresh_lock_evidence_row(
             context,
             evidence,
             "refresh lock acquisition timestamp is in the future".to_string(),
-        );
+        ));
     };
     let status = if age_unix_ms > evidence.stale_after_seconds.saturating_mul(1_000) {
         CacheRefreshLockStatus::Stale
     } else {
         CacheRefreshLockStatus::Active
     };
-    refresh_lock_evidence_row(context, evidence, status, Some(age_unix_ms / 1_000), None)
+    Ok(refresh_lock_evidence_row(
+        context,
+        evidence,
+        status,
+        Some(age_unix_ms / 1_000),
+        None,
+    ))
 }
 
 fn invalid_refresh_lock_row(

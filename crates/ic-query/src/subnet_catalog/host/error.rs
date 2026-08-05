@@ -58,6 +58,8 @@ pub enum SubnetCatalogErrorCategory {
     Missing,
     /// Filesystem or refresh-lock failure.
     CacheIo,
+    /// Managed cache path confinement or permission failure.
+    Confinement,
     /// Network or remote Registry source failure.
     Network,
     /// Evidence identity or assurance failure.
@@ -74,6 +76,7 @@ impl SubnetCatalogErrorCategory {
             Self::Input => "input",
             Self::Missing => "missing",
             Self::CacheIo => "cache_io",
+            Self::Confinement => "confinement",
             Self::Network => "network",
             Self::Authority => "authority",
             Self::Validation => "validation",
@@ -162,6 +165,13 @@ impl SubnetCatalogHostError {
                 SubnetCatalogErrorCategory::Input
             }
             Self::MissingCatalog { .. } => SubnetCatalogErrorCategory::Missing,
+            Self::Cache(HostCacheError::Operation {
+                source:
+                    CacheFileError::UnsupportedConfinementPlatform { .. }
+                    | CacheFileError::Confinement { .. }
+                    | CacheFileError::UnsafeManagedPermissions { .. },
+                ..
+            }) => SubnetCatalogErrorCategory::Confinement,
             Self::Cache(_) => SubnetCatalogErrorCategory::CacheIo,
             Self::RegistryRefresh(_) => SubnetCatalogErrorCategory::Network,
             Self::Catalog(

@@ -178,6 +178,7 @@ pub fn refresh_ic_node_status_snapshot_with_source(
     let paths = status_paths(&request.cache.cache_root, &request.cache.network);
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
+            cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
             network: &request.cache.network,
@@ -195,6 +196,7 @@ pub fn refresh_ic_node_status_snapshot_with_source(
             )?;
             let cache = cache_from_snapshot(&snapshot);
             write_snapshot_json(
+                &request.cache.cache_root,
                 &paths.snapshot_path,
                 &cache,
                 |path, source| {
@@ -316,6 +318,7 @@ fn load_node_status_cache(
     let key = status_key(&request.network);
     let cache: NodeStatusCache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            cache_root: &request.cache_root,
             path: path.clone(),
             network: &request.network,
             expected_schema_version: IC_NODE_STATUS_SCHEMA_VERSION,

@@ -78,6 +78,7 @@ fn refresh_icrc_account_transaction_cache_with_source_and_progress(
     let paths = cache_paths(&request.cache);
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
+            cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
             network: MAINNET_NETWORK,
@@ -209,6 +210,7 @@ fn publish_complete_snapshot(
     let attempt_finalization_error = publish_snapshot_with_attempt(
         || {
             write_snapshot_json(
+                &request.cache.cache_root,
                 &paths.snapshot_path,
                 &snapshot,
                 |path, source| {

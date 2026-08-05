@@ -219,7 +219,11 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
     context: SnsRefreshContext<'_>,
     error: &SnsHostError,
 ) {
-    let latest = read_sns_refresh_attempt(context.path, context.request.network());
+    let latest = read_sns_refresh_attempt(
+        context.request.cache_root(),
+        context.path,
+        context.request.network(),
+    );
     let progress = SnapshotRefreshProgress::new(
         latest
             .as_ref()
@@ -250,6 +254,7 @@ fn write_sns_refresh_attempt_status(
         last_error,
     });
     write_snapshot_refresh_attempt(
+        context.request.cache_root(),
         context.path,
         &attempt,
         |path, source| {
@@ -297,35 +302,40 @@ pub(in crate::sns::report) fn validate_sns_refresh_attempt(
 }
 
 pub(in crate::sns::report) fn read_sns_refresh_attempt(
+    cache_root: &Path,
     path: &Path,
     expected_network: &str,
 ) -> Option<(SnsRefreshAttempt, CacheRefreshAttemptStatus)> {
     let attempt =
-        read_snapshot_refresh_attempt_strict(path, SNS_REFRESH_ATTEMPT_METADATA_FIELDS).ok()??;
+        read_snapshot_refresh_attempt_strict(cache_root, path, SNS_REFRESH_ATTEMPT_METADATA_FIELDS)
+            .ok()??;
     let status = validate_sns_refresh_attempt(path, expected_network, &attempt).ok()?;
     Some((attempt, status))
 }
 
 pub(in crate::sns::report) fn read_sns_refresh_attempt_status(
+    cache_root: &Path,
     path: &Path,
     expected_network: &str,
 ) -> Option<SnsRefreshAttemptStatus> {
-    read_sns_refresh_attempt(path, expected_network)
+    read_sns_refresh_attempt(cache_root, path, expected_network)
         .map(|(attempt, status)| SnsRefreshAttemptStatus::from_validated(attempt, status))
 }
 
 pub(in crate::sns::report) fn read_sns_refresh_attempt_status_strict(
+    cache_root: &Path,
     path: &Path,
     expected_network: &str,
 ) -> Result<Option<SnsRefreshAttemptStatus>, SnsHostError> {
     read_snapshot_refresh_attempt_strict::<SnsRefreshAttempt>(
+        cache_root,
         path,
         SNS_REFRESH_ATTEMPT_METADATA_FIELDS,
     )
     .map_err(|error| match error {
-        SnapshotRefreshAttemptReadError::Read { path, source } => SnsHostError::from(
-            HostCacheError::read_cache(SNS_CACHE_COMPONENT, path, source),
-        ),
+        SnapshotRefreshAttemptReadError::Operation(source) => {
+            SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, source))
+        }
         SnapshotRefreshAttemptReadError::Parse { path, source } => SnsHostError::from(
             HostCacheError::parse_cache(SNS_CACHE_COMPONENT, path, source),
         ),

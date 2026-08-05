@@ -228,9 +228,8 @@ fn nns_proposal_cache_status_reports_missing_cache() {
 fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
     let root = temp_dir("ic-query-nns-proposal-malformed-attempt");
     let paths = nns_proposal_cache_paths(&root, MAINNET_NETWORK);
-    fs::create_dir_all(paths.refresh_attempt_path.parent().expect("attempt parent"))
-        .expect("create attempt parent");
-    fs::write(&paths.refresh_attempt_path, "{").expect("write malformed attempt");
+    crate::cache_file::write_managed_text_atomically(&root, &paths.refresh_attempt_path, "{")
+        .expect("write malformed attempt");
     let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
 
     let err = build_nns_proposal_cache_status_report(&request)

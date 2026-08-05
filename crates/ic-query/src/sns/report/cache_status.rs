@@ -6,6 +6,7 @@
 
 use crate::{
     HostCacheError,
+    cache_file::managed_file_exists,
     snapshot_cache::collect_full_collection_attempt_paths,
     sns::report::{
         SNS_CACHE_COMPONENT, SnsCacheStatusReport, SnsCacheStatusRequest, SnsCacheSummary,
@@ -83,13 +84,17 @@ where
     let cache = find_sns_cache_summary_by_id(
         collect_sns_cache_paths::<Family>(cache_root, network)?,
         id,
-        |path| read_sns_cache_header::<Family>(path, network).map(|header| header.metadata.id),
-        |path| load_sns_cache_summary_at::<Family>(path, network),
+        |path| {
+            read_sns_cache_header::<Family>(cache_root, path, network)
+                .map(|header| header.metadata.id)
+        },
+        |path| load_sns_cache_summary_at::<Family>(cache_root, path, network),
     )?;
     let (refresh_attempt_path, latest_attempt) = match cache.as_ref() {
         Some(cache) => {
             let path = cache.refresh_attempt_path.clone();
-            let attempt = read_sns_refresh_attempt_status_strict(Path::new(&path), network)?;
+            let attempt =
+                read_sns_refresh_attempt_status_strict(cache_root, Path::new(&path), network)?;
             (Some(path), attempt)
         }
         None => match find_attempt_by_id::<Family>(network, cache_root, id)? {
@@ -125,13 +130,14 @@ where
 {
     let network_dir = sns_snapshot_network_cache_dir(cache_root, network);
     let attempt_paths = collect_full_collection_attempt_paths(
+        cache_root,
         &network_dir,
         <Family as SnsCacheCollection>::COLLECTION,
     )
-    .map_err(|source| HostCacheError::read_cache(SNS_CACHE_COMPONENT, network_dir, source))?;
+    .map_err(|source| HostCacheError::operation(SNS_CACHE_COMPONENT, source))?;
     let mut matching = Vec::new();
     for path in attempt_paths {
-        if let Some(attempt) = read_sns_refresh_attempt_status_strict(&path, network)?
+        if let Some(attempt) = read_sns_refresh_attempt_status_strict(cache_root, &path, network)?
             && attempt.id == id
         {
             matching.push((path, attempt));
@@ -155,15 +161,19 @@ where
 {
     let root_canister_id = parse_sns_root_canister_input(input)?;
     let paths = SnsSnapshotCachePaths::<Family>::for_root(cache_root, network, &root_canister_id);
-    let cache = if paths.cache_path.is_file() {
+    let cache = if managed_file_exists(cache_root, &paths.cache_path)
+        .map_err(|source| HostCacheError::operation(SNS_CACHE_COMPONENT, source))?
+    {
         Some(load_sns_cache_summary_at::<Family>(
+            cache_root,
             paths.cache_path.clone(),
             network,
         ))
     } else {
         None
     };
-    let latest_attempt = read_sns_refresh_attempt_status_strict(&paths.attempt_path, network)?;
+    let latest_attempt =
+        read_sns_refresh_attempt_status_strict(cache_root, &paths.attempt_path, network)?;
     Ok(SnsCacheStatusLookup {
         cache_root: network_cache_root,
         cache,

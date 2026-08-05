@@ -4,8 +4,8 @@
 //! Does not own: cache-file IO or command-specific error enums.
 //! Boundary: defines the error-mapping trait used by shared cache loaders.
 
-use crate::HostCacheError;
-use std::{io, path::PathBuf};
+use crate::{CacheFileError, HostCacheError};
+use std::path::PathBuf;
 
 ///
 /// LoadJsonCacheErrorMapper
@@ -17,7 +17,8 @@ pub trait LoadJsonCacheErrorMapper {
     type Error;
 
     fn missing_cache(&self, path: PathBuf) -> Self::Error;
-    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error;
+    /// Map a capability-rooted cache operation failure.
+    fn cache_operation(&self, source: CacheFileError) -> Self::Error;
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error;
     fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error;
     fn network_mismatch(&self, requested: String, actual: String) -> Self::Error;
@@ -46,8 +47,8 @@ impl LoadJsonCacheErrorMapper for HostJsonCacheErrorMapper {
         HostCacheError::missing_cache(self.component, path)
     }
 
-    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        HostCacheError::read_cache(self.component, path, source)
+    fn cache_operation(&self, source: CacheFileError) -> Self::Error {
+        HostCacheError::operation(self.component, source)
     }
 
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
@@ -95,8 +96,8 @@ where
         (self.missing_cache)(path)
     }
 
-    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        HostCacheError::read_cache(self.component, path, source).into()
+    fn cache_operation(&self, source: CacheFileError) -> Self::Error {
+        HostCacheError::operation(self.component, source).into()
     }
 
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {

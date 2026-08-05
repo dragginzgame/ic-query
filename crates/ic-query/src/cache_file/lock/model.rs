@@ -17,6 +17,8 @@ pub(super) const REFRESH_LOCK_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RefreshLockRequest<'a> {
+    /// Capability root that confines the lock and its target.
+    pub cache_root: &'a Path,
     pub lock_path: &'a Path,
     pub target_path: &'a Path,
     pub network: &'a str,

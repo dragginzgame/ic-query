@@ -99,10 +99,10 @@ fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
     let request = sns_neurons_refresh_request(&root, None);
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let lock_path = sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A);
-    fs::create_dir_all(lock_path.parent().expect("lock path parent")).expect("create cache dir");
-    fs::write(
+    crate::cache_file::write_managed_text_atomically(
+        &root,
         &lock_path,
-        serde_json::to_vec_pretty(&serde_json::json!({
+        &serde_json::to_string_pretty(&serde_json::json!({
             "schema_version": 1,
             "network": MAINNET_NETWORK,
             "pid": 999_999,

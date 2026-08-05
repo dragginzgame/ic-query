@@ -61,11 +61,11 @@ fn node_report_uses_live_registry_source() {
 fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
     let cache = test_cache_request(MAINNET_NETWORK, "invalid-cache-refresh");
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
-    fs::create_dir_all(path.parent().expect("cache parent")).expect("create cache parent");
     let mut invalid = node_report_fixture();
     invalid.node_count = 2;
     let invalid_json = serde_json::to_string_pretty(&invalid).expect("serialize invalid cache");
-    fs::write(&path, &invalid_json).expect("write invalid cache");
+    crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, &invalid_json)
+        .expect("write invalid cache");
     let request = NnsNodeListRequest {
         cache: cache.clone(),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -99,8 +99,8 @@ fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
 fn invalid_node_source_does_not_replace_existing_invalid_cache() {
     let cache = test_cache_request(MAINNET_NETWORK, "invalid-source-preserves-cache");
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
-    fs::create_dir_all(path.parent().expect("cache parent")).expect("create cache parent");
-    fs::write(&path, "not-json").expect("write invalid cache");
+    crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "not-json")
+        .expect("write invalid cache");
     let request = NnsNodeListRequest {
         cache: cache.clone(),
         source_endpoint: "https://icp-api.io".to_string(),

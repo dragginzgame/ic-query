@@ -22,20 +22,22 @@ use std::path::{Path, PathBuf};
 
 /// Load one SNS snapshot and project either its valid or invalid cache summary.
 pub(in crate::sns::report) fn load_sns_cache_summary_at<Family>(
+    cache_root: &Path,
     cache_path: PathBuf,
     network: &str,
 ) -> SnsCacheSummary
 where
     Family: SnsCacheStorageFamily,
 {
-    match load_sns_cache_at::<Family>(cache_path.clone(), network) {
-        Ok(cache) => valid_sns_cache_summary(cache_path, cache),
-        Err(error) => invalid_sns_cache_summary(cache_path, network, &error),
+    match load_sns_cache_at::<Family>(cache_root, cache_path.clone(), network) {
+        Ok(cache) => valid_sns_cache_summary(cache_root, cache_path, cache),
+        Err(error) => invalid_sns_cache_summary(cache_root, cache_path, network, &error),
     }
 }
 
 /// Load summaries for a discovered set of SNS snapshot paths.
 fn load_sns_cache_summaries<Family>(
+    cache_root: &Path,
     paths: impl IntoIterator<Item = PathBuf>,
     network: &str,
 ) -> Vec<SnsCacheSummary>
@@ -44,16 +46,17 @@ where
 {
     paths
         .into_iter()
-        .map(|path| load_sns_cache_summary_at::<Family>(path, network))
+        .map(|path| load_sns_cache_summary_at::<Family>(cache_root, path, network))
         .collect()
 }
 
 fn valid_sns_cache_summary<Data>(
+    cache_root: &Path,
     cache_path: PathBuf,
     cache: SnapshotEnvelope<SnsCacheMetadata, Data>,
 ) -> SnsCacheSummary {
     let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
-    let latest_attempt = read_sns_refresh_attempt_status(&attempt_path, &cache.network);
+    let latest_attempt = read_sns_refresh_attempt_status(cache_root, &attempt_path, &cache.network);
     SnsCacheSummary {
         id: cache.metadata.id,
         name: cache.metadata.name,
@@ -74,6 +77,7 @@ fn valid_sns_cache_summary<Data>(
 }
 
 fn invalid_sns_cache_summary(
+    cache_root: &Path,
     cache_path: PathBuf,
     network: &str,
     error: &SnsHostError,
@@ -94,7 +98,7 @@ fn invalid_sns_cache_summary(
         source_endpoint: "-".to_string(),
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
-        latest_attempt: read_sns_refresh_attempt_status(&attempt_path, network),
+        latest_attempt: read_sns_refresh_attempt_status(cache_root, &attempt_path, network),
     }
 }
 
@@ -111,7 +115,8 @@ where
         .display()
         .to_string();
     let paths = collect_sns_cache_paths::<Family>(&request.cache_root, &request.network)?;
-    let mut caches = load_sns_cache_summaries::<Family>(paths, &request.network);
+    let mut caches =
+        load_sns_cache_summaries::<Family>(&request.cache_root, paths, &request.network);
     sort_sns_cache_summaries(&mut caches);
     Ok(SnsCacheListReport {
         schema_version,

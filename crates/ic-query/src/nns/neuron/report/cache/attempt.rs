@@ -75,10 +75,11 @@ pub(super) fn write_failed_attempt(
 }
 
 pub(super) fn read_attempt_status(
+    cache_root: &Path,
     path: &Path,
     network: &str,
 ) -> Result<Option<NnsGovernanceRefreshAttemptStatus>, NnsNeuronHostError> {
-    read_governance_refresh_attempt_status(path, network, NNS_NEURON_CACHE_COMPONENT)
+    read_governance_refresh_attempt_status(cache_root, path, network, NNS_NEURON_CACHE_COMPONENT)
         .map_err(map_attempt_read_error)
 }
 

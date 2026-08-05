@@ -1762,18 +1762,22 @@ fn assert_proposal_source_request(request: &NnsSourceRequest) {
 #[cfg(feature = "host")]
 fn write_nns_inventory_fixture_caches(root: &Path) {
     write_json_cache(
+        root,
         &nns_node_cache_path(root, "ic"),
         &sample_nns_node_list_report(),
     );
     write_json_cache(
+        root,
         &nns_data_center_cache_path(root, "ic"),
         &sample_nns_data_center_list_report(),
     );
     write_json_cache(
+        root,
         &nns_node_provider_cache_path(root, "ic"),
         &sample_nns_node_provider_list_report(),
     );
     write_json_cache(
+        root,
         &nns_node_operator_cache_path(root, "ic"),
         &sample_nns_node_operator_list_report(),
     );
@@ -1782,6 +1786,7 @@ fn write_nns_inventory_fixture_caches(root: &Path) {
 #[cfg(feature = "host")]
 fn write_nns_proposal_fixture_cache(root: &Path) {
     write_json_cache(
+        root,
         &nns_proposal_cache_path(root, "ic"),
         &serde_json::json!({
             "schema_version": 1,
@@ -1963,16 +1968,36 @@ fn assert_public_nns_node_operator_host_api(root: &Path) {
 }
 
 #[cfg(feature = "host")]
-fn write_json_cache<T>(path: &Path, value: &T)
+fn write_json_cache<T>(root: &Path, path: &Path, value: &T)
 where
     T: Serialize,
 {
-    fs::create_dir_all(path.parent().expect("cache parent")).expect("create cache parent");
+    let parent = path.parent().expect("cache parent");
+    fs::create_dir_all(parent).expect("create cache parent");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let mut directory = root.to_path_buf();
+        fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
+            .expect("secure cache root");
+        for component in parent.strip_prefix(root).expect("parent beneath root") {
+            directory.push(component);
+            fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
+                .expect("secure cache directory");
+        }
+    }
     fs::write(
         path,
         serde_json::to_string_pretty(value).expect("serialize fixture cache"),
     )
     .expect("write fixture cache");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600)).expect("secure cache file");
+    }
 }
 
 #[cfg(feature = "host")]

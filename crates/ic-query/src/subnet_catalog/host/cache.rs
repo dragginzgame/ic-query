@@ -9,7 +9,7 @@ use super::{
     error::enforce_mainnet_network, refresh_subnet_catalog_with_source, subnet_catalog_path,
 };
 use crate::{
-    cache_file::HostCacheError,
+    cache_file::read_managed_text,
     nns::LiveNnsSource,
     subnet_catalog::{
         CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
@@ -18,7 +18,7 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 ///
 /// SubnetCatalogCacheRequest
@@ -282,11 +282,11 @@ fn load_cached_with_disposition(
 ) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
     enforce_mainnet_network(&request.cache.network)?;
     let path = subnet_catalog_path(&request.cache.cache_root, &request.cache.network);
-    if !path.is_file() {
+    let Some(data) = read_managed_text(&request.cache.cache_root, &path)
+        .map_err(super::error::subnet_cache_error)?
+    else {
         return Err(SubnetCatalogHostError::MissingCatalog { path });
-    }
-    let data = fs::read_to_string(&path)
-        .map_err(|source| HostCacheError::read_cache("subnet catalog", path.clone(), source))?;
+    };
     let raw = parse_catalog_json(&data)?;
     let validation = CatalogValidationContext::new(
         &request.cache.network,
