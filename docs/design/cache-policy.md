@@ -178,6 +178,11 @@ endpoint and cannot invoke a source. Ordinary CLI list/info behavior selects
 missing-or-invalid repair and reports stale age without treating it as a
 refresh instruction.
 
+Every network-capable policy carries a `CatalogSourceSelection`, not an
+implicit endpoint. It selects either one uncertified endpoint or a bounded
+two-to-three-endpoint agreement collection. Async load/refresh entry points run
+on the caller's runtime; synchronous names adapt the same implementation.
+
 The exact-version NNS Subnet topology and ICRC account-transaction libraries
 apply the same recovery only through their explicit refresh-if-missing and
 refresh-if-stale APIs. Their direct cache loaders remain local and strict.

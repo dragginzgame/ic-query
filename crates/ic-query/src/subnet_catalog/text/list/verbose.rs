@@ -52,6 +52,17 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
         ColumnAlign::Left,
     ];
     let mut lines = Vec::new();
+    append_catalog_evidence(report, &mut lines);
+    if rows.is_empty() {
+        lines.push("subnets: none".to_string());
+        return lines.join("\n");
+    }
+    lines.push(render_table(&headers, &rows, &alignments));
+    append_range_lines(report, &mut lines);
+    lines.join("\n")
+}
+
+fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<String>) {
     lines.push(format!(
         "catalog_path: {}",
         sanitize_text(&report.catalog_path)
@@ -73,6 +84,14 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
             .map(|endpoint| sanitize_text(endpoint))
             .collect::<Vec<_>>()
             .join(",")
+    ));
+    lines.push(format!(
+        "agreement_digest: {}",
+        report.agreement_digest.as_deref().unwrap_or("-")
+    ));
+    lines.push(format!(
+        "registry_query_call_count: {}",
+        report.registry_query_call_count
     ));
     lines.push(format!(
         "collector_version: {}",
@@ -98,11 +117,4 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
         "stale_reason: {}",
         sanitize_text(&report.stale_reason)
     ));
-    if rows.is_empty() {
-        lines.push("subnets: none".to_string());
-        return lines.join("\n");
-    }
-    lines.push(render_table(&headers, &rows, &alignments));
-    append_range_lines(report, &mut lines);
-    lines.join("\n")
 }

@@ -82,7 +82,9 @@ fn missing_only_policy_does_not_repair_invalid_content() {
         .expect("invalid cache");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::RefreshMissing {
-            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
         });
 
     let error =
@@ -102,7 +104,9 @@ fn missing_only_policy_reports_missing_refresh_disposition() {
     let root = temp_dir("ic-query-subnet-missing-only");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::RefreshMissing {
-            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
         });
 
     let outcome =
@@ -111,6 +115,27 @@ fn missing_only_policy_reports_missing_refresh_disposition() {
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(outcome.disposition, CacheDisposition::RefreshedMissing);
+}
+
+#[test]
+fn async_load_policy_refreshes_without_an_internal_runtime_adapter() {
+    let root = temp_dir("ic-query-subnet-async-load");
+    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+        .with_policy(CatalogReadPolicy::RefreshMissing {
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
+        });
+
+    let outcome = futures::executor::block_on(load_subnet_catalog_with_source_async(
+        &request,
+        &FixtureRefreshSource::ok(fixture_catalog()),
+    ))
+    .expect("async load refreshes missing content");
+
+    assert_eq!(outcome.disposition, CacheDisposition::RefreshedMissing);
+    assert_eq!(outcome.catalog.provenance().registry_query_call_count, 5);
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -129,7 +154,9 @@ fn stale_and_forced_policies_report_exact_dispositions() {
         .expect("seal replacement fixture");
     let stale_request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
-            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
             max_age_seconds: 60,
         });
 
@@ -151,7 +178,9 @@ fn stale_and_forced_policies_report_exact_dispositions() {
         .expect("reseal forced fixture");
     let forced_request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::ForceRefresh {
-            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
         });
     let forced =
         load_subnet_catalog_with_source(&forced_request, &FixtureRefreshSource::ok(replacement))
@@ -173,7 +202,9 @@ fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
     symlink(&outside, root.join("nns")).expect("link managed parent");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::RefreshMissingOrInvalid {
-            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
         });
 
     let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())

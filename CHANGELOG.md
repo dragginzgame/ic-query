@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
 
+- `0.29.2` hard-cuts the Subnet Catalog host API and version-2 cache/report
+  evidence to caller-runtime async load/refresh operations with synchronous
+  adapters, exact Registry query-call counts, and explicit one-endpoint or
+  bounded two-to-three-endpoint source selection. Agreement requires the same
+  Registry version and canonical Registry payload from distinct hostnames;
+  mismatch never falls back to one endpoint. CLI grammar remains unchanged
+  and continues to select one endpoint. Version-1 catalog evidence is not
+  migrated; authorized invalid-content read-through replaces it, while
+  cache-only callers must refresh explicitly.
+
 - `0.29.1` hard-cuts every managed cache family to capability-rooted load,
   discovery, refresh-lock, and atomic-publication operations. On Unix it
   rejects symlinks, path escapes, nonregular managed files, permissive

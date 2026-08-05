@@ -1,4 +1,4 @@
-use super::{chunk::get_large_registry_value, decode_message};
+use super::{RegistryQueryCounter, chunk::get_large_registry_value, decode_message};
 use crate::ic_registry::{
     RegistryFetchError,
     proto::{
@@ -10,11 +10,32 @@ use crate::ic_registry::{
 use ic_agent::Agent;
 use prost::Message;
 
+#[cfg(feature = "host")]
 pub(in crate::ic_registry) async fn get_registry_value(
     agent: &Agent,
     registry_canister: &candid::Principal,
     key: &str,
     version: u64,
+) -> Result<Vec<u8>, RegistryFetchError> {
+    get_registry_value_inner(agent, registry_canister, key, version, None).await
+}
+
+pub(in crate::ic_registry) async fn get_registry_value_counted(
+    agent: &Agent,
+    registry_canister: &candid::Principal,
+    key: &str,
+    version: u64,
+    counter: &RegistryQueryCounter,
+) -> Result<Vec<u8>, RegistryFetchError> {
+    get_registry_value_inner(agent, registry_canister, key, version, Some(counter)).await
+}
+
+async fn get_registry_value_inner(
+    agent: &Agent,
+    registry_canister: &candid::Principal,
+    key: &str,
+    version: u64,
+    counter: Option<&RegistryQueryCounter>,
 ) -> Result<Vec<u8>, RegistryFetchError> {
     let request = RegistryGetValueRequest {
         version: Some(UInt64Value { value: version }),
@@ -27,6 +48,9 @@ pub(in crate::ic_registry) async fn get_registry_value(
             message: "RegistryGetValueRequest",
             reason: err.to_string(),
         })?;
+    if let Some(counter) = counter {
+        counter.record_call();
+    }
     let bytes = agent
         .query(registry_canister, "get_value")
         .with_arg(arg)
@@ -40,7 +64,13 @@ pub(in crate::ic_registry) async fn get_registry_value(
     match registry_value_content_from_response(key, response)? {
         RegistryValueContent::Value(value) => Ok(value),
         RegistryValueContent::LargeValueChunkKeys(keys) => {
-            get_large_registry_value(agent, registry_canister, &keys.chunk_content_sha256s).await
+            get_large_registry_value(
+                agent,
+                registry_canister,
+                &keys.chunk_content_sha256s,
+                counter,
+            )
+            .await
         }
     }
 }

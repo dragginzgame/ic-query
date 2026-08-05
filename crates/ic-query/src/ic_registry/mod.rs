@@ -15,13 +15,13 @@ mod transport;
 mod wire;
 
 use candid::Principal;
+pub use client::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "host")]
 pub use client::{
     fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
     fetch_mainnet_node_provider_list, fetch_mainnet_registry_version,
     fetch_mainnet_subnet_topology,
 };
-pub use client::{fetch_mainnet_subnet_catalog, fetch_mainnet_subnet_catalog_async};
 pub use error::RegistryFetchError;
 pub use model::MainnetRegistryFetchRequest;
 #[cfg(feature = "host")]
@@ -33,7 +33,9 @@ pub use model::{
 use proto::{CanisterId, SubnetId};
 
 #[cfg(all(test, feature = "host"))]
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RawSubnetCatalog};
+use crate::subnet_catalog::{
+    MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RawSubnetCatalog, UncertifiedCatalogCollection,
+};
 
 #[cfg(all(test, feature = "host"))]
 use catalog::{routing_ranges_from_table, subnet_info_from_record};

@@ -2,7 +2,8 @@ use crate::{
     cache_file::{CacheFileError, HostCacheError},
     ic_registry::RegistryFetchError,
     network::enforce_mainnet_network_with,
-    subnet_catalog::CatalogError,
+    runtime::RuntimeError,
+    subnet_catalog::{CatalogAssurance, CatalogError},
 };
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
@@ -21,6 +22,18 @@ pub enum SubnetCatalogErrorCode {
     MissingCatalog,
     /// Caller supplied an incompatible cache read policy.
     InvalidReadPolicy,
+    /// Caller supplied an invalid or unbounded source selection.
+    InvalidSourceSelection,
+    /// A source returned assurance evidence that did not match its request.
+    SourceEvidenceMismatch,
+    /// One endpoint in an agreement collection failed.
+    AgreementEndpoint,
+    /// Independent endpoints did not return the same Registry snapshot.
+    AgreementMismatch,
+    /// Aggregating source call counts exceeded the report representation.
+    RegistryQueryCallCountOverflow,
+    /// The synchronous adapter could not run the async refresh core.
+    RuntimeAdapter,
     /// A shared cache or lock operation failed.
     CacheOperation,
     /// Live Registry collection failed.
@@ -37,6 +50,12 @@ impl SubnetCatalogErrorCode {
             Self::UnsupportedNetwork => "unsupported_network",
             Self::MissingCatalog => "missing_catalog",
             Self::InvalidReadPolicy => "invalid_read_policy",
+            Self::InvalidSourceSelection => "invalid_source_selection",
+            Self::SourceEvidenceMismatch => "source_evidence_mismatch",
+            Self::AgreementEndpoint => "agreement_endpoint",
+            Self::AgreementMismatch => "agreement_mismatch",
+            Self::RegistryQueryCallCountOverflow => "registry_query_call_count_overflow",
+            Self::RuntimeAdapter => "runtime_adapter",
             Self::CacheOperation => "cache_operation",
             Self::RegistryRefresh => "registry_refresh",
             Self::CatalogValidation => "catalog_validation",
@@ -66,6 +85,8 @@ pub enum SubnetCatalogErrorCategory {
     Authority,
     /// Deterministic raw catalog validation failure.
     Validation,
+    /// Failure in the synchronous runtime adapter.
+    Runtime,
 }
 
 impl SubnetCatalogErrorCategory {
@@ -80,6 +101,7 @@ impl SubnetCatalogErrorCategory {
             Self::Network => "network",
             Self::Authority => "authority",
             Self::Validation => "validation",
+            Self::Runtime => "runtime",
         }
     }
 }
@@ -133,6 +155,63 @@ pub enum SubnetCatalogHostError {
         reason: String,
     },
 
+    /// Caller supplied an invalid source selection.
+    #[error("invalid subnet catalog source selection: {reason}")]
+    InvalidSourceSelection {
+        /// Deterministic selection failure.
+        reason: String,
+    },
+
+    /// A custom source returned assurance or endpoints other than the request.
+    #[error(
+        "subnet catalog source returned assurance {} and endpoints {actual_endpoints:?}; requested single endpoint was {requested:?}",
+        actual_assurance.as_str()
+    )]
+    SourceEvidenceMismatch {
+        /// Requested source endpoint.
+        requested: String,
+        /// Assurance claimed by the returned evidence.
+        actual_assurance: CatalogAssurance,
+        /// Complete endpoint list recorded by returned evidence.
+        actual_endpoints: Vec<String>,
+    },
+
+    /// One endpoint failed during a bounded agreement collection.
+    #[error("subnet catalog agreement endpoint {endpoint:?} failed: {source}")]
+    AgreementEndpoint {
+        /// Exact endpoint whose collection failed.
+        endpoint: String,
+        /// Typed source failure.
+        source: Box<Self>,
+    },
+
+    /// One endpoint disagreed with the first canonical Registry snapshot.
+    #[error(
+        "subnet catalog endpoint agreement failed: {endpoint:?} returned registry_version={registry_version} digest={agreement_digest}, but {reference_endpoint:?} returned registry_version={reference_registry_version} digest={reference_agreement_digest}"
+    )]
+    AgreementMismatch {
+        /// First canonical endpoint.
+        reference_endpoint: String,
+        /// Registry version returned by the first endpoint.
+        reference_registry_version: u64,
+        /// Canonical Registry payload digest returned by the first endpoint.
+        reference_agreement_digest: String,
+        /// Differing endpoint.
+        endpoint: String,
+        /// Registry version returned by the differing endpoint.
+        registry_version: u64,
+        /// Canonical Registry payload digest returned by the differing endpoint.
+        agreement_digest: String,
+    },
+
+    /// Summed Registry query call count cannot be represented as `u64`.
+    #[error("subnet catalog Registry query call count overflowed u64")]
+    RegistryQueryCallCountOverflow,
+
+    /// Synchronous adapter failed to run the caller-owned async implementation.
+    #[error(transparent)]
+    RuntimeAdapter(#[from] RuntimeError),
+
     #[error(transparent)]
     Cache(#[from] HostCacheError),
 
@@ -151,6 +230,14 @@ impl SubnetCatalogHostError {
             Self::UnsupportedNetwork { .. } => SubnetCatalogErrorCode::UnsupportedNetwork,
             Self::MissingCatalog { .. } => SubnetCatalogErrorCode::MissingCatalog,
             Self::InvalidReadPolicy { .. } => SubnetCatalogErrorCode::InvalidReadPolicy,
+            Self::InvalidSourceSelection { .. } => SubnetCatalogErrorCode::InvalidSourceSelection,
+            Self::SourceEvidenceMismatch { .. } => SubnetCatalogErrorCode::SourceEvidenceMismatch,
+            Self::AgreementEndpoint { .. } => SubnetCatalogErrorCode::AgreementEndpoint,
+            Self::AgreementMismatch { .. } => SubnetCatalogErrorCode::AgreementMismatch,
+            Self::RegistryQueryCallCountOverflow => {
+                SubnetCatalogErrorCode::RegistryQueryCallCountOverflow
+            }
+            Self::RuntimeAdapter(_) => SubnetCatalogErrorCode::RuntimeAdapter,
             Self::Cache(_) => SubnetCatalogErrorCode::CacheOperation,
             Self::RegistryRefresh(_) => SubnetCatalogErrorCode::RegistryRefresh,
             Self::Catalog(_) => SubnetCatalogErrorCode::CatalogValidation,
@@ -159,11 +246,11 @@ impl SubnetCatalogHostError {
 
     /// Return the stable operational error category.
     #[must_use]
-    pub const fn category(&self) -> SubnetCatalogErrorCategory {
+    pub fn category(&self) -> SubnetCatalogErrorCategory {
         match self {
-            Self::UnsupportedNetwork { .. } | Self::InvalidReadPolicy { .. } => {
-                SubnetCatalogErrorCategory::Input
-            }
+            Self::UnsupportedNetwork { .. }
+            | Self::InvalidReadPolicy { .. }
+            | Self::InvalidSourceSelection { .. } => SubnetCatalogErrorCategory::Input,
             Self::MissingCatalog { .. } => SubnetCatalogErrorCategory::Missing,
             Self::Cache(HostCacheError::Operation {
                 source:
@@ -174,6 +261,11 @@ impl SubnetCatalogHostError {
             }) => SubnetCatalogErrorCategory::Confinement,
             Self::Cache(_) => SubnetCatalogErrorCategory::CacheIo,
             Self::RegistryRefresh(_) => SubnetCatalogErrorCategory::Network,
+            Self::AgreementEndpoint { source, .. } => source.category(),
+            Self::SourceEvidenceMismatch { .. } | Self::AgreementMismatch { .. } => {
+                SubnetCatalogErrorCategory::Authority
+            }
+            Self::RuntimeAdapter(_) => SubnetCatalogErrorCategory::Runtime,
             Self::Catalog(
                 CatalogError::NetworkMismatch { .. }
                 | CatalogError::RegistryCanisterMismatch { .. }
@@ -183,15 +275,20 @@ impl SubnetCatalogHostError {
                 | CatalogError::ResolverPolicyMismatch { .. }
                 | CatalogError::CatalogDigestMismatch { .. },
             ) => SubnetCatalogErrorCategory::Authority,
-            Self::Catalog(_) => SubnetCatalogErrorCategory::Validation,
+            Self::RegistryQueryCallCountOverflow | Self::Catalog(_) => {
+                SubnetCatalogErrorCategory::Validation
+            }
         }
     }
 
     /// Return whether an unchanged retry may reasonably succeed.
     #[must_use]
-    pub const fn retryability(&self) -> SubnetCatalogRetryability {
+    pub fn retryability(&self) -> SubnetCatalogRetryability {
         match self {
-            Self::RegistryRefresh(_) => SubnetCatalogRetryability::Retryable,
+            Self::AgreementEndpoint { source, .. } => source.retryability(),
+            Self::RegistryRefresh(_) | Self::AgreementMismatch { .. } | Self::RuntimeAdapter(_) => {
+                SubnetCatalogRetryability::Retryable
+            }
             _ => SubnetCatalogRetryability::NotRetryable,
         }
     }

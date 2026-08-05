@@ -17,6 +17,8 @@ pub(super) fn fixture_catalog() -> RawSubnetCatalog {
             registry_version: 123_456,
             assurance: CatalogAssurance::UncertifiedQuery,
             source_endpoints: vec!["https://icp-api.io".to_string()],
+            agreement_digest: None,
+            registry_query_call_count: 5,
             fetched_at: "2026-06-04T00:00:00Z".to_string(),
             certificate_time: None,
             root_key_digest: None,

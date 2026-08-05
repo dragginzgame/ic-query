@@ -128,7 +128,7 @@ actually make:
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
-| NNS Registry | Exact-version joined Registry query evidence with explicit assurance | Current single-endpoint catalog collection is `uncertified_query`; shared Registry version prevents internal skew but does not certify an ordinary query response |
+| NNS Registry | Exact-version joined Registry query evidence with explicit assurance | Single-endpoint catalog collection is `uncertified_query`; explicit 2–3 endpoint agreement requires matching versions and payloads but is still not cryptographic certification |
 | NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
@@ -137,9 +137,10 @@ actually make:
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
 and explicit provenance. Text output may shorten or format values for people.
-Report and persisted schemas are versioned independently and currently use
-version `1`; before 1.0, incompatible shapes replace that version-1 contract
-in place as hard cuts rather than adding compatibility branches or migrations.
+Report and persisted schemas are versioned independently. The Subnet Catalog
+uses schema version `2`; other families retain their documented versions.
+Before 1.0, incompatible shapes are hard cuts without compatibility readers or
+automatic migrations.
 
 See [IC Reporting Adapters](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-reporting-adapters.md) for the
 authority model and follow-up query rules.
@@ -268,6 +269,14 @@ strict. Cache-status operations stay local: family-specific status reports
 validate their owned snapshots, while the bounded top-level inventory inspects
 generic headers only.
 
+Library Subnet Catalog refresh policies use `CatalogSourceSelection`: one
+endpoint keeps `UncertifiedQuery`, while an explicit two-to-three-endpoint
+selection requires distinct hostnames and exact Registry-version/payload
+agreement. Successful provenance records canonical endpoints, an agreement
+digest when applicable, and exact Registry query-call counts. Agreement does
+not become certified evidence and never falls back to one endpoint on a
+mismatch.
+
 `sns list` uses a one-hour joined catalog cache containing Governance metadata
 and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
 Missing, stale, malformed, incompatible, or semantically invalid catalogs
@@ -376,9 +385,10 @@ both the validated catalog and an observable cache disposition; validated
 canister resolution returns the matched range, Registry version, catalog
 digest, and full provenance together. Single-endpoint live collection is
 always labelled `CatalogAssurance::UncertifiedQuery`. Async embedders can call
-`fetch_subnet_catalog_async` on their own runtime; synchronous builders retain
-the runtime adapter and may use a scoped helper thread when invoked inside an
-existing Tokio runtime.
+`fetch_subnet_catalog_async`, `load_subnet_catalog_async`, or
+`refresh_subnet_catalog_async` on their own runtime. Dropping an async refresh
+releases its owned lock without publishing. Synchronous adapters may use a
+scoped helper thread when invoked inside an existing Tokio runtime.
 
 See [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md) for complete examples and feature
 guidance.

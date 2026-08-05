@@ -5,12 +5,14 @@
 //! Boundary: returns both validated authority evidence and observable cache disposition.
 
 use super::{
-    SubnetCatalogHostError, SubnetCatalogRefreshRequest, SubnetCatalogSource,
-    error::enforce_mainnet_network, refresh_subnet_catalog_with_source, subnet_catalog_path,
+    CatalogSourceSelection, SubnetCatalogHostError, SubnetCatalogRefreshRequest,
+    SubnetCatalogSource, error::enforce_mainnet_network, refresh_subnet_catalog_with_source_async,
+    subnet_catalog_path,
 };
 use crate::{
     cache_file::read_managed_text,
     nns::LiveNnsSource,
+    runtime::block_on_current_thread,
     subnet_catalog::{
         CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         DEFAULT_REFRESH_LOCK_STALE_SECONDS, MAINNET_REGISTRY_CANISTER_ID, ValidatedSubnetCatalog,
@@ -57,38 +59,36 @@ pub enum CatalogReadPolicy {
     CacheOnly,
     /// Refresh only when the cache is absent.
     RefreshMissing {
-        /// Explicit live Registry endpoint used only when content is absent.
-        source_endpoint: String,
+        /// Explicit live Registry source used only when content is absent.
+        source: CatalogSourceSelection,
     },
     /// Refresh when the cache is absent or recoverably invalid.
     RefreshMissingOrInvalid {
-        /// Explicit live Registry endpoint used for authorized repair.
-        source_endpoint: String,
+        /// Explicit live Registry source used for authorized repair.
+        source: CatalogSourceSelection,
     },
     /// Refresh absent, recoverably invalid, or older valid content.
     RefreshMissingInvalidOrOlderThan {
-        /// Explicit live Registry endpoint used for authorized refresh.
-        source_endpoint: String,
+        /// Explicit live Registry source used for authorized refresh.
+        source: CatalogSourceSelection,
         /// Maximum accepted age of an otherwise valid catalog.
         max_age_seconds: u64,
     },
     /// Always collect and atomically replace the complete catalog.
     ForceRefresh {
-        /// Explicit live Registry endpoint used for forced collection.
-        source_endpoint: String,
+        /// Explicit live Registry source used for forced collection.
+        source: CatalogSourceSelection,
     },
 }
 
 impl CatalogReadPolicy {
-    fn source_endpoint(&self) -> Option<&str> {
+    const fn source(&self) -> Option<&CatalogSourceSelection> {
         match self {
             Self::CacheOnly => None,
-            Self::RefreshMissing { source_endpoint }
-            | Self::RefreshMissingOrInvalid { source_endpoint }
-            | Self::RefreshMissingInvalidOrOlderThan {
-                source_endpoint, ..
-            }
-            | Self::ForceRefresh { source_endpoint } => Some(source_endpoint),
+            Self::RefreshMissing { source }
+            | Self::RefreshMissingOrInvalid { source }
+            | Self::RefreshMissingInvalidOrOlderThan { source, .. }
+            | Self::ForceRefresh { source } => Some(source),
         }
     }
 }
@@ -125,18 +125,16 @@ impl SubnetCatalogLoadRequest {
 
     /// Build a missing-or-invalid read-through request.
     #[must_use]
-    pub fn refresh_missing_or_invalid(
+    pub const fn refresh_missing_or_invalid(
         cache: SubnetCatalogCacheRequest,
-        source_endpoint: impl Into<String>,
+        source: CatalogSourceSelection,
         now_unix_secs: u64,
     ) -> Self {
         Self {
             cache,
             now_unix_secs,
             max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
-            policy: CatalogReadPolicy::RefreshMissingOrInvalid {
-                source_endpoint: source_endpoint.into(),
-            },
+            policy: CatalogReadPolicy::RefreshMissingOrInvalid { source },
         }
     }
 
@@ -222,11 +220,26 @@ pub fn load_cached_subnet_catalog(
 pub fn load_subnet_catalog(
     request: &SubnetCatalogLoadRequest,
 ) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
-    load_subnet_catalog_with_source(request, &LiveNnsSource)
+    block_on_current_thread(load_subnet_catalog_async(request))?
 }
 
 /// Apply an explicit catalog read policy using a caller-supplied fixture or live source.
 pub fn load_subnet_catalog_with_source(
+    request: &SubnetCatalogLoadRequest,
+    source: &dyn SubnetCatalogSource,
+) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
+    block_on_current_thread(load_subnet_catalog_with_source_async(request, source))?
+}
+
+/// Apply a catalog read policy on the caller's async runtime using the live source.
+pub async fn load_subnet_catalog_async(
+    request: &SubnetCatalogLoadRequest,
+) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
+    load_subnet_catalog_with_source_async(request, &LiveNnsSource).await
+}
+
+/// Apply a catalog read policy on the caller's async runtime using a supplied source.
+pub async fn load_subnet_catalog_with_source_async(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
@@ -236,7 +249,7 @@ pub fn load_subnet_catalog_with_source(
             load_cached_with_disposition(request, CacheDisposition::CacheHit)
         }
         CatalogReadPolicy::ForceRefresh { .. } => {
-            refresh_then_load(request, source, CacheDisposition::ForcedRefresh)
+            refresh_then_load(request, source, CacheDisposition::ForcedRefresh).await
         }
         policy => match load_cached_with_disposition(request, CacheDisposition::CacheHit) {
             Ok(cached) => {
@@ -254,13 +267,13 @@ pub fn load_subnet_catalog_with_source(
                     )
                     .catalog_stale
                 }) {
-                    refresh_then_load(request, source, CacheDisposition::RefreshedStale)
+                    refresh_then_load(request, source, CacheDisposition::RefreshedStale).await
                 } else {
                     Ok(cached)
                 }
             }
             Err(SubnetCatalogHostError::MissingCatalog { .. }) => {
-                refresh_then_load(request, source, CacheDisposition::RefreshedMissing)
+                refresh_then_load(request, source, CacheDisposition::RefreshedMissing).await
             }
             Err(SubnetCatalogHostError::Catalog(_))
                 if matches!(
@@ -269,7 +282,7 @@ pub fn load_subnet_catalog_with_source(
                         | CatalogReadPolicy::RefreshMissingInvalidOrOlderThan { .. }
                 ) =>
             {
-                refresh_then_load(request, source, CacheDisposition::RefreshedInvalid)
+                refresh_then_load(request, source, CacheDisposition::RefreshedInvalid).await
             }
             Err(error) => Err(error),
         },
@@ -302,23 +315,25 @@ fn load_cached_with_disposition(
     })
 }
 
-fn refresh_then_load(
+async fn refresh_then_load(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
     disposition: CacheDisposition,
 ) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
-    let source_endpoint = request.policy.source_endpoint().ok_or_else(|| {
-        SubnetCatalogHostError::InvalidReadPolicy {
-            reason: "refresh policy is missing its source endpoint".to_string(),
-        }
-    })?;
+    let source_selection =
+        request
+            .policy
+            .source()
+            .ok_or_else(|| SubnetCatalogHostError::InvalidReadPolicy {
+                reason: "refresh policy is missing its source selection".to_string(),
+            })?;
     let refresh_request = SubnetCatalogRefreshRequest::new(
         request.cache.clone(),
-        source_endpoint,
+        source_selection.clone(),
         request.now_unix_secs,
         DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     )
     .with_max_future_skew_seconds(request.max_future_skew_seconds);
-    refresh_subnet_catalog_with_source(&refresh_request, source)?;
+    refresh_subnet_catalog_with_source_async(&refresh_request, source).await?;
     load_cached_with_disposition(request, disposition)
 }

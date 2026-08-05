@@ -8,14 +8,16 @@ use ic_query::subnet_catalog::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::{
-    CacheDisposition, DEFAULT_REFRESH_LOCK_STALE_SECONDS, DEFAULT_STALE_AFTER_SECONDS,
-    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest, SubnetCatalogFilters,
-    SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
-    SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogLoadRequest,
-    SubnetCatalogRefreshReport, SubnetCatalogRefreshRequest, SubnetCatalogSource,
-    SubnetCatalogSubnetRow, build_subnet_catalog_info_report, build_subnet_catalog_list_report,
+    CacheDisposition, CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+    DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
+    SubnetCatalogFilters, SubnetCatalogHostError, SubnetCatalogInfoReport,
+    SubnetCatalogInfoRequest, SubnetCatalogListReport, SubnetCatalogListRequest,
+    SubnetCatalogLoadRequest, SubnetCatalogRefreshReport, SubnetCatalogRefreshRequest,
+    SubnetCatalogSource, SubnetCatalogSourceFuture, SubnetCatalogSubnetRow,
+    build_subnet_catalog_info_report, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source, fetch_subnet_catalog_async,
-    load_cached_subnet_catalog, refresh_subnet_catalog, subnet_catalog_info_report_text,
+    load_cached_subnet_catalog, load_subnet_catalog_with_source_async, refresh_subnet_catalog,
+    refresh_subnet_catalog_with_source_async, subnet_catalog_info_report_text,
     subnet_catalog_list_report_text, subnet_catalog_list_report_verbose_text, subnet_catalog_path,
     subnet_catalog_refresh_lock_path, subnet_catalog_refresh_report_text,
 };
@@ -97,14 +99,19 @@ fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(info_report.subnet_principal, SUBNET_A);
+    assert_eq!(info_report.registry_query_call_count, 5);
+    assert!(info_report.agreement_digest.is_none());
     assert!(info_text.contains("resolved_as: canister"));
     assert_eq!(row.subnet_principal, SUBNET_A);
+    assert_eq!(list_report.registry_query_call_count, 5);
     assert_eq!(row.ranges_shown, 1);
     assert!(list_text.contains("catalog: ic version 123456 stale no"));
     assert!(list_verbose_text.contains(CANISTER_A));
     assert!(refresh_text.contains("dry_run: yes"));
     assert!(refresh_text.contains("assurance: uncertified_query"));
     assert!(refresh_text.contains("source_endpoints: https://icp-api.io"));
+    assert!(refresh_text.contains("agreement_digest: -"));
+    assert!(refresh_text.contains("registry_query_call_count: 5"));
     assert_eq!(
         refresh_request.lock_stale_after_seconds,
         DEFAULT_REFRESH_LOCK_STALE_SECONDS
@@ -113,6 +120,12 @@ fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
         refresh_subnet_catalog,
         &refresh_request
     ));
+    let async_refresh = futures::executor::block_on(refresh_subnet_catalog_with_source_async(
+        &refresh_request,
+        &FixtureSubnetCatalogSource,
+    ))
+    .expect("public async refresh");
+    assert_eq!(async_refresh.registry_query_call_count, 5);
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -123,11 +136,20 @@ fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     let now_unix_secs = unix_secs_for_test();
     let request = host_list_request(&cache, now_unix_secs);
 
+    let load_request = SubnetCatalogLoadRequest::cache_only(cache, now_unix_secs)
+        .with_policy(request.read_policy.clone());
+    let loaded = futures::executor::block_on(load_subnet_catalog_with_source_async(
+        &load_request,
+        &FixtureSubnetCatalogSource,
+    ))
+    .expect("public async load");
+
     let report =
         build_subnet_catalog_list_report_with_source(&request, &FixtureSubnetCatalogSource)
             .expect("build list report from custom source");
 
     let _ = fs::remove_dir_all(root);
+    assert_eq!(loaded.disposition, CacheDisposition::RefreshedMissing);
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(report.subnets.len(), 1);
     assert_eq!(report.subnets[0].subnet_principal, SUBNET_A);
@@ -157,28 +179,27 @@ struct FixtureSubnetCatalogSource;
 
 #[cfg(feature = "subnet-catalog-host")]
 impl SubnetCatalogSource for FixtureSubnetCatalogSource {
-    fn fetch_catalog(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<RawSubnetCatalog, SubnetCatalogHostError> {
-        assert_eq!(request.endpoint, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
-        assert_eq!(request.fetched_by, "ic-query");
-        assert!(!request.fetched_at.is_empty());
+    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+        Box::pin(async move {
+            assert_eq!(request.endpoint, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
+            assert_eq!(request.fetched_by, "ic-query");
+            assert!(!request.fetched_at.is_empty());
 
-        let mut catalog = fixture_catalog();
-        catalog.provenance.source_endpoints = vec![request.endpoint.clone()];
-        catalog
-            .provenance
-            .fetched_at
-            .clone_from(&request.fetched_at);
-        catalog
-            .provenance
-            .fetched_by
-            .clone_from(&request.fetched_by);
-        catalog
-            .canonicalize_and_seal()
-            .expect("fixture catalog reseals");
-        Ok(catalog)
+            let mut catalog = fixture_catalog();
+            catalog.provenance.source_endpoints = vec![request.endpoint.clone()];
+            catalog
+                .provenance
+                .fetched_at
+                .clone_from(&request.fetched_at);
+            catalog
+                .provenance
+                .fetched_by
+                .clone_from(&request.fetched_by);
+            catalog
+                .canonicalize_and_seal()
+                .expect("fixture catalog reseals");
+            Ok(catalog)
+        })
     }
 }
 
@@ -265,7 +286,7 @@ fn host_refresh_request(
 ) -> SubnetCatalogRefreshRequest {
     SubnetCatalogRefreshRequest::new(
         cache.clone(),
-        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+        CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
         now_unix_secs,
         DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     )
@@ -276,7 +297,7 @@ fn host_refresh_request(
 #[must_use]
 fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
-        schema_version: 1,
+        schema_version: 2,
         network: MAINNET_NETWORK.to_string(),
         catalog_path: catalog_path.display().to_string(),
         refresh_lock_path: subnet_catalog_refresh_lock_path(root, MAINNET_NETWORK)
@@ -287,6 +308,8 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
         registry_version: 123_456,
         assurance: CatalogAssurance::UncertifiedQuery,
         source_endpoints: vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()],
+        agreement_digest: None,
+        registry_query_call_count: 5,
         catalog_digest: "00".repeat(32),
         fetched_at: "2026-06-26T00:00:00Z".to_string(),
         fetched_by: "fixture".to_string(),
@@ -337,6 +360,8 @@ fn fixture_catalog() -> RawSubnetCatalog {
             registry_version: 123_456,
             assurance: CatalogAssurance::UncertifiedQuery,
             source_endpoints: vec!["https://icp-api.io".to_string()],
+            agreement_digest: None,
+            registry_query_call_count: 5,
             fetched_at: "2026-06-26T00:00:00Z".to_string(),
             certificate_time: None,
             root_key_digest: None,

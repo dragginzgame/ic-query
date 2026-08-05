@@ -12,15 +12,9 @@ use super::{
     MainnetRegistryFetchRequest, RegistryFetchError,
     source::fetch_mainnet_subnet_catalog_async as fetch_mainnet_subnet_catalog_from_source_async,
 };
-use crate::{runtime::block_on_current_thread, subnet_catalog::RawSubnetCatalog};
-
-/// Fetch one exact-version mainnet Subnet Catalog through a synchronous runtime adapter.
-pub fn fetch_mainnet_subnet_catalog(
-    request: &MainnetRegistryFetchRequest,
-) -> Result<RawSubnetCatalog, RegistryFetchError> {
-    block_on_current_thread(fetch_mainnet_subnet_catalog_async(request))
-        .map_err(RegistryFetchError::Runtime)?
-}
+#[cfg(feature = "host")]
+use crate::runtime::block_on_current_thread;
+use crate::subnet_catalog::RawSubnetCatalog;
 
 /// Fetch one exact-version mainnet Subnet Catalog on the caller's async runtime.
 pub async fn fetch_mainnet_subnet_catalog_async(

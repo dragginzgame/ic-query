@@ -170,7 +170,7 @@ pub enum CatalogError {
 
     /// The build does not yet have a verifier for the claimed assurance level.
     #[error(
-        "unsupported catalog assurance {assurance}; this build can validate uncertified_query only"
+        "unsupported catalog assurance {assurance}; this build validates uncertified_query and multi_endpoint_agreement evidence"
     )]
     UnsupportedAssurance {
         /// Unsupported assurance label.
@@ -215,6 +215,24 @@ pub enum CatalogError {
     InvalidCatalogDigest {
         /// Invalid digest text.
         value: String,
+    },
+
+    /// Agreement digest is absent or not exactly 32 lowercase hexadecimal bytes.
+    #[error(
+        "invalid catalog agreement digest {value:?}; expected 64 lowercase hexadecimal characters"
+    )]
+    InvalidAgreementDigest {
+        /// Invalid digest text.
+        value: String,
+    },
+
+    /// Stored agreement digest does not match the canonical Registry payload.
+    #[error("catalog agreement digest mismatch: found {actual}; expected {expected}")]
+    AgreementDigestMismatch {
+        /// Recomputed agreement digest.
+        expected: String,
+        /// Stored agreement digest.
+        actual: String,
     },
 
     /// Stored catalog digest does not match the canonical authority payload.

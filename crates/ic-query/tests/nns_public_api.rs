@@ -282,7 +282,7 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
 
     let row = sample_public_neuron(11);
     let report = ic_query::nns::neuron::NnsNeuronListReport {
-        schema_version: 1,
+        schema_version: 2,
         network: request.network,
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -2033,11 +2033,13 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
         schema_version: 1,
         network: "ic".to_string(),
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
-        catalog_schema_version: 1,
+        catalog_schema_version: 2,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
         assurance: CatalogAssurance::UncertifiedQuery,
         source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
+        agreement_digest: None,
+        registry_query_call_count: 5,
         catalog_digest: "00".repeat(32),
         cache_disposition: CacheDisposition::CacheHit,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -2055,7 +2057,7 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
 #[cfg(feature = "host")]
 fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
-        schema_version: 1,
+        schema_version: 2,
         network: "ic".to_string(),
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/subnet-catalog/refresh.lock".to_string(),
@@ -2064,6 +2066,8 @@ fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
         registry_version: 42,
         assurance: CatalogAssurance::UncertifiedQuery,
         source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
+        agreement_digest: None,
+        registry_query_call_count: 5,
         catalog_digest: "00".repeat(32),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         fetched_by: "ic-query".to_string(),

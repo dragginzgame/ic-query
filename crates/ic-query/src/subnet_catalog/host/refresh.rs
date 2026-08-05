@@ -1,14 +1,16 @@
 use super::{
-    SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogSource,
+    CatalogSourceSelection, SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogSource,
     error::{enforce_mainnet_network, subnet_cache_error},
+    source::collect_subnet_catalog,
     subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
 use crate::{
     cache_file::{
         RefreshLockRequest, create_managed_parent_directory, managed_file_exists,
-        with_refresh_lock, write_managed_text_atomically, write_text_output,
+        with_refresh_lock_async, write_managed_text_atomically, write_text_output,
     },
-    nns::{LiveNnsSource, NnsSourceRequest},
+    nns::LiveNnsSource,
+    runtime::block_on_current_thread,
     subnet_catalog::{
         CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         MAINNET_REGISTRY_CANISTER_ID, SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
@@ -27,7 +29,8 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogRefreshRequest {
     pub cache: SubnetCatalogCacheRequest,
-    pub source_endpoint: String,
+    /// Explicit single-endpoint or bounded agreement source selection.
+    pub source: CatalogSourceSelection,
     pub now_unix_secs: u64,
     pub lock_stale_after_seconds: u64,
     pub max_future_skew_seconds: u64,
@@ -37,15 +40,15 @@ pub struct SubnetCatalogRefreshRequest {
 
 impl SubnetCatalogRefreshRequest {
     #[must_use]
-    pub fn new(
+    pub const fn new(
         cache: SubnetCatalogCacheRequest,
-        source_endpoint: impl Into<String>,
+        source: CatalogSourceSelection,
         now_unix_secs: u64,
         lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             cache,
-            source_endpoint: source_endpoint.into(),
+            source,
             now_unix_secs,
             lock_stale_after_seconds,
             max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
@@ -77,20 +80,36 @@ impl SubnetCatalogRefreshRequest {
 pub fn refresh_subnet_catalog(
     request: &SubnetCatalogRefreshRequest,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
-    refresh_subnet_catalog_with_source(request, &LiveNnsSource)
+    block_on_current_thread(refresh_subnet_catalog_async(request))?
 }
 
 pub fn refresh_subnet_catalog_with_source(
     request: &SubnetCatalogRefreshRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
+    block_on_current_thread(refresh_subnet_catalog_with_source_async(request, source))?
+}
+
+/// Refresh a catalog on the caller's async runtime using the live mainnet source.
+pub async fn refresh_subnet_catalog_async(
+    request: &SubnetCatalogRefreshRequest,
+) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
+    refresh_subnet_catalog_with_source_async(request, &LiveNnsSource).await
+}
+
+/// Refresh a catalog on the caller's async runtime using a supplied source.
+pub async fn refresh_subnet_catalog_with_source_async(
+    request: &SubnetCatalogRefreshRequest,
+    source: &dyn SubnetCatalogSource,
+) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
     enforce_mainnet_network(&request.cache.network)?;
+    let source_endpoints = request.source.validated_endpoints()?;
     let catalog_path = subnet_catalog_path(&request.cache.cache_root, &request.cache.network);
     let lock_path =
         subnet_catalog_refresh_lock_path(&request.cache.cache_root, &request.cache.network);
     create_managed_parent_directory(&request.cache.cache_root, &catalog_path)
         .map_err(subnet_cache_error)?;
-    with_refresh_lock(
+    with_refresh_lock_async(
         RefreshLockRequest {
             cache_root: &request.cache.cache_root,
             lock_path: &lock_path,
@@ -100,18 +119,21 @@ pub fn refresh_subnet_catalog_with_source(
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         subnet_cache_error,
-        || {
+        || async {
             let replaced_existing_catalog =
                 managed_file_exists(&request.cache.cache_root, &catalog_path)
                     .map_err(subnet_cache_error)?;
             let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-            let fetch_request = NnsSourceRequest::new(
+            let raw = collect_subnet_catalog(
                 &request.cache.network,
-                &request.source_endpoint,
-                fetched_at,
+                source_endpoints,
+                &fetched_at,
                 "ic-query",
-            );
-            let raw = source.fetch_catalog(&fetch_request)?;
+                request.now_unix_secs,
+                request.max_future_skew_seconds,
+                source,
+            )
+            .await?;
             let validation = CatalogValidationContext::new(
                 &request.cache.network,
                 MAINNET_REGISTRY_CANISTER_ID,
@@ -144,6 +166,8 @@ pub fn refresh_subnet_catalog_with_source(
                 registry_version: catalog.provenance().registry_version,
                 assurance: catalog.provenance().assurance,
                 source_endpoints: catalog.provenance().source_endpoints.clone(),
+                agreement_digest: catalog.provenance().agreement_digest.clone(),
+                registry_query_call_count: catalog.provenance().registry_query_call_count,
                 catalog_digest: catalog.raw().catalog_digest.clone(),
                 fetched_at: catalog.provenance().fetched_at.clone(),
                 fetched_by: catalog.provenance().fetched_by.clone(),
@@ -163,4 +187,5 @@ pub fn refresh_subnet_catalog_with_source(
             })
         },
     )
+    .await
 }

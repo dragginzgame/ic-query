@@ -132,6 +132,11 @@ checks. The unkeyed digest detects inconsistent payloads but is not an
 authenticity proof. Catalog loads take an explicit cache/network policy and
 return an observable disposition; a validated route retains the exact matched
 range, Registry version, digest, and provenance.
+An explicit two-to-three-endpoint catalog selection may establish
+`MultiEndpointAgreement` only when every distinct hostname returns the same
+Registry version and canonical Registry payload. It records the agreement
+digest and exact Registry query-call count, does not fall back on mismatch, and
+does not claim cryptographic certification.
 
 ## Current Follow-Up Flows
 

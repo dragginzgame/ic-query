@@ -106,6 +106,14 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
             .join(",")
     ));
     lines.push(format!(
+        "agreement_digest: {}",
+        report.agreement_digest.as_deref().unwrap_or("-")
+    ));
+    lines.push(format!(
+        "registry_query_call_count: {}",
+        report.registry_query_call_count
+    ));
+    lines.push(format!(
         "catalog_schema_version: {}",
         report.catalog_schema_version
     ));

@@ -5,7 +5,8 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{
-    SubnetCatalogRefreshRequest, refresh_subnet_catalog, subnet_catalog_refresh_report_text,
+    CatalogSourceSelection, SubnetCatalogRefreshRequest, refresh_subnet_catalog,
+    subnet_catalog_refresh_report_text,
 };
 pub(super) fn run_catalog_refresh(
     matches: &ArgMatches,
@@ -15,7 +16,7 @@ pub(super) fn run_catalog_refresh(
     let format = options.format;
     let mut request = SubnetCatalogRefreshRequest::new(
         cache_request(&options.network)?,
-        options.source_endpoint,
+        CatalogSourceSelection::uncertified_query(options.source_endpoint),
         now_unix_secs()?,
         options.lock_stale_after_seconds,
     )

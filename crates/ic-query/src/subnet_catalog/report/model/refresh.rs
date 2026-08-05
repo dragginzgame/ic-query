@@ -35,6 +35,10 @@ pub struct SubnetCatalogRefreshReport {
     pub assurance: CatalogAssurance,
     /// Source endpoints contributing to the snapshot.
     pub source_endpoints: Vec<String>,
+    /// Canonical Registry payload digest agreed by every source endpoint.
+    pub agreement_digest: Option<String>,
+    /// Exact number of Registry query calls made during collection.
+    pub registry_query_call_count: u64,
     /// Lowercase SHA-256 digest of the canonical catalog payload.
     pub catalog_digest: String,
     /// UTC collection timestamp.

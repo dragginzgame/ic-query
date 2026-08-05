@@ -6,14 +6,16 @@ use crate::subnet_catalog::{
 
 pub(in crate::nns::topology::report::tests) fn subnet_report_fixture() -> SubnetCatalogListReport {
     SubnetCatalogListReport {
-        schema_version: 1,
+        schema_version: 2,
         network: MAINNET_NETWORK.to_string(),
         catalog_path: "catalog.json".to_string(),
-        catalog_schema_version: 1,
+        catalog_schema_version: 2,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 42,
         assurance: CatalogAssurance::UncertifiedQuery,
         source_endpoints: vec!["https://icp-api.io".to_string()],
+        agreement_digest: None,
+        registry_query_call_count: 5,
         catalog_digest: "00".repeat(32),
         cache_disposition: CacheDisposition::CacheHit,
         fetched_at: "2026-06-04T00:00:00Z".to_string(),
@@ -34,7 +36,7 @@ pub(in crate::nns::topology::report::tests) fn subnet_report_fixture() -> Subnet
 pub(in crate::nns::topology::report::tests) fn subnet_refresh_report_fixture()
 -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
-        schema_version: 1,
+        schema_version: 2,
         network: MAINNET_NETWORK.to_string(),
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/subnet-catalog/refresh.lock".to_string(),
@@ -43,6 +45,8 @@ pub(in crate::nns::topology::report::tests) fn subnet_refresh_report_fixture()
         registry_version: 42,
         assurance: CatalogAssurance::UncertifiedQuery,
         source_endpoints: vec!["https://icp-api.io".to_string()],
+        agreement_digest: None,
+        registry_query_call_count: 5,
         catalog_digest: "00".repeat(32),
         fetched_at: "2026-06-04T00:00:00Z".to_string(),
         fetched_by: "test".to_string(),

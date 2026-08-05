@@ -50,7 +50,7 @@ pub enum NnsCommandError {
     SubnetHost {
         message: String,
         #[source]
-        source: SubnetCatalogHostError,
+        source: Box<SubnetCatalogHostError>,
     },
     #[error(transparent)]
     DataCenterHost(#[from] NnsDataCenterHostError),
@@ -92,7 +92,10 @@ impl From<SubnetCatalogHostError> for NnsCommandError {
             }
             None => {}
         }
-        Self::SubnetHost { message, source }
+        Self::SubnetHost {
+            message,
+            source: Box::new(source),
+        }
     }
 }
 

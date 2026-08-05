@@ -24,6 +24,14 @@ pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -
                 .collect::<Vec<_>>()
                 .join(",")
         ),
+        format!(
+            "agreement_digest: {}",
+            report.agreement_digest.as_deref().unwrap_or("-")
+        ),
+        format!(
+            "registry_query_call_count: {}",
+            report.registry_query_call_count
+        ),
         format!("catalog_digest: {}", report.catalog_digest),
         format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
         format!("fetched_by: {}", sanitize_text(&report.fetched_by)),

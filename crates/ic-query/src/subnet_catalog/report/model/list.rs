@@ -8,8 +8,9 @@
 //! policy remains in host modules.
 
 use crate::subnet_catalog::{
-    CacheDisposition, CatalogAssurance, CatalogReadPolicy, ClassificationSource, GeographicScope,
-    RoutingRange, SubnetCatalogCacheRequest, SubnetKind, SubnetSpecialization,
+    CacheDisposition, CatalogAssurance, CatalogReadPolicy, CatalogSourceSelection,
+    ClassificationSource, GeographicScope, RoutingRange, SubnetCatalogCacheRequest, SubnetKind,
+    SubnetSpecialization,
 };
 use serde::{Deserialize, Serialize};
 
@@ -76,7 +77,7 @@ impl SubnetCatalogListRequest {
         Self {
             cache,
             read_policy: CatalogReadPolicy::RefreshMissingOrInvalid {
-                source_endpoint: source_endpoint.into(),
+                source: CatalogSourceSelection::uncertified_query(source_endpoint),
             },
             now_unix_secs,
             stale_after_seconds,
@@ -154,6 +155,10 @@ pub struct SubnetCatalogListReport {
     pub assurance: CatalogAssurance,
     /// Source endpoints contributing to the snapshot.
     pub source_endpoints: Vec<String>,
+    /// Canonical Registry payload digest agreed by every source endpoint.
+    pub agreement_digest: Option<String>,
+    /// Exact number of Registry query calls made during collection.
+    pub registry_query_call_count: u64,
     /// Lowercase SHA-256 digest of the canonical catalog payload.
     pub catalog_digest: String,
     /// Observable result of applying the requested cache policy.

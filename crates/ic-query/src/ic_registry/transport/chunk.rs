@@ -1,4 +1,4 @@
-use super::hex_bytes;
+use super::{RegistryQueryCounter, hex_bytes};
 use crate::ic_registry::{
     RegistryFetchError,
     wire::{RegistryChunk, RegistryGetChunkRequest},
@@ -11,10 +11,12 @@ pub(in crate::ic_registry::transport) async fn get_large_registry_value(
     agent: &Agent,
     registry_canister: &Principal,
     chunk_sha256s: &[Vec<u8>],
+    counter: Option<&RegistryQueryCounter>,
 ) -> Result<Vec<u8>, RegistryFetchError> {
     let mut value = Vec::new();
     for chunk_sha256 in chunk_sha256s {
-        let chunk_content = get_registry_chunk(agent, registry_canister, chunk_sha256).await?;
+        let chunk_content =
+            get_registry_chunk(agent, registry_canister, chunk_sha256, counter).await?;
         append_validated_chunk(&mut value, chunk_sha256, chunk_content)?;
     }
     Ok(value)
@@ -24,6 +26,7 @@ async fn get_registry_chunk(
     agent: &Agent,
     registry_canister: &Principal,
     content_sha256: &[u8],
+    counter: Option<&RegistryQueryCounter>,
 ) -> Result<Vec<u8>, RegistryFetchError> {
     let request = RegistryGetChunkRequest {
         content_sha256: Some(content_sha256.to_vec()),
@@ -32,6 +35,9 @@ async fn get_registry_chunk(
         message: "RegistryGetChunkRequest",
         reason: err.to_string(),
     })?;
+    if let Some(counter) = counter {
+        counter.record_call();
+    }
     let bytes = agent
         .query(registry_canister, "get_chunk")
         .with_arg(arg)

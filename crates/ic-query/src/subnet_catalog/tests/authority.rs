@@ -57,7 +57,7 @@ fn authority_validation_rejects_future_and_unclean_source_evidence() {
 }
 
 #[test]
-fn unimplemented_assurance_cannot_be_promoted_by_raw_json() {
+fn certified_and_incomplete_agreement_claims_fail_closed() {
     let mut raw = fixture_catalog();
     raw.provenance.assurance = CatalogAssurance::Certified;
     raw.provenance.certificate_time = Some(raw.provenance.fetched_at.clone());
@@ -73,16 +73,12 @@ fn unimplemented_assurance_cannot_be_promoted_by_raw_json() {
     let mut agreement = fixture_catalog();
     agreement.provenance.assurance = CatalogAssurance::MultiEndpointAgreement;
     agreement.provenance.source_endpoints = vec![
-        "https://icp-api.io".to_string(),
         "https://ic0.app".to_string(),
+        "https://icp-api.io".to_string(),
     ];
-    agreement
-        .canonicalize_and_seal()
-        .expect("seal claimed agreement");
     assert!(matches!(
         ValidatedSubnetCatalog::try_from_raw(agreement, &validation_context()),
-        Err(CatalogError::UnsupportedAssurance { assurance })
-            if assurance == "multi_endpoint_agreement"
+        Err(CatalogError::InvalidAgreementDigest { .. })
     ));
 }
 
@@ -151,5 +147,43 @@ fn authority_validation_requires_canonical_time_and_current_policy_identity() {
     assert!(matches!(
         ValidatedSubnetCatalog::try_from_raw(resolver, &validation_context()),
         Err(CatalogError::ResolverPolicyMismatch { .. })
+    ));
+}
+
+#[test]
+fn authority_validation_requires_call_counts_and_recomputes_agreement_digest() {
+    let mut zero_calls = fixture_catalog();
+    zero_calls.provenance.registry_query_call_count = 0;
+    zero_calls
+        .canonicalize_and_seal()
+        .expect("seal zero-call fixture");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(zero_calls, &validation_context()),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_query_call_count",
+            ..
+        })
+    ));
+
+    let mut agreement = fixture_catalog();
+    agreement
+        .promote_to_multi_endpoint_agreement(
+            vec![
+                "https://alpha.example".to_string(),
+                "https://beta.example".to_string(),
+            ],
+            10,
+        )
+        .expect("promote fixture agreement");
+    ValidatedSubnetCatalog::try_from_raw(agreement.clone(), &validation_context())
+        .expect("valid agreement");
+
+    agreement.provenance.agreement_digest = Some("ff".repeat(32));
+    agreement
+        .canonicalize_and_seal()
+        .expect("reseal tampered agreement metadata");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(agreement, &validation_context()),
+        Err(CatalogError::AgreementDigestMismatch { .. })
     ));
 }

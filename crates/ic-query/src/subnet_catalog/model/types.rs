@@ -41,6 +41,52 @@ impl CatalogAssurance {
 }
 
 ///
+/// UncertifiedCatalogCollection
+///
+/// Single-endpoint collection metadata used to construct one raw catalog.
+///
+
+#[cfg(feature = "subnet-catalog-host")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UncertifiedCatalogCollection {
+    /// Exact Registry version shared by every joined read.
+    pub registry_version: u64,
+    /// Exact source endpoint queried by the collector.
+    pub source_endpoint: String,
+    /// Caller-supplied UTC collection timestamp.
+    pub fetched_at: String,
+    /// Collector implementation name.
+    pub fetched_by: String,
+    /// Collector package version.
+    pub collector_version: String,
+    /// Exact number of Registry query calls made during collection.
+    pub registry_query_call_count: u64,
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+impl UncertifiedCatalogCollection {
+    /// Build explicit single-endpoint collection metadata.
+    #[must_use]
+    pub fn new(
+        registry_version: u64,
+        source_endpoint: &str,
+        fetched_at: &str,
+        fetched_by: &str,
+        collector_version: &str,
+        registry_query_call_count: u64,
+    ) -> Self {
+        Self {
+            registry_version,
+            source_endpoint: source_endpoint.to_string(),
+            fetched_at: fetched_at.to_string(),
+            fetched_by: fetched_by.to_string(),
+            collector_version: collector_version.to_string(),
+            registry_query_call_count,
+        }
+    }
+}
+
+///
 /// SubnetCatalogProvenance
 ///
 /// Registry, collection, assurance, and policy identity for one raw catalog.
@@ -58,6 +104,10 @@ pub struct SubnetCatalogProvenance {
     pub assurance: CatalogAssurance,
     /// Canonically ordered source endpoints contributing to the snapshot.
     pub source_endpoints: Vec<String>,
+    /// Canonical Registry payload digest agreed by every source endpoint.
+    pub agreement_digest: Option<String>,
+    /// Exact number of Registry query calls used to collect this snapshot.
+    pub registry_query_call_count: u64,
     /// Caller-supplied UTC collection timestamp.
     pub fetched_at: String,
     /// Optional verified certificate timestamp.

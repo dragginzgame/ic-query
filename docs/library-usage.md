@@ -23,7 +23,8 @@ ic-query = { version = "0.29", default-features = false, features = ["subnet-cat
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
-hashing, synchronous Tokio bridge, capability-rooted cache IO through
+hashing, caller-runtime async APIs, the synchronous Tokio bridge,
+capability-rooted cache IO through
 `cap-std`/`cap-fs-ext`, and endpoint validation required by
 `ic_query::subnet_catalog`. It does not enable `ic-query`'s direct optional
 Dashboard `reqwest` transport or `serde_cbor` certification dependencies. Those
@@ -604,7 +605,44 @@ prevents an internally skewed join but does not certify an ordinary query.
 and Subnet principals, matched routing range, Registry version, binary catalog
 digest, and provenance in one result. The digest detects a payload that was
 edited without being resealed; it is not a signature or local-tamper boundary.
-Async embedders can use `fetch_subnet_catalog_async` on their own runtime.
+Async embedders can use `fetch_subnet_catalog_async`,
+`load_subnet_catalog_async`, and `refresh_subnet_catalog_async` on their own
+runtime. The async source seam returns `SubnetCatalogSourceFuture`; custom
+sources must return single-endpoint evidence for the exact requested endpoint.
+Dropping an in-flight async refresh releases its owned lock without publishing.
+
+Agreement is an explicit bounded source selection rather than a different
+cache or view:
+
+```rust
+use std::path::Path;
+
+use ic_query::subnet_catalog::{
+    CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+    SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogRefreshReport,
+    SubnetCatalogRefreshRequest, refresh_subnet_catalog_async,
+};
+
+async fn refresh_agreed_catalog(
+    cache_root: &Path,
+    endpoints: Vec<String>,
+    now_unix_secs: u64,
+) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
+    let request = SubnetCatalogRefreshRequest::new(
+        SubnetCatalogCacheRequest::new(cache_root, "ic"),
+        CatalogSourceSelection::multi_endpoint_agreement(endpoints),
+        now_unix_secs,
+        DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+    );
+    refresh_subnet_catalog_async(&request).await
+}
+```
+
+Agreement accepts two or three distinct hostnames and succeeds only when all
+sources return the same Registry version and canonical Registry payload. The
+report records canonical endpoints, an agreement digest, and exact summed
+Registry query-call counts. It remains non-certified evidence and never falls
+back to one endpoint on mismatch.
 
 ## Exact-Version Subnet Topology
 

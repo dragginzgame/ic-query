@@ -20,6 +20,7 @@ fn registry_records_convert_to_catalog_domain_structs() {
     .expect("catalog");
 
     assert_eq!(catalog.provenance.registry_version, 42);
+    assert_eq!(catalog.provenance.registry_query_call_count, 5);
     assert_eq!(catalog.subnets.len(), 2);
     assert_eq!(catalog.routing_ranges.len(), 1);
     let fiduciary = catalog.subnet_by_principal(SUBNET_A).expect("fiduciary");

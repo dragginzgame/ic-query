@@ -5,6 +5,8 @@
 //! Boundary: only this module constructs `ValidatedSubnetCatalog`.
 
 #[cfg(feature = "subnet-catalog-host")]
+use super::UncertifiedCatalogCollection;
+#[cfg(feature = "subnet-catalog-host")]
 use super::{
     CatalogAssurance, CatalogValidationContext, ValidatedSubnetCatalog,
     policy::{RESOLVER_BACKEND, apply_mainnet_classification_policy, classification_policy_digest},
@@ -18,7 +20,10 @@ use crate::subnet_catalog::{
 use crate::{
     hex::{hex_bytes, is_lowercase_hex},
     http_endpoint::parse_http_endpoint,
-    subnet_catalog::{CLASSIFICATION_SCHEMA_VERSION, RESOLVER_SCHEMA_VERSION},
+    subnet_catalog::{
+        CLASSIFICATION_SCHEMA_VERSION, MAX_SUBNET_CATALOG_AGREEMENT_ENDPOINTS,
+        MIN_SUBNET_CATALOG_AGREEMENT_ENDPOINTS, RESOLVER_SCHEMA_VERSION,
+    },
 };
 #[cfg(feature = "subnet-catalog-host")]
 use sha2::{Digest, Sha256};
@@ -28,11 +33,7 @@ impl RawSubnetCatalog {
     /// Build, canonicalize, classify, and seal one uncertified mainnet source snapshot.
     #[cfg(feature = "subnet-catalog-host")]
     pub fn new_mainnet_uncertified(
-        registry_version: u64,
-        source_endpoint: impl Into<String>,
-        fetched_at: impl Into<String>,
-        fetched_by: impl Into<String>,
-        collector_version: impl Into<String>,
+        collection: UncertifiedCatalogCollection,
         subnets: Vec<SubnetInfo>,
         routing_ranges: Vec<RoutingRange>,
     ) -> Result<Self, CatalogError> {
@@ -41,14 +42,16 @@ impl RawSubnetCatalog {
             provenance: super::SubnetCatalogProvenance {
                 network: MAINNET_NETWORK.to_string(),
                 registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                registry_version,
+                registry_version: collection.registry_version,
                 assurance: CatalogAssurance::UncertifiedQuery,
-                source_endpoints: vec![source_endpoint.into()],
-                fetched_at: fetched_at.into(),
+                source_endpoints: vec![collection.source_endpoint],
+                agreement_digest: None,
+                registry_query_call_count: collection.registry_query_call_count,
+                fetched_at: collection.fetched_at,
                 certificate_time: None,
                 root_key_digest: None,
-                fetched_by: fetched_by.into(),
-                collector_version: collector_version.into(),
+                fetched_by: collection.fetched_by,
+                collector_version: collection.collector_version,
                 classification_schema_version: CLASSIFICATION_SCHEMA_VERSION,
                 classification_policy_digest: classification_policy_digest(),
                 resolver_schema_version: RESOLVER_SCHEMA_VERSION,
@@ -93,6 +96,20 @@ impl RawSubnetCatalog {
         self.provenance.resolver_backend = RESOLVER_BACKEND.to_string();
         self.catalog_digest = hex_bytes(&canonical_catalog_digest(self)?);
         self.validate()
+    }
+
+    /// Promote matching single-endpoint evidence into one sealed agreement snapshot.
+    #[cfg(feature = "subnet-catalog-host")]
+    pub(in crate::subnet_catalog) fn promote_to_multi_endpoint_agreement(
+        &mut self,
+        source_endpoints: Vec<String>,
+        registry_query_call_count: u64,
+    ) -> Result<(), CatalogError> {
+        self.provenance.assurance = CatalogAssurance::MultiEndpointAgreement;
+        self.provenance.source_endpoints = source_endpoints;
+        self.provenance.registry_query_call_count = registry_query_call_count;
+        self.provenance.agreement_digest = Some(hex_bytes(&catalog_agreement_digest(self)?));
+        self.canonicalize_and_seal()
     }
 
     /// Validate schema, fixed mainnet identity, raw classifications, and routing structure.
@@ -284,20 +301,29 @@ fn validate_provenance(
     raw: &RawSubnetCatalog,
     context: &CatalogValidationContext,
 ) -> Result<(), CatalogError> {
-    let fetched_at_unix_secs = crate::subnet_catalog::parse_utc_timestamp_secs(
-        &raw.provenance.fetched_at,
-    )
-    .ok_or_else(|| CatalogError::InvalidTimestamp {
+    validate_collection_time(raw, context)?;
+    validate_collector_identity(raw)?;
+    let parsed_endpoints = validated_source_endpoints(raw)?;
+    validate_assurance(raw, &parsed_endpoints)?;
+    validate_policy_identity(raw)
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validate_collection_time(
+    raw: &RawSubnetCatalog,
+    context: &CatalogValidationContext,
+) -> Result<(), CatalogError> {
+    let invalid_timestamp = || CatalogError::InvalidTimestamp {
         field: "provenance.fetched_at",
         value: raw.provenance.fetched_at.clone(),
-    })?;
+    };
+    let fetched_at_unix_secs =
+        crate::subnet_catalog::parse_utc_timestamp_secs(&raw.provenance.fetched_at)
+            .ok_or_else(invalid_timestamp)?;
     if crate::subnet_catalog::format_utc_timestamp_secs(fetched_at_unix_secs)
         != raw.provenance.fetched_at
     {
-        return Err(CatalogError::InvalidTimestamp {
-            field: "provenance.fetched_at",
-            value: raw.provenance.fetched_at.clone(),
-        });
+        return Err(invalid_timestamp());
     }
     let latest_allowed = context
         .now_unix_secs
@@ -309,6 +335,11 @@ fn validate_provenance(
             latest_allowed_unix_secs: latest_allowed,
         });
     }
+    Ok(())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validate_collector_identity(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
     if raw.provenance.fetched_by.trim().is_empty() {
         return Err(CatalogError::InvalidProvenance {
             field: "provenance.fetched_by",
@@ -321,18 +352,40 @@ fn validate_provenance(
             reason: "collector version must not be empty".to_string(),
         });
     }
+    if raw.provenance.registry_query_call_count == 0 {
+        return Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_query_call_count",
+            reason: "live collection must record at least one Registry query call".to_string(),
+        });
+    }
+    Ok(())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validated_source_endpoints(raw: &RawSubnetCatalog) -> Result<Vec<url::Url>, CatalogError> {
     if raw.provenance.source_endpoints.is_empty() {
         return Err(CatalogError::InvalidProvenance {
             field: "provenance.source_endpoints",
             reason: "at least one source endpoint is required".to_string(),
         });
     }
-    for endpoint in &raw.provenance.source_endpoints {
-        parse_http_endpoint(endpoint).map_err(|reason| CatalogError::InvalidSourceEndpoint {
-            endpoint: endpoint.clone(),
-            reason,
-        })?;
-    }
+    raw.provenance
+        .source_endpoints
+        .iter()
+        .map(|endpoint| {
+            parse_http_endpoint(endpoint).map_err(|reason| CatalogError::InvalidSourceEndpoint {
+                endpoint: endpoint.clone(),
+                reason,
+            })
+        })
+        .collect()
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validate_assurance(
+    raw: &RawSubnetCatalog,
+    parsed_endpoints: &[url::Url],
+) -> Result<(), CatalogError> {
     match raw.provenance.assurance {
         CatalogAssurance::UncertifiedQuery => {
             if raw.provenance.source_endpoints.len() != 1 {
@@ -349,13 +402,74 @@ fn validate_provenance(
                     reason: "uncertified query must not carry certificate evidence".to_string(),
                 });
             }
+            if raw.provenance.agreement_digest.is_some() {
+                return Err(CatalogError::InvalidProvenance {
+                    field: "provenance.agreement_digest",
+                    reason: "uncertified query must not claim endpoint agreement".to_string(),
+                });
+            }
         }
-        assurance => {
+        CatalogAssurance::MultiEndpointAgreement => {
+            let endpoint_count = raw.provenance.source_endpoints.len();
+            if !(MIN_SUBNET_CATALOG_AGREEMENT_ENDPOINTS..=MAX_SUBNET_CATALOG_AGREEMENT_ENDPOINTS)
+                .contains(&endpoint_count)
+            {
+                return Err(CatalogError::InvalidProvenance {
+                    field: "provenance.source_endpoints",
+                    reason: format!(
+                        "multi-endpoint agreement requires {MIN_SUBNET_CATALOG_AGREEMENT_ENDPOINTS}..={MAX_SUBNET_CATALOG_AGREEMENT_ENDPOINTS} endpoints"
+                    ),
+                });
+            }
+            if raw
+                .provenance
+                .source_endpoints
+                .windows(2)
+                .any(|pair| pair[0] >= pair[1])
+            {
+                return Err(CatalogError::InvalidProvenance {
+                    field: "provenance.source_endpoints",
+                    reason: "agreement endpoints must be unique and canonically ordered"
+                        .to_string(),
+                });
+            }
+            let mut hostnames = BTreeSet::new();
+            for endpoint in parsed_endpoints {
+                let hostname =
+                    endpoint
+                        .host_str()
+                        .ok_or_else(|| CatalogError::InvalidProvenance {
+                            field: "provenance.source_endpoints",
+                            reason: "agreement endpoint is missing a hostname".to_string(),
+                        })?;
+                if !hostnames.insert(hostname.to_ascii_lowercase()) {
+                    return Err(CatalogError::InvalidProvenance {
+                        field: "provenance.source_endpoints",
+                        reason: "agreement endpoints must use distinct hostnames".to_string(),
+                    });
+                }
+            }
+            if raw.provenance.certificate_time.is_some() || raw.provenance.root_key_digest.is_some()
+            {
+                return Err(CatalogError::InvalidProvenance {
+                    field: "provenance.assurance",
+                    reason: "multi-endpoint agreement must not carry certificate evidence"
+                        .to_string(),
+                });
+            }
+            validate_agreement_digest(raw)?;
+        }
+        CatalogAssurance::Certified => {
             return Err(CatalogError::UnsupportedAssurance {
-                assurance: assurance.as_str().to_string(),
+                assurance: CatalogAssurance::Certified.as_str().to_string(),
             });
         }
     }
+    Ok(())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validate_policy_identity(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
     if raw.provenance.classification_schema_version != CLASSIFICATION_SCHEMA_VERSION {
         return Err(CatalogError::ClassificationPolicyVersionMismatch {
             found: raw.provenance.classification_schema_version,
@@ -427,6 +541,53 @@ fn canonical_catalog_digest(raw: &RawSubnetCatalog) -> Result<[u8; 32], CatalogE
     payload.catalog_digest.clear();
     let serialized = serde_json::to_vec(&payload)?;
     Ok(Sha256::digest(serialized).into())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+pub(in crate::subnet_catalog) fn catalog_agreement_digest(
+    raw: &RawSubnetCatalog,
+) -> Result<[u8; 32], CatalogError> {
+    #[derive(serde::Serialize)]
+    struct AgreementPayload<'a> {
+        catalog_schema_version: u32,
+        network: &'a str,
+        registry_canister_id: &'a str,
+        registry_version: u64,
+        subnets: &'a [SubnetInfo],
+        routing_ranges: &'a [RoutingRange],
+    }
+
+    let payload = AgreementPayload {
+        catalog_schema_version: raw.catalog_schema_version,
+        network: &raw.provenance.network,
+        registry_canister_id: &raw.provenance.registry_canister_id,
+        registry_version: raw.provenance.registry_version,
+        subnets: &raw.subnets,
+        routing_ranges: &raw.routing_ranges,
+    };
+    Ok(Sha256::digest(serde_json::to_vec(&payload)?).into())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validate_agreement_digest(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
+    let actual = raw
+        .provenance
+        .agreement_digest
+        .as_deref()
+        .unwrap_or_default();
+    if actual.len() != 64 || !is_lowercase_hex(actual) {
+        return Err(CatalogError::InvalidAgreementDigest {
+            value: actual.to_string(),
+        });
+    }
+    let expected = hex_bytes(&catalog_agreement_digest(raw)?);
+    if actual != expected {
+        return Err(CatalogError::AgreementDigestMismatch {
+            expected,
+            actual: actual.to_string(),
+        });
+    }
+    Ok(())
 }
 
 fn compare_routing_keys(

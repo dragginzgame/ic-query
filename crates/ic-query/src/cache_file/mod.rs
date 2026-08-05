@@ -31,8 +31,10 @@ pub use json::{
     OwnerJsonCacheErrorMapper, load_json_cache, load_json_cache_strict,
 };
 #[cfg(feature = "host")]
+pub use lock::with_refresh_lock;
+#[cfg(feature = "host")]
 pub use lock::{RefreshLockEvidence, inspect_refresh_lock};
-pub use lock::{RefreshLockRequest, with_refresh_lock};
+pub use lock::{RefreshLockRequest, with_refresh_lock_async};
 #[cfg(feature = "host")]
 pub use policy::{CacheRefreshReason, load_or_refresh_cache_with_error_policy};
 #[cfg(feature = "host")]

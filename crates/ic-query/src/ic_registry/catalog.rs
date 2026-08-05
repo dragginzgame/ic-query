@@ -3,11 +3,11 @@ use super::{
     projection::subnet_kind_from_registry,
     proto::{RoutingTable, SubnetListRecord, SubnetRecord},
     subnet_id_text, subnet_record_key,
-    transport::{decode_message, get_registry_value},
+    transport::{RegistryQueryCounter, decode_message, get_registry_value_counted},
 };
 use crate::subnet_catalog::{
     ClassificationSource, GeographicScope, RawSubnetCatalog, RoutingRange, SubnetInfo,
-    SubnetSpecialization,
+    SubnetSpecialization, UncertifiedCatalogCollection,
 };
 use candid::Principal;
 use futures::future::try_join_all;
@@ -20,6 +20,7 @@ pub(super) async fn catalog_from_registry_records(
     registry_canister: &Principal,
     subnet_list: SubnetListRecord,
     routing_table: RoutingTable,
+    query_counter: &RegistryQueryCounter,
 ) -> Result<RawSubnetCatalog, RegistryFetchError> {
     if subnet_list.subnets.is_empty() {
         return Err(RegistryFetchError::EmptySubnetList);
@@ -35,8 +36,14 @@ pub(super) async fn catalog_from_registry_records(
             .map(|subnet_raw| async move {
                 let subnet_principal = principal_text_from_raw(&subnet_raw, "subnet_list.subnets")?;
                 let key = subnet_record_key(&subnet_principal);
-                let record_bytes =
-                    get_registry_value(agent, registry_canister, &key, registry_version).await?;
+                let record_bytes = get_registry_value_counted(
+                    agent,
+                    registry_canister,
+                    &key,
+                    registry_version,
+                    query_counter,
+                )
+                .await?;
                 let record = decode_message::<SubnetRecord>("SubnetRecord", &record_bytes)?;
                 Ok::<_, RegistryFetchError>(subnet_info_from_record(&subnet_principal, &record))
             }),
@@ -45,11 +52,14 @@ pub(super) async fn catalog_from_registry_records(
 
     let routing_ranges = routing_ranges_from_table(&routing_table)?;
     RawSubnetCatalog::new_mainnet_uncertified(
-        registry_version,
-        &request.endpoint,
-        &request.fetched_at,
-        &request.fetched_by,
-        env!("CARGO_PKG_VERSION"),
+        UncertifiedCatalogCollection::new(
+            registry_version,
+            &request.endpoint,
+            &request.fetched_at,
+            &request.fetched_by,
+            env!("CARGO_PKG_VERSION"),
+            query_counter.call_count(),
+        ),
         subnets,
         routing_ranges,
     )

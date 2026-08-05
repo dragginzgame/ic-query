@@ -41,11 +41,14 @@ pub(super) fn catalog_from_parts_for_test(
         })
         .collect::<Result<Vec<_>, RegistryFetchError>>()?;
     RawSubnetCatalog::new_mainnet_uncertified(
-        registry_version,
-        &request.endpoint,
-        &request.fetched_at,
-        &request.fetched_by,
-        "test",
+        UncertifiedCatalogCollection::new(
+            registry_version,
+            &request.endpoint,
+            &request.fetched_at,
+            &request.fetched_by,
+            "test",
+            3 + u64::try_from(subnet_records.len()).expect("fixture count fits u64"),
+        ),
         subnets,
         routing_ranges_from_table(&routing_table)?,
     )

@@ -1,4 +1,5 @@
 use super::*;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub(super) const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
 pub(super) const SUBNET_B: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
@@ -8,7 +9,9 @@ pub(super) fn list_request(root: &Path) -> SubnetCatalogListRequest {
     SubnetCatalogListRequest {
         cache: cache_request(root),
         read_policy: CatalogReadPolicy::RefreshMissingOrInvalid {
-            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
         },
         now_unix_secs: 1_780_531_300,
         stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
@@ -23,7 +26,9 @@ pub(super) fn info_request(root: &Path, input: &str) -> SubnetCatalogInfoRequest
     SubnetCatalogInfoRequest {
         cache: cache_request(root),
         read_policy: CatalogReadPolicy::RefreshMissingOrInvalid {
-            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
         },
         input: input.to_string(),
         forced: None,
@@ -56,7 +61,7 @@ pub(super) fn write_catalog(root: &Path, catalog: RawSubnetCatalog) {
 pub(super) fn refresh_request(root: &Path) -> SubnetCatalogRefreshRequest {
     SubnetCatalogRefreshRequest {
         cache: cache_request(root),
-        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
         now_unix_secs: 1_780_531_200,
         lock_stale_after_seconds: DEFAULT_REFRESH_LOCK_STALE_SECONDS,
         max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
@@ -99,6 +104,82 @@ pub(super) struct FixtureRefreshSource {
     fail: bool,
 }
 
+///
+/// AgreementFixtureMode
+///
+/// Controlled endpoint result used by agreement refresh fixtures.
+///
+
+#[derive(Clone, Copy)]
+pub(super) enum AgreementFixtureMode {
+    Matching,
+    VersionMismatch,
+    PayloadMismatch,
+    EndpointFailure,
+}
+
+///
+/// AgreementFixtureSource
+///
+/// Endpoint-aware async source used to verify bounded agreement collection.
+///
+
+pub(super) struct AgreementFixtureSource {
+    mode: AgreementFixtureMode,
+    differing_endpoint: String,
+    calls: AtomicUsize,
+}
+
+impl AgreementFixtureSource {
+    pub(super) fn new(mode: AgreementFixtureMode, differing_endpoint: &str) -> Self {
+        Self {
+            mode,
+            differing_endpoint: differing_endpoint.to_string(),
+            calls: AtomicUsize::new(0),
+        }
+    }
+
+    pub(super) fn call_count(&self) -> usize {
+        self.calls.load(Ordering::Relaxed)
+    }
+}
+
+impl SubnetCatalogSource for AgreementFixtureSource {
+    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            if request.endpoint == self.differing_endpoint
+                && matches!(self.mode, AgreementFixtureMode::EndpointFailure)
+            {
+                return Err(SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets));
+            }
+            let mut catalog = fixture_catalog();
+            catalog.provenance.source_endpoints = vec![request.endpoint.clone()];
+            catalog
+                .provenance
+                .fetched_at
+                .clone_from(&request.fetched_at);
+            catalog
+                .provenance
+                .fetched_by
+                .clone_from(&request.fetched_by);
+            if request.endpoint == self.differing_endpoint {
+                match self.mode {
+                    AgreementFixtureMode::VersionMismatch => {
+                        catalog.provenance.registry_version += 1;
+                    }
+                    AgreementFixtureMode::PayloadMismatch => {
+                        catalog.subnets[0].node_count = Some(35);
+                    }
+                    AgreementFixtureMode::Matching | AgreementFixtureMode::EndpointFailure => {}
+                }
+            }
+            catalog.canonicalize_and_seal()?;
+            Ok(catalog)
+        })
+    }
+}
+
 impl FixtureRefreshSource {
     pub(super) const fn ok(catalog: RawSubnetCatalog) -> Self {
         Self {
@@ -116,24 +197,29 @@ impl FixtureRefreshSource {
 }
 
 impl SubnetCatalogSource for FixtureRefreshSource {
-    fn fetch_catalog(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<RawSubnetCatalog, SubnetCatalogHostError> {
-        if self.fail {
-            return Err(SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets));
-        }
-        Ok(self.catalog.clone().expect("fixture catalog"))
+    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+        Box::pin(async move {
+            if self.fail {
+                return Err(SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets));
+            }
+            let mut catalog = self.catalog.clone().expect("fixture catalog");
+            catalog.provenance.source_endpoints = vec![request.endpoint.clone()];
+            catalog.canonicalize_and_seal()?;
+            Ok(catalog)
+        })
     }
 }
 
 pub(super) fn fixture_catalog() -> RawSubnetCatalog {
     RawSubnetCatalog::new_mainnet_uncertified(
-        123_456,
-        "https://icp-api.io",
-        "2026-06-04T00:00:00Z",
-        "fixture",
-        "test",
+        UncertifiedCatalogCollection::new(
+            123_456,
+            "https://icp-api.io",
+            "2026-06-04T00:00:00Z",
+            "fixture",
+            "test",
+            5,
+        ),
         vec![
             SubnetInfo {
                 subnet_principal: SUBNET_A.to_string(),
