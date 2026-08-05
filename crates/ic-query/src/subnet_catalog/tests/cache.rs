@@ -75,6 +75,51 @@ fn cache_only_policy_never_invokes_the_supplied_source() {
 }
 
 #[test]
+fn caller_minimum_assurance_rejects_weaker_cached_evidence() {
+    let root = temp_dir("ic-query-subnet-minimum-assurance");
+    write_catalog(&root, fixture_catalog());
+    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+        .with_minimum_assurance(CatalogAssurance::MultiEndpointAgreement);
+
+    let error = load_cached_subnet_catalog(&request).expect_err("weak cache rejected");
+
+    let _ = fs::remove_dir_all(root);
+    assert_eq!(error.code(), SubnetCatalogErrorCode::InsufficientAssurance);
+    assert_eq!(error.category(), SubnetCatalogErrorCategory::Authority);
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::InsufficientAssurance {
+            required: CatalogAssurance::MultiEndpointAgreement,
+            actual: CatalogAssurance::UncertifiedQuery,
+        }
+    ));
+}
+
+#[test]
+fn insufficient_refresh_selection_fails_before_collection() {
+    let root = temp_dir("ic-query-subnet-refresh-minimum-assurance");
+    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+        .with_minimum_assurance(CatalogAssurance::MultiEndpointAgreement)
+        .with_policy(CatalogReadPolicy::ForceRefresh {
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
+        });
+
+    let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+        .expect_err("weak source selection rejected before collection");
+
+    let _ = fs::remove_dir_all(root);
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::InsufficientAssurance {
+            required: CatalogAssurance::MultiEndpointAgreement,
+            actual: CatalogAssurance::UncertifiedQuery,
+        }
+    ));
+}
+
+#[test]
 fn missing_only_policy_does_not_repair_invalid_content() {
     let root = temp_dir("ic-query-subnet-missing-only-invalid");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);

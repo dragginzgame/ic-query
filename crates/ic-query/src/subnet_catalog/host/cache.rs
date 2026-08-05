@@ -14,7 +14,7 @@ use crate::{
     nns::LiveNnsSource,
     runtime::block_on_current_thread,
     subnet_catalog::{
-        CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
+        CatalogAssurance, CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         DEFAULT_REFRESH_LOCK_STALE_SECONDS, MAINNET_REGISTRY_CANISTER_ID, ValidatedSubnetCatalog,
         catalog_stale_status, parse_catalog_json,
     },
@@ -107,6 +107,8 @@ pub struct SubnetCatalogLoadRequest {
     pub now_unix_secs: u64,
     /// Maximum accepted future timestamp skew.
     pub max_future_skew_seconds: u64,
+    /// Minimum authority level accepted from cache or refresh.
+    pub minimum_assurance: CatalogAssurance,
     /// Authorized cache and network behavior.
     pub policy: CatalogReadPolicy,
 }
@@ -119,6 +121,7 @@ impl SubnetCatalogLoadRequest {
             cache,
             now_unix_secs,
             max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
+            minimum_assurance: CatalogAssurance::UncertifiedQuery,
             policy: CatalogReadPolicy::CacheOnly,
         }
     }
@@ -134,7 +137,28 @@ impl SubnetCatalogLoadRequest {
             cache,
             now_unix_secs,
             max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
+            minimum_assurance: CatalogAssurance::UncertifiedQuery,
             policy: CatalogReadPolicy::RefreshMissingOrInvalid { source },
+        }
+    }
+
+    /// Build a missing/invalid/stale read-through request.
+    #[must_use]
+    pub const fn refresh_missing_invalid_or_older_than(
+        cache: SubnetCatalogCacheRequest,
+        source: CatalogSourceSelection,
+        now_unix_secs: u64,
+        max_age_seconds: u64,
+    ) -> Self {
+        Self {
+            cache,
+            now_unix_secs,
+            max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
+            minimum_assurance: CatalogAssurance::UncertifiedQuery,
+            policy: CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
+                source,
+                max_age_seconds,
+            },
         }
     }
 
@@ -142,6 +166,13 @@ impl SubnetCatalogLoadRequest {
     #[must_use]
     pub const fn with_max_future_skew_seconds(mut self, seconds: u64) -> Self {
         self.max_future_skew_seconds = seconds;
+        self
+    }
+
+    /// Require loaded evidence to meet at least this assurance level.
+    #[must_use]
+    pub const fn with_minimum_assurance(mut self, minimum: CatalogAssurance) -> Self {
+        self.minimum_assurance = minimum;
         self
     }
 
@@ -174,6 +205,26 @@ pub enum CacheDisposition {
     ForcedRefresh,
 }
 
+///
+/// CatalogAuthorityEvidence
+///
+/// Compact persistable authority identity for one successful catalog load.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CatalogAuthorityEvidence {
+    /// Exact Registry version represented by the validated catalog.
+    pub registry_version: u64,
+    /// Lowercase SHA-256 digest of the validated catalog authority payload.
+    pub catalog_digest: String,
+    /// Assurance established for the loaded evidence.
+    pub assurance: CatalogAssurance,
+    /// Canonically ordered endpoints contributing to the evidence.
+    pub source_endpoints: Vec<String>,
+    /// Observable cache action used to supply the catalog.
+    pub cache_disposition: CacheDisposition,
+}
+
 impl CacheDisposition {
     /// Return the stable JSON and report label.
     #[must_use]
@@ -202,6 +253,21 @@ pub struct CatalogLoadOutcome {
     pub catalog: ValidatedSubnetCatalog,
     /// Result of applying the requested cache policy.
     pub disposition: CacheDisposition,
+}
+
+impl CatalogLoadOutcome {
+    /// Return compact authority evidence suitable for embedding in a durable plan.
+    #[must_use]
+    pub fn authority_evidence(&self) -> CatalogAuthorityEvidence {
+        let provenance = self.catalog.provenance();
+        CatalogAuthorityEvidence {
+            registry_version: provenance.registry_version,
+            catalog_digest: self.catalog.raw().catalog_digest.clone(),
+            assurance: provenance.assurance,
+            source_endpoints: provenance.source_endpoints.clone(),
+            cache_disposition: self.disposition,
+        }
+    }
 }
 
 /// Load a catalog without making a live network call.
@@ -308,6 +374,7 @@ fn load_cached_with_disposition(
         request.max_future_skew_seconds,
     );
     let catalog = ValidatedSubnetCatalog::try_from_raw(raw, &validation)?;
+    enforce_minimum_assurance(catalog.provenance().assurance, request.minimum_assurance)?;
     Ok(CatalogLoadOutcome {
         path,
         catalog,
@@ -327,6 +394,7 @@ async fn refresh_then_load(
             .ok_or_else(|| SubnetCatalogHostError::InvalidReadPolicy {
                 reason: "refresh policy is missing its source selection".to_string(),
             })?;
+    enforce_minimum_assurance(source_selection.assurance(), request.minimum_assurance)?;
     let refresh_request = SubnetCatalogRefreshRequest::new(
         request.cache.clone(),
         source_selection.clone(),
@@ -336,4 +404,15 @@ async fn refresh_then_load(
     .with_max_future_skew_seconds(request.max_future_skew_seconds);
     refresh_subnet_catalog_with_source_async(&refresh_request, source).await?;
     load_cached_with_disposition(request, disposition)
+}
+
+const fn enforce_minimum_assurance(
+    actual: CatalogAssurance,
+    required: CatalogAssurance,
+) -> Result<(), SubnetCatalogHostError> {
+    if actual.satisfies(required) {
+        Ok(())
+    } else {
+        Err(SubnetCatalogHostError::InsufficientAssurance { required, actual })
+    }
 }

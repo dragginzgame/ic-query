@@ -16,15 +16,16 @@ mod time;
 pub use error::CatalogError;
 #[cfg(feature = "subnet-catalog-host")]
 pub use host::{
-    CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, CatalogSourceSelection,
-    SubnetCatalogCacheRequest, SubnetCatalogErrorCategory, SubnetCatalogErrorCode,
-    SubnetCatalogHostError, SubnetCatalogLoadRequest, SubnetCatalogRefreshRequest,
-    SubnetCatalogRemediation, SubnetCatalogRetryability, SubnetCatalogSource,
-    SubnetCatalogSourceFuture, fetch_subnet_catalog_async, load_cached_subnet_catalog,
-    load_subnet_catalog, load_subnet_catalog_async, load_subnet_catalog_with_source,
-    load_subnet_catalog_with_source_async, refresh_subnet_catalog, refresh_subnet_catalog_async,
-    refresh_subnet_catalog_with_source, refresh_subnet_catalog_with_source_async,
-    subnet_catalog_path, subnet_catalog_refresh_lock_path,
+    CacheDisposition, CatalogAuthorityEvidence, CatalogLoadOutcome, CatalogReadPolicy,
+    CatalogSourceSelection, SubnetCatalogCacheRequest, SubnetCatalogErrorCategory,
+    SubnetCatalogErrorCode, SubnetCatalogHostError, SubnetCatalogLoadRequest,
+    SubnetCatalogRefreshRequest, SubnetCatalogRemediation, SubnetCatalogRetryability,
+    SubnetCatalogSource, SubnetCatalogSourceFuture, fetch_subnet_catalog_async,
+    load_cached_subnet_catalog, load_subnet_catalog, load_subnet_catalog_async,
+    load_subnet_catalog_with_source, load_subnet_catalog_with_source_async, refresh_subnet_catalog,
+    refresh_subnet_catalog_async, refresh_subnet_catalog_with_source,
+    refresh_subnet_catalog_with_source_async, subnet_catalog_path,
+    subnet_catalog_refresh_lock_path,
 };
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 #[cfg(feature = "subnet-catalog-host")]

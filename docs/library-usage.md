@@ -600,11 +600,22 @@ fn render_subnet_info(
 disposition in their reports. Current single-endpoint live collection is
 always `CatalogAssurance::UncertifiedQuery`: the shared Registry version
 prevents an internally skewed join but does not certify an ordinary query.
+Callers can set `with_minimum_assurance` on the load request; evidence below
+that threshold fails with `InsufficientAssurance` rather than being treated as
+missing, invalid, or stale. The
+`refresh_missing_invalid_or_older_than` constructor keeps the source and
+maximum accepted age explicit.
 
 `ValidatedSubnetCatalog::resolve_canister_route` binds the canonical canister
-and Subnet principals, matched routing range, Registry version, binary catalog
-digest, and provenance in one result. The digest detects a payload that was
-edited without being resealed; it is not a signature or local-tamper boundary.
+and Subnet principals, complete matched `SubnetInfo`, routing range, Registry
+version, binary catalog digest, and provenance in one result. The caller can
+therefore use `SubnetKind` without a second catalog lookup.
+`CatalogLoadOutcome::authority_evidence` returns a compact serializable record
+of Registry version, digest, assurance, source endpoints, and cache
+disposition for a durable plan. That record identifies the load outcome; it is
+not a substitute for validated catalog content. The digest detects a payload
+that was edited without being resealed; it is not a signature or local-tamper
+boundary.
 Async embedders can use `fetch_subnet_catalog_async`,
 `load_subnet_catalog_async`, and `refresh_subnet_catalog_async` on their own
 runtime. The async source seam returns `SubnetCatalogSourceFuture`; custom

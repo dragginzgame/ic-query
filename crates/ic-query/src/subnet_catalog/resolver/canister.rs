@@ -62,6 +62,7 @@ impl ValidatedSubnetCatalog {
         Ok(ResolvedCanisterRoute {
             canister: parse_principal(canister_text, "canister_principal")?,
             subnet: parse_principal(&matched_range.subnet_principal, "subnet_principal")?,
+            subnet_info: resolved.subnet,
             matched_range,
             registry_version: self.provenance().registry_version,
             catalog_digest: self.catalog_digest(),

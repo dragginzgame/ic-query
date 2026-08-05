@@ -5,9 +5,9 @@ mod refresh;
 mod source;
 
 pub use cache::{
-    CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, SubnetCatalogCacheRequest,
-    SubnetCatalogLoadRequest, load_cached_subnet_catalog, load_subnet_catalog,
-    load_subnet_catalog_async, load_subnet_catalog_with_source,
+    CacheDisposition, CatalogAuthorityEvidence, CatalogLoadOutcome, CatalogReadPolicy,
+    SubnetCatalogCacheRequest, SubnetCatalogLoadRequest, load_cached_subnet_catalog,
+    load_subnet_catalog, load_subnet_catalog_async, load_subnet_catalog_with_source,
     load_subnet_catalog_with_source_async,
 };
 pub use error::{

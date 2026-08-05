@@ -103,6 +103,8 @@ pub struct ResolvedCanisterRoute {
     pub canister: Principal,
     /// Canonical target Subnet principal.
     pub subnet: Principal,
+    /// Complete validated Subnet classification matched by the route.
+    pub subnet_info: SubnetInfo,
     /// Inclusive validated range containing the canister principal.
     pub matched_range: RoutingRange,
     /// Exact Registry version of the validated catalog.

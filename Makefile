@@ -66,7 +66,7 @@ help:
 	@echo "  release-major  Bump, stage, commit, tag, and push a major release"
 	@echo "  release-stage  Stage release version files after review"
 	@echo "  release-commit Commit and tag the staged release"
-	@echo "  release-push   Verify and push the release commit and tags"
+	@echo "  release-push   Push the release commit and tags after the pre-bump gate"
 	@echo "  clean      Remove build artifacts"
 
 ensure-clean:
@@ -204,7 +204,6 @@ release-tag-check:
 	bash "$(REPO_ROOT)scripts/release/check-tag-at-head.sh"
 
 release-push: ensure-clean release-tag-check
-	+$(MAKE) --no-print-directory ci
 	git push --follow-tags
 
 build:

@@ -38,6 +38,20 @@ impl CatalogAssurance {
             Self::UncertifiedQuery => "uncertified_query",
         }
     }
+
+    /// Return whether this assurance meets the caller's required minimum.
+    #[must_use]
+    pub const fn satisfies(self, minimum: Self) -> bool {
+        self.strength() >= minimum.strength()
+    }
+
+    const fn strength(self) -> u8 {
+        match self {
+            Self::UncertifiedQuery => 0,
+            Self::MultiEndpointAgreement => 1,
+            Self::Certified => 2,
+        }
+    }
 }
 
 ///

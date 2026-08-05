@@ -70,8 +70,14 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
     let _ = fs::remove_dir_all(root);
     assert_eq!(cached.path, path);
     assert_eq!(resolved.subnet.to_text(), SUBNET_A);
+    assert_eq!(resolved.subnet_info.subnet_principal, SUBNET_A);
+    assert_eq!(resolved.subnet_info.subnet_kind, SubnetKind::Application);
     assert_eq!(resolved.registry_version, 123_456);
     assert_eq!(cached.disposition, CacheDisposition::CacheHit);
+    let authority = cached.authority_evidence();
+    assert_eq!(authority.registry_version, 123_456);
+    assert_eq!(authority.assurance, CatalogAssurance::UncertifiedQuery);
+    assert_eq!(authority.cache_disposition, CacheDisposition::CacheHit);
 }
 
 #[cfg(feature = "subnet-catalog-host")]

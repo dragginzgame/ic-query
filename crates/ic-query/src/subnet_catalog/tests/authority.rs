@@ -22,6 +22,8 @@ fn validated_route_retains_exact_catalog_authority() {
 
     assert_eq!(route.canister.to_text(), CANISTER_A);
     assert_eq!(route.subnet.to_text(), SUBNET_A);
+    assert_eq!(route.subnet_info.subnet_principal, SUBNET_A);
+    assert_eq!(route.subnet_info.subnet_kind, SubnetKind::Application);
     assert_eq!(route.registry_version, 123_456);
     assert_eq!(
         route.provenance.assurance,
@@ -32,6 +34,46 @@ fn validated_route_retains_exact_catalog_authority() {
         expected_digest
     );
     assert_eq!(route.matched_range.subnet_principal, SUBNET_A);
+}
+
+#[test]
+fn assurance_minimums_are_ordered_from_query_to_certificate() {
+    let cases = [
+        (
+            CatalogAssurance::UncertifiedQuery,
+            CatalogAssurance::UncertifiedQuery,
+            true,
+        ),
+        (
+            CatalogAssurance::MultiEndpointAgreement,
+            CatalogAssurance::UncertifiedQuery,
+            true,
+        ),
+        (
+            CatalogAssurance::MultiEndpointAgreement,
+            CatalogAssurance::MultiEndpointAgreement,
+            true,
+        ),
+        (
+            CatalogAssurance::UncertifiedQuery,
+            CatalogAssurance::MultiEndpointAgreement,
+            false,
+        ),
+        (
+            CatalogAssurance::MultiEndpointAgreement,
+            CatalogAssurance::Certified,
+            false,
+        ),
+        (
+            CatalogAssurance::Certified,
+            CatalogAssurance::MultiEndpointAgreement,
+            true,
+        ),
+    ];
+
+    for (actual, minimum, expected) in cases {
+        assert_eq!(actual.satisfies(minimum), expected);
+    }
 }
 
 #[test]

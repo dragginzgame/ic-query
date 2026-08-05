@@ -17,9 +17,13 @@ Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
   bounded two-to-three-endpoint source selection. Agreement requires the same
   Registry version and canonical Registry payload from distinct hostnames;
   mismatch never falls back to one endpoint. CLI grammar remains unchanged
-  and continues to select one endpoint. Version-1 catalog evidence is not
-  migrated; authorized invalid-content read-through replaces it, while
-  cache-only callers must refresh explicitly.
+  and continues to select one endpoint. Authority routes now include their
+  matched Subnet classification; loads support minimum assurance, compact
+  durable authority evidence, and a missing/invalid/stale constructor.
+  Version-1 catalog evidence is not migrated; authorized invalid-content
+  read-through replaces it, while cache-only callers must refresh explicitly.
+  Release automation runs its complete CI gate before changing version files
+  and does not repeat that gate after committing and tagging.
 
 - `0.29.1` hard-cuts every managed cache family to capability-rooted load,
   discovery, refresh-lock, and atomic-publication operations. On Unix it

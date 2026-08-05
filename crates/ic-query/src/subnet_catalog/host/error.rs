@@ -26,6 +26,8 @@ pub enum SubnetCatalogErrorCode {
     InvalidSourceSelection,
     /// A source returned assurance evidence that did not match its request.
     SourceEvidenceMismatch,
+    /// Loaded or selected evidence does not meet the caller's minimum assurance.
+    InsufficientAssurance,
     /// One endpoint in an agreement collection failed.
     AgreementEndpoint,
     /// Independent endpoints did not return the same Registry snapshot.
@@ -52,6 +54,7 @@ impl SubnetCatalogErrorCode {
             Self::InvalidReadPolicy => "invalid_read_policy",
             Self::InvalidSourceSelection => "invalid_source_selection",
             Self::SourceEvidenceMismatch => "source_evidence_mismatch",
+            Self::InsufficientAssurance => "insufficient_assurance",
             Self::AgreementEndpoint => "agreement_endpoint",
             Self::AgreementMismatch => "agreement_mismatch",
             Self::RegistryQueryCallCountOverflow => "registry_query_call_count_overflow",
@@ -176,6 +179,19 @@ pub enum SubnetCatalogHostError {
         actual_endpoints: Vec<String>,
     },
 
+    /// Valid evidence or a selected source is weaker than the caller requires.
+    #[error(
+        "subnet catalog assurance {} does not meet required minimum {}",
+        actual.as_str(),
+        required.as_str()
+    )]
+    InsufficientAssurance {
+        /// Minimum assurance required by the caller.
+        required: CatalogAssurance,
+        /// Assurance supplied by the cache or selected refresh source.
+        actual: CatalogAssurance,
+    },
+
     /// One endpoint failed during a bounded agreement collection.
     #[error("subnet catalog agreement endpoint {endpoint:?} failed: {source}")]
     AgreementEndpoint {
@@ -232,6 +248,7 @@ impl SubnetCatalogHostError {
             Self::InvalidReadPolicy { .. } => SubnetCatalogErrorCode::InvalidReadPolicy,
             Self::InvalidSourceSelection { .. } => SubnetCatalogErrorCode::InvalidSourceSelection,
             Self::SourceEvidenceMismatch { .. } => SubnetCatalogErrorCode::SourceEvidenceMismatch,
+            Self::InsufficientAssurance { .. } => SubnetCatalogErrorCode::InsufficientAssurance,
             Self::AgreementEndpoint { .. } => SubnetCatalogErrorCode::AgreementEndpoint,
             Self::AgreementMismatch { .. } => SubnetCatalogErrorCode::AgreementMismatch,
             Self::RegistryQueryCallCountOverflow => {
@@ -262,11 +279,10 @@ impl SubnetCatalogHostError {
             Self::Cache(_) => SubnetCatalogErrorCategory::CacheIo,
             Self::RegistryRefresh(_) => SubnetCatalogErrorCategory::Network,
             Self::AgreementEndpoint { source, .. } => source.category(),
-            Self::SourceEvidenceMismatch { .. } | Self::AgreementMismatch { .. } => {
-                SubnetCatalogErrorCategory::Authority
-            }
-            Self::RuntimeAdapter(_) => SubnetCatalogErrorCategory::Runtime,
-            Self::Catalog(
+            Self::SourceEvidenceMismatch { .. }
+            | Self::InsufficientAssurance { .. }
+            | Self::AgreementMismatch { .. }
+            | Self::Catalog(
                 CatalogError::NetworkMismatch { .. }
                 | CatalogError::RegistryCanisterMismatch { .. }
                 | CatalogError::UnsupportedAssurance { .. }
@@ -275,6 +291,7 @@ impl SubnetCatalogHostError {
                 | CatalogError::ResolverPolicyMismatch { .. }
                 | CatalogError::CatalogDigestMismatch { .. },
             ) => SubnetCatalogErrorCategory::Authority,
+            Self::RuntimeAdapter(_) => SubnetCatalogErrorCategory::Runtime,
             Self::RegistryQueryCallCountOverflow | Self::Catalog(_) => {
                 SubnetCatalogErrorCategory::Validation
             }

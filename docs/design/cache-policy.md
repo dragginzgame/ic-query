@@ -182,6 +182,13 @@ Every network-capable policy carries a `CatalogSourceSelection`, not an
 implicit endpoint. It selects either one uncertified endpoint or a bounded
 two-to-three-endpoint agreement collection. Async load/refresh entry points run
 on the caller's runtime; synchronous names adapt the same implementation.
+Load requests may require a minimum `CatalogAssurance`. Weaker cache evidence
+fails as typed insufficient authority and is not silently classified as
+missing, invalid, or stale. A refresh selection is checked against the same
+minimum before collection, preventing a known-insufficient source from making
+calls or replacing the cache. Successful outcomes can emit compact authority
+evidence containing the exact Registry version, digest, assurance, endpoints,
+and cache disposition.
 
 The exact-version NNS Subnet topology and ICRC account-transaction libraries
 apply the same recovery only through their explicit refresh-if-missing and

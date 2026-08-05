@@ -56,6 +56,15 @@ impl CatalogSourceSelection {
         Self::MultiEndpointAgreement { endpoints }
     }
 
+    /// Return the assurance this source selection attempts to establish.
+    #[must_use]
+    pub const fn assurance(&self) -> CatalogAssurance {
+        match self {
+            Self::UncertifiedQuery { .. } => CatalogAssurance::UncertifiedQuery,
+            Self::MultiEndpointAgreement { .. } => CatalogAssurance::MultiEndpointAgreement,
+        }
+    }
+
     pub(super) fn validated_endpoints(&self) -> Result<Vec<String>, SubnetCatalogHostError> {
         let (endpoints, agreement) = match self {
             Self::UncertifiedQuery { endpoint } => (vec![endpoint.clone()], false),
