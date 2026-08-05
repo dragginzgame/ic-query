@@ -3,7 +3,7 @@ mod refresh;
 
 pub(in crate::nns) use read::TopologyReadOptions;
 pub(in crate::nns) use read::{
-    TopologyCapacityOptions, TopologyCoverageOptions, TopologyGapsOptions, TopologyHealthOptions,
+    TopologyCapacityOptions, TopologyCheckOptions, TopologyCoverageOptions, TopologyGapsOptions,
     TopologyProvidersOptions, TopologyRegionsOptions, TopologySummaryOptions,
     TopologyVersionsOptions,
 };

@@ -17,7 +17,7 @@ local-only inspection visibly distinct.
 
 | Family | Current surface |
 | --- | --- |
-| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
+| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, one-request observed node status with cached node/Subnet/provider views, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
 | NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
@@ -64,6 +64,11 @@ icq ic network daily-stats
 icq nns registry version
 icq nns topology refresh
 icq nns topology summary
+
+# Short-lived observed Dashboard status views
+icq nns node status
+icq nns subnet status --all
+icq nns node-provider status --json
 
 # Governance reports
 icq nns proposal list --limit 25
@@ -128,7 +133,7 @@ actually make:
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
 | Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
-| Official IC Dashboard, including ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`, and an accepted ledger principal does not prove indexing coverage |
+| Official IC Dashboard, including observed node status and ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`; default node scope excludes cloud-engine nodes, and an accepted ledger principal does not prove indexing coverage |
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
 and explicit provenance. Text output may shorten or format values for people.
@@ -152,13 +157,13 @@ icq ic network daily-stats
 icq nns data-center info|list|refresh
 icq nns governance economics|maturity-modulation|metrics|reward-event
 icq nns neuron cache|info|list|refresh
-icq nns node info|list|refresh
+icq nns node info|list|refresh|status
 icq nns node-operator info|list|refresh
-icq nns node-provider info|list|refresh
+icq nns node-provider info|list|refresh|status
 icq nns proposal cache|info|list|refresh
 icq nns registry version
-icq nns subnet info|list|refresh
-icq nns topology capacity|coverage|gaps|health|providers|refresh|regions|summary|versions
+icq nns subnet info|list|refresh|status
+icq nns topology capacity|check|coverage|gaps|providers|refresh|regions|summary|versions
 
 icq sns list|refresh
 icq sns info|metrics|parameters|swap|token|upgrade <SNS>
@@ -225,6 +230,15 @@ resource and makes no per-location calls. Total-supply analytics default to 30
 days at a daily step, retain raw ledger base units, and are capped at 1,000
 observations. Token-value analytics default to 24 hours and are capped at 90
 days and 1,000 rows. None of these commands creates a cache.
+
+Observed node status is the bounded exception: one unfiltered Dashboard
+`/nodes` request creates a complete network-level snapshot capped at 10,000
+rows and 8 MiB. Node, Subnet, and node-provider status commands project that
+same identity, reuse it for 60 seconds, and visibly refresh missing, invalid,
+or stale content. View targets and `--all` never create separate caches;
+`--refresh` forces replacement. The snapshot preserves raw status/type fields,
+states that it is not certified or point-in-time, and records that the
+Dashboard default public-mainnet scope excludes cloud-engine nodes.
 
 Native Registry, NNS, SNS, ICRC, and CMC calls also cap every `ic-agent`
 response body at 8 MiB. This is a per-call transport bound; paged collection,
@@ -293,7 +307,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.27", default-features = false }
+ic-query = { version = "0.28", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -301,7 +315,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.27", default-features = false, features = ["host"] }
+ic-query = { version = "0.28", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -353,6 +367,7 @@ guidance.
 - [0.25 fuller fixed-size SNS neuron evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.25/0.25-design.md)
 - [0.26 SNS maturity reward evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.26/0.26-design.md)
 - [0.27 bounded official ICRC analytics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.27/0.27-design.md)
+- [0.28 observed IC node and Subnet status](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.28/0.28-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

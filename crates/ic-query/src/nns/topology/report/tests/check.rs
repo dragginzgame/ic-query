@@ -1,7 +1,7 @@
 use super::{fixtures::*, *};
 
 #[test]
-fn topology_health_report_flags_mixed_versions_and_unknown_joins() {
+fn topology_check_report_flags_mixed_versions_and_unknown_joins() {
     let summary = topology_summary_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
@@ -12,7 +12,7 @@ fn topology_health_report_flags_mixed_versions_and_unknown_joins() {
         data_center_report_fixture(),
     );
 
-    let report = topology_health_report_from_summary(summary);
+    let report = topology_check_report_from_summary(summary);
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
@@ -28,7 +28,7 @@ fn topology_health_report_flags_mixed_versions_and_unknown_joins() {
 }
 
 #[test]
-fn topology_health_text_renders_check_table() {
+fn topology_check_text_renders_check_table() {
     let summary = topology_summary_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
@@ -38,9 +38,9 @@ fn topology_health_text_renders_check_table() {
         node_operator_report_fixture(),
         data_center_report_fixture(),
     );
-    let report = topology_health_report_from_summary(summary);
+    let report = topology_check_report_from_summary(summary);
 
-    let text = nns_topology_health_report_text(&report);
+    let text = nns_topology_check_report_text(&report);
 
     assert!(text.contains("CHECK"));
     assert!(text.contains("registry_versions"));

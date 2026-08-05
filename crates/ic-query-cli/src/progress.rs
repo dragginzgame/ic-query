@@ -42,7 +42,7 @@ impl QueryProgress for StderrQueryProgress {
             } => {
                 self.line.clear();
                 eprintln!(
-                    "{component} cache missing at {}; calling {source_endpoint} to refresh/create cache",
+                    "{component} cache refresh required at {}; calling {source_endpoint} to refresh/create cache",
                     path.display()
                 );
             }

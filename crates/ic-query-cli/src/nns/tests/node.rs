@@ -150,6 +150,7 @@ fn node_help_is_advertised_under_nns() {
     assert!(node.contains("List cached mainnet NNS nodes"));
     assert!(node.contains("Show one cached mainnet NNS node"));
     assert!(node.contains("Force-refresh and cache NNS node metadata"));
+    assert!(node.contains("Show observed operational status for IC nodes"));
     assert!(list.contains("icq nns node list"));
     assert!(list.contains("Collection mode: Cache-backed read"));
     assert!(list.contains("--verbose"));

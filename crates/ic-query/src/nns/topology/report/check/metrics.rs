@@ -1,18 +1,18 @@
-//! Module: nns::topology::report::health::metrics
+//! Module: nns::topology::report::check::metrics
 //!
-//! Responsibility: derive aggregate NNS topology health metrics.
+//! Responsibility: derive aggregate NNS topology check metrics.
 //! Does not own: check row wording, text rendering, or report serialization.
-//! Boundary: calculates registry, staleness, and join-coverage health inputs.
+//! Boundary: calculates registry, staleness, and join-coverage check inputs.
 
 use crate::nns::topology::report::{NnsTopologySummaryReport, percent::coverage_percent_text};
 
 ///
-/// NnsTopologyHealthDerivedMetrics
+/// NnsTopologyCheckDerivedMetrics
 ///
-/// Derived registry, staleness, and join metrics used by topology health checks.
+/// Derived registry, staleness, and join metrics used by topology consistency checks.
 ///
 
-pub(super) struct NnsTopologyHealthDerivedMetrics {
+pub(super) struct NnsTopologyCheckDerivedMetrics {
     pub(super) registry_source_count: usize,
     pub(super) registry_version_min: Option<u64>,
     pub(super) registry_version_max: Option<u64>,
@@ -24,9 +24,9 @@ pub(super) struct NnsTopologyHealthDerivedMetrics {
     pub(super) join_coverage: String,
 }
 
-pub(super) fn topology_health_derived_metrics(
+pub(super) fn topology_check_derived_metrics(
     summary: &NnsTopologySummaryReport,
-) -> NnsTopologyHealthDerivedMetrics {
+) -> NnsTopologyCheckDerivedMetrics {
     let registry_version_min = summary
         .registry_versions
         .iter()
@@ -40,7 +40,7 @@ pub(super) fn topology_health_derived_metrics(
     let known_join_count = known_join_count(summary);
     let unknown_join_count = unknown_join_count(summary);
 
-    NnsTopologyHealthDerivedMetrics {
+    NnsTopologyCheckDerivedMetrics {
         registry_source_count: summary.registry_versions.len(),
         registry_version_min,
         registry_version_max,

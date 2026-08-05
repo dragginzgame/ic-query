@@ -6,6 +6,7 @@
 
 use super::super::{CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy, CacheStatusRow};
 use crate::{
+    ic::DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
     nns::topology::DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
     sns::DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
     subnet_catalog::{DEFAULT_STALE_AFTER_SECONDS, parse_utc_timestamp_secs},
@@ -268,6 +269,7 @@ fn nns_component(component: &str) -> Option<&'static str> {
 
 fn snapshot_component(parts: &[&str]) -> Option<String> {
     match parts {
+        ["ic", _, entity, collection, ..] => Some(format!("ic/{entity}/{collection}")),
         ["nns", _, "governance", collection, ..] => Some(format!("nns/governance/{collection}")),
         ["sns", _, "catalog", collection, ..] => Some(format!("sns/catalog/{collection}")),
         ["sns", _, _, collection, ..] => Some(format!("sns/{collection}")),
@@ -293,6 +295,9 @@ fn registered_age_policy(relative: &Path) -> Option<u64> {
         ["nns", "ic", "subnet-topology", "report.json"] => {
             Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS)
         }
+        ["ic", "ic", "nodes", "operational-status", "full.json"] => {
+            Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS)
+        }
         ["sns", "ic", "catalog", "discovery", "full.json"] => {
             Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS)
         }
@@ -307,6 +312,7 @@ fn recovery_policy(relative: &Path) -> CacheRecoveryPolicy {
         | ["nns", "ic", "node-provider", "providers.json"]
         | ["nns", "ic", "node-operator", "operators.json"]
         | ["nns", "ic", "data-center", "data-centers.json"]
+        | ["ic", "ic", "nodes", "operational-status", "full.json"]
         | ["sns", "ic", "catalog", "discovery", "full.json"] => CacheRecoveryPolicy::Automatic,
         ["sns", "ic", _, "proposals", "full.json"] => CacheRecoveryPolicy::MissingOnly,
         ["nns", "ic", "subnet-topology", "report.json"]
@@ -439,6 +445,10 @@ mod tests {
                 "icrc/ic/account-hash/transactions/full.json",
                 "icrc/transactions",
             ),
+            (
+                "ic/ic/nodes/operational-status/full.json",
+                "ic/nodes/operational-status",
+            ),
         ] {
             assert_eq!(component_from_path(Path::new(path)), expected);
         }
@@ -466,6 +476,10 @@ mod tests {
             ),
             (
                 "sns/ic/catalog/discovery/full.json",
+                CacheRecoveryPolicy::Automatic,
+            ),
+            (
+                "ic/ic/nodes/operational-status/full.json",
                 CacheRecoveryPolicy::Automatic,
             ),
             (
@@ -513,6 +527,10 @@ mod tests {
             (
                 "sns/ic/catalog/discovery/full.json",
                 Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS),
+            ),
+            (
+                "ic/ic/nodes/operational-status/full.json",
+                Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS),
             ),
             ("nns/local/subnet-catalog/catalog.json", None),
             ("legacy/ic/full.json", None),

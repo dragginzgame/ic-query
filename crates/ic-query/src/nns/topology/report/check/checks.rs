@@ -1,51 +1,51 @@
-//! Module: nns::topology::report::health::checks
+//! Module: nns::topology::report::check::checks
 //!
-//! Responsibility: construct NNS topology health check rows.
+//! Responsibility: construct NNS topology check rows.
 //! Does not own: derived metric calculation, text rendering, or source reads.
-//! Boundary: maps health metrics into user-facing check names and details.
+//! Boundary: maps check metrics into user-facing check names and details.
 
-use super::metrics::NnsTopologyHealthDerivedMetrics;
+use super::metrics::NnsTopologyCheckDerivedMetrics;
 use crate::nns::topology::report::{
-    NnsTopologyAssessmentStatus, NnsTopologyHealthCheckRow, NnsTopologySummaryReport,
+    NnsTopologyAssessmentStatus, NnsTopologyCheckRow, NnsTopologySummaryReport,
 };
 
-pub(super) fn topology_health_checks(
+pub(super) fn topology_check_checks(
     summary: &NnsTopologySummaryReport,
-    health: &NnsTopologyHealthDerivedMetrics,
-) -> Vec<NnsTopologyHealthCheckRow> {
+    check: &NnsTopologyCheckDerivedMetrics,
+) -> Vec<NnsTopologyCheckRow> {
     vec![
-        health_check_row(
+        check_row(
             "registry_versions",
-            health.registry_versions_aligned,
+            check.registry_versions_aligned,
             registry_version_detail(
-                health.registry_source_count,
-                health.registry_version_min,
-                health.registry_version_max,
-                health.registry_versions_aligned,
+                check.registry_source_count,
+                check.registry_version_min,
+                check.registry_version_max,
+                check.registry_versions_aligned,
             ),
         ),
-        health_check_row(
+        check_row(
             "cache_freshness",
-            health.stale_source_count == 0 && health.unknown_freshness_source_count == 0,
+            check.stale_source_count == 0 && check.unknown_freshness_source_count == 0,
             cache_freshness_detail(
-                health.stale_source_count,
-                health.unknown_freshness_source_count,
+                check.stale_source_count,
+                check.unknown_freshness_source_count,
                 summary,
             ),
         ),
-        health_check_row(
+        check_row(
             "join_coverage",
-            health.unknown_join_count == 0,
+            check.unknown_join_count == 0,
             format!(
                 "{} known, {} unknown ({})",
-                health.known_join_count, health.unknown_join_count, health.join_coverage
+                check.known_join_count, check.unknown_join_count, check.join_coverage
             ),
         ),
     ]
 }
 
-fn health_check_row(check: &str, is_ok: bool, detail: String) -> NnsTopologyHealthCheckRow {
-    NnsTopologyHealthCheckRow {
+fn check_row(check: &str, is_ok: bool, detail: String) -> NnsTopologyCheckRow {
+    NnsTopologyCheckRow {
         check: check.to_string(),
         status: NnsTopologyAssessmentStatus::from_ok(is_ok),
         detail,

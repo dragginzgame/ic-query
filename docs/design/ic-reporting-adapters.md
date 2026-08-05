@@ -67,11 +67,15 @@ capability on that same adapter rather than one live source per metric REST
 endpoint. Finite network resources use `IcNetworkSource`; the first operation
 returns boundary-node data-center aggregates and the second returns bounded
 daily network activity without introducing a separate adapter for either
-resource. Official ICRC REST analytics use `IcIcrcAnalyticsSource` on the same
-`LiveIcSource`; they do not inherit the native `LiveIcrcSource` ledger/index
-authority merely because the CLI places them below the ICRC subject.
+resource. The finite Dashboard node resource uses `IcNodeStatusSource`; one
+canonical raw snapshot feeds node, Subnet, and node-provider projections plus
+one short-lived cache identity without placing off-chain liveness claims in
+the Registry adapter. Official ICRC REST analytics use
+`IcIcrcAnalyticsSource` on the same `LiveIcSource`; they do not inherit the
+native `LiveIcrcSource` ledger/index authority merely because the CLI places
+them below the ICRC subject.
 Dashboard source-data DTOs echo that request as their source provenance, and
-canister, metric, and network reports share one flattened
+canister, metric, network, and node-status reports share one flattened
 `IcDashboardReportProvenance`, avoiding parallel field and validation flows
 without nesting the public report JSON.
 Certified CMC views share one `CmcSourceRequest` and one `CmcSource`
@@ -224,6 +228,15 @@ their report-specific paging, cache, provenance, or validation contracts.
   caps the window and response at 366 days/rows, tolerates missing days, and
   does not duplicate the resource's unrelated governance, supply, topology,
   or Internet Identity fields.
+- Official Dashboard node-status reporting consumes the default public-mainnet
+  `/nodes` resource in one unfiltered request capped at 10,000 rows and 8 MiB.
+  It preserves raw status, assignment, alert, provider/operator, version,
+  location, and hardware evidence, then projects node, Subnet, and provider
+  views from one canonical snapshot. The 60-second atomic cache is keyed only
+  by the collected network resource; targets and `--all` are views. Reports
+  explicitly state that the observation is uncertified, not point-in-time,
+  and excludes cloud-engine nodes under the Dashboard's default scope. No
+  per-row follow-up call or Registry-version claim is introduced.
 - Official Dashboard ICRC total-supply reporting identifies one canonical
   ledger principal and sends one explicit start/end/step request. It defaults
   to a 30-day daily window, caps requested and returned rows at 1,000,

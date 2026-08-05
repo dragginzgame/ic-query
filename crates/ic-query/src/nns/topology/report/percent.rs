@@ -1,7 +1,7 @@
 //! Module: nns::topology::report::percent
 //!
 //! Responsibility: format reusable NNS topology percentage values.
-//! Does not own: report construction, text tables, or health checks.
+//! Does not own: report construction, text tables, or consistency checks.
 //! Boundary: centralizes percentage math for capacity and coverage reports.
 
 pub(super) fn coverage_percent_text(known: usize, unknown: usize) -> String {

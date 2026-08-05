@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.27", default-features = false, features = ["host"] }
+ic-query = { version = "0.28", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -19,7 +19,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.27", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.28", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -33,7 +33,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.27", default-features = false }
+ic-query = { version = "0.28", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -48,6 +48,9 @@ stderr. Paged NNS proposal/neuron and SNS neuron/proposal refreshes also expose
 `*_with_progress` entry points. These accept a `QueryProgress` sink and emit
 typed `QueryProgressEvent` values for cache creation and refresh lifecycle
 updates. ICRC complete account-history refreshes expose the same pattern.
+Observed node-status report builders accept the sink directly because an
+ordinary read can visibly refresh one missing, invalid, or 60-second-stale
+shared snapshot.
 The sink supplied to that ICRC entry point must also be `Send` because its
 synchronous host adapter may move the caller-owned sink across its internal
 runtime boundary.
@@ -84,6 +87,9 @@ The CLI module layout is intentionally mirrored at the family level:
 - `icq nns subnet ...` maps to `ic_query::subnet_catalog`.
 - `icq nns node ...`, `data-center`, `node-provider`, and `node-operator` map
   to the matching `ic_query::nns::*` modules.
+- Dashboard-backed `icq nns node|subnet|node-provider status` views map to
+  `ic_query::ic`; their source authority and shared cache remain explicit even
+  though the CLI noun accepts Registry-discovered principals.
 - `icq nns topology ...` maps to `ic_query::nns::topology`.
 - `icq sns ...` maps to `ic_query::sns`.
 - `icq system ...` maps to `ic_query::system::cmc`.
@@ -120,7 +126,8 @@ NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
 list/info/token/params/metrics/swap/upgrade/canister, SNS proposal, and SNS
 neuron host APIs expose
 this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
-`IcMetricSource`, `IcNetworkSource`, `IcIcrcAnalyticsSource`, and narrow native
+`IcMetricSource`, `IcNetworkSource`, `IcNodeStatusSource`,
+`IcIcrcAnalyticsSource`, and narrow native
 ICRC capabilities such as
 `IcrcTokenSource`,
 `IcrcBalanceSource`, and `IcrcTransactionsSource`,

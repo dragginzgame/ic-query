@@ -7,6 +7,30 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.28.x] - 2026-08-04 - observed IC node and Subnet status
+
+Detailed release notes: [docs/changelog/0.28.md](docs/changelog/0.28.md)
+
+- `0.28.0` adds node-, Subnet-, and node-provider operational views over one
+  bounded official Dashboard `/nodes` response. The views share a 60-second
+  atomic cache, preserve raw status and assignment evidence, expose explicit
+  uncertified/default-scope provenance, and make no per-row follow-up calls.
+  Subnet rows keep down-only and conservative non-up fault-distance evidence
+  separate, while provider rows retain status-by-assignment comparisons;
+  missing, invalid, or stale cache content visibly refreshes.
+
+- The component-cache consistency command and corresponding public topology
+  report API are hard-cut from `health` to `check`, avoiding confusion with
+  observed machine status. There is no compatibility command, alias, wrapper,
+  or cache migration.
+
+```bash
+icq nns node status
+icq nns subnet status tdb26 --all
+icq nns node-provider status --json
+icq nns topology check
+```
+
 ## [0.27.x] - 2026-08-04 - bounded official ICRC analytics
 
 Detailed release notes: [docs/changelog/0.27.md](docs/changelog/0.27.md)

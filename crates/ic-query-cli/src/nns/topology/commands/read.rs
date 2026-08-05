@@ -22,11 +22,11 @@ Examples:
   icq --network ic nns topology versions --json
   icq nns topology versions --source-endpoint https://icp-api.io";
 
-const TOPOLOGY_HEALTH_HELP_AFTER: &str = "\
+const TOPOLOGY_CHECK_HELP_AFTER: &str = "\
 Examples:
-  icq nns topology health
-  icq --network ic nns topology health --json
-  icq nns topology health --source-endpoint https://icp-api.io";
+  icq nns topology check
+  icq --network ic nns topology check --json
+  icq nns topology check --source-endpoint https://icp-api.io";
 
 const TOPOLOGY_GAPS_HELP_AFTER: &str = "\
 Examples:
@@ -86,12 +86,12 @@ pub(in crate::nns) fn topology_versions_command() -> clap::Command {
     )
 }
 
-pub(in crate::nns) fn topology_health_command() -> clap::Command {
+pub(in crate::nns) fn topology_check_command() -> clap::Command {
     topology_read_command(
-        "health",
-        "Check cached mainnet NNS topology cache health",
+        "check",
+        "Check cached mainnet NNS topology consistency",
         TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP,
-        TOPOLOGY_HEALTH_HELP_AFTER,
+        TOPOLOGY_CHECK_HELP_AFTER,
     )
 }
 

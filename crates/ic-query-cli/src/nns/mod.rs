@@ -9,6 +9,7 @@ mod neuron;
 mod node;
 mod node_operator;
 mod node_provider;
+mod operational_status;
 mod proposals;
 mod registry;
 mod subnet;
@@ -22,6 +23,7 @@ use crate::{
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::{
+    ic::IcNodeStatusHostError,
     nns::{
         data_center::NnsDataCenterHostError, governance::NnsGovernanceHostError,
         neuron::NnsNeuronHostError, node::NnsNodeHostError,
@@ -64,6 +66,8 @@ pub enum NnsCommandError {
     RegistryHost(#[from] NnsRegistryHostError),
     #[error(transparent)]
     TopologyHost(#[from] NnsTopologyHostError),
+    #[error(transparent)]
+    NodeStatusHost(#[from] IcNodeStatusHostError),
     #[error(transparent)]
     Clock(#[from] CurrentUnixSecsError),
     #[error(transparent)]

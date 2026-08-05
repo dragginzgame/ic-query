@@ -142,6 +142,7 @@ fn refresh_is_advertised_as_subnet_command() {
     let refresh = render_help(refresh_command());
 
     assert!(text.contains("refresh"));
+    assert!(text.contains("Show observed operational status and fault-distance by Subnet"));
     assert!(refresh.contains("icq nns subnet refresh"));
     assert!(refresh.contains("Collection mode: Forced live refresh"));
 }

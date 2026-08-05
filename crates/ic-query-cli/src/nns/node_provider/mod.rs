@@ -15,9 +15,19 @@ pub(in crate::nns) fn command() -> clap::Command {
         &spec::NODE_PROVIDER_SPEC,
         ic_query::nns::node_provider::DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
     )
+    .subcommand(crate::nns::operational_status::command(
+        crate::nns::operational_status::OperationalStatusSubject::NodeProvider,
+    ))
 }
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    if let Some(("status", matches)) = matches.subcommand() {
+        return crate::nns::operational_status::run(
+            crate::nns::operational_status::OperationalStatusSubject::NodeProvider,
+            matches,
+            network,
+        );
+    }
     leaf::run_cached_leaf(
         matches,
         network,

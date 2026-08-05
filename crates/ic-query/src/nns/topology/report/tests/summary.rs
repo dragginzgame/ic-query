@@ -80,7 +80,7 @@ fn topology_summary_rejects_local_network_with_topology_hint() {
     assert!(message.contains("icq --network ic nns topology summary"));
     assert!(message.contains("icq --network ic nns topology coverage"));
     assert!(message.contains("icq --network ic nns topology versions"));
-    assert!(message.contains("icq --network ic nns topology health"));
+    assert!(message.contains("icq --network ic nns topology check"));
     assert!(message.contains("icq --network ic nns topology gaps"));
     assert!(message.contains("icq --network ic nns topology capacity"));
     assert!(message.contains("icq --network ic nns topology regions"));

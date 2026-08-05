@@ -8,6 +8,7 @@ mod canister;
 mod icrc_analytics;
 mod metric;
 mod network;
+mod node_status;
 #[cfg(test)]
 mod tests;
 

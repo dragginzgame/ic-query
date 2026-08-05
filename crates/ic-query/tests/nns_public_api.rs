@@ -109,23 +109,23 @@ use ic_query::nns::registry::{
 use ic_query::nns::topology::{
     DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyHostError, NnsTopologyRefreshSource,
     NnsTopologyRefreshSourceRequest, NnsTopologySource, NnsTopologySourceRequest,
-    build_nns_topology_capacity_report_with_source, build_nns_topology_coverage_report_with_source,
-    build_nns_topology_gaps_report_with_source, build_nns_topology_health_report_with_source,
+    build_nns_topology_capacity_report_with_source, build_nns_topology_check_report_with_source,
+    build_nns_topology_coverage_report_with_source, build_nns_topology_gaps_report_with_source,
     build_nns_topology_providers_report_with_source, build_nns_topology_regions_report_with_source,
     build_nns_topology_summary_report_with_source, build_nns_topology_versions_report_with_source,
     refresh_nns_topology_report_with_source,
 };
 use ic_query::nns::topology::{
     NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
-    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRelationKind,
-    NnsTopologyGapRow, NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyHealthCheckRow,
-    NnsTopologyHealthReport, NnsTopologyProviderRow, NnsTopologyProviderStatus,
-    NnsTopologyProvidersReport, NnsTopologyReadRequest, NnsTopologyRefreshReport,
-    NnsTopologyRefreshRequest, NnsTopologyRefreshRow, NnsTopologyRegionRow,
-    NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow, NnsTopologySummaryReport,
-    NnsTopologyVersionsReport, nns_topology_capacity_report_text,
-    nns_topology_coverage_report_text, nns_topology_gaps_report_text,
-    nns_topology_health_report_text, nns_topology_providers_report_text,
+    NnsTopologyCapacityStatus, NnsTopologyCheckReport, NnsTopologyCheckRow,
+    NnsTopologyCoverageReport, NnsTopologyGapRelationKind, NnsTopologyGapRow,
+    NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyProviderRow,
+    NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyReadRequest,
+    NnsTopologyRefreshReport, NnsTopologyRefreshRequest, NnsTopologyRefreshRow,
+    NnsTopologyRegionRow, NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow,
+    NnsTopologySummaryReport, NnsTopologyVersionsReport, nns_topology_capacity_report_text,
+    nns_topology_check_report_text, nns_topology_coverage_report_text,
+    nns_topology_gaps_report_text, nns_topology_providers_report_text,
     nns_topology_refresh_report_text, nns_topology_regions_report_text,
     nns_topology_summary_report_text, nns_topology_versions_report_text,
 };
@@ -1149,8 +1149,8 @@ fn public_nns_topology_summary_and_versions_api_is_constructible_and_renderable(
 }
 
 #[test]
-fn public_nns_topology_coverage_and_health_api_is_constructible_and_renderable() {
-    let health = NnsTopologyHealthReport {
+fn public_nns_topology_coverage_and_check_api_is_constructible_and_renderable() {
+    let check = NnsTopologyCheckReport {
         schema_version: 1,
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -1166,13 +1166,13 @@ fn public_nns_topology_coverage_and_health_api_is_constructible_and_renderable()
         known_join_count: 11,
         unknown_join_count: 0,
         join_coverage: "100.0%".to_string(),
-        checks: vec![NnsTopologyHealthCheckRow {
+        checks: vec![NnsTopologyCheckRow {
             check: "registry_versions".to_string(),
             status: NnsTopologyAssessmentStatus::Ok,
             detail: "1 source at registry version 42".to_string(),
         }],
     };
-    assert!(nns_topology_health_report_text(&health).contains("registry_versions"));
+    assert!(nns_topology_check_report_text(&check).contains("registry_versions"));
 
     let coverage = NnsTopologyCoverageReport {
         schema_version: 1,
@@ -1350,7 +1350,7 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
         &source,
     )
     .expect("topology coverage report");
-    let health = build_nns_topology_health_report_with_source(
+    let check = build_nns_topology_check_report_with_source(
         &NnsTopologyReadRequest::new(
             ".",
             "ic",
@@ -1359,14 +1359,14 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
         ),
         &source,
     )
-    .expect("topology health report");
+    .expect("topology check report");
     let versions = topology_versions_report_with_source(&source);
     let refresh = topology_refresh_report_with_source(&source);
 
     assert_eq!(summary.network, "ic");
     assert_eq!(summary.subnet_count, 1);
     assert_eq!(coverage.node_count, 1);
-    assert_eq!(health.network, "ic");
+    assert_eq!(check.network, "ic");
     assert_eq!(versions.source_count, 5);
     assert_eq!(refresh.component_count, 5);
     assert!(refresh.dry_run);

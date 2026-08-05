@@ -11,10 +11,16 @@ use ic_query::ic::{
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
-    IcMetricRequest, IcMetricSeries, MAX_IC_CANISTER_PAGE_LIMIT, MAX_IC_DASHBOARD_RESPONSE_BYTES,
+    IcMetricRequest, IcMetricSeries, IcNodeAssignmentStatusCounts, IcNodeProviderStatusReport,
+    IcNodeStatusCounts, IcNodeStatusGroupCounts, IcNodeStatusObservation, IcNodeStatusReport,
+    IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
+    IcSubnetStatusReport, MAX_IC_CANISTER_PAGE_LIMIT, MAX_IC_DASHBOARD_RESPONSE_BYTES,
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
+    ic_metric_report_text, ic_node_provider_status_report_from_snapshot,
+    ic_node_provider_status_report_text, ic_node_status_report_from_snapshot,
+    ic_node_status_report_text, ic_subnet_status_report_from_snapshot,
+    ic_subnet_status_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
     icrc_total_supply_report_text,
 };
 #[cfg(feature = "host")]
@@ -23,13 +29,15 @@ use ic_query::ic::{
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
     IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
     IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData,
-    IcNetworkSource, IcSourceRequest, LiveIcSource, build_ic_boundary_node_data_centers_report,
+    IcNetworkSource, IcNodeStatusSnapshotRequest, IcNodeStatusSource, IcNodeStatusSourceData,
+    IcSourceRequest, LiveIcSource, build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
     build_ic_canister_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
-    build_ic_metric_report_with_source, build_icrc_indexed_count_report,
+    build_ic_metric_report_with_source, build_ic_node_status_snapshot,
+    build_ic_node_status_snapshot_with_source, build_icrc_indexed_count_report,
     build_icrc_indexed_count_report_with_source, build_icrc_token_value_report,
     build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
@@ -42,6 +50,32 @@ const SUBNET_ID: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-v
 #[test]
 fn public_dashboard_transport_limit_is_available_without_host() {
     assert_eq!(MAX_IC_DASHBOARD_RESPONSE_BYTES, 8 * 1024 * 1024);
+}
+
+#[test]
+fn public_node_status_api_is_constructible_serializable_and_renderable_without_host() {
+    let snapshot = public_node_status_snapshot();
+    let view = IcNodeStatusView::attention();
+    let node_report: IcNodeStatusReport =
+        ic_node_status_report_from_snapshot(&snapshot, &view).expect("node projection");
+    let subnet_report: IcSubnetStatusReport =
+        ic_subnet_status_report_from_snapshot(&snapshot, &view).expect("Subnet projection");
+    let provider_report: IcNodeProviderStatusReport =
+        ic_node_provider_status_report_from_snapshot(&snapshot, &view)
+            .expect("provider projection");
+
+    assert!(ic_node_status_report_text(&node_report).contains("DOWN"));
+    assert!(ic_subnet_status_report_text(&subnet_report).contains("+NON-UP >F"));
+    assert!(ic_node_provider_status_report_text(&provider_report).contains("Provider"));
+    let node_json = serde_json::to_value(node_report).expect("serializable node status report");
+    let json = serde_json::to_value(subnet_report).expect("serializable Subnet status report");
+    assert_eq!(json["authority"], "official_ic_dashboard_api");
+    assert_eq!(json["cloud_engine_nodes_included"], false);
+    assert_eq!(
+        node_json["counts"]["assignment_statuses"]["assigned"]["down"],
+        1
+    );
+    assert_eq!(json["subnets"][0]["statuses"]["down"], 1);
 }
 
 #[test]
@@ -433,6 +467,25 @@ fn public_host_api_exposes_live_and_custom_source_builders() {
 
 #[cfg(feature = "host")]
 #[test]
+fn public_host_api_exposes_live_and_custom_node_status_builders() {
+    let _: fn(&IcNodeStatusSnapshotRequest) -> Result<IcNodeStatusSnapshot, IcHostError> =
+        build_ic_node_status_snapshot;
+    let _: fn(
+        &IcNodeStatusSnapshotRequest,
+        &dyn IcNodeStatusSource,
+    ) -> Result<IcNodeStatusSnapshot, IcHostError> = build_ic_node_status_snapshot_with_source;
+
+    let request =
+        IcNodeStatusSnapshotRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000);
+    let snapshot = build_ic_node_status_snapshot_with_source(&request, &FixtureSource)
+        .expect("custom node-status source snapshot");
+
+    assert_eq!(snapshot.node_count, 1);
+    assert_eq!(snapshot.counts.statuses.down, 1);
+}
+
+#[cfg(feature = "host")]
+#[test]
 fn public_host_api_exposes_live_and_custom_icrc_analytics_builders() {
     let _: fn(&IcIcrcIndexedCountRequest) -> Result<IcIcrcIndexedCountReport, IcHostError> =
         build_icrc_indexed_count_report;
@@ -676,6 +729,21 @@ impl IcNetworkSource for FixtureSource {
     }
 }
 
+#[cfg(feature = "host")]
+impl IcNodeStatusSource for FixtureSource {
+    fn fetch_node_status_snapshot(
+        &self,
+        request: &IcSourceRequest,
+    ) -> Result<IcNodeStatusSourceData, IcHostError> {
+        Ok(IcNodeStatusSourceData {
+            source: request.clone(),
+            scope: IcNodeStatusScope::DashboardMainnetDefault,
+            cloud_engine_nodes_included: false,
+            nodes: vec![public_node_status_row()],
+        })
+    }
+}
+
 fn public_provenance(source_endpoint: impl Into<String>) -> IcDashboardReportProvenance {
     IcDashboardReportProvenance {
         schema_version: 1,
@@ -686,6 +754,64 @@ fn public_provenance(source_endpoint: impl Into<String>) -> IcDashboardReportPro
         fetched_by: "ic-query".to_string(),
         certified: false,
         point_in_time_guaranteed: false,
+    }
+}
+
+fn public_node_status_snapshot() -> IcNodeStatusSnapshot {
+    IcNodeStatusSnapshot {
+        observation: IcNodeStatusObservation {
+            source: public_provenance(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT),
+            scope: IcNodeStatusScope::DashboardMainnetDefault,
+            cloud_engine_nodes_included: false,
+            cache: None,
+        },
+        node_count: 1,
+        counts: IcNodeStatusGroupCounts {
+            statuses: IcNodeStatusCounts {
+                total: 1,
+                up: 0,
+                down: 1,
+                disabled: 0,
+                degraded: 0,
+                unknown: 0,
+            },
+            assignment_statuses: IcNodeAssignmentStatusCounts {
+                assigned: IcNodeStatusCounts {
+                    total: 1,
+                    up: 0,
+                    down: 1,
+                    disabled: 0,
+                    degraded: 0,
+                    unknown: 0,
+                },
+                ..IcNodeAssignmentStatusCounts::default()
+            },
+        },
+        nodes: vec![public_node_status_row()],
+    }
+}
+
+fn public_node_status_row() -> IcNodeStatusRow {
+    IcNodeStatusRow {
+        node_id: "aaaaa-aa".to_string(),
+        node_operator_id: "2vxsx-fae".to_string(),
+        node_provider_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        node_provider_name: "Provider".to_string(),
+        node_type: "REPLICA".to_string(),
+        node_reward_type: "Type3dot1".to_string(),
+        status: "DOWN".to_string(),
+        alert_name: Some("IC_Node_Offline".to_string()),
+        subnet_id: Some(SUBNET_ID.to_string()),
+        cloud_engine_subnet_id: None,
+        data_center_id: "da11".to_string(),
+        data_center_name: "Dallas".to_string(),
+        owner: "Owner".to_string(),
+        region: "North America,US,Texas".to_string(),
+        guestos_version: Some("version".to_string()),
+        guestos_tee_active: Some(false),
+        ip_address: Some("2001:db8::1".to_string()),
+        ipv4_connectivity_status: Some(true),
+        node_hardware_generation: Some("Gen2".to_string()),
     }
 }
 

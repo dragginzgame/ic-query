@@ -15,6 +15,11 @@ pub(in crate::nns) fn command() -> clap::Command {
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
+        Some(("status", matches)) => crate::nns::operational_status::run(
+            crate::nns::operational_status::OperationalStatusSubject::Subnet,
+            matches,
+            network,
+        ),
         Some(("list", matches)) => list::run_catalog_list(matches, network),
         Some(("info", matches)) => info::run_catalog_info(matches, network),
         Some(("refresh", matches)) => refresh::run_catalog_refresh(matches, network),

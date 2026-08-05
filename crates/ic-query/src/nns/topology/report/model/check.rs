@@ -2,13 +2,13 @@ use super::NnsTopologyAssessmentStatus;
 use serde::{Deserialize, Serialize};
 
 ///
-/// NnsTopologyHealthReport
+/// NnsTopologyCheckReport
 ///
-/// NNS topology health report composed from consistency checks.
+/// NNS topology check report composed from consistency checks.
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyHealthReport {
+pub struct NnsTopologyCheckReport {
     pub schema_version: u32,
     pub network: String,
     pub source_endpoint: String,
@@ -25,17 +25,17 @@ pub struct NnsTopologyHealthReport {
     pub known_join_count: usize,
     pub unknown_join_count: usize,
     pub join_coverage: String,
-    pub checks: Vec<NnsTopologyHealthCheckRow>,
+    pub checks: Vec<NnsTopologyCheckRow>,
 }
 
 ///
-/// NnsTopologyHealthCheckRow
+/// NnsTopologyCheckRow
 ///
 /// Result of one NNS topology consistency check.
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsTopologyHealthCheckRow {
+pub struct NnsTopologyCheckRow {
     pub check: String,
     pub status: NnsTopologyAssessmentStatus,
     pub detail: String,

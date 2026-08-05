@@ -15,4 +15,7 @@ pub(in crate::nns) fn node_command() -> clap::Command {
         ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         node_list_command(),
     )
+    .subcommand(crate::nns::operational_status::command(
+        crate::nns::operational_status::OperationalStatusSubject::Node,
+    ))
 }

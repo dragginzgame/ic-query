@@ -8,4 +8,7 @@ pub(in crate::nns) fn subnet_command() -> ClapCommand {
         .subcommand(list_command())
         .subcommand(info_command())
         .subcommand(refresh_command())
+        .subcommand(crate::nns::operational_status::command(
+            crate::nns::operational_status::OperationalStatusSubject::Subnet,
+        ))
 }

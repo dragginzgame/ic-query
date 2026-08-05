@@ -134,6 +134,7 @@ fn node_provider_help_is_advertised_under_nns() {
     assert!(node_provider.contains("List cached mainnet NNS node providers"));
     assert!(node_provider.contains("Show one cached mainnet NNS node provider"));
     assert!(node_provider.contains("Force-refresh and cache NNS node-provider metadata"));
+    assert!(node_provider.contains("Show observed operational status grouped by node provider"));
     assert!(list.contains("icq nns node-provider list"));
     assert!(list.contains("--verbose"));
     assert!(list.contains("--json"));

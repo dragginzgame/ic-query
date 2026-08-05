@@ -61,7 +61,7 @@ pub(in crate::nns) trait TopologyReadOptions: Sized {
 topology_read_options!(TopologySummaryOptions);
 topology_read_options!(TopologyCoverageOptions);
 topology_read_options!(TopologyVersionsOptions);
-topology_read_options!(TopologyHealthOptions);
+topology_read_options!(TopologyCheckOptions);
 topology_read_options!(TopologyGapsOptions);
 topology_read_options!(TopologyCapacityOptions);
 topology_read_options!(TopologyRegionsOptions);

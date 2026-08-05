@@ -64,6 +64,12 @@ ignoring it. Every override must be a credential-free HTTP(S) base URL with a
 host and no query or fragment. Official Dashboard requests reject redirects;
 native `ic-agent` calls cap each response body at 8 MiB.
 
+The node, Subnet, and node-provider `status` operations sit below their NNS
+nouns so discovered Registry principals flow directly into the observed view.
+They accept the global network identity, require it to be `ic`, and query the
+explicit Dashboard `--source-endpoint` only when their shared cache policy
+requires refresh.
+
 ## Official IC Dashboard
 
 ```bash
@@ -142,14 +148,20 @@ icq nns subnet info <subnet-or-canister>
 icq nns subnet refresh
 
 icq nns node list
+icq nns node status
+icq nns node status <node-or-prefix> --json
 icq nns node-provider list
+icq nns node-provider status
 icq nns node-operator list
 icq nns data-center list
+
+icq nns subnet status
+icq nns subnet status <subnet-or-prefix> --all
 
 icq nns topology refresh
 icq nns topology summary
 icq nns topology coverage
-icq nns topology health
+icq nns topology check
 icq nns topology gaps
 icq nns topology capacity
 icq nns topology regions
@@ -160,6 +172,25 @@ icq nns topology versions
 Inventory list/detail commands use their documented cache-backed behavior.
 Refresh commands force a live fetch and replace the matching complete cache
 only after validation.
+
+The three `status` operations are views over one off-chain Dashboard node
+snapshot, not joins performed independently for each noun. The default view
+shows only non-up nodes or groups; `--all` includes fully-up rows, an exact
+principal or unique prefix selects one target, and `--refresh` forces a live
+replacement. Ordinary reads reuse the complete cache for up to 60 seconds and
+visibly recover missing, malformed, semantically invalid, or stale content.
+The source makes one unfiltered `/nodes` call, accepts at most 10,000 rows and
+8 MiB, and performs no per-node or per-Subnet follow-up calls.
+
+Status JSON preserves raw Dashboard `UP`, `DOWN`, `DEGRADED`, `DISABLED`, and
+unknown future values, assignment/type evidence, alerts, provider/operator,
+version, location, and hardware fields. Subnet rows derive separate down-only
+and conservative non-up distances from `floor((n - 1) / 3)`. Provider rows
+include a complete status-by-assignment cross-tab, so assigned
+and unassigned up/down or non-up totals can be compared directly. These are
+timestamped off-chain observations with `certified: false` and
+`point_in_time_guaranteed: false`; the recorded default public-mainnet scope
+also excludes cloud-engine nodes.
 
 The CLI topology reports are diagnostics built from component caches. Their
 version report makes component skew visible, but these reports are not
@@ -172,6 +203,8 @@ operator, and provider relation at that version under one lock, then publishes
 one atomic complete snapshot. It has no CLI surface today. Placement-sensitive
 consumers should use that API instead of joining component caches; see
 [Exact-Version NNS Subnet Topology](design/nns-subnet-topology.md).
+The component-cache consistency operation is named `topology check` so it is
+not confused with the observed operational status views.
 
 ### Governance
 

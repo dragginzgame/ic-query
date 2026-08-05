@@ -8,6 +8,7 @@ mod canister;
 mod icrc_analytics;
 mod metric;
 mod network;
+mod node_status;
 
 use crate::ic::{
     IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
@@ -18,6 +19,7 @@ pub use canister::{IcCanisterCollectionSource, IcCanisterSource};
 pub use icrc_analytics::IcIcrcAnalyticsSource;
 pub use metric::IcMetricSource;
 pub use network::IcNetworkSource;
+pub use node_status::IcNodeStatusSource;
 
 pub(super) use canister::{
     canonical_canister_id, canonical_page_cursor, canonical_request_principal,
@@ -36,6 +38,9 @@ pub(super) use metric::{
 pub(super) use network::{
     boundary_node_data_centers_report_from_source, daily_stats_report_from_source,
     validate_daily_stats_query, validate_daily_stats_request,
+};
+pub(super) use node_status::{
+    node_status_snapshot_from_source, validate_default_node_scope, validate_node_status_rows,
 };
 
 fn validate_provenance(

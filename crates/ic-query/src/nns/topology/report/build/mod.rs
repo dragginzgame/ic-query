@@ -4,8 +4,8 @@ mod refresh;
 mod summary;
 
 pub use derived::{
+    build_nns_topology_check_report, build_nns_topology_check_report_with_source,
     build_nns_topology_coverage_report, build_nns_topology_coverage_report_with_source,
-    build_nns_topology_health_report, build_nns_topology_health_report_with_source,
     build_nns_topology_versions_report, build_nns_topology_versions_report_with_source,
 };
 pub use direct::{

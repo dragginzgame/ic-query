@@ -9,13 +9,13 @@ mod build;
 #[cfg(feature = "host")]
 mod capacity;
 #[cfg(feature = "host")]
+mod check;
+#[cfg(feature = "host")]
 mod coverage;
 #[cfg(feature = "host")]
 mod error;
 #[cfg(feature = "host")]
 mod gaps;
-#[cfg(feature = "host")]
-mod health;
 mod model;
 mod percent;
 #[cfg(feature = "host")]
@@ -44,11 +44,11 @@ mod tests;
 #[cfg(all(test, feature = "host"))]
 use capacity::topology_capacity_report_from_report;
 #[cfg(all(test, feature = "host"))]
+use check::topology_check_report_from_summary;
+#[cfg(all(test, feature = "host"))]
 use coverage::topology_coverage_report_from_summary;
 #[cfg(all(test, feature = "host"))]
 use gaps::topology_gaps_report_from_reports;
-#[cfg(all(test, feature = "host"))]
-use health::topology_health_report_from_summary;
 #[cfg(all(test, feature = "host"))]
 use providers::topology_providers_report_from_reports;
 #[cfg(all(test, feature = "host"))]
@@ -63,9 +63,9 @@ use versions::topology_versions_report_from_summary;
 #[cfg(feature = "host")]
 pub use build::{
     build_nns_topology_capacity_report, build_nns_topology_capacity_report_with_source,
+    build_nns_topology_check_report, build_nns_topology_check_report_with_source,
     build_nns_topology_coverage_report, build_nns_topology_coverage_report_with_source,
     build_nns_topology_gaps_report, build_nns_topology_gaps_report_with_source,
-    build_nns_topology_health_report, build_nns_topology_health_report_with_source,
     build_nns_topology_providers_report, build_nns_topology_providers_report_with_source,
     build_nns_topology_regions_report, build_nns_topology_regions_report_with_source,
     build_nns_topology_summary_report, build_nns_topology_summary_report_with_source,
@@ -76,12 +76,12 @@ pub use build::{
 pub use error::NnsTopologyHostError;
 pub use model::{
     NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
-    NnsTopologyCapacityStatus, NnsTopologyCoverageReport, NnsTopologyGapRelationKind,
-    NnsTopologyGapRow, NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyHealthCheckRow,
-    NnsTopologyHealthReport, NnsTopologyProviderRow, NnsTopologyProviderStatus,
-    NnsTopologyProvidersReport, NnsTopologyRefreshReport, NnsTopologyRefreshRow,
-    NnsTopologyRegionRow, NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow,
-    NnsTopologySummaryReport, NnsTopologyVersionsReport,
+    NnsTopologyCapacityStatus, NnsTopologyCheckReport, NnsTopologyCheckRow,
+    NnsTopologyCoverageReport, NnsTopologyGapRelationKind, NnsTopologyGapRow,
+    NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyProviderRow,
+    NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
+    NnsTopologyRefreshRow, NnsTopologyRegionRow, NnsTopologyRegionsReport,
+    NnsTopologyRegistryVersionRow, NnsTopologySummaryReport, NnsTopologyVersionsReport,
 };
 pub use request::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
 #[cfg(feature = "host")]
@@ -108,8 +108,8 @@ pub use subnet_topology::{
     NnsSubnetTopologyValidationError, nns_subnet_topology_report_text,
 };
 pub use text::{
-    nns_topology_capacity_report_text, nns_topology_coverage_report_text,
-    nns_topology_gaps_report_text, nns_topology_health_report_text,
+    nns_topology_capacity_report_text, nns_topology_check_report_text,
+    nns_topology_coverage_report_text, nns_topology_gaps_report_text,
     nns_topology_providers_report_text, nns_topology_refresh_report_text,
     nns_topology_regions_report_text, nns_topology_summary_report_text,
     nns_topology_versions_report_text,
@@ -120,7 +120,7 @@ pub const DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT: &str =
 pub const NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_COVERAGE_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION: u32 = 1;
-pub const NNS_TOPOLOGY_HEALTH_REPORT_SCHEMA_VERSION: u32 = 1;
+pub const NNS_TOPOLOGY_CHECK_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_CAPACITY_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_REGIONS_REPORT_SCHEMA_VERSION: u32 = 1;

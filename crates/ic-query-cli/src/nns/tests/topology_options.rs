@@ -54,10 +54,10 @@ topology_read_options_parse_test!(
     "parse topology coverage"
 );
 topology_read_options_parse_test!(
-    topology_health_parses_defaults_and_json_format,
-    TopologyHealthOptions,
-    topology_health_command,
-    "parse topology health"
+    topology_check_parses_defaults_and_json_format,
+    TopologyCheckOptions,
+    topology_check_command,
+    "parse topology check"
 );
 topology_read_options_parse_test!(
     topology_gaps_parses_defaults_and_json_format,

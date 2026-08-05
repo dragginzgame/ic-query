@@ -48,11 +48,11 @@ topology_read_runner!(
     topology::nns_topology_versions_report_text
 );
 topology_read_runner!(
-    run_topology_health,
-    topology_options::TopologyHealthOptions,
-    topology::NnsTopologyHealthReport,
-    topology::build_nns_topology_health_report,
-    topology::nns_topology_health_report_text
+    run_topology_check,
+    topology_options::TopologyCheckOptions,
+    topology::NnsTopologyCheckReport,
+    topology::build_nns_topology_check_report,
+    topology::nns_topology_check_report_text
 );
 topology_read_runner!(
     run_topology_gaps,

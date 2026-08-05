@@ -33,13 +33,13 @@ use super::{
         refresh_command, subnet_command,
     },
     topology::{
-        TopologyCapacityOptions, TopologyCoverageOptions, TopologyGapsOptions,
-        TopologyHealthOptions, TopologyProvidersOptions, TopologyReadOptions,
-        TopologyRefreshOptions, TopologyRegionsOptions, TopologySummaryOptions,
-        TopologyVersionsOptions, topology_capacity_command, topology_command,
-        topology_coverage_command, topology_gaps_command, topology_health_command,
-        topology_providers_command, topology_refresh_command, topology_regions_command,
-        topology_summary_command, topology_versions_command,
+        TopologyCapacityOptions, TopologyCheckOptions, TopologyCoverageOptions,
+        TopologyGapsOptions, TopologyProvidersOptions, TopologyReadOptions, TopologyRefreshOptions,
+        TopologyRegionsOptions, TopologySummaryOptions, TopologyVersionsOptions,
+        topology_capacity_command, topology_check_command, topology_command,
+        topology_coverage_command, topology_gaps_command, topology_providers_command,
+        topology_refresh_command, topology_regions_command, topology_summary_command,
+        topology_versions_command,
     },
 };
 use crate::cli::clap::parse_matches;
