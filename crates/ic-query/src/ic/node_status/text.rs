@@ -7,8 +7,9 @@
 #[cfg(feature = "host")]
 use super::IcNodeStatusRefreshReport;
 use super::{
-    IcNodeAssignmentStatusCounts, IcNodeProviderStatusReport, IcNodeStatusCounts,
-    IcNodeStatusObservation, IcNodeStatusReport, IcNodeStatusRow, IcSubnetStatusReport,
+    IcNodeAssignmentStatusCounts, IcNodeCountComparisonCounts, IcNodeProviderStatusReport,
+    IcNodeStatusCounts, IcNodeStatusObservation, IcNodeStatusReport, IcNodeStatusRow,
+    IcSubnetStatusReport,
 };
 use crate::{
     table::{ColumnAlign, render_table},
@@ -112,19 +113,9 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
         report.provider_count, report.attention_provider_count, report.returned_provider_count
     ));
     sections.push(format!(
-        "unassigned_vs_assigned providers (less/equal/greater): up={}/{}/{} non_up={}/{}/{}",
-        report.unassigned_up_vs_assigned_up_provider_counts.less,
-        report.unassigned_up_vs_assigned_up_provider_counts.equal,
-        report.unassigned_up_vs_assigned_up_provider_counts.greater,
-        report
-            .unassigned_non_up_vs_assigned_non_up_provider_counts
-            .less,
-        report
-            .unassigned_non_up_vs_assigned_non_up_provider_counts
-            .equal,
-        report
-            .unassigned_non_up_vs_assigned_non_up_provider_counts
-            .greater,
+        "unassigned_vs_assigned providers (less/equal/greater): up={} non_up={}",
+        comparison_counts_text(&report.unassigned_up_vs_assigned_up_provider_counts),
+        comparison_counts_text(&report.unassigned_non_up_vs_assigned_non_up_provider_counts),
     ));
     let headers = [
         "NODE PROVIDER",
@@ -281,6 +272,10 @@ fn assignment_status_line(counts: &IcNodeAssignmentStatusCounts) -> String {
 
 fn up_non_up(counts: &IcNodeStatusCounts) -> String {
     format!("{}/{}", counts.up, counts.non_up())
+}
+
+fn comparison_counts_text(counts: &IcNodeCountComparisonCounts) -> String {
+    format!("{}/{}/{}", counts.less, counts.equal, counts.greater)
 }
 
 fn render_node_table(nodes: &[IcNodeStatusRow]) -> String {

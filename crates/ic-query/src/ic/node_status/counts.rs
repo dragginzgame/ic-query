@@ -9,16 +9,6 @@ use super::{
     IcNodeStatusGroupCounts, IcNodeStatusRow,
 };
 
-pub(in crate::ic) fn node_status_counts<'a>(
-    nodes: impl Iterator<Item = &'a IcNodeStatusRow>,
-) -> IcNodeStatusCounts {
-    let mut counts = IcNodeStatusCounts::default();
-    for node in nodes {
-        increment_status(&mut counts, node.operational_status());
-    }
-    counts
-}
-
 pub(in crate::ic) fn node_status_group_counts<'a>(
     nodes: impl Iterator<Item = &'a IcNodeStatusRow>,
 ) -> IcNodeStatusGroupCounts {

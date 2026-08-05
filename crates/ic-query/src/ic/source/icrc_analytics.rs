@@ -5,8 +5,8 @@
 //! Boundary: validates ledger-scoped scalar and bounded-series evidence before reports.
 
 use super::{
-    invalid_request, invalid_source, report_provenance, validate_principal_match,
-    validate_provenance,
+    invalid_request, invalid_source, report_provenance, validate_collection_end,
+    validate_principal_match, validate_provenance,
 };
 use crate::ic::{
     IcHostError, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountSourceData,
@@ -53,13 +53,7 @@ pub(in crate::ic) fn validate_icrc_token_value_request(
     query: &IcIcrcTokenValueQuery,
 ) -> Result<(), IcHostError> {
     validate_icrc_token_value_query(query)?;
-    if query.end_unix_secs > now_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must not be later than the collection time",
-        );
-    }
-    Ok(())
+    validate_collection_end(now_unix_secs, query.end_unix_secs)
 }
 
 pub(in crate::ic) fn validate_icrc_token_value_query(
@@ -182,13 +176,7 @@ pub(in crate::ic) fn validate_icrc_total_supply_request(
     query: &IcIcrcTotalSupplyQuery,
 ) -> Result<(), IcHostError> {
     validate_icrc_total_supply_query(query)?;
-    if query.end_unix_secs > now_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must not be later than the collection time",
-        );
-    }
-    Ok(())
+    validate_collection_end(now_unix_secs, query.end_unix_secs)
 }
 
 pub(in crate::ic) fn validate_icrc_total_supply_query(

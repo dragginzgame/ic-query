@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.28.md](docs/changelog/0.28.md)
 
+- `0.28.3` consolidates the observed-status projection internals without
+  changing reports: Subnet aggregates are constructed once before view
+  filtering, node/Subnet/provider selection and non-up evidence reuse shared
+  helpers, and the redundant status-only counting flow is removed. Every
+  bounded Dashboard time-series request also shares one collection-time bound.
+  Commands, JSON, text, calls, and cache behavior are unchanged.
+
 - `0.28.2` adds typed less/equal/greater comparisons of each provider's
   unassigned versus assigned up and conservative non-up node counts. Reports
   include all-provider comparison totals and compact text labels, while the

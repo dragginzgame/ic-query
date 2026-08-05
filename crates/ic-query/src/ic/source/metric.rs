@@ -4,7 +4,10 @@
 //! Does not own: HTTP transport, shared provenance, canisters, or network resources.
 //! Boundary: validates one explicitly bounded metric response before report construction.
 
-use super::{invalid_request, invalid_source, report_provenance, validate_provenance};
+use super::{
+    invalid_request, invalid_source, report_provenance, validate_collection_end,
+    validate_provenance,
+};
 use crate::ic::{
     IcHostError, IcMetricQuery, IcMetricReport, IcMetricSeries, IcMetricSourceData,
     IcSourceRequest, MAX_IC_METRIC_OBSERVATIONS_PER_SERIES, MAX_IC_METRIC_STEP_SECS,
@@ -31,13 +34,7 @@ pub(in crate::ic) fn validate_metric_request(
     query: &IcMetricQuery,
 ) -> Result<(), IcHostError> {
     validate_metric_query(query)?;
-    if query.end_unix_secs > now_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must not be later than the collection time",
-        );
-    }
-    Ok(())
+    validate_collection_end(now_unix_secs, query.end_unix_secs)
 }
 
 pub(in crate::ic) fn validate_metric_query(query: &IcMetricQuery) -> Result<(), IcHostError> {

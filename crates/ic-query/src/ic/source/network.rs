@@ -5,7 +5,8 @@
 //! Boundary: validates bounded daily statistics and finite boundary-node resources.
 
 use super::{
-    invalid_request, invalid_source, invalid_source_value, report_provenance, validate_provenance,
+    invalid_request, invalid_source, invalid_source_value, report_provenance,
+    validate_collection_end, validate_provenance,
 };
 use crate::{
     ic::{
@@ -45,13 +46,7 @@ pub(in crate::ic) fn validate_daily_stats_request(
     query: &IcDailyStatsQuery,
 ) -> Result<(), IcHostError> {
     validate_daily_stats_query(query)?;
-    if query.end_unix_secs > now_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must not be later than the collection time",
-        );
-    }
-    Ok(())
+    validate_collection_end(now_unix_secs, query.end_unix_secs)
 }
 
 pub(in crate::ic) fn validate_daily_stats_query(

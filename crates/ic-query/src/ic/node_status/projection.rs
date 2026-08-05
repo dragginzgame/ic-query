@@ -6,10 +6,10 @@
 
 use super::{
     IcNodeCountComparison, IcNodeCountComparisonCounts, IcNodeProviderStatusReport,
-    IcNodeProviderStatusRow, IcNodeStatusCounts, IcNodeStatusProjectionError, IcNodeStatusReport,
-    IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
-    IcSubnetStatusReport, IcSubnetStatusRow, node_status_counts, node_status_group_counts,
-    validate_canonical_node_status_rows, validate_default_node_scope,
+    IcNodeProviderStatusRow, IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow,
+    IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport,
+    IcSubnetStatusRow, node_status_group_counts, validate_canonical_node_status_rows,
+    validate_default_node_scope,
 };
 use std::collections::BTreeMap;
 
@@ -28,12 +28,7 @@ pub fn ic_node_status_report_from_snapshot(
     let nodes = snapshot
         .nodes
         .iter()
-        .filter(|node| {
-            resolution.as_ref().map_or_else(
-                || view.include_all || node.is_non_up(),
-                |resolution| node.node_id == resolution.resolved,
-            )
-        })
+        .filter(|node| view_includes(view, resolution.as_ref(), &node.node_id, node.is_non_up()))
         .cloned()
         .collect::<Vec<_>>();
 
@@ -68,20 +63,25 @@ pub fn ic_subnet_status_report_from_snapshot(
         grouped.keys().map(String::as_str),
         "subnet_principal",
     )?;
-    let subnet_count = grouped.len();
-    let attention_subnet_count = grouped
-        .values()
-        .filter(|nodes| counts_for(nodes.iter().copied()).non_up() > 0)
-        .count();
-    let subnets = grouped
+    let all_subnets = grouped
         .into_iter()
-        .filter(|(subnet_id, nodes)| {
-            resolution.as_ref().map_or_else(
-                || view.include_all || counts_for(nodes.iter().copied()).non_up() > 0,
-                |resolution| subnet_id == &resolution.resolved,
+        .map(|(subnet_id, nodes)| subnet_row(subnet_id, &nodes))
+        .collect::<Vec<_>>();
+    let subnet_count = all_subnets.len();
+    let attention_subnet_count = all_subnets
+        .iter()
+        .filter(|row| row.statuses.non_up() > 0)
+        .count();
+    let subnets = all_subnets
+        .into_iter()
+        .filter(|row| {
+            view_includes(
+                view,
+                resolution.as_ref(),
+                &row.subnet_id,
+                row.statuses.non_up() > 0,
             )
         })
-        .map(|(subnet_id, nodes)| subnet_row(subnet_id, &nodes))
         .collect::<Vec<_>>();
 
     Ok(IcSubnetStatusReport {
@@ -139,9 +139,11 @@ pub fn ic_node_provider_status_report_from_snapshot(
     let providers = all_providers
         .into_iter()
         .filter(|row| {
-            resolution.as_ref().map_or_else(
-                || view.include_all || row.counts.statuses.non_up() > 0,
-                |resolution| row.node_provider_id == resolution.resolved,
+            view_includes(
+                view,
+                resolution.as_ref(),
+                &row.node_provider_id,
+                row.counts.statuses.non_up() > 0,
             )
         })
         .collect::<Vec<_>>();
@@ -163,14 +165,10 @@ pub fn ic_node_provider_status_report_from_snapshot(
 }
 
 fn subnet_row(subnet_id: String, nodes: &[&IcNodeStatusRow]) -> IcSubnetStatusRow {
-    let statuses = counts_for(nodes.iter().copied());
+    let statuses = node_status_group_counts(nodes.iter().copied()).statuses;
     let fault_tolerance_node_count = statuses.total.saturating_sub(1) / 3;
     let first_exceeding_count = fault_tolerance_node_count.saturating_add(1);
-    let non_up_nodes = nodes
-        .iter()
-        .filter(|node| node.is_non_up())
-        .map(|node| (*node).clone())
-        .collect();
+    let non_up_nodes = non_up_nodes(nodes);
     IcSubnetStatusRow {
         subnet_id,
         additional_down_nodes_to_exceed_fault_tolerance: first_exceeding_count
@@ -190,11 +188,7 @@ fn provider_row(node_provider_id: String, nodes: &[&IcNodeStatusRow]) -> IcNodeP
     let node_provider_name = nodes
         .first()
         .map_or_else(String::new, |node| node.node_provider_name.clone());
-    let non_up_nodes = nodes
-        .iter()
-        .filter(|node| node.is_non_up())
-        .map(|node| (*node).clone())
-        .collect();
+    let non_up_nodes = non_up_nodes(nodes);
     let counts = node_status_group_counts(nodes.iter().copied());
     let assigned = &counts.assignment_statuses.assigned;
     let unassigned = &counts.assignment_statuses.unassigned;
@@ -214,6 +208,14 @@ fn provider_row(node_provider_id: String, nodes: &[&IcNodeStatusRow]) -> IcNodeP
     }
 }
 
+fn non_up_nodes(nodes: &[&IcNodeStatusRow]) -> Vec<IcNodeStatusRow> {
+    nodes
+        .iter()
+        .filter(|node| node.is_non_up())
+        .map(|node| (*node).clone())
+        .collect()
+}
+
 const fn increment_comparison(
     counts: &mut IcNodeCountComparisonCounts,
     comparison: IcNodeCountComparison,
@@ -223,10 +225,6 @@ const fn increment_comparison(
         IcNodeCountComparison::Equal => counts.equal += 1,
         IcNodeCountComparison::Greater => counts.greater += 1,
     }
-}
-
-fn counts_for<'a>(nodes: impl Iterator<Item = &'a IcNodeStatusRow>) -> IcNodeStatusCounts {
-    node_status_counts(nodes)
 }
 
 fn validate_snapshot(snapshot: &IcNodeStatusSnapshot) -> Result<(), IcNodeStatusProjectionError> {
@@ -264,6 +262,18 @@ fn invalid_snapshot<T>(reason: impl Into<String>) -> Result<T, IcNodeStatusProje
 struct TargetResolution {
     resolved: String,
     resolved_from: String,
+}
+
+fn view_includes(
+    view: &IcNodeStatusView,
+    resolution: Option<&TargetResolution>,
+    identifier: &str,
+    requires_attention: bool,
+) -> bool {
+    resolution.map_or_else(
+        || view.include_all || requires_attention,
+        |resolution| identifier == resolution.resolved,
+    )
 }
 
 fn resolve_optional_target<'a>(

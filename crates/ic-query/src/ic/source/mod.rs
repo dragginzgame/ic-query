@@ -71,6 +71,16 @@ fn validate_provenance(
     Ok(())
 }
 
+fn validate_collection_end(now_unix_secs: u64, end_unix_secs: u64) -> Result<(), IcHostError> {
+    if end_unix_secs > now_unix_secs {
+        return invalid_request(
+            "query.end_unix_secs",
+            "must not be later than the collection time",
+        );
+    }
+    Ok(())
+}
+
 fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
     IcDashboardReportProvenance {
         schema_version: IC_DASHBOARD_REPORT_SCHEMA_VERSION,
