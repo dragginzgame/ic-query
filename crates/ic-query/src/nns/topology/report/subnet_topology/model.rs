@@ -1,9 +1,9 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 use crate::cache_file::JsonCacheReport;
 use crate::subnet_catalog::SubnetKind;
 use candid::Principal;
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
 
@@ -38,7 +38,7 @@ pub struct NnsSubnetTopologyReport {
     pub subnets: Vec<NnsSubnetTopologyRow>,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 impl JsonCacheReport for NnsSubnetTopologyReport {
     fn schema_version(&self) -> u32 {
         self.schema_version
@@ -352,7 +352,7 @@ fn validate_principal(
 /// Cache-root and network identity for a joined Subnet topology cache.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsSubnetTopologyCacheRequest {
     /// Root directory containing the shared cache.
@@ -361,7 +361,7 @@ pub struct NnsSubnetTopologyCacheRequest {
     pub network: String,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 impl NnsSubnetTopologyCacheRequest {
     /// Create a cache request for a cache root and network.
     #[must_use]
@@ -379,7 +379,7 @@ impl NnsSubnetTopologyCacheRequest {
 /// Inputs for one explicit live refresh and atomic cache publication.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsSubnetTopologyRefreshRequest {
     /// Cache identity and destination.
@@ -392,7 +392,7 @@ pub struct NnsSubnetTopologyRefreshRequest {
     pub lock_stale_after_seconds: u64,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 impl NnsSubnetTopologyRefreshRequest {
     /// Create an explicit refresh request.
     #[must_use]
@@ -417,7 +417,7 @@ impl NnsSubnetTopologyRefreshRequest {
 /// Validated Subnet topology report paired with its shared cache path.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CachedNnsSubnetTopologyReport {
     /// Canonical path from which the report was loaded or to which it was published.

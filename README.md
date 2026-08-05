@@ -379,6 +379,18 @@ disabled. Because the feature still includes `ic-agent`, both packages may
 remain in its transitive dependency graph. The full `host` feature remains the
 choice for all reporting adapters and is a strict superset.
 
+Enable `nns-topology-host` when an embedder also needs the exact-version joined
+NNS Subnet/node/operator/provider topology cache and source API:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["nns-topology-host"] }
+```
+
+This feature includes `subnet-catalog-host` but not ic-query's direct optional
+Dashboard Reqwest or CBOR certification edges. It does not expose the broader
+component-cache topology summary builders; those remain part of `host`.
+
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return
 both the validated catalog and an observable cache disposition; validated

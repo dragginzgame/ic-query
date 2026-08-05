@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
 
+- `0.29.4` adds the focused `nns-topology-host` library feature as a strict
+  superset of `subnet-catalog-host`. It exposes the exact-version joined NNS
+  Subnet/node/operator/provider live and cache API without enabling ic-query's
+  direct Dashboard Reqwest or CBOR certification edges; those packages may
+  remain transitive through `ic-agent`. Broader independently cached topology
+  summaries remain under `host`. Rust report shapes, cache schemas and paths,
+  live call behavior, and CLI grammar are unchanged.
+
 - `0.29.3` closes the authority-bearing route API by returning the matched
   validated Subnet classification with each Canister route. Catalog loads can
   require a minimum assurance, reject known-insufficient refresh selections

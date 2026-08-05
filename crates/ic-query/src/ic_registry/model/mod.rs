@@ -9,7 +9,7 @@ mod node_provider;
 #[cfg(feature = "host")]
 mod registry;
 mod request;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod subnet_topology;
 
 #[cfg(feature = "host")]
@@ -23,7 +23,7 @@ pub use node_provider::{MainnetNodeProvider, MainnetNodeProviderList};
 #[cfg(feature = "host")]
 pub use registry::MainnetRegistryVersion;
 pub use request::MainnetRegistryFetchRequest;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub use subnet_topology::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };

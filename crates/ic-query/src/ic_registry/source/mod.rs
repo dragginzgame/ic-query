@@ -5,10 +5,10 @@ mod governance;
 mod nodes;
 #[cfg(feature = "host")]
 mod registry;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod relation_inventory;
 mod subnet_catalog;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod subnet_topology;
 
 #[cfg(feature = "host")]
@@ -21,5 +21,5 @@ pub(super) use nodes::{
 #[cfg(feature = "host")]
 pub(super) use registry::fetch_mainnet_registry_version_async;
 pub(super) use subnet_catalog::fetch_mainnet_subnet_catalog_async;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub(super) use subnet_topology::fetch_mainnet_subnet_topology_async;

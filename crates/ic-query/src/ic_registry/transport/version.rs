@@ -3,7 +3,7 @@ use crate::ic_registry::{RegistryFetchError, proto::RegistryGetLatestVersionResp
 use candid::Principal;
 use ic_agent::Agent;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub(in crate::ic_registry) async fn get_latest_version(
     agent: &Agent,
     registry_canister: &Principal,

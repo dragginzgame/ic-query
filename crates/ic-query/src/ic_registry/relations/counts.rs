@@ -1,5 +1,7 @@
+#[cfg(feature = "host")]
+use crate::ic_registry::normalized_data_center_id;
 use crate::ic_registry::{
-    RegistryFetchError, normalized_data_center_id, principal_text_from_required_raw,
+    RegistryFetchError, principal_text_from_required_raw,
     proto::{NodeOperatorRecord, NodeRecord},
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -26,6 +28,7 @@ pub(in crate::ic_registry) fn node_operator_references_from_records(
     Ok(references)
 }
 
+#[cfg(feature = "host")]
 pub(in crate::ic_registry) fn node_provider_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,
@@ -42,6 +45,7 @@ pub(in crate::ic_registry) fn node_provider_counts_from_records(
     Ok(counts)
 }
 
+#[cfg(feature = "host")]
 pub(in crate::ic_registry) fn node_operator_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,
@@ -58,6 +62,7 @@ pub(in crate::ic_registry) fn node_operator_counts_from_records(
     Ok(counts)
 }
 
+#[cfg(feature = "host")]
 pub(in crate::ic_registry) fn data_center_node_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,
@@ -110,8 +115,10 @@ pub(in crate::ic_registry) fn resolved_node_relations_from_records(
         relations.insert(
             node_principal.clone(),
             ResolvedNodeRelation {
+                #[cfg(feature = "host")]
                 node_operator_principal,
                 node_provider_principal,
+                #[cfg(feature = "host")]
                 data_center_id: node_operator_record.dc_id.clone(),
             },
         );
@@ -134,6 +141,7 @@ pub(in crate::ic_registry) fn node_provider_principal_from_record(
     )
 }
 
+#[cfg(feature = "host")]
 pub(in crate::ic_registry) fn data_center_operator_counts_from_records(
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
 ) -> BTreeMap<String, u32> {
@@ -147,6 +155,7 @@ pub(in crate::ic_registry) fn data_center_operator_counts_from_records(
     counts
 }
 
+#[cfg(feature = "host")]
 pub(in crate::ic_registry) fn data_center_provider_counts_from_records(
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
 ) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
@@ -182,7 +191,9 @@ pub(in crate::ic_registry) fn data_center_provider_counts_from_records(
 ///
 
 pub(in crate::ic_registry) struct ResolvedNodeRelation {
+    #[cfg(feature = "host")]
     pub(in crate::ic_registry) node_operator_principal: String,
     pub(in crate::ic_registry) node_provider_principal: String,
+    #[cfg(feature = "host")]
     pub(in crate::ic_registry) data_center_id: String,
 }

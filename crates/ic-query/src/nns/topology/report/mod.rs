@@ -89,7 +89,7 @@ pub use source::{
     NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest, NnsTopologySource,
     NnsTopologySourceRequest,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub use subnet_topology::{
     CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,

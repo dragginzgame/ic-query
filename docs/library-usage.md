@@ -31,6 +31,20 @@ Dashboard `reqwest` transport or `serde_cbor` certification dependencies. Those
 packages may still appear transitively through `ic-agent`. The full `host`
 feature is a strict superset.
 
+For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["nns-topology-host"] }
+```
+
+`nns-topology-host` exposes the joined topology live source, strict cache load,
+explicit refresh, refresh-missing, and refresh-stale APIs. It includes
+`subnet-catalog-host` and shares its Registry agent, runtime, and confined-cache
+substrate. It does not enable ic-query's direct optional Dashboard Reqwest or
+CBOR certification dependencies, and it does not expose the broader
+independently cached topology summary builders. Those remain under `host`.
+
 For pure model/rendering use, keep all features off:
 
 ```toml
@@ -660,7 +674,8 @@ back to one endpoint on mismatch.
 Placement-sensitive host tools should use the joined Subnet topology snapshot
 instead of joining independently cached topology components. Its live source
 resolves one Registry version and derives every Subnet, node, operator, and
-provider relation at that exact version:
+provider relation at that exact version. The following API is available with
+`features = ["nns-topology-host"]` or the full `host` feature:
 
 ```rust
 use std::path::Path;

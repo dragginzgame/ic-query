@@ -4,11 +4,11 @@
 //! Does not own: command-specific cache keys, refresh requests, or report DTOs.
 //! Boundary: centralizes explicit owner-selected refresh policy for cache-backed reads.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 use super::HostCacheError;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 use std::path::Path;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 use std::path::PathBuf;
 
 ///
@@ -18,12 +18,12 @@ use std::path::PathBuf;
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub enum CacheRefreshReason {
     /// The expected cache file does not exist.
     Missing(PathBuf),
     /// The loaded cache is older than its owner's freshness policy.
-    #[cfg(feature = "host")]
+    #[cfg(feature = "nns-topology-host")]
     Stale,
     /// The cache file exists but cannot satisfy its owner's current contract.
     Invalid(PathBuf),
@@ -49,7 +49,7 @@ pub fn load_or_refresh_missing_cache<T, Error>(
 
 /// Load a cache, using an owner-defined error policy to refresh recoverable
 /// local state, then load the persisted result again.
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub fn load_or_refresh_cache_with_error_policy<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     refresh_reason: impl FnOnce(Error) -> Result<CacheRefreshReason, Error>,
@@ -66,7 +66,7 @@ pub fn load_or_refresh_cache_with_error_policy<T, Error>(
 
 /// Load a cache, using an owner-defined error policy to refresh recoverable
 /// local state, then load the persisted result again.
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub fn load_or_refresh_stale_cache_with_error_policy<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     stale: impl FnOnce(&T) -> bool,
@@ -88,7 +88,7 @@ pub fn load_or_refresh_stale_cache_with_error_policy<T, Error>(
 
 /// Classify shared JSON cache load failures that can be replaced safely by an
 /// owner-selected refresh policy while preserving filesystem failures.
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub fn host_cache_refresh_reason(
     error: HostCacheError,
     expected_path: &Path,

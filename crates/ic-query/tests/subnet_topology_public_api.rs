@@ -18,7 +18,7 @@ fn public_subnet_topology_model_is_constructible_and_validatable_without_host() 
     assert!(text.contains("cloud_engine"));
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod host {
     use super::*;
     use ic_query::nns::topology::{

@@ -72,6 +72,7 @@ where
     load_json_cache_inner(request, None, errors)
 }
 
+#[cfg(feature = "host")]
 pub fn load_json_cache_strict<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],

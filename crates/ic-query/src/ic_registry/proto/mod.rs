@@ -1,5 +1,5 @@
 mod id;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod node;
 mod registry;
 mod routing;
@@ -8,10 +8,12 @@ mod subnet;
 #[cfg(all(test, feature = "host"))]
 pub use id::PrincipalId;
 pub use id::{CanisterId, SubnetId};
+#[cfg(feature = "host")]
+pub use node::DataCenterRecord;
 #[cfg(all(test, feature = "host"))]
 pub use node::Gps;
-#[cfg(feature = "host")]
-pub use node::{DataCenterRecord, NodeOperatorRecord, NodeRecord};
+#[cfg(feature = "nns-topology-host")]
+pub use node::{NodeOperatorRecord, NodeRecord};
 #[cfg(all(test, feature = "host"))]
 pub use registry::RegistryError;
 pub use registry::{
@@ -21,6 +23,6 @@ pub use registry::{
 pub use routing::RoutingTable;
 #[cfg(all(test, feature = "host"))]
 pub use routing::{CanisterIdRange, RoutingTableEntry};
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-topology-host"))]
 pub use subnet::SubnetType;
 pub use subnet::{SubnetListRecord, SubnetRecord};

@@ -16,6 +16,6 @@ pub use acquire::inspect_refresh_lock;
 #[cfg(feature = "host")]
 pub use model::RefreshLockEvidence;
 pub use model::RefreshLockRequest;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub use run::with_refresh_lock;
 pub use run::with_refresh_lock_async;

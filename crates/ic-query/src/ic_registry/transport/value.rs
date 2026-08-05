@@ -10,7 +10,7 @@ use crate::ic_registry::{
 use ic_agent::Agent;
 use prost::Message;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub(in crate::ic_registry) async fn get_registry_value(
     agent: &Agent,
     registry_canister: &candid::Principal,

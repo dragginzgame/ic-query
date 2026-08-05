@@ -6,7 +6,7 @@
 
 mod confined;
 mod error;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod json;
 mod lock;
 mod policy;
@@ -24,24 +24,22 @@ pub use confined::{
 };
 pub use error::{CacheFileError, HostCacheError};
 #[cfg(feature = "host")]
-pub use json::HostJsonCacheErrorMapper;
-#[cfg(feature = "host")]
 pub use json::{
-    CachedJsonReport, JsonCacheReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-    OwnerJsonCacheErrorMapper, load_json_cache, load_json_cache_strict,
+    CachedJsonReport, LoadJsonCacheErrorMapper, OwnerJsonCacheErrorMapper, load_json_cache_strict,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
+pub use json::{HostJsonCacheErrorMapper, JsonCacheReport, LoadJsonCacheRequest, load_json_cache};
+#[cfg(feature = "nns-topology-host")]
 pub use lock::with_refresh_lock;
 #[cfg(feature = "host")]
 pub use lock::{RefreshLockEvidence, inspect_refresh_lock};
 pub use lock::{RefreshLockRequest, with_refresh_lock_async};
 #[cfg(feature = "host")]
+pub use policy::load_or_refresh_missing_cache;
+#[cfg(feature = "nns-topology-host")]
 pub use policy::{CacheRefreshReason, load_or_refresh_cache_with_error_policy};
-#[cfg(feature = "host")]
-pub use policy::{
-    host_cache_refresh_reason, load_or_refresh_missing_cache,
-    load_or_refresh_stale_cache_with_error_policy,
-};
+#[cfg(feature = "nns-topology-host")]
+pub use policy::{host_cache_refresh_reason, load_or_refresh_stale_cache_with_error_policy};
 pub use write::write_text_output;
 #[cfg(feature = "host")]
 pub use write::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};

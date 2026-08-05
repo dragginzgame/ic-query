@@ -3,12 +3,12 @@
 mod catalog;
 mod client;
 mod error;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod inventory;
 mod model;
 mod projection;
 pub mod proto;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 mod relations;
 mod source;
 mod transport;
@@ -16,11 +16,12 @@ mod wire;
 
 use candid::Principal;
 pub use client::fetch_mainnet_subnet_catalog_async;
+#[cfg(feature = "nns-topology-host")]
+pub use client::fetch_mainnet_subnet_topology;
 #[cfg(feature = "host")]
 pub use client::{
     fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
     fetch_mainnet_node_provider_list, fetch_mainnet_registry_version,
-    fetch_mainnet_subnet_topology,
 };
 pub use error::RegistryFetchError;
 pub use model::MainnetRegistryFetchRequest;
@@ -28,6 +29,9 @@ pub use model::MainnetRegistryFetchRequest;
 pub use model::{
     MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
     MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList, MainnetRegistryVersion,
+};
+#[cfg(feature = "nns-topology-host")]
+pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
 use proto::{CanisterId, SubnetId};
@@ -112,7 +116,7 @@ fn principal_text_from_raw(raw: &[u8], field: &'static str) -> Result<String, Re
         })
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 fn principal_text_from_required_raw(
     raw: &[u8],
     field: &'static str,

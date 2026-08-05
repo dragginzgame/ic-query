@@ -9,7 +9,13 @@ mod load;
 mod model;
 
 pub use errors::HostJsonCacheErrorMapper;
+#[cfg(feature = "host")]
 pub use errors::LoadJsonCacheErrorMapper;
+#[cfg(feature = "host")]
 pub use errors::OwnerJsonCacheErrorMapper;
-pub use load::{load_json_cache, load_json_cache_strict};
-pub use model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest};
+pub use load::load_json_cache;
+#[cfg(feature = "host")]
+pub use load::load_json_cache_strict;
+#[cfg(feature = "host")]
+pub use model::CachedJsonReport;
+pub use model::{JsonCacheReport, LoadJsonCacheRequest};

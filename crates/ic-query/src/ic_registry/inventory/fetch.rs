@@ -1,6 +1,7 @@
+#[cfg(feature = "host")]
+use super::data_center::fetch_data_center_records_for_inventory;
 use super::{
     INVENTORY_FETCH_CONCURRENCY,
-    data_center::fetch_data_center_records_for_inventory,
     keys::{node_operator_record_key, node_record_key},
 };
 use crate::ic_registry::{
@@ -9,7 +10,6 @@ use crate::ic_registry::{
     relations::{
         RegistryRelationInventory, RegistryRelationInventoryScope,
         assigned_node_principals_from_subnets, node_operator_references_from_records,
-        node_provider_counts_from_records,
     },
     subnet_record_key,
     transport::{decode_message, get_registry_value},
@@ -19,6 +19,10 @@ use futures::{StreamExt, TryStreamExt, stream};
 use ic_agent::Agent;
 use std::collections::{BTreeMap, BTreeSet};
 
+#[cfg(feature = "host")]
+use crate::ic_registry::relations::node_provider_counts_from_records;
+
+#[cfg(feature = "host")]
 pub(in crate::ic_registry) async fn fetch_node_provider_node_counts(
     agent: &Agent,
     registry_canister: &Principal,
@@ -115,6 +119,7 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
         .try_collect::<BTreeMap<_, _>>()
         .await?;
 
+    #[cfg(feature = "host")]
     let data_center_records = match scope {
         RegistryRelationInventoryScope::BaseRelations => BTreeMap::new(),
         RegistryRelationInventoryScope::WithDataCenters => {
@@ -127,12 +132,15 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
             .await?
         }
     };
+    #[cfg(not(feature = "host"))]
+    let _ = scope;
 
     Ok(RegistryRelationInventory {
         node_principals,
         node_records,
         node_operator_records,
         subnet_records,
+        #[cfg(feature = "host")]
         data_center_records,
     })
 }

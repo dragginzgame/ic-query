@@ -11,8 +11,9 @@
 //! `std` types such as `String` and `Vec`.
 //!
 //! Enable `subnet-catalog-host` for the focused live/cache Subnet catalog API,
-//! or `host` for every native live-call adapter and runtime helper. CLI parsing
-//! and process IO belong to the separate `ic-query-cli` crate.
+//! `nns-topology-host` for that API plus exact-version joined NNS Subnet
+//! topology, or `host` for every native live-call adapter and runtime helper.
+//! CLI parsing and process IO belong to the separate `ic-query-cli` crate.
 
 #[cfg(feature = "subnet-catalog-host")]
 mod agent;

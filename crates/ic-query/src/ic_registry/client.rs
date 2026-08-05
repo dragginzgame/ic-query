@@ -1,18 +1,20 @@
 #[cfg(feature = "host")]
 use super::{
     MainnetDataCenterList, MainnetNodeList, MainnetNodeOperatorList, MainnetNodeProviderList,
-    MainnetRegistryVersion, MainnetSubnetTopology,
+    MainnetRegistryVersion,
     source::{
         fetch_mainnet_data_center_list_async, fetch_mainnet_node_list_async,
         fetch_mainnet_node_operator_list_async, fetch_mainnet_node_provider_list_async,
-        fetch_mainnet_registry_version_async, fetch_mainnet_subnet_topology_async,
+        fetch_mainnet_registry_version_async,
     },
 };
 use super::{
     MainnetRegistryFetchRequest, RegistryFetchError,
     source::fetch_mainnet_subnet_catalog_async as fetch_mainnet_subnet_catalog_from_source_async,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
+use super::{MainnetSubnetTopology, source::fetch_mainnet_subnet_topology_async};
+#[cfg(feature = "nns-topology-host")]
 use crate::runtime::block_on_current_thread;
 use crate::subnet_catalog::RawSubnetCatalog;
 
@@ -23,7 +25,7 @@ pub async fn fetch_mainnet_subnet_catalog_async(
     fetch_mainnet_subnet_catalog_from_source_async(request).await
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub fn fetch_mainnet_subnet_topology(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetSubnetTopology, RegistryFetchError> {

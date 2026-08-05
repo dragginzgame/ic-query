@@ -19,7 +19,7 @@ forbidden_host_dependencies=(
   clap
 )
 
-forbidden_direct_subnet_catalog_host_dependencies=(
+forbidden_direct_registry_host_dependencies=(
   reqwest
   serde_cbor
 )
@@ -77,6 +77,8 @@ run_quiet "ic-query --features host" \
   cargo check -p ic-query --no-default-features --features host --locked
 run_quiet "ic-query --features subnet-catalog-host" \
   cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
+run_quiet "ic-query --features nns-topology-host" \
+  cargo check -p ic-query --no-default-features --features nns-topology-host --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
@@ -90,6 +92,10 @@ cargo test -p ic-query --test sns_public_api --no-default-features --features ho
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features subnet-catalog-host --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features host --locked
+cargo test -p ic-query --test subnet_topology_public_api --no-default-features --locked
+cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features subnet-catalog-host --locked
+cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features nns-topology-host --locked
+cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test system_public_api --no-default-features --locked
 cargo test -p ic-query --test system_public_api --no-default-features --features host --locked
 cargo check -p ic-query-cli --locked
@@ -131,10 +137,19 @@ check_tree_absent "ic-query --features host --no-default-features" \
 # promises only that ic-query's own optional transport/certification edges stay
 # disabled, so this gate intentionally inspects direct normal dependencies.
 check_tree_absent "ic-query --features subnet-catalog-host direct dependencies" \
-  "${forbidden_direct_subnet_catalog_host_dependencies[@]}" \
+  "${forbidden_direct_registry_host_dependencies[@]}" \
   -- \
   -p ic-query \
   --no-default-features \
   --features subnet-catalog-host \
+  -e normal \
+  --depth 1
+
+check_tree_absent "ic-query --features nns-topology-host direct dependencies" \
+  "${forbidden_direct_registry_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features nns-topology-host \
   -e normal \
   --depth 1

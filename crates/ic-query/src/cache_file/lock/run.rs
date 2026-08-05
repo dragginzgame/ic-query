@@ -8,7 +8,7 @@ use super::{acquire::acquire_refresh_lock, model::RefreshLockRequest};
 use crate::cache_file::CacheFileError;
 use std::future::Future;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub fn with_refresh_lock<T, E>(
     request: RefreshLockRequest<'_>,
     cache_error: impl Fn(CacheFileError) -> E,

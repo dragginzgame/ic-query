@@ -34,6 +34,7 @@ pub struct NodeOperatorRecord {
 /// Protobuf registry record describing one data center.
 ///
 
+#[cfg(feature = "host")]
 #[derive(Clone, prost::Message, PartialEq)]
 pub struct DataCenterRecord {
     #[prost(string, tag = "1")]
@@ -52,6 +53,7 @@ pub struct DataCenterRecord {
 /// Protobuf geographic coordinates attached to a data center record.
 ///
 
+#[cfg(feature = "host")]
 #[derive(Clone, prost::Message, PartialEq)]
 pub struct Gps {
     #[prost(float, tag = "1")]

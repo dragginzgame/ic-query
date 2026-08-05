@@ -2,28 +2,18 @@
 
 mod report;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-topology-host")]
 pub use report::{
     CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
     NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
-    NnsSubnetTopologySource, NnsTopologyHostError, NnsTopologyRefreshSource,
-    NnsTopologyRefreshSourceRequest, NnsTopologySource, NnsTopologySourceRequest,
-    build_nns_topology_capacity_report, build_nns_topology_capacity_report_with_source,
-    build_nns_topology_check_report, build_nns_topology_check_report_with_source,
-    build_nns_topology_coverage_report, build_nns_topology_coverage_report_with_source,
-    build_nns_topology_gaps_report, build_nns_topology_gaps_report_with_source,
-    build_nns_topology_providers_report, build_nns_topology_providers_report_with_source,
-    build_nns_topology_regions_report, build_nns_topology_regions_report_with_source,
-    build_nns_topology_summary_report, build_nns_topology_summary_report_with_source,
-    build_nns_topology_versions_report, build_nns_topology_versions_report_with_source,
-    load_cached_nns_subnet_topology, load_or_refresh_missing_nns_subnet_topology,
+    NnsSubnetTopologySource, load_cached_nns_subnet_topology,
+    load_or_refresh_missing_nns_subnet_topology,
     load_or_refresh_missing_nns_subnet_topology_with_source,
     load_or_refresh_stale_nns_subnet_topology,
     load_or_refresh_stale_nns_subnet_topology_with_source, nns_subnet_topology_cache_path,
     nns_subnet_topology_freshness, nns_subnet_topology_refresh_lock_path,
     refresh_nns_subnet_topology, refresh_nns_subnet_topology_with_source,
-    refresh_nns_topology_report, refresh_nns_topology_report_with_source,
 };
 pub use report::{
     DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
@@ -46,4 +36,18 @@ pub use report::{
     nns_topology_providers_report_text, nns_topology_refresh_report_text,
     nns_topology_regions_report_text, nns_topology_summary_report_text,
     nns_topology_versions_report_text,
+};
+#[cfg(feature = "host")]
+pub use report::{
+    NnsTopologyHostError, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
+    NnsTopologySource, NnsTopologySourceRequest, build_nns_topology_capacity_report,
+    build_nns_topology_capacity_report_with_source, build_nns_topology_check_report,
+    build_nns_topology_check_report_with_source, build_nns_topology_coverage_report,
+    build_nns_topology_coverage_report_with_source, build_nns_topology_gaps_report,
+    build_nns_topology_gaps_report_with_source, build_nns_topology_providers_report,
+    build_nns_topology_providers_report_with_source, build_nns_topology_regions_report,
+    build_nns_topology_regions_report_with_source, build_nns_topology_summary_report,
+    build_nns_topology_summary_report_with_source, build_nns_topology_versions_report,
+    build_nns_topology_versions_report_with_source, refresh_nns_topology_report,
+    refresh_nns_topology_report_with_source,
 };
