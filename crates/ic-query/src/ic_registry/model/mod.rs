@@ -17,7 +17,7 @@ mod subnet_topology;
 #[cfg(feature = "nns-host")]
 pub use certified_delta::{
     CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion, CertifiedRegistryMutation,
-    CertifiedRegistryPrecondition,
+    CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
 };
 #[cfg(feature = "nns-host")]
 pub use data_center::{MainnetDataCenter, MainnetDataCenterList};

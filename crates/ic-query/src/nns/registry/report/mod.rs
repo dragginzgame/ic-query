@@ -23,8 +23,8 @@ pub use model::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
     NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
     NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
-    NnsCertifiedRegistryPrecondition, NnsRegistryCertification, NnsRegistryVersionReport,
-    NnsRegistryVersionRequest,
+    NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
+    NnsRegistryVersionReport, NnsRegistryVersionRequest,
 };
 #[cfg(feature = "nns-host")]
 pub use source::{

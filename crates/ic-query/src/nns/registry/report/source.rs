@@ -5,15 +5,19 @@ use super::{
         NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
         NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
         NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
-        NnsRegistryCertification,
+        NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
     },
 };
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
     ic_registry::{
-        CertifiedRegistryDeltaBatch, MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES,
-        MAX_CERTIFIED_DELTA_KEY_BYTES, MAX_CERTIFIED_DELTA_MUTATIONS,
-        MAX_CERTIFIED_DELTA_PRECONDITIONS, MAX_CERTIFIED_DELTA_VERSIONS, MainnetRegistryVersion,
+        CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion as LiveCertifiedDeltaVersion,
+        CertifiedRegistryMutation as LiveCertifiedRegistryMutation, CertifiedRegistryValueEncoding,
+        MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES, MAX_CERTIFIED_DELTA_KEY_BYTES,
+        MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS,
+        MAX_CERTIFIED_DELTA_VALUE_BYTES, MAX_CERTIFIED_DELTA_VERSIONS, MAX_REGISTRY_CHUNK_BYTES,
+        MAX_REGISTRY_CHUNK_REFERENCES, MAX_REGISTRY_CHUNK_RESPONSE_BYTES,
+        MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES, MainnetRegistryVersion,
         fetch_mainnet_certified_registry_delta_batch_async, fetch_mainnet_registry_version,
     },
     nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
@@ -147,46 +151,24 @@ fn report_from_live_batch(
 ) -> Result<NnsCertifiedRegistryDeltaBatchReport, NnsRegistryHostError> {
     let first_version = batch.versions.first().map(|row| row.version);
     let last_version = batch.versions.last().map(|row| row.version);
-    let versions = batch
-        .versions
-        .into_iter()
-        .map(|version| {
-            let mutations = version
-                .mutations
-                .into_iter()
-                .map(|mutation| {
-                    let mutation_kind =
-                        NnsCertifiedRegistryMutationKind::from_raw_type(mutation.mutation_type)
-                            .ok_or_else(|| NnsRegistryHostError::InvalidSourceData {
-                                reason: format!(
-                                    "live delta contains unsupported mutation type {}",
-                                    mutation.mutation_type
-                                ),
-                            })?;
-                    Ok(NnsCertifiedRegistryMutation {
-                        mutation_type: mutation.mutation_type,
-                        mutation_kind,
-                        key_hex: mutation.key_hex,
-                        value_hex: mutation.value_hex,
-                    })
-                })
-                .collect::<Result<Vec<_>, NnsRegistryHostError>>()?;
-            Ok(NnsCertifiedRegistryDeltaVersion {
-                version: version.version,
-                timestamp_nanoseconds: version.timestamp_nanoseconds,
-                mutations,
-                preconditions: version
-                    .preconditions
-                    .into_iter()
-                    .map(|precondition| NnsCertifiedRegistryPrecondition {
-                        key_hex: precondition.key_hex,
-                        expected_version: precondition.expected_version,
-                    })
-                    .collect(),
-            })
-        })
-        .collect::<Result<Vec<_>, NnsRegistryHostError>>()?;
+    let versions = project_live_versions(batch.versions)?;
     let certificate_time = format_utc_timestamp_secs(batch.certificate_time_nanos / 1_000_000_000);
+    let chunk_query_call_count = u64::try_from(batch.chunk_query_call_count).map_err(|_| {
+        NnsRegistryHostError::InvalidSourceData {
+            reason: "chunk query call count exceeds u64".to_string(),
+        }
+    })?;
+    let query_call_count = chunk_query_call_count.checked_add(1).ok_or_else(|| {
+        NnsRegistryHostError::InvalidSourceData {
+            reason: "query call count exceeds u64".to_string(),
+        }
+    })?;
+    let response_bytes = batch
+        .certified_response_bytes
+        .checked_add(batch.chunk_response_bytes)
+        .ok_or_else(|| NnsRegistryHostError::InvalidSourceData {
+            reason: "response byte count exceeds usize".to_string(),
+        })?;
 
     Ok(NnsCertifiedRegistryDeltaBatchReport {
         schema_version: NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
@@ -200,12 +182,18 @@ fn report_from_live_batch(
         mutation_count: batch.mutation_count,
         precondition_count: batch.precondition_count,
         inline_value_bytes: batch.inline_value_bytes,
+        chunk_value_bytes: batch.chunk_value_bytes,
+        value_bytes: batch.value_bytes,
+        chunk_reference_count: batch.chunk_reference_count,
         more_available: batch.more_available,
         fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
-        query_call_count: 1,
-        response_bytes: batch.response_bytes,
+        query_call_count,
+        chunk_query_call_count,
+        certified_response_bytes: batch.certified_response_bytes,
+        chunk_response_bytes: batch.chunk_response_bytes,
+        response_bytes,
         limits: nns_certified_registry_delta_limits(),
         versions,
         certification: NnsRegistryCertification {
@@ -221,6 +209,62 @@ fn report_from_live_batch(
     })
 }
 
+fn project_live_versions(
+    versions: Vec<LiveCertifiedDeltaVersion>,
+) -> Result<Vec<NnsCertifiedRegistryDeltaVersion>, NnsRegistryHostError> {
+    versions
+        .into_iter()
+        .map(|version| {
+            Ok(NnsCertifiedRegistryDeltaVersion {
+                version: version.version,
+                timestamp_nanoseconds: version.timestamp_nanoseconds,
+                mutations: version
+                    .mutations
+                    .into_iter()
+                    .map(project_live_mutation)
+                    .collect::<Result<Vec<_>, _>>()?,
+                preconditions: version
+                    .preconditions
+                    .into_iter()
+                    .map(|precondition| NnsCertifiedRegistryPrecondition {
+                        key_hex: precondition.key_hex,
+                        expected_version: precondition.expected_version,
+                    })
+                    .collect(),
+            })
+        })
+        .collect()
+}
+
+fn project_live_mutation(
+    mutation: LiveCertifiedRegistryMutation,
+) -> Result<NnsCertifiedRegistryMutation, NnsRegistryHostError> {
+    let mutation_kind = NnsCertifiedRegistryMutationKind::from_raw_type(mutation.mutation_type)
+        .ok_or_else(|| NnsRegistryHostError::InvalidSourceData {
+            reason: format!(
+                "live delta contains unsupported mutation type {}",
+                mutation.mutation_type
+            ),
+        })?;
+    let value_encoding = match mutation.value_encoding {
+        CertifiedRegistryValueEncoding::Absent => NnsCertifiedRegistryValueEncoding::Absent,
+        CertifiedRegistryValueEncoding::Inline => NnsCertifiedRegistryValueEncoding::Inline,
+        CertifiedRegistryValueEncoding::Chunked => NnsCertifiedRegistryValueEncoding::Chunked,
+    };
+    Ok(NnsCertifiedRegistryMutation {
+        mutation_type: mutation.mutation_type,
+        mutation_kind,
+        key_hex: mutation.key_hex,
+        value_encoding,
+        chunk_sha256_hexes: mutation
+            .chunk_sha256s
+            .iter()
+            .map(|hash| crate::hex::hex_bytes(hash))
+            .collect(),
+        value_hex: mutation.value_hex,
+    })
+}
+
 /// Return the fixed resource ceilings enforced for every certified delta batch.
 #[must_use]
 pub const fn nns_certified_registry_delta_limits() -> NnsCertifiedRegistryDeltaLimits {
@@ -230,6 +274,11 @@ pub const fn nns_certified_registry_delta_limits() -> NnsCertifiedRegistryDeltaL
         max_preconditions: MAX_CERTIFIED_DELTA_PRECONDITIONS,
         max_key_bytes: MAX_CERTIFIED_DELTA_KEY_BYTES,
         max_inline_value_bytes: MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES,
-        max_response_bytes: MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+        max_chunk_references: MAX_REGISTRY_CHUNK_REFERENCES,
+        max_chunk_bytes: MAX_REGISTRY_CHUNK_BYTES,
+        max_reconstructed_value_bytes: MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
+        max_value_bytes: MAX_CERTIFIED_DELTA_VALUE_BYTES,
+        max_chunk_response_bytes: MAX_REGISTRY_CHUNK_RESPONSE_BYTES,
+        max_response_body_bytes: MAX_IC_AGENT_RESPONSE_BODY_BYTES,
     }
 }

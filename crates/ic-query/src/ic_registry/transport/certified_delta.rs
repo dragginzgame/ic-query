@@ -2,20 +2,23 @@
 //!
 //! Responsibility: authenticate and validate one bounded Registry delta batch.
 //! Does not own: historical replay, cache publication, or catalog assurance.
-//! Boundary: returns only contiguous, complete inline mutations from certified evidence.
+//! Boundary: returns only contiguous mutations with complete, bounded value content.
 
 use super::certified::{
     CURRENT_VERSION_LABEL, authenticate_registry_response, invalid_certified_registry,
     required_leb128_leaf,
 };
+use super::chunk::{
+    RegistryChunkBudget, RegistryChunkLimits, get_large_registry_value, validated_chunk_hashes,
+};
 use crate::{
     hex::hex_bytes,
     ic_registry::{
         CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion, CertifiedRegistryMutation,
-        CertifiedRegistryPrecondition, RegistryFetchError,
+        CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding, RegistryFetchError,
         proto::{
-            HighCapacityRegistryAtomicMutateRequest, RegistryCertifiedResponse,
-            RegistryGetChangesSinceRequest, RegistryMutationType,
+            HighCapacityRegistryAtomicMutateRequest, HighCapacityRegistryMutation,
+            RegistryCertifiedResponse, RegistryGetChangesSinceRequest, RegistryMutationType,
             high_capacity_registry_mutation::Content,
         },
     },
@@ -72,11 +75,31 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
         CURRENT_VERSION_LABEL,
         "current_version",
     )?;
-    let validated = validate_delta_tree(
+    let mut validated = validate_delta_tree(
         &authenticated.hash_tree,
         requested_version,
         certified_latest_version,
     )?;
+    let mut chunk_budget = RegistryChunkBudget::new(
+        RegistryChunkLimits::certified_delta(),
+        validated.inline_value_bytes,
+    )?;
+    complete_chunked_values(
+        agent,
+        registry_canister,
+        &mut validated.versions,
+        &mut chunk_budget,
+    )
+    .await?;
+    if chunk_budget.reference_count() != validated.chunk_reference_count {
+        return Err(invalid_certified_registry(
+            "completed chunk reference count does not match the certified delta tree",
+        ));
+    }
+    let value_bytes = chunk_budget.reconstructed_value_bytes();
+    let chunk_value_bytes = value_bytes
+        .checked_sub(validated.inline_value_bytes)
+        .ok_or_else(|| invalid_certified_registry("completed value byte accounting underflows"))?;
 
     Ok(CertifiedRegistryDeltaBatch {
         requested_version,
@@ -85,8 +108,13 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
         mutation_count: validated.mutation_count,
         precondition_count: validated.precondition_count,
         inline_value_bytes: validated.inline_value_bytes,
+        chunk_value_bytes,
+        value_bytes,
+        chunk_reference_count: chunk_budget.reference_count(),
+        chunk_query_call_count: chunk_budget.query_call_count(),
+        chunk_response_bytes: chunk_budget.response_bytes(),
         more_available: validated.more_available,
-        response_bytes,
+        certified_response_bytes: response_bytes,
         certificate_time_nanos: authenticated.certificate_time_nanos,
         root_key_digest: authenticated.root_key_digest,
         certificate_hex: authenticated.certificate_hex,
@@ -102,7 +130,16 @@ struct ValidatedDeltaTree {
     mutation_count: usize,
     precondition_count: usize,
     inline_value_bytes: usize,
+    chunk_reference_count: usize,
     more_available: bool,
+}
+
+#[derive(Default)]
+struct DeltaCounters {
+    mutation_count: usize,
+    precondition_count: usize,
+    inline_value_bytes: usize,
+    chunk_reference_count: usize,
 }
 
 struct VisibleDeltaTree {
@@ -122,6 +159,7 @@ fn validate_delta_tree(
             mutation_count: 0,
             precondition_count: 0,
             inline_value_bytes: 0,
+            chunk_reference_count: 0,
             more_available: false,
         });
     }
@@ -130,9 +168,7 @@ fn validate_delta_tree(
         invalid_certified_registry("requested version cannot advance without overflowing u64")
     })?;
     let mut versions = Vec::with_capacity(visible.labels.len());
-    let mut mutation_count = 0_usize;
-    let mut precondition_count = 0_usize;
-    let mut inline_value_bytes = 0_usize;
+    let mut counters = DeltaCounters::default();
 
     for label in visible.labels {
         let version = decode_version_label(&label)?;
@@ -170,13 +206,7 @@ fn validate_delta_tree(
                 reason: error.to_string(),
             }
         })?;
-        let validated = validate_atomic_delta(
-            version,
-            atomic,
-            &mut mutation_count,
-            &mut precondition_count,
-            &mut inline_value_bytes,
-        )?;
+        let validated = validate_atomic_delta(version, atomic, &mut counters)?;
         versions.push(validated);
         expected_version = expected_version
             .checked_add(1)
@@ -186,9 +216,10 @@ fn validate_delta_tree(
     let last_version = versions.last().map_or(requested_version, |row| row.version);
     Ok(ValidatedDeltaTree {
         versions,
-        mutation_count,
-        precondition_count,
-        inline_value_bytes,
+        mutation_count: counters.mutation_count,
+        precondition_count: counters.precondition_count,
+        inline_value_bytes: counters.inline_value_bytes,
+        chunk_reference_count: counters.chunk_reference_count,
         more_available: last_version < certified_latest_version,
     })
 }
@@ -273,9 +304,7 @@ fn decode_version_label(label: &[u8]) -> Result<u64, RegistryFetchError> {
 fn validate_atomic_delta(
     version: u64,
     atomic: HighCapacityRegistryAtomicMutateRequest,
-    mutation_count: &mut usize,
-    precondition_count: &mut usize,
-    inline_value_bytes: &mut usize,
+    counters: &mut DeltaCounters,
 ) -> Result<CertifiedRegistryDeltaVersion, RegistryFetchError> {
     if atomic.mutations.is_empty() {
         return Err(invalid_certified_registry(format!(
@@ -284,13 +313,13 @@ fn validate_atomic_delta(
     }
     checked_accumulate(
         "mutation count",
-        mutation_count,
+        &mut counters.mutation_count,
         atomic.mutations.len(),
         MAX_CERTIFIED_DELTA_MUTATIONS,
     )?;
     checked_accumulate(
         "precondition count",
-        precondition_count,
+        &mut counters.precondition_count,
         atomic.preconditions.len(),
         MAX_CERTIFIED_DELTA_PRECONDITIONS,
     )?;
@@ -300,56 +329,13 @@ fn validate_atomic_delta(
         .mutations
         .into_iter()
         .map(|mutation| {
-            validate_key(version, "mutation", &mutation.key)?;
             if !mutation_keys.insert(mutation.key.clone()) {
                 return Err(invalid_certified_registry(format!(
                     "delta version {version} mutates key {} more than once",
                     hex_bytes(&mutation.key)
                 )));
             }
-            let kind = RegistryMutationType::try_from(mutation.mutation_type).map_err(|_| {
-                invalid_certified_registry(format!(
-                    "delta version {version} has unknown mutation type {} for key {}",
-                    mutation.mutation_type,
-                    hex_bytes(&mutation.key)
-                ))
-            })?;
-            let value_hex = match (kind, mutation.content) {
-                (RegistryMutationType::Delete, None) => None,
-                (RegistryMutationType::Delete, Some(_)) => {
-                    return Err(invalid_certified_registry(format!(
-                        "delta version {version} delete for key {} carries value content",
-                        hex_bytes(&mutation.key)
-                    )));
-                }
-                (_, Some(Content::Value(value))) => {
-                    checked_accumulate(
-                        "inline value bytes",
-                        inline_value_bytes,
-                        value.len(),
-                        MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES,
-                    )?;
-                    Some(hex_bytes(&value))
-                }
-                (_, Some(Content::LargeValueChunkKeys(chunks))) => {
-                    return Err(RegistryFetchError::UnsupportedCertifiedLargeValue {
-                        version,
-                        key_hex: hex_bytes(&mutation.key),
-                        chunk_count: chunks.chunk_content_sha256s.len(),
-                    });
-                }
-                (_, None) => {
-                    return Err(invalid_certified_registry(format!(
-                        "delta version {version} mutation for key {} has no value content",
-                        hex_bytes(&mutation.key)
-                    )));
-                }
-            };
-            Ok(CertifiedRegistryMutation {
-                mutation_type: mutation.mutation_type,
-                key_hex: hex_bytes(&mutation.key),
-                value_hex,
-            })
+            validate_mutation(version, mutation, counters)
         })
         .collect::<Result<Vec<_>, RegistryFetchError>>()?;
 
@@ -378,6 +364,97 @@ fn validate_atomic_delta(
         mutations,
         preconditions,
     })
+}
+
+fn validate_mutation(
+    version: u64,
+    mutation: HighCapacityRegistryMutation,
+    counters: &mut DeltaCounters,
+) -> Result<CertifiedRegistryMutation, RegistryFetchError> {
+    validate_key(version, "mutation", &mutation.key)?;
+    let kind = RegistryMutationType::try_from(mutation.mutation_type).map_err(|_| {
+        invalid_certified_registry(format!(
+            "delta version {version} has unknown mutation type {} for key {}",
+            mutation.mutation_type,
+            hex_bytes(&mutation.key)
+        ))
+    })?;
+    let (value_hex, value_encoding, chunk_sha256s) = match (kind, mutation.content) {
+        (RegistryMutationType::Delete, None) => {
+            (None, CertifiedRegistryValueEncoding::Absent, Vec::new())
+        }
+        (RegistryMutationType::Delete, Some(_)) => {
+            return Err(invalid_certified_registry(format!(
+                "delta version {version} delete for key {} carries value content",
+                hex_bytes(&mutation.key)
+            )));
+        }
+        (_, Some(Content::Value(value))) => {
+            checked_accumulate(
+                "inline value bytes",
+                &mut counters.inline_value_bytes,
+                value.len(),
+                MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES,
+            )?;
+            (
+                Some(hex_bytes(&value)),
+                CertifiedRegistryValueEncoding::Inline,
+                Vec::new(),
+            )
+        }
+        (_, Some(Content::LargeValueChunkKeys(chunks))) => {
+            validated_chunk_hashes(&chunks.chunk_content_sha256s)?;
+            checked_accumulate(
+                "chunk reference count",
+                &mut counters.chunk_reference_count,
+                chunks.chunk_content_sha256s.len(),
+                super::chunk::MAX_REGISTRY_CHUNK_REFERENCES,
+            )?;
+            (
+                None,
+                CertifiedRegistryValueEncoding::Chunked,
+                chunks.chunk_content_sha256s,
+            )
+        }
+        (_, None) => {
+            return Err(invalid_certified_registry(format!(
+                "delta version {version} mutation for key {} has no value content",
+                hex_bytes(&mutation.key)
+            )));
+        }
+    };
+    Ok(CertifiedRegistryMutation {
+        mutation_type: mutation.mutation_type,
+        key_hex: hex_bytes(&mutation.key),
+        value_hex,
+        value_encoding,
+        chunk_sha256s,
+    })
+}
+
+async fn complete_chunked_values(
+    agent: &Agent,
+    registry_canister: &Principal,
+    versions: &mut [CertifiedRegistryDeltaVersion],
+    budget: &mut RegistryChunkBudget,
+) -> Result<(), RegistryFetchError> {
+    for version in versions {
+        for mutation in &mut version.mutations {
+            if mutation.value_encoding != CertifiedRegistryValueEncoding::Chunked {
+                continue;
+            }
+            let value = get_large_registry_value(
+                agent,
+                registry_canister,
+                &mutation.chunk_sha256s,
+                None,
+                budget,
+            )
+            .await?;
+            mutation.value_hex = Some(hex_bytes(&value));
+        }
+    }
+    Ok(())
 }
 
 fn validate_key(version: u64, relation: &str, key: &[u8]) -> Result<(), RegistryFetchError> {
@@ -515,48 +592,28 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unknown_types_chunk_references_and_conflicting_keys() {
+    fn rejects_unknown_types_and_conflicting_keys() {
         let unknown = HighCapacityRegistryMutation {
             mutation_type: 99,
             key: b"alpha".to_vec(),
             content: Some(high_capacity_registry_mutation::Content::Value(vec![1])),
         };
-        let error = validate_atomic_delta(3, atomic(vec![unknown], vec![]), &mut 0, &mut 0, &mut 0)
-            .expect_err("unknown type");
+        let error = validate_atomic_delta(
+            3,
+            atomic(vec![unknown], vec![]),
+            &mut DeltaCounters::default(),
+        )
+        .expect_err("unknown type");
         assert!(matches!(
             error,
             RegistryFetchError::InvalidCertifiedRegistry { reason }
                 if reason.contains("unknown mutation type 99")
         ));
 
-        let chunked = HighCapacityRegistryMutation {
-            mutation_type: RegistryMutationType::Upsert as i32,
-            key: b"large".to_vec(),
-            content: Some(
-                high_capacity_registry_mutation::Content::LargeValueChunkKeys(
-                    crate::ic_registry::proto::LargeValueChunkKeys {
-                        chunk_content_sha256s: vec![vec![1; 32], vec![2; 32]],
-                    },
-                ),
-            ),
-        };
-        let error = validate_atomic_delta(4, atomic(vec![chunked], vec![]), &mut 0, &mut 0, &mut 0)
-            .expect_err("chunk references are incomplete");
-        assert!(matches!(
-            error,
-            RegistryFetchError::UnsupportedCertifiedLargeValue {
-                version: 4,
-                chunk_count: 2,
-                ..
-            }
-        ));
-
         let error = validate_atomic_delta(
             5,
             atomic(vec![delete(b"same"), delete(b"same")], vec![]),
-            &mut 0,
-            &mut 0,
-            &mut 0,
+            &mut DeltaCounters::default(),
         )
         .expect_err("duplicate mutation key");
         assert!(matches!(
@@ -564,6 +621,33 @@ mod tests {
             RegistryFetchError::InvalidCertifiedRegistry { reason }
                 if reason.contains("more than once")
         ));
+    }
+
+    #[test]
+    fn accepts_and_counts_certified_chunk_references() {
+        let chunk_sha256s = vec![vec![1; 32], vec![2; 32]];
+        let chunked = HighCapacityRegistryMutation {
+            mutation_type: RegistryMutationType::Upsert as i32,
+            key: b"large".to_vec(),
+            content: Some(
+                high_capacity_registry_mutation::Content::LargeValueChunkKeys(
+                    crate::ic_registry::proto::LargeValueChunkKeys {
+                        chunk_content_sha256s: chunk_sha256s.clone(),
+                    },
+                ),
+            ),
+        };
+        let mut counters = DeltaCounters::default();
+        let version = validate_atomic_delta(4, atomic(vec![chunked], vec![]), &mut counters)
+            .expect("valid chunk references");
+
+        assert_eq!(counters.chunk_reference_count, 2);
+        assert_eq!(version.mutations[0].value_hex, None);
+        assert_eq!(
+            version.mutations[0].value_encoding,
+            CertifiedRegistryValueEncoding::Chunked
+        );
+        assert_eq!(version.mutations[0].chunk_sha256s, chunk_sha256s);
     }
 
     #[test]
@@ -576,9 +660,7 @@ mod tests {
         let error = validate_atomic_delta(
             3,
             atomic(vec![valued_delete], vec![]),
-            &mut 0,
-            &mut 0,
-            &mut 0,
+            &mut DeltaCounters::default(),
         )
         .expect_err("delete content");
         assert!(matches!(
@@ -587,13 +669,14 @@ mod tests {
                 if reason.contains("carries value content")
         ));
 
-        let mut total = MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES;
+        let mut counters = DeltaCounters {
+            inline_value_bytes: MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES,
+            ..DeltaCounters::default()
+        };
         let error = validate_atomic_delta(
             3,
             atomic(vec![upsert(b"alpha", b"x")], vec![]),
-            &mut 0,
-            &mut 0,
-            &mut total,
+            &mut counters,
         )
         .expect_err("inline value cap");
         assert!(matches!(

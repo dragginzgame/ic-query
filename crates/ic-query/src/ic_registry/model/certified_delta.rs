@@ -12,8 +12,13 @@ pub struct CertifiedRegistryDeltaBatch {
     pub(crate) mutation_count: usize,
     pub(crate) precondition_count: usize,
     pub(crate) inline_value_bytes: usize,
+    pub(crate) chunk_value_bytes: usize,
+    pub(crate) value_bytes: usize,
+    pub(crate) chunk_reference_count: usize,
+    pub(crate) chunk_query_call_count: usize,
+    pub(crate) chunk_response_bytes: usize,
     pub(crate) more_available: bool,
-    pub(crate) response_bytes: usize,
+    pub(crate) certified_response_bytes: usize,
     pub(crate) certificate_time_nanos: u64,
     pub(crate) root_key_digest: String,
     pub(crate) certificate_hex: String,
@@ -39,7 +44,7 @@ pub struct CertifiedRegistryDeltaVersion {
 ///
 /// CertifiedRegistryMutation
 ///
-/// One ordered Registry mutation with its raw type and complete inline content.
+/// One ordered Registry mutation with raw type, original encoding, and complete content.
 ///
 
 #[derive(Debug)]
@@ -47,6 +52,21 @@ pub struct CertifiedRegistryMutation {
     pub(crate) mutation_type: i32,
     pub(crate) key_hex: String,
     pub(crate) value_hex: Option<String>,
+    pub(crate) value_encoding: CertifiedRegistryValueEncoding,
+    pub(crate) chunk_sha256s: Vec<Vec<u8>>,
+}
+
+///
+/// CertifiedRegistryValueEncoding
+///
+/// Original value representation committed by one certified Registry mutation.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CertifiedRegistryValueEncoding {
+    Absent,
+    Inline,
+    Chunked,
 }
 
 ///

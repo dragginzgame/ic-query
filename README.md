@@ -477,9 +477,12 @@ The `nns-host` library surface also exposes a caller-runtime async
 `fetch_nns_certified_registry_delta_batch_async` operation and pure
 `validate_nns_certified_registry_delta_batch` validator. One call returns at
 most one contiguous certified batch and reports `more_available`; it never
-loops, writes a cache, retrieves chunked large values, or promotes Subnet
-Catalog assurance. The pure validator checks structural evidence returned by
-trusted custom sources; only the built-in live transport cryptographically
+loops over later batches, writes a cache, or promotes Subnet Catalog
+assurance. Chunk-referenced values in that batch are completed with
+hash-verified `get_chunk` calls under fixed per-call, per-value, and aggregate
+ceilings, with digest reuse and exact call/byte accounting preserved in report
+schema 2. The pure validator checks structural evidence returned by trusted
+custom sources; only the built-in live transport cryptographically
 authenticates the raw certificate and witness.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from

@@ -11,12 +11,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.2` hard-cuts certified Registry delta reports to schema 2 and completes
+  certified large-value chunk references under fixed call, chunk, per-value,
+  total-value, response-byte, and agent-body ceilings. Reports preserve the
+  original absent/inline/chunked encoding, ordered SHA-256 references,
+  reconstructed value bytes, and separate certified/chunk/total accounting;
+  the pure validator recomputes those invariants. Repeated digests reuse one
+  verified chunk response. The shared exact-version Registry value path now
+  applies the same bounded hash-verified reconstruction. This adds no cache,
+  replay loop, CLI surface, or certified Subnet Catalog claim.
+
 - `0.30.1` adds a mainnet-only caller-runtime async library operation for one
   certified `get_certified_changes_since` batch. It authenticates the shared
   latest-version and delta witness, requires contiguous eight-byte version
   labels, decodes native atomic mutations, preserves raw evidence and exact
   accounting, and fails closed on malformed, oversized, unknown, conflicting,
-  or chunk-referenced content. A pure validator recomputes structural report
+  or incomplete content. A pure validator recomputes structural report
   invariants for trusted custom sources; cryptographic authentication remains
   the source's responsibility. The operation is one-call, uncached,
   non-paginating, has no CLI surface, and does not promote Subnet Catalog

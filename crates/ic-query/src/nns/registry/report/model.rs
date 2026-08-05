@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "nns-host")]
 pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 2;
 #[cfg(feature = "nns-host")]
-pub(super) const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 1;
+pub(super) const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 2;
 
 ///
 /// NnsRegistryVersionRequest
@@ -144,6 +144,12 @@ pub struct NnsCertifiedRegistryDeltaBatchReport {
     pub precondition_count: usize,
     /// Complete inline value bytes across all visible mutations.
     pub inline_value_bytes: usize,
+    /// Complete reconstructed bytes for chunk-referenced values.
+    pub chunk_value_bytes: usize,
+    /// Complete inline and reconstructed value bytes.
+    pub value_bytes: usize,
+    /// Number of certified chunk references across all visible mutations.
+    pub chunk_reference_count: usize,
     /// Whether later certified versions require another explicit request.
     pub more_available: bool,
     /// Caller collection time.
@@ -154,7 +160,13 @@ pub struct NnsCertifiedRegistryDeltaBatchReport {
     pub fetched_by: String,
     /// Number of Registry queries made for this batch.
     pub query_call_count: u64,
-    /// Encoded certified response size returned by the replica.
+    /// Number of content-addressed `get_chunk` queries made for this batch.
+    pub chunk_query_call_count: u64,
+    /// Encoded certified delta response size returned by the replica.
+    pub certified_response_bytes: usize,
+    /// Encoded `get_chunk` response bytes returned by the replica.
+    pub chunk_response_bytes: usize,
+    /// Total encoded response bytes returned across every Registry query.
     pub response_bytes: usize,
     /// Resource ceilings applied while validating the batch.
     pub limits: NnsCertifiedRegistryDeltaLimits,
@@ -182,8 +194,18 @@ pub struct NnsCertifiedRegistryDeltaLimits {
     pub max_key_bytes: usize,
     /// Maximum combined inline value bytes.
     pub max_inline_value_bytes: usize,
-    /// Maximum encoded response body accepted by the native agent.
-    pub max_response_bytes: usize,
+    /// Maximum chunk references across the complete batch.
+    pub max_chunk_references: usize,
+    /// Maximum decoded bytes in one retrieved Registry chunk.
+    pub max_chunk_bytes: usize,
+    /// Maximum reconstructed bytes in one Registry value.
+    pub max_reconstructed_value_bytes: usize,
+    /// Maximum combined inline and reconstructed value bytes.
+    pub max_value_bytes: usize,
+    /// Maximum encoded bytes across all `get_chunk` responses.
+    pub max_chunk_response_bytes: usize,
+    /// Maximum encoded bytes accepted for any single agent response body.
+    pub max_response_body_bytes: usize,
 }
 
 ///
@@ -218,8 +240,29 @@ pub struct NnsCertifiedRegistryMutation {
     pub mutation_kind: NnsCertifiedRegistryMutationKind,
     /// Raw Registry key bytes as lowercase hexadecimal.
     pub key_hex: String,
-    /// Complete inline value bytes as lowercase hexadecimal; absent for deletes.
+    /// Original certified representation of this mutation's value.
+    pub value_encoding: NnsCertifiedRegistryValueEncoding,
+    /// Ordered certified chunk digests as lowercase hexadecimal.
+    pub chunk_sha256_hexes: Vec<String>,
+    /// Complete value bytes as lowercase hexadecimal; absent for deletes.
     pub value_hex: Option<String>,
+}
+
+///
+/// NnsCertifiedRegistryValueEncoding
+///
+/// Original value representation committed by a certified Registry mutation.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NnsCertifiedRegistryValueEncoding {
+    /// Delete mutation with no value content.
+    Absent,
+    /// Value bytes carried directly in the certified delta response.
+    Inline,
+    /// Value reconstructed from certified SHA-256 chunk references.
+    Chunked,
 }
 
 ///

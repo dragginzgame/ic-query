@@ -3,9 +3,9 @@ use super::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
     NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
-    NnsCertifiedRegistryMutationKind, NnsRegistryCertification, NnsRegistryHostError,
-    NnsRegistrySource, NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
-    build_nns_registry_version_report_with_source,
+    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
+    NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData, NnsRegistryVersionReport,
+    NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async, nns_registry_version_report_text,
     validate_nns_certified_registry_delta_batch,
 };
@@ -109,6 +109,48 @@ fn certified_delta_pure_validator_rejects_sequence_and_derived_field_tampering()
         error,
         NnsRegistryHostError::InvalidSourceData { reason }
             if reason.contains("does not match kind")
+    ));
+}
+
+#[test]
+fn certified_delta_validator_accepts_bounded_chunk_evidence_and_recomputes_accounting() {
+    let request = certified_delta_request();
+    let mut report = certified_delta_report(&request);
+    let hash = "ab".repeat(32);
+    let mutation = &mut report.versions[0].mutations[0];
+    mutation.value_encoding = NnsCertifiedRegistryValueEncoding::Chunked;
+    mutation.chunk_sha256_hexes = vec![hash.clone(), hash];
+    mutation.value_hex = Some("6263".to_string());
+    report.inline_value_bytes = 0;
+    report.chunk_value_bytes = 2;
+    report.value_bytes = 2;
+    report.chunk_reference_count = 2;
+    report.chunk_query_call_count = 1;
+    report.query_call_count = 2;
+    report.chunk_response_bytes = 32;
+    report.response_bytes = 96;
+
+    validate_nns_certified_registry_delta_batch(&request, &report).expect("bounded chunk evidence");
+
+    let mut invalid_hash = report.clone();
+    invalid_hash.versions[0].mutations[0].chunk_sha256_hexes[0] = "AB".repeat(32);
+    let error = validate_nns_certified_registry_delta_batch(&request, &invalid_hash)
+        .expect_err("noncanonical chunk hash");
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::InvalidSourceData { reason }
+            if reason.contains("chunk SHA-256")
+    ));
+
+    let mut hidden_query = report;
+    hidden_query.chunk_query_call_count = 2;
+    hidden_query.query_call_count = 3;
+    let error = validate_nns_certified_registry_delta_batch(&request, &hidden_query)
+        .expect_err("query count must equal unique chunk hashes");
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::InvalidSourceData { reason }
+            if reason.contains("chunk_query_call_count mismatch")
     ));
 }
 
@@ -278,7 +320,7 @@ fn certified_delta_report(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
 ) -> NnsCertifiedRegistryDeltaBatchReport {
     NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 1,
+        schema_version: 2,
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         requested_version: request.requested_version,
@@ -289,11 +331,17 @@ fn certified_delta_report(
         mutation_count: 1,
         precondition_count: 0,
         inline_value_bytes: 1,
+        chunk_value_bytes: 0,
+        value_bytes: 1,
+        chunk_reference_count: 0,
         more_available: true,
         fetched_at: "2026-06-04T00:00:00Z".to_string(),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
         query_call_count: 1,
+        chunk_query_call_count: 0,
+        certified_response_bytes: 64,
+        chunk_response_bytes: 0,
         response_bytes: 64,
         limits: nns_certified_registry_delta_limits(),
         versions: vec![NnsCertifiedRegistryDeltaVersion {
@@ -303,6 +351,8 @@ fn certified_delta_report(
                 mutation_type: 4,
                 mutation_kind: NnsCertifiedRegistryMutationKind::Upsert,
                 key_hex: "61".to_string(),
+                value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
+                chunk_sha256_hexes: Vec::new(),
                 value_hex: Some("62".to_string()),
             }],
             preconditions: Vec::new(),

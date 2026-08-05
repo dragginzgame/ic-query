@@ -143,6 +143,12 @@ the committed `current_version` leaf. That bounded proof does not upgrade
 ordinary `get_value` evidence: `CatalogAssurance::Certified` remains reserved
 until a complete contiguous certified delta sequence reconstructs the catalog
 at the selected version.
+The caller-runtime certified delta adapter returns at most one contiguous
+batch. Chunk-referenced values named by that batch are completed with bounded,
+SHA-256-verified `get_chunk` calls and exact call/byte accounting; later delta
+batches are never followed implicitly. The shared ordinary `get_value` path
+uses the same bounded chunk reconstruction without inheriting certified
+assurance.
 
 ## Current Follow-Up Flows
 

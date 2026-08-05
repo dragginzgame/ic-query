@@ -6,8 +6,9 @@ pub use report::{
     DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsCertifiedRegistryDeltaBatchReport,
     NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
     NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
-    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition, NnsRegistryCertification,
-    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
+    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
+    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
+    NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{

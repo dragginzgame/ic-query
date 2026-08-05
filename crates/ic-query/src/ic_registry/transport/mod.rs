@@ -38,8 +38,11 @@ pub use certified_delta::{
     MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES, MAX_CERTIFIED_DELTA_KEY_BYTES,
     MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS, MAX_CERTIFIED_DELTA_VERSIONS,
 };
-#[cfg(all(test, feature = "nns-host"))]
-pub(super) use chunk::{append_validated_chunk, sha256_digest};
+#[cfg(feature = "nns-host")]
+pub use chunk::{
+    MAX_CERTIFIED_DELTA_VALUE_BYTES, MAX_REGISTRY_CHUNK_BYTES, MAX_REGISTRY_CHUNK_REFERENCES,
+    MAX_REGISTRY_CHUNK_RESPONSE_BYTES, MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
+};
 pub(super) use codec::decode_message;
 #[cfg(feature = "nns-topology-host")]
 pub(super) use value::get_registry_value;

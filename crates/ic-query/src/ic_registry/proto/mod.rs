@@ -16,14 +16,14 @@ pub use node::Gps;
 pub use node::{NodeOperatorRecord, NodeRecord};
 #[cfg(all(test, feature = "nns-host"))]
 pub use registry::RegistryError;
+#[cfg(all(test, feature = "nns-host"))]
+pub use registry::RegistryPrecondition;
 #[cfg(feature = "nns-host")]
 pub use registry::{
-    HighCapacityRegistryAtomicMutateRequest, RegistryCertifiedResponse,
-    RegistryGetChangesSinceRequest, RegistryMixedHashTree, RegistryMutationType,
-    high_capacity_registry_mutation, registry_mixed_hash_tree,
+    HighCapacityRegistryAtomicMutateRequest, HighCapacityRegistryMutation,
+    RegistryCertifiedResponse, RegistryGetChangesSinceRequest, RegistryMixedHashTree,
+    RegistryMutationType, high_capacity_registry_mutation, registry_mixed_hash_tree,
 };
-#[cfg(all(test, feature = "nns-host"))]
-pub use registry::{HighCapacityRegistryMutation, RegistryPrecondition};
 pub use registry::{
     LargeValueChunkKeys, RegistryErrorCode, RegistryGetLatestVersionResponse,
     RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value, registry_get_value_response,

@@ -1,4 +1,8 @@
-use super::{RegistryQueryCounter, chunk::get_large_registry_value, decode_message};
+use super::{
+    RegistryQueryCounter,
+    chunk::{RegistryChunkBudget, RegistryChunkLimits, get_large_registry_value},
+    decode_message,
+};
 use crate::ic_registry::{
     RegistryFetchError,
     proto::{
@@ -64,11 +68,13 @@ async fn get_registry_value_inner(
     match registry_value_content_from_response(key, response)? {
         RegistryValueContent::Value(value) => Ok(value),
         RegistryValueContent::LargeValueChunkKeys(keys) => {
+            let mut budget = RegistryChunkBudget::new(RegistryChunkLimits::ordinary_value(), 0)?;
             get_large_registry_value(
                 agent,
                 registry_canister,
                 &keys.chunk_content_sha256s,
                 counter,
+                &mut budget,
             )
             .await
         }

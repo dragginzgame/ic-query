@@ -100,8 +100,9 @@ use ic_query::nns::proposals::{
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
     NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
-    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind, NnsRegistryCertification,
-    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
+    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
+    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
+    NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
@@ -457,6 +458,12 @@ fn public_certified_registry_delta_models_preserve_raw_evidence() {
         "upsert"
     );
     assert_eq!(json["versions"][0]["mutations"][0]["key_hex"], "61");
+    assert_eq!(
+        json["versions"][0]["mutations"][0]["value_encoding"],
+        "inline"
+    );
+    assert_eq!(json["chunk_reference_count"], 0);
+    assert_eq!(json["query_call_count"], 1);
 }
 
 #[cfg(feature = "nns-host")]
@@ -529,7 +536,7 @@ fn public_certified_delta_report(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
 ) -> NnsCertifiedRegistryDeltaBatchReport {
     NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 1,
+        schema_version: 2,
         network: "ic".to_string(),
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         requested_version: request.requested_version,
@@ -540,11 +547,17 @@ fn public_certified_delta_report(
         mutation_count: 1,
         precondition_count: 0,
         inline_value_bytes: 1,
+        chunk_value_bytes: 0,
+        value_bytes: 1,
+        chunk_reference_count: 0,
         more_available: false,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
         query_call_count: 1,
+        chunk_query_call_count: 0,
+        certified_response_bytes: 64,
+        chunk_response_bytes: 0,
         response_bytes: 64,
         limits: public_certified_delta_limits(),
         versions: vec![NnsCertifiedRegistryDeltaVersion {
@@ -554,6 +567,8 @@ fn public_certified_delta_report(
                 mutation_type: 4,
                 mutation_kind: NnsCertifiedRegistryMutationKind::Upsert,
                 key_hex: "61".to_string(),
+                value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
+                chunk_sha256_hexes: Vec::new(),
                 value_hex: Some("62".to_string()),
             }],
             preconditions: Vec::new(),
@@ -575,7 +590,12 @@ const fn public_certified_delta_limits() -> NnsCertifiedRegistryDeltaLimits {
             max_preconditions: 65_536,
             max_key_bytes: 4_096,
             max_inline_value_bytes: 2 * 1_024 * 1_024,
-            max_response_bytes: 8 * 1_024 * 1_024,
+            max_chunk_references: 64,
+            max_chunk_bytes: 1_800_000,
+            max_reconstructed_value_bytes: 10 * 1_024 * 1_024,
+            max_value_bytes: 16 * 1_024 * 1_024,
+            max_chunk_response_bytes: 32 * 1_024 * 1_024,
+            max_response_body_bytes: 8 * 1_024 * 1_024,
         }
     }
 }

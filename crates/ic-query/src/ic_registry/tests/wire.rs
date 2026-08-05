@@ -39,37 +39,6 @@ fn registry_get_chunk_request_candid_round_trips() {
 }
 
 #[test]
-fn validated_chunk_append_concatenates_matching_chunks() {
-    let first = b"hello ".to_vec();
-    let second = b"world".to_vec();
-    let first_hash = sha256_digest(&first);
-    let second_hash = sha256_digest(&second);
-    let mut value = Vec::new();
-
-    append_validated_chunk(&mut value, &first_hash, first).expect("first chunk");
-    append_validated_chunk(&mut value, &second_hash, second).expect("second chunk");
-
-    assert_eq!(value, b"hello world");
-}
-
-#[test]
-fn validated_chunk_append_rejects_hash_mismatch() {
-    let expected = sha256_digest(b"expected");
-
-    let err = append_validated_chunk(&mut Vec::new(), &expected, b"actual".to_vec())
-        .expect_err("hash mismatch");
-
-    assert!(matches!(
-        err,
-        RegistryFetchError::ChunkHashMismatch {
-            sha256,
-            actual_sha256
-        } if sha256 == hex_bytes(&expected)
-            && actual_sha256 == hex_bytes(&sha256_digest(b"actual"))
-    ));
-}
-
-#[test]
 fn get_value_response_reports_registry_errors() {
     let response = RegistryGetValueResponse {
         error: Some(proto::RegistryError {

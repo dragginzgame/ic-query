@@ -30,7 +30,7 @@ pub use model::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-host")]
 pub use model::{
     CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion, CertifiedRegistryMutation,
-    CertifiedRegistryPrecondition,
+    CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
 };
 #[cfg(feature = "nns-host")]
 pub use model::{
@@ -46,7 +46,10 @@ use proto::{CanisterId, SubnetId};
 #[cfg(feature = "nns-host")]
 pub use transport::{
     MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES, MAX_CERTIFIED_DELTA_KEY_BYTES,
-    MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS, MAX_CERTIFIED_DELTA_VERSIONS,
+    MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS,
+    MAX_CERTIFIED_DELTA_VALUE_BYTES, MAX_CERTIFIED_DELTA_VERSIONS, MAX_REGISTRY_CHUNK_BYTES,
+    MAX_REGISTRY_CHUNK_REFERENCES, MAX_REGISTRY_CHUNK_RESPONSE_BYTES,
+    MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
 };
 
 #[cfg(all(test, feature = "nns-host"))]
@@ -82,9 +85,7 @@ use relations::{
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(all(test, feature = "nns-host"))]
-use transport::{
-    append_validated_chunk, hex_bytes, registry_value_content_from_response, sha256_digest,
-};
+use transport::registry_value_content_from_response;
 
 #[cfg(all(test, feature = "nns-host"))]
 use wire::{

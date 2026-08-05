@@ -32,17 +32,26 @@ pub enum RegistryFetchError {
         reason: String,
     },
 
-    /// A certified mutation references value chunks that this bounded batch does not fetch.
-    #[error(
-        "certified Registry version {version} key {key_hex} uses {chunk_count} large-value chunks; bounded chunk retrieval is not implemented"
-    )]
-    UnsupportedCertifiedLargeValue {
-        /// Registry version containing the mutation.
-        version: u64,
-        /// Registry key as canonical lowercase hexadecimal.
-        key_hex: String,
-        /// Number of referenced content-addressed chunks.
-        chunk_count: usize,
+    /// A large Registry value did not contain any chunk references.
+    #[error("Registry large-value chunk list is empty")]
+    EmptyRegistryChunkList,
+
+    /// A Registry chunk reference was not one SHA-256 digest.
+    #[error("Registry chunk digest is {actual_bytes} bytes; expected exactly 32")]
+    InvalidRegistryChunkDigest {
+        /// Actual digest length returned by the Registry.
+        actual_bytes: usize,
+    },
+
+    /// A Registry chunk collection exceeded an explicit resource ceiling.
+    #[error("Registry chunk {field} is {actual}; maximum is {maximum}")]
+    RegistryChunkLimit {
+        /// Bounded resource that exceeded its ceiling.
+        field: &'static str,
+        /// Enforced ceiling.
+        maximum: usize,
+        /// Observed or requested amount.
+        actual: usize,
     },
 
     #[error("failed to encode protobuf {message}: {reason}")]
