@@ -30,6 +30,22 @@ NNS/SNS/ICRC host adapters. Reqwest can retain cryptographic implementations
 such as SHA-256 transitively; dependency checks distinguish those transitives
 from ic-query's own direct optional edges.
 
+For native ICRC ledger/index reports, certified-tip verification, and complete
+account-history caches, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["icrc-host"] }
+```
+
+`icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
+builders, certificate/hash-tree verification, and the confined complete
+account-history cache. It enables `ic-agent`, Futures, Tokio, URL, SHA-256,
+CBOR, and the capability-filesystem dependencies required by those APIs. It
+does not enable Dashboard, Registry, NNS, or SNS host adapters and has no
+direct ic-query dependency on Reqwest or Prost. Reqwest remains transitive
+through `ic-agent`.
+
 For a native embedder that needs only the live/cache Subnet catalog API, use
 the narrower feature:
 

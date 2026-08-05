@@ -16,7 +16,11 @@ pub use acquire::inspect_refresh_lock;
 #[cfg(feature = "host")]
 pub use model::RefreshLockEvidence;
 pub use model::RefreshLockRequest;
-#[cfg(any(feature = "dashboard-host", feature = "nns-topology-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host"
+))]
 pub use run::with_refresh_lock;
 #[cfg(feature = "subnet-catalog-host")]
 pub use run::with_refresh_lock_async;

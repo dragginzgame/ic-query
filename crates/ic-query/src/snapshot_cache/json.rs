@@ -6,17 +6,22 @@
 
 #[cfg(feature = "host")]
 use super::SnapshotHeader;
+#[cfg(feature = "dashboard-host")]
 use super::{SnapshotIdentityMismatch, SnapshotKey, SnapshotReport};
+use crate::cache_file::{CacheFileError, write_managed_text_atomically};
+#[cfg(feature = "dashboard-host")]
 use crate::{
     cache::CacheCollectionCompleteness,
     cache_file::{
-        CacheFileError, CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-        load_json_cache_strict, write_managed_text_atomically,
+        CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache_strict,
     },
 };
-use serde::{Serialize, de::DeserializeOwned};
+use serde::Serialize;
+#[cfg(feature = "dashboard-host")]
+use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "dashboard-host")]
 pub fn load_complete_snapshot<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],
@@ -34,6 +39,7 @@ where
     Ok(cached.report)
 }
 
+#[cfg(feature = "dashboard-host")]
 pub fn load_complete_snapshot_for_key<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     key: &SnapshotKey,
@@ -83,6 +89,7 @@ where
     write_managed_text_atomically(cache_root, path, &data).map_err(write_error)
 }
 
+#[cfg(feature = "dashboard-host")]
 fn snapshot_identity_mismatch(
     snapshot: &impl SnapshotReport,
     key: &SnapshotKey,
@@ -101,6 +108,7 @@ fn snapshot_identity_mismatch(
         })
 }
 
+#[cfg(feature = "dashboard-host")]
 fn identity_field_mismatch(
     field: &'static str,
     expected: &str,

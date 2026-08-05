@@ -9,7 +9,11 @@ use crate::cache_file::CacheFileError;
 #[cfg(feature = "subnet-catalog-host")]
 use std::future::Future;
 
-#[cfg(any(feature = "dashboard-host", feature = "nns-topology-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host"
+))]
 pub fn with_refresh_lock<T, E>(
     request: RefreshLockRequest<'_>,
     cache_error: impl Fn(CacheFileError) -> E,

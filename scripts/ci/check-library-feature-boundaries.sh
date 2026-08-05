@@ -38,6 +38,15 @@ forbidden_direct_dashboard_host_dependencies=(
   sha2
 )
 
+forbidden_icrc_host_dependencies=(
+  prost
+)
+
+forbidden_direct_icrc_host_dependencies=(
+  prost
+  reqwest
+)
+
 check_tree_absent() {
   local label="$1"
   shift
@@ -91,6 +100,8 @@ run_quiet "ic-query --features host" \
   cargo check -p ic-query --no-default-features --features host --locked
 run_quiet "ic-query --features dashboard-host" \
   cargo check -p ic-query --no-default-features --features dashboard-host --locked
+run_quiet "ic-query --features icrc-host" \
+  cargo check -p ic-query --no-default-features --features icrc-host --locked
 run_quiet "ic-query --features subnet-catalog-host" \
   cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
 run_quiet "ic-query --features nns-topology-host" \
@@ -98,6 +109,7 @@ run_quiet "ic-query --features nns-topology-host" \
 cargo test -p ic-query --test downstream_usage --no-default-features --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
+cargo test -p ic-query --test icrc_public_api --no-default-features --features icrc-host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features dashboard-host --locked
@@ -166,6 +178,25 @@ check_tree_absent "ic-query --features dashboard-host direct dependencies" \
   -p ic-query \
   --no-default-features \
   --features dashboard-host \
+  -e normal \
+  --depth 1
+
+check_tree_absent "ic-query --features icrc-host" \
+  "${forbidden_icrc_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features icrc-host
+
+# `ic-agent` retains Reqwest transitively. The focused ICRC feature promises
+# that ic-query does not activate its Dashboard transport or Registry protobuf
+# dependency directly, not that those package names disappear transitively.
+check_tree_absent "ic-query --features icrc-host direct dependencies" \
+  "${forbidden_direct_icrc_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features icrc-host \
   -e normal \
   --depth 1
 

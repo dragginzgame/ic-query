@@ -1,6 +1,6 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 use ic_query::QueryProgress;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 use ic_query::icrc::{
     CachedIcrcAccountTransactionSnapshot,
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
@@ -49,7 +49,7 @@ use ic_query::icrc::{
     icrc_token_report_text, icrc_transactions_report_text, normalize_subaccount_hex,
 };
 use serde_json::json;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 use std::path::PathBuf;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
@@ -61,89 +61,89 @@ const FETCHED_AT_UNIX_SECS: u64 = 1_700_000_000;
 const FETCHED_BY: &str = "ic-query";
 const SUBACCOUNT_HEX: &str = "0000000000000000000000000000000000000000000000000000000000000001";
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcTokenBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcTokenReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcBalanceBuilder = fn(&IcrcBalanceRequest) -> Result<IcrcBalanceReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAllowanceBuilder = fn(&IcrcAllowanceRequest) -> Result<IcrcAllowanceReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionPageBuilder =
     fn(
         &IcrcAccountTransactionPageRequest,
     ) -> Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionListBuilder =
     fn(
         &IcrcAccountTransactionListRequest,
     ) -> Result<IcrcAccountTransactionListReport, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionCacheLoader =
     fn(
         &IcrcAccountTransactionCacheRequest,
     ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionRefreshWithSource =
     fn(
         &IcrcAccountTransactionRefreshRequest,
         &dyn IcrcAccountTransactionCollectionSource,
     ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionLoadMissingWithSource =
     fn(
         &IcrcAccountTransactionRefreshRequest,
         &dyn IcrcAccountTransactionCollectionSource,
     ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionLoadStaleWithSource =
     fn(
         &IcrcAccountTransactionRefreshRequest,
         u64,
         &dyn IcrcAccountTransactionCollectionSource,
     ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionCachePath =
     fn(&IcrcAccountTransactionCacheRequest) -> Result<PathBuf, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionCacheStatusBuilder =
     fn(
         &IcrcAccountTransactionCacheRequest,
     ) -> Result<IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionRefresh =
     fn(
         &IcrcAccountTransactionRefreshRequest,
     ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionRefreshWithProgress =
     fn(
         &IcrcAccountTransactionRefreshRequest,
         &mut (dyn QueryProgress + Send),
     ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionLoadMissing =
     fn(
         &IcrcAccountTransactionRefreshRequest,
     ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionLoadStale =
     fn(
         &IcrcAccountTransactionRefreshRequest,
         u64,
     ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcIndexBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcIndexReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcTransactionsBuilder =
     fn(&IcrcTransactionsRequest) -> Result<IcrcTransactionsReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcBlockTypesBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcBlockTypesReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcArchivesBuilder = fn(&IcrcArchivesRequest) -> Result<IcrcArchivesReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcTipCertificateBuilder =
     fn(&IcrcLedgerRequest) -> Result<IcrcTipCertificateReport, IcrcError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 type IcrcCapabilitiesBuilder = fn(&IcrcLedgerRequest) -> Result<IcrcCapabilitiesReport, IcrcError>;
 
 #[test]
@@ -253,7 +253,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
     );
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 #[test]
 fn public_icrc_host_api_exposes_live_builder_entry_points() {
     assert_eq!(ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, 100);
@@ -312,10 +312,10 @@ fn public_icrc_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<IcrcCapabilitiesBuilder>(build_icrc_capabilities_report);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 fn accepts_public_function<T>(_function: T) {}
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 #[test]
 fn public_icrc_host_api_accepts_custom_source_adapters() {
     let source = FixtureIcrcSource;
@@ -415,10 +415,10 @@ fn public_icrc_host_api_accepts_custom_source_adapters() {
     .expect("capabilities report");
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 struct FixtureIcrcSource;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcTokenSource for FixtureIcrcSource {
     fn fetch_token(&self, request: &IcrcLedgerRequest) -> Result<IcrcTokenData, IcrcError> {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
@@ -436,7 +436,7 @@ impl IcrcTokenSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcBalanceSource for FixtureIcrcSource {
     fn fetch_balance(&self, _request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
         Ok(IcrcBalanceData {
@@ -447,7 +447,7 @@ impl IcrcBalanceSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcAllowanceSource for FixtureIcrcSource {
     fn fetch_allowance(
         &self,
@@ -462,7 +462,7 @@ impl IcrcAllowanceSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcIndexSource for FixtureIcrcSource {
     fn fetch_index(&self, _request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError> {
         Ok(IcrcIndexData {
@@ -472,7 +472,7 @@ impl IcrcIndexSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcTransactionsSource for FixtureIcrcSource {
     fn fetch_transactions(
         &self,
@@ -488,7 +488,7 @@ impl IcrcTransactionsSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcBlockTypesSource for FixtureIcrcSource {
     fn fetch_block_types(
         &self,
@@ -500,7 +500,7 @@ impl IcrcBlockTypesSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcArchivesSource for FixtureIcrcSource {
     fn fetch_archives(
         &self,
@@ -512,7 +512,7 @@ impl IcrcArchivesSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcTipCertificateSource for FixtureIcrcSource {
     fn fetch_tip_certificate(
         &self,
@@ -527,7 +527,7 @@ impl IcrcTipCertificateSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcCapabilitiesSource for FixtureIcrcSource {
     fn fetch_capabilities(
         &self,
@@ -540,7 +540,7 @@ impl IcrcCapabilitiesSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcAccountTransactionPageSource for FixtureIcrcSource {
     fn fetch_account_transaction_page(
         &self,
@@ -558,7 +558,7 @@ impl IcrcAccountTransactionPageSource for FixtureIcrcSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 impl IcrcAccountTransactionCollectionSource for FixtureIcrcSource {
     fn fetch_complete_account_transactions(
         &self,

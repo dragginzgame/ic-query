@@ -30,19 +30,19 @@ pub trait LoadJsonCacheErrorMapper {
 /// Maps generic JSON cache failures to the shared component-labelled host error.
 ///
 
-#[cfg(feature = "nns-topology-host")]
+#[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
 pub struct HostJsonCacheErrorMapper {
     component: &'static str,
 }
 
-#[cfg(feature = "nns-topology-host")]
+#[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
 impl HostJsonCacheErrorMapper {
     pub const fn new(component: &'static str) -> Self {
         Self { component }
     }
 }
 
-#[cfg(feature = "nns-topology-host")]
+#[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
 impl LoadJsonCacheErrorMapper for HostJsonCacheErrorMapper {
     type Error = HostCacheError;
 

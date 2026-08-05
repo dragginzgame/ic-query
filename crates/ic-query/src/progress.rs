@@ -78,10 +78,10 @@ where
 /// No-op progress sink used by silent library entry points.
 ///
 
-#[cfg(any(feature = "host", test))]
+#[cfg(any(feature = "host", feature = "icrc-host", test))]
 pub struct IgnoreQueryProgress;
 
-#[cfg(any(feature = "host", test))]
+#[cfg(any(feature = "host", feature = "icrc-host", test))]
 impl QueryProgress for IgnoreQueryProgress {
     fn report(&mut self, _event: QueryProgressEvent) {}
 }

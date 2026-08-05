@@ -13,7 +13,7 @@ pub fn normalize_subaccount_hex(value: &str) -> Result<String, IcrcError> {
     Ok(hex_bytes(&bytes))
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) fn normalize_optional_subaccount_hex(
     value: Option<&str>,
 ) -> Result<Option<String>, IcrcError> {

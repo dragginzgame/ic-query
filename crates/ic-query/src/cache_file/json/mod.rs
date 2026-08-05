@@ -8,7 +8,7 @@ mod errors;
 mod load;
 mod model;
 
-#[cfg(feature = "nns-topology-host")]
+#[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
 pub use errors::HostJsonCacheErrorMapper;
 #[cfg(feature = "dashboard-host")]
 pub use errors::LoadJsonCacheErrorMapper;
@@ -16,7 +16,7 @@ pub use errors::LoadJsonCacheErrorMapper;
 pub use errors::OwnerJsonCacheErrorMapper;
 #[cfg(feature = "nns-topology-host")]
 pub use load::load_json_cache;
-#[cfg(feature = "dashboard-host")]
+#[cfg(any(feature = "dashboard-host", feature = "icrc-host"))]
 pub use load::load_json_cache_strict;
 #[cfg(feature = "dashboard-host")]
 pub use model::CachedJsonReport;

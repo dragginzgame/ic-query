@@ -4,7 +4,7 @@
 //! Does not own: command dispatch, host calls, or output policy.
 //! Boundary: preserves one public error surface for reusable ICRC query behavior.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 use crate::{HostCacheError, runtime::RuntimeError};
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
@@ -17,7 +17,7 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum IcrcError {
-    #[cfg(feature = "host")]
+    #[cfg(feature = "icrc-host")]
     #[error("failed to create Tokio runtime for ICRC query: {0}")]
     Runtime(#[from] RuntimeError),
 
@@ -225,7 +225,7 @@ pub enum IcrcAccountTransactionError {
     },
 
     /// A cache load, lock, or atomic-write operation failed.
-    #[cfg(feature = "host")]
+    #[cfg(feature = "icrc-host")]
     #[error(transparent)]
     Cache(#[from] HostCacheError),
 }

@@ -56,7 +56,11 @@ pub use text::{
 #[cfg(feature = "subnet-catalog-host")]
 pub use time::catalog_stale_status;
 pub(crate) use time::format_utc_timestamp_secs;
-#[cfg(any(feature = "dashboard-host", feature = "subnet-catalog-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "subnet-catalog-host"
+))]
 pub(crate) use time::parse_utc_timestamp_secs;
 
 pub const CATALOG_SCHEMA_VERSION: u32 = 2;

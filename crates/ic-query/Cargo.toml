@@ -36,13 +36,23 @@ url = { version = "2.5.8", optional = true }
 default = []
 host = [
     "dashboard-host",
+    "icrc-host",
     "nns-topology-host",
-    "dep:serde_cbor",
 ]
 dashboard-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
     "dep:reqwest",
+    "dep:tokio",
+    "dep:url",
+]
+icrc-host = [
+    "dep:cap-fs-ext",
+    "dep:cap-std",
+    "dep:futures",
+    "dep:ic-agent",
+    "dep:serde_cbor",
+    "dep:sha2",
     "dep:tokio",
     "dep:url",
 ]

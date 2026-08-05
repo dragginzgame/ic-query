@@ -5,7 +5,7 @@
 //! Boundary: keeps public contracts, host-source data, errors, and validation separate.
 
 mod contracts;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 mod data;
 mod error;
 mod subaccount;
@@ -25,7 +25,7 @@ pub use contracts::{
     IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow,
     IcrcTransactionsReport, IcrcTransactionsRequest,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub use data::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
     IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData,
@@ -34,7 +34,7 @@ pub use data::{
 };
 pub use error::{IcrcAccountTransactionError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) use subaccount::{
     normalize_optional_subaccount_hex, subaccount_bytes_from_hex,
 };

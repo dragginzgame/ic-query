@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
 
+- `0.29.6` adds the independent `icrc-host` library feature for native ICRC
+  ledger/index queries, certified-tip verification, and complete
+  account-history caches. It excludes Dashboard, Registry, NNS, and SNS host
+  adapters and has no direct ic-query Reqwest or Prost edge; Reqwest remains
+  transitive through `ic-agent`. APIs, schemas, paths, calls, and CLI behavior
+  are unchanged.
+
 - `0.29.5` adds the independent `dashboard-host` library feature for official
   Dashboard REST reports and the confined observed node-status cache. It
   excludes `ic-agent`, Registry protobufs, CBOR certification, and native

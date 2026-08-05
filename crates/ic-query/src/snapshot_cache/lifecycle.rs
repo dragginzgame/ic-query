@@ -8,7 +8,7 @@ use crate::cache_file::{
     CacheFileError, RefreshLockRequest, create_managed_parent_directory, managed_file_exists,
     with_refresh_lock,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 use std::fmt::Display;
 use std::path::Path;
 
@@ -65,7 +65,7 @@ pub fn with_locked_snapshot_refresh<T, Error>(
     )
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub fn run_snapshot_refresh_with_attempts<Output, Error>(
     write_running_attempt: impl FnOnce() -> Result<(), Error>,
     run_refresh: impl FnOnce() -> Result<Output, Error>,
@@ -81,7 +81,7 @@ pub fn run_snapshot_refresh_with_attempts<Output, Error>(
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub fn publish_snapshot_with_attempt<Error>(
     publish_snapshot: impl FnOnce() -> Result<(), Error>,
     finalize_attempt: impl FnOnce() -> Result<(), Error>,

@@ -385,6 +385,18 @@ cryptographic packages such as SHA-256 implementations transitively; the
 feature promises the absence of ic-query's direct Registry and certification
 edges, not every similarly named transitive package.
 
+Enable `icrc-host` for native ICRC ledger/index queries, certified-tip
+verification, and the complete account-history cache:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["icrc-host"] }
+```
+
+This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
+not enable ic-query's direct Reqwest or Prost dependencies. `ic-agent` retains
+Reqwest transitively, so the package may still appear in the complete graph.
+
 Enable the narrower `subnet-catalog-host` feature when a native embedder needs
 only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
 decoding, runtime bridge, capability-filesystem dependencies, and other cache

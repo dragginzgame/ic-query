@@ -5,18 +5,18 @@
 //! Boundary: exposes live read-only token metadata, account balance, allowance,
 //! index discovery, account and ledger transaction history, block type, and archive reports.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 mod account_transaction_cache;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub(crate) mod ledger;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 mod live;
 mod model;
 mod text;
 
 pub const DEFAULT_ICRC_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub use account_transaction_cache::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
@@ -29,7 +29,7 @@ pub use account_transaction_cache::{
     refresh_icrc_account_transaction_cache, refresh_icrc_account_transaction_cache_with_progress,
     refresh_icrc_account_transaction_cache_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub use live::{
     ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCollectionSource,
     IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource, IcrcBalanceSource,
@@ -48,7 +48,7 @@ pub use live::{
     build_icrc_transactions_report_with_source,
 };
 pub use model::normalize_subaccount_hex;
-#[cfg(feature = "host")]
+#[cfg(feature = "icrc-host")]
 pub use model::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
     IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData,
@@ -79,5 +79,5 @@ pub use text::{
     icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
 };
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "icrc-host"))]
 mod tests;

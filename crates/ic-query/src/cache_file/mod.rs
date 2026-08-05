@@ -6,7 +6,11 @@
 
 mod confined;
 mod error;
-#[cfg(any(feature = "dashboard-host", feature = "nns-topology-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host"
+))]
 mod json;
 mod lock;
 mod policy;
@@ -14,25 +18,37 @@ mod policy;
 mod tests;
 mod write;
 
+#[cfg(feature = "icrc-host")]
+pub use confined::read_managed_file;
 #[cfg(feature = "host")]
-pub use confined::{
-    collect_managed_collection_files, collect_managed_files, open_managed_file, read_managed_file,
-};
+pub use confined::{collect_managed_collection_files, collect_managed_files, open_managed_file};
 pub use confined::{
     create_managed_parent_directory, managed_file_exists, read_managed_text,
     write_managed_text_atomically,
 };
 pub use error::{CacheFileError, HostCacheError};
+#[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
+pub use json::HostJsonCacheErrorMapper;
 #[cfg(feature = "dashboard-host")]
-pub use json::{
-    CachedJsonReport, LoadJsonCacheErrorMapper, OwnerJsonCacheErrorMapper, load_json_cache_strict,
-};
+pub use json::OwnerJsonCacheErrorMapper;
 #[cfg(feature = "nns-topology-host")]
-pub use json::{HostJsonCacheErrorMapper, load_json_cache};
-#[cfg(any(feature = "dashboard-host", feature = "nns-topology-host"))]
+pub use json::load_json_cache;
+#[cfg(all(feature = "icrc-host", not(feature = "dashboard-host")))]
+pub use json::load_json_cache_strict;
+#[cfg(feature = "dashboard-host")]
+pub use json::{CachedJsonReport, LoadJsonCacheErrorMapper, load_json_cache_strict};
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host"
+))]
 pub use json::{JsonCacheReport, LoadJsonCacheRequest};
 pub use lock::RefreshLockRequest;
-#[cfg(any(feature = "dashboard-host", feature = "nns-topology-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host"
+))]
 pub use lock::with_refresh_lock;
 #[cfg(feature = "subnet-catalog-host")]
 pub use lock::with_refresh_lock_async;
@@ -40,9 +56,17 @@ pub use lock::with_refresh_lock_async;
 pub use lock::{RefreshLockEvidence, inspect_refresh_lock};
 #[cfg(feature = "host")]
 pub use policy::load_or_refresh_missing_cache;
-#[cfg(any(feature = "dashboard-host", feature = "nns-topology-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host"
+))]
 pub use policy::{CacheRefreshReason, load_or_refresh_cache_with_error_policy};
-#[cfg(any(feature = "dashboard-host", feature = "nns-topology-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host"
+))]
 pub use policy::{host_cache_refresh_reason, load_or_refresh_stale_cache_with_error_policy};
 #[cfg(any(feature = "host", feature = "subnet-catalog-host"))]
 pub use write::write_text_output;
