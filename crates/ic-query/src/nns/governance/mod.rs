@@ -1,22 +1,22 @@
 //! Reusable NNS Governance economics, metrics, reward, and collection contracts.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod build;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(super) mod collection;
 mod model;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod source;
 mod text;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod wire;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::{nns::NnsGovernanceQueryError, runtime::RuntimeError};
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use thiserror::Error as ThisError;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use build::{
     build_nns_governance_economics_report, build_nns_governance_economics_report_with_source,
     build_nns_governance_maturity_modulation_report,
@@ -24,7 +24,7 @@ pub use build::{
     build_nns_governance_metrics_report, build_nns_governance_metrics_report_with_source,
     build_nns_governance_reward_event_report, build_nns_governance_reward_event_report_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(super) use collection::{
     NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata, mainnet_governance_cache_metadata,
     read_governance_refresh_attempt_status, validate_governance_cache_metadata,
@@ -39,7 +39,7 @@ pub use model::{
     NnsNeuronsFundEconomics, NnsNeuronsFundMatchedFundingCurveCoefficients,
     NnsVotingPowerEconomics,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use source::NnsGovernanceSource;
 pub use text::{
     nns_governance_economics_report_text, nns_governance_maturity_modulation_report_text,
@@ -49,7 +49,7 @@ pub use text::{
 /// Default replica endpoint used for direct NNS Governance reports.
 pub const DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 const NNS_GOVERNANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 
 ///
@@ -58,7 +58,7 @@ const NNS_GOVERNANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 /// Error returned while querying direct NNS Governance reports.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 #[derive(Debug, ThisError)]
 pub enum NnsGovernanceHostError {
     /// The requested network is not the supported mainnet identity.
@@ -99,14 +99,14 @@ pub enum NnsGovernanceHostError {
     Runtime(#[from] RuntimeError),
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 fn enforce_mainnet_network(network: &str) -> Result<(), NnsGovernanceHostError> {
     crate::network::enforce_mainnet_network_with(network, |network| {
         NnsGovernanceHostError::UnsupportedNetwork { network }
     })
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 fn validate_governance_metrics(
     metrics: &NnsGovernanceMetrics,
 ) -> Result<(), NnsGovernanceHostError> {
@@ -159,5 +159,5 @@ fn validate_governance_metrics(
     Ok(())
 }
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 mod tests;

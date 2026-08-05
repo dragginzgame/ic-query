@@ -349,6 +349,19 @@ The no-default build is checked for `wasm32-unknown-unknown` without Clap,
 `ic-agent`, Reqwest, Tokio, or `futures`. This is a host-dependency boundary,
 not a `no_std` promise.
 
+Focused host features let embedders select one reporting family:
+
+| Feature | Host surface |
+| --- | --- |
+| `cmc-host` | Certified Cycle Minting Canister ICP/XDR and cycles reports |
+| `dashboard-host` | Official Dashboard REST reports and observed node-status cache |
+| `icrc-host` | Native ICRC ledger/index reports and complete account-history cache |
+| `nns-host` | Complete NNS governance, Registry inventory, component-cache, and topology APIs |
+| `nns-topology-host` | Exact-version joined NNS topology plus Subnet Catalog |
+| `sns-host` | Native SNS reports, caches, and reward evidence |
+| `subnet-catalog-host` | Focused Subnet Catalog authority, cache, and resolution APIs |
+| `host` | Convenience union of every focused host family |
+
 Public report families are exposed from:
 
 - `ic_query::cache` for shared models, with inventory builders and rendering
@@ -384,6 +397,19 @@ native NNS/SNS/ICRC host adapters, or CBOR certification. Reqwest may retain
 cryptographic packages such as SHA-256 implementations transitively; the
 feature promises the absence of ic-query's direct Registry and certification
 edges, not every similarly named transitive package.
+
+Enable `cmc-host` when an embedder needs only authenticated Cycle Minting
+Canister ICP/XDR and cycles reports:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["cmc-host"] }
+```
+
+This enables `ic-agent` and direct CBOR certificate/witness decoding without
+the cache filesystem or Registry protobuf graph. It has no direct ic-query
+Futures, Reqwest, Prost, or SHA-256 edge; Reqwest and cryptographic packages
+remain transitive through `ic-agent`.
 
 Enable `icrc-host` for native ICRC ledger/index queries, certified-tip
 verification, and the complete account-history cache:
@@ -430,7 +456,22 @@ ic-query = { version = "0.29", default-features = false, features = ["nns-topolo
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
 Dashboard Reqwest or CBOR certification edges. It does not expose the broader
-component-cache topology summary builders; those remain part of `host`.
+component-cache topology summary builders; those require `nns-host` or the
+complete `host` feature.
+
+Enable `nns-host` for the complete NNS governance, proposal, neuron, Registry
+inventory, component-cache, and derived topology host API:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["nns-host"] }
+```
+
+This is a strict superset of `nns-topology-host`. It directly includes the
+Registry Prost and SHA-256 dependencies needed by its exact-version topology
+and agreement paths, but has no direct ic-query Dashboard Reqwest or CBOR
+certification edge. Those package names may remain transitive through
+`ic-agent`.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return

@@ -1,4 +1,4 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::cache_file::JsonCacheReport;
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ pub struct NnsNodeProviderListReport {
     pub node_providers: Vec<NnsNodeProviderRow>,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl JsonCacheReport for NnsNodeProviderListReport {
     fn schema_version(&self) -> u32 {
         self.schema_version
@@ -33,7 +33,7 @@ impl JsonCacheReport for NnsNodeProviderListReport {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl_nns_inventory_report!(
     NnsNodeProviderListReport,
     super::super::NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
@@ -96,7 +96,7 @@ pub struct NnsNodeProviderInfoReport {
 /// Outcome of refreshing the cached NNS node provider inventory.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNodeProviderRefreshReport {
     pub schema_version: u32,

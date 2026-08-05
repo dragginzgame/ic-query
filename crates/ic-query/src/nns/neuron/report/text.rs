@@ -4,10 +4,10 @@
 //! Does not own: live Governance calls, cache IO, or JSON serialization.
 //! Boundary: formats raw public neuron values without changing report data.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use super::cache::{NnsNeuronCacheStatusReport, NnsNeuronRefreshReport};
 use super::model::{NnsNeuronInfoReport, NnsNeuronListReport, NnsNeuronRow};
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     duration::display_duration_seconds,
@@ -90,7 +90,7 @@ pub fn nns_neuron_info_report_text(report: &NnsNeuronInfoReport) -> String {
 }
 
 /// Render one complete NNS neuron snapshot refresh report.
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 #[must_use]
 pub fn nns_neuron_refresh_report_text(report: &NnsNeuronRefreshReport) -> String {
     [
@@ -136,7 +136,7 @@ pub fn nns_neuron_refresh_report_text(report: &NnsNeuronRefreshReport) -> String
 }
 
 /// Render local NNS neuron cache and refresh-attempt status.
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 #[must_use]
 pub fn nns_neuron_cache_status_report_text(report: &NnsNeuronCacheStatusReport) -> String {
     let mut lines = vec![
@@ -300,7 +300,7 @@ fn neuron_detail_lines(neuron: &NnsNeuronRow) -> Vec<String> {
     ]
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 fn attempt_lines(attempt: Option<&NnsGovernanceRefreshAttemptStatus>) -> Vec<String> {
     let Some(attempt) = attempt else {
         return vec!["latest_attempt: -".to_string()];

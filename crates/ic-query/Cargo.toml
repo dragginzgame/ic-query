@@ -35,10 +35,17 @@ url = { version = "2.5.8", optional = true }
 [features]
 default = []
 host = [
+    "cmc-host",
     "dashboard-host",
     "icrc-host",
-    "nns-topology-host",
+    "nns-host",
     "sns-host",
+]
+cmc-host = [
+    "dep:ic-agent",
+    "dep:serde_cbor",
+    "dep:tokio",
+    "dep:url",
 ]
 dashboard-host = [
     "dep:cap-fs-ext",
@@ -58,6 +65,7 @@ icrc-host = [
     "dep:url",
 ]
 nns-topology-host = ["subnet-catalog-host"]
+nns-host = ["nns-topology-host"]
 sns-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",

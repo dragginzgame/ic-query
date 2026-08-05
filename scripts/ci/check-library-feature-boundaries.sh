@@ -47,6 +47,26 @@ forbidden_direct_icrc_host_dependencies=(
   reqwest
 )
 
+forbidden_cmc_host_dependencies=(
+  cap-fs-ext
+  cap-std
+  prost
+)
+
+forbidden_direct_cmc_host_dependencies=(
+  cap-fs-ext
+  cap-std
+  futures
+  prost
+  reqwest
+  sha2
+)
+
+forbidden_direct_nns_host_dependencies=(
+  reqwest
+  serde_cbor
+)
+
 forbidden_sns_host_dependencies=(
   prost
 )
@@ -117,8 +137,12 @@ run_quiet "ic-query --features subnet-catalog-host" \
   cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
 run_quiet "ic-query --features nns-topology-host" \
   cargo check -p ic-query --no-default-features --features nns-topology-host --locked
+run_quiet "ic-query --features nns-host" \
+  cargo check -p ic-query --no-default-features --features nns-host --locked
 run_quiet "ic-query --features sns-host" \
   cargo check -p ic-query --no-default-features --features sns-host --locked
+run_quiet "ic-query --features cmc-host" \
+  cargo check -p ic-query --no-default-features --features cmc-host --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
@@ -128,6 +152,7 @@ cargo test -p ic-query --test ic_public_api --no-default-features --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features dashboard-host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --locked
+cargo test -p ic-query --test nns_public_api --no-default-features --features nns-host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --features sns-host --locked
@@ -140,6 +165,7 @@ cargo test -p ic-query --test subnet_topology_public_api --no-default-features -
 cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features nns-topology-host --locked
 cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test system_public_api --no-default-features --locked
+cargo test -p ic-query --test system_public_api --no-default-features --features cmc-host --locked
 cargo test -p ic-query --test system_public_api --no-default-features --features host --locked
 cargo check -p ic-query-cli --locked
 
@@ -211,6 +237,38 @@ check_tree_absent "ic-query --features icrc-host direct dependencies" \
   -p ic-query \
   --no-default-features \
   --features icrc-host \
+  -e normal \
+  --depth 1
+
+check_tree_absent "ic-query --features cmc-host" \
+  "${forbidden_cmc_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features cmc-host
+
+# `ic-agent` retains Reqwest and cryptographic packages transitively. The CMC
+# feature directly enables CBOR because certificate and witness decoding is
+# part of its authority contract, but it does not need cache, Registry, or
+# direct hashing dependencies.
+check_tree_absent "ic-query --features cmc-host direct dependencies" \
+  "${forbidden_direct_cmc_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features cmc-host \
+  -e normal \
+  --depth 1
+
+# The complete NNS feature intentionally includes Registry protobuf and
+# hashing through `nns-topology-host`. It must not activate Dashboard transport
+# or the direct CBOR certification edge.
+check_tree_absent "ic-query --features nns-host direct dependencies" \
+  "${forbidden_direct_nns_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features nns-host \
   -e normal \
   --depth 1
 

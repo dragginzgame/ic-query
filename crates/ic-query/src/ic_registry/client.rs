@@ -1,4 +1,4 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use super::{
     MainnetDataCenterList, MainnetNodeList, MainnetNodeOperatorList, MainnetNodeProviderList,
     MainnetRegistryVersion,
@@ -33,7 +33,7 @@ pub fn fetch_mainnet_subnet_topology(
         .map_err(RegistryFetchError::Runtime)?
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn fetch_mainnet_registry_version(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetRegistryVersion, RegistryFetchError> {
@@ -41,7 +41,7 @@ pub fn fetch_mainnet_registry_version(
         .map_err(RegistryFetchError::Runtime)?
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn fetch_mainnet_node_provider_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeProviderList, RegistryFetchError> {
@@ -49,7 +49,7 @@ pub fn fetch_mainnet_node_provider_list(
         .map_err(RegistryFetchError::Runtime)?
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn fetch_mainnet_node_operator_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeOperatorList, RegistryFetchError> {
@@ -57,7 +57,7 @@ pub fn fetch_mainnet_node_operator_list(
         .map_err(RegistryFetchError::Runtime)?
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn fetch_mainnet_node_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeList, RegistryFetchError> {
@@ -65,7 +65,7 @@ pub fn fetch_mainnet_node_list(
         .map_err(RegistryFetchError::Runtime)?
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn fetch_mainnet_data_center_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetDataCenterList, RegistryFetchError> {

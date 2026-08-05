@@ -139,7 +139,7 @@ mod tests {
                     subnet_record(SubnetType::CloudEngine, &[node_c]),
                 ),
             ]),
-            #[cfg(feature = "host")]
+            #[cfg(feature = "nns-host")]
             data_center_records: BTreeMap::new(),
         };
 
@@ -192,7 +192,7 @@ mod tests {
                     subnet_record(SubnetType::System, std::slice::from_ref(&node)),
                 ),
             ]),
-            #[cfg(feature = "host")]
+            #[cfg(feature = "nns-host")]
             data_center_records: BTreeMap::new(),
         };
 
@@ -222,7 +222,7 @@ mod tests {
                 subnet,
                 subnet_record(SubnetType::System, &[node_a, node_b]),
             )]),
-            #[cfg(feature = "host")]
+            #[cfg(feature = "nns-host")]
             data_center_records: BTreeMap::new(),
         };
 
@@ -254,7 +254,7 @@ mod tests {
                 },
             )]),
             subnet_records: BTreeMap::from([(subnet, subnet_record(SubnetType::System, &[node]))]),
-            #[cfg(feature = "host")]
+            #[cfg(feature = "nns-host")]
             data_center_records: BTreeMap::new(),
         };
 

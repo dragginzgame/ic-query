@@ -1,30 +1,30 @@
 //! Certified Cycle Minting Canister ICP/XDR and cycles reports.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 mod build;
 mod model;
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 mod source;
 mod text;
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 mod wire;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 use crate::runtime::RuntimeError;
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 use thiserror::Error as ThisError;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 pub use build::{
     build_cmc_cycles_report, build_cmc_cycles_report_with_source, build_cmc_xdr_report,
     build_cmc_xdr_report_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 pub use model::CmcCertifiedRate;
 pub use model::{
     CmcCertification, CmcCyclesReport, CmcIcpXdrConversionRate, CmcReportContext, CmcXdrReport,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 pub use source::{CmcSource, CmcSourceRequest, LiveCmcSource};
 pub use text::{cmc_cycles_report_text, cmc_xdr_report_text};
 
@@ -37,9 +37,9 @@ pub const DEFAULT_CMC_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 /// IC protocol conversion constant: one XDR corresponds to one trillion cycles.
 pub const CYCLES_PER_XDR: u128 = 1_000_000_000_000;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 const ICP_XDR_PERMYRIAD_DENOMINATOR: u128 = 10_000;
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 const CMC_REPORT_SCHEMA_VERSION: u32 = 1;
 
 ///
@@ -48,7 +48,7 @@ const CMC_REPORT_SCHEMA_VERSION: u32 = 1;
 /// Failure while collecting or validating one live CMC report.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 #[derive(Debug, ThisError)]
 pub enum CmcHostError {
     /// The requested network is not the supported mainnet identity.
@@ -129,12 +129,12 @@ pub enum CmcHostError {
     Runtime(#[from] RuntimeError),
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 fn enforce_mainnet_network(network: &str) -> Result<(), CmcHostError> {
     crate::network::enforce_mainnet_network_with(network, |network| {
         CmcHostError::UnsupportedNetwork { network }
     })
 }
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "cmc-host"))]
 mod tests;

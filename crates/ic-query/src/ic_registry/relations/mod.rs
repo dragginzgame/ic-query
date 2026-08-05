@@ -3,7 +3,7 @@ mod model;
 mod subnet;
 
 pub(super) use counts::ResolvedNodeRelation;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(super) use counts::{
     data_center_node_counts_from_records, data_center_operator_counts_from_records,
     data_center_provider_counts_from_records, node_operator_counts_from_records,
@@ -14,5 +14,5 @@ pub(super) use counts::{
 };
 pub(super) use model::{RegistryRelationInventory, RegistryRelationInventoryScope};
 pub(super) use subnet::assigned_node_principals_from_subnets;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(super) use subnet::node_subnet_assignments_from_records;

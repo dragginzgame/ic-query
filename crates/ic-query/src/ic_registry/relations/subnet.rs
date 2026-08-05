@@ -13,7 +13,7 @@ pub(in crate::ic_registry) fn assigned_node_principals_from_subnets(
     Ok(node_principals)
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(in crate::ic_registry) fn node_subnet_assignments_from_records(
     subnet_records: &BTreeMap<String, SubnetRecord>,
 ) -> Result<BTreeMap<String, String>, RegistryFetchError> {

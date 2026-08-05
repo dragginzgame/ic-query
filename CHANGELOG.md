@@ -11,6 +11,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
 
+- `0.29.8` completes the family-level library feature split with `nns-host`
+  for the complete NNS governance, Registry inventory, component-cache, and
+  topology surface, plus `cmc-host` for certified Cycles Minting Canister
+  reports. `nns-host` includes `nns-topology-host`; `host` remains the complete
+  convenience union. APIs, cache schemas and paths, calls, CLI behavior, and
+  default features are unchanged.
+
 - `0.29.7` adds the independent `sns-host` library feature for native SNS
   discovery, targeted reports, complete proposal/neuron caches, reward
   checkpoints, and local reward diffs. It excludes Dashboard, Registry, NNS,

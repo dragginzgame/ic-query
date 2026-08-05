@@ -58,5 +58,5 @@ impl NnsLeafCachePaths {
     }
 }
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 mod tests;

@@ -3,7 +3,7 @@ use ic_query::system::cmc::{
     CmcXdrReport, DEFAULT_CMC_SOURCE_ENDPOINT, MAINNET_CMC_CANISTER_ID, cmc_cycles_report_text,
     cmc_xdr_report_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 use ic_query::system::cmc::{
     CmcCertifiedRate, CmcHostError, CmcSource, CmcSourceRequest,
     build_cmc_cycles_report_with_source, build_cmc_xdr_report_with_source,
@@ -42,9 +42,9 @@ fn public_cmc_reports_are_constructible_serializable_and_renderable() {
     assert_eq!(cycles_json["certification"]["certificate_bytes"], 2);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 #[test]
-fn public_host_api_accepts_a_custom_cmc_source() {
+fn public_cmc_host_api_accepts_a_custom_source() {
     let request = CmcSourceRequest::from_unix_secs(
         "ic",
         DEFAULT_CMC_SOURCE_ENDPOINT,
@@ -61,10 +61,10 @@ fn public_host_api_accepts_a_custom_cmc_source() {
     assert_eq!(cycles.cycles_per_icp, 4_916_400_000_000);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 struct FixtureCmcSource;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "cmc-host")]
 impl CmcSource for FixtureCmcSource {
     fn fetch_certified_icp_xdr_rate(
         &self,

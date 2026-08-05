@@ -1,9 +1,9 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod error;
 mod report;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use error::NnsNodeOperatorHostError;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use report::NnsNodeOperatorRefreshReport;
 pub use report::{NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRow};

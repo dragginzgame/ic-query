@@ -76,6 +76,7 @@ where
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host"
 ))]
 pub fn load_json_cache_strict<T, Errors>(

@@ -5,7 +5,7 @@
 //! Boundary: preserves the unauthenticated Governance `NeuronInfo` fields without private state.
 
 use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote};
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use serde::Deserialize as SerdeDeserialize;
 use serde::Serialize;
 
@@ -15,7 +15,7 @@ use serde::Serialize;
 /// Public metadata attached to a registered known neuron.
 ///
 
-#[cfg_attr(feature = "host", derive(SerdeDeserialize))]
+#[cfg_attr(feature = "nns-host", derive(SerdeDeserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsKnownNeuronData {
     /// Registered neuron name.
@@ -32,7 +32,7 @@ pub struct NnsKnownNeuronData {
 /// One recent public ballot exposed by the Governance neuron index.
 ///
 
-#[cfg_attr(feature = "host", derive(SerdeDeserialize))]
+#[cfg_attr(feature = "nns-host", derive(SerdeDeserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronBallotRow {
     /// Proposal identifier when supplied by Governance.
@@ -49,7 +49,7 @@ pub struct NnsNeuronBallotRow {
 /// Public limited view of one NNS neuron returned by Governance.
 ///
 
-#[cfg_attr(feature = "host", derive(SerdeDeserialize))]
+#[cfg_attr(feature = "nns-host", derive(SerdeDeserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronRow {
     /// Stable Governance neuron identifier.

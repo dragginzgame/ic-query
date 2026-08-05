@@ -93,7 +93,7 @@ impl NnsInventoryInfoRequest {
 /// Shared host request for refreshing one Registry-derived NNS inventory cache.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsInventoryRefreshRequest {
     pub cache: NnsInventoryCacheRequest,
@@ -104,7 +104,7 @@ pub struct NnsInventoryRefreshRequest {
     pub output_path: Option<PathBuf>,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl NnsInventoryRefreshRequest {
     #[must_use]
     pub fn new(
@@ -136,5 +136,5 @@ impl NnsInventoryRefreshRequest {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl_nns_leaf_cache_and_refresh_requests!(NnsInventoryCacheRequest, NnsInventoryRefreshRequest);

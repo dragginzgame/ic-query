@@ -4,30 +4,30 @@
 //! Does not own: CLI parsing, SNS proposal reports, cache files, or topology reports.
 //! Boundary: maps live NNS governance proposal rows into text and JSON reports.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod assemble;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod cache;
 mod model;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod source;
 mod text;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod view;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod wire;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::{
     HostCacheError, ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, nns::NnsGovernanceQueryError,
     runtime::RuntimeError,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use std::path::PathBuf;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use thiserror::Error as ThisError;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use cache::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalCacheListReport,
     NnsProposalCacheStatusReport, NnsProposalCacheSummary, NnsProposalRefreshReport,
@@ -43,31 +43,31 @@ pub use model::{
     NnsProposalRow, NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
     NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use source::{
     NnsProposalSource, build_nns_proposal_list_report, build_nns_proposal_list_report_with_source,
     build_nns_proposal_report, build_nns_proposal_report_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use text::{
     nns_proposal_cache_list_report_text, nns_proposal_cache_status_report_text,
     nns_proposal_refresh_report_text,
 };
 pub use text::{nns_proposal_list_report_text, nns_proposal_report_text};
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 mod tests;
 
 pub const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = "https://icp-api.io";
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 /// Largest page size accepted by an NNS proposal refresh request.
 pub const NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 const NNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 const NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-query";
 
 ///
@@ -77,7 +77,7 @@ pub(in crate::nns::proposals::report) const NNS_PROPOSAL_FETCHED_BY: &str = "ic-
 ///
 
 #[derive(Debug, ThisError)]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub enum NnsProposalHostError {
     #[error(
         "`icq nns proposal` supports only the mainnet `ic` network\n\nThe NNS proposal list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not supported.\n\nTry:\n  icq --network ic nns proposal list"
@@ -136,7 +136,7 @@ pub enum NnsProposalHostError {
     Runtime(#[from] RuntimeError),
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 fn enforce_mainnet_network(network: &str) -> Result<(), NnsProposalHostError> {
     crate::network::enforce_mainnet_network_with(network, |network| {
         NnsProposalHostError::UnsupportedNetwork { network }

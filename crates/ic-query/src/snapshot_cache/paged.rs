@@ -117,7 +117,7 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
 impl PagedCollectionPage {
     /// Describe one fetched page for the shared refresh runner.
     #[must_use]
-    #[cfg(feature = "host")]
+    #[cfg(feature = "nns-host")]
     pub const fn new(page_len: usize, new_rows: usize, last_cursor_text: Option<String>) -> Self {
         Self {
             page_len,

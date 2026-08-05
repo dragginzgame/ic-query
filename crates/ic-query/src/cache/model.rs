@@ -72,7 +72,12 @@ impl CacheRefreshAttemptStatus {
         }
     }
 
-    #[cfg(any(feature = "host", feature = "icrc-host", feature = "sns-host", test))]
+    #[cfg(any(
+        feature = "icrc-host",
+        feature = "nns-host",
+        feature = "sns-host",
+        test
+    ))]
     pub(crate) fn from_label(label: &str) -> Option<Self> {
         match label {
             "running" => Some(Self::Running),

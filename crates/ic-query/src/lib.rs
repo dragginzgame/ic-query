@@ -12,13 +12,15 @@
 //!
 //! Enable `dashboard-host` for official Dashboard live/cache APIs,
 //! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for native SNS
-//! live/cache APIs, `subnet-catalog-host` for the focused live/cache Subnet
-//! catalog API, `nns-topology-host` for that API plus exact-version joined NNS
-//! Subnet topology, or `host` for every native live-call adapter and runtime
-//! helper. CLI parsing and process IO belong to the separate `ic-query-cli`
-//! crate.
+//! live/cache APIs, `cmc-host` for certified Cycles Minting Canister reports,
+//! `subnet-catalog-host` for the focused live/cache Subnet catalog API,
+//! `nns-topology-host` for that API plus exact-version joined NNS Subnet
+//! topology, `nns-host` for the complete NNS host surface, or `host` for every
+//! native live-call adapter and runtime helper. CLI parsing and process IO
+//! belong to the separate `ic-query-cli` crate.
 
 #[cfg(any(
+    feature = "cmc-host",
     feature = "icrc-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
@@ -28,24 +30,28 @@ pub mod cache;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
 mod cache_file;
-#[cfg(feature = "icrc-host")]
+#[cfg(any(feature = "cmc-host", feature = "icrc-host"))]
 mod certification;
 pub mod duration;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
 mod freshness;
 mod hex;
 #[cfg(any(
+    feature = "cmc-host",
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -56,7 +62,9 @@ pub mod ic;
 mod ic_registry;
 pub mod icrc;
 #[cfg(any(
+    feature = "cmc-host",
     feature = "dashboard-host",
+    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -65,15 +73,18 @@ pub mod nns;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host"
 ))]
 mod progress;
 pub mod report;
-#[cfg(feature = "sns-host")]
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
 mod report_sort;
 #[cfg(any(
+    feature = "cmc-host",
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -81,6 +92,7 @@ mod runtime;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host"
 ))]
 pub(crate) mod snapshot_cache;
@@ -91,12 +103,13 @@ pub mod system;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
 pub use cache_file::{CacheFileError, HostCacheError};
 mod table;
-#[cfg(feature = "sns-host")]
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
 mod text_search;
 mod text_value;
 mod token_amount;
@@ -107,6 +120,7 @@ mod token_metadata_text;
     any(
         feature = "dashboard-host",
         feature = "icrc-host",
+        feature = "nns-host",
         feature = "sns-host",
         feature = "subnet-catalog-host"
     )
@@ -119,6 +133,7 @@ mod tests;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "nns-host",
     feature = "sns-host"
 ))]
 pub use progress::{QueryProgress, QueryProgressEvent, QueryProgressState};

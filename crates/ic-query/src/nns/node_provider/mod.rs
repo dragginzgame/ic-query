@@ -7,7 +7,7 @@ pub use report::{
     NnsNodeProviderListReport, NnsNodeProviderRow, nns_node_provider_info_report_text,
     nns_node_provider_list_report_text, nns_node_provider_list_report_verbose_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use report::{
     DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION,
     NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION, NNS_NODE_PROVIDER_REFRESH_REPORT_SCHEMA_VERSION,

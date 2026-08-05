@@ -5,7 +5,7 @@
 //! Boundary: preserves the two bounded Governance point-value response families.
 
 use super::NnsGovernanceReportContext;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use candid::CandidType;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
@@ -30,7 +30,7 @@ pub struct NnsGovernanceRewardEventReport {
 /// Latest native NNS Governance voting reward event.
 ///
 
-#[cfg_attr(feature = "host", derive(CandidType))]
+#[cfg_attr(feature = "nns-host", derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceRewardEvent {
     /// Rounds elapsed since the previous distribution when supplied.
@@ -55,7 +55,7 @@ pub struct NnsGovernanceRewardEvent {
 /// Native NNS Governance proposal identifier wrapper.
 ///
 
-#[cfg_attr(feature = "host", derive(CandidType))]
+#[cfg_attr(feature = "nns-host", derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceProposalId {
     /// Governance proposal identifier.
@@ -83,7 +83,7 @@ pub struct NnsGovernanceMaturityModulationReport {
 /// Current native NNS Governance maturity-modulation value.
 ///
 
-#[cfg_attr(feature = "host", derive(CandidType))]
+#[cfg_attr(feature = "nns-host", derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceMaturityModulation {
     /// Current signed modulation in permyriad when supplied.

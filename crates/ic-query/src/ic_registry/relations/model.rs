@@ -1,4 +1,4 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::ic_registry::proto::DataCenterRecord;
 use crate::ic_registry::proto::{NodeOperatorRecord, NodeRecord, SubnetRecord};
 use std::collections::{BTreeMap, BTreeSet};
@@ -14,7 +14,7 @@ pub(in crate::ic_registry) struct RegistryRelationInventory {
     pub(in crate::ic_registry) node_records: BTreeMap<String, NodeRecord>,
     pub(in crate::ic_registry) node_operator_records: BTreeMap<String, NodeOperatorRecord>,
     pub(in crate::ic_registry) subnet_records: BTreeMap<String, SubnetRecord>,
-    #[cfg(feature = "host")]
+    #[cfg(feature = "nns-host")]
     pub(in crate::ic_registry) data_center_records: BTreeMap<String, DataCenterRecord>,
 }
 
@@ -27,6 +27,6 @@ pub(in crate::ic_registry) struct RegistryRelationInventory {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::ic_registry) enum RegistryRelationInventoryScope {
     BaseRelations,
-    #[cfg(feature = "host")]
+    #[cfg(feature = "nns-host")]
     WithDataCenters,
 }

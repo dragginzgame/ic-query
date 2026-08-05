@@ -16,7 +16,7 @@ pub enum NnsTopologyAssessmentStatus {
 }
 
 impl NnsTopologyAssessmentStatus {
-    #[cfg(feature = "host")]
+    #[cfg(feature = "nns-host")]
     pub(crate) const fn from_ok(is_ok: bool) -> Self {
         if is_ok { Self::Ok } else { Self::Attention }
     }
@@ -62,7 +62,7 @@ impl NnsTopologyCapacityStatus {
         }
     }
 
-    #[cfg(feature = "host")]
+    #[cfg(feature = "nns-host")]
     pub(crate) const fn sort_rank(self) -> u8 {
         match self {
             Self::Over => 0,
@@ -108,7 +108,7 @@ impl NnsTopologyProviderStatus {
         }
     }
 
-    #[cfg(feature = "host")]
+    #[cfg(feature = "nns-host")]
     pub(crate) const fn sort_rank(self) -> u8 {
         match self {
             Self::UnknownProvider => 0,

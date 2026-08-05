@@ -4,63 +4,63 @@
 //! Does not own: CLI parsing, registry transport internals, or process output.
 //! Boundary: groups topology requests, sources, projections, and text renderers.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod build;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod capacity;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod check;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod coverage;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod error;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod gaps;
 mod model;
 mod percent;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod providers;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod refresh;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod regions;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod registry_versions;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod relations;
 mod request;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod source;
 mod subnet_topology;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod summary;
 mod text;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod versions;
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 mod tests;
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use capacity::topology_capacity_report_from_report;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use check::topology_check_report_from_summary;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use coverage::topology_coverage_report_from_summary;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use gaps::topology_gaps_report_from_reports;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use providers::topology_providers_report_from_reports;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports};
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use regions::topology_regions_report_from_report;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use summary::topology_summary_report_from_reports;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 use versions::topology_versions_report_from_summary;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use build::{
     build_nns_topology_capacity_report, build_nns_topology_capacity_report_with_source,
     build_nns_topology_check_report, build_nns_topology_check_report_with_source,
@@ -72,7 +72,7 @@ pub use build::{
     build_nns_topology_versions_report, build_nns_topology_versions_report_with_source,
     refresh_nns_topology_report, refresh_nns_topology_report_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use error::NnsTopologyHostError;
 pub use model::{
     NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
@@ -84,7 +84,7 @@ pub use model::{
     NnsTopologyRegistryVersionRow, NnsTopologySummaryReport, NnsTopologyVersionsReport,
 };
 pub use request::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use source::{
     NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest, NnsTopologySource,
     NnsTopologySourceRequest,
@@ -128,5 +128,5 @@ pub const NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 12;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl_nns_mainnet_network_enforcer!(NnsTopologyHostError);

@@ -6,7 +6,7 @@
 
 mod report;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use report::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE,
     NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalCacheSummary,

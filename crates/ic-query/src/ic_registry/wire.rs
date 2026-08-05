@@ -1,5 +1,5 @@
 use super::proto::LargeValueChunkKeys;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use candid::Principal;
 use candid::{CandidType, Deserialize};
 
@@ -44,7 +44,7 @@ pub(super) struct RegistryChunk {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(super) struct ListNodeProvidersResponse {
     pub(super) node_providers: Vec<GovernanceNodeProvider>,
 }
@@ -56,7 +56,7 @@ pub(super) struct ListNodeProvidersResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(super) struct GovernanceNodeProvider {
     pub(super) id: Option<Principal>,
     pub(super) reward_account: Option<GovernanceAccountIdentifier>,
@@ -69,7 +69,7 @@ pub(super) struct GovernanceNodeProvider {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(super) struct GovernanceAccountIdentifier {
     pub(super) hash: Vec<u8>,
 }

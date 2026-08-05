@@ -6,7 +6,7 @@
 
 mod report;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use report::{
     DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS, NnsNeuronCacheStatusReport,
     NnsNeuronCacheSummary, NnsNeuronHostError, NnsNeuronPage, NnsNeuronRefreshReport,

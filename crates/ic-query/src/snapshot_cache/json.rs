@@ -6,10 +6,10 @@
 
 #[cfg(feature = "sns-host")]
 use super::SnapshotHeader;
-#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 use super::{SnapshotIdentityMismatch, SnapshotKey, SnapshotReport};
 use crate::cache_file::{CacheFileError, write_managed_text_atomically};
-#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 use crate::{
     cache::CacheCollectionCompleteness,
     cache_file::{
@@ -17,11 +17,11 @@ use crate::{
     },
 };
 use serde::Serialize;
-#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
 
-#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 pub fn load_complete_snapshot<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],
@@ -39,7 +39,7 @@ where
     Ok(cached.report)
 }
 
-#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 pub fn load_complete_snapshot_for_key<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     key: &SnapshotKey,
@@ -89,7 +89,7 @@ where
     write_managed_text_atomically(cache_root, path, &data).map_err(write_error)
 }
 
-#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 fn snapshot_identity_mismatch(
     snapshot: &impl SnapshotReport,
     key: &SnapshotKey,
@@ -108,7 +108,7 @@ fn snapshot_identity_mismatch(
         })
 }
 
-#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 fn identity_field_mismatch(
     field: &'static str,
     expected: &str,

@@ -1,4 +1,4 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// Shared read settings required by host-backed topology source requests.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(in crate::nns::topology::report) trait TopologyRequestParts {
     fn cache_root(&self) -> &Path;
     fn network(&self) -> &str;
@@ -22,7 +22,7 @@ pub(in crate::nns::topology::report) trait TopologyRequestParts {
 /// Refresh-specific settings added to a host-backed topology request.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(in crate::nns::topology::report) trait TopologyRefreshParts:
     TopologyRequestParts
 {
@@ -61,7 +61,7 @@ impl NnsTopologyReadRequest {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl TopologyRequestParts for NnsTopologyReadRequest {
     fn cache_root(&self) -> &Path {
         &self.cache_root
@@ -122,7 +122,7 @@ impl NnsTopologyRefreshRequest {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl TopologyRequestParts for NnsTopologyRefreshRequest {
     fn cache_root(&self) -> &Path {
         &self.cache_root
@@ -141,7 +141,7 @@ impl TopologyRequestParts for NnsTopologyRefreshRequest {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl TopologyRefreshParts for NnsTopologyRefreshRequest {
     fn lock_stale_after_seconds(&self) -> u64 {
         self.lock_stale_after_seconds
@@ -152,7 +152,7 @@ impl TopologyRefreshParts for NnsTopologyRefreshRequest {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(in crate::nns::topology::report) fn summary_request_from(
     request: &impl TopologyRequestParts,
 ) -> NnsTopologyReadRequest {

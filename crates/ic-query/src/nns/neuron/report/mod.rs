@@ -4,22 +4,22 @@
 //! Does not own: Dashboard analytics, authenticated neuron management, or process output.
 //! Boundary: preserves the public `NeuronInfo` view and its Governance provenance.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod cache;
 mod classification;
 mod model;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod source;
 mod text;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::{HostCacheError, nns::NnsGovernanceQueryError, runtime::RuntimeError};
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use std::path::PathBuf;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use thiserror::Error as ThisError;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use cache::{
     DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS, NnsNeuronCacheStatusReport,
     NnsNeuronCacheSummary, NnsNeuronRefreshReport, build_nns_neuron_cache_status_report,
@@ -33,17 +33,17 @@ pub use model::{
     NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronInfoReport, NnsNeuronInfoRequest,
     NnsNeuronListReport, NnsNeuronListRequest, NnsNeuronRow,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use source::{
     NnsNeuronPage, NnsNeuronSource, build_nns_neuron_info_report,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report,
     build_nns_neuron_list_report_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use text::{nns_neuron_cache_status_report_text, nns_neuron_refresh_report_text};
 pub use text::{nns_neuron_info_report_text, nns_neuron_list_report_text};
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "nns-host"))]
 mod tests;
 
 /// Default replica endpoint used for direct NNS Governance neuron queries.
@@ -52,11 +52,11 @@ pub const DEFAULT_NNS_NEURON_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 /// Largest page size accepted by the public Governance neuron index.
 pub const NNS_NEURON_MAX_PAGE_SIZE: u32 = 300;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 const NNS_NEURON_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 const NNS_NEURON_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 const NNS_NEURON_FETCHED_BY: &str = "ic-query";
 
 ///
@@ -65,7 +65,7 @@ const NNS_NEURON_FETCHED_BY: &str = "ic-query";
 /// Error returned while querying or caching public NNS neuron information.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 #[derive(Debug, ThisError)]
 pub enum NnsNeuronHostError {
     /// The requested network is not the supported mainnet identity.
@@ -148,7 +148,7 @@ pub enum NnsNeuronHostError {
     Runtime(#[from] RuntimeError),
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 fn enforce_mainnet_network(network: &str) -> Result<(), NnsNeuronHostError> {
     crate::network::enforce_mainnet_network_with(network, |network| {
         NnsNeuronHostError::UnsupportedNetwork { network }

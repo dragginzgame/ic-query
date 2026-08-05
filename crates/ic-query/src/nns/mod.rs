@@ -1,16 +1,16 @@
 //! Reusable Network Nervous System query families, models, and renderers.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 #[macro_use]
 mod macros;
 pub mod data_center;
 pub mod governance;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod governance_query;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub(crate) mod inventory;
 mod inventory_request;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 mod leaf;
 pub mod neuron;
 pub mod node;
@@ -23,13 +23,13 @@ pub mod render;
 pub(crate) mod source;
 pub mod topology;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use governance::collection::{
     NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus, NnsGovernanceRefreshRequest,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use governance_query::NnsGovernanceQueryError;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use inventory_request::NnsInventoryRefreshRequest;
 pub use inventory_request::{
     NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,

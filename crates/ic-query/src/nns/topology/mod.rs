@@ -37,7 +37,7 @@ pub use report::{
     nns_topology_regions_report_text, nns_topology_summary_report_text,
     nns_topology_versions_report_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub use report::{
     NnsTopologyHostError, NnsTopologyRefreshSource, NnsTopologyRefreshSourceRequest,
     NnsTopologySource, NnsTopologySourceRequest, build_nns_topology_capacity_report,

@@ -4,14 +4,14 @@
 //! Does not own: live governance calls, JSON output, or report assembly.
 //! Boundary: formats NNS proposal rows for human CLI output.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use super::cache::{
     NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshReport,
 };
 use super::model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     table::{ColumnAlign, render_table},
@@ -140,7 +140,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
 }
 
 #[must_use]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> String {
     [
         format!("network: {}", sanitize_text(&report.network)),
@@ -182,7 +182,7 @@ pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> St
 }
 
 #[must_use]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) -> String {
     let mut lines = vec![
         format!("network: {}", sanitize_text(&report.network)),
@@ -228,7 +228,7 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
 }
 
 #[must_use]
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusReport) -> String {
     let mut lines = vec![
         format!("network: {}", sanitize_text(&report.network)),
@@ -380,7 +380,7 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
     ))
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 fn attempt_lines(attempt: &NnsGovernanceRefreshAttemptStatus) -> [String; 9] {
     [
         "latest_attempt:".to_string(),

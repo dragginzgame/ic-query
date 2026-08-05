@@ -1,5 +1,5 @@
 use crate::nns::NnsInventoryCacheRequest;
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 use crate::nns::inventory::NnsInventoryListInput;
 use crate::subnet_catalog::SubnetKind;
 
@@ -69,7 +69,7 @@ impl NnsNodeListRequest {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "nns-host")]
 impl NnsInventoryListInput for NnsNodeListRequest {
     fn cache(&self) -> &NnsInventoryCacheRequest {
         &self.cache

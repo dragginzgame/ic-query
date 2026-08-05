@@ -14,6 +14,12 @@ Use `host` for native tools that need live calls, filesystem caches, refresh
 operations, or cache-backed report builders. The library has no CLI feature;
 `icq` parsing and dispatch are owned by `ic-query-cli`.
 
+The focused host choices are `cmc-host`, `dashboard-host`, `icrc-host`,
+`nns-host`, `nns-topology-host`, `sns-host`, and `subnet-catalog-host`. The
+complete `host` feature is their convenience union, with
+`nns-topology-host` nested under `nns-host` and `subnet-catalog-host` nested
+under both NNS choices.
+
 For official Dashboard REST reports and the shared observed node-status cache,
 use the independent Dashboard feature:
 
@@ -29,6 +35,19 @@ enable `ic-agent`, Registry protobuf decoding, `serde_cbor`, or native
 NNS/SNS/ICRC host adapters. Reqwest can retain cryptographic implementations
 such as SHA-256 transitively; dependency checks distinguish those transitives
 from ic-query's own direct optional edges.
+
+For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["cmc-host"] }
+```
+
+`cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
+rate evidence. It directly enables `ic-agent`, Tokio, URL, and CBOR certificate
+and witness decoding. It does not enable confined-cache dependencies, Registry
+Prost decoding, or direct Futures, Reqwest, or SHA-256 edges. Reqwest and
+cryptographic packages remain transitive through `ic-agent`.
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
 account-history caches, use:
@@ -93,7 +112,24 @@ explicit refresh, refresh-missing, and refresh-stale APIs. It includes
 `subnet-catalog-host` and shares its Registry agent, runtime, and confined-cache
 substrate. It does not enable ic-query's direct optional Dashboard Reqwest or
 CBOR certification dependencies, and it does not expose the broader
-independently cached topology summary builders. Those remain under `host`.
+independently cached topology summary builders. Those require `nns-host` or the
+complete `host` feature.
+
+For the complete NNS governance, proposal, neuron, Registry inventory,
+component-cache, and derived topology surface, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["nns-host"] }
+```
+
+`nns-host` is a strict superset of `nns-topology-host`. It exposes
+`LiveNnsSource`, all NNS report-specific source traits and builders, Governance
+proposal/neuron complete snapshots, component inventory caches, explicit
+refresh policies, and progress events. Registry Prost decoding and SHA-256 are
+direct dependencies through the topology/catalog substrate. Dashboard Reqwest
+and CBOR certification are not direct ic-query edges, although they may remain
+transitive through `ic-agent`.
 
 For pure model/rendering use, keep all features off:
 
@@ -725,7 +761,8 @@ Placement-sensitive host tools should use the joined Subnet topology snapshot
 instead of joining independently cached topology components. Its live source
 resolves one Registry version and derives every Subnet, node, operator, and
 provider relation at that exact version. The following API is available with
-`features = ["nns-topology-host"]` or the full `host` feature:
+`features = ["nns-topology-host"]`, its `nns-host` superset, or the full `host`
+feature:
 
 ```rust
 use std::path::Path;
