@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.28.md](docs/changelog/0.28.md)
 
+- `0.28.1` separates status-report provenance and summaries from their tables
+  with a blank line. It also rejects empty live/custom node snapshots,
+  noncanonical cached row order, and semantically invalid rows supplied to pure
+  projections; existing read-through policies visibly replace recoverably
+  invalid caches.
+
 - `0.28.0` adds node-, Subnet-, and node-provider operational views over one
   bounded official Dashboard `/nodes` response. The views share a 60-second
   atomic cache, preserve raw status and assignment evidence, expose explicit

@@ -80,6 +80,9 @@ If code or habit conflicts with this file, this file wins.
 - Text output is human-facing and may be compact or formatted; JSON output
   should preserve raw, script-friendly fields and avoid lossy display
   conversions.
+- Separate a human-facing metadata, provenance, or summary preamble from a
+  following table with one blank line. Treat later titled table blocks as
+  separate visual sections too.
 - Cache keys describe collected data, not views. Sorts, limits, and text
   verbosity are view options and must not change complete snapshot identity.
 

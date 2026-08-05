@@ -39,9 +39,7 @@ pub(super) use network::{
     boundary_node_data_centers_report_from_source, daily_stats_report_from_source,
     validate_daily_stats_query, validate_daily_stats_request,
 };
-pub(super) use node_status::{
-    node_status_snapshot_from_source, validate_default_node_scope, validate_node_status_rows,
-};
+pub(super) use node_status::node_status_snapshot_from_source;
 
 fn validate_provenance(
     expected: &IcSourceRequest,

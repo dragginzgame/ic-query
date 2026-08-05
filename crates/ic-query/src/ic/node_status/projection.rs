@@ -6,9 +6,10 @@
 
 use super::{
     IcNodeProviderStatusReport, IcNodeProviderStatusRow, IcNodeStatusCounts,
-    IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusSnapshot,
-    IcNodeStatusView, IcSubnetStatusReport, IcSubnetStatusRow, node_status_counts,
-    node_status_group_counts,
+    IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope,
+    IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport, IcSubnetStatusRow,
+    node_status_counts, node_status_group_counts, validate_canonical_node_status_rows,
+    validate_default_node_scope,
 };
 use std::collections::BTreeMap;
 
@@ -17,7 +18,7 @@ pub fn ic_node_status_report_from_snapshot(
     snapshot: &IcNodeStatusSnapshot,
     view: &IcNodeStatusView,
 ) -> Result<IcNodeStatusReport, IcNodeStatusProjectionError> {
-    validate_snapshot_counts(snapshot)?;
+    validate_snapshot(snapshot)?;
     let resolution = resolve_optional_target(
         "node",
         view.target.as_deref(),
@@ -54,7 +55,7 @@ pub fn ic_subnet_status_report_from_snapshot(
     snapshot: &IcNodeStatusSnapshot,
     view: &IcNodeStatusView,
 ) -> Result<IcSubnetStatusReport, IcNodeStatusProjectionError> {
-    validate_snapshot_counts(snapshot)?;
+    validate_snapshot(snapshot)?;
     let mut grouped = BTreeMap::<String, Vec<&IcNodeStatusRow>>::new();
     for node in &snapshot.nodes {
         if let Some(subnet_id) = &node.subnet_id {
@@ -103,7 +104,7 @@ pub fn ic_node_provider_status_report_from_snapshot(
     snapshot: &IcNodeStatusSnapshot,
     view: &IcNodeStatusView,
 ) -> Result<IcNodeProviderStatusReport, IcNodeStatusProjectionError> {
-    validate_snapshot_counts(snapshot)?;
+    validate_snapshot(snapshot)?;
     let mut grouped = BTreeMap::<String, Vec<&IcNodeStatusRow>>::new();
     for node in &snapshot.nodes {
         grouped
@@ -192,9 +193,18 @@ fn counts_for<'a>(nodes: impl Iterator<Item = &'a IcNodeStatusRow>) -> IcNodeSta
     node_status_counts(nodes)
 }
 
-fn validate_snapshot_counts(
-    snapshot: &IcNodeStatusSnapshot,
-) -> Result<(), IcNodeStatusProjectionError> {
+fn validate_snapshot(snapshot: &IcNodeStatusSnapshot) -> Result<(), IcNodeStatusProjectionError> {
+    if snapshot.observation.scope != IcNodeStatusScope::DashboardMainnetDefault
+        || snapshot.observation.cloud_engine_nodes_included
+    {
+        return invalid_snapshot(
+            "snapshot does not describe the Dashboard default mainnet node scope",
+        );
+    }
+    validate_canonical_node_status_rows(&snapshot.nodes)
+        .map_err(|reason| IcNodeStatusProjectionError::InvalidSnapshot { reason })?;
+    validate_default_node_scope(&snapshot.nodes)
+        .map_err(|reason| IcNodeStatusProjectionError::InvalidSnapshot { reason })?;
     if snapshot.node_count != snapshot.nodes.len() {
         return invalid_snapshot(format!(
             "node_count is {}, actual row count is {}",
@@ -205,13 +215,6 @@ fn validate_snapshot_counts(
     let counts = node_status_group_counts(snapshot.nodes.iter());
     if snapshot.counts != counts {
         return invalid_snapshot("counts do not match raw node rows");
-    }
-    if snapshot
-        .nodes
-        .windows(2)
-        .any(|pair| pair[0].node_id >= pair[1].node_id)
-    {
-        return invalid_snapshot("node rows are not in strict canonical node-id order");
     }
     Ok(())
 }

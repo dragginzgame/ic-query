@@ -10,6 +10,7 @@ mod counts;
 mod model;
 mod projection;
 mod text;
+mod validation;
 
 #[cfg(feature = "host")]
 pub use cache::{
@@ -46,6 +47,11 @@ pub use projection::{
 pub use text::ic_node_status_refresh_report_text;
 pub use text::{
     ic_node_provider_status_report_text, ic_node_status_report_text, ic_subnet_status_report_text,
+};
+#[cfg(feature = "host")]
+pub(in crate::ic) use validation::canonicalize_node_status_rows;
+pub(in crate::ic) use validation::{
+    validate_canonical_node_status_rows, validate_default_node_scope,
 };
 
 /// Current schema version for observed node-status reports and caches.

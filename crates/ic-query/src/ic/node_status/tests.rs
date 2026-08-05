@@ -65,6 +65,36 @@ fn all_status_views_share_one_snapshot_and_attention_filter() {
 }
 
 #[test]
+fn status_text_separates_preambles_and_tables() {
+    let snapshot = fixture_snapshot();
+    let view = IcNodeStatusView::attention().with_all(true);
+    let nodes = ic_node_status_report_from_snapshot(&snapshot, &view).expect("node report");
+    let subnets = ic_subnet_status_report_from_snapshot(&snapshot, &view).expect("Subnet report");
+    let providers =
+        ic_node_provider_status_report_from_snapshot(&snapshot, &view).expect("provider report");
+    let node_text = ic_node_status_report_text(&nodes);
+    let subnet_text = ic_subnet_status_report_text(&subnets);
+    let provider_text = ic_node_provider_status_report_text(&providers);
+
+    assert!(
+        node_text.contains("unknown=0/0/0\n\nNODE"),
+        "node preamble must be visually separate from its table"
+    );
+    assert!(
+        subnet_text.contains("assigned_nodes=2\n\nSUBNET"),
+        "Subnet preamble must be visually separate from its table"
+    );
+    assert!(
+        subnet_text.contains("\n\nnon-up node evidence:\nNODE"),
+        "later evidence must be a separate visual section"
+    );
+    assert!(
+        provider_text.contains("returned=2\n\nNODE PROVIDER"),
+        "provider preamble must be visually separate from its table"
+    );
+}
+
+#[test]
 fn subnet_threshold_reports_down_and_conservative_non_up_distance_separately() {
     let report = ic_subnet_status_report_from_snapshot(
         &fixture_snapshot(),
@@ -101,6 +131,37 @@ fn target_resolution_supports_unique_prefixes_and_rejects_ambiguity() {
         ambiguous,
         IcNodeStatusProjectionError::AmbiguousTarget { prefix, matches, .. }
             if prefix == "r" && matches.len() == 2
+    ));
+}
+
+#[test]
+fn pure_projections_reject_invalid_raw_relation_evidence() {
+    let mut snapshot = fixture_snapshot();
+    snapshot.nodes[0].node_type = "UNASSIGNED".to_string();
+
+    let error = ic_subnet_status_report_from_snapshot(
+        &snapshot,
+        &IcNodeStatusView::attention().with_all(true),
+    )
+    .expect_err("assigned UNASSIGNED node must be rejected");
+
+    assert!(matches!(
+        error,
+        IcNodeStatusProjectionError::InvalidSnapshot { reason }
+            if reason.contains("assigned subnet evidence")
+    ));
+
+    let mut invalid_scope = fixture_snapshot();
+    invalid_scope.observation.cloud_engine_nodes_included = true;
+    let scope_error = ic_node_status_report_from_snapshot(
+        &invalid_scope,
+        &IcNodeStatusView::attention().with_all(true),
+    )
+    .expect_err("unsupported source scope must be rejected");
+    assert!(matches!(
+        scope_error,
+        IcNodeStatusProjectionError::InvalidSnapshot { reason }
+            if reason.contains("default mainnet node scope")
     ));
 }
 
@@ -198,6 +259,50 @@ fn malformed_cache_recovers_while_strict_load_remains_typed() {
     .expect("read-through policy repairs malformed cache");
     assert_eq!(recovered.node_count, 1);
     assert_eq!(source.calls.get(), 1);
+
+    fs::remove_dir_all(root).expect("remove fixture cache");
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
+    let root = temp_dir("ic-node-status-cache-order");
+    let now = fixture_now();
+    let request = refresh_request(&root, now);
+    let source = RowsSource {
+        nodes: fixture_snapshot().nodes,
+    };
+    refresh_ic_node_status_snapshot_with_source(&request, &source).expect("create cache");
+    let cache_path = ic_node_status_cache_path(&root, "ic");
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read fixture cache"))
+            .expect("parse fixture cache");
+    let nodes = cache["nodes"].as_array_mut().expect("cached node rows");
+    nodes.swap(0, 1);
+    fs::write(
+        &cache_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize reordered cache"),
+    )
+    .expect("write reordered cache");
+
+    let strict = load_cached_ic_node_status_snapshot(&request.cache, now)
+        .expect_err("strict load rejects noncanonical cache ordering");
+    assert!(matches!(
+        strict,
+        IcNodeStatusHostError::InvalidCache { reason, .. }
+            if reason.contains("strict canonical node-id order")
+    ));
+
+    let repair_source = FixtureSource::default();
+    let mut progress = IgnoreQueryProgress;
+    let repaired = load_or_refresh_missing_ic_node_status_snapshot_with_source(
+        &request,
+        &repair_source,
+        &mut progress,
+    )
+    .expect("read-through repairs noncanonical cache ordering");
+    assert_eq!(repaired.node_count, 1);
+    assert_eq!(repair_source.calls.get(), 1);
 
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
@@ -371,6 +476,24 @@ fn custom_source_rejects_rows_above_the_fixed_ceiling() {
     .expect_err("oversized source collection");
 
     assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+}
+
+#[cfg(feature = "host")]
+#[test]
+fn custom_source_rejects_an_empty_mainnet_snapshot() {
+    let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
+
+    let error = crate::ic::build_ic_node_status_snapshot_with_source(
+        &request,
+        &RowsSource { nodes: Vec::new() },
+    )
+    .expect_err("empty mainnet snapshot");
+
+    assert!(matches!(
+        error,
+        IcHostError::InvalidSourceData { reason }
+            if reason.contains("at least one row")
+    ));
 }
 
 fn fixture_snapshot() -> IcNodeStatusSnapshot {

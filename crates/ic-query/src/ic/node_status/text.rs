@@ -23,7 +23,7 @@ pub fn ic_node_status_report_text(report: &IcNodeStatusReport) -> String {
     let mut sections = observation_lines(&report.observation);
     sections.push(counts_line("nodes", &report.counts.statuses));
     sections.push(assignment_status_line(&report.counts.assignment_statuses));
-    sections.push(render_node_table(&report.nodes));
+    push_table_section(&mut sections, render_node_table(&report.nodes));
     sections.join("\n")
 }
 
@@ -70,22 +70,25 @@ pub fn ic_subnet_status_report_text(report: &IcSubnetStatusReport) -> String {
             ]
         })
         .collect::<Vec<_>>();
-    sections.push(render_table(
-        &headers,
-        &rows,
-        &[
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-        ],
-    ));
+    push_table_section(
+        &mut sections,
+        render_table(
+            &headers,
+            &rows,
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        ),
+    );
     let non_up = report
         .subnets
         .iter()
@@ -93,6 +96,7 @@ pub fn ic_subnet_status_report_text(report: &IcSubnetStatusReport) -> String {
         .cloned()
         .collect::<Vec<_>>();
     if !non_up.is_empty() {
+        sections.push(String::new());
         sections.push("non-up node evidence:".to_string());
         sections.push(render_node_table(&non_up));
     }
@@ -141,25 +145,33 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
             ]
         })
         .collect::<Vec<_>>();
-    sections.push(render_table(
-        &headers,
-        &rows,
-        &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-        ],
-    ));
+    push_table_section(
+        &mut sections,
+        render_table(
+            &headers,
+            &rows,
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        ),
+    );
     sections.join("\n")
+}
+
+fn push_table_section(sections: &mut Vec<String>, table: String) {
+    sections.push(String::new());
+    sections.push(table);
 }
 
 /// Render a human-readable forced node-status cache refresh report.

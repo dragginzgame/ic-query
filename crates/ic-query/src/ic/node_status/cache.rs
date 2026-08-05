@@ -11,7 +11,7 @@ use super::{
     IcNodeStatusRefreshReport, IcNodeStatusRefreshRequest, IcNodeStatusScope, IcNodeStatusSnapshot,
     IcSubnetStatusReport, MAX_IC_NODE_STATUS_ROWS, ic_node_provider_status_report_from_snapshot,
     ic_node_status_report_from_snapshot, ic_subnet_status_report_from_snapshot,
-    node_status_group_counts,
+    node_status_group_counts, validate_canonical_node_status_rows, validate_default_node_scope,
 };
 use crate::{
     QueryProgress, QueryProgressEvent,
@@ -24,7 +24,6 @@ use crate::{
     ic::{
         IC_DASHBOARD_AUTHORITY, IcDashboardReportProvenance, IcNodeStatusReport,
         IcNodeStatusSource, LiveIcSource, build_ic_node_status_snapshot_with_source,
-        source::{validate_default_node_scope, validate_node_status_rows},
     },
     network::enforce_mainnet_network_with,
     snapshot_cache::{
@@ -333,7 +332,7 @@ fn load_node_status_cache(
     enforce_network(&request.network)?;
     let path = ic_node_status_cache_path(&request.cache_root, &request.network);
     let key = status_key(&request.network);
-    let mut cache: NodeStatusCache = load_complete_snapshot_for_key(
+    let cache: NodeStatusCache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
             path: path.clone(),
             network: &request.network,
@@ -351,7 +350,7 @@ fn load_node_status_cache(
         },
         |mismatch| identity_error(path.clone(), mismatch),
     )?;
-    let fetched_at_unix_secs = validate_cache(&path, &mut cache)?;
+    let fetched_at_unix_secs = validate_cache(&path, &cache)?;
     if fetched_at_unix_secs > now_unix_secs {
         return Err(IcNodeStatusHostError::InvalidCache {
             path,
@@ -365,7 +364,7 @@ fn load_node_status_cache(
     })
 }
 
-fn validate_cache(path: &Path, cache: &mut NodeStatusCache) -> Result<u64, IcNodeStatusHostError> {
+fn validate_cache(path: &Path, cache: &NodeStatusCache) -> Result<u64, IcNodeStatusHostError> {
     let invalid = |reason| IcNodeStatusHostError::InvalidCache {
         path: path.to_path_buf(),
         reason,
@@ -410,7 +409,7 @@ fn validate_cache(path: &Path, cache: &mut NodeStatusCache) -> Result<u64, IcNod
         .map_err(|reason| invalid(format!("invalid source_endpoint: {reason}")))?;
     let fetched_at = parse_utc_timestamp_secs(&cache.fetched_at)
         .ok_or_else(|| invalid("fetched_at is not a canonical UTC timestamp".to_string()))?;
-    validate_node_status_rows(&mut cache.data.nodes)
+    validate_canonical_node_status_rows(&cache.data.nodes)
         .map_err(|error| invalid(format!("invalid cached node rows: {error}")))?;
     validate_default_node_scope(&cache.data.nodes)
         .map_err(|error| invalid(format!("invalid cached node scope: {error}")))?;
