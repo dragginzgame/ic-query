@@ -21,7 +21,7 @@ pub use node_operator::{MainnetNodeOperator, MainnetNodeOperatorList};
 #[cfg(feature = "nns-host")]
 pub use node_provider::{MainnetNodeProvider, MainnetNodeProviderList};
 #[cfg(feature = "nns-host")]
-pub use registry::MainnetRegistryVersion;
+pub use registry::{MainnetRegistryCertification, MainnetRegistryVersion};
 pub use request::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-topology-host")]
 pub use subnet_topology::{

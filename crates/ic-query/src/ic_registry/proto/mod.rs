@@ -20,6 +20,8 @@ pub use registry::{
     LargeValueChunkKeys, RegistryErrorCode, RegistryGetLatestVersionResponse,
     RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value, registry_get_value_response,
 };
+#[cfg(feature = "nns-host")]
+pub use registry::{RegistryCertifiedResponse, RegistryMixedHashTree, registry_mixed_hash_tree};
 pub use routing::RoutingTable;
 #[cfg(all(test, feature = "nns-host"))]
 pub use routing::{CanisterIdRange, RoutingTableEntry};

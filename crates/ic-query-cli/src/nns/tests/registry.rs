@@ -35,7 +35,7 @@ fn registry_help_is_advertised_under_nns() {
     let version = render_help(registry_version_command());
 
     assert!(nns.contains("registry"));
-    assert!(registry.contains("Show the latest mainnet NNS registry version"));
+    assert!(registry.contains("Show the certified latest mainnet NNS registry version"));
     assert!(version.contains("icq nns registry version"));
     assert!(version.contains("Collection mode: Live query"));
     assert!(version.contains("--json"));

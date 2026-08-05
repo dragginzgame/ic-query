@@ -65,7 +65,7 @@ icrc-host = [
     "dep:url",
 ]
 nns-topology-host = ["subnet-catalog-host"]
-nns-host = ["nns-topology-host"]
+nns-host = ["nns-topology-host", "dep:serde_cbor"]
 sns-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",

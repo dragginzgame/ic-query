@@ -7,6 +7,20 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.30.x] - 2026-08-05 - Certified Registry evidence
+
+Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
+
+- `0.30.0` hard-cuts the existing NNS Registry version report and source
+  contract to one authenticated `get_certified_latest_version` call. The host
+  verifies the mainnet-root-key certificate, Registry canister authority,
+  certified-data commitment, bounded protobuf mixed hash tree, canonical
+  unsigned-LEB128 version leaf, and certificate time before returning version
+  2 evidence. JSON preserves the certificate, witness, root-key digest, time,
+  and byte counts; text stays compact. This certifies only the latest version,
+  not ordinary Subnet Catalog `get_value` reads. Command grammar and caching
+  are unchanged; `nns-host` now has a direct CBOR dependency.
+
 ## [0.29.x] - 2026-08-05 - Subnet Catalog authority and embedder hardening
 
 Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)

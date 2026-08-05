@@ -1,3 +1,5 @@
+#[cfg(feature = "nns-host")]
+mod certified;
 mod chunk;
 mod codec;
 mod value;
@@ -25,6 +27,8 @@ impl RegistryQueryCounter {
 }
 
 pub(super) use crate::hex::hex_bytes;
+#[cfg(feature = "nns-host")]
+pub(super) use certified::get_certified_latest_version;
 #[cfg(all(test, feature = "nns-host"))]
 pub(super) use chunk::{append_validated_chunk, sha256_digest};
 pub(super) use codec::decode_message;

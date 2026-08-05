@@ -173,6 +173,13 @@ Inventory list/detail commands use their documented cache-backed behavior.
 Refresh commands force a live fetch and replace the matching complete cache
 only after validation.
 
+`nns registry version` is a live, uncached, one-call certified query. It
+authenticates the system certificate against the mainnet root key, verifies
+the Registry mixed-hash-tree commitment and canonical `current_version` leaf,
+and preserves certificate time and raw evidence in JSON. That certification
+applies to the latest version value only; it does not certify the separate
+ordinary-query Subnet Catalog or topology record reads.
+
 The three `status` operations are views over one off-chain Dashboard node
 snapshot, not joins performed independently for each noun. The default view
 shows only non-up nodes or groups; `--all` includes fully-up rows, an exact

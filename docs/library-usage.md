@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["host"] }
+ic-query = { version = "0.30", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -25,7 +25,7 @@ use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -40,7 +40,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -54,7 +54,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -70,7 +70,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -88,7 +88,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -104,7 +104,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -120,22 +120,24 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host`. It exposes
 `LiveNnsSource`, all NNS report-specific source traits and builders, Governance
 proposal/neuron complete snapshots, component inventory caches, explicit
 refresh policies, and progress events. Registry Prost decoding and SHA-256 are
-direct dependencies through the topology/catalog substrate. Dashboard Reqwest
-and CBOR certification are not direct ic-query edges, although they may remain
-transitive through `ic-agent`.
+direct dependencies through the topology/catalog substrate; CBOR is direct for
+the authenticated Registry latest-version certificate. Dashboard Reqwest is
+not a direct ic-query edge, although it remains transitive through `ic-agent`.
+The certified version report does not promote ordinary Subnet Catalog
+`get_value` reads beyond their separately recorded assurance.
 
 For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false }
+ic-query = { version = "0.30", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,

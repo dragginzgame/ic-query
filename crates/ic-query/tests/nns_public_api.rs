@@ -97,13 +97,14 @@ use ic_query::nns::proposals::{
     NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
     nns_proposal_list_report_text, nns_proposal_report_text,
 };
+use ic_query::nns::registry::{
+    NnsRegistryCertification, NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    nns_registry_version_report_text,
+};
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
     NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
     build_nns_registry_version_report_with_source,
-};
-use ic_query::nns::registry::{
-    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::topology::{
@@ -421,13 +422,14 @@ fn public_nns_registry_api_is_constructible_and_renderable() {
     assert_eq!(request.network, "ic");
 
     let report = NnsRegistryVersionReport {
-        schema_version: 1,
+        schema_version: 2,
         network: request.network,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint,
         fetched_by: "ic-query".to_string(),
+        certification: public_registry_certification(),
     };
 
     let text = nns_registry_version_report_text(&report);
@@ -469,7 +471,21 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
             fetched_at: request.fetched_at.clone(),
             fetched_by: request.fetched_by.clone(),
             source_endpoint: request.endpoint.clone(),
+            certification: public_registry_certification(),
         })
+    }
+}
+
+fn public_registry_certification() -> NnsRegistryCertification {
+    NnsRegistryCertification {
+        certificate_verified: true,
+        certificate_time_nanos: 1_700_000_000_000_000_000,
+        certificate_time: "2023-11-14T22:13:20Z".to_string(),
+        root_key_digest: "ab".repeat(32),
+        certificate_hex: "cd".repeat(8),
+        certificate_bytes: 8,
+        hash_tree_hex: "ef".repeat(4),
+        hash_tree_bytes: 4,
     }
 }
 

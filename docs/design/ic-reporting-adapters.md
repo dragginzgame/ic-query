@@ -137,6 +137,12 @@ An explicit two-to-three-endpoint catalog selection may establish
 Registry version and canonical Registry payload. It records the agreement
 digest and exact Registry query-call count, does not fall back on mismatch, and
 does not claim cryptographic certification.
+The NNS Registry version report independently calls
+`get_certified_latest_version`, authenticates the certificate, and validates
+the committed `current_version` leaf. That bounded proof does not upgrade
+ordinary `get_value` evidence: `CatalogAssurance::Certified` remains reserved
+until a complete contiguous certified delta sequence reconstructs the catalog
+at the selected version.
 
 ## Current Follow-Up Flows
 

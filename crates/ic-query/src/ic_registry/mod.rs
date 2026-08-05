@@ -28,7 +28,8 @@ pub use model::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-host")]
 pub use model::{
     MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
-    MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList, MainnetRegistryVersion,
+    MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList,
+    MainnetRegistryCertification, MainnetRegistryVersion,
 };
 #[cfg(feature = "nns-topology-host")]
 pub use model::{

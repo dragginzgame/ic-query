@@ -18,7 +18,7 @@ local-only inspection visibly distinct.
 | Family | Current surface |
 | --- | --- |
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, one-request observed node status with cached node/Subnet/provider views and typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
-| NNS Registry | Registry version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
+| NNS Registry | Certified latest version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
@@ -128,7 +128,7 @@ actually make:
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
-| NNS Registry | Exact-version joined Registry query evidence with explicit assurance | Single-endpoint catalog collection is `uncertified_query`; explicit 2–3 endpoint agreement requires matching versions and payloads but is still not cryptographic certification |
+| NNS Registry | Authenticated certified latest-version evidence plus exact-version joined Registry query evidence with explicit catalog assurance | Certification of `current_version` does not certify ordinary `get_value` catalog reads; single-endpoint catalogs remain `uncertified_query`, while explicit 2–3 endpoint agreement is still not cryptographic certification |
 | NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
@@ -334,7 +334,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false }
+ic-query = { version = "0.30", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -342,7 +342,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["host"] }
+ic-query = { version = "0.30", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -356,7 +356,7 @@ Focused host features let embedders select one reporting family:
 | `cmc-host` | Certified Cycle Minting Canister ICP/XDR and cycles reports |
 | `dashboard-host` | Official Dashboard REST reports and observed node-status cache |
 | `icrc-host` | Native ICRC ledger/index reports and complete account-history cache |
-| `nns-host` | Complete NNS governance, Registry inventory, component-cache, and topology APIs |
+| `nns-host` | Complete NNS governance, certified Registry-version, Registry inventory, component-cache, and topology APIs |
 | `nns-topology-host` | Exact-version joined NNS topology plus Subnet Catalog |
 | `sns-host` | Native SNS reports, caches, and reward evidence |
 | `subnet-catalog-host` | Focused Subnet Catalog authority, cache, and resolution APIs |
@@ -388,7 +388,7 @@ REST reports and the shared observed node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders, and the
@@ -403,7 +403,7 @@ Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -416,7 +416,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -428,7 +428,7 @@ proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -451,7 +451,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -464,13 +464,13 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.29", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.30", default-features = false, features = ["nns-host"] }
 ```
 
 This is a strict superset of `nns-topology-host`. It directly includes the
-Registry Prost and SHA-256 dependencies needed by its exact-version topology
-and agreement paths, but has no direct ic-query Dashboard Reqwest or CBOR
-certification edge. Those package names may remain transitive through
+Registry Prost, SHA-256, and CBOR dependencies needed by exact-version
+topology, endpoint agreement, and certified Registry-version evidence. It has
+no direct ic-query Dashboard Reqwest edge; Reqwest remains transitive through
 `ic-agent`.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
@@ -501,6 +501,7 @@ guidance.
 - [0.27 bounded official ICRC analytics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.27/0.27-design.md)
 - [0.28 observed IC node and Subnet status](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.28/0.28-design.md)
 - [0.29 Subnet Catalog authority and embedder hardening](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.29/0.29-design.md)
+- [0.30 certified Registry evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.30/0.30-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

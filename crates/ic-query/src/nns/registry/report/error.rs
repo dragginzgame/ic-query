@@ -25,6 +25,13 @@ pub enum NnsRegistryHostError {
         actual: String,
     },
 
+    /// A custom source returned malformed or internally inconsistent evidence.
+    #[error("invalid NNS Registry source data: {reason}")]
+    InvalidSourceData {
+        /// Deterministic source-data validation failure.
+        reason: String,
+    },
+
     #[error("live NNS registry query failed: {0}")]
     NnsQuery(#[from] RegistryFetchError),
 }

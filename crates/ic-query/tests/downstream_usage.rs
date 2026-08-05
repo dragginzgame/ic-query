@@ -1,5 +1,6 @@
 use ic_query::nns::registry::{
-    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
+    NnsRegistryCertification, NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    nns_registry_version_report_text,
 };
 
 #[test]
@@ -14,16 +15,30 @@ fn render_registry_version() -> String {
     let request = NnsRegistryVersionRequest::new("ic", "https://icp-api.io", 1_700_000_000);
 
     let report = NnsRegistryVersionReport {
-        schema_version: 1,
+        schema_version: 2,
         network: request.network,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint,
         fetched_by: "my-tool".to_string(),
+        certification: registry_certification(),
     };
 
     nns_registry_version_report_text(&report)
+}
+
+fn registry_certification() -> NnsRegistryCertification {
+    NnsRegistryCertification {
+        certificate_verified: true,
+        certificate_time_nanos: 1_700_000_000_000_000_000,
+        certificate_time: "2023-11-14T22:13:20Z".to_string(),
+        root_key_digest: "ab".repeat(32),
+        certificate_hex: "cd".repeat(8),
+        certificate_bytes: 8,
+        hash_tree_hex: "ef".repeat(4),
+        hash_tree_bytes: 4,
+    }
 }
 
 #[cfg(feature = "host")]
@@ -262,6 +277,7 @@ mod host {
                 fetched_at: request.fetched_at.clone(),
                 fetched_by: request.fetched_by.clone(),
                 source_endpoint: request.endpoint.clone(),
+                certification: super::registry_certification(),
             })
         }
     }

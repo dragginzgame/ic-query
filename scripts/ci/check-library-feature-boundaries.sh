@@ -64,7 +64,6 @@ forbidden_direct_cmc_host_dependencies=(
 
 forbidden_direct_nns_host_dependencies=(
   reqwest
-  serde_cbor
 )
 
 forbidden_sns_host_dependencies=(
@@ -261,8 +260,8 @@ check_tree_absent "ic-query --features cmc-host direct dependencies" \
   --depth 1
 
 # The complete NNS feature intentionally includes Registry protobuf and
-# hashing through `nns-topology-host`. It must not activate Dashboard transport
-# or the direct CBOR certification edge.
+# hashing through `nns-topology-host`, plus direct CBOR decoding for certified
+# Registry-version evidence. It must not activate Dashboard Reqwest transport.
 check_tree_absent "ic-query --features nns-host direct dependencies" \
   "${forbidden_direct_nns_host_dependencies[@]}" \
   -- \

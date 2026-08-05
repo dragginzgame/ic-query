@@ -11,7 +11,7 @@ mod text;
 pub use build::{build_nns_registry_version_report, build_nns_registry_version_report_with_source};
 #[cfg(feature = "nns-host")]
 pub use error::NnsRegistryHostError;
-pub use model::{NnsRegistryVersionReport, NnsRegistryVersionRequest};
+pub use model::{NnsRegistryCertification, NnsRegistryVersionReport, NnsRegistryVersionRequest};
 #[cfg(feature = "nns-host")]
 pub use source::{NnsRegistrySource, NnsRegistryVersionData};
 pub use text::nns_registry_version_report_text;

@@ -21,11 +21,11 @@ pub(in crate::nns) fn registry_command() -> ClapCommand {
 pub(in crate::nns) fn registry_version_command() -> ClapCommand {
     ClapCommand::new("version")
         .bin_name("icq nns registry version")
-        .about("Show the latest mainnet NNS registry version")
+        .about("Show the certified latest mainnet NNS registry version")
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native NNS registry query"),
+                .help("IC API endpoint used for the certified NNS registry query"),
         )
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,

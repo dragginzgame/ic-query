@@ -118,3 +118,97 @@ pub struct RegistryGetLatestVersionResponse {
     #[prost(uint64, tag = "1")]
     pub version: u64,
 }
+
+///
+/// RegistryCertifiedResponse
+///
+/// Protobuf response returned by the Registry's certified query methods.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+#[cfg(feature = "nns-host")]
+pub struct RegistryCertifiedResponse {
+    /// Certified mixed hash-tree witness.
+    #[prost(message, optional, tag = "1")]
+    pub hash_tree: Option<RegistryMixedHashTree>,
+    /// CBOR system certificate authenticating the tree root.
+    #[prost(bytes = "vec", tag = "2")]
+    pub certificate: Vec<u8>,
+}
+
+///
+/// RegistryMixedHashTree
+///
+/// Protobuf representation of a certified Registry mixed hash tree.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+#[cfg(feature = "nns-host")]
+pub struct RegistryMixedHashTree {
+    /// Encoded tree node.
+    #[prost(oneof = "registry_mixed_hash_tree::Tree", tags = "1, 2, 3, 4, 5")]
+    pub tree: Option<registry_mixed_hash_tree::Tree>,
+}
+
+#[cfg(feature = "nns-host")]
+pub mod registry_mixed_hash_tree {
+    use super::RegistryMixedHashTree;
+    use prost::Oneof;
+
+    ///
+    /// Fork
+    ///
+    /// Two child branches in a Registry mixed hash tree.
+    ///
+
+    #[derive(Clone, Eq, prost::Message, PartialEq)]
+    pub struct Fork {
+        /// Left child branch.
+        #[prost(message, optional, boxed, tag = "1")]
+        pub left_tree: Option<Box<RegistryMixedHashTree>>,
+        /// Right child branch.
+        #[prost(message, optional, boxed, tag = "2")]
+        pub right_tree: Option<Box<RegistryMixedHashTree>>,
+    }
+
+    ///
+    /// Labeled
+    ///
+    /// Label and child branch in a Registry mixed hash tree.
+    ///
+
+    #[derive(Clone, Eq, prost::Message, PartialEq)]
+    pub struct Labeled {
+        /// Raw branch label.
+        #[prost(bytes = "vec", tag = "1")]
+        pub label: Vec<u8>,
+        /// Labeled child branch.
+        #[prost(message, optional, boxed, tag = "2")]
+        pub subtree: Option<Box<RegistryMixedHashTree>>,
+    }
+
+    ///
+    /// Tree
+    ///
+    /// One node in a Registry mixed hash tree.
+    ///
+
+    #[derive(Clone, Eq, Oneof, PartialEq)]
+    pub enum Tree {
+        /// Empty tree node.
+        #[prost(message, tag = "1")]
+        Empty(()),
+        /// Fork containing two child branches.
+        #[prost(message, tag = "2")]
+        Fork(Box<Fork>),
+        /// Labeled child branch.
+        #[prost(message, tag = "3")]
+        Labeled(Box<Labeled>),
+        /// Visible leaf bytes.
+        #[prost(bytes, tag = "4")]
+        LeafData(Vec<u8>),
+        /// Pruned SHA-256 subtree digest.
+        #[prost(bytes, tag = "5")]
+        PrunedDigest(Vec<u8>),
+    }
+}

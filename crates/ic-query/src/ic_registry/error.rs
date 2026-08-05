@@ -18,6 +18,20 @@ pub enum RegistryFetchError {
         reason: String,
     },
 
+    /// The certificate signature, delegation, authority, or age check failed.
+    #[error("Registry certificate authentication failed: {reason}")]
+    CertificateAuthentication {
+        /// Authentication failure returned by the IC agent.
+        reason: String,
+    },
+
+    /// The certified response or committed Registry witness was malformed.
+    #[error("certified Registry evidence is invalid: {reason}")]
+    InvalidCertifiedRegistry {
+        /// Deterministic certified-evidence validation failure.
+        reason: String,
+    },
+
     #[error("failed to encode protobuf {message}: {reason}")]
     ProtobufEncode {
         message: &'static str,
