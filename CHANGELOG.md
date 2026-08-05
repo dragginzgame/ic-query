@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.3` adds a pure in-memory Registry replay API that applies exactly one
+  validated certified delta batch after the state's current version. It uses
+  the IC's committed-changelog replacement/delete semantics, requires explicit
+  caller ceilings for live entries and combined raw key/value bytes, and
+  publishes the candidate state only after the whole batch succeeds. The state
+  begins at version zero and carries current values and mutation positions, but
+  is not serialized authority evidence. No network loop, cache, CLI, catalog
+  projection, or assurance promotion is added.
+
 - `0.30.2` hard-cuts certified Registry delta reports to schema 2 and completes
   certified large-value chunk references under fixed call, chunk, per-value,
   total-value, response-byte, and agent-body ceilings. Reports preserve the

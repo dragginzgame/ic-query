@@ -1,0 +1,402 @@
+//! Module: nns::registry::replay
+//!
+//! Responsibility: apply one validated certified Registry delta batch to bounded memory state.
+//! Does not own: network pagination, persistence, catalog projection, or assurance promotion.
+//! Boundary: committed changelog rows are applied atomically and never trigger follow-up IO.
+
+use super::{
+    NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind, NnsRegistryHostError,
+    validate_nns_certified_registry_delta_batch,
+};
+use std::collections::BTreeMap;
+use thiserror::Error as ThisError;
+
+///
+/// NnsRegistryReplayLimits
+///
+/// Caller-selected payload ceilings for one published Registry replay state.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NnsRegistryReplayLimits {
+    /// Maximum live Registry keys retained after any applied mutation.
+    pub max_entries: usize,
+    /// Maximum combined raw key and live value bytes in the resulting state.
+    pub max_content_bytes: usize,
+}
+
+impl NnsRegistryReplayLimits {
+    /// Create explicit replay-state ceilings without selecting hidden defaults.
+    #[must_use]
+    pub const fn new(max_entries: usize, max_content_bytes: usize) -> Self {
+        Self {
+            max_entries,
+            max_content_bytes,
+        }
+    }
+}
+
+///
+/// NnsRegistryReplayValue
+///
+/// Current value and last committed mutation evidence for one Registry key.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NnsRegistryReplayValue {
+    value: Vec<u8>,
+    last_mutation_version: u64,
+    timestamp_nanoseconds: u64,
+}
+
+impl NnsRegistryReplayValue {
+    /// Return the current raw Registry value bytes.
+    #[must_use]
+    pub fn value(&self) -> &[u8] {
+        &self.value
+    }
+
+    /// Return the Registry version that last mutated this key.
+    #[must_use]
+    pub const fn last_mutation_version(&self) -> u64 {
+        self.last_mutation_version
+    }
+
+    /// Return the Registry-assigned timestamp of the last mutation.
+    #[must_use]
+    pub const fn timestamp_nanoseconds(&self) -> u64 {
+        self.timestamp_nanoseconds
+    }
+}
+
+///
+/// NnsRegistryReplayState
+///
+/// Canonically ordered current Registry key state reconstructed from version zero.
+/// This in-memory state is not authority evidence by itself. Callers must retain
+/// and validate the certified batches that produced it.
+///
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct NnsRegistryReplayState {
+    through_version: u64,
+    content_bytes: usize,
+    entries: BTreeMap<Vec<u8>, NnsRegistryReplayValue>,
+}
+
+impl NnsRegistryReplayState {
+    /// Create an empty Registry state immediately before version one.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            through_version: 0,
+            content_bytes: 0,
+            entries: BTreeMap::new(),
+        }
+    }
+
+    /// Return the last Registry version applied to this state.
+    #[must_use]
+    pub const fn through_version(&self) -> u64 {
+        self.through_version
+    }
+
+    /// Return the number of currently present Registry keys.
+    #[must_use]
+    pub fn entry_count(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Return combined raw key and current value bytes.
+    #[must_use]
+    pub const fn content_bytes(&self) -> usize {
+        self.content_bytes
+    }
+
+    /// Return whether the current Registry state has no present keys.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// Look up one current Registry value by raw key bytes.
+    #[must_use]
+    pub fn get(&self, key: &[u8]) -> Option<&NnsRegistryReplayValue> {
+        self.entries.get(key)
+    }
+
+    /// Iterate current Registry keys in canonical raw-byte order.
+    pub fn entries(&self) -> impl Iterator<Item = (&[u8], &NnsRegistryReplayValue)> {
+        self.entries
+            .iter()
+            .map(|(key, value)| (key.as_slice(), value))
+    }
+}
+
+///
+/// NnsRegistryReplayProgress
+///
+/// Derived state and completion accounting after one atomic batch application.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NnsRegistryReplayProgress {
+    /// Registry version held before the batch was applied.
+    pub previous_version: u64,
+    /// Last Registry version held after the batch was applied.
+    pub through_version: u64,
+    /// Number of contiguous Registry versions applied from this batch.
+    pub applied_version_count: usize,
+    /// Number of committed mutations applied from this batch.
+    pub applied_mutation_count: usize,
+    /// Number of currently present Registry keys.
+    pub entry_count: usize,
+    /// Combined raw key and current value bytes.
+    pub content_bytes: usize,
+    /// Whether the state reached this batch's certified latest version.
+    pub complete_at_certified_latest_version: bool,
+}
+
+///
+/// NnsRegistryReplayError
+///
+/// Typed failures returned before an invalid or oversized replay state is published.
+///
+
+#[derive(Debug, ThisError)]
+pub enum NnsRegistryReplayError {
+    /// The supplied certified batch report failed its public contract.
+    #[error(transparent)]
+    InvalidBatch(#[from] NnsRegistryHostError),
+
+    /// The batch does not continue immediately after the current replay state.
+    #[error(
+        "Registry replay state is at version {state_version}, but the batch starts after version {requested_version}"
+    )]
+    VersionMismatch {
+        /// Version currently held by the replay state.
+        state_version: u64,
+        /// Version named by the batch request and report.
+        requested_version: u64,
+    },
+
+    /// The existing or candidate state exceeds a caller-selected payload ceiling.
+    #[error("Registry replay {field} is {actual}; caller maximum is {maximum}")]
+    LimitExceeded {
+        /// Bounded replay-state resource.
+        field: &'static str,
+        /// Caller-selected ceiling.
+        maximum: usize,
+        /// Existing or candidate amount.
+        actual: usize,
+    },
+
+    /// Validated report content could not be decoded defensively.
+    #[error("validated Registry replay {field} is not lowercase hexadecimal")]
+    InvalidHex {
+        /// Report field that failed decoding.
+        field: &'static str,
+    },
+
+    /// Internal byte accounting could not be represented consistently.
+    #[error("Registry replay byte accounting overflowed or became inconsistent")]
+    Accounting,
+}
+
+/// Apply exactly one validated certified Registry delta batch atomically.
+///
+/// The committed changelog has already passed Registry mutation checks. To
+/// match the official Registry reconstruction path, insert, update, and upsert
+/// rows all replace the current value; delete rows remove it. Recorded
+/// preconditions are evidence attached to the committed transaction and are
+/// not re-evaluated during replay.
+pub fn apply_nns_certified_registry_delta_batch(
+    state: &mut NnsRegistryReplayState,
+    request: &NnsCertifiedRegistryDeltaBatchRequest,
+    report: &NnsCertifiedRegistryDeltaBatchReport,
+    limits: NnsRegistryReplayLimits,
+) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
+    validate_nns_certified_registry_delta_batch(request, report)?;
+    if state.through_version != report.requested_version {
+        return Err(NnsRegistryReplayError::VersionMismatch {
+            state_version: state.through_version,
+            requested_version: report.requested_version,
+        });
+    }
+    enforce_limits(state, limits)?;
+
+    let mut journal = ReplayJournal::new(state);
+    let application = (|| {
+        for version in &report.versions {
+            for mutation in &version.mutations {
+                apply_committed_mutation(
+                    state,
+                    &mut journal,
+                    version.version,
+                    version.timestamp_nanoseconds,
+                    mutation,
+                    limits,
+                )?;
+            }
+            state.through_version = version.version;
+        }
+        enforce_limits(state, limits)
+    })();
+    if let Err(error) = application {
+        journal.rollback(state);
+        return Err(error);
+    }
+    let progress = NnsRegistryReplayProgress {
+        previous_version: journal.previous_version,
+        through_version: state.through_version,
+        applied_version_count: report.version_count,
+        applied_mutation_count: report.mutation_count,
+        entry_count: state.entries.len(),
+        content_bytes: state.content_bytes,
+        complete_at_certified_latest_version: state.through_version
+            == report.certified_latest_version,
+    };
+    Ok(progress)
+}
+
+fn apply_committed_mutation(
+    state: &mut NnsRegistryReplayState,
+    journal: &mut ReplayJournal,
+    version: u64,
+    timestamp_nanoseconds: u64,
+    mutation: &NnsCertifiedRegistryMutation,
+    limits: NnsRegistryReplayLimits,
+) -> Result<(), NnsRegistryReplayError> {
+    let key = decode_hex("mutation key", &mutation.key_hex)?;
+    if mutation.mutation_kind == NnsCertifiedRegistryMutationKind::Delete {
+        let prior_content_bytes = journal.remove_current(state, &key)?;
+        state.content_bytes = state
+            .content_bytes
+            .checked_sub(prior_content_bytes)
+            .ok_or(NnsRegistryReplayError::Accounting)?;
+        return Ok(());
+    }
+    let value_hex = mutation
+        .value_hex
+        .as_deref()
+        .ok_or(NnsRegistryReplayError::InvalidHex {
+            field: "mutation value",
+        })?;
+    let value_bytes = value_hex.len() / 2;
+    let prior_content_bytes = journal.remove_current(state, &key)?;
+    let candidate_content_bytes = state
+        .content_bytes
+        .checked_sub(prior_content_bytes)
+        .and_then(|bytes| bytes.checked_add(key.len()))
+        .and_then(|bytes| bytes.checked_add(value_bytes))
+        .ok_or(NnsRegistryReplayError::Accounting)?;
+    enforce_limit(
+        "content bytes",
+        candidate_content_bytes,
+        limits.max_content_bytes,
+    )?;
+    let candidate_entry_count = state
+        .entries
+        .len()
+        .checked_add(1)
+        .ok_or(NnsRegistryReplayError::Accounting)?;
+    enforce_limit("entry count", candidate_entry_count, limits.max_entries)?;
+
+    state.entries.insert(
+        key,
+        NnsRegistryReplayValue {
+            value: decode_hex("mutation value", value_hex)?,
+            last_mutation_version: version,
+            timestamp_nanoseconds,
+        },
+    );
+    state.content_bytes = candidate_content_bytes;
+    Ok(())
+}
+
+struct ReplayJournal {
+    previous_version: u64,
+    previous_content_bytes: usize,
+    entries: BTreeMap<Vec<u8>, Option<NnsRegistryReplayValue>>,
+}
+
+impl ReplayJournal {
+    const fn new(state: &NnsRegistryReplayState) -> Self {
+        Self {
+            previous_version: state.through_version,
+            previous_content_bytes: state.content_bytes,
+            entries: BTreeMap::new(),
+        }
+    }
+
+    fn remove_current(
+        &mut self,
+        state: &mut NnsRegistryReplayState,
+        key: &[u8],
+    ) -> Result<usize, NnsRegistryReplayError> {
+        let current = state.entries.remove(key);
+        let content_bytes = current.as_ref().map_or(Ok(0), |value| {
+            key.len()
+                .checked_add(value.value.len())
+                .ok_or(NnsRegistryReplayError::Accounting)
+        })?;
+        self.entries.entry(key.to_vec()).or_insert(current);
+        Ok(content_bytes)
+    }
+
+    fn rollback(self, state: &mut NnsRegistryReplayState) {
+        for (key, original) in self.entries {
+            state.entries.remove(&key);
+            if let Some(value) = original {
+                state.entries.insert(key, value);
+            }
+        }
+        state.through_version = self.previous_version;
+        state.content_bytes = self.previous_content_bytes;
+    }
+}
+
+fn enforce_limits(
+    state: &NnsRegistryReplayState,
+    limits: NnsRegistryReplayLimits,
+) -> Result<(), NnsRegistryReplayError> {
+    enforce_limit("entry count", state.entries.len(), limits.max_entries)?;
+    enforce_limit(
+        "content bytes",
+        state.content_bytes,
+        limits.max_content_bytes,
+    )
+}
+
+const fn enforce_limit(
+    field: &'static str,
+    actual: usize,
+    maximum: usize,
+) -> Result<(), NnsRegistryReplayError> {
+    if actual > maximum {
+        Err(NnsRegistryReplayError::LimitExceeded {
+            field,
+            maximum,
+            actual,
+        })
+    } else {
+        Ok(())
+    }
+}
+
+fn decode_hex(field: &'static str, value: &str) -> Result<Vec<u8>, NnsRegistryReplayError> {
+    if !value.len().is_multiple_of(2) || !crate::hex::is_lowercase_hex(value) {
+        return Err(NnsRegistryReplayError::InvalidHex { field });
+    }
+    (0..value.len())
+        .step_by(2)
+        .map(|index| {
+            u8::from_str_radix(&value[index..index + 2], 16)
+                .map_err(|_| NnsRegistryReplayError::InvalidHex { field })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests;

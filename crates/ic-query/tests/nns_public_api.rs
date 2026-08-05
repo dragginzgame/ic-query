@@ -107,7 +107,9 @@ use ic_query::nns::registry::{
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
-    NnsRegistrySource, NnsRegistryVersionData, build_nns_registry_version_report_with_source,
+    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplayState, NnsRegistrySource,
+    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
+    build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits,
 };
@@ -530,6 +532,33 @@ fn public_certified_registry_delta_async_api_accepts_custom_sources() {
         .expect("public certified delta API");
 
     assert_eq!(report.first_version, Some(42));
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_certified_registry_replay_api_is_bounded_and_version_checked() {
+    let request =
+        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
+    let report = public_certified_delta_report(&request);
+    let mut state = NnsRegistryReplayState::new();
+
+    let error = apply_nns_certified_registry_delta_batch(
+        &mut state,
+        &request,
+        &report,
+        NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
+    )
+    .expect_err("state must begin at the batch request version");
+
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::VersionMismatch {
+            state_version: 0,
+            requested_version: 41,
+        }
+    ));
+    assert_eq!(state.through_version(), 0);
+    assert!(state.is_empty());
 }
 
 fn public_certified_delta_report(

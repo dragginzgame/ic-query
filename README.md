@@ -356,7 +356,7 @@ Focused host features let embedders select one reporting family:
 | `cmc-host` | Certified Cycle Minting Canister ICP/XDR and cycles reports |
 | `dashboard-host` | Official Dashboard REST reports and observed node-status cache |
 | `icrc-host` | Native ICRC ledger/index reports and complete account-history cache |
-| `nns-host` | Complete NNS governance, certified Registry-version, Registry inventory, component-cache, and topology APIs |
+| `nns-host` | Complete NNS governance, certified Registry evidence and pure replay, Registry inventory, component-cache, and topology APIs |
 | `nns-topology-host` | Exact-version joined NNS topology plus Subnet Catalog |
 | `sns-host` | Native SNS reports, caches, and reward evidence |
 | `subnet-catalog-host` | Focused Subnet Catalog authority, cache, and resolution APIs |
@@ -484,6 +484,13 @@ ceilings, with digest reuse and exact call/byte accounting preserved in report
 schema 2. The pure validator checks structural evidence returned by trusted
 custom sources; only the built-in live transport cryptographically
 authenticates the raw certificate and witness.
+
+`nns-host` also exposes `NnsRegistryReplayState` and
+`apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time
+reconstruction from version zero. Every apply requires caller-selected live
+entry and raw content-byte ceilings and publishes atomically. It performs no
+network or filesystem IO, does not choose a history budget, and is not
+authority evidence without the validated certified reports that produced it.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return
