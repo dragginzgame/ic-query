@@ -118,7 +118,10 @@ fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
 
     let cache_only_error = build_sns_list_report_from_cache(&request, &root)
         .expect_err("cache-only read preserves invalid evidence");
-    assert!(matches!(cache_only_error, SnsHostError::ParseCache { .. }));
+    assert!(matches!(
+        cache_only_error,
+        SnsHostError::Cache(crate::HostCacheError::ParseCache { .. })
+    ));
 
     let mut refresh_events = Vec::new();
     let mut recording_progress = |event| refresh_events.push(event);

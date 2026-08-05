@@ -1,3 +1,5 @@
+#[cfg(feature = "host")]
+use ic_query::HostCacheError;
 use ic_query::ic::{
     DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_CANISTER_PAGE_LIMIT,
     DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
@@ -29,8 +31,9 @@ use ic_query::ic::{
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
     IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
     IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData,
-    IcNetworkSource, IcNodeStatusSnapshotRequest, IcNodeStatusSource, IcNodeStatusSourceData,
-    IcSourceRequest, LiveIcSource, build_ic_boundary_node_data_centers_report,
+    IcNetworkSource, IcNodeStatusHostError, IcNodeStatusSnapshotRequest, IcNodeStatusSource,
+    IcNodeStatusSourceData, IcSourceRequest, LiveIcSource,
+    build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
@@ -492,6 +495,18 @@ fn public_host_api_exposes_live_and_custom_node_status_builders() {
 
     assert_eq!(snapshot.node_count, 1);
     assert_eq!(snapshot.counts.statuses.down, 1);
+
+    let parse_error =
+        serde_json::from_str::<serde_json::Value>("{").expect_err("malformed public cache fixture");
+    let error = IcNodeStatusHostError::from(HostCacheError::parse_cache(
+        "IC node status",
+        "cache.json".into(),
+        parse_error,
+    ));
+    assert!(matches!(
+        error,
+        IcNodeStatusHostError::Cache(HostCacheError::ParseCache { .. })
+    ));
 }
 
 #[cfg(feature = "host")]

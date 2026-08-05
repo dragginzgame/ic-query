@@ -31,7 +31,7 @@ use ic_query::{
         proposals::NnsProposalHostError, registry::NnsRegistryHostError,
         topology::NnsTopologyHostError,
     },
-    subnet_catalog::SubnetCatalogHostError,
+    subnet_catalog::{SubnetCatalogHostError, SubnetCatalogRemediation},
 };
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
@@ -46,8 +46,12 @@ use thiserror::Error as ThisError;
 pub enum NnsCommandError {
     #[error("{0}")]
     Usage(String),
-    #[error(transparent)]
-    SubnetHost(#[from] SubnetCatalogHostError),
+    #[error("{message}")]
+    SubnetHost {
+        message: String,
+        #[source]
+        source: SubnetCatalogHostError,
+    },
     #[error(transparent)]
     DataCenterHost(#[from] NnsDataCenterHostError),
     #[error(transparent)]
@@ -74,6 +78,22 @@ pub enum NnsCommandError {
     Io(#[from] io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+}
+
+impl From<SubnetCatalogHostError> for NnsCommandError {
+    fn from(source: SubnetCatalogHostError) -> Self {
+        let mut message = source.to_string();
+        match source.remediation() {
+            Some(SubnetCatalogRemediation::UseMainnet) => {
+                message.push_str("\n\nTry:\n  icq --network ic nns subnet list");
+            }
+            Some(SubnetCatalogRemediation::RefreshCatalog) => {
+                message.push_str("\n\nTry:\n  icq nns subnet refresh");
+            }
+            None => {}
+        }
+        Self::SubnetHost { message, source }
+    }
 }
 
 pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {

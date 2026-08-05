@@ -56,6 +56,44 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
         "catalog_path: {}",
         sanitize_text(&report.catalog_path)
     ));
+    lines.push(format!("assurance: {}", report.assurance.as_str()));
+    lines.push(format!(
+        "cache_disposition: {}",
+        report.cache_disposition.as_str()
+    ));
+    lines.push(format!(
+        "catalog_digest: {}",
+        sanitize_text(&report.catalog_digest)
+    ));
+    lines.push(format!(
+        "source_endpoints: {}",
+        report
+            .source_endpoints
+            .iter()
+            .map(|endpoint| sanitize_text(endpoint))
+            .collect::<Vec<_>>()
+            .join(",")
+    ));
+    lines.push(format!(
+        "collector_version: {}",
+        sanitize_text(&report.collector_version)
+    ));
+    lines.push(format!(
+        "classification_schema_version: {}",
+        report.classification_schema_version
+    ));
+    lines.push(format!(
+        "classification_policy_digest: {}",
+        sanitize_text(&report.classification_policy_digest)
+    ));
+    lines.push(format!(
+        "resolver_schema_version: {}",
+        report.resolver_schema_version
+    ));
+    lines.push(format!(
+        "resolver_backend: {}",
+        sanitize_text(&report.resolver_backend)
+    ));
     lines.push(format!(
         "stale_reason: {}",
         sanitize_text(&report.stale_reason)

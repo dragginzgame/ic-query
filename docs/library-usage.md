@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.28", default-features = false, features = ["host"] }
+ic-query = { version = "0.29", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -19,7 +19,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.28", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.29", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -33,7 +33,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.28", default-features = false }
+ic-query = { version = "0.29", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -590,9 +590,20 @@ fn render_subnet_info(
 }
 ```
 
-`load_cached_subnet_catalog` is cache-only. `load_or_refresh_subnet_catalog`
-and the report builders can refresh missing cache data, so downstream commands
-should surface that behavior clearly.
+`load_cached_subnet_catalog` accepts only a
+`SubnetCatalogLoadRequest::cache_only` request. Network-capable callers use
+`load_subnet_catalog` with an explicit `CatalogReadPolicy`; the returned
+`CatalogLoadOutcome` contains a `ValidatedSubnetCatalog` and the exact
+`CacheDisposition`. Report builders use the same policy and expose the
+disposition in their reports. Current single-endpoint live collection is
+always `CatalogAssurance::UncertifiedQuery`: the shared Registry version
+prevents an internally skewed join but does not certify an ordinary query.
+
+`ValidatedSubnetCatalog::resolve_canister_route` binds the canonical canister
+and Subnet principals, matched routing range, Registry version, binary catalog
+digest, and provenance in one result. The digest detects a payload that was
+edited without being resealed; it is not a signature or local-tamper boundary.
+Async embedders can use `fetch_subnet_catalog_async` on their own runtime.
 
 ## Exact-Version Subnet Topology
 

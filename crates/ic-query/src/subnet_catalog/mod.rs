@@ -16,44 +16,48 @@ mod time;
 pub use error::CatalogError;
 #[cfg(feature = "subnet-catalog-host")]
 pub use host::{
-    CachedSubnetCatalog, SubnetCatalogCacheRequest, SubnetCatalogHostError,
-    SubnetCatalogRefreshRequest, SubnetCatalogSource, load_cached_subnet_catalog,
-    load_or_refresh_subnet_catalog, load_or_refresh_subnet_catalog_with_source,
+    CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, SubnetCatalogCacheRequest,
+    SubnetCatalogErrorCategory, SubnetCatalogErrorCode, SubnetCatalogHostError,
+    SubnetCatalogLoadRequest, SubnetCatalogRefreshRequest, SubnetCatalogRemediation,
+    SubnetCatalogRetryability, SubnetCatalogSource, fetch_subnet_catalog_async,
+    load_cached_subnet_catalog, load_subnet_catalog, load_subnet_catalog_with_source,
     refresh_subnet_catalog, refresh_subnet_catalog_with_source, subnet_catalog_path,
     subnet_catalog_refresh_lock_path,
 };
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 pub use model::{
-    ClassificationSource, GeographicScope, RoutingRange, SubnetCatalog, SubnetInfo, SubnetKind,
-    SubnetSpecialization,
+    CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance, CatalogValidationContext,
+    ClassificationSource, GeographicScope, RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, RoutingRange,
+    SubnetCatalogProvenance, SubnetInfo, SubnetKind, SubnetSpecialization, ValidatedSubnetCatalog,
 };
 pub use principal::canonical_principal_text;
 pub(crate) use principal::{parse_principal, principal_bytes};
 #[cfg(feature = "subnet-catalog-host")]
-pub(crate) use report::CatalogStaleStatus;
-#[cfg(feature = "subnet-catalog-host")]
 pub use report::{
-    SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
+    CatalogStaleStatus, SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
     SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
     build_subnet_catalog_info_report_with_source, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source,
 };
-pub use resolver::{ResolveAs, ResolvedSubnet, ResolvedSubnetSubject};
+pub use resolver::{ResolveAs, ResolvedCanisterRoute, ResolvedSubnet, ResolvedSubnetSubject};
 #[cfg(feature = "subnet-catalog-host")]
 pub use text::{
     subnet_catalog_info_report_text, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text, subnet_catalog_refresh_report_text,
 };
 #[cfg(feature = "subnet-catalog-host")]
-pub(crate) use time::catalog_stale_status;
+pub use time::catalog_stale_status;
 pub(crate) use time::format_utc_timestamp_secs;
-#[cfg(feature = "host")]
+#[cfg(feature = "subnet-catalog-host")]
 pub(crate) use time::parse_utc_timestamp_secs;
 
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 pub const MAINNET_NETWORK: &str = "ic";
 pub const MAINNET_REGISTRY_CANISTER_ID: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
+#[cfg(feature = "subnet-catalog-host")]
+/// Maximum future timestamp skew accepted by default during catalog validation.
+pub const DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS: u64 = 5 * 60;
 #[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
 #[cfg(feature = "subnet-catalog-host")]

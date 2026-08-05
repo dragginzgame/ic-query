@@ -5,6 +5,7 @@
 //! Boundary: one lifecycle serves proposal and neuron complete-cache refreshes.
 
 use crate::{
+    HostCacheError,
     cache::CacheCollectionCompleteness,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotRefreshProgress,
@@ -12,7 +13,7 @@ use crate::{
         with_locked_snapshot_refresh, write_snapshot_json,
     },
     sns::report::{
-        SnsHostError,
+        SNS_CACHE_COMPONENT, SnsHostError,
         cache_attempt::{
             SnsRefreshContext, SnsRefreshRequestView, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
@@ -98,7 +99,7 @@ where
             now_unix_secs: request.now_unix_secs(),
             lock_stale_after_seconds,
         },
-        SnsHostError::Cache,
+        |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
         |refresh_state| {
             let context = SnsSnapshotRefreshContext {
                 request,
@@ -162,8 +163,14 @@ where
             write_snapshot_json(
                 &context.paths.cache_path,
                 &cache,
-                |path, source| SnsHostError::SerializeCache { path, source },
-                SnsHostError::Cache,
+                |path, source| {
+                    SnsHostError::from(HostCacheError::serialize_cache(
+                        SNS_CACHE_COMPONENT,
+                        path,
+                        source,
+                    ))
+                },
+                |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
             )
         },
         || {

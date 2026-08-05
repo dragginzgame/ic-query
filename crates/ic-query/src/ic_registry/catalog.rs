@@ -1,14 +1,13 @@
 use super::{
-    MainnetRegistryFetchRequest, RegistryFetchError, apply_mainnet_annotations, canister_id_text,
-    principal_text_from_raw,
+    MainnetRegistryFetchRequest, RegistryFetchError, canister_id_text, principal_text_from_raw,
     projection::subnet_kind_from_registry,
     proto::{RoutingTable, SubnetListRecord, SubnetRecord},
     subnet_id_text, subnet_record_key,
     transport::{decode_message, get_registry_value},
 };
 use crate::subnet_catalog::{
-    CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_NETWORK,
-    MAINNET_REGISTRY_CANISTER_ID, RoutingRange, SubnetCatalog, SubnetInfo, SubnetSpecialization,
+    ClassificationSource, GeographicScope, RawSubnetCatalog, RoutingRange, SubnetInfo,
+    SubnetSpecialization,
 };
 use candid::Principal;
 use futures::future::try_join_all;
@@ -21,7 +20,7 @@ pub(super) async fn catalog_from_registry_records(
     registry_canister: &Principal,
     subnet_list: SubnetListRecord,
     routing_table: RoutingTable,
-) -> Result<SubnetCatalog, RegistryFetchError> {
+) -> Result<RawSubnetCatalog, RegistryFetchError> {
     if subnet_list.subnets.is_empty() {
         return Err(RegistryFetchError::EmptySubnetList);
     }
@@ -29,7 +28,7 @@ pub(super) async fn catalog_from_registry_records(
         return Err(RegistryFetchError::EmptyRoutingTable);
     }
 
-    let mut subnets = try_join_all(
+    let subnets = try_join_all(
         subnet_list
             .subnets
             .into_iter()
@@ -44,31 +43,17 @@ pub(super) async fn catalog_from_registry_records(
     )
     .await?;
 
-    subnets.sort_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
-
-    let mut routing_ranges = routing_ranges_from_table(&routing_table)?;
-    routing_ranges.sort_by(|left, right| {
-        left.start_canister_id
-            .cmp(&right.start_canister_id)
-            .then_with(|| left.end_canister_id.cmp(&right.end_canister_id))
-            .then_with(|| left.subnet_principal.cmp(&right.subnet_principal))
-    });
-
-    let mut catalog = SubnetCatalog {
-        catalog_schema_version: CATALOG_SCHEMA_VERSION,
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+    let routing_ranges = routing_ranges_from_table(&routing_table)?;
+    RawSubnetCatalog::new_mainnet_uncertified(
         registry_version,
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
-        source_endpoint: request.endpoint.clone(),
-        resolver_backend: "local-nns-subnet-catalog".to_string(),
+        &request.endpoint,
+        &request.fetched_at,
+        &request.fetched_by,
+        env!("CARGO_PKG_VERSION"),
         subnets,
         routing_ranges,
-    };
-    apply_mainnet_annotations(&mut catalog);
-    catalog.validate()?;
-    Ok(catalog)
+    )
+    .map_err(RegistryFetchError::from)
 }
 
 pub(super) fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRecord) -> SubnetInfo {
@@ -76,6 +61,7 @@ pub(super) fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRec
     let charges_apply_by_default = subnet_kind.charges_apply_by_default();
     SubnetInfo {
         subnet_principal: subnet_principal.to_string(),
+        registry_subnet_type: record.subnet_type,
         subnet_kind,
         subnet_kind_source: ClassificationSource::Registry,
         subnet_specialization: SubnetSpecialization::None,

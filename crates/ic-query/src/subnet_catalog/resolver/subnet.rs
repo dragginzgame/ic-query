@@ -1,7 +1,7 @@
 use super::{ResolveAs, ResolvedSubnet, ResolvedSubnetSubject};
-use crate::subnet_catalog::{CatalogError, SubnetCatalog, canonical_principal_text};
+use crate::subnet_catalog::{CatalogError, RawSubnetCatalog, canonical_principal_text};
 
-impl SubnetCatalog {
+impl RawSubnetCatalog {
     /// Resolve a principal as a known subnet or as a canister covered by a cached range.
     pub fn resolve_principal(
         &self,
@@ -35,6 +35,8 @@ impl SubnetCatalog {
             subnet,
             matched_canister_principal: None,
             matched_routing_range: None,
+            catalog_digest: self.catalog_digest.clone(),
+            provenance: self.provenance.clone(),
         })
     }
 }

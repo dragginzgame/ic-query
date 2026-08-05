@@ -9,7 +9,9 @@ mod node_provider;
 #[cfg(feature = "host")]
 mod subnet_topology;
 
-use crate::{ic_registry::proto::SubnetType, subnet_catalog::SubnetKind};
+#[cfg(all(test, feature = "host"))]
+use crate::ic_registry::proto::SubnetType;
+use crate::subnet_catalog::SubnetKind;
 
 #[cfg(feature = "host")]
 pub(super) use data_center::data_center_list_from_inventory;
@@ -24,13 +26,8 @@ pub(super) use node_provider::node_provider_list_from_response;
 #[cfg(feature = "host")]
 pub(super) use subnet_topology::subnet_topology_from_inventory;
 
-pub(in crate::ic_registry) fn subnet_kind_from_registry(subnet_type: i32) -> SubnetKind {
-    match SubnetType::try_from(subnet_type).ok() {
-        Some(SubnetType::Application | SubnetType::VerifiedApplication) => SubnetKind::Application,
-        Some(SubnetType::CloudEngine) => SubnetKind::CloudEngine,
-        Some(SubnetType::System) => SubnetKind::System,
-        Some(SubnetType::Unspecified) | None => SubnetKind::Unknown,
-    }
+pub(in crate::ic_registry) const fn subnet_kind_from_registry(subnet_type: i32) -> SubnetKind {
+    SubnetKind::from_registry_subnet_type(subnet_type)
 }
 
 #[cfg(all(test, feature = "host"))]

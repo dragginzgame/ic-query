@@ -5,10 +5,11 @@
 //! Boundary: resolves id/root inputs through family-owned storage operations.
 
 use crate::{
+    HostCacheError,
     snapshot_cache::collect_full_collection_attempt_paths,
     sns::report::{
-        SnsCacheStatusReport, SnsCacheStatusRequest, SnsCacheSummary, SnsHostError,
-        SnsRefreshAttemptStatus,
+        SNS_CACHE_COMPONENT, SnsCacheStatusReport, SnsCacheStatusRequest, SnsCacheSummary,
+        SnsHostError, SnsRefreshAttemptStatus,
         cache_attempt::read_sns_refresh_attempt_status_strict,
         cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths, sns_snapshot_network_cache_dir},
         cache_storage::{SnsCacheStorageFamily, collect_sns_cache_paths, read_sns_cache_header},
@@ -127,10 +128,7 @@ where
         &network_dir,
         <Family as SnsCacheCollection>::COLLECTION,
     )
-    .map_err(|source| SnsHostError::ReadCache {
-        path: network_dir,
-        source,
-    })?;
+    .map_err(|source| HostCacheError::read_cache(SNS_CACHE_COMPONENT, network_dir, source))?;
     let mut matching = Vec::new();
     for path in attempt_paths {
         if let Some(attempt) = read_sns_refresh_attempt_status_strict(&path, network)?

@@ -62,3 +62,52 @@ impl LoadJsonCacheErrorMapper for HostJsonCacheErrorMapper {
         HostCacheError::network_mismatch(self.component, requested, actual)
     }
 }
+
+///
+/// OwnerJsonCacheErrorMapper
+///
+/// Preserves an owner-specific missing-cache error while routing every other
+/// generic JSON cache failure through [`HostCacheError`].
+///
+
+pub struct OwnerJsonCacheErrorMapper<Error> {
+    component: &'static str,
+    missing_cache: fn(PathBuf) -> Error,
+}
+
+impl<Error> OwnerJsonCacheErrorMapper<Error> {
+    /// Build one mapper for a component with specialized missing-cache guidance.
+    pub const fn new(component: &'static str, missing_cache: fn(PathBuf) -> Error) -> Self {
+        Self {
+            component,
+            missing_cache,
+        }
+    }
+}
+
+impl<Error> LoadJsonCacheErrorMapper for OwnerJsonCacheErrorMapper<Error>
+where
+    Error: From<HostCacheError>,
+{
+    type Error = Error;
+
+    fn missing_cache(&self, path: PathBuf) -> Self::Error {
+        (self.missing_cache)(path)
+    }
+
+    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
+        HostCacheError::read_cache(self.component, path, source).into()
+    }
+
+    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
+        HostCacheError::parse_cache(self.component, path, source).into()
+    }
+
+    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
+        HostCacheError::unsupported_cache_schema_version(self.component, version, expected).into()
+    }
+
+    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
+        HostCacheError::network_mismatch(self.component, requested, actual).into()
+    }
+}

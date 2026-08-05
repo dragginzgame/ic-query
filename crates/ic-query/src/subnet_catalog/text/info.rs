@@ -12,6 +12,10 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
     lines.push(safe_line("resolved_as", &report.resolved_as));
     lines.push(safe_line("resolved_from", &report.resolved_from));
     lines.push(format!("subnet_principal: {}", report.subnet_principal));
+    lines.push(format!(
+        "registry_subnet_type: {}",
+        report.registry_subnet_type
+    ));
     lines.push(format!("subnet_kind: {}", report.subnet_kind.as_str()));
     lines.push(format!(
         "subnet_kind_source: {}",
@@ -52,20 +56,7 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
         "charge_applicability_reason: {}",
         sanitize_text(&report.charge_applicability_reason)
     ));
-    lines.push(format!(
-        "registry_canister_id: {}",
-        report.registry_canister_id
-    ));
-    lines.push(format!("registry_version: {}", report.registry_version));
-    lines.push(format!(
-        "catalog_schema_version: {}",
-        report.catalog_schema_version
-    ));
-    lines.push(safe_line("catalog_path", &report.catalog_path));
-    lines.push(safe_line("fetched_at", &report.fetched_at));
-    lines.push(format!("catalog_stale: {}", yes_no(report.catalog_stale)));
-    lines.push(safe_line("stale_reason", &report.stale_reason));
-    lines.push(safe_line("resolver_backend", &report.resolver_backend));
+    append_catalog_evidence(&mut lines, report);
     if let Some(canister) = &report.matched_canister_principal {
         lines.push(format!("matched_canister_principal: {canister}"));
     }
@@ -88,4 +79,64 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
         lines.push(safe_line("formula_version", formula_version));
     }
     lines.join("\n")
+}
+
+fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoReport) {
+    lines.push(format!(
+        "registry_canister_id: {}",
+        report.registry_canister_id
+    ));
+    lines.push(format!("registry_version: {}", report.registry_version));
+    lines.push(format!("assurance: {}", report.assurance.as_str()));
+    lines.push(format!(
+        "cache_disposition: {}",
+        report.cache_disposition.as_str()
+    ));
+    lines.push(format!(
+        "catalog_digest: {}",
+        sanitize_text(&report.catalog_digest)
+    ));
+    lines.push(format!(
+        "source_endpoints: {}",
+        report
+            .source_endpoints
+            .iter()
+            .map(|endpoint| sanitize_text(endpoint))
+            .collect::<Vec<_>>()
+            .join(",")
+    ));
+    lines.push(format!(
+        "catalog_schema_version: {}",
+        report.catalog_schema_version
+    ));
+    lines.push(format!(
+        "catalog_path: {}",
+        sanitize_text(&report.catalog_path)
+    ));
+    lines.push(format!("fetched_at: {}", sanitize_text(&report.fetched_at)));
+    lines.push(format!("catalog_stale: {}", yes_no(report.catalog_stale)));
+    lines.push(format!(
+        "stale_reason: {}",
+        sanitize_text(&report.stale_reason)
+    ));
+    lines.push(format!(
+        "collector_version: {}",
+        sanitize_text(&report.collector_version)
+    ));
+    lines.push(format!(
+        "classification_schema_version: {}",
+        report.classification_schema_version
+    ));
+    lines.push(format!(
+        "classification_policy_digest: {}",
+        sanitize_text(&report.classification_policy_digest)
+    ));
+    lines.push(format!(
+        "resolver_schema_version: {}",
+        report.resolver_schema_version
+    ));
+    lines.push(format!(
+        "resolver_backend: {}",
+        sanitize_text(&report.resolver_backend)
+    ));
 }

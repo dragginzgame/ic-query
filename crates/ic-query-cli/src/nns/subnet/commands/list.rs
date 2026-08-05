@@ -3,7 +3,7 @@ use super::args::{
     verbose_arg,
 };
 use crate::{
-    cli::common::{COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help},
+    cli::common::{COLLECTION_MODE_CACHE_REFRESH_MISSING_OR_INVALID, collection_help},
     nns::leaf,
 };
 use clap::Command as ClapCommand;
@@ -29,14 +29,14 @@ pub(in crate::nns) fn list_command() -> ClapCommand {
         .arg(leaf::json_arg())
         .arg(
             leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
-                .help("IC API endpoint used if the subnet catalog cache is missing"),
+                .help("IC API endpoint used if the subnet catalog cache is missing or invalid"),
         )
         .arg(show_ranges_arg())
         .arg(verbose_arg())
         .arg(range_limit_arg())
         .arg(range_offset_arg())
         .after_help(collection_help(
-            COLLECTION_MODE_CACHE_REFRESH_MISSING,
+            COLLECTION_MODE_CACHE_REFRESH_MISSING_OR_INVALID,
             LIST_HELP_AFTER,
         ))
 }

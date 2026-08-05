@@ -106,8 +106,10 @@ their report-specific paging, cache, provenance, or validation contracts.
 
 ## Collection Rules
 
-1. On-chain and Registry reports preserve their authoritative canister,
-   endpoint, Registry version where applicable, and collection timestamp.
+1. On-chain and Registry reports preserve their canister, endpoint, Registry
+   version where applicable, collection timestamp, and exact assurance. An
+   ordinary Registry query is version-consistent evidence, not certified
+   evidence.
 2. Indexed or REST-derived analytics identify their index/API endpoint and
    timestamp. They do not inherit an on-chain Registry version.
 3. External enrichment remains a separate field or report with its own
@@ -119,6 +121,17 @@ their report-specific paging, cache, provenance, or validation contracts.
    not silently dropped.
 6. Cache identity describes collected data. View filters, sorting, and limits
    do not create alternate complete-snapshot identities.
+
+The Subnet Catalog makes that Registry boundary concrete. Its live collector
+uses one Registry version for the Subnet list, routing table, and every Subnet
+record, but labels the result `UncertifiedQuery`. Serde-facing
+`RawSubnetCatalog` values become `ValidatedSubnetCatalog` only after fixed
+mainnet and Registry identity, source endpoint, timestamp, raw Subnet type,
+classification policy, resolver policy, canonical ordering, and payload digest
+checks. The unkeyed digest detects inconsistent payloads but is not an
+authenticity proof. Catalog loads take an explicit cache/network policy and
+return an observable disposition; a validated route retains the exact matched
+range, Registry version, digest, and provenance.
 
 ## Current Follow-Up Flows
 

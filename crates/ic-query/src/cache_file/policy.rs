@@ -8,7 +8,7 @@
 use super::HostCacheError;
 #[cfg(feature = "host")]
 use std::path::Path;
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(feature = "host")]
 use std::path::PathBuf;
 
 ///
@@ -18,7 +18,7 @@ use std::path::PathBuf;
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(feature = "host")]
 pub enum CacheRefreshReason {
     /// The expected cache file does not exist.
     Missing(PathBuf),
@@ -49,7 +49,7 @@ pub fn load_or_refresh_missing_cache<T, Error>(
 
 /// Load a cache, using an owner-defined error policy to refresh recoverable
 /// local state, then load the persisted result again.
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(feature = "host")]
 pub fn load_or_refresh_cache_with_error_policy<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     refresh_reason: impl FnOnce(Error) -> Result<CacheRefreshReason, Error>,

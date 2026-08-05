@@ -6,12 +6,12 @@ use crate::{
         proto::{RoutingTable, SubnetListRecord},
         transport::{decode_message, get_latest_version, get_registry_value},
     },
-    subnet_catalog::SubnetCatalog,
+    subnet_catalog::RawSubnetCatalog,
 };
 
 pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_async(
     request: &MainnetRegistryFetchRequest,
-) -> Result<SubnetCatalog, RegistryFetchError> {
+) -> Result<RawSubnetCatalog, RegistryFetchError> {
     let agent = mainnet_agent(request)?;
     let registry_canister = mainnet_registry_canister()?;
     let registry_version = get_latest_version(&agent, &registry_canister).await?;

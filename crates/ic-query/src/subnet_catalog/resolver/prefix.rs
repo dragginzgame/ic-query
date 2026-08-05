@@ -1,8 +1,8 @@
 use super::{ResolveAs, ResolvedSubnet};
-use crate::subnet_catalog::{CatalogError, SubnetCatalog, canonical_principal_text};
+use crate::subnet_catalog::{CatalogError, RawSubnetCatalog, canonical_principal_text};
 use std::collections::BTreeSet;
 
-impl SubnetCatalog {
+impl RawSubnetCatalog {
     /// Resolve an exact principal or a unique cached subnet principal prefix.
     pub fn resolve_principal_or_prefix(
         &self,

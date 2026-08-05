@@ -25,6 +25,17 @@ pub enum SubnetKind {
 }
 
 impl SubnetKind {
+    /// Convert one raw Registry `SubnetType` numeric discriminant.
+    #[must_use]
+    pub const fn from_registry_subnet_type(raw_subnet_type: i32) -> Self {
+        match raw_subnet_type {
+            1 | 4 => Self::Application,
+            2 => Self::System,
+            5 => Self::CloudEngine,
+            _ => Self::Unknown,
+        }
+    }
+
     /// Returns the stable snake_case value used in CLI filters and text output.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

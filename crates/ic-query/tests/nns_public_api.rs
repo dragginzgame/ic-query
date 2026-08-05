@@ -139,8 +139,9 @@ use ic_query::report::{ReportDataSource, ReportResultScope};
 use ic_query::subnet_catalog::SubnetKind;
 #[cfg(feature = "host")]
 use ic_query::subnet_catalog::{
-    ClassificationSource, GeographicScope, SubnetCatalogListReport, SubnetCatalogRefreshReport,
-    SubnetCatalogSubnetRow, SubnetSpecialization,
+    CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope,
+    SubnetCatalogListReport, SubnetCatalogRefreshReport, SubnetCatalogSubnetRow,
+    SubnetSpecialization,
 };
 #[cfg(feature = "host")]
 use serde::Serialize;
@@ -2010,10 +2011,18 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
         catalog_schema_version: 1,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
+        assurance: CatalogAssurance::UncertifiedQuery,
+        source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
+        catalog_digest: "00".repeat(32),
+        cache_disposition: CacheDisposition::CacheHit,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         catalog_stale: false,
         stale_reason: "fresh".to_string(),
         resolver_backend: "local-nns-subnet-catalog".to_string(),
+        collector_version: "test".to_string(),
+        classification_schema_version: 1,
+        classification_policy_digest: "00".repeat(32),
+        resolver_schema_version: 1,
         subnets: vec![sample_subnet_catalog_row()],
     }
 }
@@ -2028,9 +2037,16 @@ fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
         output_path: None,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
+        assurance: CatalogAssurance::UncertifiedQuery,
+        source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
+        catalog_digest: "00".repeat(32),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string(),
         fetched_by: "ic-query".to_string(),
+        collector_version: "test".to_string(),
+        classification_schema_version: 1,
+        classification_policy_digest: "00".repeat(32),
+        resolver_schema_version: 1,
+        resolver_backend: "local-nns-subnet-catalog".to_string(),
         dry_run: true,
         wrote_catalog: false,
         replaced_existing_catalog: true,
@@ -2044,6 +2060,7 @@ fn sample_subnet_catalog_row() -> SubnetCatalogSubnetRow {
     let subnet_kind = SubnetKind::Application;
     SubnetCatalogSubnetRow {
         subnet_principal: "tdb26-jop6g-7sc54-foywl".to_string(),
+        registry_subnet_type: 1,
         subnet_kind,
         subnet_kind_source: ClassificationSource::Registry,
         subnet_specialization: SubnetSpecialization::None,

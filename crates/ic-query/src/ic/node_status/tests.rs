@@ -2,6 +2,7 @@ use super::*;
 use crate::ic::IcDashboardReportProvenance;
 #[cfg(feature = "host")]
 use crate::{
+    HostCacheError,
     ic::{IcHostError, IcNodeStatusSource, IcNodeStatusSourceData, IcSourceRequest},
     progress::IgnoreQueryProgress,
     subnet_catalog::parse_utc_timestamp_secs,
@@ -294,7 +295,10 @@ fn malformed_cache_recovers_while_strict_load_remains_typed() {
 
     let strict = load_cached_ic_node_status_snapshot(&request.cache, now)
         .expect_err("strict load rejects malformed cache");
-    assert!(matches!(strict, IcNodeStatusHostError::ParseCache { .. }));
+    assert!(matches!(
+        strict,
+        IcNodeStatusHostError::Cache(HostCacheError::ParseCache { .. })
+    ));
 
     let mut progress = IgnoreQueryProgress;
     let recovered = load_or_refresh_missing_ic_node_status_snapshot_with_source(

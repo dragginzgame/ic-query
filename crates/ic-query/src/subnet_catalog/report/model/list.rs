@@ -8,8 +8,8 @@
 //! policy remains in host modules.
 
 use crate::subnet_catalog::{
-    ClassificationSource, GeographicScope, RoutingRange, SubnetCatalogCacheRequest, SubnetKind,
-    SubnetSpecialization,
+    CacheDisposition, CatalogAssurance, CatalogReadPolicy, ClassificationSource, GeographicScope,
+    RoutingRange, SubnetCatalogCacheRequest, SubnetKind, SubnetSpecialization,
 };
 use serde::{Deserialize, Serialize};
 
@@ -55,7 +55,8 @@ impl SubnetCatalogFilters {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogListRequest {
     pub cache: SubnetCatalogCacheRequest,
-    pub source_endpoint: String,
+    /// Exact cache and network behavior authorized for this report.
+    pub read_policy: CatalogReadPolicy,
     pub now_unix_secs: u64,
     pub stale_after_seconds: u64,
     pub filters: SubnetCatalogFilters,
@@ -74,7 +75,9 @@ impl SubnetCatalogListRequest {
     ) -> Self {
         Self {
             cache,
-            source_endpoint: source_endpoint.into(),
+            read_policy: CatalogReadPolicy::RefreshMissingOrInvalid {
+                source_endpoint: source_endpoint.into(),
+            },
             now_unix_secs,
             stale_after_seconds,
             filters: SubnetCatalogFilters::default(),
@@ -82,6 +85,12 @@ impl SubnetCatalogListRequest {
             range_limit: 50,
             range_offset: 0,
         }
+    }
+
+    #[must_use]
+    pub fn with_read_policy(mut self, read_policy: CatalogReadPolicy) -> Self {
+        self.read_policy = read_policy;
+        self
     }
 
     #[must_use]
@@ -141,10 +150,26 @@ pub struct SubnetCatalogListReport {
     pub catalog_schema_version: u32,
     pub registry_canister_id: String,
     pub registry_version: u64,
+    /// Assurance established for this exact snapshot.
+    pub assurance: CatalogAssurance,
+    /// Source endpoints contributing to the snapshot.
+    pub source_endpoints: Vec<String>,
+    /// Lowercase SHA-256 digest of the canonical catalog payload.
+    pub catalog_digest: String,
+    /// Observable result of applying the requested cache policy.
+    pub cache_disposition: CacheDisposition,
     pub fetched_at: String,
     pub catalog_stale: bool,
     pub stale_reason: String,
     pub resolver_backend: String,
+    /// Collector package version recorded by the source.
+    pub collector_version: String,
+    /// Classification contract version.
+    pub classification_schema_version: u32,
+    /// Lowercase SHA-256 digest of the classification policy.
+    pub classification_policy_digest: String,
+    /// Resolver contract version.
+    pub resolver_schema_version: u32,
     pub subnets: Vec<SubnetCatalogSubnetRow>,
 }
 
@@ -157,6 +182,8 @@ pub struct SubnetCatalogListReport {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SubnetCatalogSubnetRow {
     pub subnet_principal: String,
+    /// Raw numeric `SubnetType` discriminant from the Registry record.
+    pub registry_subnet_type: i32,
     pub subnet_kind: SubnetKind,
     pub subnet_kind_source: ClassificationSource,
     pub subnet_specialization: SubnetSpecialization,

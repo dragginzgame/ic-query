@@ -21,4 +21,6 @@ pub use registry::{
 pub use routing::RoutingTable;
 #[cfg(all(test, feature = "host"))]
 pub use routing::{CanisterIdRange, RoutingTableEntry};
-pub use subnet::{SubnetListRecord, SubnetRecord, SubnetType};
+#[cfg(all(test, feature = "host"))]
+pub use subnet::SubnetType;
+pub use subnet::{SubnetListRecord, SubnetRecord};

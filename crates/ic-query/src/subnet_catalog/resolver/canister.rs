@@ -1,7 +1,9 @@
-use super::{ResolvedSubnet, ResolvedSubnetSubject};
-use crate::subnet_catalog::{CatalogError, SubnetCatalog, parse_principal, principal_bytes};
+use super::{ResolvedCanisterRoute, ResolvedSubnet, ResolvedSubnetSubject};
+use crate::subnet_catalog::{
+    CatalogError, RawSubnetCatalog, ValidatedSubnetCatalog, parse_principal, principal_bytes,
+};
 
-impl SubnetCatalog {
+impl RawSubnetCatalog {
     /// Resolve a canister principal through cached routing ranges.
     pub fn resolve_canister(&self, input_principal: &str) -> Result<ResolvedSubnet, CatalogError> {
         let canonical_canister = parse_principal(input_principal, "canister_principal")?.to_text();
@@ -12,7 +14,7 @@ impl SubnetCatalog {
             .find(|range| range_contains_principal(range, &canister_bytes).unwrap_or(false))
             .ok_or_else(|| CatalogError::RouteNotFound {
                 canister_principal: canonical_canister.clone(),
-                registry_version: self.registry_version,
+                registry_version: self.provenance.registry_version,
                 catalog_schema_version: self.catalog_schema_version,
             })?;
         let subnet = self
@@ -28,6 +30,42 @@ impl SubnetCatalog {
             subnet,
             matched_canister_principal: Some(canonical_canister),
             matched_routing_range: Some(range.clone()),
+            catalog_digest: self.catalog_digest.clone(),
+            provenance: self.provenance.clone(),
+        })
+    }
+}
+
+impl ValidatedSubnetCatalog {
+    /// Resolve one canister to authority evidence bound to this exact catalog.
+    pub fn resolve_canister_route(
+        &self,
+        input_principal: &str,
+    ) -> Result<ResolvedCanisterRoute, CatalogError> {
+        let resolved = self.raw().resolve_canister(input_principal)?;
+        let canister_text = resolved
+            .matched_canister_principal
+            .as_deref()
+            .ok_or_else(|| CatalogError::RouteNotFound {
+                canister_principal: input_principal.to_string(),
+                registry_version: self.provenance().registry_version,
+                catalog_schema_version: self.raw().catalog_schema_version,
+            })?;
+        let matched_range =
+            resolved
+                .matched_routing_range
+                .ok_or_else(|| CatalogError::RouteNotFound {
+                    canister_principal: input_principal.to_string(),
+                    registry_version: self.provenance().registry_version,
+                    catalog_schema_version: self.raw().catalog_schema_version,
+                })?;
+        Ok(ResolvedCanisterRoute {
+            canister: parse_principal(canister_text, "canister_principal")?,
+            subnet: parse_principal(&matched_range.subnet_principal, "subnet_principal")?,
+            matched_range,
+            registry_version: self.provenance().registry_version,
+            catalog_digest: self.catalog_digest(),
+            provenance: self.provenance().clone(),
         })
     }
 }

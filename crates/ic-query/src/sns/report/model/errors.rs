@@ -4,7 +4,7 @@
 //! Does not own: command usage errors, clap parsing, or text rendering.
 //! Boundary: carries recoverable report-builder failures to command runners.
 
-use crate::{cache_file::CacheFileError, runtime::RuntimeError};
+use crate::{HostCacheError, runtime::RuntimeError};
 use std::{io, path::PathBuf};
 use thiserror::Error as ThisError;
 
@@ -233,32 +233,11 @@ pub enum SnsHostError {
     )]
     MissingProposalsCache { path: PathBuf },
 
-    #[error("failed to read SNS cache at {}: {source}", path.display())]
-    ReadCache { path: PathBuf, source: io::Error },
-
-    #[error("failed to parse SNS cache at {}: {source}", path.display())]
-    ParseCache {
-        path: PathBuf,
-        source: serde_json::Error,
-    },
-
     #[error("invalid SNS refresh attempt at {}: {reason}", path.display())]
     InvalidRefreshAttempt { path: PathBuf, reason: String },
 
     #[error("invalid SNS cache at {}: {reason}", path.display())]
     InvalidCache { path: PathBuf, reason: String },
-
-    #[error("failed to serialize SNS cache JSON for {}: {source}", path.display())]
-    SerializeCache {
-        path: PathBuf,
-        source: serde_json::Error,
-    },
-
-    #[error("unsupported SNS cache schema version {version}; expected {expected}")]
-    UnsupportedCacheSchemaVersion { version: u32, expected: u32 },
-
-    #[error("cached SNS network mismatch: path is for {requested}, report is for {actual}")]
-    CacheNetworkMismatch { requested: String, actual: String },
 
     #[error(
         "cached SNS snapshot identity mismatch at {}: {field} is {actual}, expected {expected}",
@@ -271,8 +250,9 @@ pub enum SnsHostError {
         actual: String,
     },
 
-    #[error("SNS cache operation failed: {0}")]
-    Cache(#[from] CacheFileError),
+    /// Shared generic JSON, filesystem, or refresh-lock cache failure.
+    #[error(transparent)]
+    Cache(#[from] HostCacheError),
 
     #[error(
         "SNS neurons refresh did not publish a complete snapshot after {pages_fetched} pages and {rows_fetched} rows: {reason}"

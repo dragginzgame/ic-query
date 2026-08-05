@@ -1,8 +1,5 @@
 use super::*;
-use super::{
-    CATALOG_SCHEMA_VERSION, ClassificationSource, GeographicScope, MAINNET_REGISTRY_CANISTER_ID,
-    SubnetSpecialization,
-};
+use super::{ClassificationSource, GeographicScope, SubnetSpecialization};
 use crate::nns::NnsSourceRequest;
 use crate::test_support::temp_dir;
 use std::{
@@ -10,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod authority;
 mod cache;
 mod fixtures;
 mod info;

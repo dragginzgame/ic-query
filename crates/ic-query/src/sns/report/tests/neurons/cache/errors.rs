@@ -98,10 +98,11 @@ fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
 
     assert!(matches!(
         err,
-        SnsHostError::UnsupportedCacheSchemaVersion {
+        SnsHostError::Cache(crate::HostCacheError::UnsupportedCacheSchemaVersion {
             version: 999,
             expected: SNS_NEURONS_CACHE_SCHEMA_VERSION,
-        }
+            ..
+        })
     ));
 
     let _ = fs::remove_dir_all(root);

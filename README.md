@@ -128,7 +128,7 @@ actually make:
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
-| NNS Registry | Versioned on-chain Registry records | Joined topology is authoritative only for the recorded Registry version |
+| NNS Registry | Exact-version joined Registry query evidence with explicit assurance | Current single-endpoint catalog collection is `uncertified_query`; shared Registry version prevents internal skew but does not certify an ordinary query response |
 | NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
@@ -252,14 +252,21 @@ transactions, fan out, or create a cache. Paged proposal, neuron, and
 account-history collections retain refresh attempt state. Failed or capped
 refreshes do not replace the last complete snapshot.
 
-Bounded Subnet and NNS Registry inventory read-through operations repair
-malformed, incompatible, or invalid local content through their existing live
-refresh path. Exact-version topology and ICRC account-history library callers
-receive the same behavior only through explicitly selected read-through APIs.
-Direct cache loads, filesystem failures, and complete Governance history
-caches remain strict. Cache-status operations stay local: family-specific
-status reports validate their owned snapshots, while the bounded top-level
-inventory inspects generic headers only.
+Subnet Catalog callers select `CacheOnly`, refresh-missing,
+refresh-missing-or-invalid, refresh-older-than, or force-refresh behavior and
+receive the exact `CacheDisposition` used. Catalog loads validate fixed
+mainnet/Registry identity, raw Registry Subnet kinds, classification and
+resolver policy identity, timestamps, canonical ordering, and the canonical
+payload digest before returning a `ValidatedSubnetCatalog`. The digest detects
+an inconsistent payload; it is not a signature and does not promote the
+current `UncertifiedQuery` assurance. Bounded NNS Registry inventory
+read-through operations retain their owner-selected invalid-content repair.
+Exact-version topology and ICRC account-history library callers receive the
+same behavior only through explicitly selected read-through APIs. Direct cache
+loads, filesystem failures, and complete Governance history caches remain
+strict. Cache-status operations stay local: family-specific status reports
+validate their owned snapshots, while the bounded top-level inventory inspects
+generic headers only.
 
 `sns list` uses a one-hour joined catalog cache containing Governance metadata
 and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
@@ -307,7 +314,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.28", default-features = false }
+ic-query = { version = "0.29", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -315,7 +322,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.28", default-features = false, features = ["host"] }
+ic-query = { version = "0.29", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -352,6 +359,16 @@ includes `ic-agent`, both packages may remain in its transitive dependency
 graph. The full `host` feature remains the choice for all reporting adapters
 and is a strict superset.
 
+The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
+private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return
+both the validated catalog and an observable cache disposition; validated
+canister resolution returns the matched range, Registry version, catalog
+digest, and full provenance together. Single-endpoint live collection is
+always labelled `CatalogAssurance::UncertifiedQuery`. Async embedders can call
+`fetch_subnet_catalog_async` on their own runtime; synchronous builders retain
+the runtime adapter and may use a scoped helper thread when invoked inside an
+existing Tokio runtime.
+
 See [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md) for complete examples and feature
 guidance.
 
@@ -368,6 +385,7 @@ guidance.
 - [0.26 SNS maturity reward evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.26/0.26-design.md)
 - [0.27 bounded official ICRC analytics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.27/0.27-design.md)
 - [0.28 observed IC node and Subnet status](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.28/0.28-design.md)
+- [0.29 Subnet Catalog authority and embedder hardening](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.29/0.29-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

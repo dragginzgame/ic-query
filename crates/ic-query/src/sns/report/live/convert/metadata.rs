@@ -56,13 +56,8 @@ pub(in crate::sns::report::live) fn bounded_query_error_summary(
         | SnsHostError::MissingNeuronsCache { .. }
         | SnsHostError::MissingNeuronsCacheForId { .. }
         | SnsHostError::MissingProposalsCache { .. }
-        | SnsHostError::ReadCache { .. }
-        | SnsHostError::ParseCache { .. }
         | SnsHostError::InvalidRefreshAttempt { .. }
         | SnsHostError::InvalidCache { .. }
-        | SnsHostError::SerializeCache { .. }
-        | SnsHostError::UnsupportedCacheSchemaVersion { .. }
-        | SnsHostError::CacheNetworkMismatch { .. }
         | SnsHostError::CacheIdentityMismatch { .. }
         | SnsHostError::Cache(_)
         | SnsHostError::IncompleteRefresh { .. }

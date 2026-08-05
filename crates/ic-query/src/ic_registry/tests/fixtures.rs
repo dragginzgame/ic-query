@@ -19,14 +19,14 @@ pub(super) fn catalog_from_parts_for_test(
     subnet_list: SubnetListRecord,
     routing_table: RoutingTable,
     subnet_records: BTreeMap<String, SubnetRecord>,
-) -> Result<SubnetCatalog, RegistryFetchError> {
+) -> Result<RawSubnetCatalog, RegistryFetchError> {
     if subnet_list.subnets.is_empty() {
         return Err(RegistryFetchError::EmptySubnetList);
     }
     if routing_table.entries.is_empty() {
         return Err(RegistryFetchError::EmptyRoutingTable);
     }
-    let mut subnets = subnet_list
+    let subnets = subnet_list
         .subnets
         .iter()
         .map(|subnet_raw| {
@@ -40,22 +40,16 @@ pub(super) fn catalog_from_parts_for_test(
             Ok(subnet_info_from_record(&subnet_principal, record))
         })
         .collect::<Result<Vec<_>, RegistryFetchError>>()?;
-    subnets.sort_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
-    let mut catalog = SubnetCatalog {
-        catalog_schema_version: CATALOG_SCHEMA_VERSION,
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+    RawSubnetCatalog::new_mainnet_uncertified(
         registry_version,
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
-        source_endpoint: request.endpoint.clone(),
-        resolver_backend: "local-nns-subnet-catalog".to_string(),
+        &request.endpoint,
+        &request.fetched_at,
+        &request.fetched_by,
+        "test",
         subnets,
-        routing_ranges: routing_ranges_from_table(&routing_table)?,
-    };
-    apply_mainnet_annotations(&mut catalog);
-    catalog.validate()?;
-    Ok(catalog)
+        routing_ranges_from_table(&routing_table)?,
+    )
+    .map_err(RegistryFetchError::from)
 }
 
 pub(super) fn subnet_list_record<const N: usize>(subnets: [&str; N]) -> SubnetListRecord {

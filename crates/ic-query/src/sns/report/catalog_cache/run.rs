@@ -9,11 +9,11 @@ use super::{
     SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest,
 };
 use crate::{
-    QueryProgress, QueryProgressEvent,
+    HostCacheError, QueryProgress, QueryProgressEvent,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{
-        CacheRefreshReason, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-        load_or_refresh_stale_cache_with_error_policy,
+        CacheRefreshReason, LoadJsonCacheRequest, OwnerJsonCacheErrorMapper,
+        host_cache_refresh_reason, load_or_refresh_stale_cache_with_error_policy,
     },
     freshness::freshness_facts,
     snapshot_cache::{
@@ -22,7 +22,8 @@ use crate::{
         with_locked_snapshot_refresh, write_snapshot_json,
     },
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsListReport, SnsListRequest,
+        MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsListReport,
+        SnsListRequest,
         assemble::{SnsReportProvenance, sns_list_report_from_list},
         build::fetch_joined_sns_catalog,
         enforce_mainnet_network,
@@ -77,33 +78,6 @@ type SnsCatalogCache = SnapshotEnvelope<SnsCatalogMetadata, SnsCatalogData>;
 struct CachedSnsCatalog {
     path: PathBuf,
     cache: SnsCatalogCache,
-}
-
-#[derive(Clone, Copy)]
-struct SnsCatalogLoadErrors;
-
-impl LoadJsonCacheErrorMapper for SnsCatalogLoadErrors {
-    type Error = SnsHostError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        SnsHostError::MissingCatalogCache { path }
-    }
-
-    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
-        SnsHostError::ReadCache { path, source }
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        SnsHostError::ParseCache { path, source }
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        SnsHostError::UnsupportedCacheSchemaVersion { version, expected }
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        SnsHostError::CacheNetworkMismatch { requested, actual }
-    }
 }
 
 /// Return the canonical deployed-SNS catalog cache path.
@@ -192,7 +166,7 @@ pub fn refresh_sns_catalog_with_source(
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
-        SnsHostError::Cache,
+        |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
         |state| {
             let list_request = SnsListRequest::new(
                 &request.cache.network,
@@ -216,8 +190,14 @@ pub fn refresh_sns_catalog_with_source(
             write_snapshot_json(
                 &paths.snapshot_path,
                 &cache,
-                |path, source| SnsHostError::SerializeCache { path, source },
-                SnsHostError::Cache,
+                |path, source| {
+                    SnsHostError::from(HostCacheError::serialize_cache(
+                        SNS_CACHE_COMPONENT,
+                        path,
+                        source,
+                    ))
+                },
+                |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
             )?;
             Ok(SnsCatalogRefreshReport {
                 schema_version: SNS_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
@@ -250,7 +230,7 @@ fn load_cached_sns_catalog(
         },
         &key,
         CACHE_FIELDS,
-        SnsCatalogLoadErrors,
+        OwnerJsonCacheErrorMapper::new(SNS_CACHE_COMPONENT, missing_catalog_cache_error),
         |completeness| SnsHostError::InvalidCache {
             path: path.clone(),
             reason: format!(
@@ -380,15 +360,17 @@ fn catalog_cache_refresh_reason(
 ) -> Result<CacheRefreshReason, SnsHostError> {
     match error {
         SnsHostError::MissingCatalogCache { path } => Ok(CacheRefreshReason::Missing(path)),
-        SnsHostError::ParseCache { path, .. }
-        | SnsHostError::InvalidCache { path, .. }
+        SnsHostError::InvalidCache { path, .. }
         | SnsHostError::CacheIdentityMismatch { path, .. } => Ok(CacheRefreshReason::Invalid(path)),
-        SnsHostError::UnsupportedCacheSchemaVersion { .. }
-        | SnsHostError::CacheNetworkMismatch { .. } => {
-            Ok(CacheRefreshReason::Invalid(expected_path.to_path_buf()))
+        SnsHostError::Cache(error) => {
+            host_cache_refresh_reason(error, expected_path).map_err(SnsHostError::from)
         }
         error => Err(error),
     }
+}
+
+const fn missing_catalog_cache_error(path: PathBuf) -> SnsHostError {
+    SnsHostError::MissingCatalogCache { path }
 }
 
 fn catalog_paths(cache_root: &Path, network: &str) -> SnapshotJsonPaths {

@@ -29,12 +29,12 @@ fn info_report_resolves_canister_and_marks_application_chargeable() {
 fn info_report_resolves_unique_subnet_prefix() {
     let root = temp_dir("ic-query-subnet-info-subnet-prefix");
     write_catalog(&root, fixture_catalog());
-    let request = info_request(&root, "rwl");
+    let request = info_request(&root, "pzp");
 
     let report = build_subnet_catalog_info_report(&request).expect("info report");
 
     let _ = fs::remove_dir_all(root);
-    assert_eq!(report.input_principal, "rwl");
+    assert_eq!(report.input_principal, "pzp");
     assert_eq!(report.resolved_as, "subnet");
     assert_eq!(report.resolved_from, "subnet_principal_prefix");
     assert_eq!(report.subnet_principal, SUBNET_A);
@@ -61,8 +61,10 @@ fn info_report_rejects_canister_prefix() {
 fn system_subnet_has_no_catalog_rate() {
     let root = temp_dir("ic-query-subnet-system");
     let mut catalog = fixture_catalog();
+    catalog.subnets[0].registry_subnet_type = 2;
     catalog.subnets[0].subnet_kind = SubnetKind::System;
     catalog.subnets[0].charges_apply_by_default = false;
+    catalog.canonicalize_and_seal().expect("reseal fixture");
     write_catalog(&root, catalog);
     let request = info_request(&root, CANISTER_A);
 
@@ -81,9 +83,11 @@ fn system_subnet_has_no_catalog_rate() {
 fn cloud_engine_subnet_keeps_application_rate_class() {
     let root = temp_dir("ic-query-subnet-cloud-engine");
     let mut catalog = fixture_catalog();
+    catalog.subnets[0].registry_subnet_type = 5;
     catalog.subnets[0].subnet_kind = SubnetKind::CloudEngine;
     catalog.subnets[0].subnet_label = "cloud_engine".to_string();
     catalog.subnets[0].charges_apply_by_default = true;
+    catalog.canonicalize_and_seal().expect("reseal fixture");
     write_catalog(&root, catalog);
     let request = info_request(&root, CANISTER_A);
 

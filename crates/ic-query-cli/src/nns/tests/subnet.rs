@@ -1,5 +1,6 @@
 use super::*;
 use crate::cli::clap::render_help;
+use ic_query::subnet_catalog::SubnetCatalogHostError;
 
 #[test]
 fn list_defaults_to_mainnet_ic_catalog() {
@@ -101,6 +102,8 @@ fn list_and_info_help_hide_stale_policy_knobs() {
 
     assert!(list.contains("Collection mode: Cache-backed read"));
     assert!(info.contains("Collection mode: Cache-backed read"));
+    assert!(list.contains("missing or recoverably invalid"));
+    assert!(info.contains("missing or recoverably invalid"));
     assert!(!list.contains("--stale-after"));
     assert!(!list.contains("--allow-stale-subnet-catalog"));
     assert!(!info.contains("--stale-after"));
@@ -154,4 +157,21 @@ fn nns_namespace_help_mentions_subnet() {
     assert!(text.contains("Inspect NNS metadata"));
     assert!(text.contains("subnet"));
     assert!(!text.contains("Inspect cached IC network subnet metadata"));
+}
+
+#[test]
+fn subnet_library_remediation_is_rendered_only_at_the_cli_boundary() {
+    let unsupported = NnsCommandError::from(SubnetCatalogHostError::UnsupportedNetwork {
+        network: "local".to_string(),
+    });
+    let missing = NnsCommandError::from(SubnetCatalogHostError::MissingCatalog {
+        path: PathBuf::from("/cache/catalog.json"),
+    });
+
+    assert!(
+        unsupported
+            .to_string()
+            .contains("icq --network ic nns subnet list")
+    );
+    assert!(missing.to_string().contains("icq nns subnet refresh"));
 }

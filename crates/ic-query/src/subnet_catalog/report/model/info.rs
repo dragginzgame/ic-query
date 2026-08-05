@@ -8,8 +8,8 @@
 //! JSON output.
 
 use crate::subnet_catalog::{
-    ClassificationSource, GeographicScope, ResolveAs, RoutingRange, SubnetCatalogCacheRequest,
-    SubnetKind, SubnetSpecialization,
+    CacheDisposition, CatalogAssurance, CatalogReadPolicy, ClassificationSource, GeographicScope,
+    ResolveAs, RoutingRange, SubnetCatalogCacheRequest, SubnetKind, SubnetSpecialization,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogInfoRequest {
     pub cache: SubnetCatalogCacheRequest,
-    pub source_endpoint: String,
+    /// Exact cache and network behavior authorized for this report.
+    pub read_policy: CatalogReadPolicy,
     pub input: String,
     pub forced: Option<ResolveAs>,
     pub now_unix_secs: u64,
@@ -40,7 +41,9 @@ impl SubnetCatalogInfoRequest {
     ) -> Self {
         Self {
             cache,
-            source_endpoint: source_endpoint.into(),
+            read_policy: CatalogReadPolicy::RefreshMissingOrInvalid {
+                source_endpoint: source_endpoint.into(),
+            },
             input: input.into(),
             forced: None,
             now_unix_secs,
@@ -51,6 +54,12 @@ impl SubnetCatalogInfoRequest {
     #[must_use]
     pub const fn with_forced(mut self, forced: ResolveAs) -> Self {
         self.forced = Some(forced);
+        self
+    }
+
+    #[must_use]
+    pub fn with_read_policy(mut self, read_policy: CatalogReadPolicy) -> Self {
+        self.read_policy = read_policy;
         self
     }
 }
@@ -68,6 +77,8 @@ pub struct SubnetCatalogInfoReport {
     pub resolved_as: String,
     pub resolved_from: String,
     pub subnet_principal: String,
+    /// Raw numeric `SubnetType` discriminant from the Registry record.
+    pub registry_subnet_type: i32,
     pub subnet_kind: SubnetKind,
     pub subnet_kind_source: ClassificationSource,
     pub subnet_specialization: SubnetSpecialization,
@@ -81,12 +92,28 @@ pub struct SubnetCatalogInfoReport {
     pub charge_applicability_reason: String,
     pub registry_canister_id: String,
     pub registry_version: u64,
+    /// Assurance established for this exact snapshot.
+    pub assurance: CatalogAssurance,
+    /// Source endpoints contributing to the snapshot.
+    pub source_endpoints: Vec<String>,
+    /// Lowercase SHA-256 digest of the canonical catalog payload.
+    pub catalog_digest: String,
+    /// Observable result of applying the requested cache policy.
+    pub cache_disposition: CacheDisposition,
     pub catalog_schema_version: u32,
     pub catalog_path: String,
     pub fetched_at: String,
     pub catalog_stale: bool,
     pub stale_reason: String,
     pub resolver_backend: String,
+    /// Collector package version recorded by the source.
+    pub collector_version: String,
+    /// Classification contract version.
+    pub classification_schema_version: u32,
+    /// Lowercase SHA-256 digest of the classification policy.
+    pub classification_policy_digest: String,
+    /// Resolver contract version.
+    pub resolver_schema_version: u32,
     pub matched_canister_principal: Option<String>,
     pub matched_routing_range: Option<RoutingRange>,
     pub cycles_per_billion_instructions: Option<u128>,

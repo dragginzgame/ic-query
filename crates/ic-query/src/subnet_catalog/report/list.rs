@@ -4,9 +4,9 @@ use super::{
 use crate::{
     nns::LiveNnsSource,
     subnet_catalog::{
-        SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalog, SubnetCatalogHostError,
-        SubnetCatalogSource, SubnetInfo, catalog_stale_status,
-        load_or_refresh_subnet_catalog_with_source,
+        SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalogHostError,
+        SubnetCatalogLoadRequest, SubnetCatalogSource, SubnetInfo, ValidatedSubnetCatalog,
+        catalog_stale_status, load_subnet_catalog_with_source,
     },
 };
 
@@ -20,20 +20,18 @@ pub fn build_subnet_catalog_list_report_with_source(
     request: &SubnetCatalogListRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    let cached = load_or_refresh_subnet_catalog_with_source(
-        &request.cache,
-        &request.source_endpoint,
-        request.now_unix_secs,
-        source,
-    )?;
+    let load_request =
+        SubnetCatalogLoadRequest::cache_only(request.cache.clone(), request.now_unix_secs)
+            .with_policy(request.read_policy.clone());
+    let cached = load_subnet_catalog_with_source(&load_request, source)?;
     let stale = catalog_stale_status(
-        &cached.catalog,
+        cached.catalog.raw(),
         request.now_unix_secs,
         request.stale_after_seconds,
     );
     let subnets = cached
         .catalog
-        .subnets
+        .subnets()
         .iter()
         .filter(|subnet| subnet_matches_filters(subnet, request.filters))
         .map(|subnet| subnet_row(&cached.catalog, subnet, request))
@@ -41,15 +39,27 @@ pub fn build_subnet_catalog_list_report_with_source(
 
     Ok(SubnetCatalogListReport {
         schema_version: SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION,
-        network: cached.catalog.network,
+        network: cached.catalog.provenance().network.clone(),
         catalog_path: cached.path.display().to_string(),
-        catalog_schema_version: cached.catalog.catalog_schema_version,
-        registry_canister_id: cached.catalog.registry_canister_id,
-        registry_version: cached.catalog.registry_version,
-        fetched_at: cached.catalog.fetched_at,
+        catalog_schema_version: cached.catalog.raw().catalog_schema_version,
+        registry_canister_id: cached.catalog.provenance().registry_canister_id.clone(),
+        registry_version: cached.catalog.provenance().registry_version,
+        assurance: cached.catalog.provenance().assurance,
+        source_endpoints: cached.catalog.provenance().source_endpoints.clone(),
+        catalog_digest: cached.catalog.raw().catalog_digest.clone(),
+        cache_disposition: cached.disposition,
+        fetched_at: cached.catalog.provenance().fetched_at.clone(),
         catalog_stale: stale.catalog_stale,
         stale_reason: stale.stale_reason,
-        resolver_backend: cached.catalog.resolver_backend,
+        resolver_backend: cached.catalog.provenance().resolver_backend.clone(),
+        collector_version: cached.catalog.provenance().collector_version.clone(),
+        classification_schema_version: cached.catalog.provenance().classification_schema_version,
+        classification_policy_digest: cached
+            .catalog
+            .provenance()
+            .classification_policy_digest
+            .clone(),
+        resolver_schema_version: cached.catalog.provenance().resolver_schema_version,
         subnets,
     })
 }
@@ -65,7 +75,7 @@ fn subnet_matches_filters(subnet: &SubnetInfo, filters: SubnetCatalogFilters) ->
 }
 
 fn subnet_row(
-    catalog: &SubnetCatalog,
+    catalog: &ValidatedSubnetCatalog,
     subnet: &SubnetInfo,
     request: &SubnetCatalogListRequest,
 ) -> SubnetCatalogSubnetRow {
@@ -83,6 +93,7 @@ fn subnet_row(
     };
     SubnetCatalogSubnetRow {
         subnet_principal: subnet.subnet_principal.clone(),
+        registry_subnet_type: subnet.registry_subnet_type,
         subnet_kind: subnet.subnet_kind,
         subnet_kind_source: subnet.subnet_kind_source,
         subnet_specialization: subnet.subnet_specialization,

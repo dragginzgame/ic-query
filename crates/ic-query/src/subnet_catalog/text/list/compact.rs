@@ -40,10 +40,12 @@ pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> Stri
     ];
     let mut lines = Vec::new();
     lines.push(format!(
-        "catalog: {} version {} stale {}",
+        "catalog: {} version {} stale {} assurance {} cache {}",
         sanitize_text(&report.network),
         report.registry_version,
-        yes_no(report.catalog_stale)
+        yes_no(report.catalog_stale),
+        report.assurance.as_str(),
+        report.cache_disposition.as_str(),
     ));
     if rows.is_empty() {
         lines.push("subnets: none".to_string());

@@ -15,9 +15,8 @@ use super::{
     paths::{nns_proposal_cache_paths, nns_proposal_cache_root},
 };
 use crate::{
-    HostCacheError,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
+    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper},
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
         NnsGovernanceCacheRequest,
@@ -44,7 +43,6 @@ use crate::{
 };
 use std::{
     collections::HashSet,
-    io,
     path::{Path, PathBuf},
 };
 
@@ -159,7 +157,7 @@ fn load_nns_proposal_cache(
         },
         &key,
         NNS_PROPOSAL_CACHE_FIELDS,
-        NnsProposalCacheErrors,
+        OwnerJsonCacheErrorMapper::new(NNS_PROPOSAL_CACHE_COMPONENT, missing_proposal_cache_error),
         incomplete_snapshot_error,
         |mismatch| nns_identity_mismatch_error(cache_path.clone(), mismatch),
     )?;
@@ -314,46 +312,8 @@ fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsP
     }
 }
 
-struct NnsProposalCacheErrors;
-
-impl LoadJsonCacheErrorMapper for NnsProposalCacheErrors {
-    type Error = NnsProposalHostError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        NnsProposalHostError::MissingProposalCache { path }
-    }
-
-    fn read_cache(&self, path: PathBuf, source: io::Error) -> Self::Error {
-        NnsProposalHostError::Cache(HostCacheError::read_cache(
-            NNS_PROPOSAL_CACHE_COMPONENT,
-            path,
-            source,
-        ))
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        NnsProposalHostError::Cache(HostCacheError::parse_cache(
-            NNS_PROPOSAL_CACHE_COMPONENT,
-            path,
-            source,
-        ))
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        NnsProposalHostError::Cache(HostCacheError::unsupported_cache_schema_version(
-            NNS_PROPOSAL_CACHE_COMPONENT,
-            version,
-            expected,
-        ))
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        NnsProposalHostError::Cache(HostCacheError::network_mismatch(
-            NNS_PROPOSAL_CACHE_COMPONENT,
-            requested,
-            actual,
-        ))
-    }
+const fn missing_proposal_cache_error(path: PathBuf) -> NnsProposalHostError {
+    NnsProposalHostError::MissingProposalCache { path }
 }
 
 fn nns_identity_mismatch_error(

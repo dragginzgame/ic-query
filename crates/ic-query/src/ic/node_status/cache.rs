@@ -17,8 +17,9 @@ use crate::{
     QueryProgress, QueryProgressEvent,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{
-        CacheRefreshReason, LoadJsonCacheErrorMapper, LoadJsonCacheRequest,
-        load_or_refresh_cache_with_error_policy, load_or_refresh_stale_cache_with_error_policy,
+        CacheRefreshReason, HostCacheError, LoadJsonCacheRequest, OwnerJsonCacheErrorMapper,
+        host_cache_refresh_reason, load_or_refresh_cache_with_error_policy,
+        load_or_refresh_stale_cache_with_error_policy,
     },
     freshness::freshness_facts,
     ic::{
@@ -79,33 +80,6 @@ struct LoadedNodeStatusCache {
     path: PathBuf,
     cache: NodeStatusCache,
     fetched_at_unix_secs: u64,
-}
-
-#[derive(Clone, Copy)]
-struct NodeStatusLoadErrors;
-
-impl LoadJsonCacheErrorMapper for NodeStatusLoadErrors {
-    type Error = IcNodeStatusHostError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        IcNodeStatusHostError::MissingCache { path }
-    }
-
-    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
-        IcNodeStatusHostError::ReadCache { path, source }
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        IcNodeStatusHostError::ParseCache { path, source }
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        IcNodeStatusHostError::UnsupportedCacheSchemaVersion { version, expected }
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        IcNodeStatusHostError::CacheNetworkMismatch { requested, actual }
-    }
 }
 
 /// Return the canonical complete observed node-status cache path.
@@ -210,7 +184,7 @@ pub fn refresh_ic_node_status_snapshot_with_source(
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
-        |error| crate::cache_file::HostCacheError::operation(CACHE_COMPONENT, error).into(),
+        |error| IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error)),
         |state| {
             let snapshot = build_ic_node_status_snapshot_with_source(
                 &super::IcNodeStatusSnapshotRequest::new(
@@ -223,8 +197,16 @@ pub fn refresh_ic_node_status_snapshot_with_source(
             write_snapshot_json(
                 &paths.snapshot_path,
                 &cache,
-                |path, source| IcNodeStatusHostError::SerializeCache { path, source },
-                |error| crate::cache_file::HostCacheError::operation(CACHE_COMPONENT, error).into(),
+                |path, source| {
+                    IcNodeStatusHostError::from(HostCacheError::serialize_cache(
+                        CACHE_COMPONENT,
+                        path,
+                        source,
+                    ))
+                },
+                |error| {
+                    IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error))
+                },
             )?;
             Ok(IcNodeStatusRefreshReport {
                 schema_version: IC_NODE_STATUS_SCHEMA_VERSION,
@@ -340,7 +322,7 @@ fn load_node_status_cache(
         },
         &key,
         CACHE_FIELDS,
-        NodeStatusLoadErrors,
+        OwnerJsonCacheErrorMapper::new(CACHE_COMPONENT, missing_cache_error),
         |completeness| IcNodeStatusHostError::InvalidCache {
             path: path.clone(),
             reason: format!(
@@ -494,17 +476,19 @@ fn cache_refresh_reason(
 ) -> Result<CacheRefreshReason, IcNodeStatusHostError> {
     match error {
         IcNodeStatusHostError::MissingCache { path } => Ok(CacheRefreshReason::Missing(path)),
-        IcNodeStatusHostError::ParseCache { path, .. }
-        | IcNodeStatusHostError::InvalidCache { path, .. }
+        IcNodeStatusHostError::InvalidCache { path, .. }
         | IcNodeStatusHostError::CacheIdentityMismatch { path, .. } => {
             Ok(CacheRefreshReason::Invalid(path))
         }
-        IcNodeStatusHostError::UnsupportedCacheSchemaVersion { .. }
-        | IcNodeStatusHostError::CacheNetworkMismatch { .. } => {
-            Ok(CacheRefreshReason::Invalid(expected_path.to_path_buf()))
+        IcNodeStatusHostError::Cache(error) => {
+            host_cache_refresh_reason(error, expected_path).map_err(IcNodeStatusHostError::from)
         }
         error => Err(error),
     }
+}
+
+const fn missing_cache_error(path: PathBuf) -> IcNodeStatusHostError {
+    IcNodeStatusHostError::MissingCache { path }
 }
 
 fn report_refresh(

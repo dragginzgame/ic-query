@@ -1,15 +1,6 @@
 use super::fixtures::{SUBNET_A, SUBNET_B, fixture_catalog, sorted_principals};
 use crate::subnet_catalog::{CatalogError, RoutingRange};
 
-const THREE_ITEM_ORDERS: [[usize; 3]; 6] = [
-    [0, 1, 2],
-    [0, 2, 1],
-    [1, 0, 2],
-    [1, 2, 0],
-    [2, 0, 1],
-    [2, 1, 0],
-];
-
 #[test]
 fn empty_subnets_and_empty_ranges_are_rejected() {
     let mut empty_subnets = fixture_catalog();
@@ -55,7 +46,7 @@ fn validation_rejects_overlapping_routing_ranges() {
 }
 
 #[test]
-fn routing_range_validation_is_independent_of_input_order() {
+fn routing_range_validation_requires_canonical_input_order() {
     let ids = sorted_principals([
         "ryjl3-tyaaa-aaaaa-aaaba-cai",
         "rrkah-fqaaa-aaaaa-aaaaq-cai",
@@ -84,20 +75,25 @@ fn routing_range_validation_is_independent_of_input_order() {
         disjoint[2].clone(),
     ];
 
-    for order in THREE_ITEM_ORDERS {
-        let mut valid = fixture_catalog();
-        valid.routing_ranges = order.map(|index| disjoint[index].clone()).to_vec();
-        valid
-            .validate()
-            .expect("disjoint ranges are valid in every order");
+    let mut valid = fixture_catalog();
+    valid.routing_ranges.clone_from(&disjoint);
+    valid
+        .validate()
+        .expect("canonical disjoint ranges are valid");
 
-        let mut invalid = fixture_catalog();
-        invalid.routing_ranges = order.map(|index| overlapping[index].clone()).to_vec();
-        assert!(matches!(
-            invalid.validate(),
-            Err(CatalogError::OverlappingRoutingRanges { .. })
-        ));
-    }
+    let mut noncanonical = fixture_catalog();
+    noncanonical.routing_ranges = disjoint.into_iter().rev().collect();
+    assert!(matches!(
+        noncanonical.validate(),
+        Err(CatalogError::NonCanonicalRoutingOrder { .. })
+    ));
+
+    let mut invalid = fixture_catalog();
+    invalid.routing_ranges = overlapping.to_vec();
+    assert!(matches!(
+        invalid.validate(),
+        Err(CatalogError::OverlappingRoutingRanges { .. })
+    ));
 }
 
 #[test]

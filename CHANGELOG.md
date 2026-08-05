@@ -7,9 +7,28 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.29.x] - 2026-08-05 - Subnet Catalog authority and embedder hardening
+
+Detailed release notes: [docs/changelog/0.29.md](docs/changelog/0.29.md)
+
+- `0.29.0` hard-cuts the Subnet Catalog Rust and persisted-report contracts to
+  separate raw JSON from validated evidence, label current single-endpoint
+  Registry collection `uncertified_query`, retain raw Registry Subnet types,
+  bind routes to exact provenance and a canonical digest, and make every cache
+  refresh policy and resulting disposition explicit. It also adds a
+  caller-runtime async fetch, structured library error classification, and
+  refresh/list/info provenance without changing CLI grammar or live call
+  counts. Existing catalog caches use the replaced version-1 shape: authorized
+  read-through repairs them, while cache-only callers must explicitly refresh.
+
 ## [0.28.x] - 2026-08-04 - observed IC node and Subnet status
 
 Detailed release notes: [docs/changelog/0.28.md](docs/changelog/0.28.md)
+
+- `0.28.5` makes `HostCacheError` the single public owner of generic JSON
+  cache failures for observed node status and SNS reporting. Family errors
+  retain only missing-cache guidance and semantic/identity failures; cache
+  schemas, refresh policy, commands, and report output are unchanged.
 
 - `0.28.4` consolidates official Dashboard adapter invariants without changing
   reports: canister page cursors now have one normalization path for public

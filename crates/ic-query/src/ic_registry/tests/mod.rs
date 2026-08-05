@@ -1,5 +1,5 @@
 use super::*;
-use crate::subnet_catalog::{CATALOG_SCHEMA_VERSION, SubnetKind, SubnetSpecialization};
+use crate::subnet_catalog::{SubnetKind, SubnetSpecialization};
 use proto::{
     PrincipalId, RegistryErrorCode, RegistryGetValueResponse, registry_get_value_response,
 };

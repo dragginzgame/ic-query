@@ -82,12 +82,12 @@ fn resolver_accepts_unique_subnet_principal_prefix() {
     let catalog = fixture_catalog();
 
     let resolved = catalog
-        .resolve_principal_or_prefix("rwl", None)
+        .resolve_principal_or_prefix("pzp", None)
         .expect("subnet prefix resolves");
 
     assert_eq!(resolved.resolved_as, ResolvedSubnetSubject::Subnet);
     assert_eq!(resolved.resolved_from, "subnet_principal_prefix");
-    assert_eq!(resolved.input_principal, "rwl");
+    assert_eq!(resolved.input_principal, "pzp");
     assert_eq!(resolved.subnet.subnet_principal, SUBNET_A);
 }
 
@@ -108,19 +108,23 @@ fn resolver_rejects_canister_boundary_prefix() {
 #[test]
 fn resolver_rejects_ambiguous_principal_prefix() {
     let mut catalog = fixture_catalog();
-    catalog.subnets.push(SubnetInfo {
-        subnet_principal: "r7inp-6aaaa-aaaaa-aaabq-cai".to_string(),
-        subnet_kind: SubnetKind::Application,
-        subnet_kind_source: ClassificationSource::Registry,
-        subnet_specialization: SubnetSpecialization::None,
-        subnet_specialization_source: ClassificationSource::Computed,
-        geographic_scope: GeographicScope::Global,
-        geographic_scope_source: ClassificationSource::Computed,
-        subnet_label: "application".to_string(),
-        subnet_label_source: ClassificationSource::Computed,
-        node_count: Some(13),
-        charges_apply_by_default: true,
-    });
+    catalog.subnets.insert(
+        1,
+        SubnetInfo {
+            subnet_principal: "r7inp-6aaaa-aaaaa-aaabq-cai".to_string(),
+            registry_subnet_type: 1,
+            subnet_kind: SubnetKind::Application,
+            subnet_kind_source: ClassificationSource::Registry,
+            subnet_specialization: SubnetSpecialization::None,
+            subnet_specialization_source: ClassificationSource::Computed,
+            geographic_scope: GeographicScope::Global,
+            geographic_scope_source: ClassificationSource::Computed,
+            subnet_label: "application".to_string(),
+            subnet_label_source: ClassificationSource::Computed,
+            node_count: Some(13),
+            charges_apply_by_default: true,
+        },
+    );
     catalog.validate().expect("valid ambiguous fixture");
 
     let err = catalog

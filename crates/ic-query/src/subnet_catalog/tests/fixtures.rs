@@ -1,13 +1,15 @@
 use super::*;
 
-pub(super) const SUBNET_A: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
-pub(super) const SUBNET_B: &str = "aaaaa-aa";
+pub(super) const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
+pub(super) const SUBNET_B: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 pub(super) const CANISTER_A: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
 pub(super) fn list_request(root: &Path) -> SubnetCatalogListRequest {
     SubnetCatalogListRequest {
         cache: cache_request(root),
-        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+        read_policy: CatalogReadPolicy::RefreshMissingOrInvalid {
+            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+        },
         now_unix_secs: 1_780_531_300,
         stale_after_seconds: DEFAULT_STALE_AFTER_SECONDS,
         filters: SubnetCatalogFilters::default(),
@@ -20,7 +22,9 @@ pub(super) fn list_request(root: &Path) -> SubnetCatalogListRequest {
 pub(super) fn info_request(root: &Path, input: &str) -> SubnetCatalogInfoRequest {
     SubnetCatalogInfoRequest {
         cache: cache_request(root),
-        source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+        read_policy: CatalogReadPolicy::RefreshMissingOrInvalid {
+            source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+        },
         input: input.to_string(),
         forced: None,
         now_unix_secs: 1_780_531_300,
@@ -35,7 +39,11 @@ pub(super) fn cache_request(root: &Path) -> SubnetCatalogCacheRequest {
     }
 }
 
-pub(super) fn write_catalog(root: &Path, catalog: SubnetCatalog) {
+pub(super) fn cache_only_load_request(root: &Path) -> SubnetCatalogLoadRequest {
+    SubnetCatalogLoadRequest::cache_only(cache_request(root), 1_780_531_300)
+}
+
+pub(super) fn write_catalog(root: &Path, catalog: RawSubnetCatalog) {
     let path = subnet_catalog_path(root, MAINNET_NETWORK);
     fs::create_dir_all(path.parent().expect("catalog parent")).expect("create parent");
     fs::write(
@@ -51,6 +59,7 @@ pub(super) fn refresh_request(root: &Path) -> SubnetCatalogRefreshRequest {
         source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
         lock_stale_after_seconds: DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+        max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         dry_run: false,
         output_path: None,
     }
@@ -86,12 +95,12 @@ pub(super) fn write_refresh_lock_for_test(
 ///
 
 pub(super) struct FixtureRefreshSource {
-    catalog: Option<SubnetCatalog>,
+    catalog: Option<RawSubnetCatalog>,
     fail: bool,
 }
 
 impl FixtureRefreshSource {
-    pub(super) const fn ok(catalog: SubnetCatalog) -> Self {
+    pub(super) const fn ok(catalog: RawSubnetCatalog) -> Self {
         Self {
             catalog: Some(catalog),
             fail: false,
@@ -110,7 +119,7 @@ impl SubnetCatalogSource for FixtureRefreshSource {
     fn fetch_catalog(
         &self,
         _request: &NnsSourceRequest,
-    ) -> Result<SubnetCatalog, SubnetCatalogHostError> {
+    ) -> Result<RawSubnetCatalog, SubnetCatalogHostError> {
         if self.fail {
             return Err(SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets));
         }
@@ -118,19 +127,17 @@ impl SubnetCatalogSource for FixtureRefreshSource {
     }
 }
 
-pub(super) fn fixture_catalog() -> SubnetCatalog {
-    SubnetCatalog {
-        catalog_schema_version: CATALOG_SCHEMA_VERSION,
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 123_456,
-        fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        fetched_by: "fixture".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        resolver_backend: "local-nns-subnet-catalog".to_string(),
-        subnets: vec![
+pub(super) fn fixture_catalog() -> RawSubnetCatalog {
+    RawSubnetCatalog::new_mainnet_uncertified(
+        123_456,
+        "https://icp-api.io",
+        "2026-06-04T00:00:00Z",
+        "fixture",
+        "test",
+        vec![
             SubnetInfo {
                 subnet_principal: SUBNET_A.to_string(),
+                registry_subnet_type: 1,
                 subnet_kind: SubnetKind::Application,
                 subnet_kind_source: ClassificationSource::Registry,
                 subnet_specialization: SubnetSpecialization::Fiduciary,
@@ -144,6 +151,7 @@ pub(super) fn fixture_catalog() -> SubnetCatalog {
             },
             SubnetInfo {
                 subnet_principal: SUBNET_B.to_string(),
+                registry_subnet_type: 2,
                 subnet_kind: SubnetKind::System,
                 subnet_kind_source: ClassificationSource::Registry,
                 subnet_specialization: SubnetSpecialization::None,
@@ -156,7 +164,7 @@ pub(super) fn fixture_catalog() -> SubnetCatalog {
                 charges_apply_by_default: false,
             },
         ],
-        routing_ranges: vec![
+        vec![
             RoutingRange {
                 start_canister_id: CANISTER_A.to_string(),
                 end_canister_id: CANISTER_A.to_string(),
@@ -173,5 +181,6 @@ pub(super) fn fixture_catalog() -> SubnetCatalog {
                 subnet_principal: SUBNET_B.to_string(),
             },
         ],
-    }
+    )
+    .expect("valid fixture catalog")
 }

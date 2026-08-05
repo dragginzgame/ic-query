@@ -22,6 +22,8 @@ pub const COLLECTION_MODE_CACHE_ONLY: &str =
 pub const COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK: &str = "Cache-preferred read; uses a complete local snapshot when available and otherwise makes a live query.";
 pub const COLLECTION_MODE_CACHE_REFRESH_MISSING: &str =
     "Cache-backed read; refreshes and stores a complete snapshot only when the cache is missing.";
+/// Cache-backed read that repairs absent or recoverably invalid content.
+pub const COLLECTION_MODE_CACHE_REFRESH_MISSING_OR_INVALID: &str = "Cache-backed read; refreshes and stores a complete snapshot when the cache is missing or recoverably invalid.";
 /// Cache-backed collection that visibly refreshes a missing or stale snapshot.
 pub const COLLECTION_MODE_CACHE_REFRESH_STALE: &str = "Cache-backed read; refreshes and stores a complete snapshot when the cache is missing or older than its documented age policy.";
 pub const COLLECTION_MODE_FORCE_REFRESH: &str = "Forced live refresh; fetches and validates a complete snapshot before any atomic cache replacement.";

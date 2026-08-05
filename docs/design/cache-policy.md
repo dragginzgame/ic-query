@@ -45,6 +45,14 @@ when the owner can reproduce the exact cache through an already-authorized
 refresh. IO, permission, lock, and unrelated source failures remain errors.
 Cache-only and status operations never opt into recovery.
 
+`HostCacheError` is the canonical public owner of generic JSON cache read,
+parse, serialization, schema, network-content, and shared file/lock operation
+failures. Family host errors wrap it transparently and retain separate variants
+only for owner-specific missing-cache guidance, identity, semantic validation,
+or collection completeness. Owner-aware JSON loading preserves the specialized
+missing error while mapping every other generic failure through this shared
+taxonomy.
+
 Use the owner-error-policy helpers when the operation already has:
 
 - a cache loader
@@ -140,6 +148,16 @@ Bounded automatic read-through, including invalid-content recovery, is used by:
 The shared NNS inventory boundary validates fixed canister identities, schema,
 timestamps, endpoints, and declared row counts. Custom-source evidence is
 rejected before publication when it does not match the exact refresh request.
+
+The Subnet Catalog library exposes the underlying policy directly:
+`CacheOnly`, `RefreshMissing`, `RefreshMissingOrInvalid`,
+`RefreshMissingInvalidOrOlderThan`, and `ForceRefresh`. Every successful load
+returns `CacheHit`, `RefreshedMissing`, `RefreshedInvalid`, `RefreshedStale`,
+or `ForcedRefresh` with a private-field `ValidatedSubnetCatalog`. The caller
+supplies the current time and any stale threshold; cache-only policy carries no
+endpoint and cannot invoke a source. Ordinary CLI list/info behavior selects
+missing-or-invalid repair and reports stale age without treating it as a
+refresh instruction.
 
 The exact-version NNS Subnet topology and ICRC account-transaction libraries
 apply the same recovery only through their explicit refresh-if-missing and

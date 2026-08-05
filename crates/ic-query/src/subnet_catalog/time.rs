@@ -8,7 +8,7 @@
 //! live clock reads into report builders or cache loaders.
 
 #[cfg(feature = "subnet-catalog-host")]
-use super::{CatalogStaleStatus, SubnetCatalog};
+use super::{CatalogStaleStatus, RawSubnetCatalog};
 #[cfg(feature = "subnet-catalog-host")]
 use crate::freshness::freshness_facts;
 
@@ -16,12 +16,12 @@ use crate::freshness::freshness_facts;
 #[must_use]
 #[cfg(feature = "subnet-catalog-host")]
 pub fn catalog_stale_status(
-    catalog: &SubnetCatalog,
+    catalog: &RawSubnetCatalog,
     now_unix_secs: u64,
     stale_after_seconds: u64,
 ) -> CatalogStaleStatus {
     let freshness = freshness_facts(
-        parse_utc_timestamp_secs(&catalog.fetched_at),
+        parse_utc_timestamp_secs(&catalog.provenance.fetched_at),
         now_unix_secs,
         stale_after_seconds,
     );

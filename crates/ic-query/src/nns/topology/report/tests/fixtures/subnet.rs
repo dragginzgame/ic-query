@@ -1,7 +1,7 @@
 use crate::subnet_catalog::{
-    ClassificationSource, GeographicScope, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID,
-    SubnetCatalogListReport, SubnetCatalogRefreshReport, SubnetCatalogSubnetRow, SubnetKind,
-    SubnetSpecialization,
+    CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope, MAINNET_NETWORK,
+    MAINNET_REGISTRY_CANISTER_ID, SubnetCatalogListReport, SubnetCatalogRefreshReport,
+    SubnetCatalogSubnetRow, SubnetKind, SubnetSpecialization,
 };
 
 pub(in crate::nns::topology::report::tests) fn subnet_report_fixture() -> SubnetCatalogListReport {
@@ -12,10 +12,18 @@ pub(in crate::nns::topology::report::tests) fn subnet_report_fixture() -> Subnet
         catalog_schema_version: 1,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 42,
+        assurance: CatalogAssurance::UncertifiedQuery,
+        source_endpoints: vec!["https://icp-api.io".to_string()],
+        catalog_digest: "00".repeat(32),
+        cache_disposition: CacheDisposition::CacheHit,
         fetched_at: "2026-06-04T00:00:00Z".to_string(),
         catalog_stale: false,
         stale_reason: "fresh".to_string(),
         resolver_backend: "local-nns-subnet-catalog".to_string(),
+        collector_version: "test".to_string(),
+        classification_schema_version: 1,
+        classification_policy_digest: "00".repeat(32),
+        resolver_schema_version: 1,
         subnets: vec![
             subnet_row("pzp6e", SubnetKind::Application, 2, 2),
             subnet_row("tdb26", SubnetKind::System, 1, 1),
@@ -33,9 +41,16 @@ pub(in crate::nns::topology::report::tests) fn subnet_refresh_report_fixture()
         output_path: None,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 42,
+        assurance: CatalogAssurance::UncertifiedQuery,
+        source_endpoints: vec!["https://icp-api.io".to_string()],
+        catalog_digest: "00".repeat(32),
         fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
         fetched_by: "test".to_string(),
+        collector_version: "test".to_string(),
+        classification_schema_version: 1,
+        classification_policy_digest: "00".repeat(32),
+        resolver_schema_version: 1,
+        resolver_backend: "local-nns-subnet-catalog".to_string(),
         dry_run: false,
         wrote_catalog: true,
         replaced_existing_catalog: true,
@@ -61,6 +76,12 @@ fn subnet_row(
 ) -> SubnetCatalogSubnetRow {
     SubnetCatalogSubnetRow {
         subnet_principal: subnet_principal.to_string(),
+        registry_subnet_type: match subnet_kind {
+            SubnetKind::Application => 1,
+            SubnetKind::System => 2,
+            SubnetKind::CloudEngine => 5,
+            SubnetKind::Unknown => 0,
+        },
         subnet_kind,
         subnet_kind_source: ClassificationSource::Registry,
         subnet_specialization: SubnetSpecialization::None,

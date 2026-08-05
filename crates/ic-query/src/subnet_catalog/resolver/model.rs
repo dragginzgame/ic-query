@@ -2,7 +2,8 @@
 //!
 //! Defines resolver options and outputs for subnet catalog lookups.
 
-use crate::subnet_catalog::{RoutingRange, SubnetInfo};
+use crate::subnet_catalog::{RoutingRange, SubnetCatalogProvenance, SubnetInfo};
+use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -84,4 +85,30 @@ pub struct ResolvedSubnet {
     pub subnet: SubnetInfo,
     pub matched_canister_principal: Option<String>,
     pub matched_routing_range: Option<RoutingRange>,
+    /// Lowercase SHA-256 digest of the raw catalog supplying the match.
+    pub catalog_digest: String,
+    /// Complete provenance supplied by the raw catalog.
+    pub provenance: SubnetCatalogProvenance,
+}
+
+///
+/// ResolvedCanisterRoute
+///
+/// Authority-bearing route tied to the exact validated catalog that proved it.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ResolvedCanisterRoute {
+    /// Canonical canister principal resolved through the routing table.
+    pub canister: Principal,
+    /// Canonical target Subnet principal.
+    pub subnet: Principal,
+    /// Inclusive validated range containing the canister principal.
+    pub matched_range: RoutingRange,
+    /// Exact Registry version of the validated catalog.
+    pub registry_version: u64,
+    /// Binary SHA-256 digest of the validated catalog authority payload.
+    pub catalog_digest: [u8; 32],
+    /// Complete provenance of the validated catalog.
+    pub provenance: SubnetCatalogProvenance,
 }

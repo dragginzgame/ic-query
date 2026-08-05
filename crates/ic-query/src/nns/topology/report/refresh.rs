@@ -75,7 +75,7 @@ fn refresh_row_from_subnet_report(report: SubnetCatalogRefreshReport) -> NnsTopo
         refresh_lock_path: report.refresh_lock_path,
         registry_version: report.registry_version,
         fetched_at: report.fetched_at,
-        source_endpoint: report.source_endpoint,
+        source_endpoint: report.source_endpoints.join(","),
         fetched_by: report.fetched_by,
         dry_run: report.dry_run,
         wrote_cache: report.wrote_catalog,

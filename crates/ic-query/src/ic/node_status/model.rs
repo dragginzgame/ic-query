@@ -771,38 +771,6 @@ pub enum IcNodeStatusHostError {
         /// Expected cache path.
         path: PathBuf,
     },
-    /// Existing cache content could not be read.
-    #[error("failed to read observed node-status cache at {}: {source}", path.display())]
-    ReadCache {
-        /// Cache path that failed.
-        path: PathBuf,
-        /// Underlying filesystem failure.
-        source: std::io::Error,
-    },
-    /// Existing cache content was not valid JSON for the schema.
-    #[error("failed to parse observed node-status cache at {}: {source}", path.display())]
-    ParseCache {
-        /// Cache path that failed.
-        path: PathBuf,
-        /// Underlying JSON failure.
-        source: serde_json::Error,
-    },
-    /// Existing cache uses an unsupported schema version.
-    #[error("observed node-status cache schema {version} is unsupported; expected {expected}")]
-    UnsupportedCacheSchemaVersion {
-        /// Observed schema version.
-        version: u32,
-        /// Required current schema version.
-        expected: u32,
-    },
-    /// Existing cache belongs to another network.
-    #[error("observed node-status cache network is {actual:?}, expected {requested:?}")]
-    CacheNetworkMismatch {
-        /// Requested network.
-        requested: String,
-        /// Network stored by the cache.
-        actual: String,
-    },
     /// Existing cache snapshot-key identity does not match its path.
     #[error(
         "observed node-status cache identity mismatch at {}: {field} is {actual:?}, expected {expected:?}",
@@ -826,15 +794,7 @@ pub enum IcNodeStatusHostError {
         /// Deterministic validation failure.
         reason: String,
     },
-    /// A complete replacement could not be serialized.
-    #[error("failed to serialize observed node-status cache at {}: {source}", path.display())]
-    SerializeCache {
-        /// Target cache path.
-        path: PathBuf,
-        /// Underlying JSON serialization failure.
-        source: serde_json::Error,
-    },
-    /// Shared atomic cache or refresh-lock operation failed.
+    /// Shared generic JSON, filesystem, or refresh-lock cache failure.
     #[error(transparent)]
     Cache(#[from] crate::cache_file::HostCacheError),
 }

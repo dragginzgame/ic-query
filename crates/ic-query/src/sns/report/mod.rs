@@ -226,6 +226,9 @@ const SNS_REWARD_DIFF_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
 #[cfg(feature = "host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;
+#[cfg(feature = "host")]
+/// Shared component label for generic SNS cache failures.
+pub(in crate::sns::report) const SNS_CACHE_COMPONENT: &str = "SNS";
 
 #[cfg(feature = "host")]
 pub(in crate::sns::report) fn enforce_mainnet_network(network: &str) -> Result<(), SnsHostError> {

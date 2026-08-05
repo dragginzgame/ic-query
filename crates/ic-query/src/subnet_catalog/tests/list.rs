@@ -11,6 +11,8 @@ fn list_report_loads_cached_catalog_and_caps_ranges() {
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(report.subnets.len(), 2);
+    assert_eq!(report.cache_disposition, CacheDisposition::CacheHit);
+    assert_eq!(report.assurance, CatalogAssurance::UncertifiedQuery);
     assert_eq!(report.subnets[0].range_count, 2);
     assert_eq!(report.subnets[0].ranges_shown, 1);
     assert!(text.contains("SUBNET"));
@@ -29,17 +31,20 @@ fn list_report_loads_cached_catalog_and_caps_ranges() {
 fn list_report_refreshes_missing_catalog() {
     let root = temp_dir("ic-query-subnet-list-refresh");
     let mut catalog = fixture_catalog();
-    catalog.registry_version = 987_654;
+    catalog.provenance.registry_version = 987_654;
+    catalog.canonicalize_and_seal().expect("reseal fixture");
     let source = FixtureRefreshSource::ok(catalog);
     let request = list_request(&root);
 
     let report =
         build_subnet_catalog_list_report_with_source(&request, &source).expect("list report");
-    let cached = load_cached_subnet_catalog(&cache_request(&root)).expect("cached catalog");
+    let cached =
+        load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(report.registry_version, 987_654);
-    assert_eq!(cached.catalog.registry_version, 987_654);
+    assert_eq!(report.cache_disposition, CacheDisposition::RefreshedMissing);
+    assert_eq!(cached.catalog.provenance().registry_version, 987_654);
 }
 
 #[test]
@@ -50,19 +55,22 @@ fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     fs::write(&path, "not-json").expect("write invalid catalog");
     let request = list_request(&root);
 
-    let error = load_cached_subnet_catalog(&request.cache).expect_err("cache-only load is strict");
+    let error = load_cached_subnet_catalog(&cache_only_load_request(&root))
+        .expect_err("cache-only load is strict");
     assert!(matches!(
         error,
         SubnetCatalogHostError::Catalog(CatalogError::Json(_))
     ));
 
     let mut catalog = fixture_catalog();
-    catalog.registry_version = 987_654;
+    catalog.provenance.registry_version = 987_654;
+    catalog.canonicalize_and_seal().expect("reseal fixture");
     let report =
         build_subnet_catalog_list_report_with_source(&request, &FixtureRefreshSource::ok(catalog))
             .expect("invalid catalog refreshes");
 
     assert_eq!(report.registry_version, 987_654);
+    assert_eq!(report.cache_disposition, CacheDisposition::RefreshedInvalid);
     assert_ne!(
         fs::read_to_string(path).expect("refreshed catalog"),
         "not-json"

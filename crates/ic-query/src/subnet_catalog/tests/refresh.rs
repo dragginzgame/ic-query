@@ -22,24 +22,51 @@ fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
 }
 
 #[test]
+fn public_async_catalog_fetch_rejects_non_mainnet_before_agent_construction() {
+    let request = NnsSourceRequest::new(
+        "local",
+        "not a valid replica endpoint",
+        "2026-07-29T00:00:00Z",
+        "test",
+    );
+
+    let error = crate::runtime::block_on_current_thread(fetch_subnet_catalog_async(&request))
+        .expect("test runtime")
+        .expect_err("unsupported network");
+
+    assert!(matches!(
+        error,
+        SubnetCatalogHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+}
+
+#[test]
 fn refresh_writes_catalog_atomically_and_removes_lock() {
     let root = temp_dir("ic-query-subnet-refresh");
     let mut catalog = fixture_catalog();
-    catalog.registry_version = 987_654;
-    catalog.fetched_at = "1970-01-01T00:00:00Z".to_string();
-    catalog.source_endpoint = DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string();
+    catalog.provenance.registry_version = 987_654;
+    catalog.provenance.fetched_at = "1970-01-01T00:00:00Z".to_string();
+    catalog.provenance.source_endpoints = vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()];
+    catalog.canonicalize_and_seal().expect("reseal fixture");
     let source = FixtureRefreshSource::ok(catalog);
     let request = refresh_request(&root);
 
     let report = refresh_subnet_catalog_with_source(&request, &source).expect("refresh catalog");
-    let cached = load_cached_subnet_catalog(&cache_request(&root)).expect("cached catalog");
+    let cached =
+        load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
     let lock_path = PathBuf::from(&report.refresh_lock_path);
 
     let _ = fs::remove_dir_all(root);
     assert!(report.wrote_catalog);
     assert!(!report.replaced_existing_catalog);
     assert_eq!(report.registry_version, 987_654);
-    assert_eq!(cached.catalog.registry_version, 987_654);
+    assert_eq!(report.assurance, CatalogAssurance::UncertifiedQuery);
+    assert_eq!(
+        report.source_endpoints,
+        vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()]
+    );
+    assert_eq!(report.catalog_digest, cached.catalog.raw().catalog_digest);
+    assert_eq!(cached.catalog.provenance().registry_version, 987_654);
     assert!(!lock_path.exists());
 }
 
@@ -47,8 +74,9 @@ fn refresh_writes_catalog_atomically_and_removes_lock() {
 fn refresh_dry_run_writes_output_without_replacing_cache() {
     let root = temp_dir("ic-query-subnet-refresh-dry-run");
     let mut catalog = fixture_catalog();
-    catalog.fetched_at = "1970-01-01T00:00:00Z".to_string();
-    catalog.source_endpoint = DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string();
+    catalog.provenance.fetched_at = "1970-01-01T00:00:00Z".to_string();
+    catalog.provenance.source_endpoints = vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()];
+    catalog.canonicalize_and_seal().expect("reseal fixture");
     let output_path = root.join("catalog-export.json");
     let source = FixtureRefreshSource::ok(catalog);
     let mut request = refresh_request(&root);
@@ -71,14 +99,15 @@ fn refresh_failure_preserves_existing_catalog_and_removes_lock() {
     let request = refresh_request(&root);
 
     let err = refresh_subnet_catalog_with_source(&request, &source).expect_err("refresh fails");
-    let cached = load_cached_subnet_catalog(&cache_request(&root)).expect("cached catalog");
+    let cached =
+        load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
     let lock_path = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
 
     assert!(matches!(
         err,
         SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets)
     ));
-    assert_eq!(cached.catalog.registry_version, 123_456);
+    assert_eq!(cached.catalog.provenance().registry_version, 123_456);
     assert!(!lock_path.exists());
     let _ = fs::remove_dir_all(root);
 }
@@ -107,8 +136,9 @@ fn refresh_existing_fresh_lock_fails_fast() {
 fn refresh_rejects_stale_lock_without_removing_it() {
     let root = temp_dir("ic-query-subnet-refresh-stale-lock");
     let mut catalog = fixture_catalog();
-    catalog.fetched_at = "1970-01-01T00:00:00Z".to_string();
-    catalog.source_endpoint = DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string();
+    catalog.provenance.fetched_at = "1970-01-01T00:00:00Z".to_string();
+    catalog.provenance.source_endpoints = vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()];
+    catalog.canonicalize_and_seal().expect("reseal fixture");
     let source = FixtureRefreshSource::ok(catalog);
     let request = refresh_request(&root);
     let lock_path = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);

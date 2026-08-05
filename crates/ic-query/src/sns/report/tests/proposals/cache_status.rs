@@ -210,7 +210,10 @@ fn sns_proposals_cache_status_surfaces_malformed_attempt_sidecar() {
     ))
     .expect_err("malformed attempt must remain visible");
 
-    assert!(matches!(err, SnsHostError::ParseCache { .. }));
+    assert!(matches!(
+        err,
+        SnsHostError::Cache(crate::HostCacheError::ParseCache { .. })
+    ));
     let _ = fs::remove_dir_all(root);
 }
 

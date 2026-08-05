@@ -5,15 +5,16 @@
 //! Boundary: centralizes discovery, strict id/root lookup, validation, loading, and error mapping.
 
 use crate::{
+    HostCacheError,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
+    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper},
     snapshot_cache::{
         SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
         collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
         load_snapshot_header,
     },
     sns::report::{
-        SnsHostError,
+        SNS_CACHE_COMPONENT, SnsHostError,
         cache_paths::{
             SnsCacheCollection, SnsSnapshotCachePaths, sns_snapshot_key_for_cache_path,
             sns_snapshot_network_cache_dir,
@@ -84,29 +85,9 @@ impl SnsCacheLoadErrors {
             reason: format!("cached SNS {} snapshot is not complete", self.collection),
         }
     }
-}
 
-impl LoadJsonCacheErrorMapper for SnsCacheLoadErrors {
-    type Error = SnsHostError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        (self.missing_cache_error)(path)
-    }
-
-    fn read_cache(&self, path: PathBuf, source: std::io::Error) -> Self::Error {
-        SnsHostError::ReadCache { path, source }
-    }
-
-    fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
-        SnsHostError::ParseCache { path, source }
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        SnsHostError::UnsupportedCacheSchemaVersion { version, expected }
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        SnsHostError::CacheNetworkMismatch { requested, actual }
+    fn json_errors(self) -> OwnerJsonCacheErrorMapper<SnsHostError> {
+        OwnerJsonCacheErrorMapper::new(SNS_CACHE_COMPONENT, self.missing_cache_error)
     }
 }
 
@@ -145,8 +126,13 @@ where
     Family: SnsCacheStorageFamily,
 {
     let root = sns_snapshot_network_cache_dir(cache_root, network);
-    collect_full_collection_snapshot_paths(&root, Family::COLLECTION)
-        .map_err(|source| SnsHostError::ReadCache { path: root, source })
+    collect_full_collection_snapshot_paths(&root, Family::COLLECTION).map_err(|source| {
+        SnsHostError::from(HostCacheError::read_cache(
+            SNS_CACHE_COMPONENT,
+            root,
+            source,
+        ))
+    })
 }
 
 /// Read and validate one SNS snapshot cache header.
@@ -164,7 +150,7 @@ where
             expected_schema_version: Family::CACHE_SCHEMA_VERSION,
         },
         Family::CACHE_FIELDS,
-        SnsCacheLoadErrors::for_family::<Family>(),
+        SnsCacheLoadErrors::for_family::<Family>().json_errors(),
     )
 }
 
@@ -237,7 +223,7 @@ where
         },
         &key,
         Family::CACHE_FIELDS,
-        errors,
+        errors.json_errors(),
         |completeness| errors.incomplete_cache_error(completeness),
         |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
     )?;

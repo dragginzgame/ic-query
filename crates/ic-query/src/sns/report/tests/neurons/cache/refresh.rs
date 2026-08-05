@@ -1,5 +1,6 @@
 use crate::test_support::temp_dir;
 use crate::{
+    HostCacheError,
     cache_file::CacheFileError,
     sns::report::tests::{fixtures::*, *},
 };
@@ -118,7 +119,10 @@ fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
 
     assert!(matches!(
         err,
-        SnsHostError::Cache(CacheFileError::StaleRefreshLock { .. })
+        SnsHostError::Cache(HostCacheError::Operation {
+            source: CacheFileError::StaleRefreshLock { .. },
+            ..
+        })
     ));
     assert!(!cache_path.is_file());
     assert!(lock_path.exists());

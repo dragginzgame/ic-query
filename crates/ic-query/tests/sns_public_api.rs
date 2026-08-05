@@ -1,3 +1,5 @@
+#[cfg(feature = "host")]
+use ic_query::HostCacheError;
 use ic_query::icrc::IcrcMetadataValueKind;
 use ic_query::report::ReportDataSource;
 use ic_query::sns::{
@@ -1256,6 +1258,18 @@ fn public_sns_host_api_exposes_catalog_cache_contract() {
         lifecycle_error_count: 0,
     };
     assert!(sns_catalog_refresh_report_text(&refresh_report).contains("sns_count: 1"));
+
+    let parse_error =
+        serde_json::from_str::<serde_json::Value>("{").expect_err("malformed public cache fixture");
+    let error = SnsHostError::from(HostCacheError::parse_cache(
+        "SNS",
+        "cache.json".into(),
+        parse_error,
+    ));
+    assert!(matches!(
+        error,
+        SnsHostError::Cache(HostCacheError::ParseCache { .. })
+    ));
 }
 
 #[cfg(feature = "host")]

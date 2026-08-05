@@ -5,6 +5,7 @@
 //! Boundary: one resolved context and attempt contract serves neuron and proposal refreshes.
 
 use crate::{
+    HostCacheError,
     cache::CacheRefreshAttemptStatus,
     snapshot_cache::{
         PagedCollectionPage, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
@@ -13,7 +14,7 @@ use crate::{
         write_snapshot_refresh_attempt,
     },
     sns::report::{
-        SnsHostError, SnsNeuronsRefreshRequest, SnsProposalsRefreshRequest,
+        SNS_CACHE_COMPONENT, SnsHostError, SnsNeuronsRefreshRequest, SnsProposalsRefreshRequest,
         SnsRefreshAttemptStatus,
         source::{MainnetSns, SnsSourceRequest},
     },
@@ -251,8 +252,14 @@ fn write_sns_refresh_attempt_status(
     write_snapshot_refresh_attempt(
         context.path,
         &attempt,
-        |path, source| SnsHostError::SerializeCache { path, source },
-        SnsHostError::Cache,
+        |path, source| {
+            SnsHostError::from(HostCacheError::serialize_cache(
+                SNS_CACHE_COMPONENT,
+                path,
+                source,
+            ))
+        },
+        |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
     )
 }
 
@@ -316,12 +323,12 @@ pub(in crate::sns::report) fn read_sns_refresh_attempt_status_strict(
         SNS_REFRESH_ATTEMPT_METADATA_FIELDS,
     )
     .map_err(|error| match error {
-        SnapshotRefreshAttemptReadError::Read { path, source } => {
-            SnsHostError::ReadCache { path, source }
-        }
-        SnapshotRefreshAttemptReadError::Parse { path, source } => {
-            SnsHostError::ParseCache { path, source }
-        }
+        SnapshotRefreshAttemptReadError::Read { path, source } => SnsHostError::from(
+            HostCacheError::read_cache(SNS_CACHE_COMPONENT, path, source),
+        ),
+        SnapshotRefreshAttemptReadError::Parse { path, source } => SnsHostError::from(
+            HostCacheError::parse_cache(SNS_CACHE_COMPONENT, path, source),
+        ),
         SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
             SnsHostError::InvalidRefreshAttempt { path, reason }
         }
