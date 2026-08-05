@@ -6,9 +6,9 @@
 
 mod detail;
 mod diff;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod refresh;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod report;
 mod reward;
 mod row;
@@ -22,9 +22,9 @@ pub use diff::{
     SnsRewardAllocationStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
     SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardDiffRow,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use refresh::SnsNeuronsRefreshReport;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use report::SnsNeuronsReport;
 pub use reward::{
     SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointValidationError,
@@ -34,7 +34,7 @@ pub use reward::{
 pub(in crate::sns::report) use reward::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use reward::{
     validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
     validate_sns_reward_running_version_evidence,

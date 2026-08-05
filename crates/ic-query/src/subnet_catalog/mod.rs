@@ -59,6 +59,7 @@ pub(crate) use time::format_utc_timestamp_secs;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
 pub(crate) use time::parse_utc_timestamp_secs;

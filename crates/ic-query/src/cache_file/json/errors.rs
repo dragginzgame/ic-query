@@ -74,13 +74,13 @@ impl LoadJsonCacheErrorMapper for HostJsonCacheErrorMapper {
 /// generic JSON cache failure through [`HostCacheError`].
 ///
 
-#[cfg(feature = "dashboard-host")]
+#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
 pub struct OwnerJsonCacheErrorMapper<Error> {
     component: &'static str,
     missing_cache: fn(PathBuf) -> Error,
 }
 
-#[cfg(feature = "dashboard-host")]
+#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
 impl<Error> OwnerJsonCacheErrorMapper<Error> {
     /// Build one mapper for a component with specialized missing-cache guidance.
     pub const fn new(component: &'static str, missing_cache: fn(PathBuf) -> Error) -> Self {
@@ -91,7 +91,7 @@ impl<Error> OwnerJsonCacheErrorMapper<Error> {
     }
 }
 
-#[cfg(feature = "dashboard-host")]
+#[cfg(any(feature = "dashboard-host", feature = "sns-host"))]
 impl<Error> LoadJsonCacheErrorMapper for OwnerJsonCacheErrorMapper<Error>
 where
     Error: From<HostCacheError>,

@@ -397,6 +397,20 @@ This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
 not enable ic-query's direct Reqwest or Prost dependencies. `ic-agent` retains
 Reqwest transitively, so the package may still appear in the complete graph.
 
+Enable `sns-host` for native SNS discovery, targeted reports, complete
+proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["sns-host"] }
+```
+
+This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
+adapters disabled. It shares the ICRC token-metadata mechanics required to
+inspect SNS ledgers, but does not enable the native ICRC report or cache
+surface. There is no direct ic-query edge to Reqwest, Prost, CBOR, or SHA-256;
+`ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
+
 Enable the narrower `subnet-catalog-host` feature when a native embedder needs
 only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
 decoding, runtime bridge, capability-filesystem dependencies, and other cache

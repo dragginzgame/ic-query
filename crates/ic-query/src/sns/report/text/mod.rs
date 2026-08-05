@@ -10,7 +10,7 @@ mod info;
 mod list;
 mod metrics;
 mod neuron;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod neurons;
 mod params;
 mod proposals;
@@ -21,20 +21,20 @@ mod token;
 mod upgrade;
 
 pub use canisters::sns_canister_report_text;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 pub(super) use common::optional_e8s_decimal_text;
 pub use info::sns_info_report_text;
 pub use list::sns_list_report_text;
 pub use metrics::sns_metrics_report_text;
 pub use neuron::sns_neuron_detail_report_text;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use neurons::{
     sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
     sns_neurons_refresh_report_text, sns_neurons_report_text,
 };
 pub use params::sns_params_report_text;
 pub use proposals::{sns_proposal_report_text, sns_proposals_report_text};
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use proposals::{
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
     sns_proposals_refresh_report_text,

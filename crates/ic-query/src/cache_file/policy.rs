@@ -7,19 +7,22 @@
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 use super::HostCacheError;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 use std::path::Path;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 use std::path::PathBuf;
 
@@ -33,7 +36,8 @@ use std::path::PathBuf;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 pub enum CacheRefreshReason {
     /// The expected cache file does not exist.
@@ -42,7 +46,8 @@ pub enum CacheRefreshReason {
     #[cfg(any(
         feature = "dashboard-host",
         feature = "icrc-host",
-        feature = "nns-topology-host"
+        feature = "nns-topology-host",
+        feature = "sns-host"
     ))]
     Stale,
     /// The cache file exists but cannot satisfy its owner's current contract.
@@ -51,7 +56,7 @@ pub enum CacheRefreshReason {
 
 /// Load a cache, refresh it when the error represents a missing cache, then
 /// load again.
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub fn load_or_refresh_missing_cache<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     missing_path: impl FnOnce(Error) -> Result<PathBuf, Error>,
@@ -93,7 +98,8 @@ pub fn load_or_refresh_cache_with_error_policy<T, Error>(
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 pub fn load_or_refresh_stale_cache_with_error_policy<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
@@ -119,7 +125,8 @@ pub fn load_or_refresh_stale_cache_with_error_policy<T, Error>(
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 pub fn host_cache_refresh_reason(
     error: HostCacheError,

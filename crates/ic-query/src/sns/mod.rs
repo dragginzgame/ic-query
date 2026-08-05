@@ -33,7 +33,7 @@ pub use report::{
     sns_upgrade_report_text, validate_sns_reward_checkpoint_report,
 };
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use report::{
     DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,

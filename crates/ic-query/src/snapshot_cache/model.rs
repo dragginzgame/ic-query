@@ -101,7 +101,7 @@ pub struct SnapshotIdentityMismatch {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub struct SnapshotHeader<Metadata> {
     pub schema_version: u32,
     pub network: String,
@@ -113,7 +113,7 @@ pub struct SnapshotHeader<Metadata> {
     pub metadata: Metadata,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl<Metadata> JsonCacheReport for SnapshotHeader<Metadata> {
     fn schema_version(&self) -> u32 {
         self.schema_version

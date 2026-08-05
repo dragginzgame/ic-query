@@ -37,6 +37,7 @@ pub fn catalog_stale_status(
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
 pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
@@ -103,6 +104,7 @@ fn civil_from_days(days: i64) -> (i64, i64, i64) {
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
+    feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
 fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {

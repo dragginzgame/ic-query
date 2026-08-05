@@ -46,6 +46,24 @@ does not enable Dashboard, Registry, NNS, or SNS host adapters and has no
 direct ic-query dependency on Reqwest or Prost. Reqwest remains transitive
 through `ic-agent`.
 
+For native SNS discovery, targeted reports, complete proposal/neuron caches,
+reward checkpoints, and local checkpoint diffs, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.29", default-features = false, features = ["sns-host"] }
+```
+
+`sns-host` exposes `LiveSnsSource`, its report-specific source traits and
+builders, confined caches, refresh-attempt evidence, progress events, and
+reward evidence. It enables `ic-agent`, Futures, Tokio, URL, and the
+capability-filesystem dependencies required by those APIs. It shares only the
+ICRC token-metadata query mechanics required by SNS ledger reports; native
+ICRC transaction, archive, certificate, and account-history adapters remain
+disabled. It has no direct ic-query dependency on Reqwest, Prost, CBOR, or
+SHA-256, although `ic-agent` retains Reqwest, CBOR, and cryptographic packages
+transitively.
+
 For a native embedder that needs only the live/cache Subnet catalog API, use
 the narrower feature:
 

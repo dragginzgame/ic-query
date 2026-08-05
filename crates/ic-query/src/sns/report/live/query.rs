@@ -14,6 +14,7 @@ use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Agent;
 
 impl IcrcLedgerError for SnsHostError {
+    #[cfg(feature = "icrc-host")]
     fn agent_build(endpoint: &str, reason: String) -> Self {
         Self::AgentBuild {
             endpoint: endpoint.to_string(),
@@ -21,6 +22,7 @@ impl IcrcLedgerError for SnsHostError {
         }
     }
 
+    #[cfg(feature = "icrc-host")]
     fn invalid_principal(field: &'static str, reason: String) -> Self {
         Self::InvalidPrincipal { field, reason }
     }

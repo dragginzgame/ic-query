@@ -4,7 +4,7 @@
 //! Does not own: report DTOs, tables, cache behavior, or source reads.
 //! Boundary: exposes small formatting helpers used by text report leaves.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 use crate::sns::report::SnsCacheSummary;
 use crate::{
     duration::display_duration_seconds,
@@ -22,7 +22,7 @@ pub(in crate::sns::report::text) fn optional_e8s_text(value: Option<u64>) -> Str
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) fn optional_e8s_decimal_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
 }
@@ -97,7 +97,7 @@ pub(in crate::sns::report::text) fn push_report_provenance_lines(
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report::text) fn push_cache_error_lines(
     lines: &mut Vec<String>,
     caches: &[SnsCacheSummary],

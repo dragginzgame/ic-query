@@ -4,10 +4,15 @@
 //! Does not own: CLI parsing, command-specific reports, SNS lookup, or text rendering.
 //! Boundary: keeps reusable ICRC ledger mechanics independent from report DTOs.
 
-use crate::{agent::build_ic_agent, hex::hex_bytes, icrc::IcrcMetadataValueKind};
-use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal, types::reference::Func};
+#[cfg(feature = "icrc-host")]
+use crate::agent::build_ic_agent;
+use crate::{hex::hex_bytes, icrc::IcrcMetadataValueKind};
+#[cfg(feature = "icrc-host")]
+use candid::types::reference::Func;
+use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal};
 use ic_agent::Agent;
 use serde_json::Value as JsonValue;
+#[cfg(feature = "icrc-host")]
 use std::collections::BTreeMap;
 
 ///
@@ -17,8 +22,10 @@ use std::collections::BTreeMap;
 ///
 
 pub trait IcrcLedgerError: Sized {
+    #[cfg(feature = "icrc-host")]
     fn agent_build(endpoint: &str, reason: String) -> Self;
 
+    #[cfg(feature = "icrc-host")]
     fn invalid_principal(field: &'static str, reason: String) -> Self;
 
     fn candid_encode(message: &'static str, reason: String) -> Self;
@@ -105,6 +112,7 @@ pub enum IcrcMetadataValue {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub struct IcrcAllowanceArgs {
     pub account: IcrcAccount,
     pub spender: IcrcAccount,
@@ -117,6 +125,7 @@ pub struct IcrcAllowanceArgs {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub struct IcrcAllowance {
     pub allowance: Nat,
     pub expires_at: Option<u64>,
@@ -156,6 +165,7 @@ pub enum GetIndexPrincipalError {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) enum Icrc3Value {
     Blob(Vec<u8>),
     Text(String),
@@ -172,6 +182,7 @@ pub(in crate::icrc) enum Icrc3Value {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3GetBlocksRequest {
     pub(in crate::icrc) start: Nat,
     pub(in crate::icrc) length: Nat,
@@ -184,6 +195,7 @@ pub(in crate::icrc) struct Icrc3GetBlocksRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3BlockWithId {
     pub(in crate::icrc) id: Nat,
     pub(in crate::icrc) block: Icrc3Value,
@@ -196,8 +208,10 @@ pub(in crate::icrc) struct Icrc3BlockWithId {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3ArchiveCallback(pub(in crate::icrc) Func);
 
+#[cfg(feature = "icrc-host")]
 impl CandidType for Icrc3ArchiveCallback {
     fn _ty() -> candid::types::Type {
         candid::func!((Vec<Icrc3GetBlocksRequest>) -> (Icrc3GetBlocksResult) query)
@@ -218,6 +232,7 @@ impl CandidType for Icrc3ArchiveCallback {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3ArchivedBlocks {
     pub(in crate::icrc) args: Vec<Icrc3GetBlocksRequest>,
     pub(in crate::icrc) callback: Icrc3ArchiveCallback,
@@ -230,6 +245,7 @@ pub(in crate::icrc) struct Icrc3ArchivedBlocks {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3GetBlocksResult {
     pub(in crate::icrc) log_length: Nat,
     pub(in crate::icrc) blocks: Vec<Icrc3BlockWithId>,
@@ -243,6 +259,7 @@ pub(in crate::icrc) struct Icrc3GetBlocksResult {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3GetArchivesArgs {
     pub(in crate::icrc) from: Option<Principal>,
 }
@@ -254,6 +271,7 @@ pub(in crate::icrc) struct Icrc3GetArchivesArgs {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3ArchiveInfo {
     pub(in crate::icrc) canister_id: Principal,
     pub(in crate::icrc) start: Nat,
@@ -267,6 +285,7 @@ pub(in crate::icrc) struct Icrc3ArchiveInfo {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3SupportedBlockType {
     pub(in crate::icrc) block_type: String,
     pub(in crate::icrc) url: String,
@@ -279,6 +298,7 @@ pub(in crate::icrc) struct Icrc3SupportedBlockType {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[cfg(feature = "icrc-host")]
 pub(in crate::icrc) struct Icrc3DataCertificate {
     pub(in crate::icrc) certificate: Vec<u8>,
     pub(in crate::icrc) hash_tree: Vec<u8>,
@@ -290,6 +310,7 @@ struct IcrcSupportedStandard {
     url: String,
 }
 
+#[cfg(feature = "icrc-host")]
 pub fn ic_agent<E>(endpoint: &str) -> Result<Agent, E>
 where
     E: IcrcLedgerError,
@@ -297,6 +318,7 @@ where
     build_ic_agent(endpoint, |reason| E::agent_build(endpoint, reason))
 }
 
+#[cfg(feature = "icrc-host")]
 pub fn principal_from_text<E>(value: &str, field: &'static str) -> Result<Principal, E>
 where
     E: IcrcLedgerError,
@@ -387,6 +409,7 @@ where
     query_encoded(agent, ledger_canister, method, arg).await
 }
 
+#[cfg(feature = "icrc-host")]
 pub async fn query_ledger_arg<Arg, Response, E>(
     agent: &Agent,
     ledger_canister: &Principal,
@@ -403,6 +426,7 @@ where
 }
 
 /// Queries one Candid method while leaving response decoding to the caller.
+#[cfg(feature = "icrc-host")]
 pub async fn query_ledger_arg_bytes<Arg, E>(
     agent: &Agent,
     ledger_canister: &Principal,
@@ -473,7 +497,7 @@ where
         .map_err(|err| E::agent_call(method, err.to_string()))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "icrc-host"))]
 mod tests {
     use super::*;
 

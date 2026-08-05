@@ -4,15 +4,15 @@
 //! Does not own: command parsing, live source calls, cache IO, or text output.
 //! Boundary: exposes report DTOs, request DTOs, errors, and selectors.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod errors;
 mod reports;
 mod requests;
 mod sorts;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use errors::SnsHostError;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use reports::{
     SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsRefreshReport,
     SnsNeuronsReport, SnsProposalsRefreshReport, SnsRefreshAttemptStatus,
@@ -42,7 +42,7 @@ pub use reports::{
 pub(in crate::sns::report) use reports::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use reports::{
     validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
     validate_sns_reward_running_version_evidence,
@@ -51,22 +51,22 @@ pub use requests::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsListRequest,
     SnsLookupRequest, SnsMetricsRequest, SnsProposalRequest, SnsProposalsRequest,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use requests::{
     SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronRequest, SnsNeuronsRefreshRequest,
     SnsNeuronsRequest, SnsProposalsRefreshRequest, SnsRewardCheckpointRequest,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use requests::{
     sns_metrics_lookup_request, validate_sns_metrics_request, validate_sns_metrics_time_window,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use sorts::SnsNeuronsSort;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use sorts::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
 };
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 pub(in crate::sns::report) use sorts::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };

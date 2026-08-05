@@ -19,7 +19,8 @@ pub use model::RefreshLockRequest;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 pub use run::with_refresh_lock;
 #[cfg(feature = "subnet-catalog-host")]

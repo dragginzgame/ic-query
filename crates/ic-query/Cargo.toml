@@ -38,6 +38,7 @@ host = [
     "dashboard-host",
     "icrc-host",
     "nns-topology-host",
+    "sns-host",
 ]
 dashboard-host = [
     "dep:cap-fs-ext",
@@ -57,6 +58,14 @@ icrc-host = [
     "dep:url",
 ]
 nns-topology-host = ["subnet-catalog-host"]
+sns-host = [
+    "dep:cap-fs-ext",
+    "dep:cap-std",
+    "dep:futures",
+    "dep:ic-agent",
+    "dep:tokio",
+    "dep:url",
+]
 subnet-catalog-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",

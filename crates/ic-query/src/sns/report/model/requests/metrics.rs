@@ -4,7 +4,7 @@
 //! Does not own: CLI parsing, discovery, live calls, or rendering.
 //! Boundary: validates the proposal-count window before any source access.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 use crate::sns::report::{SnsHostError, SnsLookupRequest};
 
 /// Default recent-proposal window used by SNS metrics reports.
@@ -59,14 +59,14 @@ impl SnsMetricsRequest {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) fn validate_sns_metrics_request(
     request: &SnsMetricsRequest,
 ) -> Result<(), SnsHostError> {
     validate_sns_metrics_time_window(request.time_window_seconds)
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) fn validate_sns_metrics_time_window(
     time_window_seconds: u64,
 ) -> Result<(), SnsHostError> {
@@ -79,7 +79,7 @@ pub(in crate::sns::report) fn validate_sns_metrics_time_window(
     Ok(())
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) fn sns_metrics_lookup_request(
     request: &SnsMetricsRequest,
 ) -> SnsLookupRequest {

@@ -4,68 +4,68 @@
 //! Does not own: CLI parsing, process output, or generic cache-file mechanics.
 //! Boundary: keeps SNS lookup, live sources, caches, reports, and renderers together.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod assemble;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod build;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod cache_attempt;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod cache_paths;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod cache_refresh;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod cache_status;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod cache_storage;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod cache_summary;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod catalog_cache;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod live;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod lookup;
 mod model;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod neurons_cache;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod proposals_cache;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod reward_checkpoint_file;
 mod reward_diff;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod source;
 mod text;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod view;
 
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 mod tests;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 use crate::hex::hex_bytes;
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 use crate::icrc::{
     IcrcMetadataValueKind,
     ledger::{IcrcMetadataValue, metadata_row},
 };
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 use neurons_cache::{
     SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_SCHEMA_VERSION,
     SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
 };
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 pub(in crate::sns::report) use source::validate_mainnet_sns_reward_neuron_page;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use source::{
     JoinedMainnetSnsInventory, SNS_SWAP_QUERY_COUNT, SNS_UPGRADE_QUERY_COUNT,
     SnsRewardCollectionState,
 };
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use build::{
     build_sns_canister_report, build_sns_canister_report_with_source, build_sns_info_report,
     build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
@@ -80,12 +80,12 @@ pub use build::{
     build_sns_token_report_with_source, build_sns_upgrade_report,
     build_sns_upgrade_report_with_source,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use cache_summary::{
     build_sns_cache_list_report, find_sns_cache_summary_by_id, load_sns_cache_summary_at,
     parse_sns_root_canister_input,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use catalog_cache::{
     DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
     SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest,
@@ -94,7 +94,7 @@ pub use catalog_cache::{
     refresh_sns_catalog_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
     sns_catalog_refresh_report_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use live::LiveSnsSource;
 pub use model::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
@@ -122,15 +122,15 @@ pub use model::{
     SnsVotingPowerMetrics, SnsVotingRewardsParameters, sns_neuron_permission_name,
     validate_sns_reward_checkpoint_report,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use model::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
 };
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 pub(in crate::sns::report) use model::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use model::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
     SnsCacheSummary, SnsHostError, SnsNeuronRequest, SnsNeuronsRefreshReport,
@@ -141,31 +141,31 @@ pub use model::{
 pub(in crate::sns::report) use model::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use model::{
     validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
     validate_sns_reward_running_version_evidence,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use neurons_cache::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, refresh_sns_neurons_cache,
     refresh_sns_neurons_cache_with_progress, refresh_sns_neurons_cache_with_source,
     sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use proposals_cache::{
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, refresh_sns_proposals_cache,
     refresh_sns_proposals_cache_with_progress, refresh_sns_proposals_cache_with_source,
     sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use reward_checkpoint_file::{
     build_sns_reward_diff_report_from_paths, load_sns_reward_checkpoint,
 };
 pub use reward_diff::build_sns_reward_diff_report;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use source::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
     MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
@@ -182,7 +182,7 @@ pub use text::{
     sns_proposals_report_text, sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
     sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use text::{
     sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
     sns_neurons_refresh_report_text, sns_neurons_report_text, sns_proposals_cache_list_report_text,
@@ -191,46 +191,46 @@ pub use text::{
 
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 /// Largest page size accepted by an SNS refresh request.
 pub const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_CANISTER_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_METRICS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_SWAP_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_UPGRADE_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_REWARD_CHECKPOINT_MAX_NEURONS: u64 = 200_000;
 const SNS_REWARD_CHECKPOINT_PAGE_SIZE: u32 = 100;
 const SNS_REWARD_DIFF_REPORT_SCHEMA_VERSION: u32 = 1;
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 /// Shared component label for generic SNS cache failures.
 pub(in crate::sns::report) const SNS_CACHE_COMPONENT: &str = "SNS";
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) fn enforce_mainnet_network(network: &str) -> Result<(), SnsHostError> {
     crate::network::enforce_mainnet_network_with(network, |network| {
         SnsHostError::UnsupportedNetwork { network }

@@ -189,7 +189,7 @@ impl SnsProposalsRequest {
 /// Request accepted by the complete SNS proposal snapshot refresh builder.
 ///
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsProposalsRefreshRequest {
     pub network: String,
@@ -201,7 +201,7 @@ pub struct SnsProposalsRefreshRequest {
     pub max_pages: Option<u32>,
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsProposalsRefreshRequest {
     #[must_use]
     pub fn new(

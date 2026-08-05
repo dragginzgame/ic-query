@@ -210,7 +210,7 @@ pub fn read_managed_text(
     })
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 /// Discover canonical collection files beneath one confined network directory.
 pub fn collect_managed_collection_files(
     cache_root: &Path,

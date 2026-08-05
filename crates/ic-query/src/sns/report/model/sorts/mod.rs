@@ -5,18 +5,18 @@
 //! Boundary: re-exports stable report-model selectors used by SNS reports.
 
 mod list;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod neurons;
 mod proposals;
 
 pub use list::SnsListSort;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use neurons::SnsNeuronsSort;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use proposals::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
 };
-#[cfg(all(test, feature = "host"))]
+#[cfg(all(test, feature = "sns-host"))]
 pub(in crate::sns::report) use proposals::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };

@@ -12,7 +12,8 @@ use std::future::Future;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
+    feature = "nns-topology-host",
+    feature = "sns-host"
 ))]
 pub fn with_refresh_lock<T, E>(
     request: RefreshLockRequest<'_>,

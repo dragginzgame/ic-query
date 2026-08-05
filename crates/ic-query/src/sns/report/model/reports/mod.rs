@@ -4,9 +4,9 @@
 //! Does not own: report construction, source fetching, cache IO, or rendering.
 //! Boundary: re-exports serializable report models used by SNS output writers.
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod attempt;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 mod cache;
 mod canisters;
 mod governance;
@@ -20,9 +20,9 @@ mod swap;
 mod token;
 mod upgrade;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use attempt::SnsRefreshAttemptStatus;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use cache::{SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary};
 pub use canisters::{
     SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap,
@@ -45,18 +45,18 @@ pub use neurons::{
     SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, sns_neuron_permission_name,
     validate_sns_reward_checkpoint_report,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use neurons::{SnsNeuronsRefreshReport, SnsNeuronsReport};
 pub(in crate::sns::report) use neurons::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use neurons::{
     validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
     validate_sns_reward_running_version_evidence,
 };
 pub use params::SnsParamsReport;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub use proposals::SnsProposalsRefreshReport;
 pub use proposals::{
     SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,

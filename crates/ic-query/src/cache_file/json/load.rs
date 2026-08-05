@@ -73,7 +73,11 @@ where
     load_json_cache_inner(request, None, errors)
 }
 
-#[cfg(any(feature = "dashboard-host", feature = "icrc-host"))]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "sns-host"
+))]
 pub fn load_json_cache_strict<T, Errors>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],

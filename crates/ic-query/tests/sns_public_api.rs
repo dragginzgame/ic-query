@@ -1,4 +1,4 @@
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 use ic_query::HostCacheError;
 use ic_query::icrc::IcrcMetadataValueKind;
 use ic_query::report::ReportDataSource;
@@ -30,7 +30,7 @@ use ic_query::sns::{
     sns_reward_diff_report_text, sns_swap_report_text, sns_token_report_text,
     sns_upgrade_report_text, validate_sns_reward_checkpoint_report,
 };
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
@@ -71,7 +71,7 @@ use ic_query::sns::{
     sns_proposals_refresh_lock_path, sns_proposals_refresh_report_text,
 };
 use serde_json::json;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -79,50 +79,50 @@ use std::{
 
 const SAMPLE_SNS_ROOT_CANISTER_ID: &str = "be2us-64aaa-aaaaa-qaabq-cai";
 const SAMPLE_SNS_GOVERNANCE_CANISTER_ID: &str = "bkyz2-fmaaa-aaaaa-qaaaq-cai";
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SAMPLE_SNS_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SAMPLE_SNS_SWAP_CANISTER_ID: &str = "br5f7-7uaaa-aaaaa-qaaca-cai";
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 const SAMPLE_SNS_INDEX_CANISTER_ID: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
 const SAMPLE_SNS_FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 const SAMPLE_SNS_NEURON_ID: &str =
     "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsListBuilder = fn(&SnsListRequest) -> Result<SnsListReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsInfoBuilder = fn(&SnsLookupRequest) -> Result<SnsInfoReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsMetricsBuilder = fn(&SnsMetricsRequest) -> Result<SnsMetricsReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsCanisterBuilder = fn(&SnsLookupRequest) -> Result<SnsCanisterReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsTokenBuilder = fn(&SnsLookupRequest) -> Result<SnsTokenReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsParamsBuilder = fn(&SnsLookupRequest) -> Result<SnsParamsReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsSwapBuilder = fn(&SnsLookupRequest) -> Result<SnsSwapReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsUpgradeBuilder = fn(&SnsLookupRequest) -> Result<SnsUpgradeReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsProposalsBuilder = fn(&SnsProposalsRequest) -> Result<SnsProposalsReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsProposalBuilder = fn(&SnsProposalRequest) -> Result<SnsProposalReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsNeuronBuilder = fn(&SnsNeuronRequest) -> Result<SnsNeuronDetailReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsRewardCheckpointBuilder =
     fn(&SnsRewardCheckpointRequest) -> Result<SnsRewardCheckpointReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsNeuronsBuilder = fn(&SnsNeuronsRequest) -> Result<SnsNeuronsReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsNeuronsRefreshBuilder =
     fn(&SnsNeuronsRefreshRequest) -> Result<SnsNeuronsRefreshReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsProposalsRefreshBuilder =
     fn(&SnsProposalsRefreshRequest) -> Result<SnsProposalsRefreshReport, SnsHostError>;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 type SnsCatalogRefreshBuilder =
     fn(&SnsCatalogRefreshRequest) -> Result<SnsCatalogRefreshReport, SnsHostError>;
 
@@ -413,7 +413,7 @@ fn public_sns_reward_diff_matches_stable_canister_identity_not_display_metadata(
     );
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_reward_diff_file_adapter_loads_without_live_source_calls() {
     let before = sample_sns_reward_checkpoint_report();
@@ -979,7 +979,7 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
     assert_eq!(json["proposal"]["ballots"][0]["vote_text"], "yes");
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsListBuilder>(build_sns_list_report);
@@ -1004,7 +1004,7 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     assert_eq!(DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
@@ -1067,7 +1067,7 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
     Ok(())
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
@@ -1106,7 +1106,7 @@ fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), S
     Ok(())
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
@@ -1150,7 +1150,7 @@ fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), Sns
     Ok(())
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<(), SnsHostError> {
     let report = build_sns_reward_checkpoint_report_with_source(
@@ -1169,7 +1169,7 @@ fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<(), SnsH
     Ok(())
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_neuron_request_constructor() {
     let checkpoint = SnsRewardCheckpointRequest::new(
@@ -1211,7 +1211,7 @@ fn public_sns_host_api_exposes_neuron_request_constructor() {
     assert!(request.verbose);
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_catalog_cache_contract() {
     let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
@@ -1272,7 +1272,7 @@ fn public_sns_host_api_exposes_catalog_cache_contract() {
     ));
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_cache_paths_and_local_reports() -> Result<(), SnsHostError> {
     let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
@@ -1348,7 +1348,7 @@ fn public_sns_host_api_exposes_cache_paths_and_local_reports() -> Result<(), Sns
     Ok(())
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
     let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
@@ -1415,13 +1415,13 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
     );
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn accepts_public_function<T>(_function: T) {}
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 struct FixtureSnsSource;
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsDiscoverySource for FixtureSnsSource {
     fn fetch_sns_inventory(
         &self,
@@ -1450,7 +1450,7 @@ impl SnsDiscoverySource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsCatalogSource for FixtureSnsSource {
     fn fetch_sns_lifecycles(
         &self,
@@ -1470,7 +1470,7 @@ impl SnsCatalogSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsCanisterSource for FixtureSnsSource {
     fn fetch_sns_canisters(
         &self,
@@ -1500,7 +1500,7 @@ impl SnsCanisterSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsTokenSource for FixtureSnsSource {
     fn fetch_sns_token(
         &self,
@@ -1512,7 +1512,7 @@ impl SnsTokenSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsParamsSource for FixtureSnsSource {
     fn fetch_sns_params(
         &self,
@@ -1527,7 +1527,7 @@ impl SnsParamsSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsMetricsSource for FixtureSnsSource {
     fn fetch_sns_metrics(
         &self,
@@ -1543,7 +1543,7 @@ impl SnsMetricsSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsSwapSource for FixtureSnsSource {
     fn fetch_sns_swap(
         &self,
@@ -1555,7 +1555,7 @@ impl SnsSwapSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsUpgradeSource for FixtureSnsSource {
     fn fetch_sns_upgrade(
         &self,
@@ -1570,7 +1570,7 @@ impl SnsUpgradeSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsProposalSource for FixtureSnsSource {
     fn fetch_sns_proposal(
         &self,
@@ -1589,7 +1589,7 @@ impl SnsProposalSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsProposalsSource for FixtureSnsSource {
     fn fetch_sns_proposals(
         &self,
@@ -1632,7 +1632,7 @@ impl SnsProposalsSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsNeuronSource for FixtureSnsSource {
     fn fetch_sns_neuron(
         &self,
@@ -1651,7 +1651,7 @@ impl SnsNeuronSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsNeuronsSource for FixtureSnsSource {
     fn fetch_sns_neurons(
         &self,
@@ -1693,7 +1693,7 @@ impl SnsNeuronsSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 impl SnsRewardSource for FixtureSnsSource {
     fn fetch_sns_reward_running_version(
         &self,
@@ -1743,7 +1743,7 @@ impl SnsRewardSource for FixtureSnsSource {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn proposal_source_cache_root() -> PathBuf {
     PathBuf::from(format!(
         "target/ic-query-sns-public-api-proposal-source-{}",
@@ -1751,7 +1751,7 @@ fn proposal_source_cache_root() -> PathBuf {
     ))
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn neuron_source_cache_root() -> PathBuf {
     PathBuf::from(format!(
         "target/ic-query-sns-public-api-neuron-source-{}",
@@ -1759,7 +1759,7 @@ fn neuron_source_cache_root() -> PathBuf {
     ))
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_mainnet_sns_inventory(request: &SnsSourceRequest) -> MainnetSnsInventory {
     MainnetSnsInventory {
         network: "ic".to_string(),
@@ -1777,7 +1777,7 @@ fn sample_mainnet_sns_inventory(request: &SnsSourceRequest) -> MainnetSnsInvento
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_mainnet_sns_token() -> MainnetSnsToken {
     MainnetSnsToken {
         token_name: "Example Token".to_string(),
@@ -1801,7 +1801,7 @@ fn sample_mainnet_sns_token() -> MainnetSnsToken {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_mainnet_sns_swap() -> MainnetSnsSwap {
     MainnetSnsSwap {
         swap_canister_id: SAMPLE_SNS_SWAP_CANISTER_ID.to_string(),
@@ -1829,7 +1829,7 @@ fn sample_mainnet_sns_swap() -> MainnetSnsSwap {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_mainnet_sns_metrics(time_window_seconds: u64) -> MainnetSnsMetrics {
     MainnetSnsMetrics {
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
@@ -1871,7 +1871,7 @@ fn sample_sns_version(hash: &str) -> SnsVersion {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_mainnet_sns_upgrade() -> MainnetSnsUpgrade {
     MainnetSnsUpgrade {
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
@@ -1886,7 +1886,7 @@ fn sample_mainnet_sns_upgrade() -> MainnetSnsUpgrade {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_sns_neuron_row() -> SnsNeuronRow {
     SnsNeuronRow {
         neuron_id: SAMPLE_SNS_NEURON_ID.to_string(),
@@ -1941,7 +1941,7 @@ fn sample_sns_governance_parameters() -> SnsGovernanceParameters {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_sns_neurons_report() -> SnsNeuronsReport {
     SnsNeuronsReport {
         schema_version: 1,
@@ -1981,7 +1981,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_sns_neurons_refresh_report(
     cache_path: &Path,
     refresh_lock_path: &Path,
@@ -2011,7 +2011,7 @@ fn sample_sns_neurons_refresh_report(
     }
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn sample_sns_proposals_refresh_report(
     cache_path: &Path,
     refresh_lock_path: &Path,

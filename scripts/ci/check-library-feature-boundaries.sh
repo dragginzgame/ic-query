@@ -47,6 +47,17 @@ forbidden_direct_icrc_host_dependencies=(
   reqwest
 )
 
+forbidden_sns_host_dependencies=(
+  prost
+)
+
+forbidden_direct_sns_host_dependencies=(
+  prost
+  reqwest
+  serde_cbor
+  sha2
+)
+
 check_tree_absent() {
   local label="$1"
   shift
@@ -106,6 +117,8 @@ run_quiet "ic-query --features subnet-catalog-host" \
   cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
 run_quiet "ic-query --features nns-topology-host" \
   cargo check -p ic-query --no-default-features --features nns-topology-host --locked
+run_quiet "ic-query --features sns-host" \
+  cargo check -p ic-query --no-default-features --features sns-host --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
@@ -117,6 +130,7 @@ cargo test -p ic-query --test ic_public_api --no-default-features --features hos
 cargo test -p ic-query --test nns_public_api --no-default-features --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --locked
+cargo test -p ic-query --test sns_public_api --no-default-features --features sns-host --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --locked
 cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features subnet-catalog-host --locked
@@ -197,6 +211,26 @@ check_tree_absent "ic-query --features icrc-host direct dependencies" \
   -p ic-query \
   --no-default-features \
   --features icrc-host \
+  -e normal \
+  --depth 1
+
+check_tree_absent "ic-query --features sns-host" \
+  "${forbidden_sns_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features sns-host
+
+# `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
+# The focused SNS feature promises that ic-query does not activate its
+# Dashboard transport, Registry protobuf, or native ICRC certification edges
+# directly, not that those package names disappear transitively.
+check_tree_absent "ic-query --features sns-host direct dependencies" \
+  "${forbidden_direct_sns_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features sns-host \
   -e normal \
   --depth 1
 

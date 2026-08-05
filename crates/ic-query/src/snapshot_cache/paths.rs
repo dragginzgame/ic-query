@@ -5,7 +5,7 @@
 //! Boundary: maps logical snapshot keys to cache-root filesystem locations.
 
 use super::SnapshotKey;
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 use crate::cache_file::{CacheFileError, collect_managed_collection_files};
 use std::path::{Path, PathBuf};
 
@@ -50,7 +50,7 @@ pub fn snapshot_network_dir(cache_root: &Path, domain: &str, network: &str) -> P
 }
 
 /// Collect sorted complete-snapshot paths for every entity in a collection.
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub fn collect_full_collection_snapshot_paths(
     cache_root: &Path,
     network_dir: &Path,
@@ -60,7 +60,7 @@ pub fn collect_full_collection_snapshot_paths(
 }
 
 /// Collect sorted refresh-attempt paths for every entity in a collection.
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 pub fn collect_full_collection_attempt_paths(
     cache_root: &Path,
     network_dir: &Path,
@@ -74,7 +74,7 @@ pub fn collect_full_collection_attempt_paths(
     )
 }
 
-#[cfg(feature = "host")]
+#[cfg(feature = "sns-host")]
 fn collect_full_collection_paths(
     cache_root: &Path,
     network_dir: &Path,
