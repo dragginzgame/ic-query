@@ -98,13 +98,17 @@ use ic_query::nns::proposals::{
     nns_proposal_list_report_text, nns_proposal_report_text,
 };
 use ic_query::nns::registry::{
-    NnsRegistryCertification, NnsRegistryVersionReport, NnsRegistryVersionRequest,
-    nns_registry_version_report_text,
+    NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
+    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind, NnsRegistryCertification,
+    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
-    NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
-    build_nns_registry_version_report_with_source,
+    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
+    NnsRegistrySource, NnsRegistryVersionData, build_nns_registry_version_report_with_source,
+    fetch_nns_certified_registry_delta_batch_with_source_async,
+    nns_certified_registry_delta_limits,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::topology::{
@@ -438,6 +442,23 @@ fn public_nns_registry_api_is_constructible_and_renderable() {
     assert!(text.contains("registry_version: 42"));
 }
 
+#[test]
+fn public_certified_registry_delta_models_preserve_raw_evidence() {
+    let request =
+        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
+    let report = public_certified_delta_report(&request);
+
+    let json = serde_json::to_value(report).expect("serialize certified delta report");
+
+    assert_eq!(json["requested_version"], 41);
+    assert_eq!(json["versions"][0]["mutations"][0]["mutation_type"], 4);
+    assert_eq!(
+        json["versions"][0]["mutations"][0]["mutation_kind"],
+        "upsert"
+    );
+    assert_eq!(json["versions"][0]["mutations"][0]["key_hex"], "61");
+}
+
 #[cfg(feature = "nns-host")]
 #[test]
 fn public_nns_registry_host_api_accepts_custom_source_adapter() {
@@ -473,6 +494,89 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
             source_endpoint: request.endpoint.clone(),
             certification: public_registry_certification(),
         })
+    }
+}
+
+#[cfg(feature = "nns-host")]
+struct FixtureCertifiedRegistryDeltaSource;
+
+#[cfg(feature = "nns-host")]
+impl NnsCertifiedRegistryDeltaSource for FixtureCertifiedRegistryDeltaSource {
+    fn fetch_certified_registry_delta_batch<'a>(
+        &'a self,
+        request: &'a NnsCertifiedRegistryDeltaBatchRequest,
+    ) -> NnsCertifiedRegistryDeltaSourceFuture<'a> {
+        Box::pin(async move { Ok(public_certified_delta_report(request)) })
+    }
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_certified_registry_delta_async_api_accepts_custom_sources() {
+    let request =
+        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
+    let report =
+        futures::executor::block_on(fetch_nns_certified_registry_delta_batch_with_source_async(
+            &request,
+            &FixtureCertifiedRegistryDeltaSource,
+        ))
+        .expect("public certified delta API");
+
+    assert_eq!(report.first_version, Some(42));
+}
+
+fn public_certified_delta_report(
+    request: &NnsCertifiedRegistryDeltaBatchRequest,
+) -> NnsCertifiedRegistryDeltaBatchReport {
+    NnsCertifiedRegistryDeltaBatchReport {
+        schema_version: 1,
+        network: "ic".to_string(),
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        requested_version: request.requested_version,
+        certified_latest_version: 42,
+        first_version: Some(42),
+        last_version: Some(42),
+        version_count: 1,
+        mutation_count: 1,
+        precondition_count: 0,
+        inline_value_bytes: 1,
+        more_available: false,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: request.source_endpoint.clone(),
+        fetched_by: "ic-query".to_string(),
+        query_call_count: 1,
+        response_bytes: 64,
+        limits: public_certified_delta_limits(),
+        versions: vec![NnsCertifiedRegistryDeltaVersion {
+            version: 42,
+            timestamp_nanoseconds: 1_700_000_000_000_000_000,
+            mutations: vec![NnsCertifiedRegistryMutation {
+                mutation_type: 4,
+                mutation_kind: NnsCertifiedRegistryMutationKind::Upsert,
+                key_hex: "61".to_string(),
+                value_hex: Some("62".to_string()),
+            }],
+            preconditions: Vec::new(),
+        }],
+        certification: public_registry_certification(),
+    }
+}
+
+const fn public_certified_delta_limits() -> NnsCertifiedRegistryDeltaLimits {
+    #[cfg(feature = "nns-host")]
+    {
+        nns_certified_registry_delta_limits()
+    }
+    #[cfg(not(feature = "nns-host"))]
+    {
+        NnsCertifiedRegistryDeltaLimits {
+            max_versions: 1_000,
+            max_mutations: 65_536,
+            max_preconditions: 65_536,
+            max_key_bytes: 4_096,
+            max_inline_value_bytes: 2 * 1_024 * 1_024,
+            max_response_bytes: 8 * 1_024 * 1_024,
+        }
     }
 }
 

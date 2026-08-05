@@ -81,7 +81,7 @@ fn validate_source_result(
     Ok(())
 }
 
-fn validate_certification(
+pub(super) fn validate_certification(
     now_unix_secs: u64,
     certification: &super::model::NnsRegistryCertification,
 ) -> Result<(), NnsRegistryHostError> {

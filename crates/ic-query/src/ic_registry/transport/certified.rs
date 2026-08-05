@@ -21,7 +21,7 @@ use prost::Message;
 use sha2::{Digest, Sha256};
 
 const GET_CERTIFIED_LATEST_VERSION_METHOD: &str = "get_certified_latest_version";
-const CURRENT_VERSION_LABEL: &[u8] = b"current_version";
+pub(super) const CURRENT_VERSION_LABEL: &[u8] = b"current_version";
 const MAX_MIXED_HASH_TREE_DEPTH: usize = 128;
 const MAX_MIXED_HASH_TREE_NODES: usize = 65_536;
 const SHA_256_BYTES: usize = 32;
@@ -47,6 +47,22 @@ pub(in crate::ic_registry) struct CertifiedRegistryVersion {
     pub(in crate::ic_registry) hash_tree_hex: String,
     /// Encoded protobuf witness byte count.
     pub(in crate::ic_registry) hash_tree_bytes: usize,
+}
+
+///
+/// AuthenticatedRegistryResponse
+///
+/// Authenticated common evidence from one certified Registry response.
+///
+
+pub(super) struct AuthenticatedRegistryResponse {
+    pub(super) hash_tree: HashTree<Vec<u8>>,
+    pub(super) certificate_time_nanos: u64,
+    pub(super) root_key_digest: String,
+    pub(super) certificate_hex: String,
+    pub(super) certificate_bytes: usize,
+    pub(super) hash_tree_hex: String,
+    pub(super) hash_tree_bytes: usize,
 }
 
 pub(in crate::ic_registry) async fn get_certified_latest_version(
@@ -76,9 +92,38 @@ fn verified_certified_registry_version(
     registry_canister: &Principal,
     response: RegistryCertifiedResponse,
 ) -> Result<CertifiedRegistryVersion, RegistryFetchError> {
-    let raw_hash_tree = response.hash_tree.ok_or_else(|| {
-        invalid_certified_registry("get_certified_latest_version returned no hash_tree")
-    })?;
+    let authenticated = authenticate_registry_response(
+        agent,
+        registry_canister,
+        response,
+        GET_CERTIFIED_LATEST_VERSION_METHOD,
+    )?;
+    let registry_version = required_leb128_leaf(
+        &authenticated.hash_tree,
+        CURRENT_VERSION_LABEL,
+        "current_version",
+    )?;
+
+    Ok(CertifiedRegistryVersion {
+        registry_version,
+        certificate_time_nanos: authenticated.certificate_time_nanos,
+        root_key_digest: authenticated.root_key_digest,
+        certificate_hex: authenticated.certificate_hex,
+        certificate_bytes: authenticated.certificate_bytes,
+        hash_tree_hex: authenticated.hash_tree_hex,
+        hash_tree_bytes: authenticated.hash_tree_bytes,
+    })
+}
+
+pub(super) fn authenticate_registry_response(
+    agent: &Agent,
+    registry_canister: &Principal,
+    response: RegistryCertifiedResponse,
+    method: &'static str,
+) -> Result<AuthenticatedRegistryResponse, RegistryFetchError> {
+    let raw_hash_tree = response
+        .hash_tree
+        .ok_or_else(|| invalid_certified_registry(format!("{method} returned no hash_tree")))?;
     let encoded_hash_tree = raw_hash_tree.encode_to_vec();
     let hash_tree = decode_mixed_hash_tree(raw_hash_tree)?;
     let certificate: Certificate =
@@ -94,7 +139,6 @@ fn verified_certified_registry_version(
     )
     .map_err(map_certified_data_error)?;
 
-    let registry_version = required_leb128_leaf(&hash_tree, CURRENT_VERSION_LABEL)?;
     let certificate_time =
         ic_agent::lookup_value(&certificate, [b"time".as_slice()]).map_err(|error| {
             invalid_certified_registry(format!(
@@ -104,8 +148,8 @@ fn verified_certified_registry_version(
     let certificate_time_nanos =
         decode_canonical_unsigned_leb128("certificate time", certificate_time)?;
 
-    Ok(CertifiedRegistryVersion {
-        registry_version,
+    Ok(AuthenticatedRegistryResponse {
+        hash_tree,
         certificate_time_nanos,
         root_key_digest: hex_bytes(&Sha256::digest(agent.read_root_key())),
         certificate_hex: hex_bytes(&response.certificate),
@@ -177,19 +221,22 @@ fn required_child(
     decode_mixed_hash_tree_node(*child, depth.saturating_add(1), nodes)
 }
 
-fn required_leb128_leaf(
+pub(super) fn required_leb128_leaf(
     hash_tree: &HashTree<Vec<u8>>,
     label: &[u8],
+    field: &str,
 ) -> Result<u64, RegistryFetchError> {
     match hash_tree.lookup_path([label]) {
-        LookupResult::Found(value) => decode_canonical_unsigned_leb128("current_version", value),
-        LookupResult::Absent => Err(invalid_certified_registry("current_version leaf is absent")),
-        LookupResult::Unknown => Err(invalid_certified_registry(
-            "current_version leaf is not proven by the partial tree",
-        )),
-        LookupResult::Error => Err(invalid_certified_registry(
-            "current_version path does not identify a leaf",
-        )),
+        LookupResult::Found(value) => decode_canonical_unsigned_leb128(field, value),
+        LookupResult::Absent => Err(invalid_certified_registry(format!(
+            "{field} leaf is absent"
+        ))),
+        LookupResult::Unknown => Err(invalid_certified_registry(format!(
+            "{field} leaf is not proven by the partial tree"
+        ))),
+        LookupResult::Error => Err(invalid_certified_registry(format!(
+            "{field} path does not identify a leaf"
+        ))),
     }
 }
 
@@ -245,7 +292,7 @@ fn map_certified_data_error(error: CertifiedDataError) -> RegistryFetchError {
     }
 }
 
-fn invalid_certified_registry(reason: impl Into<String>) -> RegistryFetchError {
+pub(super) fn invalid_certified_registry(reason: impl Into<String>) -> RegistryFetchError {
     RegistryFetchError::InvalidCertifiedRegistry {
         reason: reason.into(),
     }
@@ -275,7 +322,8 @@ mod tests {
         let decoded = decode_mixed_hash_tree(tree).expect("valid mixed hash tree");
 
         assert_eq!(
-            required_leb128_leaf(&decoded, CURRENT_VERSION_LABEL).expect("certified version leaf"),
+            required_leb128_leaf(&decoded, CURRENT_VERSION_LABEL, "current_version")
+                .expect("certified version leaf"),
             42
         );
         assert_eq!(
@@ -317,7 +365,7 @@ mod tests {
     fn rejects_missing_and_noncanonical_version_leaves() {
         let missing = decode_mixed_hash_tree(node(Tree::Empty(()))).expect("empty tree");
         assert!(matches!(
-            required_leb128_leaf(&missing, CURRENT_VERSION_LABEL),
+            required_leb128_leaf(&missing, CURRENT_VERSION_LABEL, "current_version"),
             Err(RegistryFetchError::InvalidCertifiedRegistry { reason })
                 if reason.contains("absent")
         ));
@@ -328,7 +376,7 @@ mod tests {
         ))
         .expect("structurally valid tree");
         assert!(matches!(
-            required_leb128_leaf(&noncanonical, CURRENT_VERSION_LABEL),
+            required_leb128_leaf(&noncanonical, CURRENT_VERSION_LABEL, "current_version"),
             Err(RegistryFetchError::InvalidCertifiedRegistry { reason })
                 if reason.contains("not canonical")
         ));

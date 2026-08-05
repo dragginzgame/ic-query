@@ -128,7 +128,7 @@ actually make:
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
-| NNS Registry | Authenticated certified latest-version evidence plus exact-version joined Registry query evidence with explicit catalog assurance | Certification of `current_version` does not certify ordinary `get_value` catalog reads; single-endpoint catalogs remain `uncertified_query`, while explicit 2–3 endpoint agreement is still not cryptographic certification |
+| NNS Registry | Authenticated certified latest-version and bounded contiguous delta-batch evidence, plus exact-version joined Registry query evidence with explicit catalog assurance | A single delta batch does not reconstruct Registry state; certification of `current_version` does not certify ordinary `get_value` catalog reads, and endpoint agreement is not cryptographic certification |
 | NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
@@ -472,6 +472,15 @@ Registry Prost, SHA-256, and CBOR dependencies needed by exact-version
 topology, endpoint agreement, and certified Registry-version evidence. It has
 no direct ic-query Dashboard Reqwest edge; Reqwest remains transitive through
 `ic-agent`.
+
+The `nns-host` library surface also exposes a caller-runtime async
+`fetch_nns_certified_registry_delta_batch_async` operation and pure
+`validate_nns_certified_registry_delta_batch` validator. One call returns at
+most one contiguous certified batch and reports `more_available`; it never
+loops, writes a cache, retrieves chunked large values, or promotes Subnet
+Catalog assurance. The pure validator checks structural evidence returned by
+trusted custom sources; only the built-in live transport cryptographically
+authenticates the raw certificate and witness.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return

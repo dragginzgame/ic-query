@@ -32,6 +32,19 @@ pub enum RegistryFetchError {
         reason: String,
     },
 
+    /// A certified mutation references value chunks that this bounded batch does not fetch.
+    #[error(
+        "certified Registry version {version} key {key_hex} uses {chunk_count} large-value chunks; bounded chunk retrieval is not implemented"
+    )]
+    UnsupportedCertifiedLargeValue {
+        /// Registry version containing the mutation.
+        version: u64,
+        /// Registry key as canonical lowercase hexadecimal.
+        key_hex: String,
+        /// Number of referenced content-addressed chunks.
+        chunk_count: usize,
+    },
+
     #[error("failed to encode protobuf {message}: {reason}")]
     ProtobufEncode {
         message: &'static str,

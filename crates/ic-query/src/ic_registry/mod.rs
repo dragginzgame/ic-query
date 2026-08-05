@@ -15,6 +15,8 @@ mod transport;
 mod wire;
 
 use candid::Principal;
+#[cfg(feature = "nns-host")]
+pub use client::fetch_mainnet_certified_registry_delta_batch_async;
 pub use client::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "nns-topology-host")]
 pub use client::fetch_mainnet_subnet_topology;
@@ -27,6 +29,11 @@ pub use error::RegistryFetchError;
 pub use model::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-host")]
 pub use model::{
+    CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion, CertifiedRegistryMutation,
+    CertifiedRegistryPrecondition,
+};
+#[cfg(feature = "nns-host")]
+pub use model::{
     MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
     MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList,
     MainnetRegistryCertification, MainnetRegistryVersion,
@@ -36,6 +43,11 @@ pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
 use proto::{CanisterId, SubnetId};
+#[cfg(feature = "nns-host")]
+pub use transport::{
+    MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES, MAX_CERTIFIED_DELTA_KEY_BYTES,
+    MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS, MAX_CERTIFIED_DELTA_VERSIONS,
+};
 
 #[cfg(all(test, feature = "nns-host"))]
 use crate::subnet_catalog::{

@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.1` adds a mainnet-only caller-runtime async library operation for one
+  certified `get_certified_changes_since` batch. It authenticates the shared
+  latest-version and delta witness, requires contiguous eight-byte version
+  labels, decodes native atomic mutations, preserves raw evidence and exact
+  accounting, and fails closed on malformed, oversized, unknown, conflicting,
+  or chunk-referenced content. A pure validator recomputes structural report
+  invariants for trusted custom sources; cryptographic authentication remains
+  the source's responsibility. The operation is one-call, uncached,
+  non-paginating, has no CLI surface, and does not promote Subnet Catalog
+  assurance.
+
 - `0.30.0` hard-cuts the existing NNS Registry version report and source
   contract to one authenticated `get_certified_latest_version` call. The host
   verifies the mainnet-root-key certificate, Registry canister authority,

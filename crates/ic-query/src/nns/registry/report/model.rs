@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "nns-host")]
 pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 2;
+#[cfg(feature = "nns-host")]
+pub(super) const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 1;
 
 ///
 /// NnsRegistryVersionRequest
@@ -74,4 +76,203 @@ pub struct NnsRegistryCertification {
     pub hash_tree_hex: String,
     /// Encoded mixed hash-tree witness length in bytes.
     pub hash_tree_bytes: usize,
+}
+
+///
+/// NnsCertifiedRegistryDeltaBatchRequest
+///
+/// Request for one authenticated, bounded Registry delta batch.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NnsCertifiedRegistryDeltaBatchRequest {
+    /// Network identity; only mainnet `ic` is supported.
+    pub network: String,
+    /// Replica endpoint used for the certified query.
+    pub source_endpoint: String,
+    /// Last Registry version already held by the caller.
+    pub requested_version: u64,
+    /// Caller observation time used to validate certificate freshness.
+    pub now_unix_secs: u64,
+}
+
+impl NnsCertifiedRegistryDeltaBatchRequest {
+    /// Create a request for the batch immediately after `requested_version`.
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        source_endpoint: impl Into<String>,
+        requested_version: u64,
+        now_unix_secs: u64,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            source_endpoint: source_endpoint.into(),
+            requested_version,
+            now_unix_secs,
+        }
+    }
+}
+
+///
+/// NnsCertifiedRegistryDeltaBatchReport
+///
+/// Authenticated contiguous Registry mutations returned by one bounded query.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NnsCertifiedRegistryDeltaBatchReport {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Network identity.
+    pub network: String,
+    /// Canonical mainnet Registry canister principal.
+    pub registry_canister_id: String,
+    /// Version after which deltas were requested.
+    pub requested_version: u64,
+    /// Latest Registry version authenticated by the same response.
+    pub certified_latest_version: u64,
+    /// First visible contiguous delta version, when any.
+    pub first_version: Option<u64>,
+    /// Last visible contiguous delta version, when any.
+    pub last_version: Option<u64>,
+    /// Number of visible Registry versions.
+    pub version_count: usize,
+    /// Number of mutations across all visible versions.
+    pub mutation_count: usize,
+    /// Number of preconditions across all visible versions.
+    pub precondition_count: usize,
+    /// Complete inline value bytes across all visible mutations.
+    pub inline_value_bytes: usize,
+    /// Whether later certified versions require another explicit request.
+    pub more_available: bool,
+    /// Caller collection time.
+    pub fetched_at: String,
+    /// Exact replica endpoint used by the source.
+    pub source_endpoint: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Number of Registry queries made for this batch.
+    pub query_call_count: u64,
+    /// Encoded certified response size returned by the replica.
+    pub response_bytes: usize,
+    /// Resource ceilings applied while validating the batch.
+    pub limits: NnsCertifiedRegistryDeltaLimits,
+    /// Ordered contiguous Registry versions.
+    pub versions: Vec<NnsCertifiedRegistryDeltaVersion>,
+    /// Certificate and mixed-tree evidence authenticating the batch.
+    pub certification: NnsRegistryCertification,
+}
+
+///
+/// NnsCertifiedRegistryDeltaLimits
+///
+/// Fixed resource ceilings enforced by the certified delta validator.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NnsCertifiedRegistryDeltaLimits {
+    /// Maximum visible Registry versions in one response.
+    pub max_versions: usize,
+    /// Maximum total mutations in one response.
+    pub max_mutations: usize,
+    /// Maximum total preconditions in one response.
+    pub max_preconditions: usize,
+    /// Maximum bytes in one Registry key.
+    pub max_key_bytes: usize,
+    /// Maximum combined inline value bytes.
+    pub max_inline_value_bytes: usize,
+    /// Maximum encoded response body accepted by the native agent.
+    pub max_response_bytes: usize,
+}
+
+///
+/// NnsCertifiedRegistryDeltaVersion
+///
+/// One Registry version and its ordered atomic mutation contents.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NnsCertifiedRegistryDeltaVersion {
+    /// Registry version authenticated by the delta-map label.
+    pub version: u64,
+    /// Registry-assigned mutation timestamp in nanoseconds since the Unix epoch.
+    pub timestamp_nanoseconds: u64,
+    /// Ordered mutations applied in this atomic version.
+    pub mutations: Vec<NnsCertifiedRegistryMutation>,
+    /// Preconditions attached to this atomic mutation.
+    pub preconditions: Vec<NnsCertifiedRegistryPrecondition>,
+}
+
+///
+/// NnsCertifiedRegistryMutation
+///
+/// One certified Registry mutation with raw and typed operation evidence.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NnsCertifiedRegistryMutation {
+    /// Raw upstream protobuf mutation discriminant.
+    pub mutation_type: i32,
+    /// Supported meaning of the raw discriminant.
+    pub mutation_kind: NnsCertifiedRegistryMutationKind,
+    /// Raw Registry key bytes as lowercase hexadecimal.
+    pub key_hex: String,
+    /// Complete inline value bytes as lowercase hexadecimal; absent for deletes.
+    pub value_hex: Option<String>,
+}
+
+///
+/// NnsCertifiedRegistryMutationKind
+///
+/// Supported native Registry mutation operations.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NnsCertifiedRegistryMutationKind {
+    /// Insert a key that must not already exist.
+    Insert,
+    /// Update a key that must already exist.
+    Update,
+    /// Delete a key.
+    Delete,
+    /// Insert or update a key.
+    Upsert,
+}
+
+#[cfg(feature = "nns-host")]
+impl NnsCertifiedRegistryMutationKind {
+    pub(super) const fn raw_type(self) -> i32 {
+        match self {
+            Self::Insert => 0,
+            Self::Update => 1,
+            Self::Delete => 2,
+            Self::Upsert => 4,
+        }
+    }
+
+    pub(super) const fn from_raw_type(value: i32) -> Option<Self> {
+        match value {
+            0 => Some(Self::Insert),
+            1 => Some(Self::Update),
+            2 => Some(Self::Delete),
+            4 => Some(Self::Upsert),
+            _ => None,
+        }
+    }
+}
+
+///
+/// NnsCertifiedRegistryPrecondition
+///
+/// One key-version precondition attached to a certified atomic mutation.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NnsCertifiedRegistryPrecondition {
+    /// Raw Registry key bytes as lowercase hexadecimal.
+    pub key_hex: String,
+    /// Required version of the Registry key.
+    pub expected_version: u64,
 }

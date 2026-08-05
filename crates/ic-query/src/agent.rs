@@ -8,7 +8,7 @@ use crate::http_endpoint::parse_http_endpoint;
 use ic_agent::Agent;
 
 /// Maximum response-body size configured for every native IC agent call.
-const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
+pub const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
 
 /// Validate a clean HTTP(S) endpoint and construct one response-bounded IC agent.
 pub fn build_ic_agent<Error>(

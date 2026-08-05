@@ -1,7 +1,13 @@
+use super::source::nns_certified_registry_delta_limits;
 use super::{
-    NnsRegistryCertification, NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
-    NnsRegistryVersionReport, NnsRegistryVersionRequest,
-    build_nns_registry_version_report_with_source, nns_registry_version_report_text,
+    NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
+    NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
+    NnsCertifiedRegistryMutationKind, NnsRegistryCertification, NnsRegistryHostError,
+    NnsRegistrySource, NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    build_nns_registry_version_report_with_source,
+    fetch_nns_certified_registry_delta_batch_with_source_async, nns_registry_version_report_text,
+    validate_nns_certified_registry_delta_batch,
 };
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
@@ -22,6 +28,87 @@ fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
     assert!(matches!(
         error,
         NnsRegistryHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+}
+
+#[test]
+fn live_certified_delta_source_rejects_non_mainnet_before_agent_construction() {
+    let request = NnsCertifiedRegistryDeltaBatchRequest::new(
+        "local",
+        "not a valid replica endpoint",
+        41,
+        1_780_531_200,
+    );
+
+    let error = crate::runtime::block_on_current_thread(
+        LiveNnsSource.fetch_certified_registry_delta_batch(&request),
+    )
+    .expect("test runtime")
+    .expect_err("unsupported network");
+
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+}
+
+#[test]
+fn certified_delta_public_builder_validates_custom_source_evidence() {
+    let request = certified_delta_request();
+
+    let report = crate::runtime::block_on_current_thread(
+        fetch_nns_certified_registry_delta_batch_with_source_async(
+            &request,
+            &FixtureCertifiedDeltaSource,
+        ),
+    )
+    .expect("test runtime")
+    .expect("certified delta report");
+
+    assert_eq!(report.requested_version, 41);
+    assert_eq!(report.certified_latest_version, 43);
+    assert_eq!(report.first_version, Some(42));
+    assert_eq!(report.last_version, Some(42));
+    assert!(report.more_available);
+    assert_eq!(
+        report.versions[0].mutations[0].mutation_kind,
+        NnsCertifiedRegistryMutationKind::Upsert
+    );
+}
+
+#[test]
+fn certified_delta_pure_validator_rejects_sequence_and_derived_field_tampering() {
+    let request = certified_delta_request();
+    let mut report = certified_delta_report(&request);
+    report.versions[0].version = 43;
+    report.first_version = Some(43);
+    report.last_version = Some(43);
+    let error = validate_nns_certified_registry_delta_batch(&request, &report)
+        .expect_err("wrong first version");
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::InvalidSourceData { reason }
+            if reason.contains("version sequence expected 42")
+    ));
+
+    let mut report = certified_delta_report(&request);
+    report.mutation_count = 2;
+    let error = validate_nns_certified_registry_delta_batch(&request, &report)
+        .expect_err("derived count mismatch");
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::InvalidSourceData { reason }
+            if reason.contains("mutation_count mismatch")
+    ));
+
+    let mut report = certified_delta_report(&request);
+    report.versions[0].mutations[0].mutation_type = 1;
+    let error = validate_nns_certified_registry_delta_batch(&request, &report)
+        .expect_err("raw and typed mutation mismatch");
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::InvalidSourceData { reason }
+            if reason.contains("does not match kind")
     ));
 }
 
@@ -164,6 +251,63 @@ impl NnsRegistrySource for UnverifiedNnsRegistrySource {
             source_endpoint: request.endpoint.clone(),
             certification: evidence,
         })
+    }
+}
+
+struct FixtureCertifiedDeltaSource;
+
+impl NnsCertifiedRegistryDeltaSource for FixtureCertifiedDeltaSource {
+    fn fetch_certified_registry_delta_batch<'a>(
+        &'a self,
+        request: &'a NnsCertifiedRegistryDeltaBatchRequest,
+    ) -> NnsCertifiedRegistryDeltaSourceFuture<'a> {
+        Box::pin(async move { Ok(certified_delta_report(request)) })
+    }
+}
+
+fn certified_delta_request() -> NnsCertifiedRegistryDeltaBatchRequest {
+    NnsCertifiedRegistryDeltaBatchRequest::new(
+        MAINNET_NETWORK,
+        "https://icp-api.io",
+        41,
+        1_780_531_200,
+    )
+}
+
+fn certified_delta_report(
+    request: &NnsCertifiedRegistryDeltaBatchRequest,
+) -> NnsCertifiedRegistryDeltaBatchReport {
+    NnsCertifiedRegistryDeltaBatchReport {
+        schema_version: 1,
+        network: MAINNET_NETWORK.to_string(),
+        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+        requested_version: request.requested_version,
+        certified_latest_version: 43,
+        first_version: Some(42),
+        last_version: Some(42),
+        version_count: 1,
+        mutation_count: 1,
+        precondition_count: 0,
+        inline_value_bytes: 1,
+        more_available: true,
+        fetched_at: "2026-06-04T00:00:00Z".to_string(),
+        source_endpoint: request.source_endpoint.clone(),
+        fetched_by: "ic-query".to_string(),
+        query_call_count: 1,
+        response_bytes: 64,
+        limits: nns_certified_registry_delta_limits(),
+        versions: vec![NnsCertifiedRegistryDeltaVersion {
+            version: 42,
+            timestamp_nanoseconds: 1_780_531_199_000_000_000,
+            mutations: vec![NnsCertifiedRegistryMutation {
+                mutation_type: 4,
+                mutation_kind: NnsCertifiedRegistryMutationKind::Upsert,
+                key_hex: "61".to_string(),
+                value_hex: Some("62".to_string()),
+            }],
+            preconditions: Vec::new(),
+        }],
+        certification: certification(1_780_531_200),
     }
 }
 

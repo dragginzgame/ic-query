@@ -3,6 +3,7 @@ use super::{
     MainnetDataCenterList, MainnetNodeList, MainnetNodeOperatorList, MainnetNodeProviderList,
     MainnetRegistryVersion,
     source::{
+        fetch_mainnet_certified_registry_delta_batch_async as fetch_mainnet_certified_registry_delta_batch_from_source_async,
         fetch_mainnet_data_center_list_async, fetch_mainnet_node_list_async,
         fetch_mainnet_node_operator_list_async, fetch_mainnet_node_provider_list_async,
         fetch_mainnet_registry_version_async,
@@ -18,11 +19,23 @@ use super::{MainnetSubnetTopology, source::fetch_mainnet_subnet_topology_async};
 use crate::runtime::block_on_current_thread;
 use crate::subnet_catalog::RawSubnetCatalog;
 
+#[cfg(feature = "nns-host")]
+use super::CertifiedRegistryDeltaBatch;
+
 /// Fetch one exact-version mainnet Subnet Catalog on the caller's async runtime.
 pub async fn fetch_mainnet_subnet_catalog_async(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<RawSubnetCatalog, RegistryFetchError> {
     fetch_mainnet_subnet_catalog_from_source_async(request).await
+}
+
+/// Fetch one authenticated, bounded Registry delta batch on the caller's async runtime.
+#[cfg(feature = "nns-host")]
+pub async fn fetch_mainnet_certified_registry_delta_batch_async(
+    request: &MainnetRegistryFetchRequest,
+    requested_version: u64,
+) -> Result<CertifiedRegistryDeltaBatch, RegistryFetchError> {
+    fetch_mainnet_certified_registry_delta_batch_from_source_async(request, requested_version).await
 }
 
 #[cfg(feature = "nns-topology-host")]

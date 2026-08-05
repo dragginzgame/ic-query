@@ -131,7 +131,15 @@ direct dependencies through the topology/catalog substrate; CBOR is direct for
 the authenticated Registry latest-version certificate. Dashboard Reqwest is
 not a direct ic-query edge, although it remains transitive through `ic-agent`.
 The certified version report does not promote ordinary Subnet Catalog
-`get_value` reads beyond their separately recorded assurance.
+`get_value` reads beyond their separately recorded assurance. The
+`fetch_nns_certified_registry_delta_batch_async` library operation validates
+one caller-selected `get_certified_changes_since` batch on the caller's
+runtime. It reports exact resource ceilings and `more_available` without
+implicit pagination, caching, large-value retrieval, replay, or catalog
+publication; custom async sources pass through the same pure
+`validate_nns_certified_registry_delta_batch` structural contract. Custom
+sources remain responsible for cryptographically authenticating the raw
+certificate evidence they return.
 
 For pure model/rendering use, keep all features off:
 

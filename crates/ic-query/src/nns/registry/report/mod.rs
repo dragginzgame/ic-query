@@ -1,6 +1,8 @@
 #[cfg(feature = "nns-host")]
 mod build;
 #[cfg(feature = "nns-host")]
+mod delta;
+#[cfg(feature = "nns-host")]
 mod error;
 mod model;
 #[cfg(feature = "nns-host")]
@@ -10,10 +12,25 @@ mod text;
 #[cfg(feature = "nns-host")]
 pub use build::{build_nns_registry_version_report, build_nns_registry_version_report_with_source};
 #[cfg(feature = "nns-host")]
-pub use error::NnsRegistryHostError;
-pub use model::{NnsRegistryCertification, NnsRegistryVersionReport, NnsRegistryVersionRequest};
+pub use delta::{
+    fetch_nns_certified_registry_delta_batch_async,
+    fetch_nns_certified_registry_delta_batch_with_source_async,
+    validate_nns_certified_registry_delta_batch,
+};
 #[cfg(feature = "nns-host")]
-pub use source::{NnsRegistrySource, NnsRegistryVersionData};
+pub use error::NnsRegistryHostError;
+pub use model::{
+    NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
+    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
+    NnsCertifiedRegistryPrecondition, NnsRegistryCertification, NnsRegistryVersionReport,
+    NnsRegistryVersionRequest,
+};
+#[cfg(feature = "nns-host")]
+pub use source::{
+    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistrySource,
+    NnsRegistryVersionData, nns_certified_registry_delta_limits,
+};
 pub use text::nns_registry_version_report_text;
 
 pub const DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT: &str = "https://icp-api.io";

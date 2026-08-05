@@ -3,7 +3,9 @@ use crate::{
     certification::{CertifiedDataError, validate_certificate_time},
     ic_registry::{
         MainnetRegistryCertification, MainnetRegistryFetchRequest, MainnetRegistryVersion,
-        RegistryFetchError, transport::get_certified_latest_version,
+        RegistryFetchError,
+        model::CertifiedRegistryDeltaBatch,
+        transport::{get_certified_changes_since, get_certified_latest_version},
     },
     subnet_catalog::{
         MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs,
@@ -38,6 +40,17 @@ pub(in crate::ic_registry) async fn fetch_mainnet_registry_version_async(
             hash_tree_bytes: certified.hash_tree_bytes,
         },
     })
+}
+
+pub(in crate::ic_registry) async fn fetch_mainnet_certified_registry_delta_batch_async(
+    request: &MainnetRegistryFetchRequest,
+    requested_version: u64,
+) -> Result<CertifiedRegistryDeltaBatch, RegistryFetchError> {
+    let agent = mainnet_agent(request)?;
+    let registry_canister = mainnet_registry_canister()?;
+    let batch = get_certified_changes_since(&agent, &registry_canister, requested_version).await?;
+    validate_live_certificate_time(request, batch.certificate_time_nanos)?;
+    Ok(batch)
 }
 
 fn validate_live_certificate_time(

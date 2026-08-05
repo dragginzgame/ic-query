@@ -120,6 +120,115 @@ pub struct RegistryGetLatestVersionResponse {
 }
 
 ///
+/// RegistryGetChangesSinceRequest
+///
+/// Protobuf request for one certified Registry delta batch after a version.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+#[cfg(feature = "nns-host")]
+pub struct RegistryGetChangesSinceRequest {
+    /// Last Registry version already held by the caller.
+    #[prost(uint64, tag = "1")]
+    pub version: u64,
+}
+
+///
+/// HighCapacityRegistryAtomicMutateRequest
+///
+/// One atomic Registry delta committed under a certified version label.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+#[cfg(feature = "nns-host")]
+pub struct HighCapacityRegistryAtomicMutateRequest {
+    /// Ordered mutations applied by the Registry version.
+    #[prost(message, repeated, tag = "1")]
+    pub mutations: Vec<HighCapacityRegistryMutation>,
+    /// Preconditions checked before applying the atomic mutation.
+    #[prost(message, repeated, tag = "5")]
+    pub preconditions: Vec<RegistryPrecondition>,
+    /// Registry-assigned mutation timestamp in nanoseconds since the Unix epoch.
+    #[prost(uint64, tag = "6")]
+    pub timestamp_nanoseconds: u64,
+}
+
+///
+/// HighCapacityRegistryMutation
+///
+/// One mutation in a certified Registry atomic mutation request.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+#[cfg(feature = "nns-host")]
+pub struct HighCapacityRegistryMutation {
+    /// Raw `RegistryMutation.Type` numeric discriminant.
+    #[prost(int32, tag = "1")]
+    pub mutation_type: i32,
+    /// Raw Registry key bytes.
+    #[prost(bytes = "vec", tag = "2")]
+    pub key: Vec<u8>,
+    /// Inline value bytes or large-value chunk references.
+    #[prost(oneof = "high_capacity_registry_mutation::Content", tags = "3, 4")]
+    pub content: Option<high_capacity_registry_mutation::Content>,
+}
+
+#[cfg(feature = "nns-host")]
+pub mod high_capacity_registry_mutation {
+    use super::LargeValueChunkKeys;
+    use prost::Oneof;
+
+    ///
+    /// Content
+    ///
+    /// Value representation in one high-capacity Registry mutation.
+    ///
+
+    #[derive(Clone, Eq, Oneof, PartialEq)]
+    pub enum Content {
+        /// Complete inline value bytes.
+        #[prost(bytes = "vec", tag = "3")]
+        Value(Vec<u8>),
+        /// Content-addressed chunks that require bounded follow-up retrieval.
+        #[prost(message, tag = "4")]
+        LargeValueChunkKeys(LargeValueChunkKeys),
+    }
+}
+
+///
+/// RegistryMutationType
+///
+/// Official Registry mutation discriminants used by certified deltas.
+///
+
+#[derive(Clone, Copy, Debug, prost::Enumeration, Eq, PartialEq)]
+#[cfg(feature = "nns-host")]
+#[repr(i32)]
+pub enum RegistryMutationType {
+    Insert = 0,
+    Update = 1,
+    Delete = 2,
+    Upsert = 4,
+}
+
+///
+/// RegistryPrecondition
+///
+/// Expected key version attached to one atomic Registry mutation.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+#[cfg(feature = "nns-host")]
+pub struct RegistryPrecondition {
+    /// Registry key whose version is constrained.
+    #[prost(bytes = "vec", tag = "1")]
+    pub key: Vec<u8>,
+    /// Required Registry version for the key.
+    #[prost(uint64, tag = "2")]
+    pub expected_version: u64,
+}
+
+///
 /// RegistryCertifiedResponse
 ///
 /// Protobuf response returned by the Registry's certified query methods.
