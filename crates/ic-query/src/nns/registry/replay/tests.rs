@@ -414,6 +414,64 @@ fn certified_bootstrap_reserves_each_call_and_completes_the_first_exact_target()
     assert_eq!(session.query_call_count(), 2);
     assert_eq!(session.response_bytes(), 128);
     assert!(session.is_complete());
+
+    let probe_source = BootstrapSource::default();
+    let outcome = futures::executor::block_on(probe_nns_certified_registry_with_source_async(
+        &request,
+        &probe_source,
+    ))
+    .expect("complete diagnostic probe");
+    assert_eq!(
+        outcome.status,
+        NnsCertifiedRegistryBootstrapProbeStatus::Complete
+    );
+    assert!(outcome.session.is_complete());
+    assert_eq!(probe_source.requested_versions(), vec![0, 2]);
+}
+
+#[test]
+fn certified_bootstrap_probe_returns_explicit_bounded_partial_progress() {
+    let source = BootstrapSource::default();
+    let request = bootstrap_request(MAINNET_NETWORK, 1, 65, 40 * 1_024 * 1_024);
+
+    let outcome = futures::executor::block_on(probe_nns_certified_registry_with_source_async(
+        &request, &source,
+    ))
+    .expect("bounded incomplete diagnostic probe");
+
+    assert_eq!(
+        outcome.status,
+        NnsCertifiedRegistryBootstrapProbeStatus::CapacityReached {
+            field: "batch count",
+            maximum: 1,
+            required: 2,
+        }
+    );
+    assert_eq!(source.requested_versions(), vec![0]);
+    assert_eq!(outcome.session.selected_version(), Some(3));
+    assert_eq!(outcome.session.state().through_version(), 2);
+    assert_eq!(outcome.session.batch_count(), 1);
+    assert_eq!(outcome.session.query_call_count(), 1);
+    assert_eq!(outcome.session.response_bytes(), 64);
+    assert!(!outcome.session.is_complete());
+
+    let zero_source = BootstrapSource::default();
+    let zero_request = bootstrap_request(MAINNET_NETWORK, 0, 0, 0);
+    let zero = futures::executor::block_on(probe_nns_certified_registry_with_source_async(
+        &zero_request,
+        &zero_source,
+    ))
+    .expect("zero-call diagnostic probe");
+    assert_eq!(
+        zero.status,
+        NnsCertifiedRegistryBootstrapProbeStatus::CapacityReached {
+            field: "batch count",
+            maximum: 0,
+            required: 1,
+        }
+    );
+    assert_eq!(zero.session.selected_version(), None);
+    assert!(zero_source.requested_versions().is_empty());
 }
 
 #[test]
@@ -474,6 +532,15 @@ fn certified_bootstrap_rejects_non_mainnet_before_source_work() {
         .expect_err("live non-mainnet bootstrap");
     assert!(matches!(
         live_error,
+        NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
+            network
+        }) if network == "local"
+    ));
+
+    let probe_error = futures::executor::block_on(probe_nns_certified_registry_async(&request))
+        .expect_err("live non-mainnet probe");
+    assert!(matches!(
+        probe_error,
         NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
             network
         }) if network == "local"

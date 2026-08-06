@@ -483,7 +483,9 @@ hash-verified `get_chunk` calls under fixed per-call, per-value, and aggregate
 ceilings, with digest reuse and exact call/byte accounting preserved in report
 schema 2. The pure validator checks structural evidence returned by trusted
 custom sources; only the built-in live transport cryptographically
-authenticates the raw certificate and witness.
+authenticates the raw certificate and witness. Historical non-delete
+mutations whose empty legacy protobuf value has no encoded content arm are
+preserved as empty inline values, matching the official Registry transport.
 
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time
@@ -504,6 +506,12 @@ and up to 40 MiB of encoded responses. It has no default limits and returns
 only a complete exact-target session. The operation is uncached and may make
 multiple sequential mainnet calls; cache publication and certified Subnet
 Catalog assurance remain separate future boundaries.
+
+`probe_nns_certified_registry_async` uses the same reservation and validation
+loop for bounded sizing diagnostics. It returns either `Complete` or typed
+`CapacityReached` status with the accumulated session and never makes the call
+that would exceed capacity. A partial probe session is explicitly incomplete:
+it is not a successful bootstrap, cache input, or catalog authority.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return

@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.6` adds a bounded diagnostic Registry bootstrap probe. It shares the
+  complete bootstrap's pre-call reservation and validation loop but returns a
+  typed `Complete` or `CapacityReached` outcome with the accumulated session,
+  allowing current-history sizing without another unreserved call. A zero-call
+  budget returns explicit empty progress. The complete bootstrap remains
+  complete-only and converts capacity exhaustion to its existing typed error;
+  probe state is explicitly incomplete, uncached, and not catalog authority.
+  Certified replay now also preserves historical non-delete mutations whose
+  empty legacy protobuf value is absent on the wire, matching the official
+  Registry transport's empty-inline-value interpretation.
+
 - `0.30.5` adds an explicit caller-runtime async Registry bootstrap from
   version zero. Before every built-in source call it reserves capacity for one
   certified query, up to 64 chunk queries, and up to 40 MiB of encoded

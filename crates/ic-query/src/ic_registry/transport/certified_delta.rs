@@ -416,12 +416,15 @@ fn validate_mutation(
                 chunks.chunk_content_sha256s,
             )
         }
-        (_, None) => {
-            return Err(invalid_certified_registry(format!(
-                "delta version {version} mutation for key {} has no value content",
-                hex_bytes(&mutation.key)
-            )));
-        }
+        // Legacy RegistryMutation used a plain proto3 bytes field. Its empty
+        // value is absent on the wire and therefore decodes as no oneof arm in
+        // HighCapacityRegistryMutation. The official Registry transport treats
+        // that representation as an empty inline value.
+        (_, None) => (
+            Some(String::new()),
+            CertifiedRegistryValueEncoding::Inline,
+            Vec::new(),
+        ),
     };
     Ok(CertifiedRegistryMutation {
         mutation_type: mutation.mutation_type,
@@ -497,6 +500,16 @@ mod tests {
     };
     use ic_agent::hash_tree::{empty, fork, label, leaf, pruned};
 
+    #[derive(Clone, PartialEq, prost::Message)]
+    struct LegacyRegistryMutation {
+        #[prost(int32, tag = "1")]
+        mutation_type: i32,
+        #[prost(bytes = "vec", tag = "2")]
+        key: Vec<u8>,
+        #[prost(bytes = "vec", tag = "3")]
+        value: Vec<u8>,
+    }
+
     #[test]
     fn validates_contiguous_ordered_mutations_and_more_available() {
         let tree = registry_tree(
@@ -528,6 +541,29 @@ mod tests {
         assert_eq!(batch.precondition_count, 1);
         assert_eq!(batch.inline_value_bytes, 3);
         assert!(batch.more_available);
+    }
+
+    #[test]
+    fn treats_legacy_absent_empty_value_as_inline_empty_content() {
+        let legacy = LegacyRegistryMutation {
+            mutation_type: RegistryMutationType::Upsert as i32,
+            key: b"_".to_vec(),
+            value: Vec::new(),
+        };
+        let decoded = HighCapacityRegistryMutation::decode(legacy.encode_to_vec().as_slice())
+            .expect("legacy mutation decodes through high-capacity wire type");
+        assert_eq!(decoded.content, None);
+
+        let mut counters = DeltaCounters::default();
+        let version = validate_atomic_delta(123, atomic(vec![decoded], vec![]), &mut counters)
+            .expect("historical empty value remains a value mutation");
+
+        assert_eq!(version.mutations[0].value_hex.as_deref(), Some(""));
+        assert_eq!(
+            version.mutations[0].value_encoding,
+            CertifiedRegistryValueEncoding::Inline
+        );
+        assert_eq!(counters.inline_value_bytes, 0);
     }
 
     #[test]

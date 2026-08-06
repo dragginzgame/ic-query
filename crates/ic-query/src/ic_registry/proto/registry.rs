@@ -169,6 +169,10 @@ pub struct HighCapacityRegistryMutation {
     #[prost(bytes = "vec", tag = "2")]
     pub key: Vec<u8>,
     /// Inline value bytes or large-value chunk references.
+    ///
+    /// Historical non-delete mutations with an empty legacy `bytes` value
+    /// decode as `None`; the transport adapter interprets those as an empty
+    /// inline value, matching the official Registry conversion.
     #[prost(oneof = "high_capacity_registry_mutation::Content", tags = "3, 4")]
     pub content: Option<high_capacity_registry_mutation::Content>,
 }

@@ -16,8 +16,10 @@ use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
 
 pub use bootstrap::{
+    NnsCertifiedRegistryBootstrapProbeOutcome, NnsCertifiedRegistryBootstrapProbeStatus,
     NnsCertifiedRegistryBootstrapRequest, bootstrap_nns_certified_registry_async,
-    bootstrap_nns_certified_registry_with_source_async,
+    bootstrap_nns_certified_registry_with_source_async, probe_nns_certified_registry_async,
+    probe_nns_certified_registry_with_source_async,
 };
 pub use session::{NnsRegistryReplaySession, NnsRegistryReplaySessionLimits};
 

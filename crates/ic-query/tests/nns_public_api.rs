@@ -99,14 +99,15 @@ use ic_query::nns::proposals::{
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
-    NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
-    NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
-    NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
-    NnsRegistryReplayState, NnsRegistrySource, NnsRegistryVersionData,
-    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_with_source_async,
+    NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
+    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
+    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplaySession,
+    NnsRegistryReplaySessionLimits, NnsRegistryReplayState, NnsRegistrySource,
+    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
+    bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
-    nns_certified_registry_delta_limits,
+    nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
 };
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
@@ -605,6 +606,33 @@ fn public_certified_registry_replay_api_is_bounded_and_version_checked() {
             network
         }) if network == "local"
     ));
+
+    let probe = NnsCertifiedRegistryBootstrapRequest::new(
+        "ic",
+        "https://icp-api.io",
+        1_700_000_000,
+        NnsRegistryReplaySessionLimits::new(
+            100,
+            0,
+            0,
+            0,
+            NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
+        ),
+    );
+    let outcome = futures::executor::block_on(probe_nns_certified_registry_with_source_async(
+        &probe,
+        &FixtureCertifiedRegistryDeltaSource,
+    ))
+    .expect("zero-call public diagnostic probe");
+    assert_eq!(
+        outcome.status,
+        NnsCertifiedRegistryBootstrapProbeStatus::CapacityReached {
+            field: "batch count",
+            maximum: 0,
+            required: 1,
+        }
+    );
+    assert_eq!(outcome.session.selected_version(), None);
 }
 
 fn public_certified_delta_report(

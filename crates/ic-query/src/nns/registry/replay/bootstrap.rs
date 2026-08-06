@@ -32,6 +32,41 @@ pub struct NnsCertifiedRegistryBootstrapRequest {
     pub limits: NnsRegistryReplaySessionLimits,
 }
 
+///
+/// NnsCertifiedRegistryBootstrapProbeStatus
+///
+/// Terminal status of one bounded diagnostic bootstrap probe.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NnsCertifiedRegistryBootstrapProbeStatus {
+    /// The first observed exact Registry target was completely reconstructed.
+    Complete,
+    /// Another worst-case batch would exceed one caller-selected ceiling.
+    CapacityReached {
+        /// Cumulative resource that prevented another source call.
+        field: &'static str,
+        /// Caller-selected cumulative ceiling.
+        maximum: u64,
+        /// Cumulative amount required to safely attempt the next batch.
+        required: u64,
+    },
+}
+
+///
+/// NnsCertifiedRegistryBootstrapProbeOutcome
+///
+/// Complete or explicitly incomplete replay progress returned for diagnostic sizing.
+///
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct NnsCertifiedRegistryBootstrapProbeOutcome {
+    /// Reason collection stopped without making another source call.
+    pub status: NnsCertifiedRegistryBootstrapProbeStatus,
+    /// Bounded replay session accumulated before the terminal status.
+    pub session: NnsRegistryReplaySession,
+}
+
 impl NnsCertifiedRegistryBootstrapRequest {
     /// Create an explicit bootstrap request without selecting default limits.
     #[must_use]
@@ -71,16 +106,67 @@ pub async fn bootstrap_nns_certified_registry_with_source_async(
     request: &NnsCertifiedRegistryBootstrapRequest,
     source: &dyn NnsCertifiedRegistryDeltaSource,
 ) -> Result<NnsRegistryReplaySession, NnsRegistryReplayError> {
+    let outcome = probe_nns_certified_registry_with_source_async(request, source).await?;
+    match outcome.status {
+        NnsCertifiedRegistryBootstrapProbeStatus::Complete => Ok(outcome.session),
+        NnsCertifiedRegistryBootstrapProbeStatus::CapacityReached {
+            field,
+            maximum,
+            required,
+        } => Err(NnsRegistryReplayError::SessionLimitExceeded {
+            field,
+            maximum,
+            actual: required,
+        }),
+    }
+}
+
+/// Probe bounded certified Registry bootstrap progress using the built-in mainnet source.
+///
+/// Unlike complete bootstrap, a probe returns successfully when pre-call
+/// capacity is exhausted. Its typed status and session make the incomplete
+/// result explicit and suitable only for sizing diagnostics.
+pub async fn probe_nns_certified_registry_async(
+    request: &NnsCertifiedRegistryBootstrapRequest,
+) -> Result<NnsCertifiedRegistryBootstrapProbeOutcome, NnsRegistryReplayError> {
+    probe_nns_certified_registry_with_source_async(request, &LiveNnsSource).await
+}
+
+/// Probe bounded certified Registry bootstrap progress from an explicit async source.
+///
+/// The same worst-case reservation and report validation used by complete
+/// bootstrap apply. Custom sources remain responsible for authenticating and
+/// bounding their internal work.
+pub async fn probe_nns_certified_registry_with_source_async(
+    request: &NnsCertifiedRegistryBootstrapRequest,
+    source: &dyn NnsCertifiedRegistryDeltaSource,
+) -> Result<NnsCertifiedRegistryBootstrapProbeOutcome, NnsRegistryReplayError> {
     crate::network::enforce_mainnet_network_with(&request.network, |network| {
         NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork { network })
     })?;
     let (maximum_batch_query_calls, maximum_batch_response_bytes) = batch_reservation()?;
     let mut session = NnsRegistryReplaySession::new(request.limits);
     loop {
-        session.ensure_next_source_call_capacity(
+        if let Err(error) = session.ensure_next_source_call_capacity(
             maximum_batch_query_calls,
             maximum_batch_response_bytes,
-        )?;
+        ) {
+            return match error {
+                NnsRegistryReplayError::SessionLimitExceeded {
+                    field,
+                    maximum,
+                    actual,
+                } => Ok(NnsCertifiedRegistryBootstrapProbeOutcome {
+                    status: NnsCertifiedRegistryBootstrapProbeStatus::CapacityReached {
+                        field,
+                        maximum,
+                        required: actual,
+                    },
+                    session,
+                }),
+                error => Err(error),
+            };
+        }
         let batch_request = NnsCertifiedRegistryDeltaBatchRequest::new(
             &request.network,
             &request.source_endpoint,
@@ -92,7 +178,10 @@ pub async fn bootstrap_nns_certified_registry_with_source_async(
                 .await?;
         session.apply_batch(&batch_request, &report)?;
         if session.is_complete() {
-            return Ok(session);
+            return Ok(NnsCertifiedRegistryBootstrapProbeOutcome {
+                status: NnsCertifiedRegistryBootstrapProbeStatus::Complete,
+                session,
+            });
         }
     }
 }
