@@ -1,8 +1,10 @@
 //! Module: nns::registry::replay::archive
 //!
-//! Responsibility: describe and validate bounded retained certified Registry evidence.
-//! Does not own: filesystem paths, publication, cache policy, source calls, or catalog assurance.
+//! Responsibility: describe, validate, publish, and restore bounded certified Registry evidence.
+//! Does not own: live collection, refresh policy, default paths, CLI, or catalog assurance.
 //! Boundary: manifests are indexes, not authority; reports must be reauthenticated on every load.
+
+pub(in crate::nns::registry::replay) mod storage;
 
 use super::{
     NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
@@ -22,6 +24,12 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 use thiserror::Error as ThisError;
+
+pub use storage::{
+    NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchivePublisher,
+    NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
+    load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
+};
 
 /// Version of the retained certified Registry archive-manifest contract.
 pub const NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION: u32 = 1;
@@ -230,6 +238,12 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
     #[must_use]
     pub const fn replay_session(&self) -> &super::NnsRegistryReplaySession {
         self.replay.replay_session()
+    }
+
+    pub(super) fn latest_batch_descriptor(
+        &self,
+    ) -> Option<&NnsCertifiedRegistryArchiveBatchDescriptor> {
+        self.batches.last()
     }
 
     /// Finish one complete manifest and retain the authenticated replay capability.

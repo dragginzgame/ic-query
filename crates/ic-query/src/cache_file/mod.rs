@@ -21,8 +21,12 @@ mod write;
 
 #[cfg(feature = "sns-host")]
 pub use confined::collect_managed_collection_files;
+#[cfg(all(feature = "nns-host", not(feature = "host")))]
+pub use confined::open_managed_file;
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 pub use confined::read_managed_file;
+#[cfg(feature = "nns-host")]
+pub use confined::write_managed_file_atomically;
 #[cfg(feature = "host")]
 pub use confined::{collect_managed_files, open_managed_file};
 pub use confined::{

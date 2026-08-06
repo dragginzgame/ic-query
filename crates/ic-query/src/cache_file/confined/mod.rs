@@ -266,6 +266,17 @@ pub fn write_managed_text_atomically(
     target_path: &Path,
     contents: &str,
 ) -> Result<(), CacheFileError> {
+    write_managed_file_atomically(cache_root, target_path, |file| {
+        file.write_all(contents.as_bytes())
+    })
+}
+
+/// Atomically publish a streamed managed file through a confined same-directory temporary file.
+pub fn write_managed_file_atomically(
+    cache_root: &Path,
+    target_path: &Path,
+    write: impl FnOnce(&mut cap_std::fs::File) -> io::Result<()>,
+) -> Result<(), CacheFileError> {
     let root = ConfinedCacheRoot::open(cache_root, true)?.ok_or_else(|| {
         open_managed_path_error(
             cache_root,
@@ -297,11 +308,10 @@ pub fn write_managed_text_atomically(
                 source,
             })?;
         validate_managed_file_mode(&temp_path, &temp)?;
-        temp.write_all(contents.as_bytes())
-            .map_err(|source| CacheFileError::WriteTemp {
-                path: temp_path.clone(),
-                source,
-            })?;
+        write(&mut temp).map_err(|source| CacheFileError::WriteTemp {
+            path: temp_path.clone(),
+            source,
+        })?;
         temp.sync_all().map_err(|source| CacheFileError::SyncTemp {
             path: temp_path.clone(),
             source,
@@ -621,7 +631,8 @@ fn create_directory_component(
             io::Error::new(io::ErrorKind::NotFound, "created directory disappeared"),
         )
     })?;
-    validate_managed_directory_mode(display_path, &dir)
+    validate_managed_directory_mode(display_path, &dir)?;
+    sync_directory(parent, display_path.parent().unwrap_or(display_path))
 }
 
 fn absolute_managed_path(root: &Path, path: &Path) -> Result<PathBuf, CacheFileError> {

@@ -1,6 +1,10 @@
 use super::*;
 use crate::test_support::temp_dir;
-use std::{fs, path::Path};
+use std::{
+    fs,
+    io::{self, Write},
+    path::Path,
+};
 
 #[cfg(unix)]
 use std::os::unix::fs::{PermissionsExt, symlink};
@@ -35,6 +39,33 @@ fn managed_round_trip_uses_owner_only_modes() {
             0o600
         );
     }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn streamed_atomic_write_failure_preserves_existing_file() {
+    let root = temp_dir("ic-query-confined-stream-failure");
+    let path = root.join("nns/ic/archive/manifest.json");
+    write_managed_text_atomically(&root, &path, "complete").expect("initial managed file");
+
+    let error = write_managed_file_atomically(&root, &path, |file| {
+        file.write_all(b"partial")?;
+        Err(io::Error::other("fixture write failure"))
+    })
+    .expect_err("streamed replacement failure");
+
+    assert!(matches!(error, CacheFileError::WriteTemp { .. }));
+    assert_eq!(
+        read_managed_text(&root, &path).expect("preserved managed file"),
+        Some("complete".to_string())
+    );
+    assert_eq!(
+        fs::read_dir(path.parent().expect("manifest parent"))
+            .expect("manifest directory")
+            .count(),
+        1,
+        "failed temporary file is removed"
+    );
     let _ = fs::remove_dir_all(root);
 }
 

@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.16` adds explicit confined publication and bounded restoration for the
+  certified Registry archive. A streaming publisher writes each canonical
+  report once as an owner-only content-addressed object, syncs files and newly
+  created directories, and atomically replaces the manifest only after complete
+  authenticated replay. Loading bounds and hashes one object at a time,
+  reauthenticates all retained evidence locally, and requires an exact recomputed
+  manifest. Missing, oversized, noncanonical, unconfined, symlinked, or tampered
+  content fails closed; failed final publication preserves the prior manifest.
+  There is no default path, refresh policy, network call, CLI, or certified
+  catalog promotion.
+
 - `0.30.15` adds a versioned, bounded certified Registry archive-manifest
   contract under `nns-host`. Its builder accepts only locally authenticated
   retained batches, streams canonical report JSON through SHA-256 and byte

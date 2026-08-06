@@ -18,7 +18,7 @@ use crate::{
 };
 use candid::Principal;
 use prost::Message;
-use std::sync::Mutex;
+use std::{fs, sync::Mutex};
 
 const NOW: u64 = 1_780_531_200;
 const PROJECTION_SUBNET: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
@@ -972,6 +972,342 @@ fn archive_manifest_validation_rejects_tampered_index_fields() {
             actual: 2,
         })
     ));
+}
+
+#[test]
+fn confined_archive_publication_and_sequential_restore_round_trip() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-round-trip");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let storage_limits = archive_storage_limits();
+    let mut archive_writer = NnsCertifiedRegistryArchivePublisher::new(
+        &root,
+        &archive_root,
+        fixture.limits,
+        storage_limits,
+    );
+
+    archive_writer
+        .apply_batch(&first)
+        .expect("first archive object");
+    assert!(
+        !nns_certified_registry_archive_manifest_path(&archive_root).exists(),
+        "partial publication has no discoverable manifest"
+    );
+    archive_writer
+        .apply_batch(&second)
+        .expect("second archive object");
+    let archive = archive_writer.finish().expect("atomic archive manifest");
+
+    assert_eq!(archive.manifest().batch_count, 2);
+    assert_eq!(
+        archive.replay_session().replay_session().selected_version(),
+        Some(2)
+    );
+    let object_paths = fs::read_dir(archive_root.join("objects"))
+        .expect("archive objects directory")
+        .map(|entry| entry.expect("archive object entry").path())
+        .collect::<Vec<_>>();
+    assert_eq!(object_paths.len(), 2);
+    assert!(object_paths.iter().all(|path| {
+        path.extension()
+            .is_some_and(|extension| extension == "json")
+    }));
+
+    let restored = super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+        &root,
+        &archive_root,
+        fixture.limits,
+        storage_limits,
+        &FixtureArchiveAuthenticator,
+    )
+    .expect("bounded sequential archive restoration");
+
+    assert_eq!(restored.manifest(), archive.manifest());
+    assert_eq!(
+        restored
+            .replay_session()
+            .replay_session()
+            .state()
+            .get(b"a")
+            .expect("restored first value")
+            .value(),
+        b"one"
+    );
+    assert_eq!(
+        restored
+            .replay_session()
+            .replay_session()
+            .state()
+            .get(b"b")
+            .expect("restored second value")
+            .value(),
+        b"two"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn failed_archive_manifest_publication_preserves_prior_complete_archive() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-preserve");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let storage_limits = archive_storage_limits();
+    let mut initial = NnsCertifiedRegistryArchivePublisher::new(
+        &root,
+        &archive_root,
+        fixture.limits,
+        storage_limits,
+    );
+    initial.apply_batch(&first).expect("initial first object");
+    initial.apply_batch(&second).expect("initial second object");
+    initial.finish().expect("initial complete archive");
+    let manifest_path = nns_certified_registry_archive_manifest_path(&archive_root);
+    let original_manifest = fs::read(&manifest_path).expect("original archive manifest");
+
+    let tiny_manifest_limits =
+        NnsCertifiedRegistryArchiveStorageLimits::new(1, storage_limits.archive);
+    let mut replacement = NnsCertifiedRegistryArchivePublisher::new(
+        &root,
+        &archive_root,
+        fixture.limits,
+        tiny_manifest_limits,
+    );
+    replacement
+        .apply_batch(&first)
+        .expect("replacement first object");
+    replacement
+        .apply_batch(&second)
+        .expect("replacement second object");
+    let error = replacement
+        .finish()
+        .expect_err("oversized replacement manifest");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveStorageError::FileLimitExceeded {
+            kind: "manifest",
+            maximum: 1,
+            ..
+        }
+    ));
+    assert_eq!(
+        fs::read(&manifest_path).expect("preserved archive manifest"),
+        original_manifest
+    );
+    let restored = super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+        &root,
+        &archive_root,
+        fixture.limits,
+        storage_limits,
+        &FixtureArchiveAuthenticator,
+    )
+    .expect("prior complete archive remains restorable");
+    assert_eq!(restored.manifest().batch_count, 2);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn archive_restore_rejects_tampered_objects_before_authentication() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-tamper");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let storage_limits = archive_storage_limits();
+    let mut archive_writer = NnsCertifiedRegistryArchivePublisher::new(
+        &root,
+        &archive_root,
+        fixture.limits,
+        storage_limits,
+    );
+    archive_writer
+        .apply_batch(&first)
+        .expect("first archive object");
+    archive_writer
+        .apply_batch(&second)
+        .expect("second archive object");
+    let archive = archive_writer.finish().expect("complete archive");
+    let first_object = archive_root.join("objects").join(format!(
+        "{}.json",
+        archive.manifest().batches[0].report_sha256
+    ));
+    let mut tampered = fs::read_to_string(&first_object).expect("first archive object text");
+    tampered.replace_range(..1, "[");
+    crate::cache_file::write_managed_text_atomically(&root, &first_object, &tampered)
+        .expect("replace object with same-length tampered content");
+
+    let error = super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+        &root,
+        &archive_root,
+        fixture.limits,
+        storage_limits,
+        &PanicArchiveAuthenticator,
+    )
+    .expect_err("tampered object digest");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveStorageError::BatchDigestMismatch { ordinal: 0, .. }
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn archive_restore_bounds_manifest_and_rejects_missing_or_noncanonical_files() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-load-errors");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let storage_limits = archive_storage_limits();
+    let mut archive_writer = NnsCertifiedRegistryArchivePublisher::new(
+        &root,
+        &archive_root,
+        fixture.limits,
+        storage_limits,
+    );
+    archive_writer
+        .apply_batch(&first)
+        .expect("first archive object");
+    archive_writer
+        .apply_batch(&second)
+        .expect("second archive object");
+    let archive = archive_writer.finish().expect("complete archive");
+    let manifest_path = nns_certified_registry_archive_manifest_path(&archive_root);
+
+    let tiny_manifest_limits =
+        NnsCertifiedRegistryArchiveStorageLimits::new(1, storage_limits.archive);
+    let limit_error =
+        super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+            &root,
+            &archive_root,
+            fixture.limits,
+            tiny_manifest_limits,
+            &PanicArchiveAuthenticator,
+        )
+        .expect_err("manifest metadata exceeds read ceiling");
+    assert!(matches!(
+        limit_error,
+        NnsCertifiedRegistryArchiveStorageError::FileLimitExceeded {
+            kind: "manifest",
+            maximum: 1,
+            ..
+        }
+    ));
+
+    let first_object = archive_root.join("objects").join(format!(
+        "{}.json",
+        archive.manifest().batches[0].report_sha256
+    ));
+    fs::remove_file(&first_object).expect("remove first object fixture");
+    let missing_error =
+        super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+            &root,
+            &archive_root,
+            fixture.limits,
+            storage_limits,
+            &PanicArchiveAuthenticator,
+        )
+        .expect_err("manifest-referenced object is mandatory");
+    assert!(matches!(
+        missing_error,
+        NnsCertifiedRegistryArchiveStorageError::MissingBatchObject { ordinal: 0, .. }
+    ));
+
+    crate::cache_file::write_managed_text_atomically(
+        &root,
+        &first_object,
+        &serde_json::to_string(&fixture.first).expect("canonical first report"),
+    )
+    .expect("restore first object fixture");
+    let mut noncanonical = fs::read_to_string(&manifest_path).expect("canonical manifest");
+    noncanonical.push('\n');
+    crate::cache_file::write_managed_text_atomically(&root, &manifest_path, &noncanonical)
+        .expect("publish noncanonical manifest fixture");
+    let canonical_error =
+        super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+            &root,
+            &archive_root,
+            fixture.limits,
+            storage_limits,
+            &PanicArchiveAuthenticator,
+        )
+        .expect_err("manifest encoding must be canonical");
+    assert!(matches!(
+        canonical_error,
+        NnsCertifiedRegistryArchiveStorageError::NonCanonicalManifest { .. }
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn archive_publication_rejects_unconfined_paths_and_poisoned_reuse() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-confined");
+    let outside = crate::test_support::temp_dir("ic-query-registry-archive-outside");
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let mut publisher = NnsCertifiedRegistryArchivePublisher::new(
+        &root,
+        &outside,
+        fixture.limits,
+        archive_storage_limits(),
+    );
+
+    let error = publisher
+        .apply_batch(&first)
+        .expect_err("archive root outside capability root");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveStorageError::FileOperation {
+            source: crate::cache_file::CacheFileError::Confinement { .. },
+        }
+    ));
+    assert!(matches!(
+        publisher.apply_batch(&first),
+        Err(NnsCertifiedRegistryArchiveStorageError::PublisherPoisoned)
+    ));
+    assert!(!outside.exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+struct FixtureArchiveAuthenticator;
+
+impl super::archive::storage::ArchiveBatchAuthenticator for FixtureArchiveAuthenticator {
+    fn authenticate<'a>(
+        &self,
+        request: &NnsCertifiedRegistryDeltaBatchRequest,
+        report: &'a NnsCertifiedRegistryDeltaBatchReport,
+    ) -> Result<NnsAuthenticatedRegistryDeltaBatch<'a>, NnsRegistryHostError> {
+        validate_nns_certified_registry_delta_batch(request, report)?;
+        Ok(NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(
+            report,
+        ))
+    }
+}
+
+struct PanicArchiveAuthenticator;
+
+impl super::archive::storage::ArchiveBatchAuthenticator for PanicArchiveAuthenticator {
+    fn authenticate<'a>(
+        &self,
+        _request: &NnsCertifiedRegistryDeltaBatchRequest,
+        _report: &'a NnsCertifiedRegistryDeltaBatchReport,
+    ) -> Result<NnsAuthenticatedRegistryDeltaBatch<'a>, NnsRegistryHostError> {
+        panic!("object tampering must fail before authentication")
+    }
+}
+
+const fn archive_storage_limits() -> NnsCertifiedRegistryArchiveStorageLimits {
+    NnsCertifiedRegistryArchiveStorageLimits::new(
+        100_000,
+        NnsCertifiedRegistryArchiveLimits::new(2, 100_000, 200_000),
+    )
 }
 
 #[test]

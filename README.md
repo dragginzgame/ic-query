@@ -531,6 +531,20 @@ size-checked, reauthenticated, replayed in order, and compared with a recomputed
 manifest. This stage defines no filesystem path, cache, refresh behavior, or CLI
 surface and does not enable `CatalogAssurance::Certified`.
 
+`NnsCertifiedRegistryArchivePublisher` and
+`load_nns_certified_registry_archive` provide the explicit filesystem layer.
+The publisher streams each canonical report once into a content-addressed,
+owner-only managed object, synchronizes it, and publishes canonical
+`manifest.json` only after exact-target replay completes. Paths are confined
+beneath a caller-selected cache root; traversal, symbolic links, nonregular
+files, and unsafe modes fail closed. Loading bounds the manifest and each
+report before parsing, checks exact sizes and SHA-256 digests, processes one
+report at a time, locally reauthenticates every certificate/witness/chunk set,
+and accepts the archive only when a freshly recomputed manifest matches every
+serialized field. Failed final publication preserves an existing complete
+manifest. No default archive path, automatic collection, refresh policy, lock,
+CLI surface, or certified catalog promotion is selected yet.
+
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time
 reconstruction from version zero. Every apply requires caller-selected live

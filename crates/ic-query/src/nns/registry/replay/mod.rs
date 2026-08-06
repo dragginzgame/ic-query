@@ -19,10 +19,13 @@ use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
 
 pub use archive::{
-    NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
+    NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, NnsAuthenticatedRegistryArchive,
     NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
-    NnsCertifiedRegistryArchiveManifestBuilder, validate_nns_certified_registry_archive_manifest,
+    NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
+    NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
+    load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
+    validate_nns_certified_registry_archive_manifest,
 };
 pub use authentication::{
     NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,

@@ -101,11 +101,13 @@ use ic_query::nns::proposals::{
 use ic_query::nns::registry::{
     NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
     NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
-    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryReplayBuilder,
-    NnsAuthenticatedRegistryReplaySession, NnsAuthenticatedRegistrySubnetCatalogProjection,
-    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
-    NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
-    NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryBootstrapProbeStatus,
+    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryArchive,
+    NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
+    NnsAuthenticatedRegistrySubnetCatalogProjection, NnsCertifiedRegistryArchiveBatchDescriptor,
+    NnsCertifiedRegistryArchiveError, NnsCertifiedRegistryArchiveLimits,
+    NnsCertifiedRegistryArchiveManifest, NnsCertifiedRegistryArchiveManifestBuilder,
+    NnsCertifiedRegistryArchivePublisher, NnsCertifiedRegistryArchiveStorageError,
+    NnsCertifiedRegistryArchiveStorageLimits, NnsCertifiedRegistryBootstrapProbeStatus,
     NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
     NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
     NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
@@ -114,6 +116,7 @@ use ic_query::nns::registry::{
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
+    load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
     project_nns_authenticated_registry_subnet_catalog, project_nns_registry_subnet_catalog,
     reauthenticate_nns_certified_registry_delta_batch,
@@ -613,6 +616,47 @@ fn public_certified_registry_archive_manifest_contract_is_bounded_and_untrusted(
         error,
         NnsCertifiedRegistryArchiveError::InvalidManifest { .. }
     ));
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_certified_registry_archive_storage_contract_is_explicit_and_local() {
+    use std::path::Path;
+
+    let replay_limits = NnsRegistryReplaySessionLimits::new(
+        100,
+        10,
+        100,
+        1_000_000,
+        NnsRegistryReplayLimits::new(1_000, 1_000_000),
+    );
+    let storage_limits = NnsCertifiedRegistryArchiveStorageLimits::new(
+        100_000,
+        NnsCertifiedRegistryArchiveLimits::new(10, 1_000_000, 10_000_000),
+    );
+    let archive_root = Path::new("/tmp/ic-query-public-api-archive");
+    let publisher = NnsCertifiedRegistryArchivePublisher::new(
+        Path::new("/tmp"),
+        archive_root,
+        replay_limits,
+        storage_limits,
+    );
+    assert_eq!(publisher.replay_session().batch_count(), 0);
+    assert_eq!(
+        nns_certified_registry_archive_manifest_path(archive_root),
+        archive_root.join("manifest.json")
+    );
+
+    let loader: fn(
+        &Path,
+        &Path,
+        NnsRegistryReplaySessionLimits,
+        NnsCertifiedRegistryArchiveStorageLimits,
+    ) -> Result<
+        NnsAuthenticatedRegistryArchive,
+        NnsCertifiedRegistryArchiveStorageError,
+    > = load_nns_certified_registry_archive;
+    let _ = loader;
 }
 
 #[cfg(feature = "nns-host")]
