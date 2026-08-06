@@ -183,6 +183,33 @@ impl NnsRegistryReplaySession {
         Ok(progress)
     }
 
+    pub(super) fn ensure_next_source_call_capacity(
+        &self,
+        maximum_batch_query_calls: u64,
+        maximum_batch_response_bytes: u64,
+    ) -> Result<(), NnsRegistryReplayError> {
+        if let Some(selected_version) = self.selected_version
+            && self.state.through_version() == selected_version
+        {
+            return Err(NnsRegistryReplayError::SessionComplete { selected_version });
+        }
+        enforce_session_limit(
+            "batch count",
+            checked_add(self.batch_count, 1)?,
+            self.limits.max_batches,
+        )?;
+        enforce_session_limit(
+            "query call count",
+            checked_add(self.query_call_count, maximum_batch_query_calls)?,
+            self.limits.max_query_calls,
+        )?;
+        enforce_session_limit(
+            "response bytes",
+            checked_add(self.response_bytes, maximum_batch_response_bytes)?,
+            self.limits.max_response_bytes,
+        )
+    }
+
     /// Return the explicit limits governing this session.
     #[must_use]
     pub const fn limits(&self) -> NnsRegistryReplaySessionLimits {

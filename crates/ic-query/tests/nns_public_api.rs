@@ -97,22 +97,23 @@ use ic_query::nns::proposals::{
     NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
     nns_proposal_list_report_text, nns_proposal_report_text,
 };
+#[cfg(feature = "nns-host")]
+use ic_query::nns::registry::{
+    NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
+    NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
+    NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
+    NnsRegistryReplayState, NnsRegistrySource, NnsRegistryVersionData,
+    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_with_source_async,
+    build_nns_registry_version_report_with_source,
+    fetch_nns_certified_registry_delta_batch_with_source_async,
+    nns_certified_registry_delta_limits,
+};
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
     NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
     NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
     NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
     NnsRegistryVersionRequest, nns_registry_version_report_text,
-};
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::{
-    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
-    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplaySession,
-    NnsRegistryReplaySessionLimits, NnsRegistryReplayState, NnsRegistrySource,
-    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
-    build_nns_registry_version_report_with_source,
-    fetch_nns_certified_registry_delta_batch_with_source_async,
-    nns_certified_registry_delta_limits,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::topology::{
@@ -580,6 +581,30 @@ fn public_certified_registry_replay_api_is_bounded_and_version_checked() {
     ));
     assert_eq!(session.selected_version(), None);
     assert!(session.state().is_empty());
+
+    let bootstrap = NnsCertifiedRegistryBootstrapRequest::new(
+        "local",
+        "https://icp-api.io",
+        1_700_000_000,
+        NnsRegistryReplaySessionLimits::new(
+            100,
+            1,
+            65,
+            40 * 1_024 * 1_024,
+            NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
+        ),
+    );
+    let error = futures::executor::block_on(bootstrap_nns_certified_registry_with_source_async(
+        &bootstrap,
+        &FixtureCertifiedRegistryDeltaSource,
+    ))
+    .expect_err("bootstrap must reject non-mainnet before the custom source");
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
+            network
+        }) if network == "local"
+    ));
 }
 
 fn public_certified_delta_report(

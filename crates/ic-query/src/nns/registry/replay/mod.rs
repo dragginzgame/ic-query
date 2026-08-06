@@ -1,9 +1,10 @@
 //! Module: nns::registry::replay
 //!
-//! Responsibility: apply one validated certified Registry delta batch to bounded memory state.
-//! Does not own: network pagination, persistence, catalog projection, or assurance promotion.
-//! Boundary: committed changelog rows are applied atomically and never trigger follow-up IO.
+//! Responsibility: apply certified Registry batches and coordinate explicit bounded bootstrap.
+//! Does not own: persistence, cache policy, catalog projection, or assurance promotion.
+//! Boundary: replay is atomic; source follow-ups occur only in the pre-call-budgeted bootstrap API.
 
+mod bootstrap;
 mod session;
 
 use super::{
@@ -14,6 +15,10 @@ use super::{
 use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
 
+pub use bootstrap::{
+    NnsCertifiedRegistryBootstrapRequest, bootstrap_nns_certified_registry_async,
+    bootstrap_nns_certified_registry_with_source_async,
+};
 pub use session::{NnsRegistryReplaySession, NnsRegistryReplaySessionLimits};
 
 ///

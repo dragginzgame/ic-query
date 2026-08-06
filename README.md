@@ -495,8 +495,15 @@ authority evidence without the validated certified reports that produced it.
 response-byte ceilings and pins the first batch's certified latest version as
 the exact target. If later reports observe a newer Registry version, the
 session applies only through its original target. These pure admission limits
-do not initiate or pre-budget source work; live bootstrap and cache publication
-remain separate future boundaries.
+do not initiate or pre-budget source work.
+
+`bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
+starts at version zero on the caller's async runtime and reserves worst-case
+capacity before each source call: one certified query, up to 64 chunk queries,
+and up to 40 MiB of encoded responses. It has no default limits and returns
+only a complete exact-target session. The operation is uncached and may make
+multiple sequential mainnet calls; cache publication and certified Subnet
+Catalog assurance remain separate future boundaries.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return

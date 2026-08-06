@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.5` adds an explicit caller-runtime async Registry bootstrap from
+  version zero. Before every built-in source call it reserves capacity for one
+  certified query, up to 64 chunk queries, and up to 40 MiB of encoded
+  responses; insufficient remaining batch, call, or byte capacity stops before
+  the call. The first response pins the exact target and only a complete
+  session is returned. Limits have no defaults, custom sources remain
+  responsible for their internal work, and no cache, CLI, or certified catalog
+  publication is added.
+
 - `0.30.4` adds a pure exact-target Registry replay session. Its first valid
   certified batch pins the selected Registry version; later batches must still
   certify that target and may not move it when the live Registry advances.

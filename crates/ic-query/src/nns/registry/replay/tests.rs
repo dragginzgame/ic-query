@@ -1,12 +1,14 @@
 use super::*;
 use crate::{
     nns::registry::{
-        NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
+        NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaSource,
+        NnsCertifiedRegistryDeltaSourceFuture, NnsCertifiedRegistryDeltaVersion,
         NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding,
-        NnsRegistryCertification, nns_certified_registry_delta_limits,
+        NnsRegistryCertification, NnsRegistryHostError, nns_certified_registry_delta_limits,
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
 };
+use std::sync::Mutex;
 
 const NOW: u64 = 1_780_531_200;
 
@@ -390,6 +392,189 @@ fn replay_session_rejects_regressing_target_and_changed_root_key() {
     ));
     assert_eq!(session.state().through_version(), 1);
     assert_eq!(session.batch_count(), 1);
+}
+
+#[test]
+fn certified_bootstrap_reserves_each_call_and_completes_the_first_exact_target() {
+    let source = BootstrapSource::default();
+    let request = bootstrap_request(MAINNET_NETWORK, 2, 130, 80 * 1_024 * 1_024);
+
+    let session = futures::executor::block_on(bootstrap_nns_certified_registry_with_source_async(
+        &request, &source,
+    ))
+    .expect("bounded fixture bootstrap");
+
+    assert_eq!(source.requested_versions(), vec![0, 2]);
+    assert_eq!(session.selected_version(), Some(3));
+    assert_eq!(session.highest_certified_latest_version(), Some(4));
+    assert_eq!(session.state().through_version(), 3);
+    assert_eq!(session.state().get(b"a").expect("a").value(), b"three");
+    assert!(session.state().get(b"future").is_none());
+    assert_eq!(session.batch_count(), 2);
+    assert_eq!(session.query_call_count(), 2);
+    assert_eq!(session.response_bytes(), 128);
+    assert!(session.is_complete());
+}
+
+#[test]
+fn certified_bootstrap_never_starts_a_batch_without_worst_case_capacity() {
+    let mebibyte = 1_024 * 1_024;
+    let cases = [
+        (1, 130, 80 * mebibyte, "batch count", 1, 2),
+        (2, 65, 80 * mebibyte, "query call count", 65, 66),
+        (
+            2,
+            130,
+            40 * mebibyte,
+            "response bytes",
+            40 * mebibyte,
+            40 * mebibyte + 64,
+        ),
+    ];
+
+    for (max_batches, max_calls, max_bytes, field, maximum, actual) in cases {
+        let source = BootstrapSource::default();
+        let request = bootstrap_request(MAINNET_NETWORK, max_batches, max_calls, max_bytes);
+        let error = futures::executor::block_on(
+            bootstrap_nns_certified_registry_with_source_async(&request, &source),
+        )
+        .expect_err("second batch lacks worst-case reservation");
+
+        assert!(matches!(
+            error,
+            NnsRegistryReplayError::SessionLimitExceeded {
+                field: actual_field,
+                maximum: actual_maximum,
+                actual: actual_value,
+            } if actual_field == field && actual_maximum == maximum && actual_value == actual
+        ));
+        assert_eq!(source.requested_versions(), vec![0]);
+    }
+}
+
+#[test]
+fn certified_bootstrap_rejects_non_mainnet_before_source_work() {
+    let source = BootstrapSource::default();
+    let request = bootstrap_request("local", 0, 0, 0);
+
+    let error = futures::executor::block_on(bootstrap_nns_certified_registry_with_source_async(
+        &request, &source,
+    ))
+    .expect_err("non-mainnet bootstrap");
+
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
+            network
+        }) if network == "local"
+    ));
+    assert!(source.requested_versions().is_empty());
+
+    let live_error = futures::executor::block_on(bootstrap_nns_certified_registry_async(&request))
+        .expect_err("live non-mainnet bootstrap");
+    assert!(matches!(
+        live_error,
+        NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
+            network
+        }) if network == "local"
+    ));
+}
+
+#[derive(Default)]
+struct BootstrapSource {
+    requested_versions: Mutex<Vec<u64>>,
+}
+
+impl BootstrapSource {
+    fn requested_versions(&self) -> Vec<u64> {
+        self.requested_versions
+            .lock()
+            .expect("bootstrap fixture request lock")
+            .clone()
+    }
+}
+
+impl NnsCertifiedRegistryDeltaSource for BootstrapSource {
+    fn fetch_certified_registry_delta_batch<'a>(
+        &'a self,
+        request: &'a NnsCertifiedRegistryDeltaBatchRequest,
+    ) -> NnsCertifiedRegistryDeltaSourceFuture<'a> {
+        self.requested_versions
+            .lock()
+            .expect("bootstrap fixture request lock")
+            .push(request.requested_version);
+        Box::pin(async move {
+            match request.requested_version {
+                0 => Ok(report_versions(
+                    request,
+                    3,
+                    vec![
+                        version(
+                            1,
+                            vec![mutation(
+                                NnsCertifiedRegistryMutationKind::Upsert,
+                                b"a",
+                                Some(b"one"),
+                            )],
+                        ),
+                        version(
+                            2,
+                            vec![mutation(
+                                NnsCertifiedRegistryMutationKind::Update,
+                                b"a",
+                                Some(b"two"),
+                            )],
+                        ),
+                    ],
+                )),
+                2 => Ok(report_versions(
+                    request,
+                    4,
+                    vec![
+                        version(
+                            3,
+                            vec![mutation(
+                                NnsCertifiedRegistryMutationKind::Update,
+                                b"a",
+                                Some(b"three"),
+                            )],
+                        ),
+                        version(
+                            4,
+                            vec![mutation(
+                                NnsCertifiedRegistryMutationKind::Upsert,
+                                b"future",
+                                Some(b"ignored"),
+                            )],
+                        ),
+                    ],
+                )),
+                version => Err(NnsRegistryHostError::InvalidSourceData {
+                    reason: format!("unexpected bootstrap fixture request after version {version}"),
+                }),
+            }
+        })
+    }
+}
+
+fn bootstrap_request(
+    network: &str,
+    max_batches: u64,
+    max_query_calls: u64,
+    max_response_bytes: u64,
+) -> NnsCertifiedRegistryBootstrapRequest {
+    NnsCertifiedRegistryBootstrapRequest::new(
+        network,
+        "https://icp-api.io",
+        NOW,
+        NnsRegistryReplaySessionLimits::new(
+            3,
+            max_batches,
+            max_query_calls,
+            max_response_bytes,
+            NnsRegistryReplayLimits::new(10, 100),
+        ),
+    )
 }
 
 fn request(requested_version: u64) -> NnsCertifiedRegistryDeltaBatchRequest {
