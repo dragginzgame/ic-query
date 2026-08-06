@@ -5,9 +5,7 @@
 //! Boundary: applies and validates the annotations committed by the policy digest.
 
 #[cfg(feature = "subnet-catalog-host")]
-use super::{
-    ClassificationSource, GeographicScope, RawSubnetCatalog, SubnetInfo, SubnetSpecialization,
-};
+use super::{ClassificationSource, GeographicScope, SubnetInfo, SubnetSpecialization};
 #[cfg(feature = "subnet-catalog-host")]
 use crate::hex::hex_bytes;
 #[cfg(feature = "subnet-catalog-host")]
@@ -47,8 +45,8 @@ pub(super) fn classification_policy_digest() -> String {
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-pub(super) fn apply_mainnet_classification_policy(catalog: &mut RawSubnetCatalog) {
-    for subnet in &mut catalog.subnets {
+pub(super) fn apply_mainnet_classification_policy(subnets: &mut [SubnetInfo]) {
+    for subnet in subnets {
         apply_default_classification(subnet);
         match subnet.subnet_principal.as_str() {
             FIDUCIARY_SUBNET => apply_curated_classification(

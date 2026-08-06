@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.9` adds a pure, cacheless Subnet Catalog projection from a completed
+  exact-target Registry replay session. It decodes the replayed Subnet list,
+  routing table, and every referenced Subnet record, then uses the same
+  canonical ordering, IC-native classification policy, and routing validation
+  as the live catalog. The projection borrows its replay session so version and
+  provenance commitments remain attached. Incomplete state and missing,
+  malformed, or structurally invalid records fail with typed errors. This does
+  not serialize a mirror, publish a catalog, or enable certified assurance.
+
 - `0.30.8` extends exact-target replay sessions with compact provenance needed
   before any certified projection. Each admitted validated report advances a
   domain-separated SHA-256 evidence chain without buffering another full

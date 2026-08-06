@@ -1,16 +1,27 @@
 use super::*;
 use crate::{
+    ic_registry::proto::{
+        CanisterId, CanisterIdRange, PrincipalId, RoutingTable, RoutingTableEntry, SubnetId,
+        SubnetListRecord, SubnetRecord, SubnetType,
+    },
     nns::registry::{
         NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaSource,
         NnsCertifiedRegistryDeltaSourceFuture, NnsCertifiedRegistryDeltaVersion,
         NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding,
         NnsRegistryCertification, NnsRegistryHostError, nns_certified_registry_delta_limits,
     },
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
+    subnet_catalog::{
+        CatalogError, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind,
+        SubnetSpecialization, format_utc_timestamp_secs,
+    },
 };
+use candid::Principal;
+use prost::Message;
 use std::sync::Mutex;
 
 const NOW: u64 = 1_780_531_200;
+const PROJECTION_SUBNET: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
+const PROJECTION_CANISTER: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
 #[test]
 fn replay_applies_committed_batches_in_order_and_tracks_current_state() {
@@ -486,6 +497,143 @@ fn replay_session_provenance_digests_are_deterministic_and_domain_stable() {
 }
 
 #[test]
+fn complete_replay_projects_through_shared_catalog_classification() {
+    let session = complete_catalog_projection_session(true, false);
+
+    let projection =
+        project_nns_registry_subnet_catalog(&session).expect("complete catalog projection");
+
+    assert_eq!(projection.registry_version(), 1);
+    assert_eq!(projection.replay_session(), &session);
+    assert_eq!(projection.subnets().len(), 1);
+    let subnet = &projection.subnets()[0];
+    assert_eq!(subnet.subnet_principal, PROJECTION_SUBNET);
+    assert_eq!(subnet.subnet_kind, SubnetKind::Application);
+    assert_eq!(
+        subnet.subnet_specialization,
+        SubnetSpecialization::Fiduciary
+    );
+    assert_eq!(subnet.node_count, Some(2));
+    assert_eq!(projection.routing_ranges().len(), 1);
+    assert_eq!(
+        projection.routing_ranges()[0].subnet_principal,
+        PROJECTION_SUBNET
+    );
+    assert!(
+        projection
+            .replay_session()
+            .evidence_chain_digest()
+            .is_some()
+    );
+    assert!(
+        projection
+            .replay_session()
+            .complete_state_digest()
+            .is_some()
+    );
+}
+
+#[test]
+fn catalog_projection_rejects_incomplete_and_missing_replay_state() {
+    let empty = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
+        1,
+        1,
+        1,
+        64,
+        NnsRegistryReplayLimits::new(10, 1_000),
+    ));
+    let error = project_nns_registry_subnet_catalog(&empty)
+        .expect_err("empty replay session is not a catalog snapshot");
+    assert!(matches!(
+        error,
+        NnsRegistrySubnetCatalogProjectionError::IncompleteSession {
+            selected_version: None,
+            through_version: 0,
+        }
+    ));
+
+    let request = request(0);
+    let report = report(
+        &request,
+        1,
+        1,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Upsert,
+            b"unrelated",
+            Some(b"value"),
+        )],
+        Vec::new(),
+    );
+    let mut complete = projection_session();
+    complete
+        .apply_batch(&request, &report)
+        .expect("complete replay without catalog records");
+    let error = project_nns_registry_subnet_catalog(&complete)
+        .expect_err("required catalog key remains mandatory");
+    assert!(matches!(
+        error,
+        NnsRegistrySubnetCatalogProjectionError::MissingRequiredRegistryKey { key }
+            if key == "subnet_list"
+    ));
+}
+
+#[test]
+fn catalog_projection_rejects_registry_version_zero() {
+    let request = request(0);
+    let report = report_versions(&request, 0, Vec::new());
+    let mut session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
+        0,
+        1,
+        1,
+        64,
+        NnsRegistryReplayLimits::new(10, 100),
+    ));
+    session
+        .apply_batch(&request, &report)
+        .expect("complete version-zero replay fixture");
+
+    let error = project_nns_registry_subnet_catalog(&session)
+        .expect_err("version zero is not a catalog authority position");
+
+    assert!(matches!(
+        error,
+        NnsRegistrySubnetCatalogProjectionError::InvalidRegistryVersion
+    ));
+}
+
+#[test]
+fn catalog_projection_preserves_typed_record_and_catalog_failures() {
+    let invalid = complete_catalog_projection_session(true, true);
+    let error =
+        project_nns_registry_subnet_catalog(&invalid).expect_err("malformed replayed subnet list");
+    assert!(matches!(
+        error,
+        NnsRegistrySubnetCatalogProjectionError::InvalidRegistryRecord {
+            key,
+            message: "SubnetListRecord",
+            ..
+        } if key == "subnet_list"
+    ));
+
+    let missing_record = complete_catalog_projection_session(false, false);
+    let error = project_nns_registry_subnet_catalog(&missing_record)
+        .expect_err("referenced subnet record is required");
+    assert!(matches!(
+        error,
+        NnsRegistrySubnetCatalogProjectionError::MissingRequiredRegistryKey { key }
+            if key == format!("subnet_record_{PROJECTION_SUBNET}")
+    ));
+
+    let empty_routing = complete_catalog_projection_session_with_routing(RoutingTable::default());
+    let error = project_nns_registry_subnet_catalog(&empty_routing)
+        .expect_err("empty routing projection fails shared catalog validation");
+    assert!(matches!(
+        error,
+        NnsRegistrySubnetCatalogProjectionError::Catalog(CatalogError::EmptyRoutingRanges)
+    ));
+}
+
+#[test]
 fn replay_session_fails_atomically_on_cumulative_limits() {
     let request = request(0);
     let report = report(
@@ -928,6 +1076,109 @@ fn complete_provenance_session(changed_raw_evidence: bool) -> NnsRegistryReplayS
         .apply_batch(&fixture.second_request, &fixture.second)
         .expect("second complete-session provenance batch");
     session
+}
+
+fn projection_session() -> NnsRegistryReplaySession {
+    NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
+        1,
+        1,
+        1,
+        64,
+        NnsRegistryReplayLimits::new(20, 10_000),
+    ))
+}
+
+fn complete_catalog_projection_session(
+    include_subnet_record: bool,
+    invalid_subnet_list: bool,
+) -> NnsRegistryReplaySession {
+    complete_catalog_projection_session_from_parts(
+        include_subnet_record,
+        invalid_subnet_list,
+        projection_routing_table_with_range(PROJECTION_SUBNET),
+    )
+}
+
+fn complete_catalog_projection_session_with_routing(
+    routing_table: RoutingTable,
+) -> NnsRegistryReplaySession {
+    complete_catalog_projection_session_from_parts(true, false, routing_table)
+}
+
+fn complete_catalog_projection_session_from_parts(
+    include_subnet_record: bool,
+    invalid_subnet_list: bool,
+    routing_table: RoutingTable,
+) -> NnsRegistryReplaySession {
+    let subnet_list = SubnetListRecord {
+        subnets: vec![principal_bytes(PROJECTION_SUBNET)],
+    };
+    let subnet_record = SubnetRecord {
+        membership: vec![
+            principal_bytes("aaaaa-aa"),
+            principal_bytes(PROJECTION_CANISTER),
+        ],
+        subnet_type: SubnetType::Application as i32,
+        canister_cycles_cost_schedule: 0,
+    };
+    let mut records = vec![
+        (b"routing_table".as_slice(), routing_table.encode_to_vec()),
+        (
+            b"subnet_list".as_slice(),
+            if invalid_subnet_list {
+                vec![0xff]
+            } else {
+                subnet_list.encode_to_vec()
+            },
+        ),
+    ];
+    let subnet_record_key = format!("subnet_record_{PROJECTION_SUBNET}");
+    if include_subnet_record {
+        records.push((subnet_record_key.as_bytes(), subnet_record.encode_to_vec()));
+    }
+    records.sort_by(|left, right| left.0.cmp(right.0));
+    let mutations = records
+        .into_iter()
+        .map(|(key, value)| mutation(NnsCertifiedRegistryMutationKind::Upsert, key, Some(&value)))
+        .collect();
+    let request = request(0);
+    let report = report(&request, 1, 1, mutations, Vec::new());
+    let mut session = projection_session();
+    session
+        .apply_batch(&request, &report)
+        .expect("complete catalog fixture replay");
+    session
+}
+
+fn projection_routing_table_with_range(subnet: &str) -> RoutingTable {
+    RoutingTable {
+        entries: vec![RoutingTableEntry {
+            range: Some(CanisterIdRange {
+                start_canister_id: Some(canister_id(PROJECTION_CANISTER)),
+                end_canister_id: Some(canister_id(PROJECTION_CANISTER)),
+            }),
+            subnet_id: Some(SubnetId {
+                principal_id: Some(PrincipalId {
+                    raw: principal_bytes(subnet),
+                }),
+            }),
+        }],
+    }
+}
+
+fn canister_id(principal: &str) -> CanisterId {
+    CanisterId {
+        principal_id: Some(PrincipalId {
+            raw: principal_bytes(principal),
+        }),
+    }
+}
+
+fn principal_bytes(principal: &str) -> Vec<u8> {
+    Principal::from_text(principal)
+        .expect("projection fixture principal")
+        .as_slice()
+        .to_vec()
 }
 
 fn request(requested_version: u64) -> NnsCertifiedRegistryDeltaBatchRequest {

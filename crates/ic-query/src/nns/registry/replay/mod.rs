@@ -5,6 +5,7 @@
 //! Boundary: replay is atomic; source follow-ups occur only in the pre-call-budgeted bootstrap API.
 
 mod bootstrap;
+mod projection;
 mod session;
 
 use super::{
@@ -20,6 +21,10 @@ pub use bootstrap::{
     NnsCertifiedRegistryBootstrapRequest, bootstrap_nns_certified_registry_async,
     bootstrap_nns_certified_registry_with_source_async, probe_nns_certified_registry_async,
     probe_nns_certified_registry_with_source_async,
+};
+pub use projection::{
+    NnsRegistrySubnetCatalogProjection, NnsRegistrySubnetCatalogProjectionError,
+    project_nns_registry_subnet_catalog,
 };
 pub use session::{
     NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsRegistryReplaySession,

@@ -507,6 +507,14 @@ canonical state digest is exposed only after exact-target completion. One
 public schema constant versions both commitments. These commitments do not
 reauthenticate a custom source or establish catalog assurance by themselves.
 
+A completed replay session can be projected in memory into canonical Subnet
+Catalog rows. The pure projection reads the replayed Subnet list, routing table,
+and referenced Subnet records at the pinned version and reuses the live
+catalog's classification and routing-validation path. The projection borrows
+the session, keeping its version and provenance commitments attached. It is
+not serializable, does not access the network or cache, and does not yet produce
+a `ValidatedSubnetCatalog` or `CatalogAssurance::Certified` result.
+
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case
 capacity before each source call: one certified query, up to 64 chunk queries,

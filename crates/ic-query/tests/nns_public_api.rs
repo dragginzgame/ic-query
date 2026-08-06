@@ -103,12 +103,13 @@ use ic_query::nns::registry::{
     NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
     NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
     NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
-    NnsRegistryReplayState, NnsRegistrySource, NnsRegistryVersionData,
-    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_with_source_async,
+    NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
+    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
+    bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
-    validate_nns_certified_registry_delta_batch,
+    project_nns_registry_subnet_catalog, validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
@@ -601,6 +602,29 @@ fn public_replay_session_exposes_complete_provenance_commitments() {
         session.maximum_certificate_time_nanos(),
         Some(1_700_000_000_000_000_000)
     );
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_catalog_projection_requires_complete_replay_evidence() {
+    let session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
+        1,
+        1,
+        1,
+        64,
+        NnsRegistryReplayLimits::new(10, 100),
+    ));
+
+    let error = project_nns_registry_subnet_catalog(&session)
+        .expect_err("empty public replay session is not projectable");
+
+    assert!(matches!(
+        error,
+        NnsRegistrySubnetCatalogProjectionError::IncompleteSession {
+            selected_version: None,
+            through_version: 0,
+        }
+    ));
 }
 
 #[cfg(feature = "nns-host")]

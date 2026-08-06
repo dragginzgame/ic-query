@@ -16,6 +16,8 @@ mod wire;
 
 use candid::Principal;
 #[cfg(feature = "nns-host")]
+pub use catalog::{routing_ranges_from_table, subnet_info_from_record};
+#[cfg(feature = "nns-host")]
 pub use client::fetch_mainnet_certified_registry_delta_batch_async;
 pub use client::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "nns-topology-host")]
@@ -58,9 +60,6 @@ use crate::subnet_catalog::{
 };
 
 #[cfg(all(test, feature = "nns-host"))]
-use catalog::{routing_ranges_from_table, subnet_info_from_record};
-
-#[cfg(all(test, feature = "nns-host"))]
 use candid::{Decode, Encode};
 
 #[cfg(all(test, feature = "nns-host"))]
@@ -97,8 +96,8 @@ pub const DEFAULT_MAINNET_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "nns-host")]
 pub const MAINNET_GOVERNANCE_CANISTER_ID: &str = "rrkah-fqaaa-aaaaa-aaaaq-cai";
 
-const SUBNET_LIST_KEY: &str = "subnet_list";
-const ROUTING_TABLE_KEY: &str = "routing_table";
+pub const SUBNET_LIST_KEY: &str = "subnet_list";
+pub const ROUTING_TABLE_KEY: &str = "routing_table";
 const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";
 
 fn canister_id_text(
@@ -141,7 +140,7 @@ fn principal_text_from_required_raw(
     principal_text_from_raw(raw, field)
 }
 
-fn subnet_record_key(subnet_principal: &str) -> String {
+pub fn subnet_record_key(subnet_principal: &str) -> String {
     format!("{SUBNET_RECORD_KEY_PREFIX}{subnet_principal}")
 }
 

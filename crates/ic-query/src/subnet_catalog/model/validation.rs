@@ -68,28 +68,7 @@ impl RawSubnetCatalog {
     /// Canonicalize source rows, apply the current policy, and replace the catalog digest.
     #[cfg(feature = "subnet-catalog-host")]
     pub fn canonicalize_and_seal(&mut self) -> Result<(), CatalogError> {
-        self.subnets
-            .sort_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
-        let mut keyed_ranges = self
-            .routing_ranges
-            .drain(..)
-            .map(|range| {
-                Ok::<_, CatalogError>((
-                    principal_bytes(&range.start_canister_id, "start_canister_id")?,
-                    principal_bytes(&range.end_canister_id, "end_canister_id")?,
-                    range.subnet_principal.clone(),
-                    range,
-                ))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        keyed_ranges.sort_by(|left, right| {
-            compare_routing_keys(&left.0, &left.1, &left.2, &right.0, &right.1, &right.2)
-        });
-        self.routing_ranges = keyed_ranges
-            .into_iter()
-            .map(|(_, _, _, range)| range)
-            .collect();
-        apply_mainnet_classification_policy(self);
+        canonicalize_subnet_catalog_content(&mut self.subnets, &mut self.routing_ranges)?;
         self.provenance.classification_schema_version = CLASSIFICATION_SCHEMA_VERSION;
         self.provenance.classification_policy_digest = classification_policy_digest();
         self.provenance.resolver_schema_version = RESOLVER_SCHEMA_VERSION;
@@ -135,83 +114,12 @@ impl RawSubnetCatalog {
         if self.provenance.registry_version == 0 {
             return Err(CatalogError::InvalidRegistryVersion);
         }
-        if self.subnets.is_empty() {
-            return Err(CatalogError::EmptySubnets);
-        }
-        if self.routing_ranges.is_empty() {
-            return Err(CatalogError::EmptyRoutingRanges);
-        }
         parse_principal(
             &self.provenance.registry_canister_id,
             "provenance.registry_canister_id",
         )?;
 
-        let mut subnet_principals = BTreeSet::new();
-        let mut previous_subnet: Option<&str> = None;
-        for subnet in &self.subnets {
-            parse_principal(&subnet.subnet_principal, "subnet_principal")?;
-            if let Some(previous) = previous_subnet
-                && previous >= subnet.subnet_principal.as_str()
-            {
-                return Err(CatalogError::NonCanonicalSubnetOrder {
-                    previous: previous.to_string(),
-                    current: subnet.subnet_principal.clone(),
-                });
-            }
-            previous_subnet = Some(subnet.subnet_principal.as_str());
-            if !subnet_principals.insert(subnet.subnet_principal.clone()) {
-                return Err(CatalogError::DuplicateSubnet {
-                    subnet_principal: subnet.subnet_principal.clone(),
-                });
-            }
-            validate_raw_subnet_classification(subnet)?;
-        }
-
-        let mut validated_ranges = Vec::with_capacity(self.routing_ranges.len());
-        for range in &self.routing_ranges {
-            if !subnet_principals.contains(&range.subnet_principal) {
-                return Err(CatalogError::UnknownRoutingSubnet {
-                    subnet_principal: range.subnet_principal.clone(),
-                });
-            }
-            let start = principal_bytes(&range.start_canister_id, "start_canister_id")?;
-            let end = principal_bytes(&range.end_canister_id, "end_canister_id")?;
-            parse_principal(&range.subnet_principal, "routing_range.subnet_principal")?;
-            if routing_range_sorts_after(&start, &end) {
-                return Err(CatalogError::InvalidRoutingRange {
-                    subnet_principal: range.subnet_principal.clone(),
-                    start_canister_id: range.start_canister_id.clone(),
-                    end_canister_id: range.end_canister_id.clone(),
-                });
-            }
-            validated_ranges.push((range, start, end));
-        }
-        for pair in validated_ranges.windows(2) {
-            let (first, first_start, first_end) = &pair[0];
-            let (second, second_start, second_end) = &pair[1];
-            if compare_routing_keys(
-                first_start,
-                first_end,
-                &first.subnet_principal,
-                second_start,
-                second_end,
-                &second.subnet_principal,
-            ) != Ordering::Less
-            {
-                return Err(CatalogError::NonCanonicalRoutingOrder {
-                    previous: Box::new((*first).clone()),
-                    current: Box::new((*second).clone()),
-                });
-            }
-            if second_start <= first_end {
-                return Err(CatalogError::OverlappingRoutingRanges {
-                    first: Box::new((*first).clone()),
-                    second: Box::new((*second).clone()),
-                });
-            }
-        }
-
-        Ok(())
+        validate_subnet_catalog_content(&self.subnets, &self.routing_ranges)
     }
 
     /// Find one raw Subnet row by canonical principal text.
@@ -230,6 +138,112 @@ impl RawSubnetCatalog {
             .filter(|range| range.subnet_principal == subnet_principal)
             .collect()
     }
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+pub fn canonicalize_subnet_catalog_content(
+    subnets: &mut [SubnetInfo],
+    routing_ranges: &mut Vec<RoutingRange>,
+) -> Result<(), CatalogError> {
+    subnets.sort_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
+    let mut keyed_ranges = routing_ranges
+        .drain(..)
+        .map(|range| {
+            Ok::<_, CatalogError>((
+                principal_bytes(&range.start_canister_id, "start_canister_id")?,
+                principal_bytes(&range.end_canister_id, "end_canister_id")?,
+                range.subnet_principal.clone(),
+                range,
+            ))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    keyed_ranges.sort_by(|left, right| {
+        compare_routing_keys(&left.0, &left.1, &left.2, &right.0, &right.1, &right.2)
+    });
+    *routing_ranges = keyed_ranges
+        .into_iter()
+        .map(|(_, _, _, range)| range)
+        .collect();
+    apply_mainnet_classification_policy(subnets);
+    validate_subnet_catalog_content(subnets, routing_ranges)
+}
+
+fn validate_subnet_catalog_content(
+    subnets: &[SubnetInfo],
+    routing_ranges: &[RoutingRange],
+) -> Result<(), CatalogError> {
+    if subnets.is_empty() {
+        return Err(CatalogError::EmptySubnets);
+    }
+    if routing_ranges.is_empty() {
+        return Err(CatalogError::EmptyRoutingRanges);
+    }
+    let mut subnet_principals = BTreeSet::new();
+    let mut previous_subnet: Option<&str> = None;
+    for subnet in subnets {
+        parse_principal(&subnet.subnet_principal, "subnet_principal")?;
+        if let Some(previous) = previous_subnet
+            && previous >= subnet.subnet_principal.as_str()
+        {
+            return Err(CatalogError::NonCanonicalSubnetOrder {
+                previous: previous.to_string(),
+                current: subnet.subnet_principal.clone(),
+            });
+        }
+        previous_subnet = Some(subnet.subnet_principal.as_str());
+        if !subnet_principals.insert(subnet.subnet_principal.clone()) {
+            return Err(CatalogError::DuplicateSubnet {
+                subnet_principal: subnet.subnet_principal.clone(),
+            });
+        }
+        validate_raw_subnet_classification(subnet)?;
+    }
+
+    let mut validated_ranges = Vec::with_capacity(routing_ranges.len());
+    for range in routing_ranges {
+        if !subnet_principals.contains(&range.subnet_principal) {
+            return Err(CatalogError::UnknownRoutingSubnet {
+                subnet_principal: range.subnet_principal.clone(),
+            });
+        }
+        let start = principal_bytes(&range.start_canister_id, "start_canister_id")?;
+        let end = principal_bytes(&range.end_canister_id, "end_canister_id")?;
+        parse_principal(&range.subnet_principal, "routing_range.subnet_principal")?;
+        if routing_range_sorts_after(&start, &end) {
+            return Err(CatalogError::InvalidRoutingRange {
+                subnet_principal: range.subnet_principal.clone(),
+                start_canister_id: range.start_canister_id.clone(),
+                end_canister_id: range.end_canister_id.clone(),
+            });
+        }
+        validated_ranges.push((range, start, end));
+    }
+    for pair in validated_ranges.windows(2) {
+        let (first, first_start, first_end) = &pair[0];
+        let (second, second_start, second_end) = &pair[1];
+        if compare_routing_keys(
+            first_start,
+            first_end,
+            &first.subnet_principal,
+            second_start,
+            second_end,
+            &second.subnet_principal,
+        ) != Ordering::Less
+        {
+            return Err(CatalogError::NonCanonicalRoutingOrder {
+                previous: Box::new((*first).clone()),
+                current: Box::new((*second).clone()),
+            });
+        }
+        if second_start <= first_end {
+            return Err(CatalogError::OverlappingRoutingRanges {
+                first: Box::new((*first).clone()),
+                second: Box::new((*second).clone()),
+            });
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -499,7 +513,7 @@ fn validate_policy_identity(raw: &RawSubnetCatalog) -> Result<(), CatalogError> 
 #[cfg(feature = "subnet-catalog-host")]
 fn validate_classification_policy(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
     let mut expected = raw.clone();
-    apply_mainnet_classification_policy(&mut expected);
+    apply_mainnet_classification_policy(&mut expected.subnets);
     for (actual, expected) in raw.subnets.iter().zip(&expected.subnets) {
         if actual.subnet_specialization != expected.subnet_specialization
             || actual.subnet_specialization_source != expected.subnet_specialization_source

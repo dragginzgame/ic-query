@@ -10,9 +10,11 @@ pub use replay::{
     NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
     NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplayProgress,
     NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
-    NnsRegistryReplayValue, apply_nns_certified_registry_delta_batch,
+    NnsRegistryReplayValue, NnsRegistrySubnetCatalogProjection,
+    NnsRegistrySubnetCatalogProjectionError, apply_nns_certified_registry_delta_batch,
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     probe_nns_certified_registry_async, probe_nns_certified_registry_with_source_async,
+    project_nns_registry_subnet_catalog,
 };
 pub use report::{
     DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsCertifiedRegistryDeltaBatchReport,

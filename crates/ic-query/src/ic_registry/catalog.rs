@@ -66,7 +66,7 @@ pub(super) async fn catalog_from_registry_records(
     .map_err(RegistryFetchError::from)
 }
 
-pub(super) fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRecord) -> SubnetInfo {
+pub fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRecord) -> SubnetInfo {
     let subnet_kind = subnet_kind_from_registry(record.subnet_type);
     let charges_apply_by_default = subnet_kind.charges_apply_by_default();
     SubnetInfo {
@@ -85,7 +85,7 @@ pub(super) fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRec
     }
 }
 
-pub(super) fn routing_ranges_from_table(
+pub fn routing_ranges_from_table(
     table: &RoutingTable,
 ) -> Result<Vec<RoutingRange>, RegistryFetchError> {
     table
