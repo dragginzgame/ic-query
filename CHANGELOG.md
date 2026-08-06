@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.14` makes the shared `patch`, `minor`, and `major` release gate run
+  `cargo clean` after CI exits, including failed CI runs, while preserving the
+  gate's original status if cleanup itself fails. CI guards now use exact,
+  named, trapped temporary paths; feature-boundary logs share one owned
+  directory and are removed together on success or failure.
+
 - `0.30.13` adds a bounded in-memory replay builder that accepts only sealed,
   locally reauthenticated Registry delta batches. It starts at version zero,
   preserves the existing exact-target, cumulative-limit, provenance, and

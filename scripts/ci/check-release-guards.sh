@@ -3,8 +3,8 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 make_bin="$(command -v make)"
-work_dir="$(mktemp -d)"
-trap 'rm -rf "${work_dir}"' EXIT
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
+trap 'rm -rf -- "${work_dir}"' EXIT
 
 fail() {
   echo "error: $*" >&2
@@ -99,12 +99,21 @@ case "${*: -1}" in
   ensure-clean) exit "${CLEAN_STATUS:-0}" ;;
   ci)
     [[ "${CHANGELOG_VERSION:-}" == "0.8.1" ]] || exit 42
-    exit 23
+    exit "${CI_STATUS:-23}"
     ;;
   *) exit 2 ;;
 esac
 EOF
-chmod +x "${bump_case}/bin/bash" "${bump_case}/bin/make"
+cat > "${bump_case}/bin/cargo" <<'EOF'
+#!/bin/bash
+version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
+printf 'cargo %s version=%s\n' "$*" "${version}" >> "${TRACE_FILE}"
+case "${1:-}" in
+  clean) exit "${CARGO_CLEAN_STATUS:-0}" ;;
+  *) exit 2 ;;
+esac
+EOF
+chmod +x "${bump_case}/bin/bash" "${bump_case}/bin/make" "${bump_case}/bin/cargo"
 before_bump="$(<"${bump_case}/Cargo.toml")"
 set +e
 (
@@ -129,6 +138,7 @@ set +e
 (
   cd "${bump_case}"
   PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" \
+    CARGO_CLEAN_STATUS=47 \
     /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
 ) >/dev/null 2>&1
 bump_status="$?"
@@ -143,6 +153,10 @@ mapfile -t bump_trace < "${bump_case}/trace"
   || fail "the bump script did not check cleanliness before CI"
 [[ "${bump_trace[2]:-}" == "make --no-print-directory ci" ]] \
   || fail "the bump script did not run the complete CI gate after the cleanliness check"
+[[ "${bump_trace[3]:-}" == "cargo clean version=0.8.0" ]] \
+  || fail "the bump script did not clean build artifacts after a failed CI gate"
+[[ "${#bump_trace[@]}" -eq 4 ]] \
+  || fail "the bump script ran unexpected commands after a failed CI gate"
 
 : > "${bump_case}/trace"
 if (
@@ -165,6 +179,27 @@ mapfile -t dirty_bump_trace < "${bump_case}/trace"
   || fail "the bump script did not run the cleanliness check"
 [[ "${#dirty_bump_trace[@]}" -eq 2 ]] \
   || fail "the bump script ran CI after a failed cleanliness check"
+
+: > "${bump_case}/trace"
+(
+  cd "${bump_case}"
+  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CI_STATUS=0 \
+    /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
+) >/dev/null 2>&1 \
+  || fail "the bump script rejected a successful CI gate"
+[[ "$(<"${bump_case}/Cargo.toml")" == 'version = "0.8.1"' ]] \
+  || fail "the bump script did not update version metadata after CI passed"
+mapfile -t successful_bump_trace < "${bump_case}/trace"
+[[ "${successful_bump_trace[0]:-}" == "changelog scripts/ci/check-changelog-version.sh 0.8.1" ]] \
+  || fail "the successful bump did not check the target-version changelog first"
+[[ "${successful_bump_trace[1]:-}" == "make --no-print-directory ensure-clean" ]] \
+  || fail "the successful bump did not check cleanliness before CI"
+[[ "${successful_bump_trace[2]:-}" == "make --no-print-directory ci" ]] \
+  || fail "the successful bump did not run the complete CI gate"
+[[ "${successful_bump_trace[3]:-}" == "cargo clean version=0.8.1" ]] \
+  || fail "the successful bump did not clean after updating version metadata"
+[[ "${#successful_bump_trace[@]}" -eq 4 ]] \
+  || fail "the successful bump ran unexpected commands"
 
 clean_case="${work_dir}/clean"
 mkdir -p "${clean_case}/bin"

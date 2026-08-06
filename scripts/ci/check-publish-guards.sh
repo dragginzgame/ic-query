@@ -2,8 +2,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-work_dir="$(mktemp -d)"
-trap 'rm -rf "${work_dir}"' EXIT
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-publish-guards.XXXXXX")"
+trap 'rm -rf -- "${work_dir}"' EXIT
 
 fail() {
   echo "error: $*" >&2

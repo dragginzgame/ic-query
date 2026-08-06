@@ -5,6 +5,16 @@ usage() {
   echo "Usage: $0 patch|minor|major" >&2
 }
 
+cleanup_release_build_artifacts() {
+  local status="$?"
+  trap - EXIT
+  echo "Cleaning Cargo build artifacts after the release gate..."
+  if ! cargo clean; then
+    echo "warning: cargo clean failed after the release gate" >&2
+  fi
+  exit "${status}"
+}
+
 bump="${1:-patch}"
 case "${bump}" in
   patch | minor | major) ;;
@@ -54,6 +64,7 @@ bash scripts/ci/check-changelog-version.sh "${new_version}"
 
 echo "Running full CI gate before version bump..."
 make --no-print-directory ensure-clean
+trap cleanup_release_build_artifacts EXIT
 CHANGELOG_VERSION="${new_version}" make --no-print-directory ci
 
 perl -0pi -e "s/version = \"\\Q${previous_version}\\E\"/version = \"${new_version}\"/g" Cargo.toml

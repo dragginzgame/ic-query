@@ -3,7 +3,7 @@ set -euo pipefail
 
 readonly expected_missing_docs=1828
 log="$(mktemp "${TMPDIR:-/tmp}/ic-query-public-docs.XXXXXX")"
-trap 'rm -f "${log}"' EXIT
+trap 'rm -f -- "${log}"' EXIT
 
 # Remove generated documentation so rustdoc emits the complete warning set on
 # repeated local runs instead of reusing a fresh artifact without diagnostics.

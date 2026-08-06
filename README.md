@@ -44,6 +44,13 @@ From crates.io:
 cargo install ic-query-cli
 ```
 
+Local `make patch`, `make minor`, and `make major` runs execute the complete
+release gate and then remove this workspace's Cargo build artifacts, whether
+the gate succeeds or fails. Cleanup preserves the gate's original exit status;
+a cleanup failure is reported as a warning rather than disguising the release
+result. CI helper scripts likewise remove only their own exact temporary paths.
+They do not sweep shared `/tmp` or remove the shared Cargo download cache.
+
 ## Quick start
 
 ```bash

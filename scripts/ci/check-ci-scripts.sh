@@ -3,8 +3,8 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 make_bin="$(command -v make)"
-work_dir="$(mktemp -d)"
-trap 'rm -rf "${work_dir}"' EXIT
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-scripts.XXXXXX")"
+trap 'rm -rf -- "${work_dir}"' EXIT
 
 fail() {
   echo "error: $*" >&2
@@ -105,6 +105,28 @@ chmod +x "${public_docs_case}/bin/cargo"
     bash "${repo_root}/scripts/ci/check-public-docs.sh"
 ) >/dev/null 2>&1 \
   || fail "the public documentation check is not stable under forced Cargo color"
+
+feature_boundary_case="${work_dir}/feature-boundary"
+mkdir -p "${feature_boundary_case}/bin" "${feature_boundary_case}/tmp"
+cat > "${feature_boundary_case}/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+if [[ -n "${FAIL_FEATURE_CHECK:-}" && "$*" == *"--features host"* ]]; then
+  exit 51
+fi
+EOF
+chmod +x "${feature_boundary_case}/bin/cargo"
+TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" >/dev/null \
+  || fail "the feature-boundary check rejected successful Cargo commands"
+[[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
+  || fail "the successful feature-boundary check left temporary files"
+if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  FAIL_FEATURE_CHECK=1 \
+  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" >/dev/null 2>&1; then
+  fail "the feature-boundary check hid a failed Cargo command"
+fi
+[[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
+  || fail "the failed feature-boundary check left temporary files"
 
 package_retry_case="${work_dir}/package-retry"
 mkdir -p "${package_retry_case}/bin"

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-feature-boundary.XXXXXX")"
+trap 'rm -rf -- "${work_dir}"' EXIT
+
 forbidden_pure_library_dependencies=(
   clap
   futures
@@ -113,14 +116,12 @@ run_quiet() {
   shift
 
   local log
-  log="$(mktemp "${TMPDIR:-/tmp}/ic-query-feature-boundary.XXXXXX")"
+  log="$(mktemp "${work_dir}/check.XXXXXX")"
   if ! "$@" >"${log}" 2>&1; then
     echo "error: ${label} failed" >&2
     cat "${log}" >&2
-    rm -f "${log}"
     return 1
   fi
-  rm -f "${log}"
 }
 
 cargo check -p ic-query --locked
