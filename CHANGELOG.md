@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.7` aligns certified replay with two additional committed Registry
+  history rules proven by a complete bounded mainnet reconstruction. Repeated
+  keys inside one atomic version are preserved and applied in their stable,
+  canonical key order; retained value content on a committed delete remains
+  raw evidence but is ignored when rebuilding current state. Decreasing key
+  order still fails closed. A cacheless probe reconstructed exact Registry
+  target `62948` in 75 batches and 77 calls using 63,814,080 encoded response
+  bytes and 22,345,176 bytes of current state; these measurements are evidence,
+  not new defaults.
+
 - `0.30.6` adds a bounded diagnostic Registry bootstrap probe. It shares the
   complete bootstrap's pre-call reservation and validation loop but returns a
   typed `Complete` or `CapacityReached` outcome with the accumulated session,

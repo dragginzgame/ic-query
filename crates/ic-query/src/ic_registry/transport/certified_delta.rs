@@ -324,19 +324,21 @@ fn validate_atomic_delta(
         MAX_CERTIFIED_DELTA_PRECONDITIONS,
     )?;
 
-    let mut mutation_keys = BTreeSet::new();
+    if let Some(pair) = atomic
+        .mutations
+        .windows(2)
+        .find(|pair| pair[0].key > pair[1].key)
+    {
+        return Err(invalid_certified_registry(format!(
+            "delta version {version} mutation key {} follows {} out of canonical order",
+            hex_bytes(&pair[1].key),
+            hex_bytes(&pair[0].key)
+        )));
+    }
     let mutations = atomic
         .mutations
         .into_iter()
-        .map(|mutation| {
-            if !mutation_keys.insert(mutation.key.clone()) {
-                return Err(invalid_certified_registry(format!(
-                    "delta version {version} mutates key {} more than once",
-                    hex_bytes(&mutation.key)
-                )));
-            }
-            validate_mutation(version, mutation, counters)
-        })
+        .map(|mutation| validate_mutation(version, mutation, counters))
         .collect::<Result<Vec<_>, RegistryFetchError>>()?;
 
     let mut precondition_keys = BTreeSet::new();
@@ -382,12 +384,6 @@ fn validate_mutation(
     let (value_hex, value_encoding, chunk_sha256s) = match (kind, mutation.content) {
         (RegistryMutationType::Delete, None) => {
             (None, CertifiedRegistryValueEncoding::Absent, Vec::new())
-        }
-        (RegistryMutationType::Delete, Some(_)) => {
-            return Err(invalid_certified_registry(format!(
-                "delta version {version} delete for key {} carries value content",
-                hex_bytes(&mutation.key)
-            )));
         }
         (_, Some(Content::Value(value))) => {
             checked_accumulate(
@@ -628,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unknown_types_and_conflicting_keys() {
+    fn rejects_unknown_types_and_noncanonical_key_order() {
         let unknown = HighCapacityRegistryMutation {
             mutation_type: 99,
             key: b"alpha".to_vec(),
@@ -648,15 +644,32 @@ mod tests {
 
         let error = validate_atomic_delta(
             5,
-            atomic(vec![delete(b"same"), delete(b"same")], vec![]),
+            atomic(vec![delete(b"z"), delete(b"a")], vec![]),
             &mut DeltaCounters::default(),
         )
-        .expect_err("duplicate mutation key");
+        .expect_err("noncanonical mutation key order");
         assert!(matches!(
             error,
             RegistryFetchError::InvalidCertifiedRegistry { reason }
-                if reason.contains("more than once")
+                if reason.contains("out of canonical order")
         ));
+    }
+
+    #[test]
+    fn accepts_repeated_committed_keys_in_their_stable_order() {
+        let version = validate_atomic_delta(
+            7_056,
+            atomic(
+                vec![upsert(b"same", b"first"), upsert(b"same", b"last")],
+                vec![],
+            ),
+            &mut DeltaCounters::default(),
+        )
+        .expect("same-key committed mutations retain their stable order");
+
+        assert_eq!(version.mutations.len(), 2);
+        assert_eq!(version.mutations[0].value_hex, Some(hex_bytes(b"first")));
+        assert_eq!(version.mutations[1].value_hex, Some(hex_bytes(b"last")));
     }
 
     #[test]
@@ -687,23 +700,23 @@ mod tests {
     }
 
     #[test]
-    fn rejects_invalid_content_and_resource_overflow() {
+    fn preserves_ignored_delete_content_and_rejects_resource_overflow() {
         let valued_delete = HighCapacityRegistryMutation {
             mutation_type: RegistryMutationType::Delete as i32,
             key: b"alpha".to_vec(),
             content: Some(high_capacity_registry_mutation::Content::Value(vec![1])),
         };
-        let error = validate_atomic_delta(
+        let version = validate_atomic_delta(
             3,
             atomic(vec![valued_delete], vec![]),
             &mut DeltaCounters::default(),
         )
-        .expect_err("delete content");
-        assert!(matches!(
-            error,
-            RegistryFetchError::InvalidCertifiedRegistry { reason }
-                if reason.contains("carries value content")
-        ));
+        .expect("committed delete content is retained but ignored by replay");
+        assert_eq!(version.mutations[0].value_hex.as_deref(), Some("01"));
+        assert_eq!(
+            version.mutations[0].value_encoding,
+            CertifiedRegistryValueEncoding::Inline
+        );
 
         let mut counters = DeltaCounters {
             inline_value_bytes: MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES,

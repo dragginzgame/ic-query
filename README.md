@@ -486,6 +486,9 @@ custom sources; only the built-in live transport cryptographically
 authenticates the raw certificate and witness. Historical non-delete
 mutations whose empty legacy protobuf value has no encoded content arm are
 preserved as empty inline values, matching the official Registry transport.
+Committed same-key mutations retain their stable order, and any retained
+delete value remains raw evidence while replay ignores it when removing the
+key.
 
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time

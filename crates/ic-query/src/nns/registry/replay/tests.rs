@@ -80,6 +80,102 @@ fn replay_applies_committed_batches_in_order_and_tracks_current_state() {
 }
 
 #[test]
+fn replay_applies_repeated_committed_keys_in_stable_order() {
+    let limits = NnsRegistryReplayLimits::new(10, 100);
+    let request = request(0);
+    let report = report(
+        &request,
+        1,
+        1,
+        vec![
+            mutation(
+                NnsCertifiedRegistryMutationKind::Upsert,
+                b"same",
+                Some(b"x"),
+            ),
+            mutation(
+                NnsCertifiedRegistryMutationKind::Upsert,
+                b"same",
+                Some(b"last"),
+            ),
+        ],
+        Vec::new(),
+    );
+    let mut state = NnsRegistryReplayState::new();
+
+    let progress = apply_nns_certified_registry_delta_batch(&mut state, &request, &report, limits)
+        .expect("repeated committed key replay");
+
+    assert_eq!(progress.applied_mutation_count, 2);
+    let value = state.get(b"same").expect("final same-key value");
+    assert_eq!(value.value(), b"last");
+    assert_eq!(value.last_mutation_version(), 1);
+    assert_eq!(state.entry_count(), 1);
+    assert_eq!(state.content_bytes(), 8);
+
+    let mut rejected = NnsRegistryReplayState::new();
+    let error = apply_nns_certified_registry_delta_batch(
+        &mut rejected,
+        &request,
+        &report,
+        NnsRegistryReplayLimits::new(10, 7),
+    )
+    .expect_err("final same-key value exceeds content limit");
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::LimitExceeded {
+            field: "content bytes",
+            maximum: 7,
+            actual: 8,
+        }
+    ));
+    assert_eq!(rejected.through_version(), 0);
+    assert!(rejected.is_empty());
+}
+
+#[test]
+fn replay_ignores_retained_content_on_a_committed_delete() {
+    let limits = NnsRegistryReplayLimits::new(10, 100);
+    let first_request = request(0);
+    let first = report(
+        &first_request,
+        2,
+        1,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Upsert,
+            b"key",
+            Some(b"present"),
+        )],
+        Vec::new(),
+    );
+    let second_request = request(1);
+    let second = report(
+        &second_request,
+        2,
+        2,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Delete,
+            b"key",
+            Some(b"historical ignored bytes"),
+        )],
+        Vec::new(),
+    );
+    let mut state = NnsRegistryReplayState::new();
+
+    apply_nns_certified_registry_delta_batch(&mut state, &first_request, &first, limits)
+        .expect("initial value");
+    let progress =
+        apply_nns_certified_registry_delta_batch(&mut state, &second_request, &second, limits)
+            .expect("committed delete with retained content");
+
+    assert_eq!(progress.applied_mutation_count, 1);
+    assert_eq!(state.through_version(), 2);
+    assert!(state.get(b"key").is_none());
+    assert!(state.is_empty());
+    assert_eq!(state.content_bytes(), 0);
+}
+
+#[test]
 fn replay_rejects_version_mismatch_and_rolls_back_limit_failure() {
     let generous = NnsRegistryReplayLimits::new(10, 100);
     let first_request = request(0);

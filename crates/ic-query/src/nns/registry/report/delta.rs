@@ -294,16 +294,19 @@ fn validate_version_contents(
             version.version
         )));
     }
-    let mut mutation_keys = BTreeSet::new();
+    if let Some(pair) = version
+        .mutations
+        .windows(2)
+        .find(|pair| pair[0].key_hex > pair[1].key_hex)
+    {
+        return Err(invalid_source_data(format!(
+            "version {} mutation key {} follows {} out of canonical order",
+            version.version, pair[1].key_hex, pair[0].key_hex
+        )));
+    }
     let mut totals = DeltaTotals::default();
     for mutation in &version.mutations {
         validate_hex_key(&mutation.key_hex, limits.max_key_bytes)?;
-        if !mutation_keys.insert(&mutation.key_hex) {
-            return Err(invalid_source_data(format!(
-                "version {} mutates key {} more than once",
-                version.version, mutation.key_hex
-            )));
-        }
         if mutation.mutation_type != mutation.mutation_kind.raw_type() {
             return Err(invalid_source_data(format!(
                 "mutation type {} does not match kind {:?}",
@@ -393,12 +396,9 @@ fn validate_mutation_value(
             })
         }
         NnsCertifiedRegistryValueEncoding::Inline => {
-            if mutation.mutation_kind == NnsCertifiedRegistryMutationKind::Delete
-                || mutation.value_hex.is_none()
-                || !mutation.chunk_sha256_hexes.is_empty()
-            {
+            if mutation.value_hex.is_none() || !mutation.chunk_sha256_hexes.is_empty() {
                 return Err(invalid_source_data(
-                    "inline value encoding requires a non-delete value and no chunk hashes",
+                    "inline value encoding requires value content and no chunk hashes",
                 ));
             }
             Ok(MutationValueBytes {
@@ -408,12 +408,9 @@ fn validate_mutation_value(
             })
         }
         NnsCertifiedRegistryValueEncoding::Chunked => {
-            if mutation.mutation_kind == NnsCertifiedRegistryMutationKind::Delete
-                || mutation.value_hex.is_none()
-                || mutation.chunk_sha256_hexes.is_empty()
-            {
+            if mutation.value_hex.is_none() || mutation.chunk_sha256_hexes.is_empty() {
                 return Err(invalid_source_data(
-                    "chunked value encoding requires a non-delete value and chunk hashes",
+                    "chunked value encoding requires reconstructed value content and chunk hashes",
                 ));
             }
             if value_bytes > limits.max_reconstructed_value_bytes {

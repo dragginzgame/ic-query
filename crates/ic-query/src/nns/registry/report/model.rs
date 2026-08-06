@@ -244,7 +244,10 @@ pub struct NnsCertifiedRegistryMutation {
     pub value_encoding: NnsCertifiedRegistryValueEncoding,
     /// Ordered certified chunk digests as lowercase hexadecimal.
     pub chunk_sha256_hexes: Vec<String>,
-    /// Complete value bytes as lowercase hexadecimal; absent for deletes.
+    /// Complete value bytes as lowercase hexadecimal.
+    ///
+    /// Usually absent for deletes, but historical committed deletes may retain
+    /// ignored content that replay must preserve as raw evidence.
     pub value_hex: Option<String>,
 }
 
@@ -257,11 +260,11 @@ pub struct NnsCertifiedRegistryMutation {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NnsCertifiedRegistryValueEncoding {
-    /// Delete mutation with no value content.
+    /// Delete mutation with no retained value content.
     Absent,
-    /// Value bytes carried directly in the certified delta response.
+    /// Value bytes carried directly in the certified delta response, including ignored delete content.
     Inline,
-    /// Value reconstructed from certified SHA-256 chunk references.
+    /// Value reconstructed from certified SHA-256 chunk references, including ignored delete content.
     Chunked,
 }
 

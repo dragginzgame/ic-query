@@ -108,6 +108,7 @@ use ic_query::nns::registry::{
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
+    validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
@@ -535,6 +536,30 @@ fn public_certified_registry_delta_async_api_accepts_custom_sources() {
         .expect("public certified delta API");
 
     assert_eq!(report.first_version, Some(42));
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_certified_registry_validator_preserves_committed_same_key_delete_content() {
+    let request =
+        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
+    let mut report = public_certified_delta_report(&request);
+    report.versions[0]
+        .mutations
+        .push(NnsCertifiedRegistryMutation {
+            mutation_type: 2,
+            mutation_kind: NnsCertifiedRegistryMutationKind::Delete,
+            key_hex: "61".to_string(),
+            value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
+            chunk_sha256_hexes: Vec::new(),
+            value_hex: Some("63".to_string()),
+        });
+    report.mutation_count = 2;
+    report.inline_value_bytes = 2;
+    report.value_bytes = 2;
+
+    validate_nns_certified_registry_delta_batch(&request, &report)
+        .expect("public validator preserves ordered committed rows and ignored delete content");
 }
 
 #[cfg(feature = "nns-host")]
