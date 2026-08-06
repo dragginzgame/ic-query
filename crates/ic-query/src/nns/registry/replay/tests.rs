@@ -925,12 +925,17 @@ fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
     );
     assert_eq!(manifest.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
     assert_eq!(manifest.selected_version, 2);
+    assert_eq!(manifest.segment_count, 1);
     assert_eq!(manifest.batch_count, 2);
     assert_eq!(manifest.batches.len(), 2);
     assert_eq!(manifest.batches[0].ordinal, 0);
+    assert_eq!(manifest.batches[0].segment_ordinal, 0);
+    assert_eq!(manifest.batches[0].segment_target_version, 2);
     assert_eq!(manifest.batches[0].requested_version, 0);
     assert_eq!(manifest.batches[0].applied_through_version, 1);
     assert_eq!(manifest.batches[1].ordinal, 1);
+    assert_eq!(manifest.batches[1].segment_ordinal, 0);
+    assert_eq!(manifest.batches[1].segment_target_version, 2);
     assert_eq!(manifest.batches[1].requested_version, 1);
     assert_eq!(manifest.batches[1].applied_through_version, 2);
     assert_eq!(
@@ -974,7 +979,7 @@ fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
         .insert("future_field".to_string(), serde_json::json!(true));
     assert!(
         serde_json::from_value::<NnsCertifiedRegistryArchiveManifest>(unknown_field).is_err(),
-        "schema-1 manifests reject undeclared fields"
+        "current manifests reject undeclared fields"
     );
     assert_eq!(
         authenticated.replay_session().complete_state_digest(),
@@ -985,6 +990,113 @@ fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
                 .expect("32-byte state digest")
         )
     );
+}
+
+#[test]
+fn archive_manifest_segments_retain_unchanged_and_advancing_authenticated_targets() {
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let no_change_time = NOW + 60;
+    let no_change_request = NnsCertifiedRegistryDeltaBatchRequest::new(
+        MAINNET_NETWORK,
+        "https://icp-api.io",
+        2,
+        no_change_time,
+    );
+    let mut no_change_report = report_versions(&no_change_request, 2, Vec::new());
+    no_change_report.fetched_at = format_utc_timestamp_secs(no_change_time);
+    no_change_report.certification.certificate_time_nanos = no_change_time * 1_000_000_000;
+    no_change_report.certification.certificate_time = format_utc_timestamp_secs(no_change_time);
+    let no_change = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&no_change_report);
+    let advance_request = request(2);
+    let advance_report = report_versions(
+        &advance_request,
+        4,
+        vec![
+            version(
+                3,
+                vec![mutation(
+                    NnsCertifiedRegistryMutationKind::Update,
+                    b"a",
+                    Some(b"three"),
+                )],
+            ),
+            version(
+                4,
+                vec![mutation(
+                    NnsCertifiedRegistryMutationKind::Upsert,
+                    b"c",
+                    Some(b"four"),
+                )],
+            ),
+        ],
+    );
+    let advance = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&advance_report);
+    let replay_limits = extended_replay_limits();
+    let archive_limits = extended_archive_storage_limits().archive;
+    let mut builder =
+        NnsCertifiedRegistryArchiveManifestBuilder::new(replay_limits, archive_limits);
+
+    builder.apply_batch(&first).expect("first bootstrap batch");
+    builder
+        .apply_batch(&second)
+        .expect("complete bootstrap segment");
+    let state_digest = builder
+        .replay_session()
+        .complete_state_digest()
+        .expect("bootstrap state digest");
+    let no_change_progress = builder
+        .apply_batch(&no_change)
+        .expect("fresh unchanged-version segment");
+    assert_eq!(no_change_progress.through_version, 2);
+    assert_eq!(no_change_progress.applied_version_count, 0);
+    assert_eq!(
+        builder.replay_session().complete_state_digest(),
+        Some(state_digest)
+    );
+    builder
+        .apply_batch(&advance)
+        .expect("advancing exact-target segment");
+
+    let (manifest, authenticated) = builder.finish().expect("segmented archive manifest");
+
+    assert_eq!(manifest.schema_version, 2);
+    assert_eq!(manifest.segment_count, 3);
+    assert_eq!(manifest.selected_version, 4);
+    assert_eq!(manifest.batch_count, 4);
+    assert_eq!(
+        manifest.maximum_certificate_time_nanos,
+        no_change_time * 1_000_000_000
+    );
+    assert_eq!(
+        manifest
+            .batches
+            .iter()
+            .map(|batch| (batch.segment_ordinal, batch.segment_target_version))
+            .collect::<Vec<_>>(),
+        vec![(0, 2), (0, 2), (1, 2), (2, 4)]
+    );
+    assert_eq!(
+        authenticated
+            .replay_session()
+            .state()
+            .get(b"a")
+            .expect("a")
+            .value(),
+        b"three"
+    );
+    assert_eq!(
+        authenticated
+            .replay_session()
+            .state()
+            .get(b"c")
+            .expect("c")
+            .value(),
+        b"four"
+    );
+    validate_nns_certified_registry_archive_manifest(&manifest, archive_limits)
+        .expect("segmented manifest validates");
 }
 
 #[test]
@@ -1084,34 +1196,24 @@ fn archive_manifest_validation_rejects_tampered_index_fields() {
         Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
     ));
 
+    let mut changed_segment_count = manifest.clone();
+    changed_segment_count.segment_count += 1;
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&changed_segment_count, limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
+    let mut changed_segment_target = manifest.clone();
+    changed_segment_target.batches[1].segment_target_version += 1;
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&changed_segment_target, limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
     let mut unsorted_endpoints = manifest.clone();
     unsorted_endpoints.source_endpoints.reverse();
     assert!(matches!(
         validate_nns_certified_registry_archive_manifest(&unsorted_endpoints, limits),
-        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
-    ));
-
-    let mut after_completion = manifest.clone();
-    let mut extra = after_completion.batches[1].clone();
-    extra.ordinal = 2;
-    extra.requested_version = manifest.selected_version;
-    extra.first_version = None;
-    extra.last_version = None;
-    extra.applied_through_version = manifest.selected_version;
-    extra.certified_latest_version = manifest.selected_version;
-    after_completion.batch_count += 1;
-    after_completion.total_report_bytes += extra.report_bytes;
-    after_completion.query_call_count += extra.query_call_count;
-    after_completion.response_bytes += extra.response_bytes;
-    after_completion.applied_mutation_count += extra.applied_mutation_count;
-    after_completion.batches.push(extra);
-    let three_batch_limits = NnsCertifiedRegistryArchiveLimits::new(
-        3,
-        limits.max_batch_report_bytes,
-        limits.max_total_report_bytes * 2,
-    );
-    assert!(matches!(
-        validate_nns_certified_registry_archive_manifest(&after_completion, three_batch_limits),
         Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
     ));
 
@@ -1203,6 +1305,154 @@ fn confined_archive_publication_and_sequential_restore_round_trip() {
         b"two"
     );
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn confined_archive_publisher_resumes_reauthenticated_state_without_rewriting_history() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-resume");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let replay_limits = extended_replay_limits();
+    let storage_limits = extended_archive_storage_limits();
+    let mut initial = NnsCertifiedRegistryArchivePublisher::new(
+        &root,
+        &archive_root,
+        replay_limits,
+        storage_limits,
+    );
+    initial.apply_batch(&first).expect("initial first object");
+    initial.apply_batch(&second).expect("initial second object");
+    let initial = initial.finish().expect("initial archive");
+    let initial_digests = initial
+        .manifest()
+        .batches
+        .iter()
+        .map(|batch| batch.report_sha256.clone())
+        .collect::<Vec<_>>();
+    let manifest_path = nns_certified_registry_archive_manifest_path(&archive_root);
+    let initial_manifest_bytes = fs::read(&manifest_path).expect("initial manifest bytes");
+
+    let extension_request = request(2);
+    let extension_report = report(
+        &extension_request,
+        3,
+        3,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Update,
+            b"a",
+            Some(b"extended"),
+        )],
+        Vec::new(),
+    );
+    let extension = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&extension_report);
+
+    assert_constrained_resume_preserves_manifest(
+        &root,
+        &archive_root,
+        storage_limits,
+        &extension,
+        &manifest_path,
+        &initial_manifest_bytes,
+    );
+
+    let mut resumed = super::archive::storage::resume_archive_publisher_with_authenticator(
+        &root,
+        &archive_root,
+        replay_limits,
+        storage_limits,
+        &FixtureArchiveAuthenticator,
+    )
+    .expect("reauthenticated resumable publisher");
+    assert_eq!(resumed.replay_session().state().through_version(), 2);
+    resumed
+        .apply_batch(&extension)
+        .expect("durable extension object");
+    let extended = resumed.finish().expect("extended archive manifest");
+
+    assert_eq!(extended.manifest().schema_version, 2);
+    assert_eq!(extended.manifest().segment_count, 2);
+    assert_eq!(extended.manifest().selected_version, 3);
+    assert_eq!(extended.manifest().batch_count, 3);
+    assert_eq!(
+        extended
+            .manifest()
+            .batches
+            .iter()
+            .take(2)
+            .map(|batch| batch.report_sha256.clone())
+            .collect::<Vec<_>>(),
+        initial_digests
+    );
+    let object_count = fs::read_dir(archive_root.join("objects"))
+        .expect("extended archive objects")
+        .count();
+    assert_eq!(object_count, 3);
+
+    let restored = super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+        &root,
+        &archive_root,
+        replay_limits,
+        storage_limits,
+        &FixtureArchiveAuthenticator,
+    )
+    .expect("extended archive reloads");
+    assert_eq!(restored, extended);
+    assert_eq!(
+        restored
+            .replay_session()
+            .replay_session()
+            .state()
+            .get(b"a")
+            .expect("extended a")
+            .value(),
+        b"extended"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+fn assert_constrained_resume_preserves_manifest(
+    root: &Path,
+    archive_root: &Path,
+    storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
+    extension: &NnsAuthenticatedRegistryDeltaBatch<'_>,
+    manifest_path: &Path,
+    initial_manifest_bytes: &[u8],
+) {
+    let constrained_replay_limits = NnsRegistryReplaySessionLimits::new(
+        10,
+        2,
+        130,
+        80 * 1_024 * 1_024,
+        NnsRegistryReplayLimits::new(20, 1_000),
+    );
+    let mut constrained = super::archive::storage::resume_archive_publisher_with_authenticator(
+        root,
+        archive_root,
+        constrained_replay_limits,
+        storage_limits,
+        &FixtureArchiveAuthenticator,
+    )
+    .expect("existing archive fits exact cumulative limits");
+    let error = constrained
+        .apply_batch(extension)
+        .expect_err("extension exceeds cumulative batch limit");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveStorageError::Archive(NnsCertifiedRegistryArchiveError::Replay(
+            NnsRegistryReplayError::SessionLimitExceeded {
+                field: "batch count",
+                maximum: 2,
+                actual: 3,
+            }
+        ))
+    ));
+    assert_eq!(
+        fs::read(manifest_path).expect("preserved initial manifest"),
+        initial_manifest_bytes
+    );
 }
 
 #[test]
@@ -1463,6 +1713,23 @@ const fn archive_storage_limits() -> NnsCertifiedRegistryArchiveStorageLimits {
     NnsCertifiedRegistryArchiveStorageLimits::new(
         100_000,
         NnsCertifiedRegistryArchiveLimits::new(2, 100_000, 200_000),
+    )
+}
+
+const fn extended_replay_limits() -> NnsRegistryReplaySessionLimits {
+    NnsRegistryReplaySessionLimits::new(
+        10,
+        8,
+        520,
+        320 * 1_024 * 1_024,
+        NnsRegistryReplayLimits::new(20, 1_000),
+    )
+}
+
+const fn extended_archive_storage_limits() -> NnsCertifiedRegistryArchiveStorageLimits {
+    NnsCertifiedRegistryArchiveStorageLimits::new(
+        500_000,
+        NnsCertifiedRegistryArchiveLimits::new(8, 100_000, 800_000),
     )
 }
 

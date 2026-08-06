@@ -153,6 +153,18 @@ also performs built-in mainnet reauthentication; structural source validation
 alone cannot establish archive authority. Neither function is called by a
 load/read-through policy, and neither selects a default path or history size.
 
+Archive manifest schema 2 supports explicit authenticated extension segments.
+After a complete target, the next sealed batch selects a new segment target;
+that target may equal the prior version, allowing a fresh empty delta to update
+certificate-time evidence while preserving the same state digest. Use
+`NnsCertifiedRegistryArchivePublisher::resume` to locally load, reauthenticate,
+and consume an existing archive into a resumable publisher under explicit
+cumulative replay and storage limits. Resume rewrites no historical object,
+makes no source call, and acquires no refresh lock. Callers coordinating live
+collection must hold the dedicated archive lock until `finish` publishes the
+complete new segment. Schema-1 archives have no compatibility reader or
+migration and must be explicitly force-bootstrapped again.
+
 Certified Subnet Catalog authority is available only through the complete
 retained-evidence path. After publishing or loading an
 `NnsAuthenticatedRegistryArchive`, call `project_nns_certified_subnet_catalog`

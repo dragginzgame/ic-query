@@ -580,7 +580,7 @@ fn public_reauthenticated_replay_builder_accepts_only_sealed_batch_input() {
 #[cfg(feature = "nns-host")]
 #[test]
 fn public_certified_registry_archive_manifest_contract_is_bounded_and_untrusted() {
-    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 1);
+    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 2);
     let replay_limits = NnsRegistryReplaySessionLimits::new(
         100,
         10,
@@ -600,6 +600,7 @@ fn public_certified_registry_archive_manifest_contract_is_bounded_and_untrusted(
         network: "ic".to_string(),
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         selected_version: 0,
+        segment_count: 0,
         batch_count: 0,
         total_report_bytes: 0,
         query_call_count: 0,
@@ -661,6 +662,16 @@ fn public_certified_registry_archive_storage_contract_is_explicit_and_local() {
         NnsCertifiedRegistryArchiveStorageError,
     > = load_nns_certified_registry_archive;
     let _ = loader;
+    let resumer: fn(
+        &Path,
+        &Path,
+        NnsRegistryReplaySessionLimits,
+        NnsCertifiedRegistryArchiveStorageLimits,
+    ) -> Result<
+        NnsCertifiedRegistryArchivePublisher,
+        NnsCertifiedRegistryArchiveStorageError,
+    > = NnsCertifiedRegistryArchivePublisher::resume;
+    let _ = resumer;
 }
 
 #[cfg(feature = "nns-host")]

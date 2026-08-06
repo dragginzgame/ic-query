@@ -38,6 +38,22 @@ impl NnsAuthenticatedRegistryReplayBuilder {
         self.session.apply_prevalidated_batch(batch.report())
     }
 
+    pub(super) fn apply_extension_batch(
+        &mut self,
+        batch: &NnsAuthenticatedRegistryDeltaBatch<'_>,
+    ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
+        self.session
+            .apply_prevalidated_extension_batch(batch.report())
+    }
+
+    pub(super) fn from_authenticated_session(
+        authenticated: NnsAuthenticatedRegistryReplaySession,
+    ) -> Self {
+        Self {
+            session: authenticated.session,
+        }
+    }
+
     /// Return authenticated replay progress without exposing an ordinary mutable session.
     #[must_use]
     pub const fn replay_session(&self) -> &NnsRegistryReplaySession {

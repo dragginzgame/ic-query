@@ -227,6 +227,17 @@ pub enum NnsRegistryReplayError {
         selected_version: u64,
     },
 
+    /// Archive extension was requested before the current segment reached its target.
+    #[error(
+        "Registry archive extension requires a complete segment: selected version {selected_version:?}, through version {through_version}"
+    )]
+    ArchiveExtensionRequiresCompleteSegment {
+        /// Exact target selected by the current segment, when available.
+        selected_version: Option<u64>,
+        /// Last Registry version reconstructed by the current segment.
+        through_version: u64,
+    },
+
     /// A later batch no longer certifies the session's selected Registry version.
     #[error(
         "Registry replay selected version {selected_version}, but a later batch certifies only version {certified_latest_version}"

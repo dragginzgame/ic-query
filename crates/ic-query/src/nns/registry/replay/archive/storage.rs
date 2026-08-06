@@ -129,6 +129,26 @@ impl NnsCertifiedRegistryArchivePublisher {
         }
     }
 
+    /// Reload and reauthenticate one complete archive as a resumable publisher.
+    ///
+    /// The supplied cumulative limits govern both retained and future batches. This operation
+    /// makes no source call and acquires no refresh lock; a live coordinator must hold the
+    /// archive's dedicated lock across resume, collection, and final publication.
+    pub fn resume(
+        cache_root: &Path,
+        archive_root: &Path,
+        replay_limits: NnsRegistryReplaySessionLimits,
+        storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
+    ) -> Result<Self, NnsCertifiedRegistryArchiveStorageError> {
+        resume_archive_publisher_with_authenticator(
+            cache_root,
+            archive_root,
+            replay_limits,
+            storage_limits,
+            &BuiltInArchiveAuthenticator,
+        )
+    }
+
     /// Apply and durably publish one authenticated retained report object.
     ///
     /// If object publication fails after replay admission, the publisher is poisoned and must
@@ -196,6 +216,35 @@ impl NnsCertifiedRegistryArchivePublisher {
             Ok(())
         }
     }
+}
+
+pub(in crate::nns::registry::replay) fn resume_archive_publisher_with_authenticator(
+    cache_root: &Path,
+    archive_root: &Path,
+    replay_limits: NnsRegistryReplaySessionLimits,
+    storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
+    authenticator: &dyn ArchiveBatchAuthenticator,
+) -> Result<NnsCertifiedRegistryArchivePublisher, NnsCertifiedRegistryArchiveStorageError> {
+    let archive = load_nns_certified_registry_archive_with_authenticator(
+        cache_root,
+        archive_root,
+        replay_limits,
+        storage_limits,
+        authenticator,
+    )?;
+    let (manifest, replay_session) = archive.into_parts();
+    let manifest_builder = NnsCertifiedRegistryArchiveManifestBuilder::resume(
+        manifest,
+        replay_session,
+        storage_limits.archive,
+    )?;
+    Ok(NnsCertifiedRegistryArchivePublisher {
+        cache_root: cache_root.to_path_buf(),
+        archive_root: archive_root.to_path_buf(),
+        storage_limits,
+        manifest_builder,
+        poisoned: false,
+    })
 }
 
 ///

@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.20` hard-cuts certified Registry archives to segmented manifest schema
+  2 and adds local resumable publication. Each batch records its segment and
+  target; a completed archive can retain either a higher exact target or a
+  fresh authenticated unchanged-version observation. Resume reauthenticates
+  the complete prior archive under explicit cumulative limits, rewrites no
+  historical objects, makes no source call, and preserves the prior manifest
+  on failure. Schema-1 archives require an explicit new force bootstrap; no
+  migration, fallback, default path, live incremental coordinator, or CLI
+  surface is added.
+
 - `0.30.19` adds an explicit lock-guarded live force bootstrap for the
   certified Registry archive. Callers supply the source/time/replay policy,
   confined roots, storage ceilings, and lock staleness; non-mainnet fails

@@ -2,7 +2,7 @@
 //!
 //! Responsibility: coordinate exact-target replay and compact provenance commitments.
 //! Does not own: source calls, persistence, catalog projection, or assurance promotion.
-//! Boundary: the first batch pins the target; provenance advances only after atomic application.
+//! Boundary: ordinary replay pins one target; archive segments advance only after atomic completion.
 
 use super::{
     NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplayProgress,
@@ -32,7 +32,7 @@ pub const NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NnsRegistryReplaySessionLimits {
-    /// Maximum Registry version that may be selected from the first batch.
+    /// Maximum Registry version that may be selected as any exact replay target.
     pub max_registry_versions: u64,
     /// Maximum certified delta batches admitted by the session.
     pub max_batches: u64,
@@ -68,6 +68,8 @@ impl NnsRegistryReplaySessionLimits {
 /// NnsRegistryReplaySession
 ///
 /// Pure cumulative replay coordination pinned to the first batch's certified latest version.
+/// Ordinary callers cannot reopen a completed session. Authenticated archive construction may
+/// internally advance the target only between explicitly retained complete segments.
 ///
 
 #[derive(Debug, Eq, PartialEq)]
@@ -128,13 +130,36 @@ impl NnsRegistryReplaySession {
         &mut self,
         report: &NnsCertifiedRegistryDeltaBatchReport,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
+        self.apply_prevalidated_batch_with_target(report, false)
+    }
+
+    pub(super) fn apply_prevalidated_extension_batch(
+        &mut self,
+        report: &NnsCertifiedRegistryDeltaBatchReport,
+    ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
+        self.apply_prevalidated_batch_with_target(report, true)
+    }
+
+    fn apply_prevalidated_batch_with_target(
+        &mut self,
+        report: &NnsCertifiedRegistryDeltaBatchReport,
+        select_new_target: bool,
+    ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
         if self.state.through_version() != report.requested_version {
             return Err(NnsRegistryReplayError::VersionMismatch {
                 state_version: self.state.through_version(),
                 requested_version: report.requested_version,
             });
         }
-        if let Some(selected_version) = self.selected_version {
+        if select_new_target && !self.is_complete() {
+            return Err(
+                NnsRegistryReplayError::ArchiveExtensionRequiresCompleteSegment {
+                    selected_version: self.selected_version,
+                    through_version: self.state.through_version(),
+                },
+            );
+        }
+        if !select_new_target && let Some(selected_version) = self.selected_version {
             if self.state.through_version() == selected_version {
                 return Err(NnsRegistryReplayError::SessionComplete { selected_version });
             }
@@ -154,9 +179,12 @@ impl NnsRegistryReplaySession {
             });
         }
 
-        let selected_version = self
-            .selected_version
-            .unwrap_or(report.certified_latest_version);
+        let selected_version = if select_new_target {
+            report.certified_latest_version
+        } else {
+            self.selected_version
+                .unwrap_or(report.certified_latest_version)
+        };
         enforce_session_limit(
             "selected Registry versions",
             selected_version,
@@ -291,7 +319,7 @@ impl NnsRegistryReplaySession {
         self.state
     }
 
-    /// Return the exact target selected by the first accepted batch.
+    /// Return the current exact target selected by this replay or its latest archive segment.
     #[must_use]
     pub const fn selected_version(&self) -> Option<u64> {
         self.selected_version

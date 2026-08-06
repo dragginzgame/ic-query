@@ -1,7 +1,7 @@
 //! Module: nns::registry::replay::archive
 //!
-//! Responsibility: describe, validate, publish, restore, and force-bootstrap certified evidence.
-//! Does not own: read-through policy, incremental refresh, default paths, CLI, or catalog assurance.
+//! Responsibility: describe, validate, publish, restore, extend, and bootstrap certified evidence.
+//! Does not own: live incremental refresh, read policy, default paths, CLI, or catalog assurance.
 //! Boundary: manifests are indexes, not authority; reports must be reauthenticated on every load.
 
 mod bootstrap;
@@ -41,7 +41,7 @@ pub use storage::{
 };
 
 /// Version of the retained certified Registry archive-manifest contract.
-pub const NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION: u32 = 1;
+pub const NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION: u32 = 2;
 
 ///
 /// NnsCertifiedRegistryArchiveLimits
@@ -86,6 +86,10 @@ impl NnsCertifiedRegistryArchiveLimits {
 pub struct NnsCertifiedRegistryArchiveBatchDescriptor {
     /// Zero-based canonical position in the archive.
     pub ordinal: u64,
+    /// Zero-based completed-target segment containing this batch.
+    pub segment_ordinal: u64,
+    /// Exact Registry target selected by the segment's first authenticated batch.
+    pub segment_target_version: u64,
     /// Registry version after which this report requested changes.
     pub requested_version: u64,
     /// First version carried by the report, when any.
@@ -112,6 +116,8 @@ pub struct NnsCertifiedRegistryArchiveBatchDescriptor {
 /// NnsCertifiedRegistryArchiveManifest
 ///
 /// Versioned index derived from a complete authenticated Registry replay sequence.
+/// Completed segments preserve each successively observed exact target, including a
+/// fresh authenticated observation whose Registry version did not change.
 /// A deserialized manifest is untrusted metadata. Authority is recovered only by
 /// loading each exact report object, reauthenticating it, and replaying the complete
 /// sequence before comparing the recomputed manifest.
@@ -126,12 +132,14 @@ pub struct NnsCertifiedRegistryArchiveManifest {
     pub delta_report_schema_version: u32,
     /// Replay provenance schema governing evidence-chain and complete-state digests.
     pub replay_provenance_schema_version: u32,
-    /// Network identity; schema 1 supports only mainnet `ic`.
+    /// Network identity; schema 2 supports only mainnet `ic`.
     pub network: String,
     /// Canonical mainnet Registry canister principal.
     pub registry_canister_id: String,
     /// Exact Registry version reconstructed by the complete sequence.
     pub selected_version: u64,
+    /// Number of contiguous exact-target replay segments retained by the archive.
+    pub segment_count: u64,
     /// Number of retained batch report objects.
     pub batch_count: u64,
     /// Canonical compact-JSON bytes across retained report objects.
@@ -188,11 +196,19 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
     }
 
     /// Authenticate archive accounting and atomically apply one retained report batch.
+    ///
+    /// A batch supplied after exact completion begins a new segment and selects that report's
+    /// certified latest version as the next exact target. The ordinary replay builder remains
+    /// single-segment and continues to reject batches after completion.
     pub fn apply_batch(
         &mut self,
         batch: &NnsAuthenticatedRegistryDeltaBatch<'_>,
     ) -> Result<NnsRegistryReplayProgress, NnsCertifiedRegistryArchiveError> {
         let ordinal = self.next_batch_ordinal()?;
+        let begins_extension =
+            !self.batches.is_empty() && self.replay.replay_session().is_complete();
+        let (segment_ordinal, segment_target_version) =
+            self.next_segment(batch, begins_extension)?;
         let report_encoding = canonical_report_encoding(batch.report())?;
         enforce_archive_limit(
             "batch report bytes",
@@ -210,18 +226,20 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
         let report = batch.report();
         let response_bytes = u64::try_from(report.response_bytes)
             .map_err(|_| NnsCertifiedRegistryArchiveError::Accounting)?;
-        let selected_version = self
-            .replay
-            .replay_session()
-            .selected_version()
-            .unwrap_or(report.certified_latest_version);
-        let (_, applied_mutation_count) = validated_batch_prefix_counts(report, selected_version)?;
+        let (_, applied_mutation_count) =
+            validated_batch_prefix_counts(report, segment_target_version)?;
         let applied_mutation_count = u64::try_from(applied_mutation_count)
             .map_err(|_| NnsCertifiedRegistryArchiveError::Accounting)?;
-        let progress = self.replay.apply_batch(batch)?;
+        let progress = if begins_extension {
+            self.replay.apply_extension_batch(batch)?
+        } else {
+            self.replay.apply_batch(batch)?
+        };
         self.batches
             .push(NnsCertifiedRegistryArchiveBatchDescriptor {
                 ordinal,
+                segment_ordinal,
+                segment_target_version,
                 requested_version: report.requested_version,
                 first_version: report.first_version,
                 last_version: report.last_version,
@@ -237,6 +255,22 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
         Ok(progress)
     }
 
+    pub(super) fn resume(
+        manifest: NnsCertifiedRegistryArchiveManifest,
+        replay_session: NnsAuthenticatedRegistryReplaySession,
+        limits: NnsCertifiedRegistryArchiveLimits,
+    ) -> Result<Self, NnsCertifiedRegistryArchiveError> {
+        validate_nns_certified_registry_archive_manifest(&manifest, limits)?;
+        Ok(Self {
+            replay: NnsAuthenticatedRegistryReplayBuilder::from_authenticated_session(
+                replay_session,
+            ),
+            limits,
+            total_report_bytes: manifest.total_report_bytes,
+            batches: manifest.batches,
+        })
+    }
+
     pub(super) fn ensure_next_batch_slot(&self) -> Result<(), NnsCertifiedRegistryArchiveError> {
         self.next_batch_ordinal().map(|_| ())
     }
@@ -250,6 +284,23 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
             self.limits.max_batches,
         )?;
         Ok(ordinal)
+    }
+
+    fn next_segment(
+        &self,
+        batch: &NnsAuthenticatedRegistryDeltaBatch<'_>,
+        begins_extension: bool,
+    ) -> Result<(u64, u64), NnsCertifiedRegistryArchiveError> {
+        let Some(previous) = self.batches.last() else {
+            return Ok((0, batch.report().certified_latest_version));
+        };
+        if begins_extension {
+            return Ok((
+                checked_add(previous.segment_ordinal, 1)?,
+                batch.report().certified_latest_version,
+            ));
+        }
+        Ok((previous.segment_ordinal, previous.segment_target_version))
     }
 
     /// Return replay progress without exposing an ordinary mutable replay session.
@@ -286,6 +337,12 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
                 "selected_version",
                 session.selected_version(),
             )?,
+            segment_count: self
+                .batches
+                .last()
+                .map(|batch| checked_add(batch.segment_ordinal, 1))
+                .transpose()?
+                .ok_or_else(|| invalid_manifest("complete replay omitted archive segments"))?,
             batch_count: session.batch_count(),
             total_report_bytes: self.total_report_bytes,
             query_call_count: session.query_call_count(),
@@ -379,26 +436,50 @@ pub fn validate_nns_certified_registry_archive_manifest(
 
     let mut totals = ManifestTotals::default();
     let mut expected_requested_version = 0_u64;
+    let mut segment = None;
     for (index, batch) in manifest.batches.iter().enumerate() {
-        if index > 0 && expected_requested_version == manifest.selected_version {
-            return Err(invalid_manifest(
-                "batches must stop after reaching selected_version",
-            ));
+        let begins_segment = segment
+            .is_none_or(|current: ManifestSegment| expected_requested_version == current.target);
+        if begins_segment {
+            let ordinal = match segment {
+                Some(current) => checked_add(current.ordinal, 1)?,
+                None => 0,
+            };
+            segment = Some(ManifestSegment {
+                ordinal,
+                target: batch.certified_latest_version,
+            });
         }
+        let current_segment = segment.ok_or_else(|| invalid_manifest("missing archive segment"))?;
         validate_batch_descriptor(
             batch,
             index,
             expected_requested_version,
-            manifest.selected_version,
+            current_segment,
+            begins_segment,
             limits,
         )?;
         expected_requested_version = batch.applied_through_version;
         totals.add(batch)?;
     }
-    if expected_requested_version != manifest.selected_version {
+    let final_segment = segment.ok_or_else(|| invalid_manifest("missing archive segment"))?;
+    let expected_segment_count = checked_add(final_segment.ordinal, 1)?;
+    if manifest.segment_count != expected_segment_count {
         return Err(invalid_manifest(format!(
-            "final applied version must equal selected_version {}; got {expected_requested_version}",
-            manifest.selected_version
+            "segment_count must be {expected_segment_count}; got {}",
+            manifest.segment_count
+        )));
+    }
+    if manifest.selected_version != final_segment.target {
+        return Err(invalid_manifest(format!(
+            "selected_version must equal final segment target {}; got {}",
+            final_segment.target, manifest.selected_version
+        )));
+    }
+    if expected_requested_version != final_segment.target {
+        return Err(invalid_manifest(format!(
+            "final applied version must equal final segment target {}; got {expected_requested_version}",
+            final_segment.target
         )));
     }
     totals.validate(manifest)?;
@@ -453,7 +534,8 @@ fn validate_batch_descriptor(
     batch: &NnsCertifiedRegistryArchiveBatchDescriptor,
     index: usize,
     expected_requested_version: u64,
-    selected_version: u64,
+    segment: ManifestSegment,
+    begins_segment: bool,
     limits: NnsCertifiedRegistryArchiveLimits,
 ) -> Result<(), NnsCertifiedRegistryArchiveError> {
     let ordinal = u64::try_from(index).map_err(|_| NnsCertifiedRegistryArchiveError::Accounting)?;
@@ -463,24 +545,36 @@ fn validate_batch_descriptor(
             batch.ordinal
         )));
     }
+    if batch.segment_ordinal != segment.ordinal {
+        return Err(invalid_manifest(format!(
+            "batches[{index}].segment_ordinal must be {}; got {}",
+            segment.ordinal, batch.segment_ordinal
+        )));
+    }
+    if batch.segment_target_version != segment.target {
+        return Err(invalid_manifest(format!(
+            "batches[{index}].segment_target_version must be {}; got {}",
+            segment.target, batch.segment_target_version
+        )));
+    }
     if batch.requested_version != expected_requested_version {
         return Err(invalid_manifest(format!(
             "batches[{index}].requested_version must be {expected_requested_version}; got {}",
             batch.requested_version
         )));
     }
-    if index == 0 && batch.certified_latest_version != selected_version {
+    if begins_segment && batch.certified_latest_version != segment.target {
         return Err(invalid_manifest(format!(
-            "batches[0].certified_latest_version must select target {selected_version}; got {}",
-            batch.certified_latest_version
+            "batches[{index}].certified_latest_version must select segment target {}; got {}",
+            segment.target, batch.certified_latest_version
         )));
     }
-    if batch.certified_latest_version < selected_version {
+    if batch.certified_latest_version < segment.target {
         return Err(invalid_manifest(format!(
-            "batches[{index}].certified_latest_version precedes selected_version"
+            "batches[{index}].certified_latest_version precedes segment_target_version"
         )));
     }
-    validate_descriptor_versions(batch, index, selected_version)?;
+    validate_descriptor_versions(batch, index, segment.target)?;
     if batch.query_call_count == 0 {
         return Err(invalid_manifest(format!(
             "batches[{index}].query_call_count must be positive"
@@ -510,7 +604,7 @@ fn validate_batch_descriptor(
 fn validate_descriptor_versions(
     batch: &NnsCertifiedRegistryArchiveBatchDescriptor,
     index: usize,
-    selected_version: u64,
+    segment_target_version: u64,
 ) -> Result<(), NnsCertifiedRegistryArchiveError> {
     match (batch.first_version, batch.last_version) {
         (None, None) => {
@@ -540,7 +634,7 @@ fn validate_descriptor_versions(
         }
     }
     let visible_through = batch.last_version.unwrap_or(batch.requested_version);
-    let expected_applied_through = visible_through.min(selected_version);
+    let expected_applied_through = visible_through.min(segment_target_version);
     if batch.applied_through_version != expected_applied_through {
         return Err(invalid_manifest(format!(
             "batches[{index}].applied_through_version must be {expected_applied_through}; got {}",
@@ -548,6 +642,12 @@ fn validate_descriptor_versions(
         )));
     }
     Ok(())
+}
+
+#[derive(Clone, Copy)]
+struct ManifestSegment {
+    ordinal: u64,
+    target: u64,
 }
 
 fn validate_manifest_provenance(

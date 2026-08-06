@@ -520,12 +520,17 @@ fail without acquiring that session capability. This path performs no network
 or filesystem IO.
 
 `NnsCertifiedRegistryArchiveManifestBuilder` adds the versioned, library-only
-archive index contract. It accepts the same sealed batches, hashes each report's
-canonical compact JSON without buffering another encoded copy, applies explicit
-per-report and total archive-byte ceilings before replay publication, and emits
-a manifest only after exact-target completion. The manifest records strict batch
-order, content digests, schema versions, accounting totals, root-key identity,
-certificate-time bounds, replay commitments, and canonical source endpoints.
+archive index contract. Schema 2 groups sealed batches into explicit completed-
+target segments: the first is the version-zero bootstrap, while a batch after
+completion opens an authenticated extension target. An empty segment may retain
+a fresh certificate proving that the Registry version is unchanged without
+changing the state digest. The builder hashes each report's canonical compact
+JSON without buffering another encoded copy, applies explicit per-report and
+total archive-byte ceilings before replay publication, and emits a manifest
+only after the current segment completes. The manifest records strict batch and
+segment order, targets, content digests, schema versions, accounting totals,
+root-key identity, certificate-time bounds, replay commitments, and canonical
+source endpoints.
 A loaded manifest is never authority by itself: every retained report must be
 size-checked, reauthenticated, replayed in order, and compared with a recomputed
 manifest. Only the resulting sealed archive capability can enter the certified
@@ -544,6 +549,14 @@ and accepts the archive only when a freshly recomputed manifest matches every
 serialized field. Failed final publication preserves an existing complete
 manifest. These low-level operations select no default archive path,
 collection, refresh policy, lock, or CLI surface.
+
+`NnsCertifiedRegistryArchivePublisher::resume` locally reloads and
+reauthenticates an existing schema-2 archive under new caller-selected
+cumulative limits, then accepts sealed extension batches without rewriting its
+historical objects. It performs no source call and acquires no lock itself; a
+live coordinator must hold the dedicated archive lock across resume,
+collection, and `finish`. Schema-1 archives are rejected without migration or
+a fallback reader and require an explicit new force bootstrap.
 
 `bootstrap_nns_certified_registry_archive_async` is the explicit live
 publication coordinator. Its request requires the source/time/replay policy,
