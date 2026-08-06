@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.4` adds a pure exact-target Registry replay session. Its first valid
+  certified batch pins the selected Registry version; later batches must still
+  certify that target and may not move it when the live Registry advances.
+  Explicit ceilings bound admitted Registry versions, batches, reported query
+  calls, encoded response bytes, and reconstructed state. Root-key changes,
+  cumulative-limit failures, and completed-session reuse fail atomically. The
+  session performs no source calls and does not yet publish certified catalog
+  authority.
+
 - `0.30.3` adds a pure in-memory Registry replay API that applies exactly one
   validated certified delta batch after the state's current version. It uses
   the IC's committed-changelog replacement/delete semantics, requires explicit

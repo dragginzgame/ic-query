@@ -107,7 +107,8 @@ use ic_query::nns::registry::{
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
-    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplayState, NnsRegistrySource,
+    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplaySession,
+    NnsRegistryReplaySessionLimits, NnsRegistryReplayState, NnsRegistrySource,
     NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
@@ -559,6 +560,26 @@ fn public_certified_registry_replay_api_is_bounded_and_version_checked() {
     ));
     assert_eq!(state.through_version(), 0);
     assert!(state.is_empty());
+
+    let mut session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
+        100,
+        1,
+        1,
+        1_024,
+        NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
+    ));
+    let error = session
+        .apply_batch(&request, &report)
+        .expect_err("session must begin at Registry version zero");
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::VersionMismatch {
+            state_version: 0,
+            requested_version: 41,
+        }
+    ));
+    assert_eq!(session.selected_version(), None);
+    assert!(session.state().is_empty());
 }
 
 fn public_certified_delta_report(

@@ -18,7 +18,7 @@ local-only inspection visibly distinct.
 | Family | Current surface |
 | --- | --- |
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, one-request observed node status with cached node/Subnet/provider views and typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
-| NNS Registry | Certified latest version, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
+| NNS Registry | Certified latest version and bounded exact-target replay foundations, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
@@ -491,6 +491,12 @@ reconstruction from version zero. Every apply requires caller-selected live
 entry and raw content-byte ceilings and publishes atomically. It performs no
 network or filesystem IO, does not choose a history budget, and is not
 authority evidence without the validated certified reports that produced it.
+`NnsRegistryReplaySession` adds cumulative version, batch, reported-call, and
+response-byte ceilings and pins the first batch's certified latest version as
+the exact target. If later reports observe a newer Registry version, the
+session applies only through its original target. These pure admission limits
+do not initiate or pre-budget source work; live bootstrap and cache publication
+remain separate future boundaries.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return

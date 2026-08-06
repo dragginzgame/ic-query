@@ -7,7 +7,8 @@ mod report;
 #[cfg(feature = "nns-host")]
 pub use replay::{
     NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplayProgress,
-    NnsRegistryReplayState, NnsRegistryReplayValue, apply_nns_certified_registry_delta_batch,
+    NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
+    NnsRegistryReplayValue, apply_nns_certified_registry_delta_batch,
 };
 pub use report::{
     DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsCertifiedRegistryDeltaBatchReport,

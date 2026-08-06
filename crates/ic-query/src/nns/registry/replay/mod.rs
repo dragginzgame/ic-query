@@ -4,6 +4,8 @@
 //! Does not own: network pagination, persistence, catalog projection, or assurance promotion.
 //! Boundary: committed changelog rows are applied atomically and never trigger follow-up IO.
 
+mod session;
+
 use super::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
     NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind, NnsRegistryHostError,
@@ -11,6 +13,8 @@ use super::{
 };
 use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
+
+pub use session::{NnsRegistryReplaySession, NnsRegistryReplaySessionLimits};
 
 ///
 /// NnsRegistryReplayLimits
@@ -181,6 +185,46 @@ pub enum NnsRegistryReplayError {
         requested_version: u64,
     },
 
+    /// A completed exact-target replay session cannot accept another batch.
+    #[error("Registry replay session already reached selected version {selected_version}")]
+    SessionComplete {
+        /// Exact Registry version selected from the session's first batch.
+        selected_version: u64,
+    },
+
+    /// A later batch no longer certifies the session's selected Registry version.
+    #[error(
+        "Registry replay selected version {selected_version}, but a later batch certifies only version {certified_latest_version}"
+    )]
+    CertifiedVersionRegressed {
+        /// Exact Registry version selected from the first accepted batch.
+        selected_version: u64,
+        /// Latest Registry version certified by the later batch.
+        certified_latest_version: u64,
+    },
+
+    /// Certified batches in one replay session disagree about the trusted root key.
+    #[error(
+        "Registry replay root-key digest changed from {expected_root_key_digest} to {actual_root_key_digest}"
+    )]
+    RootKeyDigestMismatch {
+        /// Root-key digest retained from the first accepted batch.
+        expected_root_key_digest: String,
+        /// Root-key digest supplied by the later batch.
+        actual_root_key_digest: String,
+    },
+
+    /// Accepted session evidence would exceed an explicit cumulative ceiling.
+    #[error("Registry replay session {field} would be {actual}; caller maximum is {maximum}")]
+    SessionLimitExceeded {
+        /// Bounded cumulative replay-session resource.
+        field: &'static str,
+        /// Caller-selected cumulative ceiling.
+        maximum: u64,
+        /// Candidate cumulative amount.
+        actual: u64,
+    },
+
     /// The existing or candidate state exceeds a caller-selected payload ceiling.
     #[error("Registry replay {field} is {actual}; caller maximum is {maximum}")]
     LimitExceeded {
@@ -218,6 +262,20 @@ pub fn apply_nns_certified_registry_delta_batch(
     limits: NnsRegistryReplayLimits,
 ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
     validate_nns_certified_registry_delta_batch(request, report)?;
+    apply_validated_batch_through(
+        state,
+        report,
+        report.last_version.unwrap_or(report.requested_version),
+        limits,
+    )
+}
+
+pub(super) fn apply_validated_batch_through(
+    state: &mut NnsRegistryReplayState,
+    report: &NnsCertifiedRegistryDeltaBatchReport,
+    selected_version: u64,
+    limits: NnsRegistryReplayLimits,
+) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
     if state.through_version != report.requested_version {
         return Err(NnsRegistryReplayError::VersionMismatch {
             state_version: state.through_version,
@@ -225,10 +283,12 @@ pub fn apply_nns_certified_registry_delta_batch(
         });
     }
     enforce_limits(state, limits)?;
+    let (applied_version_count, applied_mutation_count) =
+        validated_batch_prefix_counts(report, selected_version)?;
 
     let mut journal = ReplayJournal::new(state);
     let application = (|| {
-        for version in &report.versions {
+        for version in &report.versions[..applied_version_count] {
             for mutation in &version.mutations {
                 apply_committed_mutation(
                     state,
@@ -250,14 +310,32 @@ pub fn apply_nns_certified_registry_delta_batch(
     let progress = NnsRegistryReplayProgress {
         previous_version: journal.previous_version,
         through_version: state.through_version,
-        applied_version_count: report.version_count,
-        applied_mutation_count: report.mutation_count,
+        applied_version_count,
+        applied_mutation_count,
         entry_count: state.entries.len(),
         content_bytes: state.content_bytes,
         complete_at_certified_latest_version: state.through_version
             == report.certified_latest_version,
     };
     Ok(progress)
+}
+
+pub(super) fn validated_batch_prefix_counts(
+    report: &NnsCertifiedRegistryDeltaBatchReport,
+    selected_version: u64,
+) -> Result<(usize, usize), NnsRegistryReplayError> {
+    let version_count = report
+        .versions
+        .partition_point(|version| version.version <= selected_version);
+    let mutation_count =
+        report.versions[..version_count]
+            .iter()
+            .try_fold(0usize, |total, version| {
+                total
+                    .checked_add(version.mutations.len())
+                    .ok_or(NnsRegistryReplayError::Accounting)
+            })?;
+    Ok((version_count, mutation_count))
 }
 
 fn apply_committed_mutation(
