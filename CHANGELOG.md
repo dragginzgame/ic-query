@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.12` adds local reauthentication for retained schema-3 certified
+  Registry delta reports. The operation validates the report, verifies its raw
+  certificate and mixed-tree commitment against the built-in mainnet root key,
+  decodes the committed delta, and compares every version, mutation,
+  precondition, and chunk reference before returning a sealed borrowed
+  capability. The source endpoint is validated but never called. This adds no
+  archive, cache, replay restoration, CLI, or certified catalog assurance.
+
 - `0.30.11` hard-cuts certified Registry delta reports to schema 3 and
   retains each unique hash-verified large-value chunk once in canonical digest
   order. The pure validator now re-hashes every retained chunk, requires the

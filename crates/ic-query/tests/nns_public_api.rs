@@ -111,7 +111,7 @@ use ic_query::nns::registry::{
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
     project_nns_authenticated_registry_subnet_catalog, project_nns_registry_subnet_catalog,
-    validate_nns_certified_registry_delta_batch,
+    reauthenticate_nns_certified_registry_delta_batch, validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
     NnsCertifiedRegistryChunkEvidence, NnsCertifiedRegistryDeltaBatchReport,
@@ -159,7 +159,7 @@ use ic_query::subnet_catalog::{
     SubnetSpecialization,
 };
 #[cfg(feature = "nns-host")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "nns-host")]
 use std::{
     fs,
@@ -476,6 +476,56 @@ fn public_certified_registry_delta_models_preserve_raw_evidence() {
     assert_eq!(json["chunk_evidence_bytes"], 0);
     assert_eq!(json["chunk_evidence"], serde_json::json!([]));
     assert_eq!(json["query_call_count"], 1);
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn retained_certified_registry_delta_reauthenticates_without_source_calls() {
+    let mut fixture = authenticated_delta_fixture();
+    let offline_endpoint = "https://offline.invalid";
+    fixture.source_endpoint = offline_endpoint.to_string();
+    fixture.report.source_endpoint = offline_endpoint.to_string();
+    let request = fixture.request();
+
+    let authenticated =
+        reauthenticate_nns_certified_registry_delta_batch(&request, &fixture.report)
+            .expect("frozen mainnet evidence reauthenticates locally");
+
+    assert_eq!(
+        std::ptr::from_ref(authenticated.report()),
+        std::ptr::from_ref(&fixture.report)
+    );
+
+    let mut changed_value = fixture.report.clone();
+    changed_value.versions[0].mutations[0]
+        .value_hex
+        .as_mut()
+        .expect("fixture inline value")
+        .replace_range(..2, "00");
+    let error = reauthenticate_nns_certified_registry_delta_batch(&request, &changed_value)
+        .expect_err("reported value must match the authenticated witness");
+    assert!(matches!(
+        &error,
+        NnsRegistryHostError::EvidenceAuthentication { .. }
+    ));
+    assert!(
+        error
+            .to_string()
+            .contains("authenticated versions[0].mutations[0].value_hex mismatch")
+    );
+
+    let mut changed_certificate = fixture.report;
+    let last_byte = changed_certificate.certification.certificate_hex.len() - 2;
+    changed_certificate
+        .certification
+        .certificate_hex
+        .replace_range(last_byte.., "00");
+    let error = reauthenticate_nns_certified_registry_delta_batch(&request, &changed_certificate)
+        .expect_err("changed certificate must not authenticate");
+    assert!(matches!(
+        error,
+        NnsRegistryHostError::EvidenceAuthentication { .. }
+    ));
 }
 
 #[cfg(feature = "nns-host")]
@@ -809,6 +859,34 @@ fn public_certified_delta_report(
         chunk_evidence: Vec::<NnsCertifiedRegistryChunkEvidence>::new(),
         certification: public_registry_certification(),
     }
+}
+
+#[cfg(feature = "nns-host")]
+#[derive(Deserialize)]
+struct AuthenticatedDeltaFixture {
+    network: String,
+    source_endpoint: String,
+    requested_version: u64,
+    now_unix_secs: u64,
+    report: NnsCertifiedRegistryDeltaBatchReport,
+}
+
+#[cfg(feature = "nns-host")]
+impl AuthenticatedDeltaFixture {
+    fn request(&self) -> NnsCertifiedRegistryDeltaBatchRequest {
+        NnsCertifiedRegistryDeltaBatchRequest::new(
+            &self.network,
+            &self.source_endpoint,
+            self.requested_version,
+            self.now_unix_secs,
+        )
+    }
+}
+
+#[cfg(feature = "nns-host")]
+fn authenticated_delta_fixture() -> AuthenticatedDeltaFixture {
+    serde_json::from_str(include_str!("nns_certified_registry_delta_fixture.json"))
+        .expect("valid frozen certified Registry delta fixture")
 }
 
 const fn public_certified_delta_limits() -> NnsCertifiedRegistryDeltaLimits {

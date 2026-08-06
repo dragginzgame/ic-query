@@ -15,6 +15,8 @@ mod request;
 mod subnet_topology;
 
 #[cfg(feature = "nns-host")]
+pub use certified_delta::AuthenticatedRegistryDeltaWitness;
+#[cfg(feature = "nns-host")]
 pub use certified_delta::{
     CertifiedRegistryChunkEvidence, CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion,
     CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,

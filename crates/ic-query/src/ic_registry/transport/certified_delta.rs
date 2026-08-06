@@ -14,12 +14,13 @@ use super::chunk::{
 use crate::{
     hex::hex_bytes,
     ic_registry::{
-        CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion, CertifiedRegistryMutation,
-        CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding, RegistryFetchError,
+        AuthenticatedRegistryDeltaWitness, CertifiedRegistryDeltaBatch,
+        CertifiedRegistryDeltaVersion, CertifiedRegistryMutation, CertifiedRegistryPrecondition,
+        CertifiedRegistryValueEncoding, RegistryFetchError,
         proto::{
             HighCapacityRegistryAtomicMutateRequest, HighCapacityRegistryMutation,
-            RegistryCertifiedResponse, RegistryGetChangesSinceRequest, RegistryMutationType,
-            high_capacity_registry_mutation::Content,
+            RegistryCertifiedResponse, RegistryGetChangesSinceRequest, RegistryMixedHashTree,
+            RegistryMutationType, high_capacity_registry_mutation::Content,
         },
     },
 };
@@ -64,41 +65,27 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
             reason: error.to_string(),
         }
     })?;
-    let authenticated = authenticate_registry_response(
-        agent,
-        registry_canister,
-        response,
-        GET_CERTIFIED_CHANGES_SINCE_METHOD,
-    )?;
-    let certified_latest_version = required_leb128_leaf(
-        &authenticated.hash_tree,
-        CURRENT_VERSION_LABEL,
-        "current_version",
-    )?;
-    let mut validated = validate_delta_tree(
-        &authenticated.hash_tree,
-        requested_version,
-        certified_latest_version,
-    )?;
+    let mut witness =
+        authenticate_delta_response(agent, registry_canister, response, requested_version)?;
     let mut chunk_budget = RegistryChunkBudget::new(
         RegistryChunkLimits::certified_delta(),
-        validated.inline_value_bytes,
+        witness.inline_value_bytes,
     )?;
     complete_chunked_values(
         agent,
         registry_canister,
-        &mut validated.versions,
+        &mut witness.versions,
         &mut chunk_budget,
     )
     .await?;
-    if chunk_budget.reference_count() != validated.chunk_reference_count {
+    if chunk_budget.reference_count() != witness.chunk_reference_count {
         return Err(invalid_certified_registry(
             "completed chunk reference count does not match the certified delta tree",
         ));
     }
     let value_bytes = chunk_budget.reconstructed_value_bytes();
     let chunk_value_bytes = value_bytes
-        .checked_sub(validated.inline_value_bytes)
+        .checked_sub(witness.inline_value_bytes)
         .ok_or_else(|| invalid_certified_registry("completed value byte accounting underflows"))?;
     let chunk_reference_count = chunk_budget.reference_count();
     let chunk_query_call_count = chunk_budget.query_call_count();
@@ -112,11 +99,11 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
 
     Ok(CertifiedRegistryDeltaBatch {
         requested_version,
-        certified_latest_version,
-        versions: validated.versions,
-        mutation_count: validated.mutation_count,
-        precondition_count: validated.precondition_count,
-        inline_value_bytes: validated.inline_value_bytes,
+        certified_latest_version: witness.certified_latest_version,
+        versions: witness.versions,
+        mutation_count: witness.mutation_count,
+        precondition_count: witness.precondition_count,
+        inline_value_bytes: witness.inline_value_bytes,
         chunk_value_bytes,
         value_bytes,
         chunk_reference_count,
@@ -124,8 +111,71 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
         chunk_evidence,
         chunk_query_call_count,
         chunk_response_bytes,
-        more_available: validated.more_available,
+        more_available: witness.more_available,
         certified_response_bytes: response_bytes,
+        certificate_time_nanos: witness.certificate_time_nanos,
+        root_key_digest: witness.root_key_digest,
+        certificate_hex: witness.certificate_hex,
+        certificate_bytes: witness.certificate_bytes,
+        hash_tree_hex: witness.hash_tree_hex,
+        hash_tree_bytes: witness.hash_tree_bytes,
+    })
+}
+
+pub fn authenticate_certified_registry_delta_witness(
+    agent: &Agent,
+    registry_canister: &Principal,
+    requested_version: u64,
+    certificate: Vec<u8>,
+    encoded_hash_tree: &[u8],
+) -> Result<AuthenticatedRegistryDeltaWitness, RegistryFetchError> {
+    let hash_tree = RegistryMixedHashTree::decode(encoded_hash_tree).map_err(|error| {
+        RegistryFetchError::ProtobufDecode {
+            message: "RegistryMixedHashTree",
+            reason: error.to_string(),
+        }
+    })?;
+    authenticate_delta_response(
+        agent,
+        registry_canister,
+        RegistryCertifiedResponse {
+            certificate,
+            hash_tree: Some(hash_tree),
+        },
+        requested_version,
+    )
+}
+
+fn authenticate_delta_response(
+    agent: &Agent,
+    registry_canister: &Principal,
+    response: RegistryCertifiedResponse,
+    requested_version: u64,
+) -> Result<AuthenticatedRegistryDeltaWitness, RegistryFetchError> {
+    let authenticated = authenticate_registry_response(
+        agent,
+        registry_canister,
+        response,
+        GET_CERTIFIED_CHANGES_SINCE_METHOD,
+    )?;
+    let certified_latest_version = required_leb128_leaf(
+        &authenticated.hash_tree,
+        CURRENT_VERSION_LABEL,
+        "current_version",
+    )?;
+    let validated = validate_delta_tree(
+        &authenticated.hash_tree,
+        requested_version,
+        certified_latest_version,
+    )?;
+    Ok(AuthenticatedRegistryDeltaWitness {
+        certified_latest_version,
+        versions: validated.versions,
+        mutation_count: validated.mutation_count,
+        precondition_count: validated.precondition_count,
+        inline_value_bytes: validated.inline_value_bytes,
+        chunk_reference_count: validated.chunk_reference_count,
+        more_available: validated.more_available,
         certificate_time_nanos: authenticated.certificate_time_nanos,
         root_key_digest: authenticated.root_key_digest,
         certificate_hex: authenticated.certificate_hex,

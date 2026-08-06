@@ -1,11 +1,13 @@
 //! Module: agent
 //!
-//! Responsibility: validate live source endpoints before constructing IC agents.
+//! Responsibility: validate endpoints before constructing response-bounded IC agents.
 //! Does not own: source-specific errors, network policy, or live calls.
 //! Boundary: prevents malformed endpoint text from reaching infallible parser paths in ic-agent.
 
 use crate::http_endpoint::parse_http_endpoint;
 use ic_agent::Agent;
+#[cfg(feature = "nns-host")]
+use std::time::Duration;
 
 /// Maximum response-body size configured for every native IC agent call.
 pub const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
@@ -15,19 +17,50 @@ pub fn build_ic_agent<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,
 ) -> Result<Agent, Error> {
-    build_ic_agent_with_response_limit(endpoint, map_error, MAX_IC_AGENT_RESPONSE_BODY_BYTES)
+    build_ic_agent_with_options(endpoint, map_error, MAX_IC_AGENT_RESPONSE_BODY_BYTES, None)
 }
 
+/// Construct an agent that verifies retained certificate signatures without imposing live age.
+///
+/// Callers must independently bind the certificate time to the retained observation time. This
+/// agent is for local historical verification only and must not be used for live source calls.
+#[cfg(feature = "nns-host")]
+pub fn build_historical_certificate_agent<Error>(
+    endpoint: &str,
+    map_error: impl Fn(String) -> Error,
+) -> Result<Agent, Error> {
+    build_ic_agent_with_options(
+        endpoint,
+        map_error,
+        MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+        Some(Duration::from_secs(u32::MAX.into())),
+    )
+}
+
+#[cfg(test)]
 fn build_ic_agent_with_response_limit<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,
     max_response_body_bytes: usize,
 ) -> Result<Agent, Error> {
+    build_ic_agent_with_options(endpoint, map_error, max_response_body_bytes, None)
+}
+
+fn build_ic_agent_with_options<Error>(
+    endpoint: &str,
+    map_error: impl Fn(String) -> Error,
+    max_response_body_bytes: usize,
+    certificate_age_limit: Option<std::time::Duration>,
+) -> Result<Agent, Error> {
     parse_http_endpoint(endpoint).map_err(&map_error)?;
 
-    Agent::builder()
+    let mut builder = Agent::builder()
         .with_url(endpoint)
-        .with_max_response_body_size(max_response_body_bytes)
+        .with_max_response_body_size(max_response_body_bytes);
+    if let Some(certificate_age_limit) = certificate_age_limit {
+        builder = builder.with_ingress_expiry(certificate_age_limit);
+    }
+    builder
         .build()
         .map_err(|error| map_error(error.to_string()))
 }

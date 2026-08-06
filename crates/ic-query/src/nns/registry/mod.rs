@@ -27,9 +27,11 @@ pub use report::{
 };
 #[cfg(feature = "nns-host")]
 pub use report::{
-    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
-    NnsRegistrySource, NnsRegistryVersionData, build_nns_registry_version_report,
+    NnsAuthenticatedRegistryDeltaBatch, NnsCertifiedRegistryDeltaSource,
+    NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistrySource,
+    NnsRegistryVersionData, build_nns_registry_version_report,
     build_nns_registry_version_report_with_source, fetch_nns_certified_registry_delta_batch_async,
     fetch_nns_certified_registry_delta_batch_with_source_async,
-    nns_certified_registry_delta_limits, validate_nns_certified_registry_delta_batch,
+    nns_certified_registry_delta_limits, reauthenticate_nns_certified_registry_delta_batch,
+    validate_nns_certified_registry_delta_batch,
 };

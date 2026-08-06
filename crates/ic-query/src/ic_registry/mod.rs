@@ -28,6 +28,8 @@ pub use client::{
     fetch_mainnet_node_provider_list, fetch_mainnet_registry_version,
 };
 pub use error::RegistryFetchError;
+#[cfg(feature = "nns-host")]
+pub use model::AuthenticatedRegistryDeltaWitness;
 pub use model::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-host")]
 pub use model::{
@@ -45,6 +47,8 @@ pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
 use proto::{CanisterId, SubnetId};
+#[cfg(feature = "nns-host")]
+pub use transport::authenticate_certified_registry_delta_witness;
 #[cfg(feature = "nns-host")]
 pub use transport::{
     MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES, MAX_CERTIFIED_DELTA_KEY_BYTES,

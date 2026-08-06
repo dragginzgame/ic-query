@@ -493,6 +493,15 @@ Committed same-key mutations retain their stable order, and any retained
 delete value remains raw evidence while replay ignores it when removing the
 key.
 
+Retained schema-3 delta reports can be checked again with
+`reauthenticate_nns_certified_registry_delta_batch`. This local-only operation
+verifies the raw mainnet certificate and mixed-tree commitment, decodes the
+committed delta, and compares its complete certified contents with the report
+before returning a sealed borrowed `NnsAuthenticatedRegistryDeltaBatch`.
+Endpoint text remains explicit validated provenance but is not contacted.
+Reauthentication does not make an historical snapshot currently fresh and
+does not by itself restore a replay session or establish catalog assurance.
+
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time
 reconstruction from version zero. Every apply requires caller-selected live

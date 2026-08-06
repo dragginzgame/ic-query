@@ -1,4 +1,6 @@
 #[cfg(feature = "nns-host")]
+mod authentication;
+#[cfg(feature = "nns-host")]
 mod build;
 #[cfg(feature = "nns-host")]
 mod delta;
@@ -9,6 +11,10 @@ mod model;
 mod source;
 mod text;
 
+#[cfg(feature = "nns-host")]
+pub use authentication::{
+    NnsAuthenticatedRegistryDeltaBatch, reauthenticate_nns_certified_registry_delta_batch,
+};
 #[cfg(feature = "nns-host")]
 pub use build::{build_nns_registry_version_report, build_nns_registry_version_report_with_source};
 #[cfg(feature = "nns-host")]

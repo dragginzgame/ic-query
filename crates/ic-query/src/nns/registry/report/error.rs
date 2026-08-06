@@ -34,4 +34,12 @@ pub enum NnsRegistryHostError {
 
     #[error("live NNS registry query failed: {0}")]
     NnsQuery(#[from] RegistryFetchError),
+
+    /// Retained certificate or witness evidence did not authenticate locally.
+    #[error("NNS Registry evidence authentication failed: {source}")]
+    EvidenceAuthentication {
+        /// Underlying certificate, witness, agent, or Registry evidence failure.
+        #[source]
+        source: RegistryFetchError,
+    },
 }

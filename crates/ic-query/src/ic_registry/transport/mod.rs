@@ -32,6 +32,8 @@ pub(super) use crate::hex::hex_bytes;
 #[cfg(feature = "nns-host")]
 pub(super) use certified::get_certified_latest_version;
 #[cfg(feature = "nns-host")]
+pub use certified_delta::authenticate_certified_registry_delta_witness;
+#[cfg(feature = "nns-host")]
 pub(super) use certified_delta::get_certified_changes_since;
 #[cfg(feature = "nns-host")]
 pub use certified_delta::{
