@@ -634,6 +634,45 @@ fn catalog_projection_preserves_typed_record_and_catalog_failures() {
 }
 
 #[test]
+fn built_in_authentication_requires_complete_replay_provenance() {
+    let session = projection_session();
+
+    let error = NnsAuthenticatedRegistryReplaySession::from_built_in(session)
+        .expect_err("incomplete replay cannot acquire built-in authentication capability");
+
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::AuthenticationRequiresCompleteSession {
+            selected_version: None,
+            through_version: 0,
+        }
+    ));
+}
+
+#[test]
+fn authenticated_projection_composes_without_copying_catalog_rows() {
+    let session = complete_catalog_projection_session(true, false);
+    let authenticated = NnsAuthenticatedRegistryReplaySession::from_built_in(session)
+        .expect("complete built-in fixture authentication");
+
+    {
+        let projected = project_nns_authenticated_registry_subnet_catalog(&authenticated)
+            .expect("authenticated catalog projection");
+        assert_eq!(projected.authenticated_replay_session(), &authenticated);
+        assert_eq!(projected.projection().registry_version(), 1);
+        assert_eq!(projected.projection().subnets().len(), 1);
+        assert_eq!(
+            projected.projection().subnets()[0].subnet_principal,
+            PROJECTION_SUBNET
+        );
+    }
+
+    let ordinary = authenticated.into_replay_session();
+    assert!(ordinary.is_complete());
+    assert_eq!(ordinary.selected_version(), Some(1));
+}
+
+#[test]
 fn replay_session_fails_atomically_on_cumulative_limits() {
     let request = request(0);
     let report = report(

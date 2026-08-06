@@ -518,10 +518,15 @@ a `ValidatedSubnetCatalog` or `CatalogAssurance::Certified` result.
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case
 capacity before each source call: one certified query, up to 64 chunk queries,
-and up to 40 MiB of encoded responses. It has no default limits and returns
-only a complete exact-target session. The operation is uncached and may make
-multiple sequential mainnet calls; cache publication and certified Subnet
-Catalog assurance remain separate future boundaries.
+and up to 40 MiB of encoded responses. It has no default limits and returns a
+complete `NnsAuthenticatedRegistryReplaySession` at the exact target. Only the
+built-in mainnet-root-key verifier can construct this sealed wrapper. Use
+`.replay_session()` for borrowed inspection or `.into_replay_session()` to
+explicitly discard the capability. Custom-source bootstrap continues to return
+the ordinary replay type because ic-query cannot reauthenticate its assertions.
+Authenticated catalog projection composes the wrapper with the existing pure
+projection, but remains uncached and does not establish certified catalog
+assurance.
 
 `probe_nns_certified_registry_async` uses the same reservation and validation
 loop for bounded sizing diagnostics. It returns either `Complete` or typed

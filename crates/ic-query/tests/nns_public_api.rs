@@ -99,17 +99,19 @@ use ic_query::nns::proposals::{
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
-    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsCertifiedRegistryBootstrapProbeStatus,
+    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryReplaySession,
+    NnsAuthenticatedRegistrySubnetCatalogProjection, NnsCertifiedRegistryBootstrapProbeStatus,
     NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
     NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
     NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
     NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
     NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
-    bootstrap_nns_certified_registry_with_source_async,
+    bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
-    project_nns_registry_subnet_catalog, validate_nns_certified_registry_delta_batch,
+    project_nns_authenticated_registry_subnet_catalog, project_nns_registry_subnet_catalog,
+    validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
@@ -625,6 +627,40 @@ fn public_catalog_projection_requires_complete_replay_evidence() {
             through_version: 0,
         }
     ));
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_live_bootstrap_and_projection_preserve_authentication_types() {
+    fn accept_bootstrap_future<F>(_future: F)
+    where
+        F: std::future::Future<
+                Output = Result<NnsAuthenticatedRegistryReplaySession, NnsRegistryReplayError>,
+            >,
+    {
+    }
+
+    let request = NnsCertifiedRegistryBootstrapRequest::new(
+        "ic",
+        "https://icp-api.io",
+        1_700_000_000,
+        NnsRegistryReplaySessionLimits::new(
+            1,
+            1,
+            65,
+            40 * 1_024 * 1_024,
+            NnsRegistryReplayLimits::new(10, 100),
+        ),
+    );
+    accept_bootstrap_future(bootstrap_nns_certified_registry_async(&request));
+
+    let builder: for<'a> fn(
+        &'a NnsAuthenticatedRegistryReplaySession,
+    ) -> Result<
+        NnsAuthenticatedRegistrySubnetCatalogProjection<'a>,
+        NnsRegistrySubnetCatalogProjectionError,
+    > = project_nns_authenticated_registry_subnet_catalog;
+    let _ = builder;
 }
 
 #[cfg(feature = "nns-host")]

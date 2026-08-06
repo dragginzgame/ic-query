@@ -1,10 +1,10 @@
 //! Module: nns::registry::replay::projection
 //!
-//! Responsibility: project complete replay state through the shared Subnet Catalog content path.
-//! Does not own: source authentication, serialization, cache policy, or assurance promotion.
+//! Responsibility: project complete replay state while preserving an authenticated capability.
+//! Does not own: authentication establishment, serialization, cache policy, or assurance promotion.
 //! Boundary: the projection borrows its complete session and cannot outlive its replay evidence.
 
-use super::NnsRegistryReplaySession;
+use super::{NnsAuthenticatedRegistryReplaySession, NnsRegistryReplaySession};
 use crate::{
     ic_registry::{
         ROUTING_TABLE_KEY, SUBNET_LIST_KEY, proto::RoutingTable, proto::SubnetListRecord,
@@ -53,6 +53,32 @@ impl<'a> NnsRegistrySubnetCatalogProjection<'a> {
     #[must_use]
     pub fn routing_ranges(&self) -> &[RoutingRange] {
         &self.routing_ranges
+    }
+}
+
+///
+/// NnsAuthenticatedRegistrySubnetCatalogProjection
+///
+/// Catalog projection retaining the built-in source's authenticated replay capability.
+///
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct NnsAuthenticatedRegistrySubnetCatalogProjection<'a> {
+    authenticated_session: &'a NnsAuthenticatedRegistryReplaySession,
+    projection: NnsRegistrySubnetCatalogProjection<'a>,
+}
+
+impl<'a> NnsAuthenticatedRegistrySubnetCatalogProjection<'a> {
+    /// Return the built-in-authenticated replay session qualifying this projection.
+    #[must_use]
+    pub const fn authenticated_replay_session(&self) -> &'a NnsAuthenticatedRegistryReplaySession {
+        self.authenticated_session
+    }
+
+    /// Return the canonical catalog projection composed inside this capability wrapper.
+    #[must_use]
+    pub const fn projection(&self) -> &NnsRegistrySubnetCatalogProjection<'a> {
+        &self.projection
     }
 }
 
@@ -147,6 +173,23 @@ pub fn project_nns_registry_subnet_catalog(
         registry_version,
         subnets,
         routing_ranges,
+    })
+}
+
+/// Project built-in-authenticated replay state while retaining its type-level capability.
+///
+/// This remains an in-memory projection. It does not serialize authentication
+/// evidence or promote the result to `CatalogAssurance::Certified`.
+pub fn project_nns_authenticated_registry_subnet_catalog(
+    session: &NnsAuthenticatedRegistryReplaySession,
+) -> Result<
+    NnsAuthenticatedRegistrySubnetCatalogProjection<'_>,
+    NnsRegistrySubnetCatalogProjectionError,
+> {
+    let projection = project_nns_registry_subnet_catalog(session.replay_session())?;
+    Ok(NnsAuthenticatedRegistrySubnetCatalogProjection {
+        authenticated_session: session,
+        projection,
     })
 }
 

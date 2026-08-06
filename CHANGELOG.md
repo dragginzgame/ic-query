@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.10` hard-cuts the built-in certified Registry bootstrap to return a
+  sealed `NnsAuthenticatedRegistryReplaySession`. Only ic-query's fixed live
+  path, which verifies every batch against the mainnet root key, can construct
+  it; custom sources and manual replay continue to return ordinary sessions.
+  An authenticated catalog-projection wrapper composes the existing projection
+  without copying rows or provenance. Callers now use `.replay_session()` to
+  inspect the live-bootstrap result or `.into_replay_session()` to explicitly
+  discard the capability. This remains in-memory evidence and does not enable
+  cached or validated certified catalog assurance.
+
 - `0.30.9` adds a pure, cacheless Subnet Catalog projection from a completed
   exact-target Registry replay session. It decodes the replayed Subnet list,
   routing table, and every referenced Subnet record, then uses the same

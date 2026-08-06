@@ -1,9 +1,10 @@
 //! Module: nns::registry::replay
 //!
-//! Responsibility: apply certified Registry batches and coordinate bounded replay provenance.
-//! Does not own: persistence, cache policy, catalog projection, or assurance promotion.
+//! Responsibility: apply certified Registry batches, retain authentication, and project replay state.
+//! Does not own: persistence, cache policy, catalog publication, or assurance promotion.
 //! Boundary: replay is atomic; source follow-ups occur only in the pre-call-budgeted bootstrap API.
 
+mod authentication;
 mod bootstrap;
 mod projection;
 mod session;
@@ -16,6 +17,7 @@ use super::{
 use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
 
+pub use authentication::NnsAuthenticatedRegistryReplaySession;
 pub use bootstrap::{
     NnsCertifiedRegistryBootstrapProbeOutcome, NnsCertifiedRegistryBootstrapProbeStatus,
     NnsCertifiedRegistryBootstrapRequest, bootstrap_nns_certified_registry_async,
@@ -23,7 +25,8 @@ pub use bootstrap::{
     probe_nns_certified_registry_with_source_async,
 };
 pub use projection::{
-    NnsRegistrySubnetCatalogProjection, NnsRegistrySubnetCatalogProjectionError,
+    NnsAuthenticatedRegistrySubnetCatalogProjection, NnsRegistrySubnetCatalogProjection,
+    NnsRegistrySubnetCatalogProjectionError, project_nns_authenticated_registry_subnet_catalog,
     project_nns_registry_subnet_catalog,
 };
 pub use session::{
@@ -267,6 +270,17 @@ pub enum NnsRegistryReplayError {
     EvidenceEncoding {
         /// Serialization failure returned while hashing the validated report.
         reason: String,
+    },
+
+    /// Type-level built-in authentication was requested for incomplete replay evidence.
+    #[error(
+        "built-in Registry authentication requires a complete replay session: selected version {selected_version:?}, through version {through_version}"
+    )]
+    AuthenticationRequiresCompleteSession {
+        /// Exact target selected from the first admitted report, when available.
+        selected_version: Option<u64>,
+        /// Last Registry version reconstructed by the session.
+        through_version: u64,
     },
 }
 

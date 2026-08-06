@@ -4,7 +4,10 @@
 //! Does not own: persistence, cache policy, catalog projection, or assurance promotion.
 //! Boundary: worst-case capacity is checked before every built-in source call.
 
-use super::{NnsRegistryReplayError, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits};
+use super::{
+    NnsAuthenticatedRegistryReplaySession, NnsRegistryReplayError, NnsRegistryReplaySession,
+    NnsRegistryReplaySessionLimits,
+};
 use crate::nns::{
     LiveNnsSource,
     registry::{
@@ -93,8 +96,10 @@ impl NnsCertifiedRegistryBootstrapRequest {
 /// after that exact target has been reconstructed.
 pub async fn bootstrap_nns_certified_registry_async(
     request: &NnsCertifiedRegistryBootstrapRequest,
-) -> Result<NnsRegistryReplaySession, NnsRegistryReplayError> {
-    bootstrap_nns_certified_registry_with_source_async(request, &LiveNnsSource).await
+) -> Result<NnsAuthenticatedRegistryReplaySession, NnsRegistryReplayError> {
+    let session =
+        bootstrap_nns_certified_registry_with_source_async(request, &LiveNnsSource).await?;
+    NnsAuthenticatedRegistryReplaySession::from_built_in(session)
 }
 
 /// Bootstrap complete certified Registry state from an explicit async source.
