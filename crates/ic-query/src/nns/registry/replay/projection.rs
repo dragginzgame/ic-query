@@ -27,6 +27,8 @@ use candid::Principal;
 use prost::Message;
 use thiserror::Error as ThisError;
 
+const NANOS_PER_SECOND: u128 = 1_000_000_000;
+
 ///
 /// NnsRegistrySubnetCatalogProjection
 ///
@@ -68,6 +70,76 @@ impl<'a> NnsRegistrySubnetCatalogProjection<'a> {
 }
 
 ///
+/// NnsCertifiedSubnetCatalogVersionPolicy
+///
+/// Caller-selected treatment of a pinned target superseded during archive collection.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NnsCertifiedSubnetCatalogVersionPolicy {
+    /// Accept the authenticated exact target even when a later batch observed a newer Registry.
+    AllowHistoricalTarget,
+    /// Require the selected target to equal the newest Registry version observed by every batch.
+    RequireLatestObserved,
+}
+
+///
+/// NnsCertifiedSubnetCatalogProjectionRequest
+///
+/// Caller-owned identity, time, and maximum certificate-age policy for one promotion.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NnsCertifiedSubnetCatalogProjectionRequest {
+    /// Required catalog identity and future-skew policy.
+    pub validation: CatalogValidationContext,
+    /// Maximum accepted age of the latest certificate at the observation time.
+    pub maximum_certificate_age_seconds: u64,
+    /// Required relation between the pinned target and later certified version observations.
+    pub version_policy: NnsCertifiedSubnetCatalogVersionPolicy,
+}
+
+impl NnsCertifiedSubnetCatalogProjectionRequest {
+    /// Create one explicit certified catalog projection policy without a hidden age default.
+    #[must_use]
+    pub const fn new(
+        validation: CatalogValidationContext,
+        maximum_certificate_age_seconds: u64,
+        version_policy: NnsCertifiedSubnetCatalogVersionPolicy,
+    ) -> Self {
+        Self {
+            validation,
+            maximum_certificate_age_seconds,
+            version_policy,
+        }
+    }
+}
+
+///
+/// NnsCertifiedSubnetCatalogFreshness
+///
+/// Exact certificate-age decision retained with one promoted catalog authority.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NnsCertifiedSubnetCatalogFreshness {
+    /// Caller-supplied observation time in Unix seconds.
+    pub observation_time_unix_seconds: u64,
+    /// Latest authenticated archive certificate time in Unix nanoseconds.
+    pub latest_certificate_time_nanos: u64,
+    /// Exact nonnegative age at the caller's observation time.
+    pub certificate_age_nanos: u128,
+    /// Caller-supplied maximum accepted certificate age in seconds.
+    pub maximum_certificate_age_seconds: u64,
+    /// Exact Registry target represented by the projected catalog.
+    pub selected_registry_version: u64,
+    /// Newest certified Registry version observed anywhere in the archive.
+    pub maximum_observed_certified_registry_version: u64,
+    /// Caller-selected treatment of a target superseded during collection.
+    pub version_policy: NnsCertifiedSubnetCatalogVersionPolicy,
+}
+
+///
 /// NnsCertifiedSubnetCatalogAuthority
 ///
 /// Validated certified catalog kept attached to the archive that establishes its authority.
@@ -77,6 +149,7 @@ impl<'a> NnsRegistrySubnetCatalogProjection<'a> {
 pub struct NnsCertifiedSubnetCatalogAuthority<'a> {
     archive: &'a NnsAuthenticatedRegistryArchive,
     catalog: ValidatedSubnetCatalog,
+    freshness: NnsCertifiedSubnetCatalogFreshness,
 }
 
 impl<'a> NnsCertifiedSubnetCatalogAuthority<'a> {
@@ -90,6 +163,12 @@ impl<'a> NnsCertifiedSubnetCatalogAuthority<'a> {
     #[must_use]
     pub const fn catalog(&self) -> &ValidatedSubnetCatalog {
         &self.catalog
+    }
+
+    /// Return the exact caller-policy freshness decision qualifying this authority.
+    #[must_use]
+    pub const fn freshness(&self) -> NnsCertifiedSubnetCatalogFreshness {
+        self.freshness
     }
 }
 
@@ -150,6 +229,32 @@ pub enum NnsRegistrySubnetCatalogProjectionError {
         /// Deterministic replay-side or implementation-side value.
         replay_value: String,
     },
+
+    /// The latest authenticated certificate is older than the caller permits.
+    #[error(
+        "authenticated Registry archive certificate is stale: latest_certificate_time_nanos={latest_certificate_time_nanos}, observation_time_unix_seconds={observation_time_unix_seconds}, certificate_age_nanos={certificate_age_nanos}, maximum_certificate_age_seconds={maximum_certificate_age_seconds}"
+    )]
+    StaleArchiveCertificate {
+        /// Latest authenticated certificate time retained by the archive.
+        latest_certificate_time_nanos: u64,
+        /// Caller-supplied time at which freshness was evaluated.
+        observation_time_unix_seconds: u64,
+        /// Exact nonnegative certificate age in nanoseconds.
+        certificate_age_nanos: u128,
+        /// Caller-supplied maximum accepted age.
+        maximum_certificate_age_seconds: u64,
+    },
+
+    /// A later archive batch certified a newer Registry version than the selected target.
+    #[error(
+        "authenticated Registry archive target is superseded: selected_registry_version={selected_registry_version}, maximum_observed_certified_registry_version={maximum_observed_certified_registry_version}"
+    )]
+    SupersededArchiveTarget {
+        /// Exact Registry version reconstructed by the archive.
+        selected_registry_version: u64,
+        /// Newest Registry version certified by any retained batch.
+        maximum_observed_certified_registry_version: u64,
+    },
 }
 
 /// Project a complete exact-target replay session into canonical Subnet Catalog content.
@@ -207,9 +312,10 @@ pub fn project_nns_registry_subnet_catalog(
 /// continue to reject the serialized `Certified` claim.
 pub fn project_nns_certified_subnet_catalog<'a>(
     archive: &'a NnsAuthenticatedRegistryArchive,
-    context: &CatalogValidationContext,
+    request: &NnsCertifiedSubnetCatalogProjectionRequest,
 ) -> Result<NnsCertifiedSubnetCatalogAuthority<'a>, NnsRegistrySubnetCatalogProjectionError> {
     validate_archive_replay_alignment(archive)?;
+    let freshness = validate_archive_certificate_freshness(archive, request)?;
     let projection =
         project_nns_registry_subnet_catalog(archive.replay_session().replay_session())?;
     let manifest = archive.manifest();
@@ -254,8 +360,62 @@ pub fn project_nns_certified_subnet_catalog<'a>(
         routing_ranges: projection.routing_ranges,
     };
     raw.canonicalize_and_seal()?;
-    let catalog = ValidatedSubnetCatalog::try_from_authenticated_archive(raw, context, archive)?;
-    Ok(NnsCertifiedSubnetCatalogAuthority { archive, catalog })
+    let catalog =
+        ValidatedSubnetCatalog::try_from_authenticated_archive(raw, &request.validation, archive)?;
+    Ok(NnsCertifiedSubnetCatalogAuthority {
+        archive,
+        catalog,
+        freshness,
+    })
+}
+
+fn validate_archive_certificate_freshness(
+    archive: &NnsAuthenticatedRegistryArchive,
+    request: &NnsCertifiedSubnetCatalogProjectionRequest,
+) -> Result<NnsCertifiedSubnetCatalogFreshness, NnsRegistrySubnetCatalogProjectionError> {
+    let latest_certificate_time_nanos = archive.manifest().maximum_certificate_time_nanos;
+    let selected_registry_version = archive.manifest().selected_version;
+    let maximum_observed_certified_registry_version = archive
+        .manifest()
+        .batches
+        .iter()
+        .map(|batch| batch.certified_latest_version)
+        .max()
+        .unwrap_or(selected_registry_version);
+    if request.version_policy == NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved
+        && maximum_observed_certified_registry_version != selected_registry_version
+    {
+        return Err(
+            NnsRegistrySubnetCatalogProjectionError::SupersededArchiveTarget {
+                selected_registry_version,
+                maximum_observed_certified_registry_version,
+            },
+        );
+    }
+    let observation_time_nanos = u128::from(request.validation.now_unix_secs) * NANOS_PER_SECOND;
+    let certificate_age_nanos =
+        observation_time_nanos.saturating_sub(u128::from(latest_certificate_time_nanos));
+    let maximum_certificate_age_nanos =
+        u128::from(request.maximum_certificate_age_seconds) * NANOS_PER_SECOND;
+    if certificate_age_nanos > maximum_certificate_age_nanos {
+        return Err(
+            NnsRegistrySubnetCatalogProjectionError::StaleArchiveCertificate {
+                latest_certificate_time_nanos,
+                observation_time_unix_seconds: request.validation.now_unix_secs,
+                certificate_age_nanos,
+                maximum_certificate_age_seconds: request.maximum_certificate_age_seconds,
+            },
+        );
+    }
+    Ok(NnsCertifiedSubnetCatalogFreshness {
+        observation_time_unix_seconds: request.validation.now_unix_secs,
+        latest_certificate_time_nanos,
+        certificate_age_nanos,
+        maximum_certificate_age_seconds: request.maximum_certificate_age_seconds,
+        selected_registry_version,
+        maximum_observed_certified_registry_version,
+        version_policy: request.version_policy,
+    })
 }
 
 fn validate_archive_replay_alignment(

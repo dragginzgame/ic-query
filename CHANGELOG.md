@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.18` hard-cuts certified Subnet Catalog projection to require an explicit
+  `NnsCertifiedSubnetCatalogProjectionRequest` with caller-owned identity,
+  future-skew, observation-time, maximum certificate-age, and pinned-version
+  policy. Promotion now fails before catalog projection when evidence is too
+  old or a later archive batch observed a newer Registry version under the
+  require-latest policy. Successful authority retains exact age and version
+  evidence through `NnsCertifiedSubnetCatalogFreshness`. There is no default
+  age, source call, cache behavior, or CLI change.
+
 - `0.30.17` hard-cuts the Subnet Catalog to schema 3 and enables certified
   catalog authority only from a fully reauthenticated
   `NnsAuthenticatedRegistryArchive`. The new archive-bound projection checks

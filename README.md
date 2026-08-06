@@ -571,8 +571,15 @@ itself produce validated certified authority.
 `project_nns_certified_subnet_catalog` is the authority boundary. It accepts
 only a fully reauthenticated `NnsAuthenticatedRegistryArchive`, rechecks its
 manifest against the sealed replay session, projects the exact reconstructed
-state, and returns `NnsCertifiedSubnetCatalogAuthority`. The result keeps its
-private-field `ValidatedSubnetCatalog` attached to the archive that proves it.
+state, and returns `NnsCertifiedSubnetCatalogAuthority`. Its required
+`NnsCertifiedSubnetCatalogProjectionRequest` carries caller-owned validation
+context, a maximum certificate age, and an explicit choice between an
+authenticated historical target and requiring the newest version observed by
+every archive batch; there are no default policies. Stale or knowingly
+superseded archives fail before catalog record projection when prohibited. The
+result keeps its private-field `ValidatedSubnetCatalog` attached to the archive
+that proves it and exposes the exact age and version decision through
+`.freshness()`.
 Schema-3 provenance records archive/replay/report schema identities, root-key,
 evidence-chain and complete-state digests, certificate-time bounds, and source
 endpoints. Serializing those fields does not preserve authority: ordinary

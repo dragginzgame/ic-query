@@ -109,11 +109,13 @@ use ic_query::nns::registry::{
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
     NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
-    NnsCertifiedSubnetCatalogAuthority, NnsRegistryHostError, NnsRegistryReplayError,
-    NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
-    NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
-    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
-    bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
+    NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogFreshness,
+    NnsCertifiedSubnetCatalogProjectionRequest, NnsCertifiedSubnetCatalogVersionPolicy,
+    NnsRegistryHostError, NnsRegistryReplayError, NnsRegistryReplayLimits,
+    NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
+    NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError, NnsRegistryVersionData,
+    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_async,
+    bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
@@ -840,12 +842,24 @@ fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() 
 
     let builder: for<'a> fn(
         &'a NnsAuthenticatedRegistryArchive,
-        &ic_query::subnet_catalog::CatalogValidationContext,
+        &NnsCertifiedSubnetCatalogProjectionRequest,
     ) -> Result<
         NnsCertifiedSubnetCatalogAuthority<'a>,
         NnsRegistrySubnetCatalogProjectionError,
     > = project_nns_certified_subnet_catalog;
     let _ = builder;
+    let request = NnsCertifiedSubnetCatalogProjectionRequest::new(
+        ic_query::subnet_catalog::CatalogValidationContext::new(
+            "ic",
+            "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+            1_700_000_000,
+            300,
+        ),
+        3_600,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    assert_eq!(request.maximum_certificate_age_seconds, 3_600);
+    assert!(std::mem::size_of::<NnsCertifiedSubnetCatalogFreshness>() > 0);
 }
 
 #[cfg(feature = "nns-host")]

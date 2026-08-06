@@ -656,10 +656,13 @@ fn authenticated_replay_requires_complete_provenance() {
 fn authenticated_archive_promotes_one_certified_catalog_authority() {
     let root = crate::test_support::temp_dir("ic-query-certified-catalog-projection");
     let archive = complete_catalog_archive(&root);
-    let context =
-        CatalogValidationContext::new(MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, NOW, 0);
+    let request = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
 
-    let authority = project_nns_certified_subnet_catalog(&archive, &context)
+    let authority = project_nns_certified_subnet_catalog(&archive, &request)
         .expect("archive-backed certified catalog");
     let catalog = authority.catalog();
     let evidence = catalog
@@ -674,6 +677,18 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
     assert_eq!(catalog.provenance().registry_version, 1);
     assert_eq!(catalog.subnets().len(), 1);
     assert_eq!(catalog.subnets()[0].subnet_principal, PROJECTION_SUBNET);
+    assert_eq!(
+        authority.freshness(),
+        NnsCertifiedSubnetCatalogFreshness {
+            observation_time_unix_seconds: NOW,
+            latest_certificate_time_nanos: NOW * 1_000_000_000,
+            certificate_age_nanos: 0,
+            maximum_certificate_age_seconds: 0,
+            selected_registry_version: 1,
+            maximum_observed_certified_registry_version: 1,
+            version_policy: NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+        }
+    );
     assert_eq!(
         evidence.archive_manifest_schema_version,
         archive.manifest().schema_version
@@ -690,7 +705,7 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
     let serialized_claim = catalog_to_pretty_json(catalog.raw()).expect("serialize raw claim");
     let serialized_claim = parse_catalog_json(&serialized_claim).expect("parse raw claim");
     assert!(matches!(
-        ValidatedSubnetCatalog::try_from_raw(serialized_claim, &context),
+        ValidatedSubnetCatalog::try_from_raw(serialized_claim, &request.validation),
         Err(CatalogError::UnsupportedAssurance { assurance }) if assurance == "certified"
     ));
 
@@ -707,7 +722,7 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
     assert!(matches!(
         ValidatedSubnetCatalog::try_from_authenticated_archive(
             mismatched_claim,
-            &context,
+            &request.validation,
             &archive,
         ),
         Err(CatalogError::InvalidProvenance {
@@ -715,6 +730,102 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
             ..
         })
     ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_catalog_projection_enforces_explicit_certificate_age() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-freshness");
+    let archive = complete_catalog_archive(&root);
+
+    let boundary = certified_catalog_projection_request(
+        NOW + 60,
+        60,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    let authority = project_nns_certified_subnet_catalog(&archive, &boundary)
+        .expect("certificate at the inclusive maximum age");
+    assert_eq!(authority.freshness().certificate_age_nanos, 60_000_000_000);
+
+    let stale = certified_catalog_projection_request(
+        NOW + 61,
+        60,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    assert!(matches!(
+        project_nns_certified_subnet_catalog(&archive, &stale),
+        Err(NnsRegistrySubnetCatalogProjectionError::StaleArchiveCertificate {
+            latest_certificate_time_nanos,
+            observation_time_unix_seconds,
+            certificate_age_nanos: 61_000_000_000,
+            maximum_certificate_age_seconds: 60,
+        }) if latest_certificate_time_nanos == NOW * 1_000_000_000
+            && observation_time_unix_seconds == NOW + 61
+    ));
+
+    let before_certificate = certified_catalog_projection_request(
+        NOW - 1,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    assert!(matches!(
+        project_nns_certified_subnet_catalog(&archive, &before_certificate),
+        Err(NnsRegistrySubnetCatalogProjectionError::Catalog(
+            CatalogError::FutureTimestamp { .. }
+        ))
+    ));
+
+    let maximum_domain = certified_catalog_projection_request(
+        u64::MAX,
+        u64::MAX,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    let authority = project_nns_certified_subnet_catalog(&archive, &maximum_domain)
+        .expect("full u64 freshness policy is representable");
+    assert!(authority.freshness().certificate_age_nanos > u128::from(u64::MAX));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_catalog_projection_makes_known_version_lag_explicit() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-version-policy");
+    let archive = superseded_catalog_archive(&root);
+    assert_eq!(archive.manifest().selected_version, 2);
+    assert_eq!(archive.manifest().batches[1].certified_latest_version, 3);
+
+    let require_latest = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    assert!(matches!(
+        project_nns_certified_subnet_catalog(&archive, &require_latest),
+        Err(
+            NnsRegistrySubnetCatalogProjectionError::SupersededArchiveTarget {
+                selected_registry_version: 2,
+                maximum_observed_certified_registry_version: 3,
+            }
+        )
+    ));
+
+    let allow_historical = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::AllowHistoricalTarget,
+    );
+    let authority = project_nns_certified_subnet_catalog(&archive, &allow_historical)
+        .expect("explicit historical exact-target authority");
+    assert_eq!(authority.catalog().provenance().registry_version, 2);
+    assert_eq!(
+        authority
+            .freshness()
+            .maximum_observed_certified_registry_version,
+        3
+    );
+    assert_eq!(
+        authority.freshness().version_policy,
+        NnsCertifiedSubnetCatalogVersionPolicy::AllowHistoricalTarget
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -1850,6 +1961,18 @@ fn catalog_projection_report_from_parts(
     NnsCertifiedRegistryDeltaBatchRequest,
     NnsCertifiedRegistryDeltaBatchReport,
 ) {
+    let mutations =
+        catalog_projection_mutations(include_subnet_record, invalid_subnet_list, routing_table);
+    let request = request(0);
+    let report = report(&request, 1, 1, mutations, Vec::new());
+    (request, report)
+}
+
+fn catalog_projection_mutations(
+    include_subnet_record: bool,
+    invalid_subnet_list: bool,
+    routing_table: RoutingTable,
+) -> Vec<NnsCertifiedRegistryMutation> {
     let subnet_list = SubnetListRecord {
         subnets: vec![principal_bytes(PROJECTION_SUBNET)],
     };
@@ -1877,13 +2000,10 @@ fn catalog_projection_report_from_parts(
         records.push((subnet_record_key.as_bytes(), subnet_record.encode_to_vec()));
     }
     records.sort_by(|left, right| left.0.cmp(right.0));
-    let mutations = records
+    records
         .into_iter()
         .map(|(key, value)| mutation(NnsCertifiedRegistryMutationKind::Upsert, key, Some(&value)))
-        .collect();
-    let request = request(0);
-    let report = report(&request, 1, 1, mutations, Vec::new());
-    (request, report)
+        .collect()
 }
 
 fn complete_catalog_archive(root: &Path) -> NnsAuthenticatedRegistryArchive {
@@ -1908,6 +2028,70 @@ fn complete_catalog_archive(root: &Path) -> NnsAuthenticatedRegistryArchive {
         .apply_batch(&batch)
         .expect("certified catalog archive object");
     publisher.finish().expect("certified catalog archive")
+}
+
+fn superseded_catalog_archive(root: &Path) -> NnsAuthenticatedRegistryArchive {
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let first_request = request(0);
+    let first_report = report(
+        &first_request,
+        2,
+        1,
+        catalog_projection_mutations(
+            true,
+            false,
+            projection_routing_table_with_range(PROJECTION_SUBNET),
+        ),
+        Vec::new(),
+    );
+    let second_request = request(1);
+    let second_report = report(
+        &second_request,
+        3,
+        2,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Upsert,
+            b"superseded_marker",
+            Some(b"present"),
+        )],
+        Vec::new(),
+    );
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&first_report);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&second_report);
+    let replay_limits =
+        NnsRegistryReplaySessionLimits::new(2, 2, 2, 128, NnsRegistryReplayLimits::new(20, 10_000));
+    let storage_limits = NnsCertifiedRegistryArchiveStorageLimits::new(
+        200_000,
+        NnsCertifiedRegistryArchiveLimits::new(2, 100_000, 200_000),
+    );
+    let mut publisher = NnsCertifiedRegistryArchivePublisher::new(
+        root,
+        &archive_root,
+        replay_limits,
+        storage_limits,
+    );
+    publisher.apply_batch(&first).expect("first archive batch");
+    publisher
+        .apply_batch(&second)
+        .expect("second archive batch");
+    publisher.finish().expect("superseded catalog archive")
+}
+
+fn certified_catalog_projection_request(
+    now_unix_secs: u64,
+    maximum_certificate_age_seconds: u64,
+    version_policy: NnsCertifiedSubnetCatalogVersionPolicy,
+) -> NnsCertifiedSubnetCatalogProjectionRequest {
+    NnsCertifiedSubnetCatalogProjectionRequest::new(
+        CatalogValidationContext::new(
+            MAINNET_NETWORK,
+            MAINNET_REGISTRY_CANISTER_ID,
+            now_unix_secs,
+            0,
+        ),
+        maximum_certificate_age_seconds,
+        version_policy,
+    )
 }
 
 fn projection_routing_table_with_range(subnet: &str) -> RoutingTable {

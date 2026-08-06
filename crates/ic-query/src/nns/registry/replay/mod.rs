@@ -37,9 +37,10 @@ pub use bootstrap::{
     probe_nns_certified_registry_with_source_async,
 };
 pub use projection::{
-    NnsCertifiedSubnetCatalogAuthority, NnsRegistrySubnetCatalogProjection,
-    NnsRegistrySubnetCatalogProjectionError, project_nns_certified_subnet_catalog,
-    project_nns_registry_subnet_catalog,
+    NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogFreshness,
+    NnsCertifiedSubnetCatalogProjectionRequest, NnsCertifiedSubnetCatalogVersionPolicy,
+    NnsRegistrySubnetCatalogProjection, NnsRegistrySubnetCatalogProjectionError,
+    project_nns_certified_subnet_catalog, project_nns_registry_subnet_catalog,
 };
 pub use session::{
     NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsRegistryReplaySession,

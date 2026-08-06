@@ -144,7 +144,17 @@ certificate evidence they return.
 Certified Subnet Catalog authority is available only through the complete
 retained-evidence path. After publishing or loading an
 `NnsAuthenticatedRegistryArchive`, call `project_nns_certified_subnet_catalog`
-with an explicit `CatalogValidationContext`. The returned
+with an explicit `NnsCertifiedSubnetCatalogProjectionRequest`. The request owns
+the `CatalogValidationContext` and requires a caller-selected maximum
+certificate age plus `NnsCertifiedSubnetCatalogVersionPolicy`. Choose
+`RequireLatestObserved` for current authority or `AllowHistoricalTarget` only
+when an exact older Registry position is intentional. Excess age fails with
+`StaleArchiveCertificate`; known version lag under require-latest fails with
+`SupersededArchiveTarget`.
+
+Successful authority exposes the exact observation time, certificate time,
+nanosecond age, accepted maximum, selected and newest-observed versions, and
+version policy through `.freshness()`. The returned
 `NnsCertifiedSubnetCatalogAuthority` keeps its `ValidatedSubnetCatalog`
 borrowed to that archive. Ordinary `ValidatedSubnetCatalog::try_from_raw`
 continues to reject `CatalogAssurance::Certified`, so persisted JSON cannot

@@ -145,7 +145,11 @@ only after a complete retained delta sequence is locally reauthenticated,
 replayed from version zero, matched exactly to its recomputed archive manifest,
 and projected through the shared catalog validator. The authority result keeps
 the validated catalog borrowed to that sealed archive; serialized provenance
-cannot recreate the capability.
+cannot recreate the capability. Promotion also requires an explicit caller
+observation time and maximum certificate age, retains the exact freshness
+decision, and rejects stale historical authority before catalog projection.
+Callers must also explicitly allow a historical pinned target or require it to
+equal the newest Registry version certified by any archive batch.
 The caller-runtime certified delta adapter returns at most one contiguous
 batch. Chunk-referenced values named by that batch are completed with bounded,
 SHA-256-verified `get_chunk` calls and exact call/byte accounting; later delta
