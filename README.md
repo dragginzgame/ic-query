@@ -542,8 +542,19 @@ report before parsing, checks exact sizes and SHA-256 digests, processes one
 report at a time, locally reauthenticates every certificate/witness/chunk set,
 and accepts the archive only when a freshly recomputed manifest matches every
 serialized field. Failed final publication preserves an existing complete
-manifest. No default archive path, automatic collection, refresh policy, lock,
-or CLI surface is selected.
+manifest. These low-level operations select no default archive path,
+collection, refresh policy, lock, or CLI surface.
+
+`bootstrap_nns_certified_registry_archive_async` is the explicit live
+publication coordinator. Its request requires the source/time/replay policy,
+caller-selected confined roots, archive storage ceilings, and lock-staleness
+policy. It rejects non-mainnet before filesystem or source work, holds one
+dedicated archive refresh lock, reserves a worst-case batch before every call,
+locally reauthenticates every returned report, and publishes the manifest only
+after exact-target completion. The custom-source counterpart applies the same
+mainnet reauthentication boundary. This is always a force bootstrap from
+version zero; it is never invoked by archive or catalog loads and adds no
+incremental refresh, cleanup, default path, or CLI surface.
 
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time

@@ -141,6 +141,18 @@ publication; custom async sources pass through the same pure
 sources remain responsible for cryptographically authenticating the raw
 certificate evidence they return.
 
+To collect and retain the complete evidence sequence in one operation, use
+`bootstrap_nns_certified_registry_archive_async` with an explicit
+`NnsCertifiedRegistryArchiveBootstrapRequest`. The request combines the
+source/time/replay bootstrap request with caller-selected cache and archive
+roots, manifest/object ceilings, and lock staleness. It starts from Registry
+version zero, reserves worst-case capacity before every call, holds one archive
+refresh lock, locally reauthenticates every report, and publishes the final
+manifest only after exact-target completion. Its custom-source counterpart
+also performs built-in mainnet reauthentication; structural source validation
+alone cannot establish archive authority. Neither function is called by a
+load/read-through policy, and neither selects a default path or history size.
+
 Certified Subnet Catalog authority is available only through the complete
 retained-evidence path. After publishing or loading an
 `NnsAuthenticatedRegistryArchive`, call `project_nns_certified_subnet_catalog`

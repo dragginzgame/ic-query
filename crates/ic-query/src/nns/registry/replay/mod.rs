@@ -20,11 +20,15 @@ use thiserror::Error as ThisError;
 
 pub use archive::{
     NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, NnsAuthenticatedRegistryArchive,
-    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
+    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveBootstrapError,
+    NnsCertifiedRegistryArchiveBootstrapRequest, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
+    bootstrap_nns_certified_registry_archive_async,
+    bootstrap_nns_certified_registry_archive_with_source_async,
     load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
+    nns_certified_registry_archive_refresh_lock_path,
     validate_nns_certified_registry_archive_manifest,
 };
 pub use authentication::{

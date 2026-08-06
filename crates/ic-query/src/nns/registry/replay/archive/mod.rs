@@ -1,9 +1,10 @@
 //! Module: nns::registry::replay::archive
 //!
-//! Responsibility: describe, validate, publish, and restore bounded certified Registry evidence.
-//! Does not own: live collection, refresh policy, default paths, CLI, or catalog assurance.
+//! Responsibility: describe, validate, publish, restore, and force-bootstrap certified evidence.
+//! Does not own: read-through policy, incremental refresh, default paths, CLI, or catalog assurance.
 //! Boundary: manifests are indexes, not authority; reports must be reauthenticated on every load.
 
+mod bootstrap;
 pub(in crate::nns::registry::replay) mod storage;
 
 use super::{
@@ -25,6 +26,14 @@ use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 use thiserror::Error as ThisError;
 
+#[cfg(test)]
+pub(in crate::nns::registry::replay) use bootstrap::bootstrap_archive_with_authenticator_async;
+pub use bootstrap::{
+    NnsCertifiedRegistryArchiveBootstrapError, NnsCertifiedRegistryArchiveBootstrapRequest,
+    bootstrap_nns_certified_registry_archive_async,
+    bootstrap_nns_certified_registry_archive_with_source_async,
+    nns_certified_registry_archive_refresh_lock_path,
+};
 pub use storage::{
     NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchivePublisher,
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
@@ -183,13 +192,7 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
         &mut self,
         batch: &NnsAuthenticatedRegistryDeltaBatch<'_>,
     ) -> Result<NnsRegistryReplayProgress, NnsCertifiedRegistryArchiveError> {
-        let ordinal = u64::try_from(self.batches.len())
-            .map_err(|_| NnsCertifiedRegistryArchiveError::Accounting)?;
-        enforce_archive_limit(
-            "batch count",
-            checked_add(ordinal, 1)?,
-            self.limits.max_batches,
-        )?;
+        let ordinal = self.next_batch_ordinal()?;
         let report_encoding = canonical_report_encoding(batch.report())?;
         enforce_archive_limit(
             "batch report bytes",
@@ -232,6 +235,21 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
             });
         self.total_report_bytes = candidate_total_report_bytes;
         Ok(progress)
+    }
+
+    pub(super) fn ensure_next_batch_slot(&self) -> Result<(), NnsCertifiedRegistryArchiveError> {
+        self.next_batch_ordinal().map(|_| ())
+    }
+
+    fn next_batch_ordinal(&self) -> Result<u64, NnsCertifiedRegistryArchiveError> {
+        let ordinal = u64::try_from(self.batches.len())
+            .map_err(|_| NnsCertifiedRegistryArchiveError::Accounting)?;
+        enforce_archive_limit(
+            "batch count",
+            checked_add(ordinal, 1)?,
+            self.limits.max_batches,
+        )?;
+        Ok(ordinal)
     }
 
     /// Return replay progress without exposing an ordinary mutable replay session.

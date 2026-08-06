@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.19` adds an explicit lock-guarded live force bootstrap for the
+  certified Registry archive. Callers supply the source/time/replay policy,
+  confined roots, storage ceilings, and lock staleness; non-mainnet fails
+  before filesystem or source work. Every bounded batch is locally
+  reauthenticated before durable admission, and the manifest is replaced only
+  after exact-target completion, preserving any prior complete archive on
+  failure. This always starts at version zero and adds no read-through policy,
+  incremental refresh, cleanup, default path, or CLI surface.
+
 - `0.30.18` hard-cuts certified Subnet Catalog projection to require an explicit
   `NnsCertifiedSubnetCatalogProjectionRequest` with caller-owned identity,
   future-skew, observation-time, maximum certificate-age, and pinned-version

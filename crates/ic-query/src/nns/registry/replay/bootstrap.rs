@@ -191,7 +191,7 @@ pub async fn probe_nns_certified_registry_with_source_async(
     }
 }
 
-fn batch_reservation() -> Result<(u64, u64), NnsRegistryReplayError> {
+pub(super) fn batch_reservation() -> Result<(u64, u64), NnsRegistryReplayError> {
     let limits = nns_certified_registry_delta_limits();
     let chunk_calls = u64::try_from(limits.max_chunk_references)
         .map_err(|_| NnsRegistryReplayError::Accounting)?;

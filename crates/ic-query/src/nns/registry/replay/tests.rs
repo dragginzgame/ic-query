@@ -1466,6 +1466,17 @@ const fn archive_storage_limits() -> NnsCertifiedRegistryArchiveStorageLimits {
     )
 }
 
+fn fixture_archive_bootstrap(
+    request: &NnsCertifiedRegistryArchiveBootstrapRequest,
+    source: &dyn NnsCertifiedRegistryDeltaSource,
+) -> Result<NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchiveBootstrapError> {
+    futures::executor::block_on(super::archive::bootstrap_archive_with_authenticator_async(
+        request,
+        source,
+        &FixtureArchiveAuthenticator,
+    ))
+}
+
 #[test]
 fn replay_session_fails_atomically_on_cumulative_limits() {
     let request = request(0);
@@ -1632,6 +1643,191 @@ fn certified_bootstrap_reserves_each_call_and_completes_the_first_exact_target()
     );
     assert!(outcome.session.is_complete());
     assert_eq!(probe_source.requested_versions(), vec![0, 2]);
+}
+
+#[test]
+fn certified_archive_bootstrap_streams_one_locked_complete_archive() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-bootstrap");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let source = BootstrapSource::default();
+    let request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        bootstrap_request(MAINNET_NETWORK, 2, 130, 80 * 1_024 * 1_024),
+        &root,
+        &archive_root,
+        archive_storage_limits(),
+        300,
+    );
+
+    let archive = fixture_archive_bootstrap(&request, &source).expect("bounded archive bootstrap");
+
+    assert_eq!(source.requested_versions(), vec![0, 2]);
+    assert_eq!(archive.manifest().selected_version, 3);
+    assert_eq!(archive.manifest().batch_count, 2);
+    assert_eq!(
+        archive
+            .replay_session()
+            .replay_session()
+            .state()
+            .through_version(),
+        3
+    );
+    assert!(nns_certified_registry_archive_manifest_path(&archive_root).is_file());
+    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+
+    let loaded = super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
+        &root,
+        &archive_root,
+        request.bootstrap.limits,
+        request.storage_limits,
+        &FixtureArchiveAuthenticator,
+    )
+    .expect("published archive reloads from retained fixture evidence");
+    assert_eq!(loaded, archive);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_bootstrap_rejects_non_mainnet_before_filesystem_or_source_work() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-bootstrap-network");
+    let archive_root = root.join("nns/local/registry-certified-v1");
+    let source = BootstrapSource::default();
+    let request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        bootstrap_request("local", 2, 130, 80 * 1_024 * 1_024),
+        &root,
+        &archive_root,
+        archive_storage_limits(),
+        300,
+    );
+
+    let error =
+        fixture_archive_bootstrap(&request, &source).expect_err("non-mainnet archive bootstrap");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveBootstrapError::Replay(
+            NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
+                network
+            })
+        ) if network == "local"
+    ));
+    assert!(source.requested_versions().is_empty());
+    assert!(!archive_root.exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_bootstrap_reauthenticates_custom_source_reports_before_publication() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-bootstrap-auth");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let source = BootstrapSource::default();
+    let request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        bootstrap_request(MAINNET_NETWORK, 2, 130, 80 * 1_024 * 1_024),
+        &root,
+        &archive_root,
+        archive_storage_limits(),
+        300,
+    );
+
+    let error = futures::executor::block_on(
+        bootstrap_nns_certified_registry_archive_with_source_async(&request, &source),
+    )
+    .expect_err("fixture certificate cannot establish archive authority");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveBootstrapError::BatchAuthentication {
+            requested_version: 0,
+            ..
+        }
+    ));
+    assert_eq!(source.requested_versions(), vec![0]);
+    assert!(!nns_certified_registry_archive_manifest_path(&archive_root).exists());
+    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_bootstrap_reserves_before_each_source_call() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-bootstrap-capacity");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let source = BootstrapSource::default();
+    let request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        bootstrap_request(MAINNET_NETWORK, 1, 65, 40 * 1_024 * 1_024),
+        &root,
+        &archive_root,
+        archive_storage_limits(),
+        300,
+    );
+
+    let error = fixture_archive_bootstrap(&request, &source)
+        .expect_err("second archive batch lacks worst-case reservation");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveBootstrapError::Replay(
+            NnsRegistryReplayError::SessionLimitExceeded {
+                field: "batch count",
+                maximum: 1,
+                actual: 2,
+            }
+        )
+    ));
+    assert_eq!(source.requested_versions(), vec![0]);
+    assert!(!nns_certified_registry_archive_manifest_path(&archive_root).exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn failed_archive_force_bootstrap_preserves_the_previous_complete_manifest() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-bootstrap-atomic");
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let bootstrap = bootstrap_request(MAINNET_NETWORK, 2, 130, 80 * 1_024 * 1_024);
+    let initial_request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        bootstrap.clone(),
+        &root,
+        &archive_root,
+        archive_storage_limits(),
+        300,
+    );
+    fixture_archive_bootstrap(&initial_request, &BootstrapSource::default())
+        .expect("initial complete archive");
+    let manifest_path = nns_certified_registry_archive_manifest_path(&archive_root);
+    let before = fs::read(&manifest_path).expect("initial manifest bytes");
+
+    let constrained_storage = NnsCertifiedRegistryArchiveStorageLimits::new(
+        100_000,
+        NnsCertifiedRegistryArchiveLimits::new(1, 100_000, 200_000),
+    );
+    let replacement_request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        bootstrap,
+        &root,
+        &archive_root,
+        constrained_storage,
+        300,
+    );
+    let source = BootstrapSource::default();
+    let error = fixture_archive_bootstrap(&replacement_request, &source)
+        .expect_err("replacement archive exceeds its explicit storage ceiling");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveBootstrapError::Storage(
+            NnsCertifiedRegistryArchiveStorageError::Archive(
+                NnsCertifiedRegistryArchiveError::LimitExceeded {
+                    field: "batch count",
+                    maximum: 1,
+                    actual: 2,
+                }
+            )
+        )
+    ));
+    assert_eq!(source.requested_versions(), vec![0]);
+    assert_eq!(
+        fs::read(&manifest_path).expect("preserved manifest"),
+        before
+    );
+    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]

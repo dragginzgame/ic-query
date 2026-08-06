@@ -103,7 +103,8 @@ use ic_query::nns::registry::{
     NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
     NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryArchive,
     NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
-    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
+    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveBootstrapError,
+    NnsCertifiedRegistryArchiveBootstrapRequest, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
@@ -114,14 +115,15 @@ use ic_query::nns::registry::{
     NnsRegistryHostError, NnsRegistryReplayError, NnsRegistryReplayLimits,
     NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
     NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError, NnsRegistryVersionData,
-    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_async,
-    bootstrap_nns_certified_registry_with_source_async,
+    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_archive_async,
+    bootstrap_nns_certified_registry_archive_with_source_async,
+    bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
-    nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
-    project_nns_certified_subnet_catalog, project_nns_registry_subnet_catalog,
-    reauthenticate_nns_certified_registry_delta_batch,
+    nns_certified_registry_archive_refresh_lock_path, nns_certified_registry_delta_limits,
+    probe_nns_certified_registry_with_source_async, project_nns_certified_subnet_catalog,
+    project_nns_registry_subnet_catalog, reauthenticate_nns_certified_registry_delta_batch,
     validate_nns_certified_registry_archive_manifest, validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
@@ -826,6 +828,17 @@ fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() 
     {
     }
 
+    fn accept_archive_bootstrap_future<F>(_future: F)
+    where
+        F: std::future::Future<
+                Output = Result<
+                    NnsAuthenticatedRegistryArchive,
+                    NnsCertifiedRegistryArchiveBootstrapError,
+                >,
+            >,
+    {
+    }
+
     let request = NnsCertifiedRegistryBootstrapRequest::new(
         "ic",
         "https://icp-api.io",
@@ -839,6 +852,29 @@ fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() 
         ),
     );
     accept_bootstrap_future(bootstrap_nns_certified_registry_async(&request));
+    let storage_limits = NnsCertifiedRegistryArchiveStorageLimits::new(
+        100_000,
+        NnsCertifiedRegistryArchiveLimits::new(1, 1_000_000, 1_000_000),
+    );
+    let archive_request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        request,
+        "/tmp",
+        "/tmp/ic-query-public-api-archive-bootstrap",
+        storage_limits,
+        300,
+    );
+    assert_eq!(archive_request.lock_stale_after_seconds, 300);
+    assert_eq!(
+        nns_certified_registry_archive_refresh_lock_path(&archive_request.archive_root),
+        archive_request.archive_root.join("refresh.lock")
+    );
+    accept_archive_bootstrap_future(bootstrap_nns_certified_registry_archive_async(
+        &archive_request,
+    ));
+    accept_archive_bootstrap_future(bootstrap_nns_certified_registry_archive_with_source_async(
+        &archive_request,
+        &FixtureCertifiedRegistryDeltaSource,
+    ));
 
     let builder: for<'a> fn(
         &'a NnsAuthenticatedRegistryArchive,

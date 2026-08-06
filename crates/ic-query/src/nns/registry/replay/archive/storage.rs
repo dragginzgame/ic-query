@@ -182,6 +182,13 @@ impl NnsCertifiedRegistryArchivePublisher {
         self.manifest_builder.replay_session()
     }
 
+    pub(super) fn ensure_next_batch_slot(
+        &self,
+    ) -> Result<(), NnsCertifiedRegistryArchiveStorageError> {
+        self.manifest_builder.ensure_next_batch_slot()?;
+        Ok(())
+    }
+
     const fn ensure_usable(&self) -> Result<(), NnsCertifiedRegistryArchiveStorageError> {
         if self.poisoned {
             Err(NnsCertifiedRegistryArchiveStorageError::PublisherPoisoned)
@@ -377,7 +384,9 @@ pub fn load_nns_certified_registry_archive(
 /// Internal retained-report authentication seam used by the built-in loader and fixtures.
 ///
 
-pub(in crate::nns::registry::replay) trait ArchiveBatchAuthenticator {
+pub(in crate::nns::registry::replay) trait ArchiveBatchAuthenticator:
+    Sync
+{
     /// Qualify one retained report for authenticated replay without a source call.
     fn authenticate<'a>(
         &self,
@@ -386,7 +395,13 @@ pub(in crate::nns::registry::replay) trait ArchiveBatchAuthenticator {
     ) -> Result<NnsAuthenticatedRegistryDeltaBatch<'a>, NnsRegistryHostError>;
 }
 
-struct BuiltInArchiveAuthenticator;
+///
+/// BuiltInArchiveAuthenticator
+///
+/// Fixed local mainnet retained-report authenticator shared by archive load and bootstrap.
+///
+
+pub(super) struct BuiltInArchiveAuthenticator;
 
 impl ArchiveBatchAuthenticator for BuiltInArchiveAuthenticator {
     fn authenticate<'a>(
