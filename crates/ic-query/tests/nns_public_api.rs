@@ -101,6 +101,7 @@ use ic_query::nns::proposals::{
 use ic_query::nns::registry::{
     NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
     NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
+    NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION,
     NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryArchive,
     NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
     NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveBootstrapError,
@@ -113,7 +114,9 @@ use ic_query::nns::registry::{
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
     NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
-    NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogFreshness,
+    NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogCacheAuthority,
+    NnsCertifiedSubnetCatalogCacheError, NnsCertifiedSubnetCatalogCacheLocation,
+    NnsCertifiedSubnetCatalogCachePublicationRequest, NnsCertifiedSubnetCatalogFreshness,
     NnsCertifiedSubnetCatalogProjectionRequest, NnsCertifiedSubnetCatalogVersionPolicy,
     NnsRegistryHostError, NnsRegistryReplayError, NnsRegistryReplayLimits,
     NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
@@ -123,10 +126,13 @@ use ic_query::nns::registry::{
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source, cleanup_nns_certified_registry_archive,
     fetch_nns_certified_registry_delta_batch_with_source_async,
-    load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
-    nns_certified_registry_archive_refresh_lock_path, nns_certified_registry_delta_limits,
+    load_nns_certified_registry_archive, load_nns_certified_subnet_catalog_cache,
+    nns_certified_registry_archive_manifest_path, nns_certified_registry_archive_refresh_lock_path,
+    nns_certified_registry_delta_limits, nns_certified_subnet_catalog_cache_path,
+    nns_certified_subnet_catalog_cache_refresh_lock_path,
     probe_nns_certified_registry_with_source_async, project_nns_certified_subnet_catalog,
-    project_nns_registry_subnet_catalog, reauthenticate_nns_certified_registry_delta_batch,
+    project_nns_registry_subnet_catalog, publish_nns_certified_subnet_catalog_cache,
+    reauthenticate_nns_certified_registry_delta_batch,
     refresh_nns_certified_registry_archive_async,
     refresh_nns_certified_registry_archive_with_source_async,
     validate_nns_certified_registry_archive_manifest, validate_nns_certified_registry_delta_batch,
@@ -955,6 +961,46 @@ fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() 
     );
     assert_eq!(request.maximum_certificate_age_seconds, 3_600);
     assert!(std::mem::size_of::<NnsCertifiedSubnetCatalogFreshness>() > 0);
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_certified_catalog_cache_contract_is_explicit_and_archive_bound() {
+    let cache_location = NnsCertifiedSubnetCatalogCacheLocation::new(
+        "/tmp",
+        "/tmp/ic-query-public-api-certified-catalog",
+        1_000_000,
+    );
+    let cache_publication =
+        NnsCertifiedSubnetCatalogCachePublicationRequest::new(cache_location.clone(), 300);
+    assert_eq!(NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, 1);
+    assert_eq!(
+        nns_certified_subnet_catalog_cache_path(&cache_location.cache_directory),
+        cache_location.cache_directory.join("catalog.json")
+    );
+    assert_eq!(
+        nns_certified_subnet_catalog_cache_refresh_lock_path(&cache_location.cache_directory),
+        cache_location.cache_directory.join("refresh.lock")
+    );
+    assert_eq!(cache_publication.lock_stale_after_seconds, 300);
+    let cache_publisher: for<'a> fn(
+        &'a NnsAuthenticatedRegistryArchive,
+        &NnsCertifiedSubnetCatalogProjectionRequest,
+        &NnsCertifiedSubnetCatalogCachePublicationRequest,
+    ) -> Result<
+        NnsCertifiedSubnetCatalogCacheAuthority<'a>,
+        NnsCertifiedSubnetCatalogCacheError,
+    > = publish_nns_certified_subnet_catalog_cache;
+    let _ = cache_publisher;
+    let cache_loader: for<'a> fn(
+        &'a NnsAuthenticatedRegistryArchive,
+        &NnsCertifiedSubnetCatalogProjectionRequest,
+        &NnsCertifiedSubnetCatalogCacheLocation,
+    ) -> Result<
+        NnsCertifiedSubnetCatalogCacheAuthority<'a>,
+        NnsCertifiedSubnetCatalogCacheError,
+    > = load_nns_certified_subnet_catalog_cache;
+    let _ = cache_loader;
 }
 
 #[cfg(feature = "nns-host")]

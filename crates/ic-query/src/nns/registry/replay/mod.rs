@@ -1,12 +1,13 @@
 //! Module: nns::registry::replay
 //!
 //! Responsibility: apply certified Registry batches, retain authentication, and project replay state.
-//! Does not own: persistence, cache policy, catalog publication, or assurance promotion.
+//! Does not own: default paths, read-through policy, CLI, or ordinary Subnet Catalog caches.
 //! Boundary: replay is atomic; source follow-ups occur only in explicit pre-call-budgeted operations.
 
 mod archive;
 mod authentication;
 mod bootstrap;
+mod certified_catalog_cache;
 mod projection;
 mod session;
 
@@ -44,6 +45,14 @@ pub use bootstrap::{
     NnsCertifiedRegistryBootstrapRequest, bootstrap_nns_certified_registry_async,
     bootstrap_nns_certified_registry_with_source_async, probe_nns_certified_registry_async,
     probe_nns_certified_registry_with_source_async,
+};
+pub use certified_catalog_cache::{
+    NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, NnsCertifiedSubnetCatalogCacheAuthority,
+    NnsCertifiedSubnetCatalogCacheEnvelope, NnsCertifiedSubnetCatalogCacheError,
+    NnsCertifiedSubnetCatalogCacheLocation, NnsCertifiedSubnetCatalogCachePublicationRequest,
+    load_nns_certified_subnet_catalog_cache, nns_certified_subnet_catalog_cache_path,
+    nns_certified_subnet_catalog_cache_refresh_lock_path,
+    publish_nns_certified_subnet_catalog_cache,
 };
 pub use projection::{
     NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogFreshness,

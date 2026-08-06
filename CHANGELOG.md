@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.23` adds a separate versioned cache envelope for certified Subnet
+  Catalog projections. Publication first qualifies a fully authenticated
+  Registry archive, then writes the canonical envelope atomically under its own
+  confined lock and caller-selected byte ceiling. Cache-only loading is local,
+  never repairs or refreshes, and returns authority only after the complete
+  envelope exactly matches a fresh projection from the supplied authenticated
+  archive. Cached `Certified` text therefore cannot authenticate itself.
+
 - `0.30.22` adds explicit bounded cleanup for unreferenced certified Registry
   archive objects. Cleanup holds the archive lock, fully reauthenticates the
   retained manifest and objects, scans only the exact flat `objects/`

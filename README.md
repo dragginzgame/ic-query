@@ -631,6 +631,20 @@ endpoints. Serializing those fields does not preserve authority: ordinary
 `ValidatedSubnetCatalog::try_from_raw` validation always rejects `Certified`.
 The projection performs no network or cache operation.
 
+Certified projections may be persisted separately with
+`publish_nns_certified_subnet_catalog_cache`. Its request requires a
+caller-selected confined root, dedicated cache directory, maximum envelope
+bytes, and lock-staleness policy; there is no default path or size. Publication
+qualifies the archive and current-use policy before acquiring the cache's own
+lock, then atomically replaces one canonical schema-1 envelope.
+`load_nns_certified_subnet_catalog_cache` is local and cache-only: it bounds and
+strictly decodes the envelope, freshly projects the supplied
+`NnsAuthenticatedRegistryArchive`, and returns authority only after an exact
+match. It never repairs content, refreshes an archive, or makes a network call.
+The serialized `Certified` label remains untrusted without that authenticated
+archive comparison, and the ordinary schema-3 Subnet Catalog cache is
+unchanged.
+
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case
 capacity before each source call: one certified query, up to 64 chunk queries,

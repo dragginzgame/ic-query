@@ -738,6 +738,205 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
 }
 
 #[test]
+fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archive() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-cache-round-trip");
+    let archive = complete_catalog_archive(&root);
+    let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
+    let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
+    let publication = NnsCertifiedSubnetCatalogCachePublicationRequest::new(location.clone(), 300);
+    let initial = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+
+    let published = publish_nns_certified_subnet_catalog_cache(&archive, &initial, &publication)
+        .expect("publish archive-bound certified catalog cache");
+    let cache_path = nns_certified_subnet_catalog_cache_path(&cache_directory);
+    let envelope: NnsCertifiedSubnetCatalogCacheEnvelope =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read published cache"))
+            .expect("decode published envelope");
+
+    assert_eq!(
+        envelope.schema_version,
+        NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION
+    );
+    assert_eq!(
+        envelope.catalog.provenance.assurance,
+        CatalogAssurance::Certified
+    );
+    assert_eq!(envelope.catalog.provenance.registry_version, 1);
+    assert_eq!(envelope.archive_manifest_sha256.len(), 64);
+    assert_eq!(
+        envelope.catalog.catalog_digest,
+        published.authority().catalog().raw().catalog_digest
+    );
+    assert!(cache_path.is_file());
+    assert!(!nns_certified_subnet_catalog_cache_refresh_lock_path(&cache_directory).exists());
+
+    let later = certified_catalog_projection_request(
+        NOW + 30,
+        30,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    let loaded = load_nns_certified_subnet_catalog_cache(&archive, &later, &location)
+        .expect("reload against the same authenticated archive evidence");
+    assert_eq!(
+        loaded.authority().catalog(),
+        published.authority().catalog()
+    );
+    assert_eq!(
+        loaded.authority().freshness().certificate_age_nanos,
+        30_000_000_000
+    );
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(
+            envelope.catalog,
+            &later.validation
+        ),
+        Err(CatalogError::UnsupportedAssurance { assurance }) if assurance == "certified"
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_catalog_cache_rejects_tampering_without_repairing_it() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-cache-tamper");
+    let archive = complete_catalog_archive(&root);
+    let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
+    let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
+    let publication = NnsCertifiedSubnetCatalogCachePublicationRequest::new(location.clone(), 300);
+    let projection = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    publish_nns_certified_subnet_catalog_cache(&archive, &projection, &publication)
+        .expect("publish certified catalog cache");
+    let cache_path = nns_certified_subnet_catalog_cache_path(&cache_directory);
+    let envelope: NnsCertifiedSubnetCatalogCacheEnvelope =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache"))
+            .expect("decode cache envelope");
+    let mut mismatched = envelope.clone();
+    mismatched.catalog.provenance.registry_version += 1;
+    let tampered = serde_json::to_vec(&mismatched).expect("canonical tampered cache");
+    fs::write(&cache_path, &tampered).expect("tamper cache fixture");
+
+    assert!(matches!(
+        load_nns_certified_subnet_catalog_cache(&archive, &projection, &location),
+        Err(NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { field: "catalog" })
+    ));
+    assert_eq!(
+        fs::read(&cache_path).expect("read rejected cache"),
+        tampered
+    );
+
+    let noncanonical = serde_json::to_vec_pretty(&envelope).expect("pretty cache fixture");
+    fs::write(&cache_path, &noncanonical).expect("write noncanonical cache fixture");
+    assert!(matches!(
+        load_nns_certified_subnet_catalog_cache(&archive, &projection, &location),
+        Err(NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. })
+    ));
+
+    let mut unsupported = envelope;
+    unsupported.schema_version += 1;
+    fs::write(
+        &cache_path,
+        serde_json::to_vec(&unsupported).expect("unsupported schema fixture"),
+    )
+    .expect("write unsupported schema fixture");
+    assert!(matches!(
+        load_nns_certified_subnet_catalog_cache(&archive, &projection, &location),
+        Err(
+            NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion {
+                found: 2,
+                supported: 1,
+            }
+        )
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_catalog_cache_failure_preserves_the_previous_atomic_snapshot() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-cache-preserve");
+    let archive = complete_catalog_archive(&root);
+    let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
+    let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
+    let publication = NnsCertifiedSubnetCatalogCachePublicationRequest::new(location, 300);
+    let projection = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    publish_nns_certified_subnet_catalog_cache(&archive, &projection, &publication)
+        .expect("publish initial certified catalog cache");
+    let cache_path = nns_certified_subnet_catalog_cache_path(&cache_directory);
+    let previous = fs::read(&cache_path).expect("read initial cache");
+    let limited_location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 1);
+    let limited = NnsCertifiedSubnetCatalogCachePublicationRequest::new(limited_location, 300);
+
+    assert!(matches!(
+        publish_nns_certified_subnet_catalog_cache(&archive, &projection, &limited),
+        Err(NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { maximum: 1, .. })
+    ));
+    assert_eq!(
+        fs::read(cache_path).expect("read preserved cache"),
+        previous
+    );
+
+    let read_limited = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 1);
+    assert!(matches!(
+        load_nns_certified_subnet_catalog_cache(&archive, &projection, &read_limited),
+        Err(NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { maximum: 1, .. })
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_catalog_cache_load_is_explicitly_cache_only() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-cache-missing");
+    let archive = complete_catalog_archive(&root);
+    let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
+    let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
+    let stale_projection = certified_catalog_projection_request(
+        NOW + 2,
+        1,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+
+    assert!(matches!(
+        load_nns_certified_subnet_catalog_cache(&archive, &stale_projection, &location),
+        Err(NnsCertifiedSubnetCatalogCacheError::MissingCache { .. })
+    ));
+    assert!(!cache_directory.exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_catalog_cache_publication_qualifies_before_filesystem_mutation() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-cache-preflight");
+    let archive = complete_catalog_archive(&root);
+    let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
+    let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
+    let publication = NnsCertifiedSubnetCatalogCachePublicationRequest::new(location, 300);
+    let stale_projection = certified_catalog_projection_request(
+        NOW + 2,
+        1,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+
+    assert!(matches!(
+        publish_nns_certified_subnet_catalog_cache(&archive, &stale_projection, &publication),
+        Err(NnsCertifiedSubnetCatalogCacheError::Projection(
+            NnsRegistrySubnetCatalogProjectionError::StaleArchiveCertificate { .. }
+        ))
+    ));
+    assert!(!cache_directory.exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn certified_catalog_projection_enforces_explicit_certificate_age() {
     let root = crate::test_support::temp_dir("ic-query-certified-catalog-freshness");
     let archive = complete_catalog_archive(&root);
