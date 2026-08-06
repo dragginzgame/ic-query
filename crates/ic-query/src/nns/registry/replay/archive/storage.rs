@@ -31,6 +31,10 @@ use thiserror::Error as ThisError;
 const ARCHIVE_MANIFEST_FILE_NAME: &str = "manifest.json";
 const ARCHIVE_OBJECTS_DIRECTORY_NAME: &str = "objects";
 
+pub(super) fn nns_certified_registry_archive_objects_path(archive_root: &Path) -> PathBuf {
+    archive_root.join(ARCHIVE_OBJECTS_DIRECTORY_NAME)
+}
+
 ///
 /// NnsCertifiedRegistryArchiveStorageLimits
 ///
@@ -691,8 +695,7 @@ fn archive_batch_object_path(
     archive_root: &Path,
     descriptor: &NnsCertifiedRegistryArchiveBatchDescriptor,
 ) -> PathBuf {
-    archive_root
-        .join(ARCHIVE_OBJECTS_DIRECTORY_NAME)
+    nns_certified_registry_archive_objects_path(archive_root)
         .join(format!("{}.json", descriptor.report_sha256))
 }
 

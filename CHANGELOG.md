@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.22` adds explicit bounded cleanup for unreferenced certified Registry
+  archive objects. Cleanup holds the archive lock, fully reauthenticates the
+  retained manifest and objects, scans only the exact flat `objects/`
+  directory, and applies caller-selected scan/count/byte ceilings before the
+  first deletion. Referenced objects are never selected, successful removals
+  synchronize their parent directory, and partial filesystem failures report
+  exact completed counts. Cleanup is local-only and never automatic; no CLI,
+  schema, path, refresh, or read-through behavior changes. Release bump targets
+  now retain Cargo build artifacts when the changelog, clean-worktree, CI, or
+  version-update path fails and run `cargo clean` only after a successful bump.
+
 - `0.30.21` adds explicit live incremental refresh for an existing certified
   Registry archive. Refresh rejects non-mainnet and missing archives before
   source work, holds the archive lock across bounded local reauthentication,

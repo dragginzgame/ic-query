@@ -1,10 +1,11 @@
 //! Module: nns::registry::replay::archive
 //!
-//! Responsibility: describe, validate, publish, restore, bootstrap, and refresh certified evidence.
-//! Does not own: read-through policy, default paths, cleanup, CLI, or catalog assurance.
+//! Responsibility: describe, validate, publish, restore, refresh, and clean certified evidence.
+//! Does not own: read-through policy, default paths, CLI, or catalog assurance.
 //! Boundary: manifests are indexes, not authority; reports must be reauthenticated on every load.
 
 mod bootstrap;
+mod cleanup;
 mod refresh;
 pub(in crate::nns::registry::replay) mod storage;
 
@@ -34,6 +35,13 @@ pub use bootstrap::{
     bootstrap_nns_certified_registry_archive_async,
     bootstrap_nns_certified_registry_archive_with_source_async,
     nns_certified_registry_archive_refresh_lock_path,
+};
+#[cfg(test)]
+pub(in crate::nns::registry::replay) use cleanup::cleanup_archive_with_authenticator;
+pub use cleanup::{
+    NnsCertifiedRegistryArchiveCleanupError, NnsCertifiedRegistryArchiveCleanupLimits,
+    NnsCertifiedRegistryArchiveCleanupReport, NnsCertifiedRegistryArchiveCleanupRequest,
+    cleanup_nns_certified_registry_archive,
 };
 #[cfg(test)]
 pub(in crate::nns::registry::replay) use refresh::refresh_archive_with_authenticator_async;

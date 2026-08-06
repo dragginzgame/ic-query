@@ -45,6 +45,51 @@ pub struct ManagedFileScan {
     pub truncated: bool,
 }
 
+///
+/// ManagedDirectoryFile
+///
+/// Validated regular file discovered directly beneath one managed directory.
+///
+
+#[cfg(feature = "nns-host")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ManagedDirectoryFile {
+    /// Confined display path beneath the caller-selected cache root.
+    pub path: PathBuf,
+    /// File length reported after opening and validating the regular file.
+    pub bytes: u64,
+}
+
+///
+/// ManagedDirectoryScan
+///
+/// Bounded exact-directory scan that never traverses child directories.
+///
+
+#[cfg(feature = "nns-host")]
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct ManagedDirectoryScan {
+    /// Canonically ordered validated regular files.
+    pub files: Vec<ManagedDirectoryFile>,
+    /// Whether another directory entry existed beyond the caller's ceiling.
+    pub truncated: bool,
+}
+
+///
+/// ManagedFileRemovalError
+///
+/// Confined removal failure that records whether unlinking completed before a sync error.
+///
+
+#[cfg(feature = "nns-host")]
+#[derive(Debug)]
+pub struct ManagedFileRemovalError {
+    /// Whether the file was unlinked before the failure occurred.
+    pub removed: bool,
+    /// Underlying confinement, removal, or directory-sync failure.
+    pub source: CacheFileError,
+}
+
 /// Create and validate the managed parent directory beneath `cache_root`.
 pub fn create_managed_parent_directory(
     cache_root: &Path,
@@ -107,6 +152,127 @@ pub fn read_managed_file(
     file.read_to_end(&mut data)
         .map_err(|source| open_managed_path_error(cache_root, target_path, source))?;
     Ok(Some(data))
+}
+
+/// Scan only the regular files directly beneath one confined managed directory.
+#[cfg(feature = "nns-host")]
+pub fn scan_managed_directory_files(
+    cache_root: &Path,
+    directory_path: &Path,
+    maximum_files: u64,
+) -> Result<ManagedDirectoryScan, CacheFileError> {
+    let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
+        return Ok(ManagedDirectoryScan::default());
+    };
+    let probe_path = directory_path.join(".icq-directory-probe");
+    let Some(directory) = root.resolve_parent(&probe_path, false)? else {
+        return Ok(ManagedDirectoryScan::default());
+    };
+    let entries = directory
+        .parent
+        .entries()
+        .map_err(|source| open_managed_path_error(cache_root, directory_path, source))?;
+    let mut scan = ManagedDirectoryScan::default();
+    for entry in entries {
+        if u64::try_from(scan.files.len()).map_or(true, |count| count == maximum_files) {
+            scan.truncated = true;
+            break;
+        }
+        let entry =
+            entry.map_err(|source| open_managed_path_error(cache_root, directory_path, source))?;
+        let name = entry.file_name();
+        let path = directory_path.join(&name);
+        let file_type = entry
+            .file_type()
+            .map_err(|source| open_managed_path_error(cache_root, &path, source))?;
+        if file_type.is_symlink() {
+            return Err(confinement_error(
+                cache_root,
+                &path,
+                "managed directory entry is a symbolic link",
+            ));
+        }
+        if !file_type.is_file() {
+            return Err(confinement_error(
+                cache_root,
+                &path,
+                "managed directory entry is not a regular file",
+            ));
+        }
+        let managed = root.resolve_parent(&path, false)?.ok_or_else(|| {
+            open_managed_path_error(
+                cache_root,
+                &path,
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "managed directory entry disappeared during discovery",
+                ),
+            )
+        })?;
+        let file = managed.open_regular_file()?.ok_or_else(|| {
+            open_managed_path_error(
+                cache_root,
+                &path,
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "managed directory entry disappeared during discovery",
+                ),
+            )
+        })?;
+        let bytes = file
+            .metadata()
+            .map_err(|source| open_managed_path_error(cache_root, &path, source))?
+            .len();
+        scan.files.push(ManagedDirectoryFile { path, bytes });
+    }
+    scan.files.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(scan)
+}
+
+/// Remove one confined regular file and synchronize its parent directory.
+#[cfg(feature = "nns-host")]
+pub fn remove_managed_regular_file(
+    cache_root: &Path,
+    target_path: &Path,
+) -> Result<bool, ManagedFileRemovalError> {
+    let Some(root) = ConfinedCacheRoot::open(cache_root, false).map_err(removal_not_completed)?
+    else {
+        return Ok(false);
+    };
+    let Some(target) = root
+        .resolve_parent(target_path, false)
+        .map_err(removal_not_completed)?
+    else {
+        return Ok(false);
+    };
+    let Some(file) = target.open_regular_file().map_err(removal_not_completed)? else {
+        return Ok(false);
+    };
+    drop(file);
+    match target.remove_file() {
+        Ok(()) => {}
+        Err(source) if source.kind() == io::ErrorKind::NotFound => return Ok(false),
+        Err(source) => {
+            return Err(removal_not_completed(CacheFileError::RemoveManagedFile {
+                path: target_path.to_path_buf(),
+                source,
+            }));
+        }
+    }
+    target
+        .sync_parent()
+        .map_err(|source| ManagedFileRemovalError {
+            removed: true,
+            source,
+        })?;
+    Ok(true)
+}
+
+const fn removal_not_completed(source: CacheFileError) -> ManagedFileRemovalError {
+    ManagedFileRemovalError {
+        removed: false,
+        source,
+    }
 }
 
 #[cfg(feature = "host")]

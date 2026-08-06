@@ -6,13 +6,10 @@ usage() {
 }
 
 cleanup_release_build_artifacts() {
-  local status="$?"
-  trap - EXIT
-  echo "Cleaning Cargo build artifacts after the release gate..."
+  echo "Cleaning Cargo build artifacts after the successful release gate..."
   if ! cargo clean; then
-    echo "warning: cargo clean failed after the release gate" >&2
+    echo "warning: cargo clean failed after the successful release gate" >&2
   fi
-  exit "${status}"
 }
 
 bump="${1:-patch}"
@@ -64,7 +61,6 @@ bash scripts/ci/check-changelog-version.sh "${new_version}"
 
 echo "Running full CI gate before version bump..."
 make --no-print-directory ensure-clean
-trap cleanup_release_build_artifacts EXIT
 CHANGELOG_VERSION="${new_version}" make --no-print-directory ci
 
 perl -0pi -e "s/version = \"\\Q${previous_version}\\E\"/version = \"${new_version}\"/g" Cargo.toml
@@ -72,6 +68,8 @@ perl -0pi -e "s/version = \"\\Q${previous_version}\\E\"/version = \"${new_versio
 if [[ -f Cargo.lock ]]; then
     cargo generate-lockfile >/dev/null
 fi
+
+cleanup_release_build_artifacts
 
 echo "Bumped: ${previous_version} -> ${new_version}"
 echo "Next:"

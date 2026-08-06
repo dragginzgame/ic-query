@@ -1713,6 +1713,24 @@ impl super::archive::storage::ArchiveBatchAuthenticator for PanicArchiveAuthenti
     }
 }
 
+struct LockCheckingArchiveAuthenticator {
+    lock_path: PathBuf,
+}
+
+impl super::archive::storage::ArchiveBatchAuthenticator for LockCheckingArchiveAuthenticator {
+    fn authenticate<'a>(
+        &self,
+        request: &NnsCertifiedRegistryDeltaBatchRequest,
+        report: &'a NnsCertifiedRegistryDeltaBatchReport,
+    ) -> Result<NnsAuthenticatedRegistryDeltaBatch<'a>, NnsRegistryHostError> {
+        assert!(
+            self.lock_path.is_file(),
+            "archive authentication must run under the maintenance lock"
+        );
+        FixtureArchiveAuthenticator.authenticate(request, report)
+    }
+}
+
 #[derive(Default)]
 struct RejectExtensionAuthenticator {
     accepted_reports: Mutex<usize>,
@@ -1830,6 +1848,30 @@ fn archive_refresh_request(
         storage_limits,
         300,
     )
+}
+
+fn archive_cleanup_request(
+    cache_root: &Path,
+    archive_root: &Path,
+    cleanup_limits: NnsCertifiedRegistryArchiveCleanupLimits,
+) -> NnsCertifiedRegistryArchiveCleanupRequest {
+    NnsCertifiedRegistryArchiveCleanupRequest::new(
+        NOW,
+        cache_root,
+        archive_root,
+        extended_replay_limits(),
+        extended_archive_storage_limits(),
+        cleanup_limits,
+        300,
+    )
+}
+
+fn write_archive_orphan(cache_root: &Path, archive_root: &Path, name: &str, contents: &[u8]) {
+    let path = archive_root.join("objects").join(name);
+    crate::cache_file::write_managed_file_atomically(cache_root, &path, |file| {
+        std::io::Write::write_all(file, contents)
+    })
+    .expect("orphan fixture write");
 }
 
 #[test]
@@ -2394,6 +2436,155 @@ fn certified_archive_refresh_rejects_non_mainnet_and_missing_archives_without_so
     ));
     assert!(source.requested_versions().is_empty());
     assert!(!root.exists());
+}
+
+#[test]
+fn certified_archive_cleanup_removes_only_bounded_unreferenced_objects_under_lock() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    let initial = bootstrap_fixture_archive(
+        &root,
+        &archive_root,
+        extended_replay_limits(),
+        extended_archive_storage_limits(),
+    );
+    write_archive_orphan(&root, &archive_root, "abandoned.json", b"orphan");
+    write_archive_orphan(&root, &archive_root, "abandoned.json.tmp.10.20.30", b"temp");
+    let request = archive_cleanup_request(
+        &root,
+        &archive_root,
+        NnsCertifiedRegistryArchiveCleanupLimits::new(4, 2, 10),
+    );
+    let authenticator = LockCheckingArchiveAuthenticator {
+        lock_path: nns_certified_registry_archive_refresh_lock_path(&archive_root),
+    };
+
+    let report = super::archive::cleanup_archive_with_authenticator(&request, &authenticator)
+        .expect("bounded orphan cleanup");
+
+    assert_eq!(report.archive, initial);
+    assert_eq!(report.scanned_object_count, 4);
+    assert_eq!(report.referenced_object_count, 2);
+    assert_eq!(report.removed_object_count, 2);
+    assert_eq!(report.removed_bytes, 10);
+    assert!(!archive_root.join("objects/abandoned.json").exists());
+    assert!(
+        !archive_root
+            .join("objects/abandoned.json.tmp.10.20.30")
+            .exists()
+    );
+    for batch in &report.archive.manifest().batches {
+        assert!(
+            archive_root
+                .join("objects")
+                .join(format!("{}.json", batch.report_sha256))
+                .is_file()
+        );
+    }
+    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_cleanup_applies_every_ceiling_before_deleting_an_orphan() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup-limits");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    bootstrap_fixture_archive(
+        &root,
+        &archive_root,
+        extended_replay_limits(),
+        extended_archive_storage_limits(),
+    );
+    let orphan_path = archive_root.join("objects/orphan.json");
+    write_archive_orphan(&root, &archive_root, "orphan.json", b"orphan");
+    let cases = [
+        (
+            NnsCertifiedRegistryArchiveCleanupLimits::new(2, 1, 6),
+            "scanned object count",
+            2,
+            3,
+        ),
+        (
+            NnsCertifiedRegistryArchiveCleanupLimits::new(3, 0, 6),
+            "removed object count",
+            0,
+            1,
+        ),
+        (
+            NnsCertifiedRegistryArchiveCleanupLimits::new(3, 1, 5),
+            "removed object bytes",
+            5,
+            6,
+        ),
+    ];
+
+    for (limits, field, maximum, actual) in cases {
+        let request = archive_cleanup_request(&root, &archive_root, limits);
+        let error = super::archive::cleanup_archive_with_authenticator(
+            &request,
+            &FixtureArchiveAuthenticator,
+        )
+        .expect_err("cleanup limit blocks deletion");
+
+        assert!(matches!(
+            error,
+            NnsCertifiedRegistryArchiveCleanupError::LimitExceeded {
+                field: actual_field,
+                maximum: actual_maximum,
+                actual: actual_value,
+            } if actual_field == field && actual_maximum == maximum && actual_value == actual
+        ));
+        assert!(orphan_path.is_file());
+        assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_cleanup_authenticates_before_deletion_and_requires_a_manifest() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup-auth");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    bootstrap_fixture_archive(
+        &root,
+        &archive_root,
+        extended_replay_limits(),
+        extended_archive_storage_limits(),
+    );
+    let orphan_path = archive_root.join("objects/orphan.json");
+    write_archive_orphan(&root, &archive_root, "orphan.json", b"orphan");
+    let request = archive_cleanup_request(
+        &root,
+        &archive_root,
+        NnsCertifiedRegistryArchiveCleanupLimits::new(3, 1, 6),
+    );
+
+    let error = cleanup_nns_certified_registry_archive(&request)
+        .expect_err("fixture archive is not built-in authenticated");
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveCleanupError::Storage(
+            NnsCertifiedRegistryArchiveStorageError::BatchAuthentication { ordinal: 0, .. }
+        )
+    ));
+    assert!(orphan_path.is_file());
+
+    let missing_root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup-missing");
+    let missing_archive = missing_root.join("missing/archive");
+    let missing_request = archive_cleanup_request(
+        &missing_root,
+        &missing_archive,
+        NnsCertifiedRegistryArchiveCleanupLimits::new(0, 0, 0),
+    );
+    let error = cleanup_nns_certified_registry_archive(&missing_request)
+        .expect_err("cleanup requires an existing manifest");
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveCleanupError::Storage(
+            NnsCertifiedRegistryArchiveStorageError::MissingManifest { .. }
+        )
+    ));
+    assert!(!missing_root.exists());
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]

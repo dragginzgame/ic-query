@@ -176,6 +176,17 @@ newer version. An unchanged version is published as a complete empty evidence
 segment. The custom-source counterpart retains the same built-in mainnet
 reauthentication boundary.
 
+Interrupted publication can leave a durable content-addressed object that no
+manifest references. Remove these only through the explicit local
+`cleanup_nns_certified_registry_archive` operation. Its request supplies the
+archive authentication limits, exact-directory scan ceiling, removal count and
+byte ceilings, confined roots, observation time, and lock policy. Cleanup holds
+the archive lock, reauthenticates the complete retained archive before
+classification, scans no directory except the flat `objects/` directory, and
+checks every ceiling before its first deletion. Its report returns the
+authenticated archive plus exact scanned, referenced, removed, and removed-byte
+counts. The operation is not an automatic load or refresh side effect.
+
 Certified Subnet Catalog authority is available only through the complete
 retained-evidence path. After publishing or loading an
 `NnsAuthenticatedRegistryArchive`, call `project_nns_certified_subnet_catalog`

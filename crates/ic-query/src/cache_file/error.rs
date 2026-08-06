@@ -144,6 +144,15 @@ pub enum CacheFileError {
         source: io::Error,
     },
 
+    /// Removing one validated managed regular file failed.
+    #[error("failed to remove managed cache file at {}: {source}", path.display())]
+    RemoveManagedFile {
+        /// Managed regular file that could not be removed.
+        path: PathBuf,
+        /// Underlying filesystem error.
+        source: io::Error,
+    },
+
     /// Another refresh currently owns the cache lock.
     #[error("refresh already in progress; lock exists at {} since unix_ms={started_at_unix_ms}", path.display())]
     RefreshAlreadyInProgress {

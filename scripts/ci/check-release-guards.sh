@@ -153,9 +153,7 @@ mapfile -t bump_trace < "${bump_case}/trace"
   || fail "the bump script did not check cleanliness before CI"
 [[ "${bump_trace[2]:-}" == "make --no-print-directory ci" ]] \
   || fail "the bump script did not run the complete CI gate after the cleanliness check"
-[[ "${bump_trace[3]:-}" == "cargo clean version=0.8.0" ]] \
-  || fail "the bump script did not clean build artifacts after a failed CI gate"
-[[ "${#bump_trace[@]}" -eq 4 ]] \
+[[ "${#bump_trace[@]}" -eq 3 ]] \
   || fail "the bump script ran unexpected commands after a failed CI gate"
 
 : > "${bump_case}/trace"
@@ -184,9 +182,10 @@ mapfile -t dirty_bump_trace < "${bump_case}/trace"
 (
   cd "${bump_case}"
   PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CI_STATUS=0 \
+    CARGO_CLEAN_STATUS=47 \
     /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
 ) >/dev/null 2>&1 \
-  || fail "the bump script rejected a successful CI gate"
+  || fail "the bump script rejected a successful CI gate after cleanup failed"
 [[ "$(<"${bump_case}/Cargo.toml")" == 'version = "0.8.1"' ]] \
   || fail "the bump script did not update version metadata after CI passed"
 mapfile -t successful_bump_trace < "${bump_case}/trace"

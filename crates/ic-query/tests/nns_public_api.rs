@@ -104,7 +104,9 @@ use ic_query::nns::registry::{
     NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryArchive,
     NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
     NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveBootstrapError,
-    NnsCertifiedRegistryArchiveBootstrapRequest, NnsCertifiedRegistryArchiveError,
+    NnsCertifiedRegistryArchiveBootstrapRequest, NnsCertifiedRegistryArchiveCleanupError,
+    NnsCertifiedRegistryArchiveCleanupLimits, NnsCertifiedRegistryArchiveCleanupReport,
+    NnsCertifiedRegistryArchiveCleanupRequest, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
     NnsCertifiedRegistryArchiveRefreshError, NnsCertifiedRegistryArchiveRefreshRequest,
@@ -119,7 +121,7 @@ use ic_query::nns::registry::{
     apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_archive_async,
     bootstrap_nns_certified_registry_archive_with_source_async,
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
-    build_nns_registry_version_report_with_source,
+    build_nns_registry_version_report_with_source, cleanup_nns_certified_registry_archive,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
     nns_certified_registry_archive_refresh_lock_path, nns_certified_registry_delta_limits,
@@ -675,6 +677,24 @@ fn public_certified_registry_archive_storage_contract_is_explicit_and_local() {
         NnsCertifiedRegistryArchiveStorageError,
     > = NnsCertifiedRegistryArchivePublisher::resume;
     let _ = resumer;
+    let cleanup_limits = NnsCertifiedRegistryArchiveCleanupLimits::new(10, 2, 1_000);
+    let cleanup_request = NnsCertifiedRegistryArchiveCleanupRequest::new(
+        1_700_000_000,
+        "/tmp",
+        "/tmp/ic-query-public-api-archive-cleanup",
+        replay_limits,
+        storage_limits,
+        cleanup_limits,
+        300,
+    );
+    assert_eq!(cleanup_request.cleanup_limits, cleanup_limits);
+    let cleanup: fn(
+        &NnsCertifiedRegistryArchiveCleanupRequest,
+    ) -> Result<
+        NnsCertifiedRegistryArchiveCleanupReport,
+        NnsCertifiedRegistryArchiveCleanupError,
+    > = cleanup_nns_certified_registry_archive;
+    let _ = cleanup;
 }
 
 #[cfg(feature = "nns-host")]
