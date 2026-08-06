@@ -67,7 +67,7 @@ pub struct UncertifiedCatalogCollection {
     pub registry_version: u64,
     /// Exact source endpoint queried by the collector.
     pub source_endpoint: String,
-    /// Caller-supplied UTC collection timestamp.
+    /// Canonical UTC collection or latest certified-evidence timestamp.
     pub fetched_at: String,
     /// Collector implementation name.
     pub fetched_by: String,
@@ -101,12 +101,41 @@ impl UncertifiedCatalogCollection {
 }
 
 ///
+/// CertifiedRegistryCatalogEvidence
+///
+/// Persistable commitments copied from one fully reauthenticated Registry archive.
+/// Serialized values describe evidence but cannot establish certified authority by themselves.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CertifiedRegistryCatalogEvidence {
+    /// Archive-manifest schema authenticated during archive restoration.
+    pub archive_manifest_schema_version: u32,
+    /// Certified Registry delta-report schema authenticated during restoration.
+    pub delta_report_schema_version: u32,
+    /// Replay-provenance schema governing the retained commitments.
+    pub replay_provenance_schema_version: u32,
+    /// Lowercase SHA-256 digest of the trusted mainnet root key.
+    pub root_key_digest: String,
+    /// Lowercase SHA-256 commitment to the ordered authenticated report sequence.
+    pub evidence_chain_digest: String,
+    /// Lowercase SHA-256 commitment to the exact reconstructed Registry state.
+    pub complete_state_digest: String,
+    /// Earliest authenticated certificate time in nanoseconds.
+    pub minimum_certificate_time_nanos: u64,
+    /// Latest authenticated certificate time in nanoseconds.
+    pub maximum_certificate_time_nanos: u64,
+}
+
+///
 /// SubnetCatalogProvenance
 ///
 /// Registry, collection, assurance, and policy identity for one raw catalog.
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SubnetCatalogProvenance {
     /// Canonical network identity.
     pub network: String,
@@ -124,10 +153,8 @@ pub struct SubnetCatalogProvenance {
     pub registry_query_call_count: u64,
     /// Caller-supplied UTC collection timestamp.
     pub fetched_at: String,
-    /// Optional verified certificate timestamp.
-    pub certificate_time: Option<String>,
-    /// Optional lowercase SHA-256 digest of the trusted root key.
-    pub root_key_digest: Option<String>,
+    /// Certified archive commitments, present only for certified assurance.
+    pub certified_registry: Option<CertifiedRegistryCatalogEvidence>,
     /// Collector implementation name.
     pub fetched_by: String,
     /// Collector package version.

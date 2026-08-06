@@ -18,7 +18,7 @@ local-only inspection visibly distinct.
 | Family | Current surface |
 | --- | --- |
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, one-request observed node status with cached node/Subnet/provider views and typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
-| NNS Registry | Certified latest version and bounded exact-target replay foundations, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
+| NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
@@ -135,7 +135,7 @@ actually make:
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
-| NNS Registry | Authenticated certified latest-version and bounded contiguous delta-batch evidence, plus exact-version joined Registry query evidence with explicit catalog assurance | A single delta batch does not reconstruct Registry state; certification of `current_version` does not certify ordinary `get_value` catalog reads, and endpoint agreement is not cryptographic certification |
+| NNS Registry | Authenticated certified latest-version and bounded contiguous delta-batch evidence, archive-bound exact-state catalog authority, plus exact-version joined Registry query evidence with explicit assurance | A single batch does not reconstruct Registry state; only a complete reauthenticated archive can promote a certified catalog, ordinary `get_value` reads remain uncertified, and endpoint agreement is not cryptographic certification |
 | NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
@@ -145,7 +145,7 @@ actually make:
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
 and explicit provenance. Text output may shorten or format values for people.
 Report and persisted schemas are versioned independently. The Subnet Catalog
-uses schema version `2`; other families retain their documented versions.
+uses schema version `3`; other families retain their documented versions.
 Before 1.0, incompatible shapes are hard cuts without compatibility readers or
 automatic migrations.
 
@@ -528,8 +528,8 @@ order, content digests, schema versions, accounting totals, root-key identity,
 certificate-time bounds, replay commitments, and canonical source endpoints.
 A loaded manifest is never authority by itself: every retained report must be
 size-checked, reauthenticated, replayed in order, and compared with a recomputed
-manifest. This stage defines no filesystem path, cache, refresh behavior, or CLI
-surface and does not enable `CatalogAssurance::Certified`.
+manifest. Only the resulting sealed archive capability can enter the certified
+catalog promotion path.
 
 `NnsCertifiedRegistryArchivePublisher` and
 `load_nns_certified_registry_archive` provide the explicit filesystem layer.
@@ -543,7 +543,7 @@ report at a time, locally reauthenticates every certificate/witness/chunk set,
 and accepts the archive only when a freshly recomputed manifest matches every
 serialized field. Failed final publication preserves an existing complete
 manifest. No default archive path, automatic collection, refresh policy, lock,
-CLI surface, or certified catalog promotion is selected yet.
+or CLI surface is selected.
 
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time
@@ -563,12 +563,21 @@ public schema constant versions both commitments. These commitments do not
 reauthenticate a custom source or establish catalog assurance by themselves.
 
 A completed replay session can be projected in memory into canonical Subnet
-Catalog rows. The pure projection reads the replayed Subnet list, routing table,
-and referenced Subnet records at the pinned version and reuses the live
-catalog's classification and routing-validation path. The projection borrows
-the session, keeping its version and provenance commitments attached. It is
-not serializable, does not access the network or cache, and does not yet produce
-a `ValidatedSubnetCatalog` or `CatalogAssurance::Certified` result.
+Catalog rows. This pure diagnostic projection reads the replayed Subnet list,
+routing table, and referenced Subnet records at the pinned version and reuses
+the live catalog's classification and routing-validation path. It does not by
+itself produce validated certified authority.
+
+`project_nns_certified_subnet_catalog` is the authority boundary. It accepts
+only a fully reauthenticated `NnsAuthenticatedRegistryArchive`, rechecks its
+manifest against the sealed replay session, projects the exact reconstructed
+state, and returns `NnsCertifiedSubnetCatalogAuthority`. The result keeps its
+private-field `ValidatedSubnetCatalog` attached to the archive that proves it.
+Schema-3 provenance records archive/replay/report schema identities, root-key,
+evidence-chain and complete-state digests, certificate-time bounds, and source
+endpoints. Serializing those fields does not preserve authority: ordinary
+`ValidatedSubnetCatalog::try_from_raw` validation always rejects `Certified`.
+The projection performs no network or cache operation.
 
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case
@@ -579,9 +588,9 @@ built-in mainnet-root-key verifier can construct this sealed wrapper. Use
 `.replay_session()` for borrowed inspection or `.into_replay_session()` to
 explicitly discard the capability. Custom-source bootstrap continues to return
 the ordinary replay type because ic-query cannot reauthenticate its assertions.
-Authenticated catalog projection composes the wrapper with the existing pure
-projection, but remains uncached and does not establish certified catalog
-assurance.
+The live session alone cannot be promoted to certified catalog authority. Its
+evidence must first be retained through the authenticated archive boundary so
+future use can reauthenticate the complete certificate/witness/chunk sequence.
 
 `probe_nns_certified_registry_async` uses the same reservation and validation
 loop for bounded sizing diagnostics. It returns either `Complete` or typed
@@ -599,6 +608,9 @@ always labelled `CatalogAssurance::UncertifiedQuery`. Async embedders can call
 `refresh_subnet_catalog_async` on their own runtime. Dropping an async refresh
 releases its owned lock without publishing. Synchronous adapters may use a
 scoped helper thread when invoked inside an existing Tokio runtime.
+Schema-2 catalog files are rejected after the schema-3 hard cut; an explicit
+read policy may refresh invalid ordinary cache content, but no migration or
+legacy reader is retained.
 
 See [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md) for complete examples and feature
 guidance.

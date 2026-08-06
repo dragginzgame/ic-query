@@ -37,8 +37,8 @@ pub use bootstrap::{
     probe_nns_certified_registry_with_source_async,
 };
 pub use projection::{
-    NnsAuthenticatedRegistrySubnetCatalogProjection, NnsRegistrySubnetCatalogProjection,
-    NnsRegistrySubnetCatalogProjectionError, project_nns_authenticated_registry_subnet_catalog,
+    NnsCertifiedSubnetCatalogAuthority, NnsRegistrySubnetCatalogProjection,
+    NnsRegistrySubnetCatalogProjectionError, project_nns_certified_subnet_catalog,
     project_nns_registry_subnet_catalog,
 };
 pub use session::{

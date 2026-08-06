@@ -168,9 +168,9 @@ pub enum CatalogError {
         reason: String,
     },
 
-    /// The build does not yet have a verifier for the claimed assurance level.
+    /// Serialized raw evidence cannot establish the claimed assurance level.
     #[error(
-        "unsupported catalog assurance {assurance}; this build validates uncertified_query and multi_endpoint_agreement evidence"
+        "unsupported catalog assurance {assurance} for raw validation; certified authority requires a sealed authenticated Registry archive"
     )]
     UnsupportedAssurance {
         /// Unsupported assurance label.

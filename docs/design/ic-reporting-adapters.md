@@ -140,9 +140,12 @@ does not claim cryptographic certification.
 The NNS Registry version report independently calls
 `get_certified_latest_version`, authenticates the certificate, and validates
 the committed `current_version` leaf. That bounded proof does not upgrade
-ordinary `get_value` evidence: `CatalogAssurance::Certified` remains reserved
-until a complete contiguous certified delta sequence reconstructs the catalog
-at the selected version.
+ordinary `get_value` evidence. `CatalogAssurance::Certified` is established
+only after a complete retained delta sequence is locally reauthenticated,
+replayed from version zero, matched exactly to its recomputed archive manifest,
+and projected through the shared catalog validator. The authority result keeps
+the validated catalog borrowed to that sealed archive; serialized provenance
+cannot recreate the capability.
 The caller-runtime certified delta adapter returns at most one contiguous
 batch. Chunk-referenced values named by that batch are completed with bounded,
 SHA-256-verified `get_chunk` calls and exact call/byte accounting; later delta

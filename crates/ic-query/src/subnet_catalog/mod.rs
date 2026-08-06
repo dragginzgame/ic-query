@@ -36,8 +36,9 @@ pub(crate) use model::canonicalize_subnet_catalog_content;
 pub(in crate::subnet_catalog) use model::catalog_agreement_digest;
 pub use model::{
     CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance, CatalogValidationContext,
-    ClassificationSource, GeographicScope, RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, RoutingRange,
-    SubnetCatalogProvenance, SubnetInfo, SubnetKind, SubnetSpecialization, ValidatedSubnetCatalog,
+    CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope,
+    RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance, SubnetInfo,
+    SubnetKind, SubnetSpecialization, ValidatedSubnetCatalog,
 };
 pub use principal::canonical_principal_text;
 pub(crate) use principal::{parse_principal, principal_bytes};
@@ -66,7 +67,7 @@ pub(crate) use time::format_utc_timestamp_secs;
 ))]
 pub(crate) use time::parse_utc_timestamp_secs;
 
-pub const CATALOG_SCHEMA_VERSION: u32 = 2;
+pub const CATALOG_SCHEMA_VERSION: u32 = 3;
 pub const MAINNET_NETWORK: &str = "ic";
 pub const MAINNET_REGISTRY_CANISTER_ID: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 #[cfg(feature = "subnet-catalog-host")]

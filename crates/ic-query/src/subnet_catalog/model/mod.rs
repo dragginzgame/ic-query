@@ -8,8 +8,8 @@ pub use policy::{CLASSIFICATION_SCHEMA_VERSION, RESOLVER_SCHEMA_VERSION};
 #[cfg(feature = "subnet-catalog-host")]
 pub use types::UncertifiedCatalogCollection;
 pub use types::{
-    CatalogAssurance, CatalogValidationContext, RawSubnetCatalog, RoutingRange,
-    SubnetCatalogProvenance, SubnetInfo, ValidatedSubnetCatalog,
+    CatalogAssurance, CatalogValidationContext, CertifiedRegistryCatalogEvidence, RawSubnetCatalog,
+    RoutingRange, SubnetCatalogProvenance, SubnetInfo, ValidatedSubnetCatalog,
 };
 #[cfg(feature = "nns-host")]
 pub use validation::canonicalize_subnet_catalog_content;

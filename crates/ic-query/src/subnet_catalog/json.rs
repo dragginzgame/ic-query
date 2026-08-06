@@ -1,15 +1,14 @@
 //! Module: subnet_catalog::json
 //!
-//! Responsibility: decode, validate, and encode subnet catalog JSON payloads.
+//! Responsibility: decode, structurally validate, and encode raw subnet catalog JSON payloads.
 //!
 //! Does not own: cache paths, catalog fetching, or human text rendering.
 //!
-//! Boundary: keeps wire/file JSON conversion centralized so callers work with
-//! validated domain structs.
+//! Boundary: parsed values remain untrusted raw evidence; authority validation is separate.
 
 use super::{CatalogError, RawSubnetCatalog};
 
-/// Decodes and validates one subnet catalog JSON payload.
+/// Decode and structurally validate one untrusted raw subnet catalog JSON payload.
 pub fn parse_catalog_json(data: &str) -> Result<RawSubnetCatalog, CatalogError> {
     let catalog = serde_json::from_str::<RawSubnetCatalog>(data)?;
     catalog.validate()?;

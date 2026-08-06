@@ -9,7 +9,7 @@ pub(in crate::nns::topology::report::tests) fn subnet_report_fixture() -> Subnet
         schema_version: 2,
         network: MAINNET_NETWORK.to_string(),
         catalog_path: "catalog.json".to_string(),
-        catalog_schema_version: 2,
+        catalog_schema_version: crate::subnet_catalog::CATALOG_SCHEMA_VERSION,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 42,
         assurance: CatalogAssurance::UncertifiedQuery,

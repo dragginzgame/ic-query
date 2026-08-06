@@ -12,13 +12,15 @@ use crate::{
         NnsRegistryCertification, NnsRegistryHostError, nns_certified_registry_delta_limits,
     },
     subnet_catalog::{
-        CatalogError, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind,
-        SubnetSpecialization, format_utc_timestamp_secs,
+        CATALOG_SCHEMA_VERSION, CatalogAssurance, CatalogError, CatalogValidationContext,
+        MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind, SubnetSpecialization,
+        ValidatedSubnetCatalog, catalog_to_pretty_json, format_utc_timestamp_secs,
+        parse_catalog_json,
     },
 };
 use candid::Principal;
 use prost::Message;
-use std::{fs, sync::Mutex};
+use std::{fs, path::Path, sync::Mutex};
 
 const NOW: u64 = 1_780_531_200;
 const PROJECTION_SUBNET: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
@@ -651,26 +653,69 @@ fn authenticated_replay_requires_complete_provenance() {
 }
 
 #[test]
-fn authenticated_projection_composes_without_copying_catalog_rows() {
-    let session = complete_catalog_projection_session(true, false);
-    let authenticated = NnsAuthenticatedRegistryReplaySession::from_verified_complete(session)
-        .expect("complete verified fixture authentication");
+fn authenticated_archive_promotes_one_certified_catalog_authority() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-projection");
+    let archive = complete_catalog_archive(&root);
+    let context =
+        CatalogValidationContext::new(MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, NOW, 0);
 
-    {
-        let projected = project_nns_authenticated_registry_subnet_catalog(&authenticated)
-            .expect("authenticated catalog projection");
-        assert_eq!(projected.authenticated_replay_session(), &authenticated);
-        assert_eq!(projected.projection().registry_version(), 1);
-        assert_eq!(projected.projection().subnets().len(), 1);
-        assert_eq!(
-            projected.projection().subnets()[0].subnet_principal,
-            PROJECTION_SUBNET
-        );
-    }
+    let authority = project_nns_certified_subnet_catalog(&archive, &context)
+        .expect("archive-backed certified catalog");
+    let catalog = authority.catalog();
+    let evidence = catalog
+        .provenance()
+        .certified_registry
+        .as_ref()
+        .expect("certified archive commitments");
 
-    let ordinary = authenticated.into_replay_session();
-    assert!(ordinary.is_complete());
-    assert_eq!(ordinary.selected_version(), Some(1));
+    assert_eq!(authority.archive(), &archive);
+    assert_eq!(catalog.raw().catalog_schema_version, CATALOG_SCHEMA_VERSION);
+    assert_eq!(catalog.provenance().assurance, CatalogAssurance::Certified);
+    assert_eq!(catalog.provenance().registry_version, 1);
+    assert_eq!(catalog.subnets().len(), 1);
+    assert_eq!(catalog.subnets()[0].subnet_principal, PROJECTION_SUBNET);
+    assert_eq!(
+        evidence.archive_manifest_schema_version,
+        archive.manifest().schema_version
+    );
+    assert_eq!(
+        evidence.evidence_chain_digest,
+        archive.manifest().evidence_chain_digest
+    );
+    assert_eq!(
+        evidence.complete_state_digest,
+        archive.manifest().complete_state_digest
+    );
+
+    let serialized_claim = catalog_to_pretty_json(catalog.raw()).expect("serialize raw claim");
+    let serialized_claim = parse_catalog_json(&serialized_claim).expect("parse raw claim");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(serialized_claim, &context),
+        Err(CatalogError::UnsupportedAssurance { assurance }) if assurance == "certified"
+    ));
+
+    let mut mismatched_claim = catalog.to_raw();
+    mismatched_claim
+        .provenance
+        .certified_registry
+        .as_mut()
+        .expect("certified archive commitments")
+        .complete_state_digest = "ff".repeat(32);
+    mismatched_claim
+        .canonicalize_and_seal()
+        .expect("reseal structurally valid mismatched claim");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_authenticated_archive(
+            mismatched_claim,
+            &context,
+            &archive,
+        ),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance",
+            ..
+        })
+    ));
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -1756,13 +1801,11 @@ fn complete_provenance_session(changed_raw_evidence: bool) -> NnsRegistryReplayS
 }
 
 fn projection_session() -> NnsRegistryReplaySession {
-    NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
-        1,
-        1,
-        1,
-        64,
-        NnsRegistryReplayLimits::new(20, 10_000),
-    ))
+    NnsRegistryReplaySession::new(projection_session_limits())
+}
+
+const fn projection_session_limits() -> NnsRegistryReplaySessionLimits {
+    NnsRegistryReplaySessionLimits::new(1, 1, 1, 64, NnsRegistryReplayLimits::new(20, 10_000))
 }
 
 fn complete_catalog_projection_session(
@@ -1787,6 +1830,26 @@ fn complete_catalog_projection_session_from_parts(
     invalid_subnet_list: bool,
     routing_table: RoutingTable,
 ) -> NnsRegistryReplaySession {
+    let (request, report) = catalog_projection_report_from_parts(
+        include_subnet_record,
+        invalid_subnet_list,
+        routing_table,
+    );
+    let mut session = projection_session();
+    session
+        .apply_batch(&request, &report)
+        .expect("complete catalog fixture replay");
+    session
+}
+
+fn catalog_projection_report_from_parts(
+    include_subnet_record: bool,
+    invalid_subnet_list: bool,
+    routing_table: RoutingTable,
+) -> (
+    NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryDeltaBatchReport,
+) {
     let subnet_list = SubnetListRecord {
         subnets: vec![principal_bytes(PROJECTION_SUBNET)],
     };
@@ -1820,11 +1883,31 @@ fn complete_catalog_projection_session_from_parts(
         .collect();
     let request = request(0);
     let report = report(&request, 1, 1, mutations, Vec::new());
-    let mut session = projection_session();
-    session
-        .apply_batch(&request, &report)
-        .expect("complete catalog fixture replay");
-    session
+    (request, report)
+}
+
+fn complete_catalog_archive(root: &Path) -> NnsAuthenticatedRegistryArchive {
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let (_, report) = catalog_projection_report_from_parts(
+        true,
+        false,
+        projection_routing_table_with_range(PROJECTION_SUBNET),
+    );
+    let batch = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&report);
+    let storage_limits = NnsCertifiedRegistryArchiveStorageLimits::new(
+        100_000,
+        NnsCertifiedRegistryArchiveLimits::new(1, 100_000, 100_000),
+    );
+    let mut publisher = NnsCertifiedRegistryArchivePublisher::new(
+        root,
+        &archive_root,
+        projection_session_limits(),
+        storage_limits,
+    );
+    publisher
+        .apply_batch(&batch)
+        .expect("certified catalog archive object");
+    publisher.finish().expect("certified catalog archive")
 }
 
 fn projection_routing_table_with_range(subnet: &str) -> RoutingTable {

@@ -1,10 +1,11 @@
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::nns::NnsSourceRequest;
 use ic_query::subnet_catalog::{
-    CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance, ClassificationSource,
-    GeographicScope, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION,
-    RawSubnetCatalog, ResolveAs, ResolvedSubnetSubject, RoutingRange, SubnetCatalogProvenance,
-    SubnetInfo, SubnetKind, SubnetSpecialization, catalog_to_pretty_json, parse_catalog_json,
+    CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance,
+    CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope, MAINNET_NETWORK,
+    MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, ResolveAs,
+    ResolvedSubnetSubject, RoutingRange, SubnetCatalogProvenance, SubnetInfo, SubnetKind,
+    SubnetSpecialization, catalog_to_pretty_json, parse_catalog_json,
 };
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::{
@@ -37,6 +38,9 @@ fn public_subnet_catalog_api_parses_and_resolves_without_host() {
     let catalog = fixture_catalog();
     let json = catalog_to_pretty_json(&catalog).expect("catalog serializes");
     let parsed = parse_catalog_json(&json).expect("catalog parses");
+    let certified_evidence: Option<&CertifiedRegistryCatalogEvidence> =
+        parsed.provenance.certified_registry.as_ref();
+    assert!(certified_evidence.is_none());
 
     let subnet = parsed
         .resolve_principal(SUBNET_A, Some(ResolveAs::Subnet))
@@ -369,8 +373,7 @@ fn fixture_catalog() -> RawSubnetCatalog {
             agreement_digest: None,
             registry_query_call_count: 5,
             fetched_at: "2026-06-26T00:00:00Z".to_string(),
-            certificate_time: None,
-            root_key_digest: None,
+            certified_registry: None,
             fetched_by: "fixture".to_string(),
             collector_version: "test".to_string(),
             classification_schema_version: CLASSIFICATION_SCHEMA_VERSION,

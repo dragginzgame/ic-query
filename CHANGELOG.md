@@ -11,6 +11,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.17` hard-cuts the Subnet Catalog to schema 3 and enables certified
+  catalog authority only from a fully reauthenticated
+  `NnsAuthenticatedRegistryArchive`. The new archive-bound projection checks
+  manifest/replay identity, version, schema, accounting, endpoints,
+  certificate-time bounds, root key, evidence-chain digest, and complete-state
+  digest before reusing the existing canonical catalog validation path. Its
+  result keeps the `ValidatedSubnetCatalog` attached to the qualifying archive;
+  serialized raw catalogs still cannot self-assert `Certified`. Schema-2
+  catalogs and the earlier authenticated-session projection API are removed
+  without migration or aliases. No cache publication, refresh policy, network
+  call, or CLI surface is added.
+
 - `0.30.16` adds explicit confined publication and bounded restoration for the
   certified Registry archive. A streaming publisher writes each canonical
   report once as an owner-only content-addressed object, syncs files and newly

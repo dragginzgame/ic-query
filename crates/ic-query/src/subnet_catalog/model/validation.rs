@@ -12,6 +12,8 @@ use super::{
     policy::{RESOLVER_BACKEND, apply_mainnet_classification_policy, classification_policy_digest},
 };
 use super::{RawSubnetCatalog, RoutingRange, SubnetInfo};
+#[cfg(feature = "nns-host")]
+use crate::nns::registry::NnsAuthenticatedRegistryArchive;
 use crate::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, CatalogError, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID,
     parse_principal, principal_bytes, resolver::routing_range_sorts_after,
@@ -48,8 +50,7 @@ impl RawSubnetCatalog {
                 agreement_digest: None,
                 registry_query_call_count: collection.registry_query_call_count,
                 fetched_at: collection.fetched_at,
-                certificate_time: None,
-                root_key_digest: None,
+                certified_registry: None,
                 fetched_by: collection.fetched_by,
                 collector_version: collection.collector_version,
                 classification_schema_version: CLASSIFICATION_SCHEMA_VERSION,
@@ -253,9 +254,27 @@ impl ValidatedSubnetCatalog {
         raw: RawSubnetCatalog,
         context: &CatalogValidationContext,
     ) -> Result<Self, CatalogError> {
+        Self::try_from_raw_with_certified_admission(raw, context, false)
+    }
+
+    #[cfg(feature = "nns-host")]
+    pub(crate) fn try_from_authenticated_archive(
+        raw: RawSubnetCatalog,
+        context: &CatalogValidationContext,
+        archive: &NnsAuthenticatedRegistryArchive,
+    ) -> Result<Self, CatalogError> {
+        validate_certified_archive_binding(&raw, archive)?;
+        Self::try_from_raw_with_certified_admission(raw, context, true)
+    }
+
+    fn try_from_raw_with_certified_admission(
+        raw: RawSubnetCatalog,
+        context: &CatalogValidationContext,
+        admit_certified: bool,
+    ) -> Result<Self, CatalogError> {
         raw.validate()?;
         validate_expected_identity(&raw, context)?;
-        validate_provenance(&raw, context)?;
+        validate_provenance(&raw, context, admit_certified)?;
         validate_classification_policy(&raw)?;
         let catalog_digest = validate_catalog_digest(&raw)?;
         Ok(Self::from_validated_parts(raw, catalog_digest))
@@ -314,11 +333,12 @@ fn validate_expected_identity(
 fn validate_provenance(
     raw: &RawSubnetCatalog,
     context: &CatalogValidationContext,
+    admit_certified: bool,
 ) -> Result<(), CatalogError> {
     validate_collection_time(raw, context)?;
     validate_collector_identity(raw)?;
     let parsed_endpoints = validated_source_endpoints(raw)?;
-    validate_assurance(raw, &parsed_endpoints)?;
+    validate_assurance(raw, &parsed_endpoints, admit_certified)?;
     validate_policy_identity(raw)
 }
 
@@ -369,7 +389,7 @@ fn validate_collector_identity(raw: &RawSubnetCatalog) -> Result<(), CatalogErro
     if raw.provenance.registry_query_call_count == 0 {
         return Err(CatalogError::InvalidProvenance {
             field: "provenance.registry_query_call_count",
-            reason: "live collection must record at least one Registry query call".to_string(),
+            reason: "catalog evidence must record at least one Registry query call".to_string(),
         });
     }
     Ok(())
@@ -399,6 +419,7 @@ fn validated_source_endpoints(raw: &RawSubnetCatalog) -> Result<Vec<url::Url>, C
 fn validate_assurance(
     raw: &RawSubnetCatalog,
     parsed_endpoints: &[url::Url],
+    admit_certified: bool,
 ) -> Result<(), CatalogError> {
     match raw.provenance.assurance {
         CatalogAssurance::UncertifiedQuery => {
@@ -409,8 +430,7 @@ fn validate_assurance(
                         .to_string(),
                 });
             }
-            if raw.provenance.certificate_time.is_some() || raw.provenance.root_key_digest.is_some()
-            {
+            if raw.provenance.certified_registry.is_some() {
                 return Err(CatalogError::InvalidProvenance {
                     field: "provenance.assurance",
                     reason: "uncertified query must not carry certificate evidence".to_string(),
@@ -463,8 +483,7 @@ fn validate_assurance(
                     });
                 }
             }
-            if raw.provenance.certificate_time.is_some() || raw.provenance.root_key_digest.is_some()
-            {
+            if raw.provenance.certified_registry.is_some() {
                 return Err(CatalogError::InvalidProvenance {
                     field: "provenance.assurance",
                     reason: "multi-endpoint agreement must not carry certificate evidence"
@@ -474,10 +493,112 @@ fn validate_assurance(
             validate_agreement_digest(raw)?;
         }
         CatalogAssurance::Certified => {
-            return Err(CatalogError::UnsupportedAssurance {
-                assurance: CatalogAssurance::Certified.as_str().to_string(),
+            if !admit_certified {
+                return Err(CatalogError::UnsupportedAssurance {
+                    assurance: CatalogAssurance::Certified.as_str().to_string(),
+                });
+            }
+            validate_certified_assurance(raw)?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(feature = "nns-host")]
+fn validate_certified_archive_binding(
+    raw: &RawSubnetCatalog,
+    archive: &NnsAuthenticatedRegistryArchive,
+) -> Result<(), CatalogError> {
+    let manifest = archive.manifest();
+    let expected_evidence = super::CertifiedRegistryCatalogEvidence {
+        archive_manifest_schema_version: manifest.schema_version,
+        delta_report_schema_version: manifest.delta_report_schema_version,
+        replay_provenance_schema_version: manifest.replay_provenance_schema_version,
+        root_key_digest: manifest.root_key_digest.clone(),
+        evidence_chain_digest: manifest.evidence_chain_digest.clone(),
+        complete_state_digest: manifest.complete_state_digest.clone(),
+        minimum_certificate_time_nanos: manifest.minimum_certificate_time_nanos,
+        maximum_certificate_time_nanos: manifest.maximum_certificate_time_nanos,
+    };
+    if raw.provenance.assurance != CatalogAssurance::Certified
+        || raw.provenance.network != manifest.network
+        || raw.provenance.registry_canister_id != manifest.registry_canister_id
+        || raw.provenance.registry_version != manifest.selected_version
+        || raw.provenance.source_endpoints != manifest.source_endpoints
+        || raw.provenance.registry_query_call_count != manifest.query_call_count
+        || raw.provenance.certified_registry.as_ref() != Some(&expected_evidence)
+    {
+        return Err(CatalogError::InvalidProvenance {
+            field: "provenance",
+            reason: "certified catalog provenance does not match its authenticated archive"
+                .to_string(),
+        });
+    }
+    Ok(())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validate_certified_assurance(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
+    if raw.provenance.agreement_digest.is_some() {
+        return Err(CatalogError::InvalidProvenance {
+            field: "provenance.agreement_digest",
+            reason: "certified assurance must not claim endpoint agreement".to_string(),
+        });
+    }
+    if raw
+        .provenance
+        .source_endpoints
+        .windows(2)
+        .any(|pair| pair[0] >= pair[1])
+    {
+        return Err(CatalogError::InvalidProvenance {
+            field: "provenance.source_endpoints",
+            reason: "certified archive endpoints must be unique and canonically ordered"
+                .to_string(),
+        });
+    }
+    let evidence = raw.provenance.certified_registry.as_ref().ok_or_else(|| {
+        CatalogError::InvalidProvenance {
+            field: "provenance.certified_registry",
+            reason: "certified assurance requires authenticated archive commitments".to_string(),
+        }
+    })?;
+    for (field, digest) in [
+        ("root_key_digest", &evidence.root_key_digest),
+        ("evidence_chain_digest", &evidence.evidence_chain_digest),
+        ("complete_state_digest", &evidence.complete_state_digest),
+    ] {
+        if digest.len() != 64 || !is_lowercase_hex(digest) {
+            return Err(CatalogError::InvalidProvenance {
+                field: "provenance.certified_registry",
+                reason: format!("{field} must be exactly 32 lowercase hexadecimal bytes"),
             });
         }
+    }
+    if evidence.archive_manifest_schema_version == 0
+        || evidence.delta_report_schema_version == 0
+        || evidence.replay_provenance_schema_version == 0
+    {
+        return Err(CatalogError::InvalidProvenance {
+            field: "provenance.certified_registry",
+            reason: "certified evidence schema versions must be greater than zero".to_string(),
+        });
+    }
+    if evidence.minimum_certificate_time_nanos > evidence.maximum_certificate_time_nanos {
+        return Err(CatalogError::InvalidProvenance {
+            field: "provenance.certified_registry",
+            reason: "minimum certificate time exceeds maximum certificate time".to_string(),
+        });
+    }
+    let maximum_certificate_time = crate::subnet_catalog::format_utc_timestamp_secs(
+        evidence.maximum_certificate_time_nanos / 1_000_000_000,
+    );
+    if raw.provenance.fetched_at != maximum_certificate_time {
+        return Err(CatalogError::InvalidProvenance {
+            field: "provenance.fetched_at",
+            reason: "certified catalog time must equal the latest archive certificate time"
+                .to_string(),
+        });
     }
     Ok(())
 }

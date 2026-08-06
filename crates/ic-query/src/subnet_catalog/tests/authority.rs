@@ -102,8 +102,16 @@ fn authority_validation_rejects_future_and_unclean_source_evidence() {
 fn certified_and_incomplete_agreement_claims_fail_closed() {
     let mut raw = fixture_catalog();
     raw.provenance.assurance = CatalogAssurance::Certified;
-    raw.provenance.certificate_time = Some(raw.provenance.fetched_at.clone());
-    raw.provenance.root_key_digest = Some("00".repeat(32));
+    raw.provenance.certified_registry = Some(CertifiedRegistryCatalogEvidence {
+        archive_manifest_schema_version: 1,
+        delta_report_schema_version: 3,
+        replay_provenance_schema_version: 1,
+        root_key_digest: "00".repeat(32),
+        evidence_chain_digest: "11".repeat(32),
+        complete_state_digest: "22".repeat(32),
+        minimum_certificate_time_nanos: 1_780_531_200_000_000_000,
+        maximum_certificate_time_nanos: 1_780_531_200_000_000_000,
+    });
     raw.canonicalize_and_seal()
         .expect("seal claimed certificate");
 

@@ -141,6 +141,16 @@ publication; custom async sources pass through the same pure
 sources remain responsible for cryptographically authenticating the raw
 certificate evidence they return.
 
+Certified Subnet Catalog authority is available only through the complete
+retained-evidence path. After publishing or loading an
+`NnsAuthenticatedRegistryArchive`, call `project_nns_certified_subnet_catalog`
+with an explicit `CatalogValidationContext`. The returned
+`NnsCertifiedSubnetCatalogAuthority` keeps its `ValidatedSubnetCatalog`
+borrowed to that archive. Ordinary `ValidatedSubnetCatalog::try_from_raw`
+continues to reject `CatalogAssurance::Certified`, so persisted JSON cannot
+self-assert authority. Projection makes no network call and does not publish a
+catalog cache.
+
 For pure model/rendering use, keep all features off:
 
 ```toml
@@ -715,6 +725,9 @@ that threshold fails with `InsufficientAssurance` rather than being treated as
 missing, invalid, or stale. The
 `refresh_missing_invalid_or_older_than` constructor keeps the source and
 maximum accepted age explicit.
+Ordinary catalog caches use schema 3. Existing schema-2 content is invalid and
+can be replaced only when the selected read policy explicitly permits invalid
+cache refresh; there is no migration or fallback reader.
 
 `ValidatedSubnetCatalog::resolve_canister_route` binds the canonical canister
 and Subnet principals, complete matched `SubnetInfo`, routing range, Registry

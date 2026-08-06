@@ -103,13 +103,13 @@ use ic_query::nns::registry::{
     NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
     NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryArchive,
     NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
-    NnsAuthenticatedRegistrySubnetCatalogProjection, NnsCertifiedRegistryArchiveBatchDescriptor,
-    NnsCertifiedRegistryArchiveError, NnsCertifiedRegistryArchiveLimits,
-    NnsCertifiedRegistryArchiveManifest, NnsCertifiedRegistryArchiveManifestBuilder,
-    NnsCertifiedRegistryArchivePublisher, NnsCertifiedRegistryArchiveStorageError,
-    NnsCertifiedRegistryArchiveStorageLimits, NnsCertifiedRegistryBootstrapProbeStatus,
-    NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
-    NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
+    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
+    NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
+    NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
+    NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
+    NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
+    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
+    NnsCertifiedSubnetCatalogAuthority, NnsRegistryHostError, NnsRegistryReplayError,
     NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
     NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
     NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
@@ -118,7 +118,7 @@ use ic_query::nns::registry::{
     fetch_nns_certified_registry_delta_batch_with_source_async,
     load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
-    project_nns_authenticated_registry_subnet_catalog, project_nns_registry_subnet_catalog,
+    project_nns_certified_subnet_catalog, project_nns_registry_subnet_catalog,
     reauthenticate_nns_certified_registry_delta_batch,
     validate_nns_certified_registry_archive_manifest, validate_nns_certified_registry_delta_batch,
 };
@@ -815,7 +815,7 @@ fn public_catalog_projection_requires_complete_replay_evidence() {
 
 #[cfg(feature = "nns-host")]
 #[test]
-fn public_live_bootstrap_and_projection_preserve_authentication_types() {
+fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() {
     fn accept_bootstrap_future<F>(_future: F)
     where
         F: std::future::Future<
@@ -839,11 +839,12 @@ fn public_live_bootstrap_and_projection_preserve_authentication_types() {
     accept_bootstrap_future(bootstrap_nns_certified_registry_async(&request));
 
     let builder: for<'a> fn(
-        &'a NnsAuthenticatedRegistryReplaySession,
+        &'a NnsAuthenticatedRegistryArchive,
+        &ic_query::subnet_catalog::CatalogValidationContext,
     ) -> Result<
-        NnsAuthenticatedRegistrySubnetCatalogProjection<'a>,
+        NnsCertifiedSubnetCatalogAuthority<'a>,
         NnsRegistrySubnetCatalogProjectionError,
-    > = project_nns_authenticated_registry_subnet_catalog;
+    > = project_nns_certified_subnet_catalog;
     let _ = builder;
 }
 
@@ -2616,7 +2617,7 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
         schema_version: 1,
         network: "ic".to_string(),
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
-        catalog_schema_version: 2,
+        catalog_schema_version: ic_query::subnet_catalog::CATALOG_SCHEMA_VERSION,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
         assurance: CatalogAssurance::UncertifiedQuery,
