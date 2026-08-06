@@ -99,14 +99,15 @@ use ic_query::nns::proposals::{
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
-    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryReplaySession,
-    NnsAuthenticatedRegistrySubnetCatalogProjection, NnsCertifiedRegistryBootstrapProbeStatus,
-    NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
-    NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
-    NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
-    NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
-    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
-    bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
+    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryReplayBuilder,
+    NnsAuthenticatedRegistryReplaySession, NnsAuthenticatedRegistrySubnetCatalogProjection,
+    NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
+    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
+    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplaySession,
+    NnsRegistryReplaySessionLimits, NnsRegistryReplayState, NnsRegistrySource,
+    NnsRegistrySubnetCatalogProjectionError, NnsRegistryVersionData,
+    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_async,
+    bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
@@ -526,6 +527,42 @@ fn retained_certified_registry_delta_reauthenticates_without_source_calls() {
         error,
         NnsRegistryHostError::EvidenceAuthentication { .. }
     ));
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_reauthenticated_replay_builder_accepts_only_sealed_batch_input() {
+    let mut fixture = authenticated_delta_fixture();
+    fixture.source_endpoint = "https://offline.invalid".to_string();
+    fixture
+        .report
+        .source_endpoint
+        .clone_from(&fixture.source_endpoint);
+    let request = fixture.request();
+    let batch = reauthenticate_nns_certified_registry_delta_batch(&request, &fixture.report)
+        .expect("frozen batch reauthenticates without a source call");
+    let limits = NnsRegistryReplaySessionLimits::new(
+        fixture.report.certified_latest_version,
+        100,
+        10_000,
+        128 * 1_024 * 1_024,
+        NnsRegistryReplayLimits::new(100_000, 128 * 1_024 * 1_024),
+    );
+    let mut builder = NnsAuthenticatedRegistryReplayBuilder::new(limits);
+
+    let error = builder
+        .apply_batch(&batch)
+        .expect_err("a retained sequence must still begin from Registry version zero");
+
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::VersionMismatch {
+            state_version: 0,
+            requested_version: 62_953,
+        }
+    ));
+    assert_eq!(builder.replay_session().state().through_version(), 0);
+    assert_eq!(builder.replay_session().batch_count(), 0);
 }
 
 #[cfg(feature = "nns-host")]

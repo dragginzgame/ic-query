@@ -99,7 +99,7 @@ pub async fn bootstrap_nns_certified_registry_async(
 ) -> Result<NnsAuthenticatedRegistryReplaySession, NnsRegistryReplayError> {
     let session =
         bootstrap_nns_certified_registry_with_source_async(request, &LiveNnsSource).await?;
-    NnsAuthenticatedRegistryReplaySession::from_built_in(session)
+    NnsAuthenticatedRegistryReplaySession::from_verified_complete(session)
 }
 
 /// Bootstrap complete certified Registry state from an explicit async source.

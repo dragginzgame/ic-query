@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.13` adds a bounded in-memory replay builder that accepts only sealed,
+  locally reauthenticated Registry delta batches. It starts at version zero,
+  preserves the existing exact-target, cumulative-limit, provenance, and
+  atomic-application contracts, exposes read-only progress, and returns the
+  same sealed authenticated replay-session type as live bootstrap only after
+  complete reconstruction. It performs no network or filesystem IO and adds
+  no archive format, cache, CLI, or certified catalog assurance.
+
 - `0.30.12` adds local reauthentication for retained schema-3 certified
   Registry delta reports. The operation validates the report, verifies its raw
   certificate and mixed-tree commitment against the built-in mainnet root key,

@@ -17,7 +17,9 @@ use super::{
 use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
 
-pub use authentication::NnsAuthenticatedRegistryReplaySession;
+pub use authentication::{
+    NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
+};
 pub use bootstrap::{
     NnsCertifiedRegistryBootstrapProbeOutcome, NnsCertifiedRegistryBootstrapProbeStatus,
     NnsCertifiedRegistryBootstrapRequest, bootstrap_nns_certified_registry_async,
@@ -272,9 +274,9 @@ pub enum NnsRegistryReplayError {
         reason: String,
     },
 
-    /// Type-level built-in authentication was requested for incomplete replay evidence.
+    /// Type-level authentication was requested for incomplete replay evidence.
     #[error(
-        "built-in Registry authentication requires a complete replay session: selected version {selected_version:?}, through version {through_version}"
+        "authenticated Registry replay requires a complete session: selected version {selected_version:?}, through version {through_version}"
     )]
     AuthenticationRequiresCompleteSession {
         /// Exact target selected from the first admitted report, when available.

@@ -502,6 +502,16 @@ Endpoint text remains explicit validated provenance but is not contacted.
 Reauthentication does not make an historical snapshot currently fresh and
 does not by itself restore a replay session or establish catalog assurance.
 
+Multiple reauthenticated batches can be admitted through
+`NnsAuthenticatedRegistryReplayBuilder`. The builder begins at Registry
+version zero, accepts only sealed `NnsAuthenticatedRegistryDeltaBatch` values,
+applies the existing explicit cumulative and state limits, and exposes
+read-only replay progress. A complete exact-target sequence can be consumed
+into the same `NnsAuthenticatedRegistryReplaySession` returned by live
+bootstrap. Missing, out-of-order, incomplete, or oversized retained sequences
+fail without acquiring that session capability. This path performs no network
+or filesystem IO and defines no archive format.
+
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time
 reconstruction from version zero. Every apply requires caller-selected live

@@ -5,10 +5,11 @@ use crate::{
         SubnetListRecord, SubnetRecord, SubnetType,
     },
     nns::registry::{
-        NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaSource,
-        NnsCertifiedRegistryDeltaSourceFuture, NnsCertifiedRegistryDeltaVersion,
-        NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding,
-        NnsRegistryCertification, NnsRegistryHostError, nns_certified_registry_delta_limits,
+        NnsAuthenticatedRegistryDeltaBatch, NnsCertifiedRegistryDeltaLimits,
+        NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
+        NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryPrecondition,
+        NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryHostError,
+        nns_certified_registry_delta_limits,
     },
     subnet_catalog::{
         CatalogError, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind,
@@ -634,11 +635,11 @@ fn catalog_projection_preserves_typed_record_and_catalog_failures() {
 }
 
 #[test]
-fn built_in_authentication_requires_complete_replay_provenance() {
+fn authenticated_replay_requires_complete_provenance() {
     let session = projection_session();
 
-    let error = NnsAuthenticatedRegistryReplaySession::from_built_in(session)
-        .expect_err("incomplete replay cannot acquire built-in authentication capability");
+    let error = NnsAuthenticatedRegistryReplaySession::from_verified_complete(session)
+        .expect_err("incomplete replay cannot acquire authentication capability");
 
     assert!(matches!(
         error,
@@ -652,8 +653,8 @@ fn built_in_authentication_requires_complete_replay_provenance() {
 #[test]
 fn authenticated_projection_composes_without_copying_catalog_rows() {
     let session = complete_catalog_projection_session(true, false);
-    let authenticated = NnsAuthenticatedRegistryReplaySession::from_built_in(session)
-        .expect("complete built-in fixture authentication");
+    let authenticated = NnsAuthenticatedRegistryReplaySession::from_verified_complete(session)
+        .expect("complete verified fixture authentication");
 
     {
         let projected = project_nns_authenticated_registry_subnet_catalog(&authenticated)
@@ -670,6 +671,74 @@ fn authenticated_projection_composes_without_copying_catalog_rows() {
     let ordinary = authenticated.into_replay_session();
     assert!(ordinary.is_complete());
     assert_eq!(ordinary.selected_version(), Some(1));
+}
+
+#[test]
+fn reauthenticated_batches_build_one_complete_authenticated_session() {
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let mut builder = NnsAuthenticatedRegistryReplayBuilder::new(fixture.limits);
+
+    let first_progress = builder
+        .apply_batch(&first)
+        .expect("first reauthenticated retained batch");
+    assert_eq!(first_progress.through_version, 1);
+    assert!(!builder.replay_session().is_complete());
+
+    let second_progress = builder
+        .apply_batch(&second)
+        .expect("second reauthenticated retained batch");
+    assert_eq!(second_progress.through_version, 2);
+    assert!(builder.replay_session().is_complete());
+
+    let authenticated = builder
+        .into_authenticated_replay_session()
+        .expect("complete retained replay can be sealed");
+    let session = authenticated.replay_session();
+    assert_eq!(session.selected_version(), Some(2));
+    assert_eq!(session.batch_count(), 2);
+    assert_eq!(session.source_endpoints().count(), 2);
+    assert!(session.evidence_chain_digest().is_some());
+    assert!(session.complete_state_digest().is_some());
+}
+
+#[test]
+fn reauthenticated_replay_builder_rejects_incomplete_and_over_limit_sequences() {
+    let fixture = provenance_fixture();
+    let empty = NnsAuthenticatedRegistryReplayBuilder::new(fixture.limits);
+    let error = empty
+        .into_authenticated_replay_session()
+        .expect_err("empty retained replay cannot be sealed");
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::AuthenticationRequiresCompleteSession {
+            selected_version: None,
+            through_version: 0,
+        }
+    ));
+
+    let limited =
+        NnsRegistryReplaySessionLimits::new(2, 1, 2, 128, NnsRegistryReplayLimits::new(10, 100));
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let mut builder = NnsAuthenticatedRegistryReplayBuilder::new(limited);
+    builder
+        .apply_batch(&first)
+        .expect("first retained batch fits cumulative limits");
+    let error = builder
+        .apply_batch(&second)
+        .expect_err("second retained batch exceeds cumulative limit");
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::SessionLimitExceeded {
+            field: "batch count",
+            maximum: 1,
+            actual: 2,
+        }
+    ));
+    assert_eq!(builder.replay_session().state().through_version(), 1);
+    assert_eq!(builder.replay_session().batch_count(), 1);
 }
 
 #[test]

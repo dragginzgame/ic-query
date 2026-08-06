@@ -1,15 +1,61 @@
 //! Module: nns::registry::replay::authentication
 //!
-//! Responsibility: preserve the built-in live source's authenticated replay capability.
-//! Does not own: certificate verification, replay, projection, persistence, or assurance policy.
-//! Boundary: only the built-in bootstrap path can construct the authenticated wrapper.
+//! Responsibility: preserve authenticated replay across live and retained-evidence paths.
+//! Does not own: certificate verification, replay mechanics, persistence, or assurance policy.
+//! Boundary: only complete sessions composed entirely from built-in verification can be sealed.
 
-use super::{NnsRegistryReplayError, NnsRegistryReplaySession};
+use super::{
+    NnsRegistryReplayError, NnsRegistryReplayProgress, NnsRegistryReplaySession,
+    NnsRegistryReplaySessionLimits,
+};
+use crate::nns::registry::NnsAuthenticatedRegistryDeltaBatch;
+
+///
+/// NnsAuthenticatedRegistryReplayBuilder
+///
+/// Bounded in-memory replay that admits only locally reauthenticated retained batches.
+///
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct NnsAuthenticatedRegistryReplayBuilder {
+    session: NnsRegistryReplaySession,
+}
+
+impl NnsAuthenticatedRegistryReplayBuilder {
+    /// Create a version-zero authenticated replay builder with explicit cumulative limits.
+    #[must_use]
+    pub const fn new(limits: NnsRegistryReplaySessionLimits) -> Self {
+        Self {
+            session: NnsRegistryReplaySession::new(limits),
+        }
+    }
+
+    /// Atomically admit one exact report already qualified by local reauthentication.
+    pub fn apply_batch(
+        &mut self,
+        batch: &NnsAuthenticatedRegistryDeltaBatch<'_>,
+    ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
+        self.session.apply_prevalidated_batch(batch.report())
+    }
+
+    /// Return authenticated replay progress without exposing an ordinary mutable session.
+    #[must_use]
+    pub const fn replay_session(&self) -> &NnsRegistryReplaySession {
+        &self.session
+    }
+
+    /// Seal a complete exact-target replay session, rejecting incomplete retained evidence.
+    pub fn into_authenticated_replay_session(
+        self,
+    ) -> Result<NnsAuthenticatedRegistryReplaySession, NnsRegistryReplayError> {
+        NnsAuthenticatedRegistryReplaySession::from_verified_complete(self.session)
+    }
+}
 
 ///
 /// NnsAuthenticatedRegistryReplaySession
 ///
-/// Complete replay session collected through ic-query's mainnet-root-key verifier.
+/// Complete replay session whose every batch passed ic-query's mainnet-root-key verifier.
 ///
 
 #[derive(Debug, Eq, PartialEq)]
@@ -18,7 +64,7 @@ pub struct NnsAuthenticatedRegistryReplaySession {
 }
 
 impl NnsAuthenticatedRegistryReplaySession {
-    pub(super) fn from_built_in(
+    pub(super) fn from_verified_complete(
         session: NnsRegistryReplaySession,
     ) -> Result<Self, NnsRegistryReplayError> {
         if !session.is_complete()

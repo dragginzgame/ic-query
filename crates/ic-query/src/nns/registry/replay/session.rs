@@ -121,6 +121,13 @@ impl NnsRegistryReplaySession {
         report: &NnsCertifiedRegistryDeltaBatchReport,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
         validate_nns_certified_registry_delta_batch(request, report)?;
+        self.apply_prevalidated_batch(report)
+    }
+
+    pub(super) fn apply_prevalidated_batch(
+        &mut self,
+        report: &NnsCertifiedRegistryDeltaBatchReport,
+    ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
         if self.state.through_version() != report.requested_version {
             return Err(NnsRegistryReplayError::VersionMismatch {
                 state_version: self.state.through_version(),

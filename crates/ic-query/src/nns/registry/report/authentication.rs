@@ -38,6 +38,13 @@ impl<'a> NnsAuthenticatedRegistryDeltaBatch<'a> {
     pub const fn report(&self) -> &'a NnsCertifiedRegistryDeltaBatchReport {
         self.report
     }
+
+    #[cfg(test)]
+    pub(crate) const fn from_validated_fixture(
+        report: &'a NnsCertifiedRegistryDeltaBatchReport,
+    ) -> Self {
+        Self { report }
+    }
 }
 
 /// Reauthenticate one retained certified Registry delta report without a network call.

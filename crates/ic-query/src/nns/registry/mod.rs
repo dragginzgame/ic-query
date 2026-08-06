@@ -6,12 +6,12 @@ mod report;
 
 #[cfg(feature = "nns-host")]
 pub use replay::{
-    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryReplaySession,
-    NnsAuthenticatedRegistrySubnetCatalogProjection, NnsCertifiedRegistryBootstrapProbeOutcome,
-    NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
-    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplayProgress,
-    NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
-    NnsRegistryReplayValue, NnsRegistrySubnetCatalogProjection,
+    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryReplayBuilder,
+    NnsAuthenticatedRegistryReplaySession, NnsAuthenticatedRegistrySubnetCatalogProjection,
+    NnsCertifiedRegistryBootstrapProbeOutcome, NnsCertifiedRegistryBootstrapProbeStatus,
+    NnsCertifiedRegistryBootstrapRequest, NnsRegistryReplayError, NnsRegistryReplayLimits,
+    NnsRegistryReplayProgress, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
+    NnsRegistryReplayState, NnsRegistryReplayValue, NnsRegistrySubnetCatalogProjection,
     NnsRegistrySubnetCatalogProjectionError, apply_nns_certified_registry_delta_batch,
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     probe_nns_certified_registry_async, probe_nns_certified_registry_with_source_async,
