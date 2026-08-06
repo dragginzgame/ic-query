@@ -107,6 +107,7 @@ use ic_query::nns::registry::{
     NnsCertifiedRegistryArchiveBootstrapRequest, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
+    NnsCertifiedRegistryArchiveRefreshError, NnsCertifiedRegistryArchiveRefreshRequest,
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
     NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
@@ -124,6 +125,8 @@ use ic_query::nns::registry::{
     nns_certified_registry_archive_refresh_lock_path, nns_certified_registry_delta_limits,
     probe_nns_certified_registry_with_source_async, project_nns_certified_subnet_catalog,
     project_nns_registry_subnet_catalog, reauthenticate_nns_certified_registry_delta_batch,
+    refresh_nns_certified_registry_archive_async,
+    refresh_nns_certified_registry_archive_with_source_async,
     validate_nns_certified_registry_archive_manifest, validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
@@ -850,6 +853,17 @@ fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() 
     {
     }
 
+    fn accept_archive_refresh_future<F>(_future: F)
+    where
+        F: std::future::Future<
+                Output = Result<
+                    NnsAuthenticatedRegistryArchive,
+                    NnsCertifiedRegistryArchiveRefreshError,
+                >,
+            >,
+    {
+    }
+
     let request = NnsCertifiedRegistryBootstrapRequest::new(
         "ic",
         "https://icp-api.io",
@@ -884,6 +898,20 @@ fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() 
     ));
     accept_archive_bootstrap_future(bootstrap_nns_certified_registry_archive_with_source_async(
         &archive_request,
+        &FixtureCertifiedRegistryDeltaSource,
+    ));
+    let refresh_request = NnsCertifiedRegistryArchiveRefreshRequest::new(
+        archive_request.bootstrap.clone(),
+        &archive_request.cache_root,
+        &archive_request.archive_root,
+        storage_limits,
+        300,
+    );
+    accept_archive_refresh_future(refresh_nns_certified_registry_archive_async(
+        &refresh_request,
+    ));
+    accept_archive_refresh_future(refresh_nns_certified_registry_archive_with_source_async(
+        &refresh_request,
         &FixtureCertifiedRegistryDeltaSource,
     ));
 

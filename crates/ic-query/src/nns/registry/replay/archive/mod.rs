@@ -1,10 +1,11 @@
 //! Module: nns::registry::replay::archive
 //!
-//! Responsibility: describe, validate, publish, restore, extend, and bootstrap certified evidence.
-//! Does not own: live incremental refresh, read policy, default paths, CLI, or catalog assurance.
+//! Responsibility: describe, validate, publish, restore, bootstrap, and refresh certified evidence.
+//! Does not own: read-through policy, default paths, cleanup, CLI, or catalog assurance.
 //! Boundary: manifests are indexes, not authority; reports must be reauthenticated on every load.
 
 mod bootstrap;
+mod refresh;
 pub(in crate::nns::registry::replay) mod storage;
 
 use super::{
@@ -17,7 +18,7 @@ use crate::{
     http_endpoint::parse_http_endpoint,
     nns::registry::{
         NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsAuthenticatedRegistryDeltaBatch,
-        NnsCertifiedRegistryDeltaBatchReport,
+        NnsCertifiedRegistryDeltaBatchReport, NnsRegistryHostError,
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -34,6 +35,13 @@ pub use bootstrap::{
     bootstrap_nns_certified_registry_archive_with_source_async,
     nns_certified_registry_archive_refresh_lock_path,
 };
+#[cfg(test)]
+pub(in crate::nns::registry::replay) use refresh::refresh_archive_with_authenticator_async;
+pub use refresh::{
+    NnsCertifiedRegistryArchiveRefreshError, NnsCertifiedRegistryArchiveRefreshRequest,
+    refresh_nns_certified_registry_archive_async,
+    refresh_nns_certified_registry_archive_with_source_async,
+};
 pub use storage::{
     NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchivePublisher,
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
@@ -42,6 +50,12 @@ pub use storage::{
 
 /// Version of the retained certified Registry archive-manifest contract.
 pub const NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION: u32 = 2;
+
+fn enforce_archive_mainnet_network(network: &str) -> Result<(), NnsRegistryReplayError> {
+    crate::network::enforce_mainnet_network_with(network, |network| {
+        NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork { network })
+    })
+}
 
 ///
 /// NnsCertifiedRegistryArchiveLimits

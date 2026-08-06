@@ -13,6 +13,7 @@ pub use replay::{
     NnsCertifiedRegistryArchiveBootstrapRequest, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
+    NnsCertifiedRegistryArchiveRefreshError, NnsCertifiedRegistryArchiveRefreshRequest,
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
     NnsCertifiedRegistryBootstrapProbeOutcome, NnsCertifiedRegistryBootstrapProbeStatus,
     NnsCertifiedRegistryBootstrapRequest, NnsCertifiedSubnetCatalogAuthority,
@@ -27,7 +28,9 @@ pub use replay::{
     load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
     nns_certified_registry_archive_refresh_lock_path, probe_nns_certified_registry_async,
     probe_nns_certified_registry_with_source_async, project_nns_certified_subnet_catalog,
-    project_nns_registry_subnet_catalog, validate_nns_certified_registry_archive_manifest,
+    project_nns_registry_subnet_catalog, refresh_nns_certified_registry_archive_async,
+    refresh_nns_certified_registry_archive_with_source_async,
+    validate_nns_certified_registry_archive_manifest,
 };
 pub use report::{
     DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,

@@ -131,7 +131,7 @@ pub(in crate::nns::registry::replay) async fn bootstrap_archive_with_authenticat
     source: &dyn NnsCertifiedRegistryDeltaSource,
     authenticator: &dyn ArchiveBatchAuthenticator,
 ) -> Result<NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchiveBootstrapError> {
-    enforce_mainnet_before_filesystem(request)?;
+    super::enforce_archive_mainnet_network(&request.bootstrap.network)?;
     let manifest_path = nns_certified_registry_archive_manifest_path(&request.archive_root);
     let lock_path = nns_certified_registry_archive_refresh_lock_path(&request.archive_root);
     create_managed_parent_directory(&request.cache_root, &manifest_path)
@@ -195,14 +195,6 @@ async fn collect_and_publish(
             return publisher.finish().map_err(Into::into);
         }
     }
-}
-
-fn enforce_mainnet_before_filesystem(
-    request: &NnsCertifiedRegistryArchiveBootstrapRequest,
-) -> Result<(), NnsRegistryReplayError> {
-    crate::network::enforce_mainnet_network_with(&request.bootstrap.network, |network| {
-        NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork { network })
-    })
 }
 
 const fn archive_filesystem_error(

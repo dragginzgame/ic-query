@@ -2,7 +2,7 @@
 //!
 //! Responsibility: apply certified Registry batches, retain authentication, and project replay state.
 //! Does not own: persistence, cache policy, catalog publication, or assurance promotion.
-//! Boundary: replay is atomic; source follow-ups occur only in the pre-call-budgeted bootstrap API.
+//! Boundary: replay is atomic; source follow-ups occur only in explicit pre-call-budgeted operations.
 
 mod archive;
 mod authentication;
@@ -24,11 +24,13 @@ pub use archive::{
     NnsCertifiedRegistryArchiveBootstrapRequest, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryArchivePublisher,
+    NnsCertifiedRegistryArchiveRefreshError, NnsCertifiedRegistryArchiveRefreshRequest,
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
     bootstrap_nns_certified_registry_archive_async,
     bootstrap_nns_certified_registry_archive_with_source_async,
     load_nns_certified_registry_archive, nns_certified_registry_archive_manifest_path,
-    nns_certified_registry_archive_refresh_lock_path,
+    nns_certified_registry_archive_refresh_lock_path, refresh_nns_certified_registry_archive_async,
+    refresh_nns_certified_registry_archive_with_source_async,
     validate_nns_certified_registry_archive_manifest,
 };
 pub use authentication::{

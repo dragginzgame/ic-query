@@ -554,9 +554,19 @@ collection, refresh policy, lock, or CLI surface.
 reauthenticates an existing schema-2 archive under new caller-selected
 cumulative limits, then accepts sealed extension batches without rewriting its
 historical objects. It performs no source call and acquires no lock itself; a
-live coordinator must hold the dedicated archive lock across resume,
+caller using it directly must hold the dedicated archive lock across resume,
 collection, and `finish`. Schema-1 archives are rejected without migration or
 a fallback reader and require an explicit new force bootstrap.
+
+`refresh_nns_certified_registry_archive_async` is the explicit live incremental
+coordinator for an existing schema-2 archive. Its
+`NnsCertifiedRegistryArchiveRefreshRequest` requires the collection, cumulative
+replay/storage, confined path, and lock-staleness policies. It rejects
+non-mainnet and missing archives before source work, holds the archive lock
+across local reauthentication and every bounded call, and atomically publishes
+one complete successor segment. An unchanged Registry version is retained as
+fresh authenticated evidence. Failure preserves the prior manifest; refresh is
+never triggered by an archive load or ordinary catalog read-through.
 
 `bootstrap_nns_certified_registry_archive_async` is the explicit live
 publication coordinator. Its request requires the source/time/replay policy,
@@ -567,7 +577,7 @@ locally reauthenticates every returned report, and publishes the manifest only
 after exact-target completion. The custom-source counterpart applies the same
 mainnet reauthentication boundary. This is always a force bootstrap from
 version zero; it is never invoked by archive or catalog loads and adds no
-incremental refresh, cleanup, default path, or CLI surface.
+cleanup, default path, or CLI surface.
 
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time

@@ -279,7 +279,33 @@ impl NnsRegistryReplaySession {
         maximum_batch_query_calls: u64,
         maximum_batch_response_bytes: u64,
     ) -> Result<(), NnsRegistryReplayError> {
-        if let Some(selected_version) = self.selected_version
+        self.ensure_source_call_capacity(
+            maximum_batch_query_calls,
+            maximum_batch_response_bytes,
+            false,
+        )
+    }
+
+    pub(super) fn ensure_next_extension_source_call_capacity(
+        &self,
+        maximum_batch_query_calls: u64,
+        maximum_batch_response_bytes: u64,
+    ) -> Result<(), NnsRegistryReplayError> {
+        self.ensure_source_call_capacity(
+            maximum_batch_query_calls,
+            maximum_batch_response_bytes,
+            true,
+        )
+    }
+
+    fn ensure_source_call_capacity(
+        &self,
+        maximum_batch_query_calls: u64,
+        maximum_batch_response_bytes: u64,
+        permit_completed_segment: bool,
+    ) -> Result<(), NnsRegistryReplayError> {
+        if !permit_completed_segment
+            && let Some(selected_version) = self.selected_version
             && self.state.through_version() == selected_version
         {
             return Err(NnsRegistryReplayError::SessionComplete { selected_version });

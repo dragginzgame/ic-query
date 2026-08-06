@@ -20,7 +20,9 @@ use crate::nns::{
 ///
 /// NnsCertifiedRegistryBootstrapRequest
 ///
-/// Explicit mainnet source, observation time, and resource limits for complete replay bootstrap.
+/// Explicit mainnet source, observation time, and resource limits for bounded replay collection.
+/// Complete bootstrap uses it from version zero; archive refresh reuses the same cumulative policy
+/// from the retained exact target.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -71,7 +73,7 @@ pub struct NnsCertifiedRegistryBootstrapProbeOutcome {
 }
 
 impl NnsCertifiedRegistryBootstrapRequest {
-    /// Create an explicit bootstrap request without selecting default limits.
+    /// Create an explicit bounded collection request without selecting default limits.
     #[must_use]
     pub fn new(
         network: impl Into<String>,

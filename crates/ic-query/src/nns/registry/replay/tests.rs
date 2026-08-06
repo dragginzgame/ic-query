@@ -20,7 +20,11 @@ use crate::{
 };
 use candid::Principal;
 use prost::Message;
-use std::{fs, path::Path, sync::Mutex};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 const NOW: u64 = 1_780_531_200;
 const PROJECTION_SUBNET: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
@@ -1709,6 +1713,35 @@ impl super::archive::storage::ArchiveBatchAuthenticator for PanicArchiveAuthenti
     }
 }
 
+#[derive(Default)]
+struct RejectExtensionAuthenticator {
+    accepted_reports: Mutex<usize>,
+}
+
+impl super::archive::storage::ArchiveBatchAuthenticator for RejectExtensionAuthenticator {
+    fn authenticate<'a>(
+        &self,
+        request: &NnsCertifiedRegistryDeltaBatchRequest,
+        report: &'a NnsCertifiedRegistryDeltaBatchReport,
+    ) -> Result<NnsAuthenticatedRegistryDeltaBatch<'a>, NnsRegistryHostError> {
+        let mut accepted_reports = self
+            .accepted_reports
+            .lock()
+            .expect("reject-extension authenticator lock");
+        if *accepted_reports == 2 {
+            return Err(NnsRegistryHostError::InvalidSourceData {
+                reason: "fixture rejects the extension report".to_string(),
+            });
+        }
+        *accepted_reports += 1;
+        drop(accepted_reports);
+        validate_nns_certified_registry_delta_batch(request, report)?;
+        Ok(NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(
+            report,
+        ))
+    }
+}
+
 const fn archive_storage_limits() -> NnsCertifiedRegistryArchiveStorageLimits {
     NnsCertifiedRegistryArchiveStorageLimits::new(
         100_000,
@@ -1742,6 +1775,61 @@ fn fixture_archive_bootstrap(
         source,
         &FixtureArchiveAuthenticator,
     ))
+}
+
+fn fixture_archive_refresh(
+    request: &NnsCertifiedRegistryArchiveRefreshRequest,
+    source: &dyn NnsCertifiedRegistryDeltaSource,
+) -> Result<NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchiveRefreshError> {
+    futures::executor::block_on(super::archive::refresh_archive_with_authenticator_async(
+        request,
+        source,
+        &FixtureArchiveAuthenticator,
+    ))
+}
+
+fn bootstrap_fixture_archive(
+    cache_root: &Path,
+    archive_root: &Path,
+    replay_limits: NnsRegistryReplaySessionLimits,
+    storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
+) -> NnsAuthenticatedRegistryArchive {
+    let collection = NnsCertifiedRegistryBootstrapRequest::new(
+        MAINNET_NETWORK,
+        "https://icp-api.io",
+        NOW,
+        replay_limits,
+    );
+    let request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
+        collection,
+        cache_root,
+        archive_root,
+        storage_limits,
+        300,
+    );
+    fixture_archive_bootstrap(&request, &BootstrapSource::default())
+        .expect("fixture archive bootstrap")
+}
+
+fn archive_refresh_request(
+    network: &str,
+    cache_root: &Path,
+    archive_root: &Path,
+    replay_limits: NnsRegistryReplaySessionLimits,
+    storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
+) -> NnsCertifiedRegistryArchiveRefreshRequest {
+    NnsCertifiedRegistryArchiveRefreshRequest::new(
+        NnsCertifiedRegistryBootstrapRequest::new(
+            network,
+            "https://icp-api.io",
+            NOW,
+            replay_limits,
+        ),
+        cache_root,
+        archive_root,
+        storage_limits,
+        300,
+    )
 }
 
 #[test]
@@ -2098,6 +2186,217 @@ fn failed_archive_force_bootstrap_preserves_the_previous_complete_manifest() {
 }
 
 #[test]
+fn certified_archive_refresh_extends_one_exact_target_under_the_archive_lock() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-refresh");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    let replay_limits = extended_replay_limits();
+    let storage_limits = extended_archive_storage_limits();
+    bootstrap_fixture_archive(&root, &archive_root, replay_limits, storage_limits);
+    let source = ArchiveRefreshSource::new(
+        ArchiveRefreshMode::Advancing,
+        nns_certified_registry_archive_refresh_lock_path(&archive_root),
+    );
+    let request = archive_refresh_request(
+        MAINNET_NETWORK,
+        &root,
+        &archive_root,
+        replay_limits,
+        storage_limits,
+    );
+
+    let archive = fixture_archive_refresh(&request, &source).expect("advancing archive refresh");
+
+    assert_eq!(source.requested_versions(), vec![3, 4]);
+    assert_eq!(archive.manifest().segment_count, 2);
+    assert_eq!(archive.manifest().selected_version, 5);
+    assert_eq!(archive.manifest().batch_count, 4);
+    assert_eq!(archive.manifest().batches[2].segment_target_version, 5);
+    assert_eq!(archive.manifest().batches[3].segment_target_version, 5);
+    let state = archive.replay_session().replay_session().state();
+    assert_eq!(state.through_version(), 5);
+    assert_eq!(state.get(b"a").expect("updated a").value(), b"four");
+    assert_eq!(state.get(b"b").expect("inserted b").value(), b"five");
+    assert!(state.get(b"future").is_none());
+    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_refresh_retains_an_authenticated_unchanged_version_observation() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-refresh-unchanged");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    let replay_limits = extended_replay_limits();
+    let storage_limits = extended_archive_storage_limits();
+    let initial = bootstrap_fixture_archive(&root, &archive_root, replay_limits, storage_limits);
+    let source = ArchiveRefreshSource::new(
+        ArchiveRefreshMode::Unchanged,
+        nns_certified_registry_archive_refresh_lock_path(&archive_root),
+    );
+    let request = archive_refresh_request(
+        MAINNET_NETWORK,
+        &root,
+        &archive_root,
+        replay_limits,
+        storage_limits,
+    );
+
+    let refreshed = fixture_archive_refresh(&request, &source).expect("unchanged archive refresh");
+
+    assert_eq!(source.requested_versions(), vec![3]);
+    assert_eq!(refreshed.manifest().segment_count, 2);
+    assert_eq!(refreshed.manifest().selected_version, 3);
+    assert_eq!(refreshed.manifest().batch_count, 3);
+    assert_eq!(refreshed.manifest().batches[2].applied_mutation_count, 0);
+    assert_eq!(
+        refreshed.manifest().complete_state_digest,
+        initial.manifest().complete_state_digest
+    );
+    assert_ne!(
+        refreshed.manifest().evidence_chain_digest,
+        initial.manifest().evidence_chain_digest
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_refresh_reserves_cumulative_capacity_before_source_work() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-refresh-capacity");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    let storage_limits = extended_archive_storage_limits();
+    bootstrap_fixture_archive(
+        &root,
+        &archive_root,
+        extended_replay_limits(),
+        storage_limits,
+    );
+    let manifest_path = nns_certified_registry_archive_manifest_path(&archive_root);
+    let before = fs::read(&manifest_path).expect("initial manifest bytes");
+    let constrained = NnsRegistryReplaySessionLimits::new(
+        10,
+        2,
+        130,
+        80 * 1_024 * 1_024,
+        NnsRegistryReplayLimits::new(20, 1_000),
+    );
+    let source = ArchiveRefreshSource::new(
+        ArchiveRefreshMode::Unchanged,
+        nns_certified_registry_archive_refresh_lock_path(&archive_root),
+    );
+    let request = archive_refresh_request(
+        MAINNET_NETWORK,
+        &root,
+        &archive_root,
+        constrained,
+        storage_limits,
+    );
+
+    let error = fixture_archive_refresh(&request, &source)
+        .expect_err("extension lacks cumulative batch capacity");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveRefreshError::Replay(
+            NnsRegistryReplayError::SessionLimitExceeded {
+                field: "batch count",
+                maximum: 2,
+                actual: 3,
+            }
+        )
+    ));
+    assert!(source.requested_versions().is_empty());
+    assert_eq!(fs::read(manifest_path).expect("preserved manifest"), before);
+    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_refresh_authentication_failure_preserves_the_prior_manifest() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-refresh-auth");
+    let archive_root = root.join("nns/ic/registry-certified-v2");
+    let replay_limits = extended_replay_limits();
+    let storage_limits = extended_archive_storage_limits();
+    bootstrap_fixture_archive(&root, &archive_root, replay_limits, storage_limits);
+    let manifest_path = nns_certified_registry_archive_manifest_path(&archive_root);
+    let before = fs::read(&manifest_path).expect("initial manifest bytes");
+    let source = ArchiveRefreshSource::new(
+        ArchiveRefreshMode::Unchanged,
+        nns_certified_registry_archive_refresh_lock_path(&archive_root),
+    );
+    let request = archive_refresh_request(
+        MAINNET_NETWORK,
+        &root,
+        &archive_root,
+        replay_limits,
+        storage_limits,
+    );
+
+    let error =
+        futures::executor::block_on(super::archive::refresh_archive_with_authenticator_async(
+            &request,
+            &source,
+            &RejectExtensionAuthenticator::default(),
+        ))
+        .expect_err("new source report fails local authentication");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveRefreshError::BatchAuthentication {
+            requested_version: 3,
+            ..
+        }
+    ));
+    assert_eq!(source.requested_versions(), vec![3]);
+    assert_eq!(fs::read(manifest_path).expect("preserved manifest"), before);
+    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_archive_refresh_rejects_non_mainnet_and_missing_archives_without_source_work() {
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-refresh-preflight");
+    let archive_root = root.join("missing/nns-registry");
+    let source = ArchiveRefreshSource::new(
+        ArchiveRefreshMode::Unchanged,
+        nns_certified_registry_archive_refresh_lock_path(&archive_root),
+    );
+    let local = archive_refresh_request(
+        "local",
+        &root,
+        &archive_root,
+        extended_replay_limits(),
+        extended_archive_storage_limits(),
+    );
+
+    let error = fixture_archive_refresh(&local, &source).expect_err("non-mainnet refresh");
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveRefreshError::Replay(
+            NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
+                network
+            })
+        ) if network == "local"
+    ));
+    assert!(!root.exists());
+
+    let mainnet = archive_refresh_request(
+        MAINNET_NETWORK,
+        &root,
+        &archive_root,
+        extended_replay_limits(),
+        extended_archive_storage_limits(),
+    );
+    let error = fixture_archive_refresh(&mainnet, &source).expect_err("missing archive refresh");
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveRefreshError::Storage(
+            NnsCertifiedRegistryArchiveStorageError::MissingManifest { .. }
+        )
+    ));
+    assert!(source.requested_versions().is_empty());
+    assert!(!root.exists());
+}
+
+#[test]
 fn certified_bootstrap_probe_returns_explicit_bounded_partial_progress() {
     let source = BootstrapSource::default();
     let request = bootstrap_request(MAINNET_NETWORK, 1, 65, 40 * 1_024 * 1_024);
@@ -2287,6 +2586,96 @@ impl NnsCertifiedRegistryDeltaSource for BootstrapSource {
                 version => Err(NnsRegistryHostError::InvalidSourceData {
                     reason: format!("unexpected bootstrap fixture request after version {version}"),
                 }),
+            }
+        })
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ArchiveRefreshMode {
+    Advancing,
+    Unchanged,
+}
+
+struct ArchiveRefreshSource {
+    mode: ArchiveRefreshMode,
+    lock_path: PathBuf,
+    requested_versions: Mutex<Vec<u64>>,
+}
+
+impl ArchiveRefreshSource {
+    fn new(mode: ArchiveRefreshMode, lock_path: PathBuf) -> Self {
+        Self {
+            mode,
+            lock_path,
+            requested_versions: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn requested_versions(&self) -> Vec<u64> {
+        self.requested_versions
+            .lock()
+            .expect("archive refresh fixture request lock")
+            .clone()
+    }
+}
+
+impl NnsCertifiedRegistryDeltaSource for ArchiveRefreshSource {
+    fn fetch_certified_registry_delta_batch<'a>(
+        &'a self,
+        request: &'a NnsCertifiedRegistryDeltaBatchRequest,
+    ) -> NnsCertifiedRegistryDeltaSourceFuture<'a> {
+        assert!(self.lock_path.is_file(), "source call must run under lock");
+        self.requested_versions
+            .lock()
+            .expect("archive refresh fixture request lock")
+            .push(request.requested_version);
+        Box::pin(async move {
+            match (self.mode, request.requested_version) {
+                (ArchiveRefreshMode::Unchanged, version) => {
+                    Ok(report_versions(request, version, Vec::new()))
+                }
+                (ArchiveRefreshMode::Advancing, 3) => Ok(report_versions(
+                    request,
+                    5,
+                    vec![version(
+                        4,
+                        vec![mutation(
+                            NnsCertifiedRegistryMutationKind::Update,
+                            b"a",
+                            Some(b"four"),
+                        )],
+                    )],
+                )),
+                (ArchiveRefreshMode::Advancing, 4) => Ok(report_versions(
+                    request,
+                    6,
+                    vec![
+                        version(
+                            5,
+                            vec![mutation(
+                                NnsCertifiedRegistryMutationKind::Upsert,
+                                b"b",
+                                Some(b"five"),
+                            )],
+                        ),
+                        version(
+                            6,
+                            vec![mutation(
+                                NnsCertifiedRegistryMutationKind::Upsert,
+                                b"future",
+                                Some(b"ignored"),
+                            )],
+                        ),
+                    ],
+                )),
+                (ArchiveRefreshMode::Advancing, requested_version) => {
+                    Err(NnsRegistryHostError::InvalidSourceData {
+                        reason: format!(
+                            "unexpected archive refresh fixture request after version {requested_version}"
+                        ),
+                    })
+                }
             }
         })
     }

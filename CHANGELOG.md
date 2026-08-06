@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.21` adds explicit live incremental refresh for an existing certified
+  Registry archive. Refresh rejects non-mainnet and missing archives before
+  source work, holds the archive lock across bounded local reauthentication,
+  collection, and atomic publication, and reserves cumulative replay and
+  storage capacity before every call. It publishes one complete successor
+  segment, including an authenticated unchanged-version observation, while
+  preserving the prior manifest on failure. No read-through policy, cleanup,
+  default path, migration, or CLI surface is added.
+
 - `0.30.20` hard-cuts certified Registry archives to segmented manifest schema
   2 and adds local resumable publication. Each batch records its segment and
   target; a completed archive can retain either a higher exact target or a

@@ -447,7 +447,7 @@ pub(in crate::nns::registry::replay) trait ArchiveBatchAuthenticator:
 ///
 /// BuiltInArchiveAuthenticator
 ///
-/// Fixed local mainnet retained-report authenticator shared by archive load and bootstrap.
+/// Fixed local mainnet retained-report authenticator shared by archive load, bootstrap, and refresh.
 ///
 
 pub(super) struct BuiltInArchiveAuthenticator;

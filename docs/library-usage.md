@@ -165,6 +165,17 @@ collection must hold the dedicated archive lock until `finish` publishes the
 complete new segment. Schema-1 archives have no compatibility reader or
 migration and must be explicitly force-bootstrapped again.
 
+For the complete live boundary, call
+`refresh_nns_certified_registry_archive_async` with an explicit
+`NnsCertifiedRegistryArchiveRefreshRequest`. It requires an existing manifest,
+rejects non-mainnet and missing archives before source work, and holds the
+dedicated lock across resume, bounded collection, local authentication, and
+atomic publication. The first response selects one exact successor target;
+collection stops when that target completes, even if a later batch observes a
+newer version. An unchanged version is published as a complete empty evidence
+segment. The custom-source counterpart retains the same built-in mainnet
+reauthentication boundary.
+
 Certified Subnet Catalog authority is available only through the complete
 retained-evidence path. After publishing or loading an
 `NnsAuthenticatedRegistryArchive`, call `project_nns_certified_subnet_catalog`
