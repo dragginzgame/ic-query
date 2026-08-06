@@ -268,6 +268,7 @@ pub fn remove_managed_regular_file(
     Ok(true)
 }
 
+#[cfg(feature = "nns-host")]
 const fn removal_not_completed(source: CacheFileError) -> ManagedFileRemovalError {
     ManagedFileRemovalError {
         removed: false,
