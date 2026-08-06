@@ -1,11 +1,12 @@
 use super::{
     error::NnsRegistryHostError,
     model::{
-        NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsCertifiedRegistryDeltaBatchReport,
-        NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
-        NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
-        NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
-        NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
+        NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsCertifiedRegistryChunkEvidence,
+        NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
+        NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
+        NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
+        NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding,
+        NnsRegistryCertification,
     },
 };
 use crate::{
@@ -152,6 +153,14 @@ fn report_from_live_batch(
     let first_version = batch.versions.first().map(|row| row.version);
     let last_version = batch.versions.last().map(|row| row.version);
     let versions = project_live_versions(batch.versions)?;
+    let chunk_evidence = batch
+        .chunk_evidence
+        .into_iter()
+        .map(|row| NnsCertifiedRegistryChunkEvidence {
+            sha256_hex: crate::hex::hex_bytes(&row.sha256),
+            content_hex: crate::hex::hex_bytes(&row.content),
+        })
+        .collect();
     let certificate_time = format_utc_timestamp_secs(batch.certificate_time_nanos / 1_000_000_000);
     let chunk_query_call_count = u64::try_from(batch.chunk_query_call_count).map_err(|_| {
         NnsRegistryHostError::InvalidSourceData {
@@ -185,6 +194,7 @@ fn report_from_live_batch(
         chunk_value_bytes: batch.chunk_value_bytes,
         value_bytes: batch.value_bytes,
         chunk_reference_count: batch.chunk_reference_count,
+        chunk_evidence_bytes: batch.chunk_evidence_bytes,
         more_available: batch.more_available,
         fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
         source_endpoint: request.source_endpoint.clone(),
@@ -196,6 +206,7 @@ fn report_from_live_batch(
         response_bytes,
         limits: nns_certified_registry_delta_limits(),
         versions,
+        chunk_evidence,
         certification: NnsRegistryCertification {
             certificate_verified: true,
             certificate_time_nanos: batch.certificate_time_nanos,

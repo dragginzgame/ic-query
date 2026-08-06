@@ -31,8 +31,8 @@ pub use error::RegistryFetchError;
 pub use model::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-host")]
 pub use model::{
-    CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion, CertifiedRegistryMutation,
-    CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
+    CertifiedRegistryChunkEvidence, CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion,
+    CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
 };
 #[cfg(feature = "nns-host")]
 pub use model::{

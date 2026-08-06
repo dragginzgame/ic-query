@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.11` hard-cuts certified Registry delta reports to schema 3 and
+  retains each unique hash-verified large-value chunk once in canonical digest
+  order. The pure validator now re-hashes every retained chunk, requires the
+  table to match the exact referenced digest set, recomputes retained-byte
+  accounting, and reconstructs every chunked mutation from its ordered
+  evidence. Live calls and ceilings are unchanged. Replay evidence-chain
+  digests consequently commit to the stronger report; state digests are
+  unchanged. This adds no cache, CLI, or certified catalog assurance.
+
 - `0.30.10` hard-cuts the built-in certified Registry bootstrap to return a
   sealed `NnsAuthenticatedRegistryReplaySession`. Only ic-query's fixed live
   path, which verifies every batch against the mainnet root key, can construct

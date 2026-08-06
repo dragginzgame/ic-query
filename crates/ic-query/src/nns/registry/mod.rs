@@ -18,12 +18,12 @@ pub use replay::{
     project_nns_authenticated_registry_subnet_catalog, project_nns_registry_subnet_catalog,
 };
 pub use report::{
-    DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsCertifiedRegistryDeltaBatchReport,
-    NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
-    NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
-    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
-    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
-    NnsRegistryVersionRequest, nns_registry_version_report_text,
+    DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NnsCertifiedRegistryChunkEvidence,
+    NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
+    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
+    NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
+    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{

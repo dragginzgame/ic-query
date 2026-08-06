@@ -5,6 +5,8 @@
 //! Boundary: no caller can reconstruct an unbounded large Registry value.
 
 use super::{RegistryQueryCounter, hex_bytes};
+#[cfg(feature = "nns-host")]
+use crate::ic_registry::CertifiedRegistryChunkEvidence;
 use crate::ic_registry::{
     RegistryFetchError,
     wire::{RegistryChunk, RegistryGetChunkRequest},
@@ -118,6 +120,14 @@ impl RegistryChunkBudget {
     #[cfg(feature = "nns-host")]
     pub(in crate::ic_registry) const fn reconstructed_value_bytes(&self) -> usize {
         self.reconstructed_value_bytes
+    }
+
+    #[cfg(feature = "nns-host")]
+    pub(in crate::ic_registry) fn into_chunk_evidence(self) -> Vec<CertifiedRegistryChunkEvidence> {
+        self.cache
+            .into_iter()
+            .map(|(sha256, content)| CertifiedRegistryChunkEvidence { sha256, content })
+            .collect()
     }
 
     fn validated_hashes(
@@ -409,6 +419,36 @@ mod tests {
             error,
             RegistryFetchError::ChunkHashMismatch { .. }
         ));
+    }
+
+    #[cfg(feature = "nns-host")]
+    #[test]
+    fn budget_publishes_unique_chunk_evidence_in_digest_order() {
+        let first_content = b"first".to_vec();
+        let second_content = b"second".to_vec();
+        let first_hash = sha256_digest(&first_content);
+        let second_hash = sha256_digest(&second_content);
+        let mut budget = RegistryChunkBudget::new(RegistryChunkLimits::certified_delta(), 0)
+            .expect("empty budget");
+
+        budget
+            .append_fetched_chunk(&mut Vec::new(), second_hash, second_content.clone())
+            .expect("second chunk");
+        budget
+            .append_fetched_chunk(&mut Vec::new(), first_hash, first_content.clone())
+            .expect("first chunk");
+
+        let evidence = budget.into_chunk_evidence();
+        assert_eq!(evidence.len(), 2);
+        assert!(evidence[0].sha256 < evidence[1].sha256);
+        for row in evidence {
+            let expected = if row.sha256 == first_hash {
+                &first_content
+            } else {
+                &second_content
+            };
+            assert_eq!(&row.content, expected);
+        }
     }
 
     #[test]

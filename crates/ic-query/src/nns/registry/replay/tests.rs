@@ -488,7 +488,7 @@ fn replay_session_provenance_digests_are_deterministic_and_domain_stable() {
 
     assert_eq!(
         crate::hex::hex_bytes(&evidence_digest),
-        "31006cb49af6ba5f36211f79bdf7aec9da19e3ceda8ee93759acd4fa315c12e5"
+        "d2c7f253eaef14275bffacf96173d04dfe98fdd818c0c1fcdd416ae419479531"
     );
     assert_eq!(
         crate::hex::hex_bytes(&state_digest),
@@ -1267,7 +1267,7 @@ fn report_versions(
     let first_version = versions.first().map(|version| version.version);
     let last_version = versions.last().map(|version| version.version);
     NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 2,
+        schema_version: 3,
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         requested_version: request.requested_version,
@@ -1281,6 +1281,7 @@ fn report_versions(
         chunk_value_bytes: 0,
         value_bytes: inline_value_bytes,
         chunk_reference_count: 0,
+        chunk_evidence_bytes: 0,
         more_available: last_version.unwrap_or(request.requested_version)
             < certified_latest_version,
         fetched_at: format_utc_timestamp_secs(NOW),
@@ -1293,6 +1294,7 @@ fn report_versions(
         response_bytes: 64,
         limits: limits(),
         versions,
+        chunk_evidence: Vec::new(),
         certification: NnsRegistryCertification {
             certificate_verified: true,
             certificate_time_nanos: NOW * 1_000_000_000,

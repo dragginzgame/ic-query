@@ -500,16 +500,7 @@ const fn enforce_limit(
 }
 
 fn decode_hex(field: &'static str, value: &str) -> Result<Vec<u8>, NnsRegistryReplayError> {
-    if !value.len().is_multiple_of(2) || !crate::hex::is_lowercase_hex(value) {
-        return Err(NnsRegistryReplayError::InvalidHex { field });
-    }
-    (0..value.len())
-        .step_by(2)
-        .map(|index| {
-            u8::from_str_radix(&value[index..index + 2], 16)
-                .map_err(|_| NnsRegistryReplayError::InvalidHex { field })
-        })
-        .collect()
+    crate::hex::decode_lowercase_hex(value).ok_or(NnsRegistryReplayError::InvalidHex { field })
 }
 
 #[cfg(test)]

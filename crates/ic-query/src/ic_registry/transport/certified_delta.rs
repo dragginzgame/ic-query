@@ -100,6 +100,15 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
     let chunk_value_bytes = value_bytes
         .checked_sub(validated.inline_value_bytes)
         .ok_or_else(|| invalid_certified_registry("completed value byte accounting underflows"))?;
+    let chunk_reference_count = chunk_budget.reference_count();
+    let chunk_query_call_count = chunk_budget.query_call_count();
+    let chunk_response_bytes = chunk_budget.response_bytes();
+    let chunk_evidence = chunk_budget.into_chunk_evidence();
+    let chunk_evidence_bytes = chunk_evidence.iter().try_fold(0_usize, |total, row| {
+        total
+            .checked_add(row.content.len())
+            .ok_or_else(|| invalid_certified_registry("retained chunk evidence bytes overflow"))
+    })?;
 
     Ok(CertifiedRegistryDeltaBatch {
         requested_version,
@@ -110,9 +119,11 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
         inline_value_bytes: validated.inline_value_bytes,
         chunk_value_bytes,
         value_bytes,
-        chunk_reference_count: chunk_budget.reference_count(),
-        chunk_query_call_count: chunk_budget.query_call_count(),
-        chunk_response_bytes: chunk_budget.response_bytes(),
+        chunk_reference_count,
+        chunk_evidence_bytes,
+        chunk_evidence,
+        chunk_query_call_count,
+        chunk_response_bytes,
         more_available: validated.more_available,
         certified_response_bytes: response_bytes,
         certificate_time_nanos: authenticated.certificate_time_nanos,

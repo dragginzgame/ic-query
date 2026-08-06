@@ -15,6 +15,8 @@ pub struct CertifiedRegistryDeltaBatch {
     pub(crate) chunk_value_bytes: usize,
     pub(crate) value_bytes: usize,
     pub(crate) chunk_reference_count: usize,
+    pub(crate) chunk_evidence_bytes: usize,
+    pub(crate) chunk_evidence: Vec<CertifiedRegistryChunkEvidence>,
     pub(crate) chunk_query_call_count: usize,
     pub(crate) chunk_response_bytes: usize,
     pub(crate) more_available: bool,
@@ -25,6 +27,18 @@ pub struct CertifiedRegistryDeltaBatch {
     pub(crate) certificate_bytes: usize,
     pub(crate) hash_tree_hex: String,
     pub(crate) hash_tree_bytes: usize,
+}
+
+///
+/// CertifiedRegistryChunkEvidence
+///
+/// One unique hash-verified Registry chunk retained as complete batch evidence.
+///
+
+#[derive(Debug)]
+pub struct CertifiedRegistryChunkEvidence {
+    pub(crate) sha256: [u8; 32],
+    pub(crate) content: Vec<u8>,
 }
 
 ///

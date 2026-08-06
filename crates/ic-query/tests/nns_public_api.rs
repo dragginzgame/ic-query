@@ -114,11 +114,11 @@ use ic_query::nns::registry::{
     validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
-    NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
-    NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
-    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
-    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
-    NnsRegistryVersionRequest, nns_registry_version_report_text,
+    NnsCertifiedRegistryChunkEvidence, NnsCertifiedRegistryDeltaBatchReport,
+    NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
+    NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
+    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
+    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::topology::{
@@ -460,6 +460,7 @@ fn public_certified_registry_delta_models_preserve_raw_evidence() {
 
     let json = serde_json::to_value(report).expect("serialize certified delta report");
 
+    assert_eq!(json["schema_version"], 3);
     assert_eq!(json["requested_version"], 41);
     assert_eq!(json["versions"][0]["mutations"][0]["mutation_type"], 4);
     assert_eq!(
@@ -472,6 +473,8 @@ fn public_certified_registry_delta_models_preserve_raw_evidence() {
         "inline"
     );
     assert_eq!(json["chunk_reference_count"], 0);
+    assert_eq!(json["chunk_evidence_bytes"], 0);
+    assert_eq!(json["chunk_evidence"], serde_json::json!([]));
     assert_eq!(json["query_call_count"], 1);
 }
 
@@ -765,7 +768,7 @@ fn public_certified_delta_report(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
 ) -> NnsCertifiedRegistryDeltaBatchReport {
     NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 2,
+        schema_version: 3,
         network: "ic".to_string(),
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         requested_version: request.requested_version,
@@ -779,6 +782,7 @@ fn public_certified_delta_report(
         chunk_value_bytes: 0,
         value_bytes: 1,
         chunk_reference_count: 0,
+        chunk_evidence_bytes: 0,
         more_available: false,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint.clone(),
@@ -802,6 +806,7 @@ fn public_certified_delta_report(
             }],
             preconditions: Vec::new(),
         }],
+        chunk_evidence: Vec::<NnsCertifiedRegistryChunkEvidence>::new(),
         certification: public_registry_certification(),
     }
 }

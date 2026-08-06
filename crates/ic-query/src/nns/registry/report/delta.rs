@@ -16,11 +16,12 @@ use super::{
     source::{NnsCertifiedRegistryDeltaSource, nns_certified_registry_delta_limits},
 };
 use crate::{
-    hex::is_canonical_lowercase_hex,
+    hex::{decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex},
     nns::LiveNnsSource,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
 };
-use std::collections::BTreeSet;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 
 impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);
 
@@ -187,7 +188,9 @@ fn validate_delta_contents(
         totals.chunk_reference_count,
         report.chunk_reference_count,
     )?;
-    let unique_chunk_query_count = u64::try_from(totals.chunk_sha256_hexes.len())
+    let chunk_evidence = validate_chunk_evidence(report, &totals.chunk_sha256_hexes)?;
+    validate_chunked_values(report, &chunk_evidence)?;
+    let unique_chunk_query_count = u64::try_from(chunk_evidence.len())
         .map_err(|_| invalid_source_data("unique chunk query count exceeds u64"))?;
     validate_equal(
         "chunk_query_call_count",
@@ -200,6 +203,112 @@ fn validate_delta_contents(
         last_version < report.certified_latest_version,
         report.more_available,
     )?;
+    Ok(())
+}
+
+fn validate_chunk_evidence<'a>(
+    report: &'a NnsCertifiedRegistryDeltaBatchReport,
+    referenced_sha256_hexes: &BTreeSet<String>,
+) -> Result<BTreeMap<&'a str, &'a str>, NnsRegistryHostError> {
+    let mut chunks = BTreeMap::new();
+    let mut evidence_bytes = 0_usize;
+    let mut previous_sha256 = None;
+    for row in &report.chunk_evidence {
+        if row.sha256_hex.len() != 64 || !is_canonical_lowercase_hex(&row.sha256_hex) {
+            return Err(invalid_source_data(
+                "chunk evidence SHA-256 digests must be exactly 64 lowercase hexadecimal characters",
+            ));
+        }
+        if previous_sha256.is_some_and(|previous| previous >= row.sha256_hex.as_str()) {
+            return Err(invalid_source_data(
+                "chunk evidence must be unique and strictly ordered by SHA-256 digest",
+            ));
+        }
+        if !row.content_hex.len().is_multiple_of(2) || !is_lowercase_hex(&row.content_hex) {
+            return Err(invalid_source_data(
+                "chunk evidence content must be lowercase hexadecimal with an even length",
+            ));
+        }
+        let content = decode_lowercase_hex(&row.content_hex).ok_or_else(|| {
+            invalid_source_data(
+                "chunk evidence content could not be decoded as lowercase hexadecimal",
+            )
+        })?;
+        if content.len() > report.limits.max_chunk_bytes {
+            return Err(invalid_source_data(format!(
+                "chunk evidence content exceeds the maximum of {} bytes",
+                report.limits.max_chunk_bytes
+            )));
+        }
+        let actual_sha256 = crate::hex::hex_bytes(&Sha256::digest(&content));
+        if actual_sha256 != row.sha256_hex {
+            return Err(invalid_source_data(format!(
+                "chunk evidence content does not match SHA-256 digest {}",
+                row.sha256_hex
+            )));
+        }
+        evidence_bytes = checked_total(
+            "chunk_evidence_bytes",
+            evidence_bytes,
+            content.len(),
+            report.limits.max_value_bytes,
+        )?;
+        chunks.insert(row.sha256_hex.as_str(), row.content_hex.as_str());
+        previous_sha256 = Some(row.sha256_hex.as_str());
+    }
+    validate_equal(
+        "chunk_evidence_bytes",
+        evidence_bytes,
+        report.chunk_evidence_bytes,
+    )?;
+    if chunks.len() != referenced_sha256_hexes.len()
+        || referenced_sha256_hexes
+            .iter()
+            .any(|sha256| !chunks.contains_key(sha256.as_str()))
+    {
+        return Err(invalid_source_data(
+            "chunk evidence must contain exactly the unique digests referenced by mutations",
+        ));
+    }
+    Ok(chunks)
+}
+
+fn validate_chunked_values(
+    report: &NnsCertifiedRegistryDeltaBatchReport,
+    chunks: &BTreeMap<&str, &str>,
+) -> Result<(), NnsRegistryHostError> {
+    for mutation in report
+        .versions
+        .iter()
+        .flat_map(|version| version.mutations.iter())
+        .filter(|mutation| mutation.value_encoding == NnsCertifiedRegistryValueEncoding::Chunked)
+    {
+        let value_hex = mutation.value_hex.as_deref().ok_or_else(|| {
+            invalid_source_data("chunked mutation is missing reconstructed value content")
+        })?;
+        let mut offset = 0_usize;
+        for sha256 in &mutation.chunk_sha256_hexes {
+            let content_hex = chunks.get(sha256.as_str()).ok_or_else(|| {
+                invalid_source_data(format!(
+                    "chunked mutation references missing chunk evidence {sha256}"
+                ))
+            })?;
+            let end = offset.checked_add(content_hex.len()).ok_or_else(|| {
+                invalid_source_data("chunked value reconstruction overflows usize")
+            })?;
+            if value_hex.get(offset..end) != Some(*content_hex) {
+                return Err(invalid_source_data(
+                    "chunked mutation value does not match its ordered chunk evidence",
+                ));
+            }
+            offset = end;
+        }
+        if offset != value_hex.len() {
+            return Err(invalid_source_data(
+                "chunked mutation value does not match its ordered chunk evidence",
+            ));
+        }
+    }
     Ok(())
 }
 

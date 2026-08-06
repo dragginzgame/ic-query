@@ -481,9 +481,12 @@ loops over later batches, writes a cache, or promotes Subnet Catalog
 assurance. Chunk-referenced values in that batch are completed with
 hash-verified `get_chunk` calls under fixed per-call, per-value, and aggregate
 ceilings, with digest reuse and exact call/byte accounting preserved in report
-schema 2. The pure validator checks structural evidence returned by trusted
-custom sources; only the built-in live transport cryptographically
-authenticates the raw certificate and witness. Historical non-delete
+schema 3. Each unique chunk is retained once in canonical digest order, and
+the pure validator re-hashes its content, requires exact reference coverage,
+and reconstructs every chunked value from the retained evidence. It checks
+structural evidence returned by trusted custom sources; only the built-in live
+transport cryptographically authenticates the raw certificate and witness.
+Historical non-delete
 mutations whose empty legacy protobuf value has no encoded content arm are
 preserved as empty inline values, matching the official Registry transport.
 Committed same-key mutations retain their stable order, and any retained

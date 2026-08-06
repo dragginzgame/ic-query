@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "nns-host")]
 pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 2;
 #[cfg(feature = "nns-host")]
-pub(super) const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 2;
+pub(super) const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 3;
 
 ///
 /// NnsRegistryVersionRequest
@@ -150,6 +150,8 @@ pub struct NnsCertifiedRegistryDeltaBatchReport {
     pub value_bytes: usize,
     /// Number of certified chunk references across all visible mutations.
     pub chunk_reference_count: usize,
+    /// Complete bytes retained once per unique content-addressed chunk.
+    pub chunk_evidence_bytes: usize,
     /// Whether later certified versions require another explicit request.
     pub more_available: bool,
     /// Caller collection time.
@@ -172,8 +174,24 @@ pub struct NnsCertifiedRegistryDeltaBatchReport {
     pub limits: NnsCertifiedRegistryDeltaLimits,
     /// Ordered contiguous Registry versions.
     pub versions: Vec<NnsCertifiedRegistryDeltaVersion>,
+    /// Unique hash-verified chunks in canonical digest order.
+    pub chunk_evidence: Vec<NnsCertifiedRegistryChunkEvidence>,
     /// Certificate and mixed-tree evidence authenticating the batch.
     pub certification: NnsRegistryCertification,
+}
+
+///
+/// NnsCertifiedRegistryChunkEvidence
+///
+/// One unique Registry chunk retained with its content-addressed digest.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NnsCertifiedRegistryChunkEvidence {
+    /// SHA-256 digest as exactly 64 lowercase hexadecimal characters.
+    pub sha256_hex: String,
+    /// Complete decoded chunk content as lowercase hexadecimal.
+    pub content_hex: String,
 }
 
 ///
