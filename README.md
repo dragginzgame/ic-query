@@ -517,7 +517,19 @@ read-only replay progress. A complete exact-target sequence can be consumed
 into the same `NnsAuthenticatedRegistryReplaySession` returned by live
 bootstrap. Missing, out-of-order, incomplete, or oversized retained sequences
 fail without acquiring that session capability. This path performs no network
-or filesystem IO and defines no archive format.
+or filesystem IO.
+
+`NnsCertifiedRegistryArchiveManifestBuilder` adds the versioned, library-only
+archive index contract. It accepts the same sealed batches, hashes each report's
+canonical compact JSON without buffering another encoded copy, applies explicit
+per-report and total archive-byte ceilings before replay publication, and emits
+a manifest only after exact-target completion. The manifest records strict batch
+order, content digests, schema versions, accounting totals, root-key identity,
+certificate-time bounds, replay commitments, and canonical source endpoints.
+A loaded manifest is never authority by itself: every retained report must be
+size-checked, reauthenticated, replayed in order, and compared with a recomputed
+manifest. This stage defines no filesystem path, cache, refresh behavior, or CLI
+surface and does not enable `CatalogAssurance::Certified`.
 
 `nns-host` also exposes `NnsRegistryReplayState` and
 `apply_nns_certified_registry_delta_batch` for pure, one-batch-at-a-time

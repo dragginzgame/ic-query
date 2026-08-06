@@ -4,6 +4,7 @@
 //! Does not own: persistence, cache policy, catalog publication, or assurance promotion.
 //! Boundary: replay is atomic; source follow-ups occur only in the pre-call-budgeted bootstrap API.
 
+mod archive;
 mod authentication;
 mod bootstrap;
 mod projection;
@@ -17,6 +18,12 @@ use super::{
 use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
 
+pub use archive::{
+    NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
+    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
+    NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
+    NnsCertifiedRegistryArchiveManifestBuilder, validate_nns_certified_registry_archive_manifest,
+};
 pub use authentication::{
     NnsAuthenticatedRegistryReplayBuilder, NnsAuthenticatedRegistryReplaySession,
 };

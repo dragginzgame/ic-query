@@ -5,11 +5,11 @@ use crate::{
         SubnetListRecord, SubnetRecord, SubnetType,
     },
     nns::registry::{
-        NnsAuthenticatedRegistryDeltaBatch, NnsCertifiedRegistryDeltaLimits,
-        NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
-        NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryPrecondition,
-        NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryHostError,
-        nns_certified_registry_delta_limits,
+        NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsAuthenticatedRegistryDeltaBatch,
+        NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaSource,
+        NnsCertifiedRegistryDeltaSourceFuture, NnsCertifiedRegistryDeltaVersion,
+        NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding,
+        NnsRegistryCertification, NnsRegistryHostError, nns_certified_registry_delta_limits,
     },
     subnet_catalog::{
         CatalogError, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind,
@@ -739,6 +739,239 @@ fn reauthenticated_replay_builder_rejects_incomplete_and_over_limit_sequences() 
     ));
     assert_eq!(builder.replay_session().state().through_version(), 1);
     assert_eq!(builder.replay_session().batch_count(), 1);
+}
+
+#[test]
+fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let archive_limits = NnsCertifiedRegistryArchiveLimits::new(2, 100_000, 200_000);
+    let mut builder =
+        NnsCertifiedRegistryArchiveManifestBuilder::new(fixture.limits, archive_limits);
+
+    builder.apply_batch(&first).expect("first archive batch");
+    builder.apply_batch(&second).expect("second archive batch");
+    let (manifest, authenticated) = builder.finish().expect("complete archive manifest");
+
+    assert_eq!(
+        manifest.schema_version,
+        NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION
+    );
+    assert_eq!(manifest.network, MAINNET_NETWORK);
+    assert_eq!(
+        manifest.delta_report_schema_version,
+        NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION
+    );
+    assert_eq!(
+        manifest.replay_provenance_schema_version,
+        NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION
+    );
+    assert_eq!(manifest.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
+    assert_eq!(manifest.selected_version, 2);
+    assert_eq!(manifest.batch_count, 2);
+    assert_eq!(manifest.batches.len(), 2);
+    assert_eq!(manifest.batches[0].ordinal, 0);
+    assert_eq!(manifest.batches[0].requested_version, 0);
+    assert_eq!(manifest.batches[0].applied_through_version, 1);
+    assert_eq!(manifest.batches[1].ordinal, 1);
+    assert_eq!(manifest.batches[1].requested_version, 1);
+    assert_eq!(manifest.batches[1].applied_through_version, 2);
+    assert_eq!(
+        manifest.total_report_bytes,
+        manifest
+            .batches
+            .iter()
+            .map(|batch| batch.report_bytes)
+            .sum::<u64>()
+    );
+    assert_eq!(
+        manifest.source_endpoints,
+        ["https://example.com", "https://icp-api.io"]
+    );
+    assert_eq!(manifest.root_key_digest, "ab".repeat(32));
+    assert_eq!(manifest.evidence_chain_digest.len(), 64);
+    assert_eq!(manifest.complete_state_digest.len(), 64);
+    assert_ne!(
+        manifest.batches[0].report_sha256,
+        manifest.batches[1].report_sha256
+    );
+    assert_eq!(
+        manifest.batches[0].report_bytes,
+        u64::try_from(
+            serde_json::to_vec(&fixture.first)
+                .expect("canonical first JSON")
+                .len()
+        )
+        .expect("first JSON length")
+    );
+    validate_nns_certified_registry_archive_manifest(&manifest, archive_limits)
+        .expect("built manifest validates");
+    let round_trip: NnsCertifiedRegistryArchiveManifest =
+        serde_json::from_slice(&serde_json::to_vec(&manifest).expect("serialize archive manifest"))
+            .expect("deserialize archive manifest");
+    assert_eq!(round_trip, manifest);
+    let mut unknown_field = serde_json::to_value(&manifest).expect("manifest JSON value");
+    unknown_field
+        .as_object_mut()
+        .expect("manifest JSON object")
+        .insert("future_field".to_string(), serde_json::json!(true));
+    assert!(
+        serde_json::from_value::<NnsCertifiedRegistryArchiveManifest>(unknown_field).is_err(),
+        "schema-1 manifests reject undeclared fields"
+    );
+    assert_eq!(
+        authenticated.replay_session().complete_state_digest(),
+        Some(
+            crate::hex::decode_lowercase_hex(&manifest.complete_state_digest)
+                .expect("state digest hex")
+                .try_into()
+                .expect("32-byte state digest")
+        )
+    );
+}
+
+#[test]
+fn archive_builder_enforces_encoding_limits_before_replay_publication() {
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let first_bytes = u64::try_from(
+        serde_json::to_vec(&fixture.first)
+            .expect("first report JSON")
+            .len(),
+    )
+    .expect("first report length");
+    let limits = NnsCertifiedRegistryArchiveLimits::new(2, first_bytes - 1, first_bytes * 2);
+    let mut builder = NnsCertifiedRegistryArchiveManifestBuilder::new(fixture.limits, limits);
+
+    let error = builder
+        .apply_batch(&first)
+        .expect_err("oversized canonical report");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveError::LimitExceeded {
+            field: "batch report bytes",
+            maximum,
+            actual,
+        } if maximum == first_bytes - 1 && actual == first_bytes
+    ));
+    assert_eq!(builder.replay_session().batch_count(), 0);
+    assert_eq!(builder.replay_session().state().through_version(), 0);
+
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let second_bytes = u64::try_from(
+        serde_json::to_vec(&fixture.second)
+            .expect("second report JSON")
+            .len(),
+    )
+    .expect("second report length");
+    let total_limit = first_bytes + second_bytes - 1;
+    let limits = NnsCertifiedRegistryArchiveLimits::new(2, 100_000, total_limit);
+    let mut builder = NnsCertifiedRegistryArchiveManifestBuilder::new(fixture.limits, limits);
+    builder
+        .apply_batch(&first)
+        .expect("first report fits total archive limit");
+
+    let error = builder
+        .apply_batch(&second)
+        .expect_err("second report exceeds total archive limit");
+
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveError::LimitExceeded {
+            field: "total report bytes",
+            maximum,
+            actual,
+        } if maximum == total_limit && actual == first_bytes + second_bytes
+    ));
+    assert_eq!(builder.replay_session().batch_count(), 1);
+    assert_eq!(builder.replay_session().state().through_version(), 1);
+}
+
+#[test]
+fn archive_manifest_validation_rejects_tampered_index_fields() {
+    let fixture = provenance_fixture();
+    let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
+    let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
+    let limits = NnsCertifiedRegistryArchiveLimits::new(2, 100_000, 200_000);
+    let mut builder = NnsCertifiedRegistryArchiveManifestBuilder::new(fixture.limits, limits);
+    builder.apply_batch(&first).expect("first archive batch");
+    builder.apply_batch(&second).expect("second archive batch");
+    let (manifest, _) = builder.finish().expect("complete archive manifest");
+
+    let mut wrong_ordinal = manifest.clone();
+    wrong_ordinal.batches[1].ordinal = 0;
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&wrong_ordinal, limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
+    let mut skipped_version = manifest.clone();
+    skipped_version.batches[1].requested_version = 0;
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&skipped_version, limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
+    let mut changed_digest = manifest.clone();
+    changed_digest.batches[0].report_sha256 = "AB".repeat(32);
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&changed_digest, limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
+    let mut changed_total = manifest.clone();
+    changed_total.total_report_bytes += 1;
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&changed_total, limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
+    let mut unsorted_endpoints = manifest.clone();
+    unsorted_endpoints.source_endpoints.reverse();
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&unsorted_endpoints, limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
+    let mut after_completion = manifest.clone();
+    let mut extra = after_completion.batches[1].clone();
+    extra.ordinal = 2;
+    extra.requested_version = manifest.selected_version;
+    extra.first_version = None;
+    extra.last_version = None;
+    extra.applied_through_version = manifest.selected_version;
+    extra.certified_latest_version = manifest.selected_version;
+    after_completion.batch_count += 1;
+    after_completion.total_report_bytes += extra.report_bytes;
+    after_completion.query_call_count += extra.query_call_count;
+    after_completion.response_bytes += extra.response_bytes;
+    after_completion.applied_mutation_count += extra.applied_mutation_count;
+    after_completion.batches.push(extra);
+    let three_batch_limits = NnsCertifiedRegistryArchiveLimits::new(
+        3,
+        limits.max_batch_report_bytes,
+        limits.max_total_report_bytes * 2,
+    );
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&after_completion, three_batch_limits),
+        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+    ));
+
+    let too_small = NnsCertifiedRegistryArchiveLimits::new(
+        1,
+        limits.max_batch_report_bytes,
+        limits.max_total_report_bytes,
+    );
+    assert!(matches!(
+        validate_nns_certified_registry_archive_manifest(&manifest, too_small),
+        Err(NnsCertifiedRegistryArchiveError::LimitExceeded {
+            field: "batch count",
+            maximum: 1,
+            actual: 2,
+        })
+    ));
 }
 
 #[test]

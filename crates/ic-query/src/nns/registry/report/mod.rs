@@ -26,12 +26,12 @@ pub use delta::{
 #[cfg(feature = "nns-host")]
 pub use error::NnsRegistryHostError;
 pub use model::{
-    NnsCertifiedRegistryChunkEvidence, NnsCertifiedRegistryDeltaBatchReport,
-    NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
-    NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
-    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
-    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
-    NnsRegistryVersionRequest,
+    NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsCertifiedRegistryChunkEvidence,
+    NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
+    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
+    NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
+    NnsRegistryVersionReport, NnsRegistryVersionRequest,
 };
 #[cfg(feature = "nns-host")]
 pub use source::{

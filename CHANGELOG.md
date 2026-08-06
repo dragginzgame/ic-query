@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.15` adds a versioned, bounded certified Registry archive-manifest
+  contract under `nns-host`. Its builder accepts only locally authenticated
+  retained batches, streams canonical report JSON through SHA-256 and byte
+  accounting without another encoded copy, enforces explicit batch/per-report/
+  total ceilings before replay publication, and emits a manifest only after
+  exact-target completion. Pure validation rejects identity, schema, ordering,
+  continuity, digest, endpoint, and accounting inconsistencies. Manifests remain
+  untrusted indexes until every report is reauthenticated and replayed; this
+  adds no filesystem storage, cache, network call, CLI, or certified catalog
+  assurance.
+
 - `0.30.14` makes the shared `patch`, `minor`, and `major` release gate run
   `cargo clean` after CI exits, including failed CI runs, while preserving the
   gate's original status if cleanup itself fails. CI guards now use exact,

@@ -99,20 +99,25 @@ use ic_query::nns::proposals::{
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
+    NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
+    NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
     NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsAuthenticatedRegistryReplayBuilder,
     NnsAuthenticatedRegistryReplaySession, NnsAuthenticatedRegistrySubnetCatalogProjection,
-    NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
-    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
-    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplaySession,
-    NnsRegistryReplaySessionLimits, NnsRegistryReplayState, NnsRegistrySource,
-    NnsRegistrySubnetCatalogProjectionError, NnsRegistryVersionData,
-    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_async,
-    bootstrap_nns_certified_registry_with_source_async,
+    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
+    NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
+    NnsCertifiedRegistryArchiveManifestBuilder, NnsCertifiedRegistryBootstrapProbeStatus,
+    NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
+    NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
+    NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
+    NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
+    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
+    bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
     project_nns_authenticated_registry_subnet_catalog, project_nns_registry_subnet_catalog,
-    reauthenticate_nns_certified_registry_delta_batch, validate_nns_certified_registry_delta_batch,
+    reauthenticate_nns_certified_registry_delta_batch,
+    validate_nns_certified_registry_archive_manifest, validate_nns_certified_registry_delta_batch,
 };
 use ic_query::nns::registry::{
     NnsCertifiedRegistryChunkEvidence, NnsCertifiedRegistryDeltaBatchReport,
@@ -563,6 +568,51 @@ fn public_reauthenticated_replay_builder_accepts_only_sealed_batch_input() {
     ));
     assert_eq!(builder.replay_session().state().through_version(), 0);
     assert_eq!(builder.replay_session().batch_count(), 0);
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_certified_registry_archive_manifest_contract_is_bounded_and_untrusted() {
+    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 1);
+    let replay_limits = NnsRegistryReplaySessionLimits::new(
+        100,
+        10,
+        100,
+        1_000_000,
+        NnsRegistryReplayLimits::new(1_000, 1_000_000),
+    );
+    let archive_limits = NnsCertifiedRegistryArchiveLimits::new(10, 1_000_000, 10_000_000);
+    let builder = NnsCertifiedRegistryArchiveManifestBuilder::new(replay_limits, archive_limits);
+    assert_eq!(builder.replay_session().batch_count(), 0);
+
+    let batches: Vec<NnsCertifiedRegistryArchiveBatchDescriptor> = Vec::new();
+    let untrusted = NnsCertifiedRegistryArchiveManifest {
+        schema_version: NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
+        delta_report_schema_version: NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
+        replay_provenance_schema_version: NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION,
+        network: "ic".to_string(),
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        selected_version: 0,
+        batch_count: 0,
+        total_report_bytes: 0,
+        query_call_count: 0,
+        response_bytes: 0,
+        applied_mutation_count: 0,
+        root_key_digest: "00".repeat(32),
+        evidence_chain_digest: "00".repeat(32),
+        complete_state_digest: "00".repeat(32),
+        minimum_certificate_time_nanos: 0,
+        maximum_certificate_time_nanos: 0,
+        source_endpoints: vec!["https://icp-api.io".to_string()],
+        batches,
+    };
+
+    let error = validate_nns_certified_registry_archive_manifest(&untrusted, archive_limits)
+        .expect_err("an empty deserialized manifest is not an archive authority");
+    assert!(matches!(
+        error,
+        NnsCertifiedRegistryArchiveError::InvalidManifest { .. }
+    ));
 }
 
 #[cfg(feature = "nns-host")]
