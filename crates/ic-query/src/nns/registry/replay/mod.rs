@@ -1,6 +1,6 @@
 //! Module: nns::registry::replay
 //!
-//! Responsibility: apply certified Registry batches and coordinate explicit bounded bootstrap.
+//! Responsibility: apply certified Registry batches and coordinate bounded replay provenance.
 //! Does not own: persistence, cache policy, catalog projection, or assurance promotion.
 //! Boundary: replay is atomic; source follow-ups occur only in the pre-call-budgeted bootstrap API.
 
@@ -21,7 +21,10 @@ pub use bootstrap::{
     bootstrap_nns_certified_registry_with_source_async, probe_nns_certified_registry_async,
     probe_nns_certified_registry_with_source_async,
 };
-pub use session::{NnsRegistryReplaySession, NnsRegistryReplaySessionLimits};
+pub use session::{
+    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsRegistryReplaySession,
+    NnsRegistryReplaySessionLimits,
+};
 
 ///
 /// NnsRegistryReplayLimits
@@ -253,6 +256,13 @@ pub enum NnsRegistryReplayError {
     /// Internal byte accounting could not be represented consistently.
     #[error("Registry replay byte accounting overflowed or became inconsistent")]
     Accounting,
+
+    /// A validated report could not be streamed into its evidence commitment.
+    #[error("validated Registry replay evidence could not be encoded: {reason}")]
+    EvidenceEncoding {
+        /// Serialization failure returned while hashing the validated report.
+        reason: String,
+    },
 }
 
 /// Apply exactly one validated certified Registry delta batch atomically.

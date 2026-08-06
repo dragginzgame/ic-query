@@ -500,7 +500,12 @@ authority evidence without the validated certified reports that produced it.
 response-byte ceilings and pins the first batch's certified latest version as
 the exact target. If later reports observe a newer Registry version, the
 session applies only through its original target. These pure admission limits
-do not initiate or pre-budget source work.
+do not initiate or pre-budget source work. Sessions retain distinct source
+endpoint strings in canonical order, certificate-time bounds, and a
+deterministic digest chain over every admitted validated report. A separate
+canonical state digest is exposed only after exact-target completion. One
+public schema constant versions both commitments. These commitments do not
+reauthenticate a custom source or establish catalog assurance by themselves.
 
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case

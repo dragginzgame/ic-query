@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.8` extends exact-target replay sessions with compact provenance needed
+  before any certified projection. Each admitted validated report advances a
+  domain-separated SHA-256 evidence chain without buffering another full
+  report; sessions also retain distinct source endpoint strings in canonical
+  order and certificate-time bounds. A separate canonical digest of keys,
+  values, mutation positions, and timestamps appears only after the pinned
+  target is complete. One public schema constant versions both commitments.
+  Failed batches publish none of this candidate provenance. The commitments
+  are not serialized, cached, or standalone authentication, and certified
+  Subnet Catalog assurance remains unsupported.
+
 - `0.30.7` aligns certified replay with two additional committed Registry
   history rules proven by a complete bounded mainnet reconstruction. Repeated
   keys inside one atomic version are preserved and applied in their stable,

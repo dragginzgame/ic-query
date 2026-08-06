@@ -99,12 +99,12 @@ use ic_query::nns::proposals::{
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
-    NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
-    NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError,
-    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplaySession,
-    NnsRegistryReplaySessionLimits, NnsRegistryReplayState, NnsRegistrySource,
-    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
-    bootstrap_nns_certified_registry_with_source_async,
+    NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, NnsCertifiedRegistryBootstrapProbeStatus,
+    NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
+    NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistryReplayError,
+    NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
+    NnsRegistryReplayState, NnsRegistrySource, NnsRegistryVersionData,
+    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, probe_nns_certified_registry_with_source_async,
@@ -560,6 +560,47 @@ fn public_certified_registry_validator_preserves_committed_same_key_delete_conte
 
     validate_nns_certified_registry_delta_batch(&request, &report)
         .expect("public validator preserves ordered committed rows and ignored delete content");
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_replay_session_exposes_complete_provenance_commitments() {
+    assert_eq!(NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, 1);
+    let request =
+        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 0, 1_700_000_000);
+    let mut report = public_certified_delta_report(&request);
+    report.certified_latest_version = 1;
+    report.first_version = Some(1);
+    report.last_version = Some(1);
+    report.more_available = false;
+    report.versions[0].version = 1;
+    let mut session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
+        1,
+        1,
+        1,
+        64,
+        NnsRegistryReplayLimits::new(10, 100),
+    ));
+
+    session
+        .apply_batch(&request, &report)
+        .expect("complete public replay session");
+
+    assert!(session.is_complete());
+    assert!(session.evidence_chain_digest().is_some());
+    assert!(session.complete_state_digest().is_some());
+    assert_eq!(
+        session.source_endpoints().collect::<Vec<_>>(),
+        vec!["https://icp-api.io"]
+    );
+    assert_eq!(
+        session.minimum_certificate_time_nanos(),
+        Some(1_700_000_000_000_000_000)
+    );
+    assert_eq!(
+        session.maximum_certificate_time_nanos(),
+        Some(1_700_000_000_000_000_000)
+    );
 }
 
 #[cfg(feature = "nns-host")]

@@ -295,6 +295,7 @@ fn replay_session_pins_its_first_target_and_ignores_newer_mutations() {
     assert_eq!(session.state().through_version(), 2);
     assert_eq!(first_progress.applied_version_count, 2);
     assert!(!session.is_complete());
+    assert_eq!(session.complete_state_digest(), None);
 
     let second_request = request(2);
     let second = report_versions(
@@ -335,6 +336,7 @@ fn replay_session_pins_its_first_target_and_ignores_newer_mutations() {
     assert_eq!(session.response_bytes(), 128);
     assert_eq!(session.applied_mutation_count(), 3);
     assert!(session.is_complete());
+    assert!(session.complete_state_digest().is_some());
 
     let third_request = request(3);
     let third = report_versions(
@@ -358,6 +360,129 @@ fn replay_session_pins_its_first_target_and_ignores_newer_mutations() {
             selected_version: 3
         }
     ));
+}
+
+#[test]
+fn replay_session_publishes_provenance_atomically() {
+    let fixture = provenance_fixture();
+    let mut session = NnsRegistryReplaySession::new(fixture.limits);
+
+    assert_eq!(session.evidence_chain_digest(), None);
+    assert_eq!(session.complete_state_digest(), None);
+    assert_eq!(session.minimum_certificate_time_nanos(), None);
+    assert_eq!(session.maximum_certificate_time_nanos(), None);
+    assert_eq!(session.source_endpoints().count(), 0);
+
+    session
+        .apply_batch(&fixture.first_request, &fixture.first)
+        .expect("first provenance batch");
+    let first_evidence_digest = session
+        .evidence_chain_digest()
+        .expect("partial evidence digest");
+    assert_eq!(session.complete_state_digest(), None);
+    assert_eq!(
+        session.minimum_certificate_time_nanos(),
+        Some(NOW * 1_000_000_000)
+    );
+    assert_eq!(
+        session.maximum_certificate_time_nanos(),
+        Some(NOW * 1_000_000_000)
+    );
+    assert_eq!(
+        session.source_endpoints().collect::<Vec<_>>(),
+        vec!["https://icp-api.io"]
+    );
+
+    let oversized_value = vec![0; 100];
+    let failed = report(
+        &fixture.second_request,
+        2,
+        2,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Upsert,
+            b"b",
+            Some(&oversized_value),
+        )],
+        Vec::new(),
+    );
+    let state_before_failure = session.state().clone();
+    let error = session
+        .apply_batch(&fixture.second_request, &failed)
+        .expect_err("failed replay does not publish provenance");
+    assert!(matches!(
+        error,
+        NnsRegistryReplayError::LimitExceeded {
+            field: "content bytes",
+            maximum: 100,
+            actual: 105,
+        }
+    ));
+    assert_eq!(session.state(), &state_before_failure);
+    assert_eq!(session.evidence_chain_digest(), Some(first_evidence_digest));
+    assert_eq!(session.complete_state_digest(), None);
+    assert_eq!(
+        session.source_endpoints().collect::<Vec<_>>(),
+        vec!["https://icp-api.io"]
+    );
+    assert_eq!(
+        session.minimum_certificate_time_nanos(),
+        Some(NOW * 1_000_000_000)
+    );
+    assert_eq!(
+        session.maximum_certificate_time_nanos(),
+        Some(NOW * 1_000_000_000)
+    );
+    assert_eq!(session.batch_count(), 1);
+
+    session
+        .apply_batch(&fixture.second_request, &fixture.second)
+        .expect("complete provenance batch");
+    let evidence_digest = session
+        .evidence_chain_digest()
+        .expect("complete evidence digest");
+    assert!(session.complete_state_digest().is_some());
+    assert_ne!(evidence_digest, first_evidence_digest);
+    assert_eq!(
+        session.minimum_certificate_time_nanos(),
+        Some((NOW - 60) * 1_000_000_000)
+    );
+    assert_eq!(
+        session.maximum_certificate_time_nanos(),
+        Some(NOW * 1_000_000_000)
+    );
+    assert_eq!(
+        session.source_endpoints().collect::<Vec<_>>(),
+        vec!["https://example.com", "https://icp-api.io"]
+    );
+    assert!(session.is_complete());
+}
+
+#[test]
+fn replay_session_provenance_digests_are_deterministic_and_domain_stable() {
+    let baseline = complete_provenance_session(false);
+    let evidence_digest = baseline
+        .evidence_chain_digest()
+        .expect("complete evidence digest");
+    let state_digest = baseline
+        .complete_state_digest()
+        .expect("complete state digest");
+
+    let same = complete_provenance_session(false);
+    assert_eq!(same.evidence_chain_digest(), Some(evidence_digest));
+    assert_eq!(same.complete_state_digest(), Some(state_digest));
+
+    let changed = complete_provenance_session(true);
+    assert_ne!(changed.evidence_chain_digest(), Some(evidence_digest));
+    assert_eq!(changed.complete_state_digest(), Some(state_digest));
+
+    assert_eq!(
+        crate::hex::hex_bytes(&evidence_digest),
+        "31006cb49af6ba5f36211f79bdf7aec9da19e3ceda8ee93759acd4fa315c12e5"
+    );
+    assert_eq!(
+        crate::hex::hex_bytes(&state_digest),
+        "c7cb524c6317bb40d117ea0a3375345e44412afd3d03dc0eee810be5c7c0a705"
+    );
 }
 
 #[test]
@@ -418,6 +543,9 @@ fn replay_session_fails_atomically_on_cumulative_limits() {
         assert_eq!(session.selected_version(), None);
         assert_eq!(session.batch_count(), 0);
         assert!(session.state().is_empty());
+        assert_eq!(session.evidence_chain_digest(), None);
+        assert_eq!(session.complete_state_digest(), None);
+        assert_eq!(session.source_endpoints().count(), 0);
     }
 }
 
@@ -738,6 +866,68 @@ fn bootstrap_request(
             NnsRegistryReplayLimits::new(10, 100),
         ),
     )
+}
+
+struct ProvenanceFixture {
+    limits: NnsRegistryReplaySessionLimits,
+    first_request: NnsCertifiedRegistryDeltaBatchRequest,
+    first: NnsCertifiedRegistryDeltaBatchReport,
+    second_request: NnsCertifiedRegistryDeltaBatchRequest,
+    second: NnsCertifiedRegistryDeltaBatchReport,
+}
+
+fn provenance_fixture() -> ProvenanceFixture {
+    let limits =
+        NnsRegistryReplaySessionLimits::new(2, 2, 2, 128, NnsRegistryReplayLimits::new(10, 100));
+    let first_request = request(0);
+    let first = report(
+        &first_request,
+        2,
+        1,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Upsert,
+            b"a",
+            Some(b"one"),
+        )],
+        Vec::new(),
+    );
+    let mut second_request = request(1);
+    second_request.source_endpoint = "https://example.com".to_string();
+    let mut second = report(
+        &second_request,
+        2,
+        2,
+        vec![mutation(
+            NnsCertifiedRegistryMutationKind::Upsert,
+            b"b",
+            Some(b"two"),
+        )],
+        Vec::new(),
+    );
+    second.certification.certificate_time_nanos = (NOW - 60) * 1_000_000_000;
+    second.certification.certificate_time = format_utc_timestamp_secs(NOW - 60);
+    ProvenanceFixture {
+        limits,
+        first_request,
+        first,
+        second_request,
+        second,
+    }
+}
+
+fn complete_provenance_session(changed_raw_evidence: bool) -> NnsRegistryReplaySession {
+    let mut fixture = provenance_fixture();
+    if changed_raw_evidence {
+        fixture.second.certification.certificate_hex = "ce".repeat(8);
+    }
+    let mut session = NnsRegistryReplaySession::new(fixture.limits);
+    session
+        .apply_batch(&fixture.first_request, &fixture.first)
+        .expect("first complete-session provenance batch");
+    session
+        .apply_batch(&fixture.second_request, &fixture.second)
+        .expect("second complete-session provenance batch");
+    session
 }
 
 fn request(requested_version: u64) -> NnsCertifiedRegistryDeltaBatchRequest {
