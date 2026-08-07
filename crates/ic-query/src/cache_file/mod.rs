@@ -23,7 +23,6 @@ pub use confined::BoundedManagedFileReadError;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "icrc-host",
-    feature = "nns-host",
     feature = "sns-host"
 ))]
 pub use confined::read_bounded_managed_file;
@@ -42,6 +41,8 @@ pub use confined::write_managed_file_atomically;
     feature = "sns-host"
 ))]
 pub use write::write_managed_json_pretty_atomically;
+#[cfg(feature = "certified-subnet-catalog-host")]
+pub use write::{canonical_json_matches, canonical_json_serialized_len, json_error_to_io};
 
 #[cfg(feature = "sns-host")]
 pub use confined::collect_managed_collection_files;
@@ -110,7 +111,7 @@ pub use policy::load_or_refresh_missing_cache;
     feature = "sns-host"
 ))]
 pub use policy::{host_cache_refresh_reason, load_or_refresh_stale_cache_with_error_policy};
-#[cfg(any(feature = "nns-host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 pub use write::write_text_output;
 #[cfg(feature = "nns-host")]
 pub use write::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};

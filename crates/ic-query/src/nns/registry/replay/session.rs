@@ -13,10 +13,7 @@ use crate::nns::registry::{
     validate_nns_certified_registry_delta_batch,
 };
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeSet,
-    io::{self, Write},
-};
+use std::collections::BTreeSet;
 
 const EVIDENCE_CHAIN_DOMAIN: &[u8] = b"ic-query:nns-certified-registry-evidence-chain:v1\0";
 const COMPLETE_STATE_DOMAIN: &[u8] = b"ic-query:nns-certified-registry-state:v1\0";
@@ -446,7 +443,7 @@ fn chained_evidence_digest(
         }
         None => hasher.update([0]),
     }
-    serde_json::to_writer(Sha256Writer(&mut hasher), report).map_err(|error| {
+    serde_json::to_writer(&mut hasher, report).map_err(|error| {
         NnsRegistryReplayError::EvidenceEncoding {
             reason: error.to_string(),
         }
@@ -479,19 +476,6 @@ fn encoded_usize(value: usize) -> [u8; 16] {
     let mut encoded = [0; 16];
     encoded[16 - native.len()..].copy_from_slice(&native);
     encoded
-}
-
-struct Sha256Writer<'a>(&'a mut Sha256);
-
-impl Write for Sha256Writer<'_> {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        self.0.update(buffer);
-        Ok(buffer.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
 }
 
 fn checked_add(left: u64, right: u64) -> Result<u64, NnsRegistryReplayError> {

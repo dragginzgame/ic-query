@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.26` consolidates canonical compact-JSON byte counting and comparison,
+  archive digest writers, and serialization-to-IO error conversion across the
+  certified Registry archive and certified Subnet Catalog cache. Confined
+  cache reads and directory discovery/removal now have separate internal
+  owners, inherited feature gates no longer repeat broader host features, and
+  cache status rejects ambiguous headers containing both supported schema
+  version fields. The Registry replay tests are organized by subsystem. Public
+  Rust and CLI APIs, cache schemas and paths, dependencies, and network
+  behavior are unchanged.
+
 - `0.30.25` adds the focused `certified-subnet-catalog-host` feature for
   certified Registry archive/replay and archive-bound Subnet Catalog authority
   without the broader NNS host surface or ic-query's direct Dashboard Reqwest

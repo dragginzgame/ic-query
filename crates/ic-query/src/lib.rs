@@ -32,7 +32,6 @@ pub mod cache;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -47,7 +46,6 @@ pub mod duration;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -57,7 +55,6 @@ mod hex;
     feature = "cmc-host",
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -70,7 +67,6 @@ pub mod icrc;
 #[cfg(any(
     feature = "cmc-host",
     feature = "dashboard-host",
-    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -90,7 +86,6 @@ mod report_sort;
     feature = "cmc-host",
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -109,7 +104,6 @@ pub mod system;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
@@ -126,7 +120,6 @@ mod token_metadata_text;
     any(
         feature = "dashboard-host",
         feature = "icrc-host",
-        feature = "nns-host",
         feature = "sns-host",
         feature = "subnet-catalog-host"
     )

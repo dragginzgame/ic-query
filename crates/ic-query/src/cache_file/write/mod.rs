@@ -5,15 +5,16 @@
 //! Boundary: exposes parent creation, atomic text writes, and refresh publication helpers.
 
 #[cfg(any(
+    feature = "certified-subnet-catalog-host",
     feature = "dashboard-host",
     feature = "icrc-host",
     feature = "nns-topology-host",
     feature = "sns-host"
 ))]
 mod json;
-#[cfg(any(feature = "nns-host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod output;
-#[cfg(any(feature = "nns-host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "subnet-catalog-host")]
 mod path;
 #[cfg(feature = "nns-host")]
 mod refresh;
@@ -25,7 +26,9 @@ mod refresh;
     feature = "sns-host"
 ))]
 pub use json::write_managed_json_pretty_atomically;
-#[cfg(any(feature = "nns-host", feature = "subnet-catalog-host"))]
+#[cfg(feature = "certified-subnet-catalog-host")]
+pub use json::{canonical_json_matches, canonical_json_serialized_len, json_error_to_io};
+#[cfg(feature = "subnet-catalog-host")]
 pub use output::write_text_output;
 #[cfg(feature = "nns-host")]
 pub use refresh::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};

@@ -37,8 +37,10 @@ struct GenericCacheHeader {
 
 #[derive(Deserialize)]
 struct FullGenericCacheHeader {
-    #[serde(alias = "catalog_schema_version")]
-    schema_version: u32,
+    #[serde(default)]
+    schema_version: Option<u32>,
+    #[serde(default)]
+    catalog_schema_version: Option<u32>,
     #[serde(default)]
     network: Option<String>,
     #[serde(default)]
@@ -53,17 +55,24 @@ struct FullGenericCacheHeader {
     collection: Option<String>,
 }
 
-impl From<FullGenericCacheHeader> for GenericCacheHeader {
-    fn from(header: FullGenericCacheHeader) -> Self {
-        Self {
-            schema_version: header.schema_version,
-            network: header.network,
-            fetched_at: header.fetched_at,
-            collection_completed_at: header.collection_completed_at,
-            domain: header.domain,
-            entity: header.entity,
-            collection: header.collection,
-        }
+impl FullGenericCacheHeader {
+    fn into_generic(self) -> Result<GenericCacheHeader, serde_json::Error> {
+        let schema_version = match (self.schema_version, self.catalog_schema_version) {
+            (Some(schema_version), None) | (None, Some(schema_version)) => schema_version,
+            (Some(_), Some(_)) => {
+                return Err(invalid_header("cache has multiple schema version fields"));
+            }
+            (None, None) => return Err(invalid_header("cache has no schema version field")),
+        };
+        Ok(GenericCacheHeader {
+            schema_version,
+            network: self.network,
+            fetched_at: self.fetched_at,
+            collection_completed_at: self.collection_completed_at,
+            domain: self.domain,
+            entity: self.entity,
+            collection: self.collection,
+        })
     }
 }
 
@@ -92,6 +101,9 @@ impl<'de> Visitor<'de> for GenericCacheHeaderVisitor<'_> {
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
                 "schema_version" | "catalog_schema_version" => {
+                    if schema_version.is_some() {
+                        return Err(Map::Error::duplicate_field("schema_version"));
+                    }
                     schema_version = Some(map.next_value()?);
                 }
                 "network" => network = Some(map.next_value()?),
@@ -252,7 +264,8 @@ fn read_cache_header(
     reader: impl Read,
 ) -> Result<GenericCacheHeader, serde_json::Error> {
     if registered_age_policy(relative).is_some() {
-        return serde_json::from_reader::<_, FullGenericCacheHeader>(reader).map(Into::into);
+        return serde_json::from_reader::<_, FullGenericCacheHeader>(reader)
+            .and_then(FullGenericCacheHeader::into_generic);
     }
     let mut deserializer = serde_json::Deserializer::from_reader(reader);
     let mut captured = None;
@@ -271,6 +284,10 @@ fn read_cache_header(
         }
         Err(error) => Err(error),
     }
+}
+
+fn invalid_header(reason: &'static str) -> serde_json::Error {
+    serde_json::Error::io(std::io::Error::new(std::io::ErrorKind::InvalidData, reason))
 }
 
 fn path_parts(relative: &Path) -> Vec<&str> {
@@ -454,6 +471,18 @@ mod tests {
     }
 
     #[test]
+    fn registered_cache_rejects_ambiguous_schema_version_fields() {
+        let error = read_cache_header(
+            Path::new("nns/ic/subnet-catalog/catalog.json"),
+            Cursor::new(br#"{"schema_version":1,"catalog_schema_version":1,"network":"ic"}"#),
+        )
+        .err()
+        .expect("multiple current schema fields are ambiguous");
+
+        assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
+    }
+
+    #[test]
     fn path_components_do_not_expose_variable_cache_identity() {
         for (path, expected) in [
             ("nns/ic/node/nodes.json", "nns/nodes"),
@@ -532,7 +561,7 @@ mod tests {
                 CacheRecoveryPolicy::MissingOnly,
             ),
             ("nns/local/node/nodes.json", CacheRecoveryPolicy::Unknown),
-            ("legacy/ic/full.json", CacheRecoveryPolicy::Unknown),
+            ("unmanaged/ic/full.json", CacheRecoveryPolicy::Unknown),
         ] {
             assert_eq!(recovery_policy(Path::new(path)), expected, "{path}");
         }
@@ -558,7 +587,7 @@ mod tests {
                 Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS),
             ),
             ("nns/local/subnet-catalog/catalog.json", None),
-            ("legacy/ic/full.json", None),
+            ("unmanaged/ic/full.json", None),
         ] {
             assert_eq!(registered_age_policy(Path::new(path)), expected, "{path}");
         }

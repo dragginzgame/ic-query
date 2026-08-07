@@ -752,16 +752,14 @@ impl ManifestTotals {
 fn canonical_report_encoding(
     report: &NnsCertifiedRegistryDeltaBatchReport,
 ) -> Result<CanonicalReportEncoding, NnsCertifiedRegistryArchiveError> {
-    let mut writer = HashingWriter::default();
+    let mut writer = DigestingWriter::new(io::sink());
     serde_json::to_writer(&mut writer, report).map_err(|error| {
         NnsCertifiedRegistryArchiveError::ReportEncoding {
             reason: error.to_string(),
         }
     })?;
-    Ok(CanonicalReportEncoding {
-        bytes: writer.bytes,
-        sha256: writer.hasher.finalize().into(),
-    })
+    let (bytes, sha256) = writer.finish();
+    Ok(CanonicalReportEncoding { bytes, sha256 })
 }
 
 struct CanonicalReportEncoding {
@@ -769,14 +767,29 @@ struct CanonicalReportEncoding {
     sha256: [u8; 32],
 }
 
-#[derive(Default)]
-struct HashingWriter {
+struct DigestingWriter<Writer> {
+    writer: Writer,
     hasher: Sha256,
     bytes: u64,
 }
 
-impl Write for HashingWriter {
+impl<Writer> DigestingWriter<Writer> {
+    fn new(writer: Writer) -> Self {
+        Self {
+            writer,
+            hasher: Sha256::new(),
+            bytes: 0,
+        }
+    }
+
+    fn finish(self) -> (u64, [u8; 32]) {
+        (self.bytes, self.hasher.finalize().into())
+    }
+}
+
+impl<Writer: Write> Write for DigestingWriter<Writer> {
     fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        self.writer.write_all(buffer)?;
         let length = u64::try_from(buffer.len())
             .map_err(|_| io::Error::other("buffer length exceeds u64"))?;
         self.bytes = self
@@ -788,7 +801,7 @@ impl Write for HashingWriter {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        Ok(())
+        self.writer.flush()
     }
 }
 

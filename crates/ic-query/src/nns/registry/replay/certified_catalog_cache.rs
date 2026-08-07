@@ -12,19 +12,16 @@ use super::{
 };
 use crate::{
     cache_file::{
-        BoundedManagedFileReadError, CacheFileError, RefreshLockRequest,
-        create_managed_parent_directory, read_bounded_managed_file, with_refresh_lock,
-        write_managed_file_atomically,
+        BoundedManagedFileReadError, CacheFileError, RefreshLockRequest, canonical_json_matches,
+        canonical_json_serialized_len, create_managed_parent_directory, json_error_to_io,
+        read_bounded_managed_file, with_refresh_lock, write_managed_file_atomically,
     },
     hex::hex_bytes,
     subnet_catalog::{CatalogAssurance, MAINNET_NETWORK, RawSubnetCatalog},
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{
-    io::{self, Write},
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use thiserror::Error as ThisError;
 
 const CERTIFIED_CATALOG_FILE_NAME: &str = "catalog.json";
@@ -424,49 +421,35 @@ pub fn load_nns_certified_subnet_catalog<'a>(
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
     request: &NnsCertifiedSubnetCatalogLoadRequest,
 ) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
-    match request.policy {
-        NnsCertifiedSubnetCatalogReadPolicy::CacheOnly => {
-            load_cached_catalog(archive, projection_request, &request.location)
-        }
-        NnsCertifiedSubnetCatalogReadPolicy::PublishMissing {
-            lock_stale_after_seconds,
-        } => match load_cached_catalog(archive, projection_request, &request.location) {
-            Err(NnsCertifiedSubnetCatalogCacheError::MissingCache { .. }) => {
-                publish_cache_with_disposition(
-                    archive,
-                    projection_request,
-                    &request.location,
-                    lock_stale_after_seconds,
-                    NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing,
-                )
-            }
-            result => result,
-        },
-        NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
-            lock_stale_after_seconds,
-        } => match load_cached_catalog(archive, projection_request, &request.location) {
-            Err(error) => {
-                let disposition = recoverable_publication_disposition(error)?;
-                publish_cache_with_disposition(
-                    archive,
-                    projection_request,
-                    &request.location,
-                    lock_stale_after_seconds,
-                    disposition,
-                )
-            }
-            result => result,
-        },
-        NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
-            lock_stale_after_seconds,
-        } => publish_cache_with_disposition(
+    if let NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
+        lock_stale_after_seconds,
+    } = request.policy
+    {
+        return publish_cache_with_disposition(
             archive,
             projection_request,
             &request.location,
             lock_stale_after_seconds,
             NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication,
-        ),
+        );
     }
+
+    let error = match load_cached_catalog(archive, projection_request, &request.location) {
+        Ok(outcome) => return Ok(outcome),
+        Err(error) => error,
+    };
+    let Some((lock_stale_after_seconds, disposition)) =
+        publication_after_error(request.policy, &error)
+    else {
+        return Err(error);
+    };
+    publish_cache_with_disposition(
+        archive,
+        projection_request,
+        &request.location,
+        lock_stale_after_seconds,
+        disposition,
+    )
 }
 
 fn publish_cache_with_disposition<'a>(
@@ -480,7 +463,8 @@ fn publish_cache_with_disposition<'a>(
     let envelope = cache_envelope(&authority)?;
     let cache_path = nns_certified_subnet_catalog_cache_path(&location.cache_directory);
     let lock_path = nns_certified_subnet_catalog_cache_refresh_lock_path(&location.cache_directory);
-    let encoded_length = canonical_serialized_len(&envelope)?;
+    let encoded_length = canonical_json_serialized_len(&envelope)
+        .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?;
     enforce_cache_limit(&cache_path, encoded_length, location.maximum_cache_bytes)?;
     create_managed_parent_directory(&location.cache_root, &cache_path).map_err(file_operation)?;
     with_refresh_lock(
@@ -495,7 +479,7 @@ fn publish_cache_with_disposition<'a>(
         file_operation,
         || {
             write_managed_file_atomically(&location.cache_root, &cache_path, |file| {
-                serde_json::to_writer(file, &envelope).map_err(json_io_error)
+                serde_json::to_writer(file, &envelope).map_err(json_error_to_io)
             })
             .map_err(file_operation)
         },
@@ -535,7 +519,9 @@ fn load_cached_catalog<'a>(
             },
         );
     }
-    if !is_canonical_encoding(&envelope, &bytes)? {
+    if !canonical_json_matches(&envelope, &bytes)
+        .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?
+    {
         return Err(NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { path: cache_path });
     }
     let authority = project_nns_certified_subnet_catalog(archive, projection_request)?;
@@ -551,21 +537,37 @@ fn load_cached_catalog<'a>(
     })
 }
 
-fn recoverable_publication_disposition(
-    error: NnsCertifiedSubnetCatalogCacheError,
-) -> Result<NnsCertifiedSubnetCatalogCacheDisposition, NnsCertifiedSubnetCatalogCacheError> {
-    match error {
-        NnsCertifiedSubnetCatalogCacheError::MissingCache { .. } => {
-            Ok(NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing)
-        }
-        NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { .. }
-        | NnsCertifiedSubnetCatalogCacheError::InvalidJson { .. }
-        | NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. }
-        | NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion { .. }
-        | NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { .. } => {
-            Ok(NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid)
-        }
-        error => Err(error),
+const fn publication_after_error(
+    policy: NnsCertifiedSubnetCatalogReadPolicy,
+    error: &NnsCertifiedSubnetCatalogCacheError,
+) -> Option<(u64, NnsCertifiedSubnetCatalogCacheDisposition)> {
+    match (policy, error) {
+        (
+            NnsCertifiedSubnetCatalogReadPolicy::PublishMissing {
+                lock_stale_after_seconds,
+            }
+            | NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
+                lock_stale_after_seconds,
+            },
+            NnsCertifiedSubnetCatalogCacheError::MissingCache { .. },
+        ) => Some((
+            lock_stale_after_seconds,
+            NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing,
+        )),
+        (
+            NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
+                lock_stale_after_seconds,
+            },
+            NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { .. }
+            | NnsCertifiedSubnetCatalogCacheError::InvalidJson { .. }
+            | NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. }
+            | NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion { .. }
+            | NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { .. },
+        ) => Some((
+            lock_stale_after_seconds,
+            NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid,
+        )),
+        _ => None,
     }
 }
 
@@ -602,25 +604,6 @@ fn canonical_sha256(value: &impl Serialize) -> Result<String, NnsCertifiedSubnet
     serde_json::to_writer(&mut digest, value)
         .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?;
     Ok(hex_bytes(&digest.finalize()))
-}
-
-fn canonical_serialized_len(
-    value: &impl Serialize,
-) -> Result<u64, NnsCertifiedSubnetCatalogCacheError> {
-    let mut writer = CountingWriter::default();
-    serde_json::to_writer(&mut writer, value)
-        .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?;
-    Ok(writer.bytes)
-}
-
-fn is_canonical_encoding(
-    value: &impl Serialize,
-    bytes: &[u8],
-) -> Result<bool, NnsCertifiedSubnetCatalogCacheError> {
-    let mut writer = MatchingWriter::new(bytes);
-    serde_json::to_writer(&mut writer, value)
-        .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?;
-    Ok(writer.is_complete_match())
 }
 
 fn read_bounded_cache(
@@ -670,67 +653,4 @@ fn enforce_cache_limit(
 
 const fn file_operation(source: CacheFileError) -> NnsCertifiedSubnetCatalogCacheError {
     NnsCertifiedSubnetCatalogCacheError::FileOperation { source }
-}
-
-fn json_io_error(source: serde_json::Error) -> io::Error {
-    io::Error::new(io::ErrorKind::InvalidData, source)
-}
-
-#[derive(Default)]
-struct CountingWriter {
-    bytes: u64,
-}
-
-impl Write for CountingWriter {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        let length = u64::try_from(bytes.len())
-            .map_err(|_| io::Error::other("serialized byte count overflowed"))?;
-        self.bytes = self
-            .bytes
-            .checked_add(length)
-            .ok_or_else(|| io::Error::other("serialized byte count overflowed"))?;
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
-struct MatchingWriter<'a> {
-    expected: &'a [u8],
-    position: usize,
-    matches: bool,
-}
-
-impl<'a> MatchingWriter<'a> {
-    const fn new(expected: &'a [u8]) -> Self {
-        Self {
-            expected,
-            position: 0,
-            matches: true,
-        }
-    }
-
-    const fn is_complete_match(&self) -> bool {
-        self.matches && self.position == self.expected.len()
-    }
-}
-
-impl Write for MatchingWriter<'_> {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        let end = self
-            .position
-            .checked_add(bytes.len())
-            .ok_or_else(|| io::Error::other("serialized byte count overflowed"))?;
-        if self.expected.get(self.position..end) != Some(bytes) {
-            self.matches = false;
-        }
-        self.position = end;
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
 }

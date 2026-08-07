@@ -33,7 +33,7 @@ fn status_separates_header_age_and_recovery_evidence_without_attempts() {
     );
     write_cache(
         &root,
-        &root.join("legacy/ic/full.json"),
+        &root.join("unmanaged/ic/full.json"),
         r#"{"schema_version":1,"network":"ic","fetched_at":"2026-08-03T00:00:00Z","domain":"sns","entity":"catalog","collection":"discovery"}"#,
     );
     write_cache(&root, &root.join("nns/ic/node/nodes.json"), "not-json");
@@ -81,7 +81,7 @@ fn status_separates_header_age_and_recovery_evidence_without_attempts() {
     let claimed_sns_catalog = report
         .caches
         .iter()
-        .find(|row| row.relative_path == "legacy/ic/full.json")
+        .find(|row| row.relative_path == "unmanaged/ic/full.json")
         .expect("orphaned cache row");
     assert_eq!(
         claimed_sns_catalog.recovery_policy,

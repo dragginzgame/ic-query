@@ -5,14 +5,14 @@
 //! Boundary: a manifest becomes usable only after every retained object is reauthenticated.
 
 use super::{
-    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
+    DigestingWriter, NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder,
 };
 use crate::{
     cache_file::{
-        BoundedManagedFileReadError, CacheFileError,
-        read_bounded_managed_file as read_shared_bounded_managed_file,
+        BoundedManagedFileReadError, CacheFileError, canonical_json_serialized_len,
+        json_error_to_io, read_bounded_managed_file as read_shared_bounded_managed_file,
         write_managed_file_atomically,
     },
     hex::hex_bytes,
@@ -24,7 +24,6 @@ use crate::{
     },
     subnet_catalog::parse_utc_timestamp_secs,
 };
-use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
     io::{self, Write},
@@ -575,7 +574,7 @@ fn write_report_object(
     let path = archive_batch_object_path(archive_root, descriptor);
     write_managed_file_atomically(cache_root, &path, |file| {
         let mut writer = DigestingWriter::new(file);
-        serde_json::to_writer(&mut writer, report).map_err(json_io_error)?;
+        serde_json::to_writer(&mut writer, report).map_err(json_error_to_io)?;
         let (bytes, digest) = writer.finish();
         if bytes != descriptor.report_bytes || hex_bytes(&digest) != descriptor.report_sha256 {
             return Err(io::Error::new(
@@ -595,7 +594,8 @@ fn write_manifest(
     max_manifest_bytes: u64,
 ) -> Result<(), NnsCertifiedRegistryArchiveStorageError> {
     let path = nns_certified_registry_archive_manifest_path(archive_root);
-    let manifest_bytes = canonical_serialized_len(manifest)?;
+    let manifest_bytes = canonical_json_serialized_len(manifest)
+        .map_err(|source| NnsCertifiedRegistryArchiveStorageError::SerializeManifest { source })?;
     if manifest_bytes > max_manifest_bytes {
         return Err(NnsCertifiedRegistryArchiveStorageError::FileLimitExceeded {
             kind: "manifest",
@@ -606,7 +606,7 @@ fn write_manifest(
     }
     write_managed_file_atomically(cache_root, &path, |file| {
         let mut writer = BoundedWriter::new(file, max_manifest_bytes);
-        serde_json::to_writer(&mut writer, manifest).map_err(json_io_error)
+        serde_json::to_writer(&mut writer, manifest).map_err(json_error_to_io)
     })
     .map_err(file_operation)
 }
@@ -683,81 +683,6 @@ fn archive_batch_object_path(
 
 const fn file_operation(source: CacheFileError) -> NnsCertifiedRegistryArchiveStorageError {
     NnsCertifiedRegistryArchiveStorageError::FileOperation { source }
-}
-
-fn canonical_serialized_len(
-    value: &impl Serialize,
-) -> Result<u64, NnsCertifiedRegistryArchiveStorageError> {
-    let mut writer = CountingWriter::default();
-    serde_json::to_writer(&mut writer, value)
-        .map_err(|source| NnsCertifiedRegistryArchiveStorageError::SerializeManifest { source })?;
-    Ok(writer.bytes)
-}
-
-fn json_io_error(error: serde_json::Error) -> io::Error {
-    match error.io_error_kind() {
-        Some(kind) => io::Error::new(kind, error),
-        None => io::Error::other(error),
-    }
-}
-
-#[derive(Default)]
-struct CountingWriter {
-    bytes: u64,
-}
-
-impl Write for CountingWriter {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        let length = u64::try_from(buffer.len())
-            .map_err(|_| io::Error::other("archive write length exceeds u64"))?;
-        self.bytes = self
-            .bytes
-            .checked_add(length)
-            .ok_or_else(|| io::Error::other("archive write length exceeds u64"))?;
-        Ok(buffer.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
-struct DigestingWriter<'a> {
-    writer: &'a mut cap_std::fs::File,
-    hasher: Sha256,
-    bytes: u64,
-}
-
-impl<'a> DigestingWriter<'a> {
-    fn new(writer: &'a mut cap_std::fs::File) -> Self {
-        Self {
-            writer,
-            hasher: Sha256::new(),
-            bytes: 0,
-        }
-    }
-
-    fn finish(self) -> (u64, [u8; 32]) {
-        (self.bytes, self.hasher.finalize().into())
-    }
-}
-
-impl Write for DigestingWriter<'_> {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        self.writer.write_all(buffer)?;
-        let length = u64::try_from(buffer.len())
-            .map_err(|_| io::Error::other("archive write length exceeds u64"))?;
-        self.bytes = self
-            .bytes
-            .checked_add(length)
-            .ok_or_else(|| io::Error::other("archive write length exceeds u64"))?;
-        self.hasher.update(buffer);
-        Ok(buffer.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()
-    }
 }
 
 struct BoundedWriter<'a> {
