@@ -30,7 +30,7 @@ pub use host::{
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 #[cfg(feature = "subnet-catalog-host")]
 pub use model::UncertifiedCatalogCollection;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub(crate) use model::canonicalize_subnet_catalog_content;
 #[cfg(feature = "subnet-catalog-host")]
 pub(in crate::subnet_catalog) use model::catalog_agreement_digest;

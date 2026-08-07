@@ -8,7 +8,7 @@ use candid::Principal;
 use ic_agent::{Agent, Certificate, hash_tree::HashTree};
 
 /// Maximum accepted difference between caller observation and certificate time.
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub const MAX_CERTIFICATE_TIME_SKEW_SECONDS: u64 = 5 * 60;
 
 ///
@@ -113,7 +113,7 @@ pub fn verify_canister_tree(
 }
 
 /// Validate certificate time against a caller-supplied observation time.
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub fn validate_certificate_time(
     observed_at_unix_secs: u64,
     certificate_time_nanos: u64,

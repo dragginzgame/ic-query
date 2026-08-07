@@ -27,7 +27,7 @@ pub fn is_canonical_lowercase_hex(value: &str) -> bool {
 /// Decode even-length lowercase hexadecimal, including an empty byte string.
 ///
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
     if !value.len().is_multiple_of(2) || !is_lowercase_hex(value) {
         return None;

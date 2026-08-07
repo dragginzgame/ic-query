@@ -47,6 +47,10 @@ cmc-host = [
     "dep:tokio",
     "dep:url",
 ]
+certified-subnet-catalog-host = [
+    "subnet-catalog-host",
+    "dep:serde_cbor",
+]
 dashboard-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
@@ -65,7 +69,7 @@ icrc-host = [
     "dep:url",
 ]
 nns-topology-host = ["subnet-catalog-host"]
-nns-host = ["nns-topology-host", "dep:serde_cbor"]
+nns-host = ["nns-topology-host", "certified-subnet-catalog-host"]
 sns-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",

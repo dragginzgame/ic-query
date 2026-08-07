@@ -1,10 +1,11 @@
 use super::{
     LockedSnapshotRefreshRequest, PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
     SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotJsonPaths, SnapshotKey,
-    SnapshotRefreshAttempt, collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
-    publish_snapshot_with_attempt, run_paged_snapshot_refresh_with_progress,
-    run_snapshot_refresh_with_attempts, validate_snapshot_refresh_attempt,
-    with_locked_snapshot_refresh,
+    SnapshotRefreshAttempt, SnapshotRefreshAttemptReadError,
+    collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
+    publish_snapshot_with_attempt, read_snapshot_refresh_attempt_strict,
+    run_paged_snapshot_refresh_with_progress, run_snapshot_refresh_with_attempts,
+    validate_snapshot_refresh_attempt, with_locked_snapshot_refresh,
 };
 use crate::{
     QueryProgressEvent, QueryProgressState,
@@ -267,6 +268,23 @@ fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
         validate_snapshot_refresh_attempt(&failed_without_error, "ic"),
         Err("failed attempt must contain last_error".to_string())
     );
+}
+
+#[test]
+fn snapshot_refresh_attempt_reader_rejects_oversized_sidecar() {
+    let root = temp_dir("ic-query-oversized-refresh-attempt");
+    let path = root.join("sns/ic/root/neurons/full.refresh-attempt.json");
+    crate::cache_file::write_managed_text_atomically(&root, &path, &"x".repeat(1024 * 1024 + 1))
+        .expect("write oversized attempt fixture");
+
+    let error = read_snapshot_refresh_attempt_strict::<serde_json::Value>(&root, &path, &[])
+        .expect_err("oversized attempt is rejected");
+
+    assert!(matches!(
+        error,
+        SnapshotRefreshAttemptReadError::Invalid { .. }
+    ));
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]

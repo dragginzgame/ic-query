@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 2;
 /// Version of the complete retained certified Registry delta-report contract.
 pub const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 3;
@@ -305,7 +305,7 @@ pub enum NnsCertifiedRegistryMutationKind {
     Upsert,
 }
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 impl NnsCertifiedRegistryMutationKind {
     pub(super) const fn raw_type(self) -> i32 {
         match self {

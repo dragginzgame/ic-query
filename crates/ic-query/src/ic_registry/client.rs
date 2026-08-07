@@ -1,25 +1,33 @@
 #[cfg(feature = "nns-host")]
 use super::{
     MainnetDataCenterList, MainnetNodeList, MainnetNodeOperatorList, MainnetNodeProviderList,
-    MainnetRegistryVersion,
     source::{
-        fetch_mainnet_certified_registry_delta_batch_async as fetch_mainnet_certified_registry_delta_batch_from_source_async,
         fetch_mainnet_data_center_list_async, fetch_mainnet_node_list_async,
         fetch_mainnet_node_operator_list_async, fetch_mainnet_node_provider_list_async,
-        fetch_mainnet_registry_version_async,
     },
 };
 use super::{
     MainnetRegistryFetchRequest, RegistryFetchError,
     source::fetch_mainnet_subnet_catalog_async as fetch_mainnet_subnet_catalog_from_source_async,
 };
+#[cfg(feature = "certified-subnet-catalog-host")]
+use super::{
+    MainnetRegistryVersion,
+    source::{
+        fetch_mainnet_certified_registry_delta_batch_async as fetch_mainnet_certified_registry_delta_batch_from_source_async,
+        fetch_mainnet_registry_version_async,
+    },
+};
 #[cfg(feature = "nns-topology-host")]
 use super::{MainnetSubnetTopology, source::fetch_mainnet_subnet_topology_async};
-#[cfg(feature = "nns-topology-host")]
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "nns-topology-host"
+))]
 use crate::runtime::block_on_current_thread;
 use crate::subnet_catalog::RawSubnetCatalog;
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 use super::CertifiedRegistryDeltaBatch;
 
 /// Fetch one exact-version mainnet Subnet Catalog on the caller's async runtime.
@@ -30,7 +38,7 @@ pub async fn fetch_mainnet_subnet_catalog_async(
 }
 
 /// Fetch one authenticated, bounded Registry delta batch on the caller's async runtime.
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub async fn fetch_mainnet_certified_registry_delta_batch_async(
     request: &MainnetRegistryFetchRequest,
     requested_version: u64,
@@ -46,7 +54,7 @@ pub fn fetch_mainnet_subnet_topology(
         .map_err(RegistryFetchError::Runtime)?
 }
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub fn fetch_mainnet_registry_version(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetRegistryVersion, RegistryFetchError> {

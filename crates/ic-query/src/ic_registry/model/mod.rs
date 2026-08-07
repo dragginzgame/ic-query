@@ -1,4 +1,4 @@
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 mod certified_delta;
 #[cfg(feature = "nns-host")]
 mod data_center;
@@ -8,15 +8,15 @@ mod node;
 mod node_operator;
 #[cfg(feature = "nns-host")]
 mod node_provider;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 mod registry;
 mod request;
 #[cfg(feature = "nns-topology-host")]
 mod subnet_topology;
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use certified_delta::AuthenticatedRegistryDeltaWitness;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use certified_delta::{
     CertifiedRegistryChunkEvidence, CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion,
     CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
@@ -29,7 +29,7 @@ pub use node::{MainnetNode, MainnetNodeList};
 pub use node_operator::{MainnetNodeOperator, MainnetNodeOperatorList};
 #[cfg(feature = "nns-host")]
 pub use node_provider::{MainnetNodeProvider, MainnetNodeProviderList};
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use registry::{MainnetRegistryCertification, MainnetRegistryVersion};
 pub use request::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-topology-host")]

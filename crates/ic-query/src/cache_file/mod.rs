@@ -19,24 +19,41 @@ mod policy;
 mod tests;
 mod write;
 
+pub use confined::BoundedManagedFileReadError;
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host"
+))]
+pub use confined::read_bounded_managed_file;
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host",
+    feature = "sns-host"
+))]
+pub use confined::write_managed_file_atomically;
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host",
+    feature = "sns-host"
+))]
+pub use write::write_managed_json_pretty_atomically;
+
 #[cfg(feature = "sns-host")]
 pub use confined::collect_managed_collection_files;
-#[cfg(all(feature = "nns-host", not(feature = "host")))]
-pub use confined::open_managed_file;
-#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
-pub use confined::read_managed_file;
-#[cfg(feature = "nns-host")]
-pub use confined::write_managed_file_atomically;
-#[cfg(feature = "nns-host")]
+#[cfg(any(feature = "subnet-catalog-host", test))]
+pub use confined::write_managed_text_atomically;
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use confined::{
     ManagedDirectoryFile, remove_managed_regular_file, scan_managed_directory_files,
 };
 #[cfg(feature = "host")]
 pub use confined::{collect_managed_files, open_managed_file};
-pub use confined::{
-    create_managed_parent_directory, managed_file_exists, read_managed_text,
-    write_managed_text_atomically,
-};
+pub use confined::{create_managed_parent_directory, managed_file_exists, read_managed_text};
 pub use error::{CacheFileError, HostCacheError};
 #[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
 pub use json::HostJsonCacheErrorMapper;
@@ -61,6 +78,7 @@ pub use json::{JsonCacheReport, LoadJsonCacheRequest};
 pub use lock::RefreshLockRequest;
 #[cfg(any(
     feature = "dashboard-host",
+    feature = "certified-subnet-catalog-host",
     feature = "icrc-host",
     feature = "nns-topology-host",
     feature = "sns-host"

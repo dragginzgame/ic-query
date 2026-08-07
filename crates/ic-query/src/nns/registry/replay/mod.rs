@@ -47,15 +47,12 @@ pub use bootstrap::{
     probe_nns_certified_registry_with_source_async,
 };
 pub use certified_catalog_cache::{
-    NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, NnsCertifiedSubnetCatalogCacheAuthority,
-    NnsCertifiedSubnetCatalogCacheDisposition, NnsCertifiedSubnetCatalogCacheEnvelope,
-    NnsCertifiedSubnetCatalogCacheError, NnsCertifiedSubnetCatalogCacheEvidence,
-    NnsCertifiedSubnetCatalogCacheLocation, NnsCertifiedSubnetCatalogCachePublicationRequest,
-    load_nns_certified_subnet_catalog_cache,
-    load_or_publish_missing_nns_certified_subnet_catalog_cache,
-    load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache,
+    NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, NnsCertifiedSubnetCatalogCacheDisposition,
+    NnsCertifiedSubnetCatalogCacheEnvelope, NnsCertifiedSubnetCatalogCacheError,
+    NnsCertifiedSubnetCatalogCacheEvidence, NnsCertifiedSubnetCatalogCacheLocation,
+    NnsCertifiedSubnetCatalogLoadOutcome, NnsCertifiedSubnetCatalogLoadRequest,
+    NnsCertifiedSubnetCatalogReadPolicy, load_nns_certified_subnet_catalog,
     nns_certified_subnet_catalog_cache_path, nns_certified_subnet_catalog_cache_refresh_lock_path,
-    publish_nns_certified_subnet_catalog_cache,
 };
 pub use projection::{
     NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogFreshness,

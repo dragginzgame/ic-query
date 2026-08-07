@@ -44,6 +44,16 @@ file, atomically renames it, and syncs its parent directory. Explicit
 caller-selected exports are not managed cache files. There is no legacy reader,
 permission repair, deletion, or migration for older permissive cache trees.
 
+Managed pretty-JSON publication validates serialization before filesystem
+mutation and then streams directly through the atomic temporary file, avoiding
+a second complete encoded cache copy. An explicit caller-selected export may
+retain one encoded string when the same bytes must also be published to cache.
+Certified Registry archive objects and certified Subnet Catalog caches retain
+their caller-selected read ceilings through the shared confined reader.
+Refresh-lock reads are capped at 64 KiB and refresh-attempt sidecars at 1 MiB;
+oversized metadata fails as invalid local evidence and never authorizes hidden
+network work or automatic deletion.
+
 ## Shared Read-Through Flow
 
 Cache-backed reads should follow this sequence:

@@ -135,6 +135,8 @@ run_quiet "ic-query --features icrc-host" \
   cargo check -p ic-query --no-default-features --features icrc-host --locked
 run_quiet "ic-query --features subnet-catalog-host" \
   cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
+run_quiet "ic-query --features certified-subnet-catalog-host" \
+  cargo check -p ic-query --no-default-features --features certified-subnet-catalog-host --locked
 run_quiet "ic-query --features nns-topology-host" \
   cargo check -p ic-query --no-default-features --features nns-topology-host --locked
 run_quiet "ic-query --features nns-host" \
@@ -152,6 +154,7 @@ cargo test -p ic-query --test ic_public_api --no-default-features --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features dashboard-host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --locked
+cargo test -p ic-query --test certified_subnet_catalog_public_api --no-default-features --features certified-subnet-catalog-host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --features nns-host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test sns_public_api --no-default-features --locked
@@ -269,6 +272,17 @@ check_tree_absent "ic-query --features nns-host direct dependencies" \
   -p ic-query \
   --no-default-features \
   --features nns-host \
+  -e normal \
+  --depth 1
+
+# Certified catalog consumers need the Registry, cache, hashing, and CBOR
+# edges but not ic-query's direct Dashboard Reqwest transport.
+check_tree_absent "ic-query --features certified-subnet-catalog-host direct dependencies" \
+  "${forbidden_direct_nns_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features certified-subnet-catalog-host \
   -e normal \
   --depth 1
 

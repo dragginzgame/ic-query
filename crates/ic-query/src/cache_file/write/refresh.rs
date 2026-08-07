@@ -8,10 +8,13 @@ use super::write_text_output;
 use crate::cache_file::{
     CacheFileError, create_managed_parent_directory,
     lock::{RefreshLockRequest, with_refresh_lock},
-    managed_file_exists, write_managed_text_atomically,
+    managed_file_exists, write_managed_json_pretty_atomically, write_managed_text_atomically,
 };
 use serde::Serialize;
-use std::path::{Path, PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 ///
 /// RefreshCacheWriteRequest
@@ -72,14 +75,29 @@ where
             let replaced_existing_cache =
                 managed_file_exists(request.cache_root, request.cache_path)
                     .map_err(&cache_error)?;
-            let report_json = serde_json::to_string_pretty(request.report)
-                .map_err(|source| serialize_cache(request.cache_path.to_path_buf(), source))?;
             if let Some(output_path) = request.output_path {
+                let report_json = serde_json::to_string_pretty(request.report)
+                    .map_err(|source| serialize_cache(request.cache_path.to_path_buf(), source))?;
                 write_text_output(output_path, &report_json).map_err(&cache_error)?;
-            }
-            if !request.dry_run {
-                write_managed_text_atomically(request.cache_root, request.cache_path, &report_json)
+                if !request.dry_run {
+                    write_managed_text_atomically(
+                        request.cache_root,
+                        request.cache_path,
+                        &report_json,
+                    )
                     .map_err(&cache_error)?;
+                }
+            } else if request.dry_run {
+                serde_json::to_writer_pretty(io::sink(), request.report)
+                    .map_err(|source| serialize_cache(request.cache_path.to_path_buf(), source))?;
+            } else {
+                write_managed_json_pretty_atomically(
+                    request.cache_root,
+                    request.cache_path,
+                    request.report,
+                    &serialize_cache,
+                    &cache_error,
+                )?;
             }
             Ok(RefreshCacheWriteResult {
                 cache_path: request.cache_path.display().to_string(),

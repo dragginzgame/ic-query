@@ -11,10 +11,12 @@ use super::{
     model::{REFRESH_LOCK_SCHEMA_VERSION, RefreshLockFile, RefreshLockRequest},
 };
 use crate::cache_file::{
-    CacheFileError,
+    BoundedManagedFileReadError, CacheFileError,
     confined::{ConfinedManagedPath, managed_path_for_create},
 };
 use std::{io, io::Write, path::Path};
+
+pub(super) const MAX_REFRESH_LOCK_BYTES: u64 = 64 * 1024;
 
 pub(super) fn acquire_refresh_lock(
     request: RefreshLockRequest<'_>,
@@ -91,19 +93,13 @@ pub fn inspect_refresh_lock(
 
 fn read_refresh_lock(path: &ConfinedManagedPath) -> Result<RefreshLockFile, CacheFileError> {
     let display_path = path.display_path();
-    let mut file = path
-        .open_regular_file()?
+    let data = path
+        .read_bounded(MAX_REFRESH_LOCK_BYTES)
+        .map_err(refresh_lock_read_error)?
         .ok_or_else(|| CacheFileError::ReadRefreshLock {
             path: display_path.to_path_buf(),
             source: io::Error::new(io::ErrorKind::NotFound, "refresh lock disappeared"),
         })?;
-    let mut data = Vec::new();
-    std::io::Read::read_to_end(&mut file, &mut data).map_err(|source| {
-        CacheFileError::ReadRefreshLock {
-            path: display_path.to_path_buf(),
-            source,
-        }
-    })?;
     let lock: RefreshLockFile =
         serde_json::from_slice(&data).map_err(|source| CacheFileError::ParseRefreshLock {
             path: display_path.to_path_buf(),
@@ -111,6 +107,27 @@ fn read_refresh_lock(path: &ConfinedManagedPath) -> Result<RefreshLockFile, Cach
         })?;
     validate_refresh_lock_shape(display_path, &lock)?;
     Ok(lock)
+}
+
+fn refresh_lock_read_error(error: BoundedManagedFileReadError) -> CacheFileError {
+    match error {
+        BoundedManagedFileReadError::Operation(source) => source,
+        BoundedManagedFileReadError::Read { path, source } => {
+            CacheFileError::ReadRefreshLock { path, source }
+        }
+        BoundedManagedFileReadError::LimitExceeded {
+            path,
+            actual,
+            maximum,
+        } => CacheFileError::InvalidRefreshLock {
+            path,
+            reason: format!("refresh lock is {actual} bytes, maximum is {maximum}"),
+        },
+        BoundedManagedFileReadError::Accounting { path } => CacheFileError::InvalidRefreshLock {
+            path,
+            reason: "refresh-lock byte length cannot be represented safely".to_string(),
+        },
+    }
 }
 
 fn validate_refresh_lock_shape(path: &Path, lock: &RefreshLockFile) -> Result<(), CacheFileError> {

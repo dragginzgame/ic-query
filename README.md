@@ -362,6 +362,7 @@ Focused host features let embedders select one reporting family:
 | Feature | Host surface |
 | --- | --- |
 | `cmc-host` | Certified Cycle Minting Canister ICP/XDR and cycles reports |
+| `certified-subnet-catalog-host` | Subnet Catalog plus certified Registry batches, archive/replay, and archive-bound catalog authority |
 | `dashboard-host` | Official Dashboard REST reports and observed node-status cache |
 | `icrc-host` | Native ICRC ledger/index reports and complete account-history cache |
 | `nns-host` | Complete NNS governance, certified Registry evidence and pure replay, Registry inventory, component-cache, and topology APIs |
@@ -454,6 +455,22 @@ disabled. Because the feature still includes `ic-agent`, both packages may
 remain in its transitive dependency graph. The full `host` feature remains the
 choice for all reporting adapters and is a strict superset.
 
+Enable `certified-subnet-catalog-host` when an embedder needs certified Subnet
+Catalog authority without the broader NNS Governance, proposal, neuron,
+inventory, or derived-topology surface:
+
+```toml
+[dependencies]
+ic-query = { version = "0.30", default-features = false, features = ["certified-subnet-catalog-host"] }
+```
+
+This feature includes `subnet-catalog-host` and adds certified Registry delta
+collection, authenticated archive/replay, archive-bound catalog projection,
+and the bounded certified-catalog cache. It directly enables CBOR certificate
+decoding but not ic-query's Dashboard Reqwest edge. Live archive collection
+remains explicit and bounded; local archive loading, projection, and certified
+cache reads do not hide network calls.
+
 Enable `nns-topology-host` when an embedder also needs the exact-version joined
 NNS Subnet/node/operator/provider topology cache and source API:
 
@@ -475,13 +492,14 @@ inventory, component-cache, and derived topology host API:
 ic-query = { version = "0.30", default-features = false, features = ["nns-host"] }
 ```
 
-This is a strict superset of `nns-topology-host`. It directly includes the
-Registry Prost, SHA-256, and CBOR dependencies needed by exact-version
-topology, endpoint agreement, and certified Registry-version evidence. It has
-no direct ic-query Dashboard Reqwest edge; Reqwest remains transitive through
-`ic-agent`.
+This is a strict superset of both `nns-topology-host` and
+`certified-subnet-catalog-host`. It directly includes the Registry Prost,
+SHA-256, and CBOR dependencies needed by exact-version topology, endpoint
+agreement, and certified Registry evidence. It has no direct ic-query
+Dashboard Reqwest edge; Reqwest remains transitive through `ic-agent`.
 
-The `nns-host` library surface also exposes a caller-runtime async
+The `certified-subnet-catalog-host` and `nns-host` library surfaces expose a
+caller-runtime async
 `fetch_nns_certified_registry_delta_batch_async` operation and pure
 `validate_nns_certified_registry_delta_batch` validator. One call returns at
 most one contiguous certified batch and reports `more_available`; it never
@@ -631,33 +649,31 @@ endpoints. Serializing those fields does not preserve authority: ordinary
 `ValidatedSubnetCatalog::try_from_raw` validation always rejects `Certified`.
 The projection performs no network or cache operation.
 
-Certified projections may be persisted separately with
-`publish_nns_certified_subnet_catalog_cache`. Its request requires a
-caller-selected confined root, dedicated cache directory, maximum envelope
-bytes, and lock-staleness policy; there is no default path or size. Publication
-qualifies the archive and current-use policy before acquiring the cache's own
-lock, then atomically replaces one canonical schema-1 envelope.
-`load_nns_certified_subnet_catalog_cache` is local and cache-only: it bounds and
-strictly decodes the envelope, freshly projects the supplied
-`NnsAuthenticatedRegistryArchive`, and returns authority only after an exact
-match. It never repairs content, refreshes an archive, or makes a network call.
-The serialized `Certified` label remains untrusted without that authenticated
-archive comparison, and the ordinary schema-3 Subnet Catalog cache is
-unchanged.
+Certified projections use the same explicit-policy shape as ordinary catalog
+loads. `load_nns_certified_subnet_catalog` accepts a caller-selected confined
+root, dedicated cache directory, maximum envelope bytes, and one
+`NnsCertifiedSubnetCatalogReadPolicy`: cache-only, publish-missing,
+publish-missing-or-invalid, or force-publication. Publication policies also
+carry the explicit stale-lock age; there is no default path, size, or policy.
 
-Local recovery remains explicit. Use
-`load_or_publish_missing_nns_certified_subnet_catalog_cache` to authorize only
-creation of an absent cache, or
-`load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache` to also
-authorize replacement of bounded malformed, noncanonical, unsupported-schema,
-or archive-mismatched content. Neither operation repairs filesystem failures or
-refreshes archive evidence. Every successful load/publication exposes its path
-and `cache_hit`, `published_missing`, `published_invalid`, or
-`forced_publication` disposition. `authority_evidence()` returns a compact
-persistable Registry, catalog, archive, certificate, endpoint, assurance, and
-cache-action identity without duplicating the catalog snapshot. That DTO is
-descriptive evidence, not an authority constructor; reloading authority still
-requires the matching authenticated archive and cache projection.
+Every policy is local-only. The loader bounds and strictly decodes an existing
+envelope, freshly projects the supplied `NnsAuthenticatedRegistryArchive`, and
+returns `NnsCertifiedSubnetCatalogLoadOutcome` only after an exact match.
+Publication qualifies that same archive and current-use policy before acquiring
+the cache's own lock and atomically replacing one canonical schema-1 envelope.
+Missing-or-invalid recovery is limited to bounded malformed, noncanonical,
+unsupported-schema, or archive-mismatched content; it never reclassifies a
+filesystem, projection, serialization, or accounting failure. No policy
+refreshes archive evidence or makes a network call.
+
+Every successful outcome exposes its path and `cache_hit`,
+`published_missing`, `published_invalid`, or `forced_publication` disposition.
+`authority_evidence()` returns a compact persistable Registry, catalog,
+archive, certificate, endpoint, assurance, and cache-action identity without
+duplicating the catalog snapshot. The serialized `Certified` label and evidence
+DTO remain descriptive rather than authority constructors: reloading authority
+still requires the matching authenticated archive and fresh projection. The
+ordinary schema-3 Subnet Catalog cache is unchanged.
 
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case

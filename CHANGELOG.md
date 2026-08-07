@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.25` adds the focused `certified-subnet-catalog-host` feature for
+  certified Registry archive/replay and archive-bound Subnet Catalog authority
+  without the broader NNS host surface or ic-query's direct Dashboard Reqwest
+  edge. Certified cache access is hard-cut to one explicit-policy
+  `load_nns_certified_subnet_catalog` flow returning an authority-bearing load
+  outcome; the four 0.30.24 load/publication functions and publication request
+  are removed without aliases. Shared managed-file reads are bounded, atomic
+  JSON cache publication streams after serialization preflight, and refresh
+  locks and attempt sidecars reject content above 64 KiB and 1 MiB. Cache
+  schemas, paths, network behavior, and CLI surface are unchanged.
+
 - `0.30.24` finishes the certified Subnet Catalog cache boundary with
   explicitly named local missing and missing-or-invalid publication policies,
   observable cache dispositions, and compact persistable authority evidence.
@@ -84,8 +95,11 @@ Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
   result keeps the `ValidatedSubnetCatalog` attached to the qualifying archive;
   serialized raw catalogs still cannot self-assert `Certified`. Schema-2
   catalogs and the earlier authenticated-session projection API are removed
-  without migration or aliases. No cache publication, refresh policy, network
-  call, or CLI surface is added.
+  without migration or aliases. Existing ordinary schema-2 catalog caches are
+  invalid: cache-only reads fail locally, while an already-authorized
+  refresh-capable read policy makes a live Registry query and replaces the
+  cache with schema 3. The archive-bound projection itself adds no cache
+  publication, refresh policy, network call, or CLI surface.
 
 - `0.30.16` adds explicit confined publication and bounded restoration for the
   certified Registry archive. A streaming publisher writes each canonical

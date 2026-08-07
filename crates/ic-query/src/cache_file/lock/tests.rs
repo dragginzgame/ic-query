@@ -91,6 +91,20 @@ fn refresh_lock_rejects_mismatched_identity() {
 }
 
 #[test]
+fn oversized_refresh_lock_is_rejected_as_invalid_local_evidence() {
+    let fixture = LockFixture::new("ic-query-oversized-refresh-lock");
+    let bytes = usize::try_from(super::acquire::MAX_REFRESH_LOCK_BYTES + 1)
+        .expect("refresh-lock fixture byte count fits usize");
+    fixture.write_lock(&"x".repeat(bytes));
+
+    let err = acquire_refresh_lock(fixture.request(120)).expect_err("oversized lock is rejected");
+
+    assert!(matches!(err, CacheFileError::InvalidRefreshLock { .. }));
+    assert!(fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
+#[test]
 fn stale_valid_refresh_lock_requires_manual_cleanup() {
     let fixture = LockFixture::new("ic-query-stale-valid-refresh-lock");
     fixture.write_valid_lock(1);

@@ -10,7 +10,11 @@ use super::{
     NnsCertifiedRegistryArchiveManifestBuilder,
 };
 use crate::{
-    cache_file::{CacheFileError, open_managed_file, write_managed_file_atomically},
+    cache_file::{
+        BoundedManagedFileReadError, CacheFileError,
+        read_bounded_managed_file as read_shared_bounded_managed_file,
+        write_managed_file_atomically,
+    },
     hex::hex_bytes,
     nns::registry::{
         NnsAuthenticatedRegistryDeltaBatch, NnsAuthenticatedRegistryReplaySession,
@@ -23,7 +27,7 @@ use crate::{
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
-    io::{self, Read, Write},
+    io::{self, Write},
     path::{Path, PathBuf},
 };
 use thiserror::Error as ThisError;
@@ -613,51 +617,29 @@ fn read_bounded_managed_file(
     kind: &'static str,
     maximum: u64,
 ) -> Result<Option<Vec<u8>>, NnsCertifiedRegistryArchiveStorageError> {
-    let Some(mut file) = open_managed_file(cache_root, path).map_err(file_operation)? else {
-        return Ok(None);
-    };
-    let metadata_length = file
-        .metadata()
-        .map_err(|source| {
+    read_shared_bounded_managed_file(cache_root, path, maximum).map_err(|error| match error {
+        BoundedManagedFileReadError::Operation(source) => file_operation(source),
+        BoundedManagedFileReadError::Read { path, source } => {
             file_operation(CacheFileError::OpenManagedPath {
                 root: cache_root.to_path_buf(),
-                path: path.to_path_buf(),
+                path,
                 source,
             })
-        })?
-        .len();
-    if metadata_length > maximum {
-        return Err(NnsCertifiedRegistryArchiveStorageError::FileLimitExceeded {
-            kind,
-            path: path.to_path_buf(),
-            actual: metadata_length,
-            maximum,
-        });
-    }
-    let capacity = usize::try_from(metadata_length)
-        .map_err(|_| NnsCertifiedRegistryArchiveStorageError::Accounting)?;
-    let mut bytes = Vec::with_capacity(capacity);
-    Read::by_ref(&mut file)
-        .take(maximum.saturating_add(1))
-        .read_to_end(&mut bytes)
-        .map_err(|source| {
-            file_operation(CacheFileError::OpenManagedPath {
-                root: cache_root.to_path_buf(),
-                path: path.to_path_buf(),
-                source,
-            })
-        })?;
-    let actual = u64::try_from(bytes.len())
-        .map_err(|_| NnsCertifiedRegistryArchiveStorageError::Accounting)?;
-    if actual > maximum {
-        return Err(NnsCertifiedRegistryArchiveStorageError::FileLimitExceeded {
-            kind,
-            path: path.to_path_buf(),
+        }
+        BoundedManagedFileReadError::LimitExceeded {
+            path,
             actual,
             maximum,
-        });
-    }
-    Ok(Some(bytes))
+        } => NnsCertifiedRegistryArchiveStorageError::FileLimitExceeded {
+            kind,
+            path,
+            actual,
+            maximum,
+        },
+        BoundedManagedFileReadError::Accounting { .. } => {
+            NnsCertifiedRegistryArchiveStorageError::Accounting
+        }
+    })
 }
 
 fn validate_object_bytes(

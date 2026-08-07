@@ -14,11 +14,12 @@ Use `host` for native tools that need live calls, filesystem caches, refresh
 operations, or cache-backed report builders. The library has no CLI feature;
 `icq` parsing and dispatch are owned by `ic-query-cli`.
 
-The focused host choices are `cmc-host`, `dashboard-host`, `icrc-host`,
-`nns-host`, `nns-topology-host`, `sns-host`, and `subnet-catalog-host`. The
-complete `host` feature is their convenience union, with
-`nns-topology-host` nested under `nns-host` and `subnet-catalog-host` nested
-under both NNS choices.
+The focused host choices are `cmc-host`, `certified-subnet-catalog-host`,
+`dashboard-host`, `icrc-host`, `nns-host`, `nns-topology-host`, `sns-host`, and
+`subnet-catalog-host`. The complete `host` feature is their convenience union.
+Both NNS subsets are nested under `nns-host`, and
+`certified-subnet-catalog-host` and `nns-topology-host` each include
+`subnet-catalog-host`.
 
 For official Dashboard REST reports and the shared observed node-status cache,
 use the independent Dashboard feature:
@@ -100,6 +101,23 @@ Dashboard `reqwest` transport or `serde_cbor` certification dependencies. Those
 packages may still appear transitively through `ic-agent`. The full `host`
 feature is a strict superset.
 
+For certified Registry archive/replay and archive-bound Subnet Catalog
+authority without the complete NNS host surface, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.30", default-features = false, features = ["certified-subnet-catalog-host"] }
+```
+
+`certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
+bounded certified delta, archive, replay, projection, and certified catalog
+cache APIs. It directly enables CBOR certificate decoding. It does not enable
+NNS Governance, proposal, neuron, component-inventory, or derived-topology
+host adapters, and it does not add ic-query's direct Dashboard Reqwest edge.
+Network calls remain confined to explicitly selected certified collection or
+archive refresh operations; archive load, replay, projection, and cache load
+are local-only.
+
 For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
@@ -123,7 +141,8 @@ component-cache, and derived topology surface, use:
 ic-query = { version = "0.30", default-features = false, features = ["nns-host"] }
 ```
 
-`nns-host` is a strict superset of `nns-topology-host`. It exposes
+`nns-host` is a strict superset of `nns-topology-host` and
+`certified-subnet-catalog-host`. It exposes
 `LiveNnsSource`, all NNS report-specific source traits and builders, Governance
 proposal/neuron complete snapshots, component inventory caches, explicit
 refresh policies, and progress events. Registry Prost decoding and SHA-256 are
@@ -206,6 +225,17 @@ borrowed to that archive. Ordinary `ValidatedSubnetCatalog::try_from_raw`
 continues to reject `CatalogAssurance::Certified`, so persisted JSON cannot
 self-assert authority. Projection makes no network call and does not publish a
 catalog cache.
+
+To persist that projection, call `load_nns_certified_subnet_catalog` with one
+`NnsCertifiedSubnetCatalogLoadRequest`. Its
+`NnsCertifiedSubnetCatalogReadPolicy` selects cache-only,
+publish-missing, publish-missing-or-invalid, or force-publication behavior.
+The returned `NnsCertifiedSubnetCatalogLoadOutcome` keeps the archive-bound
+authority attached and reports the exact cache path and disposition. All four
+policies are local-only: they can publish from the supplied archive, but cannot
+refresh it or make a network call. Recoverable invalidity is limited to cache
+content; filesystem, projection, serialization, and accounting errors remain
+failures.
 
 For pure model/rendering use, keep all features off:
 

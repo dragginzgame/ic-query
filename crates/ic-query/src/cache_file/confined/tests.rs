@@ -43,6 +43,30 @@ fn managed_round_trip_uses_owner_only_modes() {
 }
 
 #[test]
+fn bounded_managed_read_accepts_exact_limit_and_rejects_larger_file() {
+    let root = temp_dir("ic-query-confined-bounded-read");
+    let path = root.join("nns/ic/archive/object.json");
+    write_managed_text_atomically(&root, &path, "12345678").expect("write bounded fixture");
+
+    assert_eq!(
+        read_bounded_managed_file(&root, &path, 8).expect("read exact limit"),
+        Some(b"12345678".to_vec())
+    );
+    let error =
+        read_bounded_managed_file(&root, &path, 7).expect_err("larger managed file is rejected");
+    assert!(matches!(
+        error,
+        BoundedManagedFileReadError::LimitExceeded {
+            actual: 8,
+            maximum: 7,
+            ..
+        }
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn streamed_atomic_write_failure_preserves_existing_file() {
     let root = temp_dir("ic-query-confined-stream-failure");
     let path = root.join("nns/ic/archive/manifest.json");

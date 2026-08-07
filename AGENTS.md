@@ -27,7 +27,9 @@ If code or habit conflicts with this file, this file wins.
   changes replace the version-1 contract in place; do not increment a schema
   to `2` or higher, retain an older reader, or add a migration. Treat any
   existing schema version above `1` as nonconforming debt to remove in a
-  dedicated hard-cut change, not as precedent for another version bump.
+  dedicated hard-cut change, not as precedent for another version bump. New
+  versioned contracts start and remain at `1` until the package reaches 1.0;
+  this rule governs contract/schema identifiers, not Cargo package releases.
 - Before `1.0.0`, every breaking change is a hard cut. Do not preserve old
   behavior through compatibility shims, CLI or Serde aliases, deprecated
   wrappers or re-exports, dual parsers, fallback readers, legacy schema

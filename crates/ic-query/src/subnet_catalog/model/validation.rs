@@ -12,7 +12,7 @@ use super::{
     policy::{RESOLVER_BACKEND, apply_mainnet_classification_policy, classification_policy_digest},
 };
 use super::{RawSubnetCatalog, RoutingRange, SubnetInfo};
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 use crate::nns::registry::NnsAuthenticatedRegistryArchive;
 use crate::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, CatalogError, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID,
@@ -257,7 +257,7 @@ impl ValidatedSubnetCatalog {
         Self::try_from_raw_with_certified_admission(raw, context, false)
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(crate) fn try_from_authenticated_archive(
         raw: RawSubnetCatalog,
         context: &CatalogValidationContext,
@@ -504,7 +504,7 @@ fn validate_assurance(
     Ok(())
 }
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 fn validate_certified_archive_binding(
     raw: &RawSubnetCatalog,
     archive: &NnsAuthenticatedRegistryArchive,

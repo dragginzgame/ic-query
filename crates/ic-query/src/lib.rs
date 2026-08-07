@@ -14,11 +14,12 @@
 //! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for native SNS
 //! live/cache APIs, `cmc-host` for certified Cycles Minting Canister reports,
 //! `subnet-catalog-host` for the focused live/cache Subnet catalog API,
+//! `certified-subnet-catalog-host` for that API plus certified Registry archive,
+//! replay, and archive-bound catalog authority,
 //! `nns-topology-host` for that API plus exact-version joined NNS Subnet
-//! topology, `nns-host` for the complete NNS host surface including certified
-//! Registry-version evidence, or `host` for every native live-call adapter and
-//! runtime helper. CLI parsing and process IO belong to the separate
-//! `ic-query-cli` crate.
+//! topology, `nns-host` for the complete NNS host surface, or `host` for every
+//! native live-call adapter and runtime helper. CLI parsing and process IO
+//! belong to the separate `ic-query-cli` crate.
 
 #[cfg(any(
     feature = "cmc-host",
@@ -36,7 +37,11 @@ pub mod cache;
     feature = "subnet-catalog-host"
 ))]
 mod cache_file;
-#[cfg(any(feature = "cmc-host", feature = "icrc-host", feature = "nns-host"))]
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "cmc-host",
+    feature = "icrc-host"
+))]
 mod certification;
 pub mod duration;
 #[cfg(any(

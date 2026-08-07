@@ -1,10 +1,10 @@
 //! NNS registry-version requests, reports, host builders, and renderers.
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 mod replay;
 mod report;
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use replay::{
     NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
     NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION,
@@ -20,27 +20,24 @@ pub use replay::{
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
     NnsCertifiedRegistryBootstrapProbeOutcome, NnsCertifiedRegistryBootstrapProbeStatus,
     NnsCertifiedRegistryBootstrapRequest, NnsCertifiedSubnetCatalogAuthority,
-    NnsCertifiedSubnetCatalogCacheAuthority, NnsCertifiedSubnetCatalogCacheDisposition,
-    NnsCertifiedSubnetCatalogCacheEnvelope, NnsCertifiedSubnetCatalogCacheError,
-    NnsCertifiedSubnetCatalogCacheEvidence, NnsCertifiedSubnetCatalogCacheLocation,
-    NnsCertifiedSubnetCatalogCachePublicationRequest, NnsCertifiedSubnetCatalogFreshness,
-    NnsCertifiedSubnetCatalogProjectionRequest, NnsCertifiedSubnetCatalogVersionPolicy,
-    NnsRegistryReplayError, NnsRegistryReplayLimits, NnsRegistryReplayProgress,
-    NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
-    NnsRegistryReplayValue, NnsRegistrySubnetCatalogProjection,
+    NnsCertifiedSubnetCatalogCacheDisposition, NnsCertifiedSubnetCatalogCacheEnvelope,
+    NnsCertifiedSubnetCatalogCacheError, NnsCertifiedSubnetCatalogCacheEvidence,
+    NnsCertifiedSubnetCatalogCacheLocation, NnsCertifiedSubnetCatalogFreshness,
+    NnsCertifiedSubnetCatalogLoadOutcome, NnsCertifiedSubnetCatalogLoadRequest,
+    NnsCertifiedSubnetCatalogProjectionRequest, NnsCertifiedSubnetCatalogReadPolicy,
+    NnsCertifiedSubnetCatalogVersionPolicy, NnsRegistryReplayError, NnsRegistryReplayLimits,
+    NnsRegistryReplayProgress, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
+    NnsRegistryReplayState, NnsRegistryReplayValue, NnsRegistrySubnetCatalogProjection,
     NnsRegistrySubnetCatalogProjectionError, apply_nns_certified_registry_delta_batch,
     bootstrap_nns_certified_registry_archive_async,
     bootstrap_nns_certified_registry_archive_with_source_async,
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     cleanup_nns_certified_registry_archive, load_nns_certified_registry_archive,
-    load_nns_certified_subnet_catalog_cache,
-    load_or_publish_missing_nns_certified_subnet_catalog_cache,
-    load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache,
-    nns_certified_registry_archive_manifest_path, nns_certified_registry_archive_refresh_lock_path,
-    nns_certified_subnet_catalog_cache_path, nns_certified_subnet_catalog_cache_refresh_lock_path,
-    probe_nns_certified_registry_async, probe_nns_certified_registry_with_source_async,
-    project_nns_certified_subnet_catalog, project_nns_registry_subnet_catalog,
-    publish_nns_certified_subnet_catalog_cache, refresh_nns_certified_registry_archive_async,
+    load_nns_certified_subnet_catalog, nns_certified_registry_archive_manifest_path,
+    nns_certified_registry_archive_refresh_lock_path, nns_certified_subnet_catalog_cache_path,
+    nns_certified_subnet_catalog_cache_refresh_lock_path, probe_nns_certified_registry_async,
+    probe_nns_certified_registry_with_source_async, project_nns_certified_subnet_catalog,
+    project_nns_registry_subnet_catalog, refresh_nns_certified_registry_archive_async,
     refresh_nns_certified_registry_archive_with_source_async,
     validate_nns_certified_registry_archive_manifest,
 };
@@ -53,7 +50,7 @@ pub use report::{
     NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
     NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use report::{
     NnsAuthenticatedRegistryDeltaBatch, NnsCertifiedRegistryDeltaSource,
     NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistrySource,

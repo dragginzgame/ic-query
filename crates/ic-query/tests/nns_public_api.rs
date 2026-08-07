@@ -114,28 +114,26 @@ use ic_query::nns::registry::{
     NnsCertifiedRegistryArchiveStorageError, NnsCertifiedRegistryArchiveStorageLimits,
     NnsCertifiedRegistryBootstrapProbeStatus, NnsCertifiedRegistryBootstrapRequest,
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture,
-    NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogCacheAuthority,
-    NnsCertifiedSubnetCatalogCacheDisposition, NnsCertifiedSubnetCatalogCacheError,
-    NnsCertifiedSubnetCatalogCacheEvidence, NnsCertifiedSubnetCatalogCacheLocation,
-    NnsCertifiedSubnetCatalogCachePublicationRequest, NnsCertifiedSubnetCatalogFreshness,
-    NnsCertifiedSubnetCatalogProjectionRequest, NnsCertifiedSubnetCatalogVersionPolicy,
-    NnsRegistryHostError, NnsRegistryReplayError, NnsRegistryReplayLimits,
-    NnsRegistryReplaySession, NnsRegistryReplaySessionLimits, NnsRegistryReplayState,
-    NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError, NnsRegistryVersionData,
-    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_archive_async,
+    NnsCertifiedSubnetCatalogAuthority, NnsCertifiedSubnetCatalogCacheDisposition,
+    NnsCertifiedSubnetCatalogCacheError, NnsCertifiedSubnetCatalogCacheEvidence,
+    NnsCertifiedSubnetCatalogCacheLocation, NnsCertifiedSubnetCatalogFreshness,
+    NnsCertifiedSubnetCatalogLoadOutcome, NnsCertifiedSubnetCatalogLoadRequest,
+    NnsCertifiedSubnetCatalogProjectionRequest, NnsCertifiedSubnetCatalogReadPolicy,
+    NnsCertifiedSubnetCatalogVersionPolicy, NnsRegistryHostError, NnsRegistryReplayError,
+    NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
+    NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
+    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
+    bootstrap_nns_certified_registry_archive_async,
     bootstrap_nns_certified_registry_archive_with_source_async,
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source, cleanup_nns_certified_registry_archive,
     fetch_nns_certified_registry_delta_batch_with_source_async,
-    load_nns_certified_registry_archive, load_nns_certified_subnet_catalog_cache,
-    load_or_publish_missing_nns_certified_subnet_catalog_cache,
-    load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache,
+    load_nns_certified_registry_archive, load_nns_certified_subnet_catalog,
     nns_certified_registry_archive_manifest_path, nns_certified_registry_archive_refresh_lock_path,
     nns_certified_registry_delta_limits, nns_certified_subnet_catalog_cache_path,
     nns_certified_subnet_catalog_cache_refresh_lock_path,
     probe_nns_certified_registry_with_source_async, project_nns_certified_subnet_catalog,
-    project_nns_registry_subnet_catalog, publish_nns_certified_subnet_catalog_cache,
-    reauthenticate_nns_certified_registry_delta_batch,
+    project_nns_registry_subnet_catalog, reauthenticate_nns_certified_registry_delta_batch,
     refresh_nns_certified_registry_archive_async,
     refresh_nns_certified_registry_archive_with_source_async,
     validate_nns_certified_registry_archive_manifest, validate_nns_certified_registry_delta_batch,
@@ -974,8 +972,10 @@ fn public_certified_catalog_cache_contract_is_explicit_and_archive_bound() {
         "/tmp/ic-query-public-api-certified-catalog",
         1_000_000,
     );
-    let cache_publication =
-        NnsCertifiedSubnetCatalogCachePublicationRequest::new(cache_location.clone(), 300);
+    let cache_request = NnsCertifiedSubnetCatalogLoadRequest::publish_missing_or_invalid(
+        cache_location.clone(),
+        300,
+    );
     assert_eq!(NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, 1);
     assert_eq!(
         nns_certified_subnet_catalog_cache_path(&cache_location.cache_directory),
@@ -985,43 +985,22 @@ fn public_certified_catalog_cache_contract_is_explicit_and_archive_bound() {
         nns_certified_subnet_catalog_cache_refresh_lock_path(&cache_location.cache_directory),
         cache_location.cache_directory.join("refresh.lock")
     );
-    assert_eq!(cache_publication.lock_stale_after_seconds, 300);
-    let cache_publisher: for<'a> fn(
-        &'a NnsAuthenticatedRegistryArchive,
-        &NnsCertifiedSubnetCatalogProjectionRequest,
-        &NnsCertifiedSubnetCatalogCachePublicationRequest,
-    ) -> Result<
-        NnsCertifiedSubnetCatalogCacheAuthority<'a>,
-        NnsCertifiedSubnetCatalogCacheError,
-    > = publish_nns_certified_subnet_catalog_cache;
-    let _ = cache_publisher;
+    assert_eq!(cache_request.location, cache_location);
+    assert_eq!(
+        cache_request.policy,
+        NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
+            lock_stale_after_seconds: 300,
+        }
+    );
     let cache_loader: for<'a> fn(
         &'a NnsAuthenticatedRegistryArchive,
         &NnsCertifiedSubnetCatalogProjectionRequest,
-        &NnsCertifiedSubnetCatalogCacheLocation,
+        &NnsCertifiedSubnetCatalogLoadRequest,
     ) -> Result<
-        NnsCertifiedSubnetCatalogCacheAuthority<'a>,
+        NnsCertifiedSubnetCatalogLoadOutcome<'a>,
         NnsCertifiedSubnetCatalogCacheError,
-    > = load_nns_certified_subnet_catalog_cache;
+    > = load_nns_certified_subnet_catalog;
     let _ = cache_loader;
-    let load_or_publish_missing: for<'a> fn(
-        &'a NnsAuthenticatedRegistryArchive,
-        &NnsCertifiedSubnetCatalogProjectionRequest,
-        &NnsCertifiedSubnetCatalogCachePublicationRequest,
-    ) -> Result<
-        NnsCertifiedSubnetCatalogCacheAuthority<'a>,
-        NnsCertifiedSubnetCatalogCacheError,
-    > = load_or_publish_missing_nns_certified_subnet_catalog_cache;
-    let _ = load_or_publish_missing;
-    let load_or_publish_invalid: for<'a> fn(
-        &'a NnsAuthenticatedRegistryArchive,
-        &NnsCertifiedSubnetCatalogProjectionRequest,
-        &NnsCertifiedSubnetCatalogCachePublicationRequest,
-    ) -> Result<
-        NnsCertifiedSubnetCatalogCacheAuthority<'a>,
-        NnsCertifiedSubnetCatalogCacheError,
-    > = load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache;
-    let _ = load_or_publish_invalid;
     assert_eq!(
         NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid.as_str(),
         "published_invalid"

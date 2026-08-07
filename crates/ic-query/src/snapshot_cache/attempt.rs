@@ -7,7 +7,7 @@
 use super::json::write_snapshot_json;
 use crate::{
     cache::CacheRefreshAttemptStatus,
-    cache_file::{CacheFileError, read_managed_file},
+    cache_file::{BoundedManagedFileReadError, CacheFileError, read_bounded_managed_file},
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::{
@@ -16,6 +16,7 @@ use std::{
 };
 
 pub const SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION: u32 = 1;
+const MAX_SNAPSHOT_REFRESH_ATTEMPT_BYTES: u64 = 1024 * 1024;
 
 ///
 /// SnapshotRefreshAttemptReadError
@@ -93,7 +94,8 @@ where
     T: DeserializeOwned,
 {
     let Some(data) =
-        read_managed_file(cache_root, path).map_err(SnapshotRefreshAttemptReadError::Operation)?
+        read_bounded_managed_file(cache_root, path, MAX_SNAPSHOT_REFRESH_ATTEMPT_BYTES)
+            .map_err(|error| snapshot_attempt_read_error(cache_root, error))?
     else {
         return Ok(None);
     };
@@ -118,6 +120,38 @@ where
             source,
         }
     })
+}
+
+fn snapshot_attempt_read_error(
+    cache_root: &Path,
+    error: BoundedManagedFileReadError,
+) -> SnapshotRefreshAttemptReadError {
+    match error {
+        BoundedManagedFileReadError::Operation(source) => {
+            SnapshotRefreshAttemptReadError::Operation(source)
+        }
+        BoundedManagedFileReadError::Read { path, source } => {
+            SnapshotRefreshAttemptReadError::Operation(CacheFileError::OpenManagedPath {
+                root: cache_root.to_path_buf(),
+                path,
+                source,
+            })
+        }
+        BoundedManagedFileReadError::LimitExceeded {
+            path,
+            actual,
+            maximum,
+        } => SnapshotRefreshAttemptReadError::Invalid {
+            path,
+            reason: format!("refresh-attempt file is {actual} bytes, maximum is {maximum}"),
+        },
+        BoundedManagedFileReadError::Accounting { path } => {
+            SnapshotRefreshAttemptReadError::Invalid {
+                path,
+                reason: "refresh-attempt byte length cannot be represented safely".to_string(),
+            }
+        }
+    }
 }
 
 fn attempt_field_is_supported(field: &str, metadata_fields: &[&str]) -> bool {

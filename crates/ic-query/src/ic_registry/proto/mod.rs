@@ -5,7 +5,7 @@ mod registry;
 mod routing;
 mod subnet;
 
-#[cfg(all(test, feature = "nns-host"))]
+#[cfg(all(test, feature = "certified-subnet-catalog-host"))]
 pub use id::PrincipalId;
 pub use id::{CanisterId, SubnetId};
 #[cfg(feature = "nns-host")]
@@ -16,9 +16,9 @@ pub use node::Gps;
 pub use node::{NodeOperatorRecord, NodeRecord};
 #[cfg(all(test, feature = "nns-host"))]
 pub use registry::RegistryError;
-#[cfg(all(test, feature = "nns-host"))]
+#[cfg(all(test, feature = "certified-subnet-catalog-host"))]
 pub use registry::RegistryPrecondition;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use registry::{
     HighCapacityRegistryAtomicMutateRequest, HighCapacityRegistryMutation,
     RegistryCertifiedResponse, RegistryGetChangesSinceRequest, RegistryMixedHashTree,
@@ -29,8 +29,14 @@ pub use registry::{
     RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value, registry_get_value_response,
 };
 pub use routing::RoutingTable;
-#[cfg(all(test, feature = "nns-host"))]
+#[cfg(all(test, feature = "certified-subnet-catalog-host"))]
 pub use routing::{CanisterIdRange, RoutingTableEntry};
-#[cfg(all(test, feature = "nns-topology-host"))]
+#[cfg(all(
+    test,
+    any(
+        feature = "certified-subnet-catalog-host",
+        feature = "nns-topology-host"
+    )
+))]
 pub use subnet::SubnetType;
 pub use subnet::{SubnetListRecord, SubnetRecord};

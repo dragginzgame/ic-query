@@ -126,7 +126,7 @@ pub struct RegistryGetLatestVersionResponse {
 ///
 
 #[derive(Clone, Eq, prost::Message, PartialEq)]
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub struct RegistryGetChangesSinceRequest {
     /// Last Registry version already held by the caller.
     #[prost(uint64, tag = "1")]
@@ -140,7 +140,7 @@ pub struct RegistryGetChangesSinceRequest {
 ///
 
 #[derive(Clone, Eq, prost::Message, PartialEq)]
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub struct HighCapacityRegistryAtomicMutateRequest {
     /// Ordered mutations applied by the Registry version.
     #[prost(message, repeated, tag = "1")]
@@ -160,7 +160,7 @@ pub struct HighCapacityRegistryAtomicMutateRequest {
 ///
 
 #[derive(Clone, Eq, prost::Message, PartialEq)]
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub struct HighCapacityRegistryMutation {
     /// Raw `RegistryMutation.Type` numeric discriminant.
     #[prost(int32, tag = "1")]
@@ -177,7 +177,7 @@ pub struct HighCapacityRegistryMutation {
     pub content: Option<high_capacity_registry_mutation::Content>,
 }
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub mod high_capacity_registry_mutation {
     use super::LargeValueChunkKeys;
     use prost::Oneof;
@@ -206,7 +206,7 @@ pub mod high_capacity_registry_mutation {
 ///
 
 #[derive(Clone, Copy, Debug, prost::Enumeration, Eq, PartialEq)]
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 #[repr(i32)]
 pub enum RegistryMutationType {
     Insert = 0,
@@ -222,7 +222,7 @@ pub enum RegistryMutationType {
 ///
 
 #[derive(Clone, Eq, prost::Message, PartialEq)]
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub struct RegistryPrecondition {
     /// Registry key whose version is constrained.
     #[prost(bytes = "vec", tag = "1")]
@@ -239,7 +239,7 @@ pub struct RegistryPrecondition {
 ///
 
 #[derive(Clone, Eq, prost::Message, PartialEq)]
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub struct RegistryCertifiedResponse {
     /// Certified mixed hash-tree witness.
     #[prost(message, optional, tag = "1")]
@@ -256,14 +256,14 @@ pub struct RegistryCertifiedResponse {
 ///
 
 #[derive(Clone, Eq, prost::Message, PartialEq)]
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub struct RegistryMixedHashTree {
     /// Encoded tree node.
     #[prost(oneof = "registry_mixed_hash_tree::Tree", tags = "1, 2, 3, 4, 5")]
     pub tree: Option<registry_mixed_hash_tree::Tree>,
 }
 
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub mod registry_mixed_hash_tree {
     use super::RegistryMixedHashTree;
     use prost::Oneof;

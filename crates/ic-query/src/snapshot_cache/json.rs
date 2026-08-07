@@ -8,7 +8,7 @@
 use super::SnapshotHeader;
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 use super::{SnapshotIdentityMismatch, SnapshotKey, SnapshotReport};
-use crate::cache_file::{CacheFileError, write_managed_text_atomically};
+use crate::cache_file::{CacheFileError, write_managed_json_pretty_atomically};
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 use crate::{
     cache::CacheCollectionCompleteness,
@@ -84,9 +84,7 @@ pub fn write_snapshot_json<T, Error>(
 where
     T: Serialize,
 {
-    let data = serde_json::to_string_pretty(snapshot)
-        .map_err(|source| serialize_error(path.to_path_buf(), source))?;
-    write_managed_text_atomically(cache_root, path, &data).map_err(write_error)
+    write_managed_json_pretty_atomically(cache_root, path, snapshot, serialize_error, write_error)
 }
 
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]

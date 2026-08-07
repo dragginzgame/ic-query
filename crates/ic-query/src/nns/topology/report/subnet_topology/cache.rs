@@ -10,7 +10,7 @@ use crate::{
         RefreshLockRequest, create_managed_parent_directory, host_cache_refresh_reason,
         load_json_cache, load_or_refresh_cache_with_error_policy,
         load_or_refresh_stale_cache_with_error_policy, with_refresh_lock,
-        write_managed_text_atomically,
+        write_managed_json_pretty_atomically,
     },
     freshness::freshness_facts,
     nns::LiveNnsSource,
@@ -101,11 +101,13 @@ pub fn refresh_nns_subnet_topology_with_source(
                 &request.cache.network,
                 Some(&request.source_endpoint),
             )?;
-            let report_json = serde_json::to_string_pretty(&report).map_err(|source| {
-                HostCacheError::serialize_cache(CACHE_COMPONENT, cache_path.clone(), source)
-            })?;
-            write_managed_text_atomically(&request.cache.cache_root, &cache_path, &report_json)
-                .map_err(|error| HostCacheError::operation(CACHE_COMPONENT, error))?;
+            write_managed_json_pretty_atomically(
+                &request.cache.cache_root,
+                &cache_path,
+                &report,
+                |path, source| HostCacheError::serialize_cache(CACHE_COMPONENT, path, source),
+                |error| HostCacheError::operation(CACHE_COMPONENT, error),
+            )?;
             Ok(CachedNnsSubnetTopologyReport {
                 path: cache_path.clone(),
                 report,

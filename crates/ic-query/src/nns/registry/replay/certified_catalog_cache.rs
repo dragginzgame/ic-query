@@ -12,8 +12,9 @@ use super::{
 };
 use crate::{
     cache_file::{
-        CacheFileError, RefreshLockRequest, create_managed_parent_directory, open_managed_file,
-        with_refresh_lock, write_managed_file_atomically,
+        BoundedManagedFileReadError, CacheFileError, RefreshLockRequest,
+        create_managed_parent_directory, read_bounded_managed_file, with_refresh_lock,
+        write_managed_file_atomically,
     },
     hex::hex_bytes,
     subnet_catalog::{CatalogAssurance, MAINNET_NETWORK, RawSubnetCatalog},
@@ -21,7 +22,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
-    io::{self, Read, Write},
+    io::{self, Write},
     path::{Path, PathBuf},
 };
 use thiserror::Error as ThisError;
@@ -65,30 +66,103 @@ impl NnsCertifiedSubnetCatalogCacheLocation {
 }
 
 ///
-/// NnsCertifiedSubnetCatalogCachePublicationRequest
+/// NnsCertifiedSubnetCatalogReadPolicy
 ///
-/// Explicit location and dedicated-lock policy for one atomic cache publication.
+/// Exact local cache behavior authorized for one certified catalog load.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NnsCertifiedSubnetCatalogReadPolicy {
+    /// Load and authenticate existing cache content without mutating it.
+    CacheOnly,
+    /// Publish from the supplied archive only when cache content is absent.
+    PublishMissing {
+        /// Age after which an abandoned publication lock is reported as stale.
+        lock_stale_after_seconds: u64,
+    },
+    /// Publish from the supplied archive when cache content is absent or recoverably invalid.
+    PublishMissingOrInvalid {
+        /// Age after which an abandoned publication lock is reported as stale.
+        lock_stale_after_seconds: u64,
+    },
+    /// Unconditionally publish from the supplied archive.
+    ForcePublication {
+        /// Age after which an abandoned publication lock is reported as stale.
+        lock_stale_after_seconds: u64,
+    },
+}
+
+///
+/// NnsCertifiedSubnetCatalogLoadRequest
+///
+/// Caller-selected confined location and exact certified cache read policy.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsCertifiedSubnetCatalogCachePublicationRequest {
+pub struct NnsCertifiedSubnetCatalogLoadRequest {
     /// Confined cache location and canonical byte ceiling.
     pub location: NnsCertifiedSubnetCatalogCacheLocation,
-    /// Age after which an abandoned publication lock is reported as stale.
-    pub lock_stale_after_seconds: u64,
+    /// Authorized local cache behavior.
+    pub policy: NnsCertifiedSubnetCatalogReadPolicy,
 }
 
-impl NnsCertifiedSubnetCatalogCachePublicationRequest {
-    /// Create one explicit publication request without selecting a lock policy by default.
+impl NnsCertifiedSubnetCatalogLoadRequest {
+    /// Build a cache-only request that cannot publish or make a network call.
     #[must_use]
-    pub const fn new(
+    pub const fn cache_only(location: NnsCertifiedSubnetCatalogCacheLocation) -> Self {
+        Self {
+            location,
+            policy: NnsCertifiedSubnetCatalogReadPolicy::CacheOnly,
+        }
+    }
+
+    /// Build a request that publishes only when cache content is absent.
+    #[must_use]
+    pub const fn publish_missing(
         location: NnsCertifiedSubnetCatalogCacheLocation,
         lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             location,
-            lock_stale_after_seconds,
+            policy: NnsCertifiedSubnetCatalogReadPolicy::PublishMissing {
+                lock_stale_after_seconds,
+            },
         }
+    }
+
+    /// Build a request that publishes when cache content is absent or recoverably invalid.
+    #[must_use]
+    pub const fn publish_missing_or_invalid(
+        location: NnsCertifiedSubnetCatalogCacheLocation,
+        lock_stale_after_seconds: u64,
+    ) -> Self {
+        Self {
+            location,
+            policy: NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
+                lock_stale_after_seconds,
+            },
+        }
+    }
+
+    /// Build a request that unconditionally publishes from the supplied archive.
+    #[must_use]
+    pub const fn force_publication(
+        location: NnsCertifiedSubnetCatalogCacheLocation,
+        lock_stale_after_seconds: u64,
+    ) -> Self {
+        Self {
+            location,
+            policy: NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
+                lock_stale_after_seconds,
+            },
+        }
+    }
+
+    /// Replace the exact local cache policy.
+    #[must_use]
+    pub const fn with_policy(mut self, policy: NnsCertifiedSubnetCatalogReadPolicy) -> Self {
+        self.policy = policy;
+        self
     }
 }
 
@@ -184,20 +258,20 @@ pub struct NnsCertifiedSubnetCatalogCacheEvidence {
 }
 
 ///
-/// NnsCertifiedSubnetCatalogCacheAuthority
+/// NnsCertifiedSubnetCatalogLoadOutcome
 ///
 /// Cache envelope exactly matched to a fresh projection from its attached authenticated archive.
 ///
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct NnsCertifiedSubnetCatalogCacheAuthority<'a> {
+pub struct NnsCertifiedSubnetCatalogLoadOutcome<'a> {
     authority: NnsCertifiedSubnetCatalogAuthority<'a>,
     path: PathBuf,
     archive_manifest_sha256: String,
     disposition: NnsCertifiedSubnetCatalogCacheDisposition,
 }
 
-impl<'a> NnsCertifiedSubnetCatalogCacheAuthority<'a> {
+impl<'a> NnsCertifiedSubnetCatalogLoadOutcome<'a> {
     /// Return the freshly projected catalog authority qualifying the cached snapshot.
     #[must_use]
     pub const fn authority(&self) -> &NnsCertifiedSubnetCatalogAuthority<'a> {
@@ -339,62 +413,95 @@ pub fn nns_certified_subnet_catalog_cache_refresh_lock_path(cache_directory: &Pa
     cache_directory.join(CERTIFIED_CATALOG_LOCK_FILE_NAME)
 }
 
-/// Atomically publish a cache derived only from one qualifying authenticated archive projection.
+/// Load certified Subnet Catalog authority under one explicit local cache policy.
 ///
-/// Projection completes before any filesystem mutation. The operation makes no network call and
-/// preserves any prior cache if qualification, lock acquisition, serialization, or replacement
-/// fails. A lock-release error can be reported after the atomic replacement has completed.
-pub fn publish_nns_certified_subnet_catalog_cache<'a>(
+/// Every successful outcome is recomputed from and exactly matched to `archive`. No policy refreshes
+/// that archive or makes a network call. Publication completes projection before filesystem mutation
+/// and preserves prior cache content if qualification, lock acquisition, serialization, or atomic
+/// replacement fails. A lock-release error can be reported after replacement has completed.
+pub fn load_nns_certified_subnet_catalog<'a>(
     archive: &'a NnsAuthenticatedRegistryArchive,
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
-    request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
-) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
-    publish_cache_with_disposition(
-        archive,
-        projection_request,
-        request,
-        NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication,
-    )
+    request: &NnsCertifiedSubnetCatalogLoadRequest,
+) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
+    match request.policy {
+        NnsCertifiedSubnetCatalogReadPolicy::CacheOnly => {
+            load_cached_catalog(archive, projection_request, &request.location)
+        }
+        NnsCertifiedSubnetCatalogReadPolicy::PublishMissing {
+            lock_stale_after_seconds,
+        } => match load_cached_catalog(archive, projection_request, &request.location) {
+            Err(NnsCertifiedSubnetCatalogCacheError::MissingCache { .. }) => {
+                publish_cache_with_disposition(
+                    archive,
+                    projection_request,
+                    &request.location,
+                    lock_stale_after_seconds,
+                    NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing,
+                )
+            }
+            result => result,
+        },
+        NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
+            lock_stale_after_seconds,
+        } => match load_cached_catalog(archive, projection_request, &request.location) {
+            Err(error) => {
+                let disposition = recoverable_publication_disposition(error)?;
+                publish_cache_with_disposition(
+                    archive,
+                    projection_request,
+                    &request.location,
+                    lock_stale_after_seconds,
+                    disposition,
+                )
+            }
+            result => result,
+        },
+        NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
+            lock_stale_after_seconds,
+        } => publish_cache_with_disposition(
+            archive,
+            projection_request,
+            &request.location,
+            lock_stale_after_seconds,
+            NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication,
+        ),
+    }
 }
 
 fn publish_cache_with_disposition<'a>(
     archive: &'a NnsAuthenticatedRegistryArchive,
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
-    request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
+    location: &NnsCertifiedSubnetCatalogCacheLocation,
+    lock_stale_after_seconds: u64,
     disposition: NnsCertifiedSubnetCatalogCacheDisposition,
-) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
+) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
     let authority = project_nns_certified_subnet_catalog(archive, projection_request)?;
     let envelope = cache_envelope(&authority)?;
-    let cache_path = nns_certified_subnet_catalog_cache_path(&request.location.cache_directory);
-    let lock_path =
-        nns_certified_subnet_catalog_cache_refresh_lock_path(&request.location.cache_directory);
+    let cache_path = nns_certified_subnet_catalog_cache_path(&location.cache_directory);
+    let lock_path = nns_certified_subnet_catalog_cache_refresh_lock_path(&location.cache_directory);
     let encoded_length = canonical_serialized_len(&envelope)?;
-    enforce_cache_limit(
-        &cache_path,
-        encoded_length,
-        request.location.maximum_cache_bytes,
-    )?;
-    create_managed_parent_directory(&request.location.cache_root, &cache_path)
-        .map_err(file_operation)?;
+    enforce_cache_limit(&cache_path, encoded_length, location.maximum_cache_bytes)?;
+    create_managed_parent_directory(&location.cache_root, &cache_path).map_err(file_operation)?;
     with_refresh_lock(
         RefreshLockRequest {
-            cache_root: &request.location.cache_root,
+            cache_root: &location.cache_root,
             lock_path: &lock_path,
             target_path: &cache_path,
             network: MAINNET_NETWORK,
             now_unix_secs: projection_request.validation.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
+            lock_stale_after_seconds,
         },
         file_operation,
         || {
-            write_managed_file_atomically(&request.location.cache_root, &cache_path, |file| {
+            write_managed_file_atomically(&location.cache_root, &cache_path, |file| {
                 serde_json::to_writer(file, &envelope).map_err(json_io_error)
             })
             .map_err(file_operation)
         },
     )?;
     let archive_manifest_sha256 = envelope.archive_manifest_sha256;
-    Ok(NnsCertifiedSubnetCatalogCacheAuthority {
+    Ok(NnsCertifiedSubnetCatalogLoadOutcome {
         authority,
         path: cache_path,
         archive_manifest_sha256,
@@ -402,16 +509,11 @@ fn publish_cache_with_disposition<'a>(
     })
 }
 
-/// Load a bounded cache and match it to a fresh projection from an authenticated archive.
-///
-/// This operation is cache-only and local-only. It never refreshes, repairs, publishes, or makes
-/// a source call. Serialized `Certified` provenance is not admitted unless every envelope and
-/// catalog field equals the projection recomputed from `archive` under `projection_request`.
-pub fn load_nns_certified_subnet_catalog_cache<'a>(
+fn load_cached_catalog<'a>(
     archive: &'a NnsAuthenticatedRegistryArchive,
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
     location: &NnsCertifiedSubnetCatalogCacheLocation,
-) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
+) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
     let cache_path = nns_certified_subnet_catalog_cache_path(&location.cache_directory);
     let bytes = read_bounded_cache(location, &cache_path)?.ok_or_else(|| {
         NnsCertifiedSubnetCatalogCacheError::MissingCache {
@@ -441,7 +543,7 @@ pub fn load_nns_certified_subnet_catalog_cache<'a>(
     if let Some(field) = first_envelope_mismatch(&envelope, &expected) {
         return Err(NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { field });
     }
-    Ok(NnsCertifiedSubnetCatalogCacheAuthority {
+    Ok(NnsCertifiedSubnetCatalogLoadOutcome {
         authority,
         path: cache_path,
         archive_manifest_sha256: envelope.archive_manifest_sha256,
@@ -449,56 +551,21 @@ pub fn load_nns_certified_subnet_catalog_cache<'a>(
     })
 }
 
-/// Load existing cache content or publish only when the cache is missing.
-///
-/// This local-only operation never replaces invalid content and never refreshes the supplied
-/// archive. Its name makes the only authorized cache mutation explicit.
-pub fn load_or_publish_missing_nns_certified_subnet_catalog_cache<'a>(
-    archive: &'a NnsAuthenticatedRegistryArchive,
-    projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
-    request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
-) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
-    match load_nns_certified_subnet_catalog_cache(archive, projection_request, &request.location) {
-        Err(NnsCertifiedSubnetCatalogCacheError::MissingCache { .. }) => {
-            publish_cache_with_disposition(
-                archive,
-                projection_request,
-                request,
-                NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing,
-            )
+fn recoverable_publication_disposition(
+    error: NnsCertifiedSubnetCatalogCacheError,
+) -> Result<NnsCertifiedSubnetCatalogCacheDisposition, NnsCertifiedSubnetCatalogCacheError> {
+    match error {
+        NnsCertifiedSubnetCatalogCacheError::MissingCache { .. } => {
+            Ok(NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing)
         }
-        result => result,
-    }
-}
-
-/// Load existing cache content or publish when it is missing or recoverably invalid.
-///
-/// Recoverable invalidity is limited to bounded content, JSON, schema, canonical-encoding, and
-/// archive-binding failures. Filesystem, projection, serialization, and accounting errors are
-/// returned unchanged. Republication cannot make stale archive evidence fresh.
-pub fn load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache<'a>(
-    archive: &'a NnsAuthenticatedRegistryArchive,
-    projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
-    request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
-) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
-    match load_nns_certified_subnet_catalog_cache(archive, projection_request, &request.location) {
-        Err(error) => {
-            let disposition = match error {
-                NnsCertifiedSubnetCatalogCacheError::MissingCache { .. } => {
-                    NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing
-                }
-                NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { .. }
-                | NnsCertifiedSubnetCatalogCacheError::InvalidJson { .. }
-                | NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. }
-                | NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion { .. }
-                | NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { .. } => {
-                    NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid
-                }
-                error => return Err(error),
-            };
-            publish_cache_with_disposition(archive, projection_request, request, disposition)
+        NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { .. }
+        | NnsCertifiedSubnetCatalogCacheError::InvalidJson { .. }
+        | NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. }
+        | NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion { .. }
+        | NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { .. } => {
+            Ok(NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid)
         }
-        result => result,
+        error => Err(error),
     }
 }
 
@@ -560,38 +627,30 @@ fn read_bounded_cache(
     location: &NnsCertifiedSubnetCatalogCacheLocation,
     path: &Path,
 ) -> Result<Option<Vec<u8>>, NnsCertifiedSubnetCatalogCacheError> {
-    let Some(mut file) = open_managed_file(&location.cache_root, path).map_err(file_operation)?
-    else {
-        return Ok(None);
-    };
-    let metadata_length = file
-        .metadata()
-        .map_err(|source| {
-            file_operation(CacheFileError::OpenManagedPath {
-                root: location.cache_root.clone(),
-                path: path.to_path_buf(),
-                source,
-            })
-        })?
-        .len();
-    enforce_cache_limit(path, metadata_length, location.maximum_cache_bytes)?;
-    let capacity = usize::try_from(metadata_length)
-        .map_err(|_| NnsCertifiedSubnetCatalogCacheError::Accounting)?;
-    let mut bytes = Vec::with_capacity(capacity);
-    Read::by_ref(&mut file)
-        .take(location.maximum_cache_bytes.saturating_add(1))
-        .read_to_end(&mut bytes)
-        .map_err(|source| {
-            file_operation(CacheFileError::OpenManagedPath {
-                root: location.cache_root.clone(),
-                path: path.to_path_buf(),
-                source,
-            })
-        })?;
-    let actual =
-        u64::try_from(bytes.len()).map_err(|_| NnsCertifiedSubnetCatalogCacheError::Accounting)?;
-    enforce_cache_limit(path, actual, location.maximum_cache_bytes)?;
-    Ok(Some(bytes))
+    read_bounded_managed_file(&location.cache_root, path, location.maximum_cache_bytes).map_err(
+        |error| match error {
+            BoundedManagedFileReadError::Operation(source) => file_operation(source),
+            BoundedManagedFileReadError::Read { path, source } => {
+                file_operation(CacheFileError::OpenManagedPath {
+                    root: location.cache_root.clone(),
+                    path,
+                    source,
+                })
+            }
+            BoundedManagedFileReadError::LimitExceeded {
+                path,
+                actual,
+                maximum,
+            } => NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded {
+                path,
+                actual,
+                maximum,
+            },
+            BoundedManagedFileReadError::Accounting { .. } => {
+                NnsCertifiedSubnetCatalogCacheError::Accounting
+            }
+        },
+    )
 }
 
 fn enforce_cache_limit(

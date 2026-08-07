@@ -5,7 +5,7 @@
 //! Boundary: no caller can reconstruct an unbounded large Registry value.
 
 use super::{RegistryQueryCounter, hex_bytes};
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 use crate::ic_registry::CertifiedRegistryChunkEvidence;
 use crate::ic_registry::{
     RegistryFetchError,
@@ -23,7 +23,7 @@ pub const MAX_REGISTRY_CHUNK_REFERENCES: usize = 64;
 pub const MAX_REGISTRY_CHUNK_BYTES: usize = 1_800_000;
 /// Maximum bytes reconstructed for one Registry value.
 pub const MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES: usize = 10 * 1_024 * 1_024;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 /// Maximum complete value bytes accepted in one certified delta batch.
 pub const MAX_CERTIFIED_DELTA_VALUE_BYTES: usize = 16 * 1_024 * 1_024;
 /// Maximum encoded response bytes accepted across Registry chunk calls.
@@ -55,7 +55,7 @@ impl RegistryChunkLimits {
         }
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(in crate::ic_registry) const fn certified_delta() -> Self {
         Self {
             references: MAX_REGISTRY_CHUNK_REFERENCES,
@@ -102,27 +102,27 @@ impl RegistryChunkBudget {
         })
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(in crate::ic_registry) const fn reference_count(&self) -> usize {
         self.reference_count
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(in crate::ic_registry) const fn query_call_count(&self) -> usize {
         self.query_call_count
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(in crate::ic_registry) const fn response_bytes(&self) -> usize {
         self.response_bytes
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(in crate::ic_registry) const fn reconstructed_value_bytes(&self) -> usize {
         self.reconstructed_value_bytes
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(in crate::ic_registry) fn into_chunk_evidence(self) -> Vec<CertifiedRegistryChunkEvidence> {
         self.cache
             .into_iter()
@@ -421,7 +421,7 @@ mod tests {
         ));
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(feature = "certified-subnet-catalog-host")]
     #[test]
     fn budget_publishes_unique_chunk_evidence_in_digest_order() {
         let first_content = b"first".to_vec();

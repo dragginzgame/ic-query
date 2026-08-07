@@ -11,7 +11,7 @@ pub use types::{
     CatalogAssurance, CatalogValidationContext, CertifiedRegistryCatalogEvidence, RawSubnetCatalog,
     RoutingRange, SubnetCatalogProvenance, SubnetInfo, ValidatedSubnetCatalog,
 };
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use validation::canonicalize_subnet_catalog_content;
 #[cfg(feature = "subnet-catalog-host")]
 pub(in crate::subnet_catalog) use validation::catalog_agreement_digest;

@@ -15,23 +15,25 @@ mod transport;
 mod wire;
 
 use candid::Principal;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use catalog::{routing_ranges_from_table, subnet_info_from_record};
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use client::fetch_mainnet_certified_registry_delta_batch_async;
+#[cfg(feature = "certified-subnet-catalog-host")]
+pub use client::fetch_mainnet_registry_version;
 pub use client::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "nns-topology-host")]
 pub use client::fetch_mainnet_subnet_topology;
 #[cfg(feature = "nns-host")]
 pub use client::{
     fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
-    fetch_mainnet_node_provider_list, fetch_mainnet_registry_version,
+    fetch_mainnet_node_provider_list,
 };
 pub use error::RegistryFetchError;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use model::AuthenticatedRegistryDeltaWitness;
 pub use model::MainnetRegistryFetchRequest;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use model::{
     CertifiedRegistryChunkEvidence, CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion,
     CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
@@ -40,16 +42,17 @@ pub use model::{
 pub use model::{
     MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
     MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList,
-    MainnetRegistryCertification, MainnetRegistryVersion,
 };
+#[cfg(feature = "certified-subnet-catalog-host")]
+pub use model::{MainnetRegistryCertification, MainnetRegistryVersion};
 #[cfg(feature = "nns-topology-host")]
 pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
 use proto::{CanisterId, SubnetId};
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use transport::authenticate_certified_registry_delta_witness;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use transport::{
     MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES, MAX_CERTIFIED_DELTA_KEY_BYTES,
     MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS,

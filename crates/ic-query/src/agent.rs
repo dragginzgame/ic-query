@@ -6,7 +6,7 @@
 
 use crate::http_endpoint::parse_http_endpoint;
 use ic_agent::Agent;
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 use std::time::Duration;
 
 /// Maximum response-body size configured for every native IC agent call.
@@ -24,7 +24,7 @@ pub fn build_ic_agent<Error>(
 ///
 /// Callers must independently bind the certificate time to the retained observation time. This
 /// agent is for local historical verification only and must not be used for live source calls.
-#[cfg(feature = "nns-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub fn build_historical_certificate_agent<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,

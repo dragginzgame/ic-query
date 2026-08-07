@@ -1,5 +1,6 @@
 //! Code generation for structurally identical NNS leaf report mechanics.
 
+#[cfg(feature = "nns-host")]
 macro_rules! impl_nns_inventory_host_error {
     ($host_error:ty, $component:expr $(,)?) => {
         impl $crate::nns::inventory::NnsInventoryHostError for $host_error {
@@ -29,6 +30,7 @@ macro_rules! impl_nns_inventory_host_error {
     };
 }
 
+#[cfg(feature = "nns-host")]
 macro_rules! impl_nns_inventory_report {
     (
         $report:ty,
@@ -79,6 +81,7 @@ macro_rules! impl_nns_inventory_report {
     };
 }
 
+#[cfg(feature = "nns-host")]
 macro_rules! nns_leaf_cache {
     (
         $cache_path_fn:ident,
@@ -137,6 +140,7 @@ macro_rules! nns_leaf_cache {
     };
 }
 
+#[cfg(feature = "nns-host")]
 macro_rules! nns_leaf_refresh_report {
     (
         $report_type:ident,
@@ -168,6 +172,7 @@ macro_rules! nns_leaf_refresh_report {
     };
 }
 
+#[cfg(feature = "nns-host")]
 macro_rules! nns_leaf_refresh_report_text {
     (
         $report:ident,
@@ -195,6 +200,7 @@ macro_rules! nns_leaf_refresh_report_text {
     };
 }
 
+#[cfg(feature = "nns-host")]
 macro_rules! impl_nns_leaf_cache_and_refresh_requests {
     ($cache:ty, $refresh:ty) => {
         impl crate::nns::leaf::NnsLeafCacheRequest for $cache {
