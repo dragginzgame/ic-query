@@ -1,7 +1,7 @@
 //! Module: nns::registry::replay::certified_catalog_cache
 //!
-//! Responsibility: publish and reload archive-bound certified Subnet Catalog projections.
-//! Does not own: archive collection, archive refresh, read-through policy, defaults, or CLI.
+//! Responsibility: publish and load archive-bound catalogs under explicit local cache policy.
+//! Does not own: archive collection, archive refresh, network read-through, defaults, or CLI.
 //! Boundary: serialized cache content gains authority only by exact comparison with a fresh
 //! projection from the caller-supplied authenticated archive.
 
@@ -16,7 +16,7 @@ use crate::{
         with_refresh_lock, write_managed_file_atomically,
     },
     hex::hex_bytes,
-    subnet_catalog::{MAINNET_NETWORK, RawSubnetCatalog},
+    subnet_catalog::{CatalogAssurance, MAINNET_NETWORK, RawSubnetCatalog},
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -118,6 +118,72 @@ struct CertifiedCatalogCacheEnvelopeRef<'a> {
 }
 
 ///
+/// NnsCertifiedSubnetCatalogCacheDisposition
+///
+/// Observable local cache action that supplied one certified catalog authority.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NnsCertifiedSubnetCatalogCacheDisposition {
+    /// Existing cache content exactly matched the authenticated archive projection.
+    CacheHit,
+    /// Missing cache content was explicitly published from the supplied archive.
+    PublishedMissing,
+    /// Recoverably invalid cache content was explicitly replaced from the supplied archive.
+    PublishedInvalid,
+    /// The caller explicitly requested unconditional atomic publication.
+    ForcedPublication,
+}
+
+impl NnsCertifiedSubnetCatalogCacheDisposition {
+    /// Return the stable JSON and diagnostic label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CacheHit => "cache_hit",
+            Self::PublishedMissing => "published_missing",
+            Self::PublishedInvalid => "published_invalid",
+            Self::ForcedPublication => "forced_publication",
+        }
+    }
+}
+
+///
+/// NnsCertifiedSubnetCatalogCacheEvidence
+///
+/// Compact persistable catalog, archive, certificate, and cache-action identity.
+/// This serde DTO describes a successful authority but cannot reconstruct or self-assert it.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct NnsCertifiedSubnetCatalogCacheEvidence {
+    /// Exact Registry version represented by the certified catalog.
+    pub registry_version: u64,
+    /// Lowercase SHA-256 digest of the canonical catalog authority payload.
+    pub catalog_digest: String,
+    /// Assurance established by the attached authenticated archive.
+    pub assurance: CatalogAssurance,
+    /// Canonically ordered source endpoints retained by the archive.
+    pub source_endpoints: Vec<String>,
+    /// Lowercase SHA-256 of the complete canonical archive manifest.
+    pub archive_manifest_sha256: String,
+    /// Lowercase digest of the trusted mainnet root key used by the archive.
+    pub root_key_digest: String,
+    /// Lowercase commitment to the ordered authenticated report sequence.
+    pub evidence_chain_digest: String,
+    /// Lowercase commitment to the exact reconstructed Registry state.
+    pub complete_state_digest: String,
+    /// Earliest authenticated certificate time across retained archive batches.
+    pub minimum_certificate_time_nanos: u64,
+    /// Latest authenticated certificate time across retained archive batches.
+    pub maximum_certificate_time_nanos: u64,
+    /// Observable local cache action that supplied the authority.
+    pub cache_disposition: NnsCertifiedSubnetCatalogCacheDisposition,
+}
+
+///
 /// NnsCertifiedSubnetCatalogCacheAuthority
 ///
 /// Cache envelope exactly matched to a fresh projection from its attached authenticated archive.
@@ -126,6 +192,9 @@ struct CertifiedCatalogCacheEnvelopeRef<'a> {
 #[derive(Debug, Eq, PartialEq)]
 pub struct NnsCertifiedSubnetCatalogCacheAuthority<'a> {
     authority: NnsCertifiedSubnetCatalogAuthority<'a>,
+    path: PathBuf,
+    archive_manifest_sha256: String,
+    disposition: NnsCertifiedSubnetCatalogCacheDisposition,
 }
 
 impl<'a> NnsCertifiedSubnetCatalogCacheAuthority<'a> {
@@ -133,6 +202,38 @@ impl<'a> NnsCertifiedSubnetCatalogCacheAuthority<'a> {
     #[must_use]
     pub const fn authority(&self) -> &NnsCertifiedSubnetCatalogAuthority<'a> {
         &self.authority
+    }
+
+    /// Return the exact confined cache path supplying or receiving the snapshot.
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        self.path.as_path()
+    }
+
+    /// Return the observable local cache action used by this operation.
+    #[must_use]
+    pub const fn disposition(&self) -> NnsCertifiedSubnetCatalogCacheDisposition {
+        self.disposition
+    }
+
+    /// Return compact authority evidence suitable for embedding in a durable plan.
+    #[must_use]
+    pub fn authority_evidence(&self) -> NnsCertifiedSubnetCatalogCacheEvidence {
+        let provenance = self.authority.catalog().provenance();
+        let manifest = self.authority.archive().manifest();
+        NnsCertifiedSubnetCatalogCacheEvidence {
+            registry_version: provenance.registry_version,
+            catalog_digest: self.authority.catalog().raw().catalog_digest.clone(),
+            assurance: provenance.assurance,
+            source_endpoints: provenance.source_endpoints.clone(),
+            archive_manifest_sha256: self.archive_manifest_sha256.clone(),
+            root_key_digest: manifest.root_key_digest.clone(),
+            evidence_chain_digest: manifest.evidence_chain_digest.clone(),
+            complete_state_digest: manifest.complete_state_digest.clone(),
+            minimum_certificate_time_nanos: manifest.minimum_certificate_time_nanos,
+            maximum_certificate_time_nanos: manifest.maximum_certificate_time_nanos,
+            cache_disposition: self.disposition,
+        }
     }
 }
 
@@ -248,6 +349,20 @@ pub fn publish_nns_certified_subnet_catalog_cache<'a>(
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
     request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
 ) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
+    publish_cache_with_disposition(
+        archive,
+        projection_request,
+        request,
+        NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication,
+    )
+}
+
+fn publish_cache_with_disposition<'a>(
+    archive: &'a NnsAuthenticatedRegistryArchive,
+    projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
+    request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
+    disposition: NnsCertifiedSubnetCatalogCacheDisposition,
+) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
     let authority = project_nns_certified_subnet_catalog(archive, projection_request)?;
     let envelope = cache_envelope(&authority)?;
     let cache_path = nns_certified_subnet_catalog_cache_path(&request.location.cache_directory);
@@ -278,7 +393,13 @@ pub fn publish_nns_certified_subnet_catalog_cache<'a>(
             .map_err(file_operation)
         },
     )?;
-    Ok(NnsCertifiedSubnetCatalogCacheAuthority { authority })
+    let archive_manifest_sha256 = envelope.archive_manifest_sha256;
+    Ok(NnsCertifiedSubnetCatalogCacheAuthority {
+        authority,
+        path: cache_path,
+        archive_manifest_sha256,
+        disposition,
+    })
 }
 
 /// Load a bounded cache and match it to a fresh projection from an authenticated archive.
@@ -320,7 +441,65 @@ pub fn load_nns_certified_subnet_catalog_cache<'a>(
     if let Some(field) = first_envelope_mismatch(&envelope, &expected) {
         return Err(NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { field });
     }
-    Ok(NnsCertifiedSubnetCatalogCacheAuthority { authority })
+    Ok(NnsCertifiedSubnetCatalogCacheAuthority {
+        authority,
+        path: cache_path,
+        archive_manifest_sha256: envelope.archive_manifest_sha256,
+        disposition: NnsCertifiedSubnetCatalogCacheDisposition::CacheHit,
+    })
+}
+
+/// Load existing cache content or publish only when the cache is missing.
+///
+/// This local-only operation never replaces invalid content and never refreshes the supplied
+/// archive. Its name makes the only authorized cache mutation explicit.
+pub fn load_or_publish_missing_nns_certified_subnet_catalog_cache<'a>(
+    archive: &'a NnsAuthenticatedRegistryArchive,
+    projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
+    request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
+) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
+    match load_nns_certified_subnet_catalog_cache(archive, projection_request, &request.location) {
+        Err(NnsCertifiedSubnetCatalogCacheError::MissingCache { .. }) => {
+            publish_cache_with_disposition(
+                archive,
+                projection_request,
+                request,
+                NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing,
+            )
+        }
+        result => result,
+    }
+}
+
+/// Load existing cache content or publish when it is missing or recoverably invalid.
+///
+/// Recoverable invalidity is limited to bounded content, JSON, schema, canonical-encoding, and
+/// archive-binding failures. Filesystem, projection, serialization, and accounting errors are
+/// returned unchanged. Republication cannot make stale archive evidence fresh.
+pub fn load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache<'a>(
+    archive: &'a NnsAuthenticatedRegistryArchive,
+    projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
+    request: &NnsCertifiedSubnetCatalogCachePublicationRequest,
+) -> Result<NnsCertifiedSubnetCatalogCacheAuthority<'a>, NnsCertifiedSubnetCatalogCacheError> {
+    match load_nns_certified_subnet_catalog_cache(archive, projection_request, &request.location) {
+        Err(error) => {
+            let disposition = match error {
+                NnsCertifiedSubnetCatalogCacheError::MissingCache { .. } => {
+                    NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing
+                }
+                NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { .. }
+                | NnsCertifiedSubnetCatalogCacheError::InvalidJson { .. }
+                | NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. }
+                | NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion { .. }
+                | NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { .. } => {
+                    NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid
+                }
+                error => return Err(error),
+            };
+            publish_cache_with_disposition(archive, projection_request, request, disposition)
+        }
+        result => result,
+    }
 }
 
 fn first_envelope_mismatch(

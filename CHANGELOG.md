@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)
 
+- `0.30.24` finishes the certified Subnet Catalog cache boundary with
+  explicitly named local missing and missing-or-invalid publication policies,
+  observable cache dispositions, and compact persistable authority evidence.
+  Recovery reuses only the caller-supplied authenticated archive: it does not
+  hide a network call, refresh stale archive evidence, replace filesystem
+  failures, or change the schema-1 cache. Cache-only load and force publication
+  remain distinct operations.
+
 - `0.30.23` adds a separate versioned cache envelope for certified Subnet
   Catalog projections. Publication first qualifies a fully authenticated
   Registry archive, then writes the canonical envelope atomically under its own

@@ -48,10 +48,13 @@ pub use bootstrap::{
 };
 pub use certified_catalog_cache::{
     NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, NnsCertifiedSubnetCatalogCacheAuthority,
-    NnsCertifiedSubnetCatalogCacheEnvelope, NnsCertifiedSubnetCatalogCacheError,
+    NnsCertifiedSubnetCatalogCacheDisposition, NnsCertifiedSubnetCatalogCacheEnvelope,
+    NnsCertifiedSubnetCatalogCacheError, NnsCertifiedSubnetCatalogCacheEvidence,
     NnsCertifiedSubnetCatalogCacheLocation, NnsCertifiedSubnetCatalogCachePublicationRequest,
-    load_nns_certified_subnet_catalog_cache, nns_certified_subnet_catalog_cache_path,
-    nns_certified_subnet_catalog_cache_refresh_lock_path,
+    load_nns_certified_subnet_catalog_cache,
+    load_or_publish_missing_nns_certified_subnet_catalog_cache,
+    load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache,
+    nns_certified_subnet_catalog_cache_path, nns_certified_subnet_catalog_cache_refresh_lock_path,
     publish_nns_certified_subnet_catalog_cache,
 };
 pub use projection::{

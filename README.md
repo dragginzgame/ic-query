@@ -645,6 +645,20 @@ The serialized `Certified` label remains untrusted without that authenticated
 archive comparison, and the ordinary schema-3 Subnet Catalog cache is
 unchanged.
 
+Local recovery remains explicit. Use
+`load_or_publish_missing_nns_certified_subnet_catalog_cache` to authorize only
+creation of an absent cache, or
+`load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache` to also
+authorize replacement of bounded malformed, noncanonical, unsupported-schema,
+or archive-mismatched content. Neither operation repairs filesystem failures or
+refreshes archive evidence. Every successful load/publication exposes its path
+and `cache_hit`, `published_missing`, `published_invalid`, or
+`forced_publication` disposition. `authority_evidence()` returns a compact
+persistable Registry, catalog, archive, certificate, endpoint, assurance, and
+cache-action identity without duplicating the catalog snapshot. That DTO is
+descriptive evidence, not an authority constructor; reloading authority still
+requires the matching authenticated archive and cache projection.
+
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case
 capacity before each source call: one certified query, up to 64 chunk queries,

@@ -771,6 +771,32 @@ fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archive() {
         envelope.catalog.catalog_digest,
         published.authority().catalog().raw().catalog_digest
     );
+    assert_eq!(published.path(), cache_path);
+    assert_eq!(
+        published.disposition(),
+        NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication
+    );
+    let published_evidence = published.authority_evidence();
+    assert_eq!(published_evidence.registry_version, 1);
+    assert_eq!(
+        published_evidence.archive_manifest_sha256,
+        envelope.archive_manifest_sha256
+    );
+    assert_eq!(
+        published_evidence.root_key_digest,
+        archive.manifest().root_key_digest
+    );
+    assert_eq!(
+        published_evidence.cache_disposition,
+        NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication
+    );
+    let serialized_evidence =
+        serde_json::to_vec(&published_evidence).expect("serialize compact cache evidence");
+    assert_eq!(
+        serde_json::from_slice::<NnsCertifiedSubnetCatalogCacheEvidence>(&serialized_evidence)
+            .expect("deserialize compact cache evidence"),
+        published_evidence
+    );
     assert!(cache_path.is_file());
     assert!(!nns_certified_subnet_catalog_cache_refresh_lock_path(&cache_directory).exists());
 
@@ -789,6 +815,11 @@ fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archive() {
         loaded.authority().freshness().certificate_age_nanos,
         30_000_000_000
     );
+    assert_eq!(loaded.path(), cache_path);
+    assert_eq!(
+        loaded.disposition(),
+        NnsCertifiedSubnetCatalogCacheDisposition::CacheHit
+    );
     assert!(matches!(
         ValidatedSubnetCatalog::try_from_raw(
             envelope.catalog,
@@ -796,6 +827,107 @@ fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archive() {
         ),
         Err(CatalogError::UnsupportedAssurance { assurance }) if assurance == "certified"
     ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_catalog_cache_recovery_operations_are_explicit_and_observable() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-cache-recovery");
+    let archive = complete_catalog_archive(&root);
+    let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
+    let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
+    let publication = NnsCertifiedSubnetCatalogCachePublicationRequest::new(location.clone(), 300);
+    let projection = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+
+    let missing = load_or_publish_missing_nns_certified_subnet_catalog_cache(
+        &archive,
+        &projection,
+        &publication,
+    )
+    .expect("publish explicitly missing cache");
+    assert_eq!(
+        missing.disposition(),
+        NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing
+    );
+    assert_eq!(
+        missing.authority_evidence().cache_disposition.as_str(),
+        "published_missing"
+    );
+
+    let hit = load_or_publish_missing_nns_certified_subnet_catalog_cache(
+        &archive,
+        &projection,
+        &publication,
+    )
+    .expect("reuse valid cache");
+    assert_eq!(
+        hit.disposition(),
+        NnsCertifiedSubnetCatalogCacheDisposition::CacheHit
+    );
+
+    let cache_path = nns_certified_subnet_catalog_cache_path(&cache_directory);
+    let mut envelope: NnsCertifiedSubnetCatalogCacheEnvelope =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read cache"))
+            .expect("decode cache envelope");
+    envelope.catalog.provenance.registry_version += 1;
+    let invalid = serde_json::to_vec(&envelope).expect("canonical invalid cache fixture");
+    fs::write(&cache_path, &invalid).expect("write invalid cache fixture");
+
+    assert!(matches!(
+        load_or_publish_missing_nns_certified_subnet_catalog_cache(
+            &archive,
+            &projection,
+            &publication,
+        ),
+        Err(NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { field: "catalog" })
+    ));
+    assert_eq!(
+        fs::read(&cache_path).expect("read preserved invalid cache"),
+        invalid
+    );
+
+    let repaired = load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache(
+        &archive,
+        &projection,
+        &publication,
+    )
+    .expect("explicitly replace recoverably invalid cache");
+    assert_eq!(
+        repaired.disposition(),
+        NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid
+    );
+    assert_ne!(fs::read(&cache_path).expect("read repaired cache"), invalid);
+    assert_eq!(
+        load_nns_certified_subnet_catalog_cache(&archive, &projection, &location)
+            .expect("load repaired cache")
+            .disposition(),
+        NnsCertifiedSubnetCatalogCacheDisposition::CacheHit
+    );
+
+    fs::write(&cache_path, &invalid).expect("restore invalid cache fixture");
+    let stale_projection = certified_catalog_projection_request(
+        NOW + 2,
+        1,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+    assert!(matches!(
+        load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache(
+            &archive,
+            &stale_projection,
+            &publication,
+        ),
+        Err(NnsCertifiedSubnetCatalogCacheError::Projection(
+            NnsRegistrySubnetCatalogProjectionError::StaleArchiveCertificate { .. }
+        ))
+    ));
+    assert_eq!(
+        fs::read(&cache_path).expect("read invalid cache after stale projection"),
+        invalid
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -928,6 +1060,17 @@ fn certified_catalog_cache_publication_qualifies_before_filesystem_mutation() {
 
     assert!(matches!(
         publish_nns_certified_subnet_catalog_cache(&archive, &stale_projection, &publication),
+        Err(NnsCertifiedSubnetCatalogCacheError::Projection(
+            NnsRegistrySubnetCatalogProjectionError::StaleArchiveCertificate { .. }
+        ))
+    ));
+    assert!(!cache_directory.exists());
+    assert!(matches!(
+        load_or_publish_missing_or_invalid_nns_certified_subnet_catalog_cache(
+            &archive,
+            &stale_projection,
+            &publication,
+        ),
         Err(NnsCertifiedSubnetCatalogCacheError::Projection(
             NnsRegistrySubnetCatalogProjectionError::StaleArchiveCertificate { .. }
         ))
