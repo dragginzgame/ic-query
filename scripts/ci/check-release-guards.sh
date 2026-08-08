@@ -44,16 +44,11 @@ chmod +x "${changelog_case}/bin/git"
 ) || fail "the changelog check rejected an explicit target version"
 
 printf '## 0.8.1 - Unreleased\n' > "${changelog_case}/docs/changelog/0.8.md"
-set +e
 (
   cd "${changelog_case}"
   PATH="${changelog_case}/bin:${PATH}" \
     bash "${repo_root}/scripts/ci/check-changelog-version.sh" 0.8.1
-) >/dev/null 2>&1
-unreleased_status="$?"
-set -e
-[[ "${unreleased_status}" -ne 0 ]] \
-  || fail "the changelog check accepted an Unreleased target version"
+) || fail "the changelog check rejected an Unreleased target-version heading"
 printf '## 0.8.1\n' > "${changelog_case}/docs/changelog/0.8.md"
 
 printf 'ic-query = { version = "0.7" }\n' > "${changelog_case}/README.md"

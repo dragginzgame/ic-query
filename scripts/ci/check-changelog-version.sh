@@ -23,7 +23,6 @@ fi
 minor="${version%.*}"
 detail_changelog="docs/changelog/${minor}.md"
 root_version_marker="- \`${version}\`"
-detail_unreleased_heading="## ${version} - Unreleased"
 version_pattern="${version//./\\.}"
 
 if [[ ! -f "${detail_changelog}" ]]; then
@@ -58,11 +57,6 @@ fi
 
 if ! grep -Eq -- "^## ${version_pattern}( - .+)?$" <<<"${head_detail_changelog}"; then
   echo "error: ${detail_changelog} in HEAD has no heading for package version ${version}" >&2
-  exit 1
-fi
-
-if grep -Fxq -- "${detail_unreleased_heading}" "${detail_changelog}"; then
-  echo "error: ${detail_changelog} still marks package version ${version} as Unreleased" >&2
   exit 1
 fi
 

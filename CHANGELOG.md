@@ -31,6 +31,11 @@ icq --network ic cloud-engine list
 icq --network ic cloud-engine list --json
 ```
 
+- `0.31.1` no longer requires maintainers to replace a matching detailed
+  changelog heading's `Unreleased` suffix before running a version bump. The
+  release gate still requires the target version in the committed root ledger
+  and detailed changelog, plus matching dependency-example minor versions.
+
 - `0.31.0` adds the top-level, mainnet-only `cloud-engine` family. `info`
   resolves one Subnet and, when an operator binding is returned, fetches four
   public details in a five-call bounded report; `prices` fetches the network
