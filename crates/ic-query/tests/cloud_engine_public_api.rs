@@ -7,11 +7,16 @@ use ic_query::cloud_engine::{
 };
 use ic_query::cloud_engine::{
     CloudEngineNodeType, CloudEngineOperatorReport, CloudEnginePriceRow, CloudEnginePricesReport,
-    CloudEngineReportContext, DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
-    MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS,
-    MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS, cloud_engine_operator_report_text,
-    cloud_engine_prices_report_text,
+    CloudEngineProviderInfoReport, CloudEngineProviderInfoRequest, CloudEngineProviderListReport,
+    CloudEngineProviderListRequest, CloudEngineProviderLocation, CloudEngineProviderRow,
+    CloudEngineReportContext, DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+    DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT, MAINNET_CLOUD_ENGINE_CANISTER_ID,
+    MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS, MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS,
+    MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS, MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
+    cloud_engine_operator_report_text, cloud_engine_prices_report_text,
+    cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text,
 };
+use ic_query::ic::IcDashboardReportProvenance;
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 use ic_query::{
     cloud_engine::{
@@ -19,6 +24,17 @@ use ic_query::{
         build_cloud_engine_list_report_with_sources, cloud_engine_list_report_text,
     },
     subnet_catalog::SubnetCatalogListRequest,
+};
+#[cfg(feature = "dashboard-host")]
+use ic_query::{
+    cloud_engine::{
+        CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData,
+        CloudEngineProviderSource, build_cloud_engine_provider_info_report,
+        build_cloud_engine_provider_info_report_with_source,
+        build_cloud_engine_provider_list_report,
+        build_cloud_engine_provider_list_report_with_source,
+    },
+    ic::{IcHostError, IcSourceRequest},
 };
 
 const SUBNET_ID: &str = "2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe";
@@ -59,6 +75,78 @@ fn public_cloud_engine_reports_are_constructible_serializable_and_renderable() {
     assert_eq!(MAX_CLOUD_ENGINE_PRICE_ROWS, 1_000);
 }
 
+#[test]
+fn public_cloud_engine_provider_reports_preserve_raw_dashboard_evidence() {
+    let list_request = CloudEngineProviderListRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        1_800_000_000,
+    );
+    let info_request = CloudEngineProviderInfoRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        1_800_000_000,
+        provider_row().principal_id,
+    );
+    let provider = provider_row();
+    let list = CloudEngineProviderListReport {
+        provenance: dashboard_provenance(),
+        source_node_provider_count: 2,
+        cloud_engine_provider_count: 1,
+        providers: vec![provider.clone()],
+    };
+    let info = CloudEngineProviderInfoReport {
+        provenance: dashboard_provenance(),
+        cloud_engine_evidence_present: true,
+        provider,
+    };
+
+    assert!(cloud_engine_provider_list_report_text(&list).contains("CloudEngine providers"));
+    assert!(cloud_engine_provider_info_report_text(&info).contains("CloudEngine locations"));
+    let json = serde_json::to_value(&info).expect("serialize provider report");
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["certified"], false);
+    assert_eq!(json["point_in_time_guaranteed"], false);
+    assert_eq!(json["provider"]["total_cloud_engine_nodes"], 5);
+    assert_eq!(json["provider"]["website"], "example.com");
+    assert_eq!(MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS, 1_000);
+    assert_eq!(MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS, 100);
+    assert_eq!(list_request.network, "ic");
+    assert_eq!(info_request.node_provider_id, info.provider.principal_id);
+}
+
+#[cfg(feature = "dashboard-host")]
+#[test]
+fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
+    let list_request = CloudEngineProviderListRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let info_request = CloudEngineProviderInfoRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        1_700_000_000,
+        provider_row().principal_id,
+    );
+    let list = build_cloud_engine_provider_list_report_with_source(&list_request, &ProviderFixture)
+        .expect("custom provider list source");
+    let info = build_cloud_engine_provider_info_report_with_source(&info_request, &ProviderFixture)
+        .expect("custom provider info source");
+
+    assert_eq!(list.source_node_provider_count, 1);
+    assert_eq!(list.cloud_engine_provider_count, 1);
+    assert!(info.cloud_engine_evidence_present);
+    let _: fn(
+        &CloudEngineProviderListRequest,
+    ) -> Result<CloudEngineProviderListReport, IcHostError> =
+        build_cloud_engine_provider_list_report;
+    let _: fn(
+        &CloudEngineProviderInfoRequest,
+    ) -> Result<CloudEngineProviderInfoReport, IcHostError> =
+        build_cloud_engine_provider_info_report;
+}
+
 #[cfg(feature = "cloud-engine-host")]
 #[test]
 fn public_cloud_engine_host_api_accepts_a_custom_source() {
@@ -97,6 +185,35 @@ fn public_cloud_engine_list_api_exposes_bounded_registry_join() {
 
 #[cfg(feature = "cloud-engine-host")]
 struct Fixture;
+
+#[cfg(feature = "dashboard-host")]
+struct ProviderFixture;
+
+#[cfg(feature = "dashboard-host")]
+impl CloudEngineProviderSource for ProviderFixture {
+    fn fetch_cloud_engine_provider_list(
+        &self,
+        request: &IcSourceRequest,
+    ) -> Result<CloudEngineProviderListSourceData, IcHostError> {
+        Ok(CloudEngineProviderListSourceData {
+            source: request.clone(),
+            providers: vec![provider_row()],
+        })
+    }
+
+    fn fetch_cloud_engine_provider_info(
+        &self,
+        request: &IcSourceRequest,
+        node_provider_id: &str,
+    ) -> Result<CloudEngineProviderInfoSourceData, IcHostError> {
+        let mut provider = provider_row();
+        provider.principal_id = node_provider_id.to_string();
+        Ok(CloudEngineProviderInfoSourceData {
+            source: request.clone(),
+            provider,
+        })
+    }
+}
 
 #[cfg(feature = "cloud-engine-host")]
 impl CloudEngineSource for Fixture {
@@ -170,5 +287,47 @@ fn price_row() -> CloudEnginePriceRow {
         net_cycles_per_month: "1000000000000".to_string(),
         gross_cycles_per_month: "1250000000000".to_string(),
         updated_at_unix_nanos: 1_785_946_128_242_156_275,
+    }
+}
+
+fn dashboard_provenance() -> IcDashboardReportProvenance {
+    IcDashboardReportProvenance {
+        schema_version: 1,
+        network: "ic".to_string(),
+        authority: "official_ic_dashboard_api".to_string(),
+        source_endpoint: DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT.to_string(),
+        fetched_at: "2026-08-08T12:00:00Z".to_string(),
+        fetched_by: "fixture".to_string(),
+        certified: false,
+        point_in_time_guaranteed: false,
+    }
+}
+
+fn provider_row() -> CloudEngineProviderRow {
+    let location = CloudEngineProviderLocation {
+        dc_key: "br1".to_string(),
+        display_name: "Brussels".to_string(),
+        latitude: 50.8386,
+        longitude: 4.3475,
+        owner: "Digital Realty".to_string(),
+        region: "Europe,BE,Brussels Capital".to_string(),
+    };
+    CloudEngineProviderRow {
+        principal_id: "rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae".to_string(),
+        display_name: "Provider".to_string(),
+        website: Some("example.com".to_string()),
+        logo_url: None,
+        location_count: 1,
+        locations: vec![location.clone()],
+        cloud_engine_location_count: 1,
+        cloud_engine_locations: vec![location],
+        total_cloud_engine_nodes: 5,
+        total_cloud_engine_unassigned_nodes: 4,
+        total_cloud_engines: 1,
+        total_node_allowance: 7,
+        total_nodes: 8,
+        total_rewardable_nodes: 6,
+        total_subnets: 2,
+        total_unassigned_nodes: 3,
     }
 }

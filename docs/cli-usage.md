@@ -65,6 +65,9 @@ These families reject the top-level `--network` option instead of silently
 ignoring it. Every override must be a credential-free HTTP(S) base URL with a
 host and no query or fragment. Official Dashboard requests reject redirects;
 native `ic-agent` calls cap each response body at 8 MiB.
+`cloud-engine provider` remains under the top-level CloudEngine family and
+therefore honors the global network identity, currently only `ic`; its
+`--source-endpoint` selects the official Dashboard authority.
 
 The certified API boundary-node command is also fixed to mainnet and rejects
 the top-level `--network` option. Its `--source-endpoint` is the mainnet IC API
@@ -86,6 +89,9 @@ icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyv
 icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe --json
 icq cloud-engine prices
 icq cloud-engine prices --json
+icq cloud-engine provider list
+icq cloud-engine provider list --json
+icq cloud-engine provider info rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae
 ```
 
 `list` obtains the complete Registry-classified CloudEngine Subnet inventory
@@ -115,13 +121,25 @@ to 256 digits, the native flattened row key, structured
 node/data-center/provider identity, and signed
 Unix-nanosecond update timestamp. Text formats the cycle amounts for people.
 
+`provider list` makes one official Dashboard request for the complete node-
+provider resource, validates every row up to 1,000, and then retains providers
+with a nonzero CloudEngine count or at least one CloudEngine location. It
+reports both the source and retained counts. `provider info` makes one exact
+request for an NNS node-provider principal and preserves all raw general and
+CloudEngine counts and locations. A valid row with no CloudEngine fields is
+returned with `cloud_engine_evidence_present: false`; the target is not a
+Subnet, operator canister, or engine canister.
+
 `info` and `prices` are mainnet-only bounded live queries. They never read or
 write a report cache, and `--source-endpoint` keeps the replica endpoint
 explicit. All three operations' ordinary control-plane responses state
 `certified: false` and
 `point_in_time_guaranteed: false`; sequential calls do not inherit a Registry
 version or form one snapshot. See
-[0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md).
+[0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md). Provider
+reports are also live and uncached, preserve explicit off-chain Dashboard
+provenance, and make no health or native control-plane claim. See
+[0.34 CloudEngine Provider Reporting](design/0.34/0.34-design.md).
 
 ## Certified IC state
 

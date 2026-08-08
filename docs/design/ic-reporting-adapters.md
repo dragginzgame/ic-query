@@ -75,9 +75,13 @@ the Registry adapter. Official ICRC REST analytics use
 `IcIcrcAnalyticsSource` on the same `LiveIcSource`; they do not inherit the
 native `LiveIcrcSource` ledger/index authority merely because the CLI places
 them below the ICRC subject.
+CloudEngine provider inventory uses `CloudEngineProviderSource` on that same
+`LiveIcSource`: the CLI keeps the product surface below `cloud-engine`, while
+the request and report preserve official Dashboard authority instead of
+inheriting native control-plane evidence.
 Dashboard source-data DTOs echo that request as their source provenance, and
-canister, metric, network, and node-status reports share one flattened
-`IcDashboardReportProvenance`, avoiding parallel field and validation flows
+canister, metric, network, node-status, and CloudEngine provider reports share
+one flattened `IcDashboardReportProvenance`, avoiding parallel field and validation flows
 without nesting the public report JSON.
 Certified IC state remains a distinct authority on `LiveIcStateSource`.
 `IcApiBoundaryNodeSource` returns one complete authenticated
@@ -310,6 +314,13 @@ assurance.
   ceiling, release-election fields, and Subnet rollout proposals under
   off-chain Dashboard provenance. It does not auto-page, cache, join Registry
   topology, or claim the elected release is the binary currently running.
+- Official Dashboard CloudEngine provider reporting makes one request for the
+  complete node-provider resource or one exact provider. Complete collection
+  is capped at 1,000 rows and validated before filtering to explicit
+  CloudEngine counts or locations. Exact detail preserves valid zero-evidence
+  providers. It does not infer native control-plane state, provider-to-node
+  identity, health, or a join to the identifier-free boundary-location
+  aggregate.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -327,6 +338,7 @@ Expansion should proceed in layers:
 | 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, reward checkpoints, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Broader daily analytics, API boundary-node operational/location enrichment, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, certified configuration, and release-record sets | Extend the focused adapter that owns each authority; never promote Dashboard enrichment to certified state |
+| 2 | CloudEngine provider-to-node detail and operational health beyond the implemented bounded provider footprint | Extend `CloudEngineProviderSource` only when the official resource exposes stable identifiers and explicit bounds; do not manufacture joins from aggregate locations |
 | 2 | ICRC account/holder rows and details, circulating-supply policy, burns, and time- or kind-filtered transaction aggregates beyond the implemented scalar counts and bounded total-supply/token-value history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard or external-provider values as direct ledger state or introducing implicit enumeration |
 | 3 | Internet Identity, Bitcoin, XRC, and other protocol-canister reports beyond the implemented CMC family | Add one authority-family adapter only when multiple coherent reports justify it |
 

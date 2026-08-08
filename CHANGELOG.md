@@ -7,7 +7,24 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.33.x] - Unreleased - Certified API boundary-node reporting
+## [0.34.x] - Unreleased - CloudEngine provider reporting
+
+Detailed release notes: [docs/changelog/0.34.md](docs/changelog/0.34.md)
+
+- `0.34.0` adds `cloud-engine provider list` and `cloud-engine provider info`.
+  The list makes one bounded official Dashboard request for the complete node-
+  provider resource, validates all rows, and retains providers carrying
+  explicit CloudEngine counts or locations. Exact info preserves the full raw
+  provider record and explicitly reports whether CloudEngine evidence is
+  present. These off-chain reports are live, uncached, uncertified, and not
+  point-in-time guaranteed.
+
+```bash
+icq cloud-engine provider list
+icq cloud-engine provider info <node-provider-id> --json
+```
+
+## [0.33.x] - 2026-08-08 - Certified API boundary-node reporting
 
 Detailed release notes: [docs/changelog/0.33.md](docs/changelog/0.33.md)
 

@@ -193,11 +193,11 @@ pub const DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT: u16 = 50;
 pub const MAX_IC_REPLICA_VERSION_PAGE_LIMIT: u16 = 100;
 
 #[cfg(feature = "dashboard-host")]
-const IC_DASHBOARD_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(crate) const IC_DASHBOARD_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "dashboard-host")]
-const IC_DASHBOARD_AUTHORITY: &str = "official_ic_dashboard_api";
+pub(crate) const IC_DASHBOARD_AUTHORITY: &str = "official_ic_dashboard_api";
 #[cfg(feature = "dashboard-host")]
-const IC_DASHBOARD_NETWORK: &str = "ic";
+pub(crate) const IC_DASHBOARD_NETWORK: &str = "ic";
 
 #[cfg(all(test, feature = "dashboard-host"))]
 mod tests;

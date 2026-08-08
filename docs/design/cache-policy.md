@@ -263,8 +263,8 @@ read or write the proposal or neuron complete-collection caches and do not
 create another implicit cache or freshness policy.
 
 Official Dashboard canister detail, filtered count, explicitly bounded page,
-bounded metric time series, bounded daily statistics, and boundary-node
-data-center reports are live lookups. Count fetches no rows; page makes one
+bounded metric time series, bounded daily statistics, boundary-node
+data-center reports, and CloudEngine provider reports are live lookups. Count fetches no rows; page makes one
 request for at most 100 rows and never follows a cursor automatically. A
 metric request selects one series family and is capped at 1,000 observations
 per returned series. Daily statistics select one network-activity projection,
@@ -275,6 +275,12 @@ their REST results are neither authoritative complete collections nor durable
 point-in-time evidence. A future complete Dashboard collection or long-range
 metric snapshot would require its own explicit operation, operational cap, and
 timestamped identity, and must not reuse Registry or canister-authority caches.
+
+CloudEngine provider list consumes one complete node-provider resource capped
+at 1,000 rows and filters only after validation; exact provider info consumes
+one bounded record. Their finite one-request shape does not justify an implicit
+freshness policy, and their Dashboard identity must not reuse the separate
+Registry Subnet Catalog or native CloudEngine control-plane cache boundaries.
 
 The certified API boundary-node report is also live-only, but for a different
 reason: one bounded `read_state` request already returns a complete

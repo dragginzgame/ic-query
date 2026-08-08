@@ -1,10 +1,11 @@
-//! Native CloudEngine control-plane report models, adapters, builders, and renderers.
+//! CloudEngine control-plane and official Dashboard report models, adapters, and renderers.
 
 #[cfg(feature = "cloud-engine-host")]
 mod build;
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 mod list;
 mod model;
+mod provider;
 #[cfg(feature = "cloud-engine-host")]
 mod source;
 mod text;
@@ -33,6 +34,20 @@ pub use model::{
 pub use model::{
     CloudEngineOperatorBindingSourceData, CloudEngineOperatorSourceData,
     CloudEnginePricesSourceData,
+};
+pub use provider::{
+    CloudEngineProviderInfoReport, CloudEngineProviderInfoRequest, CloudEngineProviderListReport,
+    CloudEngineProviderListRequest, CloudEngineProviderLocation, CloudEngineProviderRow,
+    DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT, MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS,
+    MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS, cloud_engine_provider_info_report_text,
+    cloud_engine_provider_list_report_text,
+};
+#[cfg(feature = "dashboard-host")]
+pub use provider::{
+    CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData,
+    CloudEngineProviderSource, build_cloud_engine_provider_info_report,
+    build_cloud_engine_provider_info_report_with_source, build_cloud_engine_provider_list_report,
+    build_cloud_engine_provider_list_report_with_source,
 };
 #[cfg(feature = "cloud-engine-host")]
 pub use source::{

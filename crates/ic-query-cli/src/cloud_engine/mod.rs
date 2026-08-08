@@ -4,6 +4,8 @@
 //! Does not own: native transport, report construction, or text rendering.
 //! Boundary: exposes mainnet-only CloudEngine inventory and bounded public reports at the CLI root.
 
+mod provider;
+
 use crate::{
     cli::{
         clap::{required_string, value_arg},
@@ -22,6 +24,7 @@ use ic_query::cloud_engine::{
     build_cloud_engine_prices_report, cloud_engine_list_report_text,
     cloud_engine_operator_report_text, cloud_engine_prices_report_text,
 };
+use ic_query::ic::IcHostError;
 use ic_query::subnet_catalog::{
     DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
     SubnetCatalogListRequest, subnet_catalog_path,
@@ -68,6 +71,9 @@ pub enum CloudEngineCommandError {
     /// Native CloudEngine collection or evidence validation failed.
     #[error(transparent)]
     Host(#[from] CloudEngineHostError),
+    /// Official Dashboard collection or evidence validation failed.
+    #[error(transparent)]
+    Dashboard(#[from] IcHostError),
     /// The CLI cache root could not be resolved.
     #[error(transparent)]
     CacheRoot(#[from] CacheRootError),
@@ -87,6 +93,7 @@ pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), CloudEngin
         Some(("info", matches)) => run_info(matches, network),
         Some(("list", matches)) => run_list(matches, network),
         Some(("prices", matches)) => run_prices(matches, network),
+        Some(("provider", matches)) => provider::run_matches(matches, network),
         _ => unreachable!("clap requires a known cloud-engine subcommand"),
     }
 }
@@ -164,8 +171,9 @@ pub fn command() -> ClapCommand {
         .subcommand(info_command())
         .subcommand(list_command())
         .subcommand(prices_command())
+        .subcommand(provider::command())
         .after_help(
-            "Examples:\n  icq cloud-engine list\n  icq cloud-engine info <subnet-id>\n  icq cloud-engine prices",
+            "Examples:\n  icq cloud-engine list\n  icq cloud-engine info <subnet-id>\n  icq cloud-engine prices\n  icq cloud-engine provider list",
         )
 }
 
@@ -234,6 +242,7 @@ mod tests {
         assert!(usage.contains("info"));
         assert!(usage.contains("list"));
         assert!(usage.contains("prices"));
+        assert!(usage.contains("provider"));
 
         let info = render_help(info_command());
         assert!(info.contains("<subnet-id>"));
@@ -259,6 +268,9 @@ mod tests {
             &["cloud-engine", "info", "--help"],
             &["cloud-engine", "list", "--help"],
             &["cloud-engine", "prices", "--help"],
+            &["cloud-engine", "provider", "--help"],
+            &["cloud-engine", "provider", "info", "--help"],
+            &["cloud-engine", "provider", "list", "--help"],
             &["cloud-engine", "--version"],
         ] {
             assert!(crate::run(args.iter().map(OsString::from)).is_ok());

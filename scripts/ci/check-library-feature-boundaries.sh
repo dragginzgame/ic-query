@@ -191,6 +191,7 @@ cargo test -p ic-query --test ic_public_api --no-default-features --features das
 cargo test -p ic-query --test ic_public_api --no-default-features --features ic-state-host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test cloud_engine_public_api --no-default-features --locked
+cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features dashboard-host --locked
 cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features cloud-engine-host --locked
 cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --locked

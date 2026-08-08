@@ -91,6 +91,16 @@ fn binary_cloud_engine_report_help_smoke() {
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--json"));
     assert!(stdout.contains("Cache-backed Registry inventory"));
+
+    for command in ["info", "list"] {
+        let output = run_icq(&["cloud-engine", "provider", command, "--help"]);
+        assert_success(&output);
+        let stdout = stdout_text(&output);
+        assert!(stdout.contains(&format!("Usage: icq cloud-engine provider {command}")));
+        assert!(stdout.contains("--source-endpoint <url>"));
+        assert!(stdout.contains("--json"));
+        assert!(stdout.contains("official Dashboard"));
+    }
 }
 
 #[test]
@@ -571,6 +581,10 @@ fn binary_command_namespaces_match_explicit_local_help() {
         (&["sns", "reward"], &["sns", "reward", "help"]),
         (&["system"], &["system", "help"]),
         (&["cloud-engine"], &["cloud-engine", "help"]),
+        (
+            &["cloud-engine", "provider"],
+            &["cloud-engine", "provider", "help"],
+        ),
     ];
 
     for (implicit_args, explicit_args) in cases {
