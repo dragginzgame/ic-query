@@ -4,6 +4,8 @@
 //! Does not own: catalog delta replay, cache publication, or report rendering.
 //! Boundary: accepts a Registry value only after certificate and witness validation.
 
+#[cfg(test)]
+use crate::leb128::encode_unsigned_u64 as encode_unsigned_leb128;
 use crate::{
     certification::{CertifiedDataError, authenticate_canister_tree},
     hex::hex_bytes,
@@ -11,6 +13,7 @@ use crate::{
         RegistryFetchError,
         proto::{RegistryCertifiedResponse, RegistryMixedHashTree, registry_mixed_hash_tree::Tree},
     },
+    leb128::decode_canonical_unsigned_u64,
 };
 use candid::Principal;
 use ic_agent::{
@@ -241,46 +244,7 @@ pub(super) fn required_leb128_leaf(
 }
 
 fn decode_canonical_unsigned_leb128(field: &str, bytes: &[u8]) -> Result<u64, RegistryFetchError> {
-    let mut value = 0_u64;
-    let mut shift = 0_u32;
-    for (index, byte) in bytes.iter().copied().enumerate() {
-        let low = u64::from(byte & 0x7f);
-        let shifted = low.checked_shl(shift).ok_or_else(|| {
-            invalid_certified_registry(format!("{field} unsigned LEB128 value overflows u64"))
-        })?;
-        value = value.checked_add(shifted).ok_or_else(|| {
-            invalid_certified_registry(format!("{field} unsigned LEB128 value overflows u64"))
-        })?;
-        if byte & 0x80 == 0 {
-            if index + 1 != bytes.len() || encode_unsigned_leb128(value) != bytes {
-                return Err(invalid_certified_registry(format!(
-                    "{field} is not canonical unsigned LEB128"
-                )));
-            }
-            return Ok(value);
-        }
-        shift = shift.checked_add(7).ok_or_else(|| {
-            invalid_certified_registry(format!("{field} unsigned LEB128 value overflows u64"))
-        })?;
-    }
-    Err(invalid_certified_registry(format!(
-        "{field} is truncated unsigned LEB128"
-    )))
-}
-
-fn encode_unsigned_leb128(mut value: u64) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(10);
-    loop {
-        let mut byte = (value & 0x7f) as u8;
-        value >>= 7;
-        if value != 0 {
-            byte |= 0x80;
-        }
-        bytes.push(byte);
-        if value == 0 {
-            return bytes;
-        }
-    }
+    decode_canonical_unsigned_u64(field, bytes).map_err(invalid_certified_registry)
 }
 
 fn map_certified_data_error(error: CertifiedDataError) -> RegistryFetchError {
@@ -380,17 +344,6 @@ mod tests {
             Err(RegistryFetchError::InvalidCertifiedRegistry { reason })
                 if reason.contains("not canonical")
         ));
-    }
-
-    #[test]
-    fn unsigned_leb128_round_trips_boundary_values() {
-        for value in [0, 1, 127, 128, u64::from(u32::MAX), u64::MAX] {
-            let bytes = encode_unsigned_leb128(value);
-            assert_eq!(
-                decode_canonical_unsigned_leb128("value", &bytes).expect("canonical value"),
-                value
-            );
-        }
     }
 
     fn labeled(label_value: &[u8], subtree: Tree) -> RegistryMixedHashTree {

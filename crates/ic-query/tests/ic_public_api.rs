@@ -5,13 +5,15 @@ use ic_query::ic::{
     DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
     DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT,
+    DEFAULT_IC_STATE_SOURCE_ENDPOINT, IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
+    IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest, IcApiBoundaryNodeRow,
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
-    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcIndexedCountKind,
-    IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery,
-    IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
+    IcCanisterRequest, IcCanisterUpgrade, IcCertifiedStateProvenance, IcDailyStatsQuery,
+    IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
+    IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
+    IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
     IcMetricRequest, IcMetricSeries, IcNodeAssignmentStatusCounts, IcNodeCountComparison,
@@ -22,14 +24,20 @@ use ic_query::ic::{
     IcReplicaVersionListRequest, IcReplicaVersionListRow, IcReplicaVersionStatus,
     IcReplicaVersionSubnetRollout, IcSubnetStatusReport, MAX_IC_CANISTER_PAGE_LIMIT,
     MAX_IC_DASHBOARD_RESPONSE_BYTES, MAX_IC_REPLICA_VERSION_PAGE_LIMIT,
-    ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
-    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, ic_node_provider_status_report_from_snapshot,
-    ic_node_provider_status_report_text, ic_node_status_report_from_snapshot,
-    ic_node_status_report_text, ic_replica_version_info_report_text,
-    ic_replica_version_list_report_text, ic_subnet_status_report_from_snapshot,
-    ic_subnet_status_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
-    icrc_total_supply_report_text,
+    ic_api_boundary_node_report_text, ic_boundary_node_data_centers_report_text,
+    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
+    ic_daily_stats_report_text, ic_metric_report_text,
+    ic_node_provider_status_report_from_snapshot, ic_node_provider_status_report_text,
+    ic_node_status_report_from_snapshot, ic_node_status_report_text,
+    ic_replica_version_info_report_text, ic_replica_version_list_report_text,
+    ic_subnet_status_report_from_snapshot, ic_subnet_status_report_text,
+    icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
+};
+#[cfg(feature = "ic-state-host")]
+use ic_query::ic::{
+    IcApiBoundaryNodeHostError, IcApiBoundaryNodeSource, IcApiBoundaryNodeSourceData,
+    IcApiBoundaryNodeSourceRequest, LiveIcStateSource, build_ic_api_boundary_node_report,
+    build_ic_api_boundary_node_report_with_source,
 };
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::{
@@ -62,6 +70,87 @@ const REPLICA_VERSION_ID: &str = "e3d101b22ae3fa02aca737f9fb96cc6c4ca83ac3";
 #[test]
 fn public_dashboard_transport_limit_is_available_without_host() {
     assert_eq!(MAX_IC_DASHBOARD_RESPONSE_BYTES, 8 * 1024 * 1024);
+}
+
+#[test]
+fn public_certified_api_boundary_node_api_is_constructible_without_host() {
+    let request = IcApiBoundaryNodeRequest::new(DEFAULT_IC_STATE_SOURCE_ENDPOINT, 1_800_000_000);
+    let report = IcApiBoundaryNodeReport {
+        provenance: IcCertifiedStateProvenance {
+            schema_version: IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
+            network: "ic".to_string(),
+            authority: "certified_ic_state_tree".to_string(),
+            source_endpoint: request.source_endpoint,
+            effective_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+            fetched_at_unix_seconds: request.now_unix_secs,
+            fetched_at: "2027-01-15T08:00:00Z".to_string(),
+            fetched_by: "ic-query".to_string(),
+            certificate_time_unix_nanos: request.now_unix_secs * 1_000_000_000,
+            certificate_time_unix_seconds: request.now_unix_secs,
+            certificate_time: "2027-01-15T08:00:00Z".to_string(),
+            certified: true,
+            point_in_time_guaranteed: true,
+        },
+        node_count: 1,
+        rows: vec![IcApiBoundaryNodeRow {
+            node_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+            domain: "api1.example.com".to_string(),
+            ipv4_address: Some("192.0.2.1".to_string()),
+            ipv6_address: "2001:db8::1".to_string(),
+        }],
+    };
+
+    let text = ic_api_boundary_node_report_text(&report);
+    let json = serde_json::to_value(report).expect("serializable certified state report");
+
+    assert!(text.contains("authority: certified_ic_state_tree"));
+    assert_eq!(json["certified"], true);
+    assert_eq!(json["point_in_time_guaranteed"], true);
+    assert_eq!(json["rows"][0]["domain"], "api1.example.com");
+}
+
+#[cfg(feature = "ic-state-host")]
+#[test]
+fn public_certified_state_host_api_exposes_live_and_custom_builders() {
+    let _: fn(
+        &IcApiBoundaryNodeRequest,
+    ) -> Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError> =
+        build_ic_api_boundary_node_report;
+    let _: fn(
+        &IcApiBoundaryNodeRequest,
+        &dyn IcApiBoundaryNodeSource,
+    ) -> Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError> =
+        build_ic_api_boundary_node_report_with_source;
+    let _: LiveIcStateSource = LiveIcStateSource;
+
+    let request = IcApiBoundaryNodeRequest::new(DEFAULT_IC_STATE_SOURCE_ENDPOINT, 1_800_000_000);
+    let report = build_ic_api_boundary_node_report_with_source(&request, &StateFixtureSource)
+        .expect("custom certified state source");
+
+    assert_eq!(report.node_count, 1);
+    assert_eq!(report.rows[0].domain, "api1.example.com");
+}
+
+#[cfg(feature = "ic-state-host")]
+struct StateFixtureSource;
+
+#[cfg(feature = "ic-state-host")]
+impl IcApiBoundaryNodeSource for StateFixtureSource {
+    fn fetch_api_boundary_nodes(
+        &self,
+        request: &IcApiBoundaryNodeSourceRequest,
+    ) -> Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError> {
+        Ok(IcApiBoundaryNodeSourceData {
+            source: request.clone(),
+            certificate_time_unix_nanos: request.observed_at_unix_seconds * 1_000_000_000,
+            rows: vec![IcApiBoundaryNodeRow {
+                node_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+                domain: "api1.example.com".to_string(),
+                ipv4_address: None,
+                ipv6_address: "2001:db8::1".to_string(),
+            }],
+        })
+    }
 }
 
 #[test]

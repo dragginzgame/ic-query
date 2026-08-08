@@ -246,7 +246,7 @@ mod tests {
 
         assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
         assert!(text.contains("ic"));
-        assert!(text.contains("Inspect official IC Dashboard data"));
+        assert!(text.contains("Inspect certified IC state and official Dashboard data"));
         assert!(text.contains("cache"));
         assert!(text.contains("Inspect the local ic-query cache"));
         assert!(text.contains("cloud-engine"));

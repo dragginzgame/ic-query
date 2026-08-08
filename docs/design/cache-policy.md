@@ -276,6 +276,13 @@ point-in-time evidence. A future complete Dashboard collection or long-range
 metric snapshot would require its own explicit operation, operational cap, and
 timestamped identity, and must not reuse Registry or canister-authority caches.
 
+The certified API boundary-node report is also live-only, but for a different
+reason: one bounded `read_state` request already returns a complete
+authenticated subtree at one certificate time. It does not share the
+Dashboard resource identity or node-status cache, and adding persistence would
+require an explicit certificate-age policy that the current operation does not
+need.
+
 SNS neuron complete snapshots intentionally stay on explicit refresh before
 cache-backed sorts. A full neuron refresh can require many governance pages and
 the refresh command exposes `--page-size` and `--max-pages`; silently starting

@@ -7,6 +7,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.33.x] - Unreleased - Certified API boundary-node reporting
+
+Detailed release notes: [docs/changelog/0.33.md](docs/changelog/0.33.md)
+
+- `0.33.0` adds `ic api-boundary-node list`. One response-bounded mainnet
+  `read_state` request authenticates the complete certified
+  `api_boundary_nodes` subtree and reports node principals, domains, optional
+  IPv4 addresses, required IPv6 addresses, and one shared certificate time.
+  This is configured API boundary-node identity, not operational health,
+  reachability, location, ownership, or HTTP-gateway inventory.
+
+```bash
+icq ic api-boundary-node list
+icq ic api-boundary-node list --json
+```
+
 ## [0.32.x] - Unreleased - Bounded replica release reporting
 
 Detailed release notes: [docs/changelog/0.32.md](docs/changelog/0.32.md)

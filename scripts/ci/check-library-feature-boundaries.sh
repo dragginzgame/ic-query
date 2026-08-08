@@ -41,6 +41,22 @@ forbidden_direct_dashboard_host_dependencies=(
   sha2
 )
 
+forbidden_ic_state_host_dependencies=(
+  cap-fs-ext
+  cap-std
+  prost
+)
+
+forbidden_direct_ic_state_host_dependencies=(
+  cap-fs-ext
+  cap-std
+  futures
+  prost
+  reqwest
+  serde_cbor
+  sha2
+)
+
 forbidden_icrc_host_dependencies=(
   prost
 )
@@ -147,6 +163,8 @@ run_quiet "ic-query --features host" \
   cargo check -p ic-query --no-default-features --features host --locked
 run_quiet "ic-query --features dashboard-host" \
   cargo check -p ic-query --no-default-features --features dashboard-host --locked
+run_quiet "ic-query --features ic-state-host" \
+  cargo check -p ic-query --no-default-features --features ic-state-host --locked
 run_quiet "ic-query --features icrc-host" \
   cargo check -p ic-query --no-default-features --features icrc-host --locked
 run_quiet "ic-query --features subnet-catalog-host" \
@@ -170,6 +188,7 @@ cargo test -p ic-query --test icrc_public_api --no-default-features --features i
 cargo test -p ic-query --test icrc_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features dashboard-host --locked
+cargo test -p ic-query --test ic_public_api --no-default-features --features ic-state-host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test cloud_engine_public_api --no-default-features --locked
 cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features cloud-engine-host --locked
@@ -242,6 +261,26 @@ check_tree_absent "ic-query --features dashboard-host direct dependencies" \
   -p ic-query \
   --no-default-features \
   --features dashboard-host \
+  -e normal \
+  --depth 1
+
+check_tree_absent "ic-query --features ic-state-host" \
+  "${forbidden_ic_state_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features ic-state-host
+
+# `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
+# Certified IC state collection directly needs only the agent, runtime bridge,
+# and endpoint validation; it must not activate cache, Dashboard, Registry, or
+# independent certificate-decoding dependencies.
+check_tree_absent "ic-query --features ic-state-host direct dependencies" \
+  "${forbidden_direct_ic_state_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features ic-state-host \
   -e normal \
   --depth 1
 

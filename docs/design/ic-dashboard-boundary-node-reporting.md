@@ -19,6 +19,12 @@ The API returns data-center aggregates, not individual boundary-node records.
 The command and public types therefore say `data-centers` explicitly rather
 than implying that a row identifies one node.
 
+Individual configured API boundary-node principals, domains, and addresses now
+come from the separate certified IC state-tree report described in
+[0.33 Certified API Boundary-Node Reporting](0.33/0.33-design.md). That report
+does not promote Dashboard geography or operational observations to certified
+state, and this Dashboard aggregate does not inherit its certificate.
+
 ## Report Contract
 
 `IcBoundaryNodeDataCentersReport` preserves:
@@ -86,7 +92,8 @@ multi-call snapshot flow.
 This report does not:
 
 - expose individual boundary-node principals, domains, IP addresses, or
-  operational health;
+  operational health; use the separately named certified state report for the
+  configured identity/address fields only;
 - join Dashboard locations to Registry node or data-center records;
 - correct or reinterpret raw Dashboard region labels;
 - claim certified or point-in-time-complete topology;

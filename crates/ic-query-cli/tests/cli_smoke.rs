@@ -189,6 +189,19 @@ fn binary_ic_boundary_node_data_centers_help_smoke() {
 }
 
 #[test]
+fn binary_ic_api_boundary_node_help_smoke() {
+    let output = run_icq(&["ic", "api-boundary-node", "list", "--help"]);
+
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq ic api-boundary-node list [OPTIONS]"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("one response-bounded IC read_state request"));
+    assert!(stdout.contains("built-in mainnet root key"));
+}
+
+#[test]
 fn binary_ic_daily_stats_help_smoke() {
     let output = run_icq(&["ic", "network", "daily-stats", "--help"]);
 

@@ -1,5 +1,6 @@
-//! Official IC Dashboard API report models, adapters, builders, and renderers.
+//! Certified IC state and official Dashboard report models, adapters, builders, and renderers.
 
+mod api_boundary_node;
 #[cfg(feature = "dashboard-host")]
 mod build;
 #[cfg(feature = "dashboard-host")]
@@ -10,6 +11,17 @@ mod node_status;
 mod source;
 mod text;
 
+pub use api_boundary_node::{
+    DEFAULT_IC_STATE_SOURCE_ENDPOINT, IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
+    IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest, IcApiBoundaryNodeRow,
+    IcCertifiedStateProvenance, MAX_IC_API_BOUNDARY_NODE_ROWS, ic_api_boundary_node_report_text,
+};
+#[cfg(feature = "ic-state-host")]
+pub use api_boundary_node::{
+    IcApiBoundaryNodeHostError, IcApiBoundaryNodeSource, IcApiBoundaryNodeSourceData,
+    IcApiBoundaryNodeSourceRequest, LiveIcStateSource, build_ic_api_boundary_node_report,
+    build_ic_api_boundary_node_report_with_source,
+};
 #[cfg(feature = "dashboard-host")]
 pub use build::{
     build_ic_boundary_node_data_centers_report,

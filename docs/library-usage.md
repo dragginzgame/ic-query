@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["host"] }
+ic-query = { version = "0.33", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -15,9 +15,9 @@ operations, or cache-backed report builders. The library has no CLI feature;
 `icq` parsing and dispatch are owned by `ic-query-cli`.
 
 The focused host choices are `cloud-engine-host`, `cmc-host`,
-`certified-subnet-catalog-host`, `dashboard-host`, `icrc-host`, `nns-host`,
-`nns-topology-host`, `sns-host`, and `subnet-catalog-host`. The complete `host`
-feature is their convenience union.
+`certified-subnet-catalog-host`, `dashboard-host`, `ic-state-host`, `icrc-host`,
+`nns-host`, `nns-topology-host`, `sns-host`, and `subnet-catalog-host`. The
+complete `host` feature is their convenience union.
 Both NNS subsets are nested under `nns-host`, and
 `certified-subnet-catalog-host` and `nns-topology-host` each include
 `subnet-catalog-host`.
@@ -27,7 +27,7 @@ use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -38,11 +38,26 @@ NNS/SNS/ICRC host adapters. Reqwest can retain cryptographic implementations
 such as SHA-256 transitively; dependency checks distinguish those transitives
 from ic-query's own direct optional edges.
 
+For the certified mainnet API boundary-node state tree, use the independent IC
+state feature:
+
+```toml
+[dependencies]
+ic-query = { version = "0.33", default-features = false, features = ["ic-state-host"] }
+```
+
+`ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
+live/custom-source builders, and their source-data contract. It directly
+enables `ic-agent`, Tokio, and URL validation. It does not enable the confined
+cache filesystem, Dashboard Reqwest transport, Registry Prost decoding,
+Futures collection, direct CBOR decoding, or direct SHA-256 hashing. Reqwest,
+CBOR, and cryptographic packages remain transitive through `ic-agent`.
+
 For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -55,7 +70,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -73,7 +88,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
@@ -81,7 +96,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -97,7 +112,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -115,7 +130,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -132,7 +147,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -148,7 +163,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -164,7 +179,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -268,7 +283,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false }
+ic-query = { version = "0.33", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -390,10 +405,14 @@ Catalog host features, the list report additionally exposes
 `CloudEngineOperatorBindingSource` and
 `build_cloud_engine_list_report_with_sources`; Registry catalog construction
 and control-plane bindings retain separate source contracts.
+Certified API boundary-node reporting exposes `IcApiBoundaryNodeSource` and
+`build_ic_api_boundary_node_report_with_source`; its source contract carries
+one authenticated complete state tree rather than Dashboard REST data.
 
 The built-in implementations are deliberately less fragmented than the
-capability traits. `ic_query::ic::LiveIcSource` owns official Dashboard
-capabilities, `ic_query::nns::LiveNnsSource` implements every supported NNS and
+capability traits. `ic_query::ic::LiveIcStateSource` owns certified IC state,
+while `ic_query::ic::LiveIcSource` owns official Dashboard capabilities.
+`ic_query::nns::LiveNnsSource` implements every supported NNS and
 subnet-catalog source capability, while
 `ic_query::sns::LiveSnsSource` and `ic_query::icrc::LiveIcrcSource` own their
 respective live families. `ic_query::system::cmc::LiveCmcSource` owns the

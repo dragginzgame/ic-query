@@ -17,6 +17,7 @@ and local-only inspection visibly distinct.
 
 | Family | Current surface |
 | --- | --- |
+| Certified IC state | Complete authenticated API boundary-node identities, domains, and IPv4/IPv6 configuration from one certified state tree |
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, one-request observed node status with cached node/Subnet/provider views and typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
 | CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, plus the public network fee and bounded marketplace prices |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
@@ -68,6 +69,10 @@ icq ic metrics ic-node-count --json
 # Official Dashboard network resources
 icq ic network boundary-node-data-centers
 icq ic network daily-stats
+
+# Certified API boundary-node configuration
+icq ic api-boundary-node list
+icq ic api-boundary-node list --json
 
 # Official Dashboard replica release records
 icq ic replica-version list --limit 25
@@ -146,6 +151,7 @@ actually make:
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
+| Certified IC state tree | API boundary-node principals, domains, addresses, and certificate time authenticated against the built-in mainnet root key | Configuration does not prove operational health, reachability, HTTP-gateway membership, ownership, or physical location |
 | NNS Registry | Authenticated certified latest-version and bounded contiguous delta-batch evidence, archive-bound exact-state catalog authority, plus exact-version joined Registry query evidence with explicit assurance | A single batch does not reconstruct Registry state; only a complete reauthenticated archive can promote a certified catalog, ordinary `get_value` reads remain uncertified, and endpoint agreement is not cryptographic certification |
 | NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
@@ -172,6 +178,7 @@ icq cloud-engine info <subnet-id>
 icq cloud-engine list
 icq cloud-engine prices
 
+icq ic api-boundary-node list
 icq ic canister count|info|page
 icq ic metrics <metric>
 icq ic network boundary-node-data-centers
@@ -228,6 +235,11 @@ HTTP(S) base URL with a host and no query or fragment. Official Dashboard
 requests do not follow redirects, so provenance always names the endpoint that
 returned the response.
 
+The certified API boundary-node command is fixed to mainnet and rejects the
+global `--network` option. Its `--source-endpoint` selects the mainnet IC API
+endpoint used for `read_state`; the report records that endpoint and the fixed
+Registry effective canister id used only to route the request.
+
 ## Collection and cache behavior
 
 Every data-producing command follows one documented collection mode:
@@ -272,6 +284,12 @@ Native CloudEngine, Registry, NNS, SNS, ICRC, and CMC calls also cap every `ic-a
 response body at 8 MiB. This is a per-call transport bound; paged collection,
 atomic cache publication, and explicit refresh policies retain their existing
 report-specific row and call limits.
+
+`ic api-boundary-node list` makes one response-bounded `read_state` request
+for the complete `api_boundary_nodes` subtree. The agent authenticates one
+certificate and the report preserves its raw Unix-nanosecond time plus a
+Unix-second projection. All rows share that certified time; no cache or
+per-node follow-up is used.
 
 `cloud-engine info` and `cloud-engine prices` are live and uncached. `info`
 makes one control-plane query when no operator is registered and exactly five
@@ -370,7 +388,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false }
+ic-query = { version = "0.33", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -378,7 +396,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["host"] }
+ic-query = { version = "0.33", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -393,6 +411,7 @@ Focused host features let embedders select one reporting family:
 | `cmc-host` | Certified Cycle Minting Canister ICP/XDR and cycles reports |
 | `certified-subnet-catalog-host` | Subnet Catalog plus certified Registry batches, archive/replay, and archive-bound catalog authority |
 | `dashboard-host` | Official Dashboard REST reports and observed node-status cache |
+| `ic-state-host` | Certified API boundary-node state-tree collection |
 | `icrc-host` | Native ICRC ledger/index reports and complete account-history cache |
 | `nns-host` | Complete NNS governance, certified Registry evidence and pure replay, Registry inventory, component-cache, and topology APIs |
 | `nns-topology-host` | Exact-version joined NNS topology plus Subnet Catalog |
@@ -413,8 +432,8 @@ Public report families are exposed from:
 - `ic_query::system::cmc`
 
 Built-in host calls use one adapter per authority family:
-`LiveCloudEngineSource`, `LiveIcSource`, `LiveIcrcSource`, `LiveNnsSource`,
-`LiveSnsSource`, and `LiveCmcSource`.
+`LiveCloudEngineSource`, `LiveIcStateSource`, `LiveIcSource`,
+`LiveIcrcSource`, `LiveNnsSource`, `LiveSnsSource`, and `LiveCmcSource`.
 Report-specific capability traits let fixtures, mirrors, proxies, and
 pre-collected sources reuse the same validation and projection path.
 
@@ -427,7 +446,7 @@ operator and marketplace reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
@@ -440,7 +459,7 @@ features (or the convenience `host` feature):
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
@@ -448,7 +467,7 @@ REST reports and the shared observed node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders, and the
@@ -458,12 +477,25 @@ cryptographic packages such as SHA-256 implementations transitively; the
 feature promises the absence of ic-query's direct Registry and certification
 edges, not every similarly named transitive package.
 
+Enable `ic-state-host` for only the certified API boundary-node state-tree
+report:
+
+```toml
+[dependencies]
+ic-query = { version = "0.33", default-features = false, features = ["ic-state-host"] }
+```
+
+This exposes `LiveIcStateSource`, its focused source trait, and live/custom
+builders. It enables `ic-agent`, Tokio, and URL validation without the cache
+filesystem, Dashboard Reqwest transport, Registry Prost decoding, Futures,
+direct CBOR decoding, or direct SHA-256 hashing.
+
 Enable `cmc-host` when an embedder needs only authenticated Cycle Minting
 Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -476,7 +508,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -488,7 +520,7 @@ proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -512,7 +544,7 @@ inventory, or derived-topology surface:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 This feature includes `subnet-catalog-host` and adds certified Registry delta
@@ -527,7 +559,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -540,7 +572,7 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.32", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.33", default-features = false, features = ["nns-host"] }
 ```
 
 This is a strict superset of both `nns-topology-host` and
@@ -780,6 +812,7 @@ guidance.
 - [0.30 certified Registry evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.30/0.30-design.md)
 - [0.31 public CloudEngine reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.31/0.31-design.md)
 - [0.32 bounded replica-version reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.32/0.32-design.md)
+- [0.33 certified API boundary-node reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.33/0.33-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

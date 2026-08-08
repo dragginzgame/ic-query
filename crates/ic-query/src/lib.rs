@@ -11,6 +11,7 @@
 //! `std` types such as `String` and `Vec`.
 //!
 //! Enable `dashboard-host` for official Dashboard live/cache APIs,
+//! `ic-state-host` for certified IC state-tree reports,
 //! `cloud-engine-host` for native CloudEngine control-plane reports (combine it
 //! with `subnet-catalog-host` for the Registry-backed CloudEngine list),
 //! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for native SNS
@@ -26,6 +27,7 @@
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "cmc-host",
+    feature = "ic-state-host",
     feature = "icrc-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
@@ -42,6 +44,7 @@ mod cache_file;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "cmc-host",
+    feature = "ic-state-host",
     feature = "icrc-host"
 ))]
 mod certification;
@@ -59,6 +62,7 @@ mod hex;
     feature = "cloud-engine-host",
     feature = "cmc-host",
     feature = "dashboard-host",
+    feature = "ic-state-host",
     feature = "icrc-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"
@@ -69,6 +73,8 @@ pub mod ic;
 #[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;
 pub mod icrc;
+#[cfg(any(feature = "certified-subnet-catalog-host", feature = "ic-state-host"))]
+mod leb128;
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "cmc-host",
@@ -92,6 +98,7 @@ mod report_sort;
     feature = "cloud-engine-host",
     feature = "cmc-host",
     feature = "dashboard-host",
+    feature = "ic-state-host",
     feature = "icrc-host",
     feature = "sns-host",
     feature = "subnet-catalog-host"

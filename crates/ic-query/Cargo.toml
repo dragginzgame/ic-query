@@ -38,6 +38,7 @@ host = [
     "cloud-engine-host",
     "cmc-host",
     "dashboard-host",
+    "ic-state-host",
     "icrc-host",
     "nns-host",
     "sns-host",
@@ -61,6 +62,11 @@ dashboard-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
     "dep:reqwest",
+    "dep:tokio",
+    "dep:url",
+]
+ic-state-host = [
+    "dep:ic-agent",
     "dep:tokio",
     "dep:url",
 ]

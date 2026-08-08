@@ -1,9 +1,10 @@
 //! Module: ic
 //!
-//! Responsibility: compose and dispatch official IC Dashboard command families.
-//! Does not own: family-specific parsing, REST transport, report construction, or rendering.
-//! Boundary: exposes bounded live Dashboard command wiring to the top-level CLI.
+//! Responsibility: compose and dispatch official IC report command families.
+//! Does not own: family-specific parsing, transport, report construction, or rendering.
+//! Boundary: exposes certified state and bounded Dashboard wiring to the top-level CLI.
 
+mod api_boundary_node;
 mod canister;
 mod metrics;
 mod network;
@@ -11,7 +12,7 @@ mod replica_version;
 
 use crate::cli::common::CurrentUnixSecsError;
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::ic::IcHostError;
+use ic_query::ic::{IcApiBoundaryNodeHostError, IcHostError};
 use std::io;
 use thiserror::Error as ThisError;
 
@@ -29,6 +30,10 @@ pub enum IcCommandError {
     #[error(transparent)]
     Host(#[from] IcHostError),
 
+    /// Certified state-tree collection or report construction failed.
+    #[error(transparent)]
+    CertifiedState(#[from] IcApiBoundaryNodeHostError),
+
     #[error(transparent)]
     Clock(#[from] CurrentUnixSecsError),
 
@@ -41,6 +46,7 @@ pub enum IcCommandError {
 
 pub fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     match matches.subcommand() {
+        Some(("api-boundary-node", matches)) => api_boundary_node::run_matches(matches),
         Some(("canister", matches)) => canister::run_matches(matches),
         Some(("metrics", matches)) => metrics::run_matches(matches),
         Some(("network", matches)) => network::run_matches(matches),
@@ -52,7 +58,8 @@ pub fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
 pub fn command() -> ClapCommand {
     ClapCommand::new("ic")
         .bin_name("icq ic")
-        .about("Inspect official IC Dashboard data")
+        .about("Inspect certified IC state and official Dashboard data")
+        .subcommand(api_boundary_node::command())
         .subcommand(canister::command())
         .subcommand(metrics::command())
         .subcommand(network::command())
@@ -84,6 +91,7 @@ mod tests {
         let usage = render_help(command());
 
         assert!(usage.contains("Usage: icq ic [COMMAND]"));
+        assert!(usage.contains("api-boundary-node"));
         assert!(usage.contains("canister"));
         assert!(usage.contains("metrics"));
         assert!(usage.contains("network"));
@@ -94,6 +102,8 @@ mod tests {
     fn family_and_nested_help_return_without_network_calls() {
         for args in [
             &["ic", "--help"][..],
+            &["ic", "api-boundary-node", "--help"],
+            &["ic", "api-boundary-node", "list", "--help"],
             &["ic", "canister", "--help"],
             &["ic", "canister", "info", "--help"],
             &["ic", "canister", "count", "--help"],

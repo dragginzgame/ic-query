@@ -38,6 +38,7 @@ icq icrc account transaction --help
 | [0.30 Certified Registry Evidence](design/0.30/0.30-design.md) | Authenticated latest-version and bounded single-delta-batch evidence, with staged certified Registry reconstruction |
 | [0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md) | Top-level exact-target operator details, Registry/control-plane inventory, and bounded marketplace reports |
 | [0.32 Bounded Replica-Version Reporting](design/0.32/0.32-design.md) | One-page release discovery and exact release detail with explicit off-chain authority and no runtime-version claim |
+| [0.33 Certified API Boundary-Node Reporting](design/0.33/0.33-design.md) | One authenticated state-tree inventory of API boundary-node principals, domains, addresses, and certificate time |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
 | [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |

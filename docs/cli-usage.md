@@ -66,6 +66,11 @@ ignoring it. Every override must be a credential-free HTTP(S) base URL with a
 host and no query or fragment. Official Dashboard requests reject redirects;
 native `ic-agent` calls cap each response body at 8 MiB.
 
+The certified API boundary-node command is also fixed to mainnet and rejects
+the top-level `--network` option. Its `--source-endpoint` is the mainnet IC API
+endpoint used for authenticated `read_state`; the fixed Registry effective
+canister id routes the request but is not the report's data authority.
+
 The node, Subnet, and node-provider `status` operations sit below their NNS
 nouns so discovered Registry principals flow directly into the observed view.
 They accept the global network identity, require it to be `ic`, and query the
@@ -117,6 +122,32 @@ explicit. All three operations' ordinary control-plane responses state
 `point_in_time_guaranteed: false`; sequential calls do not inherit a Registry
 version or form one snapshot. See
 [0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md).
+
+## Certified IC state
+
+```bash
+icq ic api-boundary-node list
+icq ic api-boundary-node list --json
+icq ic api-boundary-node list --source-endpoint https://icp-api.io
+```
+
+`api-boundary-node list` makes exactly one response-bounded mainnet
+`read_state` request for the complete certified `api_boundary_nodes` subtree.
+It authenticates the certificate against the built-in mainnet root key and
+returns canonical node principals, DNS domains, optional IPv4 addresses, and
+required IPv6 addresses. Every row belongs to the same certificate time.
+
+JSON preserves the raw certified time as Unix nanoseconds, a direct
+floor-to-seconds projection, and its UTC rendering. Text shows the ordinary
+Unix-second value. The report states `authority: certified_ic_state_tree`,
+`certified: true`, and `point_in_time_guaranteed: true`.
+
+The command is live-only and uses no cache, pagination, endpoint discovery, or
+per-node follow-up. These rows describe configured API boundary nodes. They do
+not establish operational health, reachability, latency, data-center location
+or ownership, node-provider identity, or membership in the separate HTTP
+gateway fleet. See
+[0.33 Certified API Boundary-Node Reporting](design/0.33/0.33-design.md).
 
 ## Official IC Dashboard
 

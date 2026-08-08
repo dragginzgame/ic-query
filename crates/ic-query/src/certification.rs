@@ -4,11 +4,21 @@
 //! Does not own: authority-specific witness labels, leaf values, or public report errors.
 //! Boundary: returns an authenticated tree whose digest is committed by canister certified_data.
 
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "cmc-host",
+    feature = "icrc-host"
+))]
 use candid::Principal;
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "cmc-host",
+    feature = "icrc-host"
+))]
 use ic_agent::{Agent, Certificate, hash_tree::HashTree};
 
 /// Maximum accepted difference between caller observation and certificate time.
-#[cfg(feature = "certified-subnet-catalog-host")]
+#[cfg(any(feature = "certified-subnet-catalog-host", feature = "ic-state-host"))]
 pub const MAX_CERTIFICATE_TIME_SKEW_SECONDS: u64 = 5 * 60;
 
 ///
@@ -20,6 +30,11 @@ pub const MAX_CERTIFICATE_TIME_SKEW_SECONDS: u64 = 5 * 60;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CertifiedDataError {
     /// The certificate signature or delegation did not authenticate.
+    #[cfg(any(
+        feature = "certified-subnet-catalog-host",
+        feature = "cmc-host",
+        feature = "icrc-host"
+    ))]
     Authentication {
         /// Authentication failure detail from the IC agent.
         reason: String,
@@ -55,6 +70,11 @@ pub fn authenticate_canister_hash_tree(
 }
 
 /// Authenticate a decoded certificate and its authority-specific hash tree.
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "cmc-host",
+    feature = "icrc-host"
+))]
 pub fn authenticate_canister_tree(
     agent: &Agent,
     canister: &Principal,
@@ -85,6 +105,11 @@ pub fn verify_canister_hash_tree(
 }
 
 /// Validate that a decoded certificate commits to a decoded hash tree.
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "cmc-host",
+    feature = "icrc-host"
+))]
 pub fn verify_canister_tree(
     certificate: &Certificate,
     canister: &Principal,
@@ -113,7 +138,7 @@ pub fn verify_canister_tree(
 }
 
 /// Validate certificate time against a caller-supplied observation time.
-#[cfg(feature = "certified-subnet-catalog-host")]
+#[cfg(any(feature = "certified-subnet-catalog-host", feature = "ic-state-host"))]
 pub fn validate_certificate_time(
     observed_at_unix_secs: u64,
     certificate_time_nanos: u64,

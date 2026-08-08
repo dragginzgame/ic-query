@@ -17,6 +17,7 @@ User-facing command and collection-mode guidance lives in
 `ic-query` expands by authority family rather than by transport call. Each
 authority family owns one built-in live adapter:
 
+- `ic_query::ic::LiveIcStateSource`
 - `ic_query::ic::LiveIcSource`
 - `ic_query::icrc::LiveIcrcSource`
 - `ic_query::nns::LiveNnsSource`
@@ -78,6 +79,10 @@ Dashboard source-data DTOs echo that request as their source provenance, and
 canister, metric, network, and node-status reports share one flattened
 `IcDashboardReportProvenance`, avoiding parallel field and validation flows
 without nesting the public report JSON.
+Certified IC state remains a distinct authority on `LiveIcStateSource`.
+`IcApiBoundaryNodeSource` returns one complete authenticated
+`api_boundary_nodes` subtree with its certificate time; it does not share the
+Dashboard request/provenance DTO or make Dashboard data certified.
 Certified CMC views share one `CmcSourceRequest` and one `CmcSource`
 capability on `LiveCmcSource`. The `xdr` and `cycles` reports are projections
 of the same authenticated native rate rather than separate remote-method
@@ -260,6 +265,12 @@ assurance.
   data-center resource in one request. It preserves zero-node locations and raw
   owner, region, coordinate, and count strings; rows are data-center
   aggregates, not individual node identities.
+- Certified API boundary-node reporting performs one response-bounded
+  `read_state` request for the complete `api_boundary_nodes` subtree. It
+  authenticates one certificate, preserves its raw time, and projects
+  canonical principal/domain/address rows at that common state-tree time. It
+  makes no cache or per-node call and makes no operational, HTTP-gateway,
+  ownership, or location claim.
 - Official Dashboard daily-statistics reporting selects raw daily network
   activity from one explicitly bounded v3 request. It defaults to seven days,
   caps the window and response at 366 days/rows, tolerates missing days, and
@@ -315,7 +326,7 @@ Expansion should proceed in layers:
 | --- | --- | --- |
 | 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, reward checkpoints, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
-| 2 | Individual boundary-node detail, broader daily analytics, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, and release-record sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
+| 2 | Broader daily analytics, API boundary-node operational/location enrichment, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, certified configuration, and release-record sets | Extend the focused adapter that owns each authority; never promote Dashboard enrichment to certified state |
 | 2 | ICRC account/holder rows and details, circulating-supply policy, burns, and time- or kind-filtered transaction aggregates beyond the implemented scalar counts and bounded total-supply/token-value history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard or external-provider values as direct ledger state or introducing implicit enumeration |
 | 3 | Internet Identity, Bitcoin, XRC, and other protocol-canister reports beyond the implemented CMC family | Add one authority-family adapter only when multiple coherent reports justify it |
 
