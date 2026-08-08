@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["host"] }
+ic-query = { version = "0.32", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -27,7 +27,7 @@ use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -42,7 +42,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -55,7 +55,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -73,7 +73,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
@@ -81,7 +81,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -97,7 +97,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -115,7 +115,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -132,7 +132,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -148,7 +148,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -164,7 +164,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -268,7 +268,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false }
+ic-query = { version = "0.32", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -503,6 +503,41 @@ do not change cache policy or turn targeted calls into collection operations.
 
 No-default consumers can still construct and render `IcCanisterReport` values
 without pulling in the live HTTP adapter.
+
+Replica release discovery uses a separate focused source capability on the
+same live adapter. It performs one page request, never follows the returned
+offset automatically, and does not claim runtime-version evidence:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcHostError,
+    IcReplicaVersionListQuery, IcReplicaVersionListRequest,
+    build_ic_replica_version_list_report,
+};
+
+fn recent_replica_versions(
+    now_unix_secs: u64,
+) -> Result<Vec<String>, IcHostError> {
+    let request = IcReplicaVersionListRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        now_unix_secs,
+        IcReplicaVersionListQuery::new(25, 0, None),
+    );
+    let report = build_ic_replica_version_list_report(&request)?;
+    Ok(report
+        .rows
+        .into_iter()
+        .map(|row| row.replica_version_id)
+        .collect())
+}
+```
+
+The first response's `resolved_max_proposal_index` may be supplied in a later
+query together with `report.next_offset`. Exact
+`build_ic_replica_version_info_report` preserves the raw release summary and
+Subnet rollout rows in one request. Both reports are live-only, off-chain,
+uncertified, and separate from Registry desired-version or actual running
+version evidence.
 
 Filtered discovery stays explicitly bounded. A count performs one REST request
 and fetches no rows. A page performs one REST request for at most 100 rows and

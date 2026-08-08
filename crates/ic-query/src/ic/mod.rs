@@ -18,7 +18,9 @@ pub use build::{
     build_ic_canister_page_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
     build_ic_metric_report_with_source, build_ic_node_status_snapshot,
-    build_ic_node_status_snapshot_with_source, build_icrc_indexed_count_report,
+    build_ic_node_status_snapshot_with_source, build_ic_replica_version_info_report,
+    build_ic_replica_version_info_report_with_source, build_ic_replica_version_list_report,
+    build_ic_replica_version_list_report_with_source, build_icrc_indexed_count_report,
     build_icrc_indexed_count_report_with_source, build_icrc_token_value_report,
     build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
@@ -37,14 +39,17 @@ pub use model::{
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
-    IcMetricRequest, IcMetricSeries,
+    IcMetricRequest, IcMetricSeries, IcReplicaVersionInfoReport, IcReplicaVersionInfoRequest,
+    IcReplicaVersionListQuery, IcReplicaVersionListReport, IcReplicaVersionListRequest,
+    IcReplicaVersionListRow, IcReplicaVersionStatus, IcReplicaVersionSubnetRollout,
 };
 #[cfg(feature = "dashboard-host")]
 pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
     IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcIndexedCountSourceData,
     IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData,
-    IcMetricSourceData, IcSourceRequest,
+    IcMetricSourceData, IcReplicaVersionInfoSourceData, IcReplicaVersionListSourceData,
+    IcSourceRequest,
 };
 pub use node_status::{
     DEFAULT_IC_NODE_STATUS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
@@ -77,13 +82,14 @@ pub use node_status::{
 #[cfg(feature = "dashboard-host")]
 pub use source::{
     IcCanisterCollectionSource, IcCanisterSource, IcIcrcAnalyticsSource, IcMetricSource,
-    IcNetworkSource, IcNodeStatusSource,
+    IcNetworkSource, IcNodeStatusSource, IcReplicaVersionSource,
 };
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
-    icrc_total_supply_report_text,
+    ic_metric_report_text, ic_replica_version_info_report_text,
+    ic_replica_version_list_report_text, icrc_indexed_count_report_text,
+    icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 
 /// Default base endpoint for the official IC Dashboard API.
@@ -167,6 +173,12 @@ pub const MAX_IC_DAILY_STATS_ROWS: usize = 366;
 
 /// Maximum boundary-node data-center rows accepted from one source response.
 pub const MAX_IC_BOUNDARY_NODE_DATA_CENTERS: usize = 1_000;
+
+/// Default row limit for one official Dashboard replica-version page.
+pub const DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT: u16 = 50;
+
+/// Maximum row limit accepted for one official Dashboard replica-version page.
+pub const MAX_IC_REPLICA_VERSION_PAGE_LIMIT: u16 = 100;
 
 #[cfg(feature = "dashboard-host")]
 const IC_DASHBOARD_REPORT_SCHEMA_VERSION: u32 = 1;

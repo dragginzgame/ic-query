@@ -9,6 +9,7 @@ mod icrc_analytics;
 mod metric;
 mod network;
 mod node_status;
+mod replica_version;
 #[cfg(test)]
 mod tests;
 

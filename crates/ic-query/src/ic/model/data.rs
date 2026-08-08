@@ -7,11 +7,12 @@
 use super::{
     reports::{
         IcBoundaryNodeDataCenterRow, IcCanisterPageRow, IcCanisterUpgrade, IcDailyStatsRow,
-        IcIcrcTotalSupplyObservation, IcMetricSeries,
+        IcIcrcTotalSupplyObservation, IcMetricSeries, IcReplicaVersionListRow,
+        IcReplicaVersionSubnetRollout,
     },
     requests::{
         IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
-        IcIcrcTotalSupplyQuery, IcMetricQuery,
+        IcIcrcTotalSupplyQuery, IcMetricQuery, IcReplicaVersionListQuery,
     },
 };
 
@@ -243,4 +244,50 @@ pub struct IcBoundaryNodeDataCentersSourceData {
     pub source: IcSourceRequest,
     /// Raw data-center rows returned by the source.
     pub rows: Vec<IcBoundaryNodeDataCenterRow>,
+}
+
+///
+/// IcReplicaVersionListSourceData
+///
+/// Raw bounded replica-version page and provenance returned by a Dashboard source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcReplicaVersionListSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Page query applied by the source.
+    pub query: IcReplicaVersionListQuery,
+    /// Proposal-index ceiling selected by the source.
+    pub resolved_max_proposal_index: u64,
+    /// Number of release records matching the selected ceiling.
+    pub total_proposals: u64,
+    /// Raw release rows returned by the source.
+    pub rows: Vec<IcReplicaVersionListRow>,
+}
+
+///
+/// IcReplicaVersionInfoSourceData
+///
+/// Raw exact replica-version record and provenance returned by a Dashboard source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcReplicaVersionInfoSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Replica-version identifier returned by the source.
+    pub replica_version_id: String,
+    /// NNS proposal that elected this version.
+    pub proposal_id: u64,
+    /// Election proposal execution time as raw Unix seconds.
+    pub executed_timestamp_seconds: u64,
+    /// Raw proposal title.
+    pub title: String,
+    /// Raw proposal discussion URL.
+    pub url: String,
+    /// Raw release-note summary.
+    pub summary: String,
+    /// Raw Dashboard-recorded Subnet assignments.
+    pub subnets: Vec<IcReplicaVersionSubnetRollout>,
 }

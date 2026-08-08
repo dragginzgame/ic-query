@@ -4,26 +4,32 @@ use ic_query::ic::{
     DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_CANISTER_PAGE_LIMIT,
     DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-    DEFAULT_IC_METRIC_STEP_SECS, IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport,
-    IcBoundaryNodeDataCentersRequest, IcCanisterCountReport, IcCanisterCountRequest,
-    IcCanisterFilters, IcCanisterPageController, IcCanisterPageReport, IcCanisterPageRequest,
-    IcCanisterPageRow, IcCanisterReport, IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery,
-    IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
-    IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
-    IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
+    DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT,
+    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
+    IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
+    IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
+    IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
+    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcIndexedCountKind,
+    IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery,
+    IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
     IcMetricRequest, IcMetricSeries, IcNodeAssignmentStatusCounts, IcNodeCountComparison,
     IcNodeProviderStatusReport, IcNodeStatusCounts, IcNodeStatusGroupCounts,
     IcNodeStatusObservation, IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope,
-    IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport, MAX_IC_CANISTER_PAGE_LIMIT,
-    MAX_IC_DASHBOARD_RESPONSE_BYTES, ic_boundary_node_data_centers_report_text,
-    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
-    ic_daily_stats_report_text, ic_metric_report_text,
-    ic_node_provider_status_report_from_snapshot, ic_node_provider_status_report_text,
-    ic_node_status_report_from_snapshot, ic_node_status_report_text,
-    ic_subnet_status_report_from_snapshot, ic_subnet_status_report_text,
-    icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
+    IcNodeStatusSnapshot, IcNodeStatusView, IcReplicaVersionInfoReport,
+    IcReplicaVersionInfoRequest, IcReplicaVersionListQuery, IcReplicaVersionListReport,
+    IcReplicaVersionListRequest, IcReplicaVersionListRow, IcReplicaVersionStatus,
+    IcReplicaVersionSubnetRollout, IcSubnetStatusReport, MAX_IC_CANISTER_PAGE_LIMIT,
+    MAX_IC_DASHBOARD_RESPONSE_BYTES, MAX_IC_REPLICA_VERSION_PAGE_LIMIT,
+    ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
+    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
+    ic_metric_report_text, ic_node_provider_status_report_from_snapshot,
+    ic_node_provider_status_report_text, ic_node_status_report_from_snapshot,
+    ic_node_status_report_text, ic_replica_version_info_report_text,
+    ic_replica_version_list_report_text, ic_subnet_status_report_from_snapshot,
+    ic_subnet_status_report_text, icrc_indexed_count_report_text, icrc_token_value_report_text,
+    icrc_total_supply_report_text,
 };
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::{
@@ -32,7 +38,7 @@ use ic_query::ic::{
     IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
     IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData,
     IcNetworkSource, IcNodeStatusHostError, IcNodeStatusSnapshotRequest, IcNodeStatusSource,
-    IcNodeStatusSourceData, IcSourceRequest, LiveIcSource,
+    IcNodeStatusSourceData, IcReplicaVersionSource, IcSourceRequest, LiveIcSource,
     build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
@@ -40,7 +46,9 @@ use ic_query::ic::{
     build_ic_canister_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
     build_ic_metric_report_with_source, build_ic_node_status_snapshot,
-    build_ic_node_status_snapshot_with_source, build_icrc_indexed_count_report,
+    build_ic_node_status_snapshot_with_source, build_ic_replica_version_info_report,
+    build_ic_replica_version_info_report_with_source, build_ic_replica_version_list_report,
+    build_ic_replica_version_list_report_with_source, build_icrc_indexed_count_report,
     build_icrc_indexed_count_report_with_source, build_icrc_token_value_report,
     build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
@@ -49,6 +57,7 @@ use ic_query::ic::{
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const ICRC_LEDGER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 const SUBNET_ID: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
+const REPLICA_VERSION_ID: &str = "e3d101b22ae3fa02aca737f9fb96cc6c4ca83ac3";
 
 #[test]
 fn public_dashboard_transport_limit_is_available_without_host() {
@@ -140,6 +149,64 @@ fn public_ic_daily_stats_api_is_constructible_serializable_and_renderable() {
     );
     assert_eq!(json["certified"], false);
     assert!(json.get("provenance").is_none());
+}
+
+#[test]
+fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() {
+    let query = IcReplicaVersionListQuery::new(25, 0, None);
+    let request = IcReplicaVersionListRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        1_800_000_000,
+        query.clone(),
+    );
+    let row = IcReplicaVersionListRow {
+        replica_version_id: REPLICA_VERSION_ID.to_string(),
+        proposal_id: 143_250,
+        executed_timestamp_seconds: 1_785_759_673,
+        status: IcReplicaVersionStatus::Executed,
+        title: "Elect new IC/GuestOS revision".to_string(),
+        url: "https://forum.dfinity.org/t/release/1".to_string(),
+        subnet_count: 1,
+        subnets: vec![public_replica_version_rollout()],
+    };
+    let list = IcReplicaVersionListReport {
+        provenance: public_provenance(request.source_endpoint),
+        query,
+        resolved_max_proposal_index: 438,
+        total_proposals: 438,
+        returned_count: 1,
+        next_offset: Some(1),
+        rows: vec![row],
+    };
+    let info_request = IcReplicaVersionInfoRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        1_800_000_000,
+        REPLICA_VERSION_ID,
+    );
+    let info = IcReplicaVersionInfoReport {
+        provenance: public_provenance(info_request.source_endpoint),
+        replica_version_id: info_request.replica_version_id,
+        proposal_id: 143_250,
+        executed_timestamp_seconds: 1_785_759_673,
+        title: "Elect new IC/GuestOS revision".to_string(),
+        url: "https://forum.dfinity.org/t/release/1".to_string(),
+        summary: "Raw release notes".to_string(),
+        subnet_count: 1,
+        subnets: vec![public_replica_version_rollout()],
+    };
+
+    let list_text = ic_replica_version_list_report_text(&list);
+    let info_text = ic_replica_version_info_report_text(&info);
+    let list_json = serde_json::to_value(&list).expect("serializable replica-version list");
+    let info_json = serde_json::to_value(&info).expect("serializable replica-version info");
+
+    assert_eq!(DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT, 50);
+    assert_eq!(MAX_IC_REPLICA_VERSION_PAGE_LIMIT, 100);
+    assert!(list_text.contains("EXECUTED"));
+    assert!(info_text.contains("summary: Raw release notes"));
+    assert_eq!(list_json["rows"][0]["status"], "EXECUTED");
+    assert_eq!(info_json["summary"], "Raw release notes");
+    assert!(list_json.get("provenance").is_none());
 }
 
 #[test]
@@ -480,6 +547,25 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
 
 #[cfg(feature = "dashboard-host")]
 #[test]
+fn public_dashboard_replica_version_host_api_exposes_builders() {
+    let _: fn(&IcReplicaVersionListRequest) -> Result<IcReplicaVersionListReport, IcHostError> =
+        build_ic_replica_version_list_report;
+    let _: fn(
+        &IcReplicaVersionListRequest,
+        &dyn IcReplicaVersionSource,
+    ) -> Result<IcReplicaVersionListReport, IcHostError> =
+        build_ic_replica_version_list_report_with_source;
+    let _: fn(&IcReplicaVersionInfoRequest) -> Result<IcReplicaVersionInfoReport, IcHostError> =
+        build_ic_replica_version_info_report;
+    let _: fn(
+        &IcReplicaVersionInfoRequest,
+        &dyn IcReplicaVersionSource,
+    ) -> Result<IcReplicaVersionInfoReport, IcHostError> =
+        build_ic_replica_version_info_report_with_source;
+}
+
+#[cfg(feature = "dashboard-host")]
+#[test]
 fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
     let _: fn(&IcNodeStatusSnapshotRequest) -> Result<IcNodeStatusSnapshot, IcHostError> =
         build_ic_node_status_snapshot;
@@ -766,6 +852,14 @@ impl IcNodeStatusSource for FixtureSource {
             cloud_engine_nodes_included: false,
             nodes: vec![public_node_status_row()],
         })
+    }
+}
+
+fn public_replica_version_rollout() -> IcReplicaVersionSubnetRollout {
+    IcReplicaVersionSubnetRollout {
+        subnet_id: SUBNET_ID.to_string(),
+        proposal_id: 143_297,
+        executed_timestamp_seconds: 1_785_759_892,
     }
 }
 

@@ -7,6 +7,23 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.32.x] - Unreleased - Bounded replica release reporting
+
+Detailed release notes: [docs/changelog/0.32.md](docs/changelog/0.32.md)
+
+- `0.32.0` adds one-request official Dashboard replica-version list and exact
+  info reports. List pages default to 50 rows, cap at 100, expose explicit
+  offset and proposal-index ceilings, and never auto-page; info preserves the
+  full raw release summary and Dashboard-recorded Subnet rollout proposals.
+  Reports remain off-chain, uncertified, uncached, and do not claim which
+  binary a Subnet currently runs.
+
+```bash
+icq ic replica-version list --limit 25
+icq ic replica-version list --offset 25 --max-proposal-index 438 --json
+icq ic replica-version info e3d101b22ae3fa02aca737f9fb96cc6c4ca83ac3
+```
+
 ## [0.31.x] - 2026-08-08 - CloudEngine control-plane reporting
 
 Detailed release notes: [docs/changelog/0.31.md](docs/changelog/0.31.md)

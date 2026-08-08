@@ -69,6 +69,10 @@ icq ic metrics ic-node-count --json
 icq ic network boundary-node-data-centers
 icq ic network daily-stats
 
+# Official Dashboard replica release records
+icq ic replica-version list --limit 25
+icq ic replica-version info e3d101b22ae3fa02aca737f9fb96cc6c4ca83ac3
+
 # Public CloudEngine reports
 icq cloud-engine list
 icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe
@@ -148,7 +152,7 @@ actually make:
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
 | Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
 | CloudEngine control plane | Ordinary public canister query responses from the fixed control-plane and resolved operator canister; list inventory separately comes from the versioned Registry Subnet Catalog | `certified: false`, `point_in_time_guaranteed: false` for control-plane observations; per-row calls do not become part of the Registry snapshot |
-| Official IC Dashboard, including observed node status and ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`; default node scope excludes cloud-engine nodes, and an accepted ledger principal does not prove indexing coverage |
+| Official IC Dashboard, including observed node status, replica releases, and ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`; default node scope excludes cloud-engine nodes, release records do not prove the binary currently running, and an accepted ledger principal does not prove indexing coverage |
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
 and explicit provenance. Text output may shorten or format values for people.
@@ -172,6 +176,7 @@ icq ic canister count|info|page
 icq ic metrics <metric>
 icq ic network boundary-node-data-centers
 icq ic network daily-stats
+icq ic replica-version info|list
 
 icq nns data-center info|list|refresh
 icq nns governance economics|maturity-modulation|metrics|reward-event
@@ -236,8 +241,9 @@ Every data-producing command follows one documented collection mode:
 | Local-only inspection | Never | Never |
 | Forced refresh | Always | Atomically replaces the prior complete snapshot after validation |
 
-Dashboard count, page, metric, daily-statistics, boundary-node data-center, and
-ICRC analytics commands always make exactly one REST request. The shared live
+Dashboard count, page, metric, daily-statistics, boundary-node data-center,
+replica-version, and ICRC analytics commands always make exactly one REST
+request. The shared live
 transport rejects successful response bodies larger than 8 MiB, checking both
 declared and streamed sizes before JSON decoding. Indexed counts request no
 account, holder, or transaction rows. A page returns at most 100 canister
@@ -248,7 +254,10 @@ and 366 rows. The boundary-node report consumes one non-paginated data-center
 resource and makes no per-location calls. Total-supply analytics default to 30
 days at a daily step, retain raw ledger base units, and are capped at 1,000
 observations. Token-value analytics default to 24 hours and are capped at 90
-days and 1,000 rows. None of these commands creates a cache.
+days and 1,000 rows. Replica-version pages default to 50 rows, cap at 100, and
+follow an offset only when supplied explicitly; exact info preserves the raw
+release summary. These release-election records are not proof of the replica
+binary currently running on a Subnet. None of these commands creates a cache.
 
 Observed node status is the bounded exception: one unfiltered Dashboard
 `/nodes` request creates a complete network-level snapshot capped at 10,000
@@ -361,7 +370,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false }
+ic-query = { version = "0.32", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -369,7 +378,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["host"] }
+ic-query = { version = "0.32", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -418,7 +427,7 @@ operator and marketplace reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
@@ -431,7 +440,7 @@ features (or the convenience `host` feature):
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
@@ -439,7 +448,7 @@ REST reports and the shared observed node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders, and the
@@ -454,7 +463,7 @@ Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -467,7 +476,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -479,7 +488,7 @@ proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -503,7 +512,7 @@ inventory, or derived-topology surface:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 This feature includes `subnet-catalog-host` and adds certified Registry delta
@@ -518,7 +527,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -531,7 +540,7 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.31", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.32", default-features = false, features = ["nns-host"] }
 ```
 
 This is a strict superset of both `nns-topology-host` and
@@ -770,6 +779,7 @@ guidance.
 - [0.29 Subnet Catalog authority and embedder hardening](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.29/0.29-design.md)
 - [0.30 certified Registry evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.30/0.30-design.md)
 - [0.31 public CloudEngine reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.31/0.31-design.md)
+- [0.32 bounded replica-version reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.32/0.32-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

@@ -16,7 +16,8 @@ pub use data::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
     IcCanisterSourceData, IcDailyStatsSourceData, IcIcrcIndexedCountSourceData,
     IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData,
-    IcMetricSourceData, IcSourceRequest,
+    IcMetricSourceData, IcReplicaVersionInfoSourceData, IcReplicaVersionListSourceData,
+    IcSourceRequest,
 };
 #[cfg(feature = "dashboard-host")]
 pub use error::IcHostError;
@@ -26,7 +27,8 @@ pub use reports::{
     IcCanisterUpgrade, IcDailyStatsReport, IcDailyStatsRow, IcDashboardReportProvenance,
     IcIcrcIndexedCountReport, IcIcrcTokenValueReport, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyReport, IcMetricObservation, IcMetricReport,
-    IcMetricSeries,
+    IcMetricSeries, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
+    IcReplicaVersionListRow, IcReplicaVersionStatus, IcReplicaVersionSubnetRollout,
 };
 pub use requests::{
     IcBoundaryNodeDataCentersRequest, IcCanisterCountRequest, IcCanisterFilters,
@@ -34,4 +36,5 @@ pub use requests::{
     IcIcrcAnalyticsRequest, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
     IcIcrcTokenValueQuery, IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricQuery, IcMetricRequest,
+    IcReplicaVersionInfoRequest, IcReplicaVersionListQuery, IcReplicaVersionListRequest,
 };

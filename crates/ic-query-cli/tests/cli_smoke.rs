@@ -202,6 +202,29 @@ fn binary_ic_daily_stats_help_smoke() {
 }
 
 #[test]
+fn binary_ic_replica_version_help_smoke() {
+    let info = run_icq(&["ic", "replica-version", "info", "--help"]);
+    assert_success(&info);
+    let info_stdout = stdout_text(&info);
+    assert!(
+        info_stdout.contains("Usage: icq ic replica-version info [OPTIONS] <replica-version-id>")
+    );
+    assert!(info_stdout.contains("--source-endpoint <url>"));
+    assert!(info_stdout.contains("exactly one official Dashboard detail request"));
+    assert!(info_stdout.contains("prove which replica version"));
+
+    let list = run_icq(&["ic", "replica-version", "list", "--help"]);
+    assert_success(&list);
+    let list_stdout = stdout_text(&list);
+    assert!(list_stdout.contains("Usage: icq ic replica-version list [OPTIONS]"));
+    assert!(list_stdout.contains("--limit <rows>"));
+    assert!(list_stdout.contains("--offset <rows>"));
+    assert!(list_stdout.contains("--max-proposal-index <index>"));
+    assert!(list_stdout.contains("release rows"));
+    assert!(list_stdout.contains("not runtime-version evidence"));
+}
+
+#[test]
 fn binary_icrc_balance_help_smoke() {
     let output = run_icq(&["icrc", "account", "balance", "--help"]);
 

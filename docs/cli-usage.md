@@ -139,6 +139,11 @@ icq ic network boundary-node-data-centers --json
 icq ic network daily-stats
 icq ic network daily-stats \
   --start 1784937600 --end 1785542400
+
+icq ic replica-version list --limit 25
+icq ic replica-version list \
+  --offset 25 --max-proposal-index 438 --json
+icq ic replica-version info e3d101b22ae3fa02aca737f9fb96cc6c4ca83ac3
 ```
 
 `info` preserves the Dashboard canister id, raw optional classification, name,
@@ -170,6 +175,15 @@ average block rate. It defaults to the preceding seven days and is capped at a
 makes one request and does not copy the resource's unrelated governance,
 supply, topology, or Internet Identity fields into this report.
 
+`replica-version list` selects one release page in descending execution-time
+order. It defaults to 50 rows, caps the page at 100, and exposes the returned
+proposal-index ceiling and next offset without following them automatically.
+Supply `resolved_max_proposal_index` as `--max-proposal-index` on a later page
+to retain the same upper indexing bound. `replica-version info` makes one exact
+request and preserves the raw release summary and Dashboard-recorded Subnet
+rollout proposals. Neither operation proves which replica binary a Subnet is
+currently running.
+
 There is no automatic enumeration and these commands never read or write a
 cache. The official Dashboard is an off-chain analytics authority, so every
 report states
@@ -182,7 +196,9 @@ and [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) for
 the canister and metric contracts. See
 [IC Dashboard Boundary-Node Reporting](design/ic-dashboard-boundary-node-reporting.md)
 and [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) for the
-network-resource contracts.
+network-resource contracts. See
+[0.32 Bounded Replica-Version Reporting](design/0.32/0.32-design.md) for release
+pagination, detail, and authority boundaries.
 
 ## NNS
 

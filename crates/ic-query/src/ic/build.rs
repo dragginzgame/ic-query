@@ -14,16 +14,21 @@ use crate::{
         IcIcrcIndexedCountRequest, IcIcrcTokenValueReport, IcIcrcTokenValueRequest,
         IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport, IcMetricRequest,
         IcMetricSource, IcNetworkSource, IcNodeStatusSnapshot, IcNodeStatusSnapshotRequest,
-        IcNodeStatusSource, IcSourceRequest, LiveIcSource,
+        IcNodeStatusSource, IcReplicaVersionInfoReport, IcReplicaVersionInfoRequest,
+        IcReplicaVersionListReport, IcReplicaVersionListRequest, IcReplicaVersionSource,
+        IcSourceRequest, LiveIcSource,
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
             canonical_page_cursors, canonical_request_principal, count_report_from_source,
             daily_stats_report_from_source, icrc_indexed_count_report_from_source,
             icrc_token_value_report_from_source, icrc_total_supply_report_from_source,
             metric_report_from_source, node_status_snapshot_from_source, normalized_filters,
-            page_report_from_source, report_from_source, validate_daily_stats_request,
-            validate_icrc_token_value_request, validate_icrc_total_supply_request,
-            validate_metric_request, validate_page_cursor_exclusivity, validate_page_limit,
+            page_report_from_source, replica_version_info_report_from_source,
+            replica_version_list_report_from_source, report_from_source,
+            validate_daily_stats_request, validate_icrc_token_value_request,
+            validate_icrc_total_supply_request, validate_metric_request,
+            validate_page_cursor_exclusivity, validate_page_limit, validate_replica_version_id,
+            validate_replica_version_list_query,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -79,6 +84,47 @@ pub fn build_ic_daily_stats_report_with_source(
     let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
     let source_data = source.fetch_daily_stats(&source_request, &request.query)?;
     daily_stats_report_from_source(&source_request, &request.query, source_data)
+}
+
+/// Build one live, bounded replica-version page from the official Dashboard API.
+pub fn build_ic_replica_version_list_report(
+    request: &IcReplicaVersionListRequest,
+) -> Result<IcReplicaVersionListReport, IcHostError> {
+    build_ic_replica_version_list_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded replica-version page through a custom Dashboard source.
+pub fn build_ic_replica_version_list_report_with_source(
+    request: &IcReplicaVersionListRequest,
+    source: &dyn IcReplicaVersionSource,
+) -> Result<IcReplicaVersionListReport, IcHostError> {
+    validate_replica_version_list_query(&request.query)?;
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data = source.fetch_replica_version_list(&source_request, &request.query)?;
+    replica_version_list_report_from_source(&source_request, &request.query, source_data)
+}
+
+/// Build one live exact replica-version report from the official Dashboard API.
+pub fn build_ic_replica_version_info_report(
+    request: &IcReplicaVersionInfoRequest,
+) -> Result<IcReplicaVersionInfoReport, IcHostError> {
+    build_ic_replica_version_info_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one exact replica-version report through a custom Dashboard source.
+pub fn build_ic_replica_version_info_report_with_source(
+    request: &IcReplicaVersionInfoRequest,
+    source: &dyn IcReplicaVersionSource,
+) -> Result<IcReplicaVersionInfoReport, IcHostError> {
+    validate_replica_version_id(&request.replica_version_id)?;
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data =
+        source.fetch_replica_version_info(&source_request, &request.replica_version_id)?;
+    replica_version_info_report_from_source(
+        &source_request,
+        &request.replica_version_id,
+        source_data,
+    )
 }
 
 /// Build one live, bounded metric report from the official Dashboard Metrics API.

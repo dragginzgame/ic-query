@@ -6,9 +6,10 @@
 
 use super::requests::{
     IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
-    IcIcrcTotalSupplyQuery, IcMetricQuery,
+    IcIcrcTotalSupplyQuery, IcMetricQuery, IcReplicaVersionListQuery,
 };
 use serde::Serialize;
+use std::fmt;
 
 ///
 /// IcCanisterUpgrade
@@ -296,6 +297,138 @@ pub struct IcBoundaryNodeDataCentersReport {
     pub total_node_count: u64,
     /// Rows in canonical data-center-id order, including zero-node locations.
     pub rows: Vec<IcBoundaryNodeDataCenterRow>,
+}
+
+///
+/// IcReplicaVersionStatus
+///
+/// Raw lifecycle status exposed by the official Dashboard release index.
+///
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum IcReplicaVersionStatus {
+    /// The election proposal has been adopted but not executed.
+    Adopted,
+    /// The election proposal has executed.
+    Executed,
+    /// The election proposal remains open.
+    Open,
+}
+
+impl IcReplicaVersionStatus {
+    /// Return the exact official Dashboard query value.
+    #[must_use]
+    pub const fn as_dashboard_value(self) -> &'static str {
+        match self {
+            Self::Adopted => "ADOPTED",
+            Self::Executed => "EXECUTED",
+            Self::Open => "OPEN",
+        }
+    }
+}
+
+impl fmt::Display for IcReplicaVersionStatus {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_dashboard_value())
+    }
+}
+
+///
+/// IcReplicaVersionSubnetRollout
+///
+/// One Dashboard-recorded proposal assigning a Subnet to a replica version.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcReplicaVersionSubnetRollout {
+    /// Canonical Subnet principal.
+    pub subnet_id: String,
+    /// NNS proposal that assigned the Subnet to this version.
+    pub proposal_id: u64,
+    /// Proposal execution time as raw Unix seconds.
+    pub executed_timestamp_seconds: u64,
+}
+
+///
+/// IcReplicaVersionListRow
+///
+/// One release-election row from a bounded official Dashboard page.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcReplicaVersionListRow {
+    /// Lowercase hexadecimal replica-version identifier.
+    pub replica_version_id: String,
+    /// NNS proposal that elected this version.
+    pub proposal_id: u64,
+    /// Election proposal execution time, or zero before execution.
+    pub executed_timestamp_seconds: u64,
+    /// Raw Dashboard proposal lifecycle status.
+    pub status: IcReplicaVersionStatus,
+    /// Raw proposal title.
+    pub title: String,
+    /// Raw proposal discussion URL.
+    pub url: String,
+    /// Number of Dashboard-recorded Subnet assignments.
+    pub subnet_count: usize,
+    /// Dashboard-recorded Subnet assignments in execution order.
+    pub subnets: Vec<IcReplicaVersionSubnetRollout>,
+}
+
+///
+/// IcReplicaVersionListReport
+///
+/// One explicitly bounded replica-version page from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcReplicaVersionListReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Exact requested page bounds, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcReplicaVersionListQuery,
+    /// Proposal-index ceiling selected by the Dashboard for this page series.
+    pub resolved_max_proposal_index: u64,
+    /// Number of release records matching the selected proposal-index ceiling.
+    pub total_proposals: u64,
+    /// Number of rows returned in this page.
+    pub returned_count: usize,
+    /// Offset for an explicit next-page request, when more rows remain.
+    pub next_offset: Option<u64>,
+    /// Release rows in the Dashboard's requested descending execution-time order.
+    pub rows: Vec<IcReplicaVersionListRow>,
+}
+
+///
+/// IcReplicaVersionInfoReport
+///
+/// One exact replica-version release record from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcReplicaVersionInfoReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Lowercase hexadecimal replica-version identifier.
+    pub replica_version_id: String,
+    /// NNS proposal that elected this version.
+    pub proposal_id: u64,
+    /// Election proposal execution time as raw Unix seconds.
+    pub executed_timestamp_seconds: u64,
+    /// Raw proposal title.
+    pub title: String,
+    /// Raw proposal discussion URL.
+    pub url: String,
+    /// Raw release-note summary.
+    pub summary: String,
+    /// Number of Dashboard-recorded Subnet assignments.
+    pub subnet_count: usize,
+    /// Dashboard-recorded Subnet assignments in execution order.
+    pub subnets: Vec<IcReplicaVersionSubnetRollout>,
 }
 
 ///

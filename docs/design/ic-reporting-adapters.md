@@ -294,6 +294,11 @@ assurance.
   truncation when the response reaches the limit. Dashboard aggregation does
   not certify, reconcile, endorse, or give on-chain authority to those external
   market values.
+- Official Dashboard replica-version reporting sends one explicitly bounded
+  page request or one exact detail request. It preserves the proposal-index
+  ceiling, release-election fields, and Subnet rollout proposals under
+  off-chain Dashboard provenance. It does not auto-page, cache, join Registry
+  topology, or claim the elected release is the binary currently running.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -310,7 +315,7 @@ Expansion should proceed in layers:
 | --- | --- | --- |
 | 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, reward checkpoints, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
-| 2 | Individual boundary-node detail, replica-version, broader daily analytics, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, and data-center sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
+| 2 | Individual boundary-node detail, broader daily analytics, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, and release-record sets | Extend focused capabilities on `LiveIcSource` with API endpoint/timestamp provenance |
 | 2 | ICRC account/holder rows and details, circulating-supply policy, burns, and time- or kind-filtered transaction aggregates beyond the implemented scalar counts and bounded total-supply/token-value history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard or external-provider values as direct ledger state or introducing implicit enumeration |
 | 3 | Internet Identity, Bitcoin, XRC, and other protocol-canister reports beyond the implemented CMC family | Add one authority-family adapter only when multiple coherent reports justify it |
 

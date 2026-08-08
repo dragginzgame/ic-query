@@ -10,10 +10,14 @@ use crate::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
         IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
         IcIcrcIndexedCountReport, IcIcrcTokenValueReport, IcIcrcTotalSupplyReport, IcMetricKind,
-        IcMetricReport,
+        IcMetricReport, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
     },
-    text_value::{optional_text, sanitize_text, yes_no},
+    table::{ColumnAlign, render_table},
+    text_value::{optional_text, optional_u64_text, sanitize_text, truncate_text, yes_no},
 };
+
+const IC_REPLICA_VERSION_TITLE_TEXT_LIMIT: usize = 80;
+const IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT: usize = 240;
 
 /// Render one official boundary-node data-center report as human-facing text.
 #[must_use]
@@ -72,6 +76,102 @@ pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
                 sanitize_text(&row.max_update_transactions_per_second),
                 sanitize_text(&row.max_query_transactions_per_second),
                 sanitize_text(&row.blocks_per_second_average),
+            )
+        }));
+    }
+    lines.join("\n")
+}
+
+/// Render one bounded official Dashboard replica-version page as human-facing text.
+#[must_use]
+pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("limit: {}", report.query.limit),
+        format!("offset: {}", report.query.offset),
+        format!(
+            "requested_max_proposal_index: {}",
+            optional_u64_text(report.query.max_proposal_index)
+        ),
+        format!(
+            "resolved_max_proposal_index: {}",
+            report.resolved_max_proposal_index
+        ),
+        format!("total_proposals: {}", report.total_proposals),
+        format!("returned_count: {}", report.returned_count),
+        format!("next_offset: {}", optional_u64_text(report.next_offset)),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &[
+                "VERSION",
+                "STATUS",
+                "PROPOSAL",
+                "EXECUTED_AT",
+                "SUBNETS",
+                "TITLE",
+            ],
+            &report
+                .rows
+                .iter()
+                .map(|row| {
+                    [
+                        row.replica_version_id.clone(),
+                        row.status.to_string(),
+                        row.proposal_id.to_string(),
+                        row.executed_timestamp_seconds.to_string(),
+                        row.subnet_count.to_string(),
+                        truncate_text(&row.title, IC_REPLICA_VERSION_TITLE_TEXT_LIMIT),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+            ],
+        ));
+    }
+    lines.join("\n")
+}
+
+/// Render one exact official Dashboard replica-version report as human-facing text.
+#[must_use]
+pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!(
+            "replica_version_id: {}",
+            sanitize_text(&report.replica_version_id)
+        ),
+        format!("proposal_id: {}", report.proposal_id),
+        format!(
+            "executed_timestamp_seconds: {}",
+            report.executed_timestamp_seconds
+        ),
+        format!("title: {}", text_or_dash(&report.title)),
+        format!("url: {}", text_or_dash(&report.url)),
+        format!("subnet_count: {}", report.subnet_count),
+        format!(
+            "summary: {}",
+            truncate_text(&report.summary, IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT)
+        ),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.subnets.is_empty() {
+        lines.push(String::new());
+        lines.push("subnet_rollouts:".to_string());
+        lines.extend(report.subnets.iter().map(|subnet| {
+            format!(
+                "  {}  proposal={}  executed_at={}",
+                subnet.subnet_id, subnet.proposal_id, subnet.executed_timestamp_seconds
             )
         }));
     }

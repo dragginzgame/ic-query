@@ -9,6 +9,7 @@ mod icrc_analytics;
 mod metric;
 mod network;
 mod node_status;
+mod replica_version;
 
 use crate::ic::{
     IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
@@ -21,6 +22,7 @@ pub use icrc_analytics::IcIcrcAnalyticsSource;
 pub use metric::IcMetricSource;
 pub use network::IcNetworkSource;
 pub use node_status::IcNodeStatusSource;
+pub use replica_version::IcReplicaVersionSource;
 
 pub(super) use canister::{
     canonical_canister_id, canonical_page_cursors, count_report_from_source, normalized_filters,
@@ -41,6 +43,10 @@ pub(super) use network::{
     validate_daily_stats_query, validate_daily_stats_request,
 };
 pub(super) use node_status::node_status_snapshot_from_source;
+pub(super) use replica_version::{
+    replica_version_info_report_from_source, replica_version_list_report_from_source,
+    validate_replica_version_id, validate_replica_version_list_query,
+};
 
 fn validate_provenance(
     expected: &IcSourceRequest,

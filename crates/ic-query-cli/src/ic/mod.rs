@@ -7,6 +7,7 @@
 mod canister;
 mod metrics;
 mod network;
+mod replica_version;
 
 use crate::cli::common::CurrentUnixSecsError;
 use clap::{ArgMatches, Command as ClapCommand};
@@ -43,6 +44,7 @@ pub fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
         Some(("canister", matches)) => canister::run_matches(matches),
         Some(("metrics", matches)) => metrics::run_matches(matches),
         Some(("network", matches)) => network::run_matches(matches),
+        Some(("replica-version", matches)) => replica_version::run_matches(matches),
         _ => unreachable!("clap requires a known ic subcommand"),
     }
 }
@@ -54,6 +56,7 @@ pub fn command() -> ClapCommand {
         .subcommand(canister::command())
         .subcommand(metrics::command())
         .subcommand(network::command())
+        .subcommand(replica_version::command())
 }
 
 #[cfg(test)]
@@ -84,6 +87,7 @@ mod tests {
         assert!(usage.contains("canister"));
         assert!(usage.contains("metrics"));
         assert!(usage.contains("network"));
+        assert!(usage.contains("replica-version"));
     }
 
     #[test]
@@ -98,6 +102,9 @@ mod tests {
             &["ic", "network", "--help"],
             &["ic", "network", "boundary-node-data-centers", "--help"],
             &["ic", "network", "daily-stats", "--help"],
+            &["ic", "replica-version", "--help"],
+            &["ic", "replica-version", "info", "--help"],
+            &["ic", "replica-version", "list", "--help"],
         ] {
             assert!(crate::run(args.iter().map(OsString::from)).is_ok());
         }
