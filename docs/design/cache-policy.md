@@ -264,8 +264,9 @@ create another implicit cache or freshness policy.
 
 Official Dashboard canister detail, filtered count, explicitly bounded page,
 bounded metric time series, bounded daily statistics, boundary-node
-data-center reports, and CloudEngine provider reports are live lookups. Count fetches no rows; page makes one
-request for at most 100 rows and never follows a cursor automatically. A
+data-center reports, and CloudEngine provider and explicit Type4 node reports
+are live lookups. Count fetches no rows; page makes one request for at most 100
+rows and never follows a cursor automatically. A
 metric request selects one series family and is capped at 1,000 observations
 per returned series. Daily statistics select one network-activity projection,
 default to seven days, and are capped at one year and 366 rows. Boundary-node
@@ -281,6 +282,12 @@ at 1,000 rows and filters only after validation; exact provider info consumes
 one bounded record. Their finite one-request shape does not justify an implicit
 freshness policy, and their Dashboard identity must not reuse the separate
 Registry Subnet Catalog or native CloudEngine control-plane cache boundaries.
+
+CloudEngine node list consumes one explicitly filtered `Type4` node resource
+capped at 10,000 rows; exact node info consumes one bounded record. Both are
+live-only. Their reward/status/provider filter identity is distinct from the
+default public-mainnet node-status snapshot, so they do not read or write its
+60-second cache even though both scopes share raw row validation.
 
 The certified API boundary-node report is also live-only, but for a different
 reason: one bounded `read_state` request already returns a complete

@@ -1,3 +1,18 @@
+use ic_query::cloud_engine::{
+    CLOUD_ENGINE_NODE_INCLUDED_STATUSES, CLOUD_ENGINE_NODE_REWARD_TYPE, CloudEngineNodeInfoReport,
+    CloudEngineNodeInfoRequest, CloudEngineNodeListReport, CloudEngineNodeListRequest,
+    CloudEngineNodeRow, CloudEngineNodeType, CloudEngineOperatorReport, CloudEnginePriceRow,
+    CloudEnginePricesReport, CloudEngineProviderInfoReport, CloudEngineProviderInfoRequest,
+    CloudEngineProviderListReport, CloudEngineProviderListRequest, CloudEngineProviderLocation,
+    CloudEngineProviderRow, CloudEngineReportContext,
+    DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
+    MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS,
+    MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_NODE_ROWS, MAX_CLOUD_ENGINE_PRICE_ROWS,
+    MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS, MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
+    cloud_engine_node_info_report_text, cloud_engine_node_list_report_text,
+    cloud_engine_operator_report_text, cloud_engine_prices_report_text,
+    cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text,
+};
 #[cfg(feature = "cloud-engine-host")]
 use ic_query::cloud_engine::{
     CloudEngineHostError, CloudEngineOperatorBindingSource, CloudEngineOperatorBindingSourceData,
@@ -5,18 +20,7 @@ use ic_query::cloud_engine::{
     CloudEngineSourceRequest, build_cloud_engine_operator_report_with_source,
     build_cloud_engine_prices_report_with_source,
 };
-use ic_query::cloud_engine::{
-    CloudEngineNodeType, CloudEngineOperatorReport, CloudEnginePriceRow, CloudEnginePricesReport,
-    CloudEngineProviderInfoReport, CloudEngineProviderInfoRequest, CloudEngineProviderListReport,
-    CloudEngineProviderListRequest, CloudEngineProviderLocation, CloudEngineProviderRow,
-    CloudEngineReportContext, DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
-    DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT, MAINNET_CLOUD_ENGINE_CANISTER_ID,
-    MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS, MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS,
-    MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS, MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
-    cloud_engine_operator_report_text, cloud_engine_prices_report_text,
-    cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text,
-};
-use ic_query::ic::IcDashboardReportProvenance;
+use ic_query::ic::{IcDashboardReportProvenance, IcNodeStatusCounts};
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 use ic_query::{
     cloud_engine::{
@@ -28,8 +32,11 @@ use ic_query::{
 #[cfg(feature = "dashboard-host")]
 use ic_query::{
     cloud_engine::{
+        CloudEngineNodeInfoSourceData, CloudEngineNodeListSourceData, CloudEngineNodeSource,
         CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData,
-        CloudEngineProviderSource, build_cloud_engine_provider_info_report,
+        CloudEngineProviderSource, build_cloud_engine_node_info_report,
+        build_cloud_engine_node_info_report_with_source, build_cloud_engine_node_list_report,
+        build_cloud_engine_node_list_report_with_source, build_cloud_engine_provider_info_report,
         build_cloud_engine_provider_info_report_with_source,
         build_cloud_engine_provider_list_report,
         build_cloud_engine_provider_list_report_with_source,
@@ -39,6 +46,7 @@ use ic_query::{
 
 const SUBNET_ID: &str = "2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe";
 const OPERATOR_ID: &str = "wlnge-zyaaa-aaabw-aaaaa-cai";
+const NODE_ID: &str = "53amq-7hjxu-6lxaj-o2sp6-kmngy-qa22h-b7bo6-oeyyn-fkqnv-7tauf-7qe";
 
 #[test]
 fn public_cloud_engine_reports_are_constructible_serializable_and_renderable() {
@@ -79,12 +87,12 @@ fn public_cloud_engine_reports_are_constructible_serializable_and_renderable() {
 fn public_cloud_engine_provider_reports_preserve_raw_dashboard_evidence() {
     let list_request = CloudEngineProviderListRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
         1_800_000_000,
     );
     let info_request = CloudEngineProviderInfoRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
         1_800_000_000,
         provider_row().principal_id,
     );
@@ -115,17 +123,70 @@ fn public_cloud_engine_provider_reports_preserve_raw_dashboard_evidence() {
     assert_eq!(info_request.node_provider_id, info.provider.principal_id);
 }
 
+#[test]
+fn public_cloud_engine_node_reports_preserve_raw_type4_evidence() {
+    let list_request = CloudEngineNodeListRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        1_800_000_000,
+    )
+    .with_node_provider_id(provider_row().principal_id);
+    let info_request = CloudEngineNodeInfoRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        1_800_000_000,
+        NODE_ID,
+    );
+    let node = cloud_engine_node_row();
+    let list = CloudEngineNodeListReport {
+        provenance: dashboard_provenance(),
+        node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
+        included_statuses: CLOUD_ENGINE_NODE_INCLUDED_STATUSES
+            .map(str::to_string)
+            .to_vec(),
+        requested_node_provider_id: Some(node.node_provider_id.clone()),
+        node_count: 1,
+        status_counts: IcNodeStatusCounts {
+            total: 1,
+            up: 1,
+            ..IcNodeStatusCounts::default()
+        },
+        node_provider_count: 1,
+        cloud_engine_subnet_count: 1,
+        unassigned_cloud_engine_node_count: 0,
+        nodes: vec![node.clone()],
+    };
+    let info = CloudEngineNodeInfoReport {
+        provenance: dashboard_provenance(),
+        node,
+    };
+
+    assert!(cloud_engine_node_list_report_text(&list).contains("CloudEngine nodes"));
+    assert!(cloud_engine_node_info_report_text(&info).contains(NODE_ID));
+    let json = serde_json::to_value(&list).expect("serialize node list report");
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["node_reward_type"], "Type4");
+    assert_eq!(json["nodes"][0]["status"], "UP");
+    assert_eq!(json["nodes"][0]["cloud_engine_subnet_id"], SUBNET_ID);
+    assert_eq!(MAX_CLOUD_ENGINE_NODE_ROWS, 10_000);
+    assert_eq!(
+        list_request.node_provider_id,
+        list.requested_node_provider_id
+    );
+    assert_eq!(info_request.node_id, info.node.node_id);
+}
+
 #[cfg(feature = "dashboard-host")]
 #[test]
 fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
     let list_request = CloudEngineProviderListRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
         1_700_000_000,
     );
     let info_request = CloudEngineProviderInfoRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
         1_700_000_000,
         provider_row().principal_id,
     );
@@ -145,6 +206,34 @@ fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
         &CloudEngineProviderInfoRequest,
     ) -> Result<CloudEngineProviderInfoReport, IcHostError> =
         build_cloud_engine_provider_info_report;
+}
+
+#[cfg(feature = "dashboard-host")]
+#[test]
+fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
+    let list_request = CloudEngineNodeListRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        1_700_000_000,
+    );
+    let info_request = CloudEngineNodeInfoRequest::new(
+        "ic",
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        1_700_000_000,
+        NODE_ID,
+    );
+    let list = build_cloud_engine_node_list_report_with_source(&list_request, &ProviderFixture)
+        .expect("custom Type4 node list source");
+    let info = build_cloud_engine_node_info_report_with_source(&info_request, &ProviderFixture)
+        .expect("custom exact Type4 node source");
+
+    assert_eq!(list.node_count, 1);
+    assert_eq!(list.status_counts.up, 1);
+    assert_eq!(info.node.node_id, NODE_ID);
+    let _: fn(&CloudEngineNodeListRequest) -> Result<CloudEngineNodeListReport, IcHostError> =
+        build_cloud_engine_node_list_report;
+    let _: fn(&CloudEngineNodeInfoRequest) -> Result<CloudEngineNodeInfoReport, IcHostError> =
+        build_cloud_engine_node_info_report;
 }
 
 #[cfg(feature = "cloud-engine-host")]
@@ -211,6 +300,39 @@ impl CloudEngineProviderSource for ProviderFixture {
         Ok(CloudEngineProviderInfoSourceData {
             source: request.clone(),
             provider,
+        })
+    }
+}
+
+#[cfg(feature = "dashboard-host")]
+impl CloudEngineNodeSource for ProviderFixture {
+    fn fetch_cloud_engine_node_list(
+        &self,
+        request: &IcSourceRequest,
+        node_provider_id: Option<&str>,
+    ) -> Result<CloudEngineNodeListSourceData, IcHostError> {
+        Ok(CloudEngineNodeListSourceData {
+            source: request.clone(),
+            requested_node_provider_id: node_provider_id.map(str::to_string),
+            node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
+            included_statuses: CLOUD_ENGINE_NODE_INCLUDED_STATUSES
+                .map(str::to_string)
+                .to_vec(),
+            nodes: vec![cloud_engine_node_row()],
+        })
+    }
+
+    fn fetch_cloud_engine_node_info(
+        &self,
+        request: &IcSourceRequest,
+        node_id: &str,
+    ) -> Result<CloudEngineNodeInfoSourceData, IcHostError> {
+        let mut node = cloud_engine_node_row();
+        node.node_id = node_id.to_string();
+        Ok(CloudEngineNodeInfoSourceData {
+            source: request.clone(),
+            node_id: node_id.to_string(),
+            node,
         })
     }
 }
@@ -295,7 +417,7 @@ fn dashboard_provenance() -> IcDashboardReportProvenance {
         schema_version: 1,
         network: "ic".to_string(),
         authority: "official_ic_dashboard_api".to_string(),
-        source_endpoint: DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT.to_string(),
+        source_endpoint: DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT.to_string(),
         fetched_at: "2026-08-08T12:00:00Z".to_string(),
         fetched_by: "fixture".to_string(),
         certified: false,
@@ -329,5 +451,29 @@ fn provider_row() -> CloudEngineProviderRow {
         total_rewardable_nodes: 6,
         total_subnets: 2,
         total_unassigned_nodes: 3,
+    }
+}
+
+fn cloud_engine_node_row() -> CloudEngineNodeRow {
+    CloudEngineNodeRow {
+        node_id: NODE_ID.to_string(),
+        node_operator_id: OPERATOR_ID.to_string(),
+        node_provider_id: provider_row().principal_id,
+        node_provider_name: "Provider".to_string(),
+        node_type: "CLOUD_ENGINE".to_string(),
+        node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
+        status: "UP".to_string(),
+        alert_name: None,
+        subnet_id: None,
+        cloud_engine_subnet_id: Some(SUBNET_ID.to_string()),
+        data_center_id: "br1".to_string(),
+        data_center_name: "Brussels".to_string(),
+        owner: "Digital Realty".to_string(),
+        region: "Europe,BE,Brussels Capital".to_string(),
+        guestos_version: Some("version".to_string()),
+        guestos_tee_active: Some(true),
+        ip_address: Some("2001:db8::1".to_string()),
+        ipv4_connectivity_status: Some(true),
+        node_hardware_generation: Some("Gen2".to_string()),
     }
 }

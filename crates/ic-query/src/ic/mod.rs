@@ -63,6 +63,10 @@ pub use model::{
     IcMetricSourceData, IcReplicaVersionInfoSourceData, IcReplicaVersionListSourceData,
     IcSourceRequest,
 };
+#[cfg(feature = "dashboard-host")]
+pub(crate) use node_status::canonicalize_node_status_rows_with_policy;
+#[cfg(feature = "dashboard-host")]
+pub(crate) use node_status::node_status_counts;
 pub use node_status::{
     DEFAULT_IC_NODE_STATUS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
     IC_NODE_STATUS_SCHEMA_VERSION, IcNodeAssignmentStatusCounts, IcNodeCountComparison,

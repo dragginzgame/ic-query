@@ -24,6 +24,18 @@ pub(in crate::ic) fn node_status_group_counts<'a>(
     counts
 }
 
+/// Count raw operational statuses without applying an assignment projection.
+#[cfg(feature = "dashboard-host")]
+pub fn node_status_counts<'a>(
+    nodes: impl Iterator<Item = &'a IcNodeStatusRow>,
+) -> IcNodeStatusCounts {
+    let mut counts = IcNodeStatusCounts::default();
+    for node in nodes {
+        increment_status(&mut counts, node.operational_status());
+    }
+    counts
+}
+
 fn assignment_bucket<'a>(
     counts: &'a mut IcNodeAssignmentStatusCounts,
     node: &IcNodeStatusRow,

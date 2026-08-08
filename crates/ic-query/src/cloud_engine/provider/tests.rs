@@ -89,7 +89,7 @@ mod host {
         cloud_engine::{
             CloudEngineProviderInfoRequest, CloudEngineProviderInfoSourceData,
             CloudEngineProviderListRequest, CloudEngineProviderListSourceData,
-            CloudEngineProviderSource, DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+            CloudEngineProviderSource, DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
             build_cloud_engine_provider_info_report_with_source,
             build_cloud_engine_provider_list_report_with_source,
         },
@@ -121,7 +121,7 @@ mod host {
         let source = Fixture::default();
         let request = CloudEngineProviderInfoRequest::new(
             "ic",
-            DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
             NOW,
             PROVIDER_A,
         );
@@ -152,7 +152,7 @@ mod host {
         let source = Fixture::default();
         let unsupported = CloudEngineProviderListRequest::new(
             "local",
-            DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
             NOW,
         );
         assert!(matches!(
@@ -246,7 +246,7 @@ mod host {
     fn list_request() -> CloudEngineProviderListRequest {
         CloudEngineProviderListRequest::new(
             "ic",
-            DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT,
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
             NOW,
         )
     }

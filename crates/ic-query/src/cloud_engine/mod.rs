@@ -5,6 +5,7 @@ mod build;
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 mod list;
 mod model;
+mod node;
 mod provider;
 #[cfg(feature = "cloud-engine-host")]
 mod source;
@@ -35,12 +36,23 @@ pub use model::{
     CloudEngineOperatorBindingSourceData, CloudEngineOperatorSourceData,
     CloudEnginePricesSourceData,
 };
+pub use node::{
+    CLOUD_ENGINE_NODE_INCLUDED_STATUSES, CLOUD_ENGINE_NODE_REWARD_TYPE, CloudEngineNodeInfoReport,
+    CloudEngineNodeInfoRequest, CloudEngineNodeListReport, CloudEngineNodeListRequest,
+    CloudEngineNodeRow, MAX_CLOUD_ENGINE_NODE_ROWS, cloud_engine_node_info_report_text,
+    cloud_engine_node_list_report_text,
+};
+#[cfg(feature = "dashboard-host")]
+pub use node::{
+    CloudEngineNodeInfoSourceData, CloudEngineNodeListSourceData, CloudEngineNodeSource,
+    build_cloud_engine_node_info_report, build_cloud_engine_node_info_report_with_source,
+    build_cloud_engine_node_list_report, build_cloud_engine_node_list_report_with_source,
+};
 pub use provider::{
     CloudEngineProviderInfoReport, CloudEngineProviderInfoRequest, CloudEngineProviderListReport,
     CloudEngineProviderListRequest, CloudEngineProviderLocation, CloudEngineProviderRow,
-    DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT, MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS,
-    MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS, cloud_engine_provider_info_report_text,
-    cloud_engine_provider_list_report_text,
+    MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS, MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
+    cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text,
 };
 #[cfg(feature = "dashboard-host")]
 pub use provider::{
@@ -63,6 +75,10 @@ pub const MAINNET_CLOUD_ENGINE_CANISTER_ID: &str = "q6cfj-fyaaa-aaaar-qb77q-cai"
 
 /// Default replica endpoint used for live CloudEngine control-plane queries.
 pub const DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT: &str = "https://icp-api.io";
+
+/// Default official Dashboard endpoint for CloudEngine provider and Type4 node reports.
+pub const DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT: &str =
+    "https://ic-api.internetcomputer.org/api/v3";
 
 /// Maximum marketplace rows accepted from one live response.
 pub const MAX_CLOUD_ENGINE_PRICE_ROWS: usize = 1_000;

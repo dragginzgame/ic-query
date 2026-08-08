@@ -38,13 +38,26 @@ fn node_status_url(endpoint: &str) -> Result<Url, IcHostError> {
     Ok(url)
 }
 
-#[derive(SerdeDeserialize)]
-struct DashboardNodes {
-    nodes: Vec<DashboardNode>,
-}
+///
+/// DashboardNodes
+///
+/// Shared wire envelope for official Dashboard node collections.
+///
 
 #[derive(SerdeDeserialize)]
-struct DashboardNode {
+pub(super) struct DashboardNodes {
+    /// Raw Dashboard node rows.
+    pub(super) nodes: Vec<DashboardNode>,
+}
+
+///
+/// DashboardNode
+///
+/// Shared wire row for default-mainnet, explicitly filtered, and exact node resources.
+///
+
+#[derive(SerdeDeserialize)]
+pub(super) struct DashboardNode {
     alertname: String,
     cloud_engine_subnet_id: Option<String>,
     dc_id: String,
@@ -67,7 +80,8 @@ struct DashboardNode {
 }
 
 impl DashboardNode {
-    fn into_public(self) -> IcNodeStatusRow {
+    /// Convert the shared wire row without changing raw Dashboard evidence.
+    pub(super) fn into_public(self) -> IcNodeStatusRow {
         IcNodeStatusRow {
             node_id: self.node_id,
             node_operator_id: self.node_operator_id,

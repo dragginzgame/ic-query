@@ -79,10 +79,14 @@ CloudEngine provider inventory uses `CloudEngineProviderSource` on that same
 `LiveIcSource`: the CLI keeps the product surface below `cloud-engine`, while
 the request and report preserve official Dashboard authority instead of
 inheriting native control-plane evidence.
+Explicit Type4 node inventory and exact detail use `CloudEngineNodeSource` on
+the same adapter and product surface. The source echoes the reward, status,
+and optional provider filters so report construction can reject a changed
+query scope; it does not reuse the default-scope node-status cache.
 Dashboard source-data DTOs echo that request as their source provenance, and
-canister, metric, network, node-status, and CloudEngine provider reports share
-one flattened `IcDashboardReportProvenance`, avoiding parallel field and validation flows
-without nesting the public report JSON.
+canister, metric, network, node-status, and CloudEngine provider/node reports
+share one flattened `IcDashboardReportProvenance`, avoiding parallel field and
+validation flows without nesting the public report JSON.
 Certified IC state remains a distinct authority on `LiveIcStateSource`.
 `IcApiBoundaryNodeSource` returns one complete authenticated
 `api_boundary_nodes` subtree with its certificate time; it does not share the
@@ -321,6 +325,14 @@ assurance.
   providers. It does not infer native control-plane state, provider-to-node
   identity, health, or a join to the identifier-free boundary-location
   aggregate.
+- Official Dashboard CloudEngine node reporting makes one `/nodes` request
+  with the explicit `Type4` reward filter and all current status filters, or
+  one exact `/nodes/{node_id}` request. Lists are capped at 10,000 rows and may
+  add one exact provider filter. Reports preserve stable node/provider ids,
+  raw health and assignment fields, and null CloudEngine Subnet assignments.
+  The provider-to-node relation is evidence in each returned row, not an
+  inferred join to provider aggregates. It remains off-chain, live-only, and
+  separate from the cached Dashboard default scope.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.
@@ -338,7 +350,7 @@ Expansion should proceed in layers:
 | 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, reward checkpoints, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value and public-neuron reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Broader daily analytics, API boundary-node operational/location enrichment, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, certified configuration, and release-record sets | Extend the focused adapter that owns each authority; never promote Dashboard enrichment to certified state |
-| 2 | CloudEngine provider-to-node detail and operational health beyond the implemented bounded provider footprint | Extend `CloudEngineProviderSource` only when the official resource exposes stable identifiers and explicit bounds; do not manufacture joins from aggregate locations |
+| 2 | CloudEngine domain/operator operational evidence and stronger authority beyond the implemented provider footprint and explicit Type4 node health/detail | Extend the focused CloudEngine source owned by each authority; do not reconcile separately timed Dashboard aggregates or promote them to native/certified state |
 | 2 | ICRC account/holder rows and details, circulating-supply policy, burns, and time- or kind-filtered transaction aggregates beyond the implemented scalar counts and bounded total-supply/token-value history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard or external-provider values as direct ledger state or introducing implicit enumeration |
 | 3 | Internet Identity, Bitcoin, XRC, and other protocol-canister reports beyond the implemented CMC family | Add one authority-family adapter only when multiple coherent reports justify it |
 

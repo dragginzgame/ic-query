@@ -328,6 +328,7 @@ mod tests {
                 "--help",
             ],
             &["cloud-engine", "info", "--help"],
+            &["cloud-engine", "node", "list", "--help"],
             &["cloud-engine", "provider", "list", "--help"],
             &["nns", "topology", "providers", "--help"],
             &["sns", "proposal", "cache", "status", "--help"],

@@ -4,6 +4,7 @@
 //! Does not own: native transport, report construction, or text rendering.
 //! Boundary: exposes mainnet-only CloudEngine inventory and bounded public reports at the CLI root.
 
+mod node;
 mod provider;
 
 use crate::{
@@ -92,6 +93,7 @@ pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), CloudEngin
     match matches.subcommand() {
         Some(("info", matches)) => run_info(matches, network),
         Some(("list", matches)) => run_list(matches, network),
+        Some(("node", matches)) => node::run_matches(matches, network),
         Some(("prices", matches)) => run_prices(matches, network),
         Some(("provider", matches)) => provider::run_matches(matches, network),
         _ => unreachable!("clap requires a known cloud-engine subcommand"),
@@ -170,10 +172,11 @@ pub fn command() -> ClapCommand {
         .about("Inspect public CloudEngine metadata")
         .subcommand(info_command())
         .subcommand(list_command())
+        .subcommand(node::command())
         .subcommand(prices_command())
         .subcommand(provider::command())
         .after_help(
-            "Examples:\n  icq cloud-engine list\n  icq cloud-engine info <subnet-id>\n  icq cloud-engine prices\n  icq cloud-engine provider list",
+            "Examples:\n  icq cloud-engine list\n  icq cloud-engine info <subnet-id>\n  icq cloud-engine node list\n  icq cloud-engine prices\n  icq cloud-engine provider list",
         )
 }
 
@@ -241,6 +244,7 @@ mod tests {
         assert!(usage.contains("Usage: icq cloud-engine [COMMAND]"));
         assert!(usage.contains("info"));
         assert!(usage.contains("list"));
+        assert!(usage.contains("node"));
         assert!(usage.contains("prices"));
         assert!(usage.contains("provider"));
 
@@ -267,6 +271,9 @@ mod tests {
             &["cloud-engine", "--help"][..],
             &["cloud-engine", "info", "--help"],
             &["cloud-engine", "list", "--help"],
+            &["cloud-engine", "node", "--help"],
+            &["cloud-engine", "node", "info", "--help"],
+            &["cloud-engine", "node", "list", "--help"],
             &["cloud-engine", "prices", "--help"],
             &["cloud-engine", "provider", "--help"],
             &["cloud-engine", "provider", "info", "--help"],

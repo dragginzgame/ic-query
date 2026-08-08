@@ -15,7 +15,7 @@ use crate::cli::{
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::cloud_engine::{
     CloudEngineProviderInfoRequest, CloudEngineProviderListRequest,
-    DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT, build_cloud_engine_provider_info_report,
+    DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, build_cloud_engine_provider_info_report,
     build_cloud_engine_provider_list_report, cloud_engine_provider_info_report_text,
     cloud_engine_provider_list_report_text,
 };
@@ -116,7 +116,7 @@ fn list_command() -> ClapCommand {
 
 fn report_args(command: ClapCommand) -> ClapCommand {
     command.arg(json_arg()).arg(
-        source_endpoint_arg(DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT)
+        source_endpoint_arg(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT)
             .help("Official Dashboard v3 endpoint used for provider metadata"),
     )
 }
@@ -160,7 +160,7 @@ mod tests {
                 .expect("parse default provider options");
             assert_eq!(
                 required_string(&matches, SOURCE_ENDPOINT_ARG),
-                DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT
+                DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT
             );
             assert_eq!(output_format(&matches), OutputFormat::Text);
         }

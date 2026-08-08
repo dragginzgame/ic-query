@@ -24,6 +24,8 @@ pub use cache::{
     load_or_refresh_stale_ic_node_status_snapshot_with_source, refresh_ic_node_status_snapshot,
     refresh_ic_node_status_snapshot_with_source,
 };
+#[cfg(feature = "dashboard-host")]
+pub use counts::node_status_counts;
 pub(in crate::ic) use counts::node_status_group_counts;
 #[cfg(feature = "dashboard-host")]
 pub use model::IcNodeStatusSourceData;
@@ -51,6 +53,8 @@ pub use text::{
 };
 #[cfg(feature = "dashboard-host")]
 pub(in crate::ic) use validation::canonicalize_node_status_rows;
+#[cfg(feature = "dashboard-host")]
+pub use validation::canonicalize_node_status_rows_with_policy;
 pub(in crate::ic) use validation::{
     validate_canonical_node_status_rows, validate_default_node_scope,
 };

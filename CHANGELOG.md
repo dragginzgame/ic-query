@@ -7,7 +7,28 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.34.x] - Unreleased - CloudEngine provider reporting
+## [0.35.x] - Unreleased - CloudEngine Type4 node reporting
+
+Detailed release notes: [docs/changelog/0.35.md](docs/changelog/0.35.md)
+
+- `0.35.0` adds `cloud-engine node list` and `cloud-engine node info`. The
+  list makes one bounded official Dashboard request with an explicit `Type4`
+  reward filter and all four current status filters, optionally restricted to
+  one node provider. Exact info makes one stable node-id lookup and requires
+  the returned node to be Type4. Both preserve raw status, assignment,
+  provider, operator, version, location, address, and hardware evidence under
+  off-chain Dashboard provenance.
+- The public Dashboard endpoint constant is hard-cut from
+  `DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT` to
+  `DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT`, reflecting its shared use
+  by provider and Type4 node reports. No compatibility alias is retained.
+
+```bash
+icq cloud-engine node list --node-provider-id <node-provider-id>
+icq cloud-engine node info <node-id> --json
+```
+
+## [0.34.x] - 2026-08-08 - CloudEngine provider reporting
 
 Detailed release notes: [docs/changelog/0.34.md](docs/changelog/0.34.md)
 

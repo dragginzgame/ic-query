@@ -12,7 +12,17 @@ use std::collections::{HashMap, HashSet};
 pub(in crate::ic) fn canonicalize_node_status_rows(
     nodes: &mut [IcNodeStatusRow],
 ) -> Result<(), String> {
-    validate_node_status_rows(nodes)?;
+    canonicalize_node_status_rows_with_policy(nodes, MAX_IC_NODE_STATUS_ROWS, true)
+}
+
+#[cfg(feature = "dashboard-host")]
+/// Validate and canonicalize raw node rows under an explicit collection policy.
+pub fn canonicalize_node_status_rows_with_policy(
+    nodes: &mut [IcNodeStatusRow],
+    max_rows: u32,
+    require_nonempty: bool,
+) -> Result<(), String> {
+    validate_node_status_rows(nodes, max_rows, require_nonempty)?;
     nodes.sort_unstable_by(|left, right| left.node_id.cmp(&right.node_id));
     Ok(())
 }
@@ -20,7 +30,7 @@ pub(in crate::ic) fn canonicalize_node_status_rows(
 pub(in crate::ic) fn validate_canonical_node_status_rows(
     nodes: &[IcNodeStatusRow],
 ) -> Result<(), String> {
-    validate_node_status_rows(nodes)?;
+    validate_node_status_rows(nodes, MAX_IC_NODE_STATUS_ROWS, true)?;
     if nodes
         .windows(2)
         .any(|pair| pair[0].node_id >= pair[1].node_id)
@@ -43,13 +53,17 @@ pub(in crate::ic) fn validate_default_node_scope(nodes: &[IcNodeStatusRow]) -> R
     Ok(())
 }
 
-fn validate_node_status_rows(nodes: &[IcNodeStatusRow]) -> Result<(), String> {
-    if nodes.is_empty() {
+fn validate_node_status_rows(
+    nodes: &[IcNodeStatusRow],
+    max_rows: u32,
+    require_nonempty: bool,
+) -> Result<(), String> {
+    if require_nonempty && nodes.is_empty() {
         return Err("mainnet node snapshot must contain at least one row".to_string());
     }
-    if u32::try_from(nodes.len()).unwrap_or(u32::MAX) > MAX_IC_NODE_STATUS_ROWS {
+    if u32::try_from(nodes.len()).unwrap_or(u32::MAX) > max_rows {
         return Err(format!(
-            "source returned {} node rows; maximum is {MAX_IC_NODE_STATUS_ROWS}",
+            "source returned {} node rows; maximum is {max_rows}",
             nodes.len()
         ));
     }

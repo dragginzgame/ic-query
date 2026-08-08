@@ -23,10 +23,6 @@ pub use model::{
 pub use model::{CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData};
 pub use text::{cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text};
 
-/// Default official Dashboard endpoint for CloudEngine provider reports.
-pub const DEFAULT_CLOUD_ENGINE_PROVIDER_SOURCE_ENDPOINT: &str =
-    "https://ic-api.internetcomputer.org/api/v3";
-
 /// Maximum provider rows accepted from the complete Dashboard resource.
 pub const MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS: usize = 1_000;
 
