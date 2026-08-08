@@ -11,6 +11,7 @@
 //! `std` types such as `String` and `Vec`.
 //!
 //! Enable `dashboard-host` for official Dashboard live/cache APIs,
+//! `cloud-engine-host` for native CloudEngine control-plane reports,
 //! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for native SNS
 //! live/cache APIs, `cmc-host` for certified Cycles Minting Canister reports,
 //! `subnet-catalog-host` for the focused live/cache Subnet catalog API,
@@ -22,6 +23,7 @@
 //! belong to the separate `ic-query-cli` crate.
 
 #[cfg(any(
+    feature = "cloud-engine-host",
     feature = "cmc-host",
     feature = "icrc-host",
     feature = "sns-host",
@@ -42,6 +44,7 @@ mod cache_file;
     feature = "icrc-host"
 ))]
 mod certification;
+pub mod cloud_engine;
 pub mod duration;
 #[cfg(any(
     feature = "dashboard-host",
@@ -52,6 +55,7 @@ pub mod duration;
 mod freshness;
 mod hex;
 #[cfg(any(
+    feature = "cloud-engine-host",
     feature = "cmc-host",
     feature = "dashboard-host",
     feature = "icrc-host",
@@ -65,6 +69,7 @@ pub mod ic;
 mod ic_registry;
 pub mod icrc;
 #[cfg(any(
+    feature = "cloud-engine-host",
     feature = "cmc-host",
     feature = "dashboard-host",
     feature = "sns-host",
@@ -83,6 +88,7 @@ pub mod report;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 mod report_sort;
 #[cfg(any(
+    feature = "cloud-engine-host",
     feature = "cmc-host",
     feature = "dashboard-host",
     feature = "icrc-host",

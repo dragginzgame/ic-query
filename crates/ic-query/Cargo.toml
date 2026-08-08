@@ -5,7 +5,7 @@ rust-version.workspace = true
 version.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Internet Computer query library for NNS, SNS, ICRC, system canisters, and public network metadata"
+description = "Internet Computer query library for CloudEngine, NNS, SNS, ICRC, system canisters, and public network metadata"
 readme = "../../README.md"
 documentation = "https://docs.rs/ic-query"
 homepage.workspace = true
@@ -35,11 +35,17 @@ url = { version = "2.5.8", optional = true }
 [features]
 default = []
 host = [
+    "cloud-engine-host",
     "cmc-host",
     "dashboard-host",
     "icrc-host",
     "nns-host",
     "sns-host",
+]
+cloud-engine-host = [
+    "dep:ic-agent",
+    "dep:tokio",
+    "dep:url",
 ]
 cmc-host = [
     "dep:ic-agent",
@@ -91,6 +97,9 @@ subnet-catalog-host = [
 
 [[test]]
 name = "ic_public_api"
+
+[[test]]
+name = "cloud_engine_public_api"
 
 [[test]]
 name = "nns_public_api"

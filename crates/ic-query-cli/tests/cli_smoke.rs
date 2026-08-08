@@ -62,11 +62,26 @@ fn binary_top_level_help_smoke() {
     assert_success(&output);
     let stdout = stdout_text(&output);
     assert!(stdout.contains("Usage: icq [OPTIONS] [COMMAND]"));
+    assert!(stdout.contains("cloud-engine"));
     assert!(stdout.contains("ic"));
     assert!(stdout.contains("icrc"));
     assert!(stdout.contains("nns"));
     assert!(stdout.contains("sns"));
     assert!(stdout.contains("system"));
+}
+
+#[test]
+fn binary_cloud_engine_report_help_smoke() {
+    for command in ["info", "prices"] {
+        let output = run_icq(&["cloud-engine", command, "--help"]);
+
+        assert_success(&output);
+        let stdout = stdout_text(&output);
+        assert!(stdout.contains(&format!("Usage: icq cloud-engine {command}")));
+        assert!(stdout.contains("--source-endpoint <url>"));
+        assert!(stdout.contains("--json"));
+        assert!(stdout.contains("Live query; does not read or write a report cache."));
+    }
 }
 
 #[test]
@@ -510,6 +525,7 @@ fn binary_command_namespaces_match_explicit_local_help() {
         ),
         (&["sns", "reward"], &["sns", "reward", "help"]),
         (&["system"], &["system", "help"]),
+        (&["cloud-engine"], &["cloud-engine", "help"]),
     ];
 
     for (implicit_args, explicit_args) in cases {

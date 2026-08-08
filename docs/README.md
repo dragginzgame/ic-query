@@ -36,6 +36,7 @@ icq icrc account transaction --help
 | [0.28 Observed IC Node And Subnet Status](design/0.28/0.28-design.md) | One bounded Dashboard node snapshot, short-lived atomic cache, and node/Subnet/provider operational projections |
 | [0.29 Subnet Catalog Authority And Embedder Hardening](design/0.29/0.29-design.md) | Explicit Registry assurance, raw/validated catalog separation, provenance-bound routes, freshness policy, and staged host hardening |
 | [0.30 Certified Registry Evidence](design/0.30/0.30-design.md) | Authenticated latest-version and bounded single-delta-batch evidence, with staged certified Registry reconstruction |
+| [0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md) | Top-level exact-target operator details and bounded marketplace reports from the public CloudEngine control plane |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
 | [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |

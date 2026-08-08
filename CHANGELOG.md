@@ -7,6 +7,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.31.x] - Unreleased - CloudEngine control-plane reporting
+
+Detailed release notes: [docs/changelog/0.31.md](docs/changelog/0.31.md)
+
+- `0.31.0` adds the top-level, mainnet-only `cloud-engine` family. `info`
+  resolves one Subnet and, when an operator binding is returned, fetches four
+  public details in a five-call bounded report; `prices` fetches the network
+  fee and at most 1,000 public marketplace rows in exactly two calls. Both
+  reports are live and uncached, preserve raw JSON values and explicit
+  endpoint/query provenance, and state that ordinary sequential query
+  responses are neither certified nor one point-in-time snapshot. The pure
+  library surface is available without host dependencies, while
+  `cloud-engine-host` adds the focused native adapter and is included by
+  `host`.
+
+```bash
+icq --network ic cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe
+icq --network ic cloud-engine prices --json
+```
+
 ## [0.30.x] - 2026-08-05 - Certified Registry evidence
 
 Detailed release notes: [docs/changelog/0.30.md](docs/changelog/0.30.md)

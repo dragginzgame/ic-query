@@ -8,16 +8,17 @@
 `ic-query` is a read-only Internet Computer reporting library.
 `ic-query-cli` provides its `icq` command-line interface.
 
-The project turns Registry, NNS, SNS, system-canister, ledger/index,
-certificate, and official IC Dashboard responses into typed reports with
-explicit provenance. It keeps live calls, cache reads, refreshes, and
-local-only inspection visibly distinct.
+The project turns CloudEngine, Registry, NNS, SNS, system-canister,
+ledger/index, certificate, and official IC Dashboard responses into typed
+reports with explicit provenance. It keeps live calls, cache reads, refreshes,
+and local-only inspection visibly distinct.
 
 ## Supported reporting
 
 | Family | Current surface |
 | --- | --- |
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, one-request observed node status with cached node/Subnet/provider views and typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
+| CloudEngine | Exact Subnet-to-operator resolution with bounded public operator details, plus the public network fee and bounded marketplace prices |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
@@ -67,6 +68,10 @@ icq ic metrics ic-node-count --json
 # Official Dashboard network resources
 icq ic network boundary-node-data-centers
 icq ic network daily-stats
+
+# Public CloudEngine control-plane reports
+icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe
+icq cloud-engine prices --json
 
 # NNS Registry and cached topology diagnostics
 icq nns registry version
@@ -141,6 +146,7 @@ actually make:
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
 | Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
+| CloudEngine control plane | Ordinary public canister query responses from the fixed control-plane and resolved operator canister | `certified: false`, `point_in_time_guaranteed: false`; operator detail uses sequential calls and does not inherit a Registry version |
 | Official IC Dashboard, including observed node status and ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`; default node scope excludes cloud-engine nodes, and an accepted ledger principal does not prove indexing coverage |
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
@@ -157,6 +163,9 @@ authority model and follow-up query rules.
 
 ```text
 icq cache status
+
+icq cloud-engine info <subnet-id>
+icq cloud-engine prices
 
 icq ic canister count|info|page
 icq ic metrics <metric>
@@ -200,9 +209,9 @@ icq icrc ledger archives|block-types|capabilities|index|tip-certificate|token|tr
 icq system cycles|xdr
 ```
 
-The top-level `--network` option supplies network identity to NNS, SNS, and
-system-canister commands. Built-in sources and caches currently accept only
-the mainnet `ic` identity.
+The top-level `--network` option supplies network identity to CloudEngine, NNS,
+SNS, and system-canister commands. Built-in sources and caches currently
+accept only the mainnet `ic` identity.
 
 Dashboard canister and ICRC commands identify their target using a stable
 entity id and an explicit API endpoint; Dashboard metric and network-resource
@@ -249,10 +258,17 @@ or stale content. View targets and `--all` never create separate caches;
 states that it is not certified or point-in-time, and records that the
 Dashboard default public-mainnet scope excludes cloud-engine nodes.
 
-Native Registry, NNS, SNS, ICRC, and CMC calls also cap every `ic-agent`
+Native CloudEngine, Registry, NNS, SNS, ICRC, and CMC calls also cap every `ic-agent`
 response body at 8 MiB. This is a per-call transport bound; paged collection,
 atomic cache publication, and explicit refresh policies retain their existing
 report-specific row and call limits.
+
+CloudEngine reports are live and uncached. `cloud-engine info` makes one
+control-plane query when no operator is registered and exactly five native
+queries when an operator exists. `cloud-engine prices` makes exactly two
+control-plane queries and accepts at most 1,000 rows. Claimed domains are
+capped at 100. Both reports preserve the endpoint and call count and state that
+ordinary sequential query responses are not certified or one point-in-time.
 
 Successful SNS metrics queries default to a 30-day proposal-count window
 capped at 365 days. They make three targeted client requests, preserve
@@ -361,6 +377,7 @@ Focused host features let embedders select one reporting family:
 
 | Feature | Host surface |
 | --- | --- |
+| `cloud-engine-host` | Public CloudEngine operator and marketplace reports |
 | `cmc-host` | Certified Cycle Minting Canister ICP/XDR and cycles reports |
 | `certified-subnet-catalog-host` | Subnet Catalog plus certified Registry batches, archive/replay, and archive-bound catalog authority |
 | `dashboard-host` | Official Dashboard REST reports and observed node-status cache |
@@ -375,6 +392,7 @@ Public report families are exposed from:
 
 - `ic_query::cache` for shared models, with inventory builders and rendering
   under the `host` feature
+- `ic_query::cloud_engine`
 - `ic_query::ic`
 - `ic_query::icrc`
 - `ic_query::nns`
@@ -383,14 +401,27 @@ Public report families are exposed from:
 - `ic_query::system::cmc`
 
 Built-in host calls use one adapter per authority family:
-`LiveIcSource`, `LiveIcrcSource`, `LiveNnsSource`, `LiveSnsSource`, and
-`LiveCmcSource`.
+`LiveCloudEngineSource`, `LiveIcSource`, `LiveIcrcSource`, `LiveNnsSource`,
+`LiveSnsSource`, and `LiveCmcSource`.
 Report-specific capability traits let fixtures, mirrors, proxies, and
 pre-collected sources reuse the same validation and projection path.
 
 Library builders do not write to stdout or stderr. Paged refresh APIs can emit
 typed `QueryProgressEvent` values to a caller-provided sink; terminal rendering
 remains an `ic-query-cli` responsibility.
+
+Enable `cloud-engine-host` when an embedder needs only the public CloudEngine
+operator and marketplace reports:
+
+```toml
+[dependencies]
+ic-query = { version = "0.30", default-features = false, features = ["cloud-engine-host"] }
+```
+
+This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
+cache-filesystem, Registry Prost, Futures, Reqwest, CBOR, or SHA-256 edges.
+Reqwest, CBOR, and cryptographic packages can remain transitive through
+`ic-agent`.
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
 REST reports and the shared observed node-status cache:
@@ -726,6 +757,7 @@ guidance.
 - [0.28 observed IC node and Subnet status](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.28/0.28-design.md)
 - [0.29 Subnet Catalog authority and embedder hardening](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.29/0.29-design.md)
 - [0.30 certified Registry evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.30/0.30-design.md)
+- [0.31 public CloudEngine reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.31/0.31-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

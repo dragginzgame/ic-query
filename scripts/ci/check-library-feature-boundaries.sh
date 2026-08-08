@@ -56,12 +56,28 @@ forbidden_cmc_host_dependencies=(
   prost
 )
 
+forbidden_cloud_engine_host_dependencies=(
+  cap-fs-ext
+  cap-std
+  prost
+)
+
 forbidden_direct_cmc_host_dependencies=(
   cap-fs-ext
   cap-std
   futures
   prost
   reqwest
+  sha2
+)
+
+forbidden_direct_cloud_engine_host_dependencies=(
+  cap-fs-ext
+  cap-std
+  futures
+  prost
+  reqwest
+  serde_cbor
   sha2
 )
 
@@ -145,6 +161,8 @@ run_quiet "ic-query --features sns-host" \
   cargo check -p ic-query --no-default-features --features sns-host --locked
 run_quiet "ic-query --features cmc-host" \
   cargo check -p ic-query --no-default-features --features cmc-host --locked
+run_quiet "ic-query --features cloud-engine-host" \
+  cargo check -p ic-query --no-default-features --features cloud-engine-host --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --locked
 cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
 cargo test -p ic-query --test icrc_public_api --no-default-features --locked
@@ -153,6 +171,9 @@ cargo test -p ic-query --test icrc_public_api --no-default-features --features h
 cargo test -p ic-query --test ic_public_api --no-default-features --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features dashboard-host --locked
 cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
+cargo test -p ic-query --test cloud_engine_public_api --no-default-features --locked
+cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features cloud-engine-host --locked
+cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --locked
 cargo test -p ic-query --test certified_subnet_catalog_public_api --no-default-features --features certified-subnet-catalog-host --locked
 cargo test -p ic-query --test nns_public_api --no-default-features --features nns-host --locked
@@ -260,6 +281,25 @@ check_tree_absent "ic-query --features cmc-host direct dependencies" \
   -p ic-query \
   --no-default-features \
   --features cmc-host \
+  -e normal \
+  --depth 1
+
+check_tree_absent "ic-query --features cloud-engine-host" \
+  "${forbidden_cloud_engine_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features cloud-engine-host
+
+# `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
+# CloudEngine queries need only the agent, runtime bridge, and URL validation;
+# cache, Registry, and certification dependencies must remain disabled directly.
+check_tree_absent "ic-query --features cloud-engine-host direct dependencies" \
+  "${forbidden_direct_cloud_engine_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features cloud-engine-host \
   -e normal \
   --depth 1
 

@@ -1,5 +1,6 @@
 mod cache;
 mod cli;
+mod cloud_engine;
 mod ic;
 mod icrc;
 mod nns;
@@ -31,6 +32,9 @@ pub enum IcqCliError {
     #[error("cache: {0}")]
     Cache(#[from] cache::CacheCommandError),
 
+    #[error("cloud-engine: {0}")]
+    CloudEngine(#[from] cloud_engine::CloudEngineCommandError),
+
     #[error("nns: {0}")]
     Nns(#[from] nns::NnsCommandError),
 
@@ -53,6 +57,7 @@ impl IcqCliError {
     pub fn is_broken_pipe(&self) -> bool {
         match self {
             Self::Cache(cache::CacheCommandError::Io(err))
+            | Self::CloudEngine(cloud_engine::CloudEngineCommandError::Io(err))
             | Self::Ic(ic::IcCommandError::Io(err))
             | Self::Nns(nns::NnsCommandError::Io(err))
             | Self::Icrc(icrc::IcrcCommandError::Io(err))
@@ -62,6 +67,7 @@ impl IcqCliError {
             }
             Self::Usage(_)
             | Self::Cache(_)
+            | Self::CloudEngine(_)
             | Self::Nns(_)
             | Self::Icrc(_)
             | Self::Ic(_)
@@ -81,6 +87,7 @@ impl IcqCliError {
             | Self::Sns(sns::SnsCommandError::Usage(_))
             | Self::System(system::SystemCommandError::Usage(_)) => 2,
             Self::Cache(_)
+            | Self::CloudEngine(_)
             | Self::Nns(_)
             | Self::Icrc(_)
             | Self::Ic(_)
@@ -133,6 +140,7 @@ where
             reject_network_for_local_family(command, selected_network.as_deref())?;
             Ok(cache::run_matches(matches)?)
         }
+        "cloud-engine" => Ok(cloud_engine::run_matches(matches, network)?),
         "ic" => {
             reject_network_for_endpoint_family(command, selected_network.as_deref())?;
             Ok(ic::run_matches(matches)?)
@@ -184,7 +192,7 @@ fn network_arg() -> Arg {
         .long("network")
         .value_name("name")
         .value_parser([MAINNET_NETWORK])
-        .help("Network identity for NNS, SNS, and system commands; currently only ic")
+        .help("Network identity for CloudEngine, NNS, SNS, and system commands; currently only ic")
 }
 
 fn top_level_command() -> Command {
@@ -197,6 +205,7 @@ fn top_level_command() -> Command {
         .help_template(TOP_LEVEL_HELP_TEMPLATE)
         .after_help("Run `icq <command> --help` for command-specific help.")
         .subcommand(cache::command())
+        .subcommand(cloud_engine::command())
         .subcommand(ic::command())
         .subcommand(icrc::command())
         .subcommand(nns::command())
@@ -240,6 +249,8 @@ mod tests {
         assert!(text.contains("Inspect official IC Dashboard data"));
         assert!(text.contains("cache"));
         assert!(text.contains("Inspect the local ic-query cache"));
+        assert!(text.contains("cloud-engine"));
+        assert!(text.contains("Inspect public CloudEngine control-plane metadata"));
         assert!(text.contains("icrc"));
         assert!(text.contains("Inspect generic ICRC ledgers"));
         assert!(text.contains("nns"));
@@ -316,6 +327,7 @@ mod tests {
                 "status",
                 "--help",
             ],
+            &["cloud-engine", "info", "--help"],
             &["nns", "topology", "providers", "--help"],
             &["sns", "proposal", "cache", "status", "--help"],
             &["system", "cycles", "--help"],
@@ -488,6 +500,9 @@ mod tests {
         }
 
         for broken_pipe in [
+            IcqCliError::CloudEngine(cloud_engine::CloudEngineCommandError::Io(
+                std::io::Error::from(std::io::ErrorKind::BrokenPipe),
+            )),
             IcqCliError::Ic(ic::IcCommandError::Io(std::io::Error::from(
                 std::io::ErrorKind::BrokenPipe,
             ))),

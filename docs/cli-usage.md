@@ -45,9 +45,11 @@ Because the report spans all cached networks, `icq cache` rejects `--network`.
 
 ## Target identity
 
-NNS, SNS, and system-canister commands accept the global network identity:
+CloudEngine, NNS, SNS, and system-canister commands accept the global network
+identity:
 
 ```bash
+icq --network ic cloud-engine prices
 icq --network ic nns registry version
 icq --network ic sns list
 icq --network ic system xdr
@@ -69,6 +71,38 @@ nouns so discovered Registry principals flow directly into the observed view.
 They accept the global network identity, require it to be `ic`, and query the
 explicit Dashboard `--source-endpoint` only when their shared cache policy
 requires refresh.
+
+## CloudEngine
+
+```bash
+icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe
+icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe --json
+icq cloud-engine prices
+icq cloud-engine prices --json
+```
+
+`info` resolves exactly one Subnet through the fixed mainnet CloudEngine
+control-plane canister. An absent binding is a successful one-call result and
+does not prove that the Subnet or engine exists. When the response has an
+operator, the command follows it with four public
+operator queries for owner, platform administrator, Caffeine setting, and
+claimed domains. The report therefore records an exact query count of one or
+five. It accepts at most 100 unique claimed domains and never enumerates other
+CloudEngine Subnets.
+
+`prices` makes exactly two control-plane queries: one for the network-fee
+fraction and one for at most 1,000 marketplace rows. JSON retains raw net and
+gross monthly cycle amounts as arbitrary-precision decimal strings accepted up
+to 256 digits, the native flattened row key, structured
+node/data-center/provider identity, and signed
+Unix-nanosecond update timestamp. Text formats the cycle amounts for people.
+
+Both commands are mainnet-only bounded live queries. They never read or write a
+report cache, and `--source-endpoint` keeps the replica endpoint explicit.
+Their ordinary canister responses state `certified: false` and
+`point_in_time_guaranteed: false`; sequential calls do not inherit a Registry
+version or form one snapshot. See
+[0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md).
 
 ## Official IC Dashboard
 

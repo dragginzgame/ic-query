@@ -14,9 +14,10 @@ Use `host` for native tools that need live calls, filesystem caches, refresh
 operations, or cache-backed report builders. The library has no CLI feature;
 `icq` parsing and dispatch are owned by `ic-query-cli`.
 
-The focused host choices are `cmc-host`, `certified-subnet-catalog-host`,
-`dashboard-host`, `icrc-host`, `nns-host`, `nns-topology-host`, `sns-host`, and
-`subnet-catalog-host`. The complete `host` feature is their convenience union.
+The focused host choices are `cloud-engine-host`, `cmc-host`,
+`certified-subnet-catalog-host`, `dashboard-host`, `icrc-host`, `nns-host`,
+`nns-topology-host`, `sns-host`, and `subnet-catalog-host`. The complete `host`
+feature is their convenience union.
 Both NNS subsets are nested under `nns-host`, and
 `certified-subnet-catalog-host` and `nns-topology-host` each include
 `subnet-catalog-host`.
@@ -49,6 +50,20 @@ rate evidence. It directly enables `ic-agent`, Tokio, URL, and CBOR certificate
 and witness decoding. It does not enable confined-cache dependencies, Registry
 Prost decoding, or direct Futures, Reqwest, or SHA-256 edges. Reqwest and
 cryptographic packages remain transitive through `ic-agent`.
+
+For public CloudEngine operator and marketplace reports, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.30", default-features = false, features = ["cloud-engine-host"] }
+```
+
+`cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
+the operator/price report builders. It directly enables `ic-agent`, Tokio, and
+URL validation. It does not directly enable cache-filesystem dependencies,
+Registry Prost decoding, Futures fan-out, Reqwest REST transport, CBOR
+certification, or SHA-256 hashing. Packages in the latter groups can remain
+transitive through `ic-agent`.
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
 account-history caches, use:
@@ -285,6 +300,7 @@ A canic-style native crate should usually replace shell-outs in this order:
 The CLI module layout is intentionally mirrored at the family level:
 
 - `icq cache ...` maps to host-only `ic_query::cache`.
+- `icq cloud-engine ...` maps to `ic_query::cloud_engine`.
 - `icq ic ...` maps to `ic_query::ic`.
 - Native `icq icrc ledger` and `account` operations map to
   `ic_query::icrc`; official REST-backed `icq icrc analytics` reports map to
@@ -329,11 +345,11 @@ The examples below are covered by the `downstream_usage` integration test.
 
 The public API exposes source adapters for host-only downstream crates that
 need to reuse `ic-query` report assembly with data that does not come from the
-built-in live adapters. The official Dashboard, generic ICRC, subnet catalog,
-NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS topology, SNS
-list/info/token/params/metrics/swap/upgrade/canister, SNS proposal, and SNS
-neuron host APIs expose
-this pattern with `IcCanisterSource`, `IcCanisterCollectionSource`,
+built-in live adapters. CloudEngine, the official Dashboard, generic ICRC,
+subnet catalog, NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS
+topology, SNS list/info/token/params/metrics/swap/upgrade/canister, SNS
+proposal, and SNS neuron host APIs expose this pattern with
+`CloudEngineSource`, `IcCanisterSource`, `IcCanisterCollectionSource`,
 `IcMetricSource`, `IcNetworkSource`, `IcNodeStatusSource`,
 `IcIcrcAnalyticsSource`, and narrow native
 ICRC capabilities such as
@@ -356,6 +372,8 @@ return one canonical, unique metadata row for every requested Root principal
 and no unrequested rows.
 Certified Cycle Minting Canister reports expose `CmcSource` and the paired
 `build_cmc_*_report_with_source` builders.
+CloudEngine reports expose `CloudEngineSource` and the paired operator/prices
+`*_with_source` builders.
 
 The built-in implementations are deliberately less fragmented than the
 capability traits. `ic_query::ic::LiveIcSource` owns official Dashboard
@@ -364,6 +382,8 @@ subnet-catalog source capability, while
 `ic_query::sns::LiveSnsSource` and `ic_query::icrc::LiveIcrcSource` own their
 respective live families. `ic_query::system::cmc::LiveCmcSource` owns the
 focused CMC capability rather than adding one live adapter per report view.
+`ic_query::cloud_engine::LiveCloudEngineSource` similarly owns the separate
+control-plane authority.
 NNS capabilities share
 `ic_query::nns::NnsSourceRequest`; adding a new NNS report should normally add
 a capability implementation to that adapter instead of introducing another
