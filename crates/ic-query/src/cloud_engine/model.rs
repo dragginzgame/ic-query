@@ -9,6 +9,11 @@ use std::fmt;
 
 #[cfg(feature = "cloud-engine-host")]
 use super::CloudEngineSourceRequest;
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+use crate::subnet_catalog::{
+    CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope, SubnetKind,
+    SubnetSpecialization,
+};
 
 ///
 /// CloudEngineReportContext
@@ -158,6 +163,163 @@ pub struct CloudEnginePricesReport {
 }
 
 ///
+/// CloudEngineOperatorLookupStatus
+///
+/// Outcome of one exact control-plane operator-binding lookup for a Registry Subnet.
+///
+
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CloudEngineOperatorLookupStatus {
+    /// The control plane returned an operator canister principal.
+    Resolved,
+    /// The control plane successfully returned no operator binding.
+    Absent,
+    /// The exact control-plane query failed for this Subnet.
+    Failed,
+}
+
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+impl CloudEngineOperatorLookupStatus {
+    /// Return the stable JSON and text label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Resolved => "resolved",
+            Self::Absent => "absent",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+///
+/// CloudEngineListRow
+///
+/// One Registry-classified CloudEngine Subnet and its separate operator-binding observation.
+///
+
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CloudEngineListRow {
+    /// Canonical Registry Subnet principal.
+    pub subnet_id: String,
+    /// Human-facing catalog label.
+    pub subnet_label: String,
+    /// Provenance for the catalog label.
+    pub subnet_label_source: ClassificationSource,
+    /// Registry Subnet type discriminant.
+    pub registry_subnet_type: i32,
+    /// Current catalog classification; always `cloud_engine` in this report.
+    pub subnet_kind: SubnetKind,
+    /// Provenance for the Subnet kind.
+    pub subnet_kind_source: ClassificationSource,
+    /// Current catalog specialization.
+    pub subnet_specialization: SubnetSpecialization,
+    /// Provenance for the specialization.
+    pub subnet_specialization_source: ClassificationSource,
+    /// Current catalog geographic scope.
+    pub geographic_scope: GeographicScope,
+    /// Provenance for the geographic scope.
+    pub geographic_scope_source: ClassificationSource,
+    /// Registry node count when present.
+    pub node_count: Option<u32>,
+    /// Whether application charges normally apply for this classification.
+    pub charges_apply_by_default: bool,
+    /// Number of routing ranges assigned to the Subnet in the catalog snapshot.
+    pub range_count: usize,
+    /// Result of the separate public control-plane lookup.
+    pub operator_lookup_status: CloudEngineOperatorLookupStatus,
+    /// Operator canister returned by the control plane when resolved.
+    pub operator_canister_id: Option<String>,
+    /// Per-row lookup failure, separate from a successful absent result.
+    pub operator_lookup_error: Option<String>,
+}
+
+///
+/// CloudEngineListReport
+///
+/// Registry CloudEngine inventory joined to bounded public operator-binding observations.
+///
+
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CloudEngineListReport {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Queried network identity.
+    pub network: String,
+
+    /// Registry authority represented by the inventory side of the report.
+    pub registry_authority: String,
+    /// Registry canister principal represented by the catalog snapshot.
+    pub registry_canister_id: String,
+    /// Exact Registry version represented by the catalog snapshot.
+    pub registry_version: u64,
+    /// Assurance established for the Registry snapshot.
+    pub registry_assurance: CatalogAssurance,
+    /// Endpoints contributing to the Registry snapshot.
+    pub registry_source_endpoints: Vec<String>,
+    /// Endpoint-agreement digest when established by collection policy.
+    pub registry_agreement_digest: Option<String>,
+    /// Registry calls made when the represented catalog was collected.
+    pub registry_query_call_count: u64,
+
+    /// Local path supplying the catalog snapshot.
+    pub catalog_path: String,
+    /// Current catalog schema version.
+    pub catalog_schema_version: u32,
+    /// Canonical catalog payload digest.
+    pub catalog_digest: String,
+    /// Cache action supplying this report.
+    pub catalog_cache_disposition: CacheDisposition,
+    /// Catalog collection timestamp.
+    pub catalog_fetched_at: String,
+    /// Whether the catalog exceeds the display freshness threshold.
+    pub catalog_stale: bool,
+    /// Human-readable stale determination.
+    pub catalog_stale_reason: String,
+    /// Collector package version recorded by the catalog.
+    pub catalog_collector_version: String,
+    /// Classification contract version used by the catalog.
+    pub classification_schema_version: u32,
+    /// Digest of the classification policy used by the catalog.
+    pub classification_policy_digest: String,
+    /// Resolver backend recorded by the catalog.
+    pub resolver_backend: String,
+    /// Resolver contract version used by the catalog.
+    pub resolver_schema_version: u32,
+
+    /// Control-plane authority represented by binding observations.
+    pub control_plane_authority: String,
+    /// Fixed CloudEngine control-plane canister principal.
+    pub control_plane_canister_id: String,
+    /// Replica endpoint used for operator-binding lookups.
+    pub control_plane_source_endpoint: String,
+    /// Collection timestamp for the binding observations.
+    pub control_plane_fetched_at: String,
+    /// Collector identity for the binding observations.
+    pub control_plane_fetched_by: String,
+    /// Whether the control-plane application data was cryptographically certified.
+    pub control_plane_certified: bool,
+    /// Whether the per-row calls form one point-in-time view.
+    pub control_plane_point_in_time_guaranteed: bool,
+    /// Number of exact per-Subnet control-plane lookups attempted.
+    pub control_plane_lookup_attempt_count: usize,
+
+    /// Number of CloudEngine Subnets supplied by the Registry catalog.
+    pub registry_cloud_engine_subnet_count: usize,
+    /// Number of Subnets with a resolved operator binding.
+    pub operator_binding_count: usize,
+    /// Number of successful lookups that returned no binding.
+    pub missing_operator_binding_count: usize,
+    /// Number of per-row control-plane lookup failures.
+    pub operator_lookup_failure_count: usize,
+    /// Canonically ordered Registry inventory with separate binding results.
+    pub cloud_engines: Vec<CloudEngineListRow>,
+}
+
+///
 /// CloudEngineOperatorSourceData
 ///
 /// Untrusted source result for one Subnet-to-operator lookup and public detail follow-up.
@@ -180,6 +342,25 @@ pub struct CloudEngineOperatorSourceData {
     pub caffeine_enabled: Option<bool>,
     /// Claimed custom-domain names, or `None` when the field was absent.
     pub claimed_domains: Option<Vec<String>>,
+    /// Exact number of native query calls made by the source.
+    pub query_call_count: usize,
+}
+
+///
+/// CloudEngineOperatorBindingSourceData
+///
+/// Untrusted source result for one exact Subnet-to-operator lookup without detail calls.
+///
+
+#[cfg(feature = "cloud-engine-host")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CloudEngineOperatorBindingSourceData {
+    /// Source provenance echoed by the adapter.
+    pub source: CloudEngineSourceRequest,
+    /// Canonical Subnet principal looked up by the source.
+    pub subnet_id: String,
+    /// Per-engine operator canister principal when registered.
+    pub operator_canister_id: Option<String>,
     /// Exact number of native query calls made by the source.
     pub query_call_count: usize,
 }

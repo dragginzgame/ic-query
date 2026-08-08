@@ -5,7 +5,7 @@
 	package-contents-check patch public-docs-check publish publish-guards-check \
 	release-commit \
 	release-guards-check release-major release-minor release-patch release-push \
-	release-stage release-tag-check tags test type-docs-check version
+	release-stage release-tag-check schema-version-check tags test type-docs-check version
 
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
@@ -23,7 +23,7 @@ CHANGELOG_VERSION ?=
 CI_TARGETS := changelog-check actions-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check public-docs-check dependency-check \
-	fmt-check check clippy test package
+	schema-version-check fmt-check check clippy test package
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -47,6 +47,7 @@ help:
 	@echo "  type-docs-check  Check cross-module type documentation blocks"
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
+	@echo "  schema-version-check  Keep every active pre-1.0 schema identifier at 1"
 	@echo "  check      Run cargo check with locked dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
@@ -95,6 +96,9 @@ actions-check:
 
 changelog-check:
 	bash scripts/ci/check-changelog-version.sh $(CHANGELOG_VERSION)
+
+schema-version-check:
+	bash scripts/ci/check-schema-versions.sh
 
 package-contents-check:
 	bash scripts/ci/check-package-contents.sh

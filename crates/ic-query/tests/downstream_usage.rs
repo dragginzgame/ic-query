@@ -15,7 +15,7 @@ fn render_registry_version() -> String {
     let request = NnsRegistryVersionRequest::new("ic", "https://icp-api.io", 1_700_000_000);
 
     let report = NnsRegistryVersionReport {
-        schema_version: 2,
+        schema_version: 1,
         network: request.network,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,

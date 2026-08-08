@@ -6,7 +6,7 @@ use crate::subnet_catalog::{
 
 pub(in crate::nns::topology::report::tests) fn subnet_report_fixture() -> SubnetCatalogListReport {
     SubnetCatalogListReport {
-        schema_version: 2,
+        schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
         catalog_path: "catalog.json".to_string(),
         catalog_schema_version: crate::subnet_catalog::CATALOG_SCHEMA_VERSION,
@@ -36,7 +36,7 @@ pub(in crate::nns::topology::report::tests) fn subnet_report_fixture() -> Subnet
 pub(in crate::nns::topology::report::tests) fn subnet_refresh_report_fixture()
 -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
-        schema_version: 2,
+        schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/subnet-catalog/refresh.lock".to_string(),

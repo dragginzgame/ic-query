@@ -322,7 +322,7 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
 
     let row = sample_public_neuron(11);
     let report = ic_query::nns::neuron::NnsNeuronListReport {
-        schema_version: 2,
+        schema_version: 1,
         network: request.network,
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -461,7 +461,7 @@ fn public_nns_registry_api_is_constructible_and_renderable() {
     assert_eq!(request.network, "ic");
 
     let report = NnsRegistryVersionReport {
-        schema_version: 2,
+        schema_version: 1,
         network: request.network,
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
@@ -485,7 +485,7 @@ fn public_certified_registry_delta_models_preserve_raw_evidence() {
 
     let json = serde_json::to_value(report).expect("serialize certified delta report");
 
-    assert_eq!(json["schema_version"], 3);
+    assert_eq!(json["schema_version"], 1);
     assert_eq!(json["requested_version"], 41);
     assert_eq!(json["versions"][0]["mutations"][0]["mutation_type"], 4);
     assert_eq!(
@@ -592,7 +592,7 @@ fn public_reauthenticated_replay_builder_accepts_only_sealed_batch_input() {
 #[cfg(feature = "nns-host")]
 #[test]
 fn public_certified_registry_archive_manifest_contract_is_bounded_and_untrusted() {
-    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 2);
+    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 1);
     let replay_limits = NnsRegistryReplaySessionLimits::new(
         100,
         10,
@@ -1110,7 +1110,7 @@ fn public_certified_delta_report(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
 ) -> NnsCertifiedRegistryDeltaBatchReport {
     NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 3,
+        schema_version: 1,
         network: "ic".to_string(),
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         requested_version: request.requested_version,
@@ -2801,7 +2801,7 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
 #[cfg(feature = "nns-host")]
 fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
-        schema_version: 2,
+        schema_version: 1,
         network: "ic".to_string(),
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/subnet-catalog/refresh.lock".to_string(),

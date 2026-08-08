@@ -57,7 +57,7 @@ pub use storage::{
 };
 
 /// Version of the retained certified Registry archive-manifest contract.
-pub const NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION: u32 = 2;
+pub const NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION: u32 = 1;
 
 fn enforce_archive_mainnet_network(network: &str) -> Result<(), NnsRegistryReplayError> {
     crate::network::enforce_mainnet_network_with(network, |network| {
@@ -154,7 +154,7 @@ pub struct NnsCertifiedRegistryArchiveManifest {
     pub delta_report_schema_version: u32,
     /// Replay provenance schema governing evidence-chain and complete-state digests.
     pub replay_provenance_schema_version: u32,
-    /// Network identity; schema 2 supports only mainnet `ic`.
+    /// Network identity; schema 1 supports only mainnet `ic`.
     pub network: String,
     /// Canonical mainnet Registry canister principal.
     pub registry_canister_id: String,

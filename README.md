@@ -18,7 +18,7 @@ and local-only inspection visibly distinct.
 | Family | Current surface |
 | --- | --- |
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, one-request observed node status with cached node/Subnet/provider views and typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
-| CloudEngine | Exact Subnet-to-operator resolution with bounded public operator details, plus the public network fee and bounded marketplace prices |
+| CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, plus the public network fee and bounded marketplace prices |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
@@ -69,7 +69,8 @@ icq ic metrics ic-node-count --json
 icq ic network boundary-node-data-centers
 icq ic network daily-stats
 
-# Public CloudEngine control-plane reports
+# Public CloudEngine reports
+icq cloud-engine list
 icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe
 icq cloud-engine prices --json
 
@@ -146,15 +147,14 @@ actually make:
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
 | Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
-| CloudEngine control plane | Ordinary public canister query responses from the fixed control-plane and resolved operator canister | `certified: false`, `point_in_time_guaranteed: false`; operator detail uses sequential calls and does not inherit a Registry version |
+| CloudEngine control plane | Ordinary public canister query responses from the fixed control-plane and resolved operator canister; list inventory separately comes from the versioned Registry Subnet Catalog | `certified: false`, `point_in_time_guaranteed: false` for control-plane observations; per-row calls do not become part of the Registry snapshot |
 | Official IC Dashboard, including observed node status and ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`; default node scope excludes cloud-engine nodes, and an accepted ledger principal does not prove indexing coverage |
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
 and explicit provenance. Text output may shorten or format values for people.
-Report and persisted schemas are versioned independently. The Subnet Catalog
-uses schema version `3`; other families retain their documented versions.
-Before 1.0, incompatible shapes are hard cuts without compatibility readers or
-automatic migrations.
+Report and persisted schemas are versioned independently. Every current schema
+identifier remains `1` before 1.0; incompatible shapes replace that contract
+in place without compatibility readers or automatic migrations.
 
 See [IC Reporting Adapters](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-reporting-adapters.md) for the
 authority model and follow-up query rules.
@@ -165,6 +165,7 @@ authority model and follow-up query rules.
 icq cache status
 
 icq cloud-engine info <subnet-id>
+icq cloud-engine list
 icq cloud-engine prices
 
 icq ic canister count|info|page
@@ -263,12 +264,14 @@ response body at 8 MiB. This is a per-call transport bound; paged collection,
 atomic cache publication, and explicit refresh policies retain their existing
 report-specific row and call limits.
 
-CloudEngine reports are live and uncached. `cloud-engine info` makes one
-control-plane query when no operator is registered and exactly five native
-queries when an operator exists. `cloud-engine prices` makes exactly two
-control-plane queries and accepts at most 1,000 rows. Claimed domains are
-capped at 100. Both reports preserve the endpoint and call count and state that
-ordinary sequential query responses are not certified or one point-in-time.
+`cloud-engine info` and `cloud-engine prices` are live and uncached. `info`
+makes one control-plane query when no operator is registered and exactly five
+native queries when an operator exists; `prices` makes exactly two calls and
+accepts at most 1,000 rows. `cloud-engine list` uses the complete Registry
+Subnet Catalog cache policy and then attempts one exact public control-plane
+binding lookup per Registry CloudEngine row, capped at 100. Registry and
+control-plane provenance remain separate, including per-row failures. Claimed
+domains are capped at 100.
 
 Successful SNS metrics queries default to a 30-day proposal-count window
 capped at 365 days. They make three targeted client requests, preserve
@@ -377,7 +380,7 @@ Focused host features let embedders select one reporting family:
 
 | Feature | Host surface |
 | --- | --- |
-| `cloud-engine-host` | Public CloudEngine operator and marketplace reports |
+| `cloud-engine-host` | Public CloudEngine operator-binding, operator-detail, and marketplace adapters; combine with `subnet-catalog-host` for the list builder |
 | `cmc-host` | Certified Cycle Minting Canister ICP/XDR and cycles reports |
 | `certified-subnet-catalog-host` | Subnet Catalog plus certified Registry batches, archive/replay, and archive-bound catalog authority |
 | `dashboard-host` | Official Dashboard REST reports and observed node-status cache |
@@ -422,6 +425,14 @@ This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
 cache-filesystem, Registry Prost, Futures, Reqwest, CBOR, or SHA-256 edges.
 Reqwest, CBOR, and cryptographic packages can remain transitive through
 `ic-agent`.
+
+The Registry-backed CloudEngine list builder requires both focused authority
+features (or the convenience `host` feature):
+
+```toml
+[dependencies]
+ic-query = { version = "0.31", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
 REST reports and the shared observed node-status cache:
@@ -538,7 +549,7 @@ loops over later batches, writes a cache, or promotes Subnet Catalog
 assurance. Chunk-referenced values in that batch are completed with
 hash-verified `get_chunk` calls under fixed per-call, per-value, and aggregate
 ceilings, with digest reuse and exact call/byte accounting preserved in report
-schema 3. Each unique chunk is retained once in canonical digest order, and
+schema 1. Each unique chunk is retained once in canonical digest order, and
 the pure validator re-hashes its content, requires exact reference coverage,
 and reconstructs every chunked value from the retained evidence. It checks
 structural evidence returned by trusted custom sources; only the built-in live
@@ -550,7 +561,7 @@ Committed same-key mutations retain their stable order, and any retained
 delete value remains raw evidence while replay ignores it when removing the
 key.
 
-Retained schema-3 delta reports can be checked again with
+Retained schema-1 delta reports can be checked again with
 `reauthenticate_nns_certified_registry_delta_batch`. This local-only operation
 verifies the raw mainnet certificate and mixed-tree commitment, decodes the
 committed delta, and compares its complete certified contents with the report
@@ -570,7 +581,7 @@ fail without acquiring that session capability. This path performs no network
 or filesystem IO.
 
 `NnsCertifiedRegistryArchiveManifestBuilder` adds the versioned, library-only
-archive index contract. Schema 2 groups sealed batches into explicit completed-
+archive index contract. Schema 1 groups sealed batches into explicit completed-
 target segments: the first is the version-zero bootstrap, while a batch after
 completion opens an authenticated extension target. An empty segment may retain
 a fresh certificate proving that the Registry version is unchanged without
@@ -601,15 +612,16 @@ manifest. These low-level operations select no default archive path,
 collection, refresh policy, lock, or CLI surface.
 
 `NnsCertifiedRegistryArchivePublisher::resume` locally reloads and
-reauthenticates an existing schema-2 archive under new caller-selected
+reauthenticates an existing schema-1 archive under new caller-selected
 cumulative limits, then accepts sealed extension batches without rewriting its
 historical objects. It performs no source call and acquires no lock itself; a
 caller using it directly must hold the dedicated archive lock across resume,
-collection, and `finish`. Schema-1 archives are rejected without migration or
-a fallback reader and require an explicit new force bootstrap.
+collection, and `finish`. Manifests with another schema identifier are rejected
+without migration or a fallback reader and require an explicit new force
+bootstrap.
 
 `refresh_nns_certified_registry_archive_async` is the explicit live incremental
-coordinator for an existing schema-2 archive. Its
+coordinator for an existing schema-1 archive. Its
 `NnsCertifiedRegistryArchiveRefreshRequest` requires the collection, cumulative
 replay/storage, confined path, and lock-staleness policies. It rejects
 non-mainnet and missing archives before source work, holds the archive lock
@@ -674,7 +686,7 @@ superseded archives fail before catalog record projection when prohibited. The
 result keeps its private-field `ValidatedSubnetCatalog` attached to the archive
 that proves it and exposes the exact age and version decision through
 `.freshness()`.
-Schema-3 provenance records archive/replay/report schema identities, root-key,
+Schema-1 provenance records archive/replay/report schema identities, root-key,
 evidence-chain and complete-state digests, certificate-time bounds, and source
 endpoints. Serializing those fields does not preserve authority: ordinary
 `ValidatedSubnetCatalog::try_from_raw` validation always rejects `Certified`.
@@ -704,7 +716,7 @@ archive, certificate, endpoint, assurance, and cache-action identity without
 duplicating the catalog snapshot. The serialized `Certified` label and evidence
 DTO remain descriptive rather than authority constructors: reloading authority
 still requires the matching authenticated archive and fresh projection. The
-ordinary schema-3 Subnet Catalog cache is unchanged.
+ordinary schema-1 Subnet Catalog cache is unchanged.
 
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case
@@ -735,9 +747,9 @@ always labelled `CatalogAssurance::UncertifiedQuery`. Async embedders can call
 `refresh_subnet_catalog_async` on their own runtime. Dropping an async refresh
 releases its owned lock without publishing. Synchronous adapters may use a
 scoped helper thread when invoked inside an existing Tokio runtime.
-Schema-2 catalog files are rejected after the schema-3 hard cut; an explicit
-read policy may refresh invalid ordinary cache content, but no migration or
-legacy reader is retained.
+Only schema-1 catalog files are accepted; an explicit read policy may refresh
+unsupported ordinary cache content, but no migration or legacy reader is
+retained.
 
 See [Library Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md) for complete examples and feature
 guidance.

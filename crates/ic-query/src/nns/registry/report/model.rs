@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "certified-subnet-catalog-host")]
-pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 2;
+pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 1;
 /// Version of the complete retained certified Registry delta-report contract.
-pub const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 3;
+pub const NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION: u32 = 1;
 
 ///
 /// NnsRegistryVersionRequest

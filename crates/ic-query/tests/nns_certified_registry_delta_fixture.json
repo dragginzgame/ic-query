@@ -46,7 +46,7 @@
     "registry_canister_id": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
     "requested_version": 62953,
     "response_bytes": 3404,
-    "schema_version": 3,
+    "schema_version": 1,
     "source_endpoint": "https://icp-api.io",
     "value_bytes": 1432,
     "version_count": 1,

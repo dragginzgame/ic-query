@@ -24,7 +24,7 @@ use std::fmt::Debug;
 ///
 /// NnsAuthenticatedRegistryDeltaBatch
 ///
-/// Borrowed schema-3 report whose retained mainnet certificate and witness were reauthenticated.
+/// Borrowed schema-1 report whose retained mainnet certificate and witness were reauthenticated.
 ///
 
 #[derive(Debug)]

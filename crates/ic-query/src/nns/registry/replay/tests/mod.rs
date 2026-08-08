@@ -545,7 +545,7 @@ fn report_versions(
     let first_version = versions.first().map(|version| version.version);
     let last_version = versions.last().map(|version| version.version);
     NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 3,
+        schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         requested_version: request.requested_version,

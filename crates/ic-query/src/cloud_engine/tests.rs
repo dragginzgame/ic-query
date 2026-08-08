@@ -1,5 +1,9 @@
 use super::*;
-use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::subnet_catalog::{
+    CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope, MAINNET_NETWORK,
+    MAINNET_REGISTRY_CANISTER_ID, SubnetCatalogListReport, SubnetCatalogSubnetRow, SubnetKind,
+    SubnetSpecialization,
+};
 use std::cell::Cell;
 
 const FETCHED_AT: &str = "2026-08-08T12:00:00Z";
@@ -7,6 +11,8 @@ const SUBNET_ID: &str = "2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2
 const OPERATOR_ID: &str = "wlnge-zyaaa-aaabw-aaaaa-cai";
 const OWNER_ID: &str = "4vh3j-nyc2w-eaan4-vsl33-dguwj-7hlsb-bffh2-exinh-parof-qqlki-lae";
 const ADMIN_ID: &str = "bct5z-vccu4-6q4t2-3lb6l-wm43p-ulppt-o5sqq-w6het-rthdz-qp4yn-fqe";
+const SUBNET_B: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
+const SUBNET_C: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
 
 struct FixtureSource {
     calls: Cell<usize>,
@@ -40,6 +46,34 @@ impl CloudEngineSource for FixtureSource {
     ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError> {
         self.calls.set(self.calls.get() + 1);
         Ok(self.prices.clone())
+    }
+}
+
+struct BindingFixtureSource {
+    calls: Cell<usize>,
+    request: CloudEngineSourceRequest,
+    query_call_count: usize,
+}
+
+impl CloudEngineOperatorBindingSource for BindingFixtureSource {
+    fn fetch_operator_binding(
+        &self,
+        _request: &CloudEngineSourceRequest,
+        subnet_id: &str,
+    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
+        self.calls.set(self.calls.get() + 1);
+        if subnet_id == SUBNET_C {
+            return Err(CloudEngineHostError::AgentCall {
+                method: "getEngineOperatorBySubnet",
+                reason: "fixture unavailable".to_string(),
+            });
+        }
+        Ok(CloudEngineOperatorBindingSourceData {
+            source: self.request.clone(),
+            subnet_id: subnet_id.to_string(),
+            operator_canister_id: (subnet_id == SUBNET_ID).then(|| OPERATOR_ID.to_string()),
+            query_call_count: self.query_call_count,
+        })
     }
 }
 
@@ -131,6 +165,136 @@ fn price_report_sorts_rows_and_preserves_raw_cycle_text() {
         json["prices"][1]["updated_at_unix_nanos"],
         1_785_946_128_242_156_275_i64
     );
+}
+
+#[test]
+fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
+    let request = request(MAINNET_NETWORK);
+    let source = BindingFixtureSource {
+        calls: Cell::new(0),
+        request: request.clone(),
+        query_call_count: 1,
+    };
+    let report = super::list::build_cloud_engine_list_report_from_catalog_with_source(
+        &request,
+        list_catalog_report(&[SUBNET_B, SUBNET_C, SUBNET_ID]),
+        &source,
+    )
+    .expect("fixture CloudEngine list report");
+
+    assert_eq!(source.calls.get(), 3);
+    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.registry_authority, "nns_registry");
+    assert_eq!(report.registry_version, 123_456);
+    assert_eq!(
+        report.control_plane_authority,
+        "cloud_engine_control_plane_canister"
+    );
+    assert!(!report.control_plane_certified);
+    assert!(!report.control_plane_point_in_time_guaranteed);
+    assert_eq!(report.control_plane_lookup_attempt_count, 3);
+    assert_eq!(report.registry_cloud_engine_subnet_count, 3);
+    assert_eq!(report.operator_binding_count, 1);
+    assert_eq!(report.missing_operator_binding_count, 1);
+    assert_eq!(report.operator_lookup_failure_count, 1);
+    assert_eq!(
+        report
+            .cloud_engines
+            .iter()
+            .map(|row| row.subnet_id.as_str())
+            .collect::<Vec<_>>(),
+        vec![SUBNET_ID, SUBNET_C, SUBNET_B]
+    );
+
+    let resolved = report
+        .cloud_engines
+        .iter()
+        .find(|row| row.subnet_id == SUBNET_ID)
+        .expect("resolved row");
+    assert_eq!(
+        resolved.operator_lookup_status,
+        CloudEngineOperatorLookupStatus::Resolved
+    );
+    assert_eq!(resolved.operator_canister_id.as_deref(), Some(OPERATOR_ID));
+
+    let absent = report
+        .cloud_engines
+        .iter()
+        .find(|row| row.subnet_id == SUBNET_B)
+        .expect("absent row");
+    assert_eq!(
+        absent.operator_lookup_status,
+        CloudEngineOperatorLookupStatus::Absent
+    );
+    assert_eq!(absent.operator_lookup_error, None);
+
+    let failed = report
+        .cloud_engines
+        .iter()
+        .find(|row| row.subnet_id == SUBNET_C)
+        .expect("failed row");
+    assert_eq!(
+        failed.operator_lookup_status,
+        CloudEngineOperatorLookupStatus::Failed
+    );
+    assert!(
+        failed
+            .operator_lookup_error
+            .as_deref()
+            .is_some_and(|error| error.contains("fixture unavailable"))
+    );
+
+    let text = cloud_engine_list_report_text(&report);
+    assert!(text.contains("\n\ncontrol_plane_authority:"));
+    assert!(text.contains("\n\nCloudEngine subnets\n"));
+    assert!(text.contains("\n\nOperator lookup failures\n"));
+    let json = serde_json::to_value(&report).expect("serialize list report");
+    assert_eq!(json["registry_cloud_engine_subnet_count"], 3);
+    assert_eq!(
+        json["cloud_engines"][0]["operator_lookup_status"],
+        "resolved"
+    );
+}
+
+#[test]
+fn list_report_enforces_fanout_and_successful_source_contracts() {
+    let request = request(MAINNET_NETWORK);
+    let source = BindingFixtureSource {
+        calls: Cell::new(0),
+        request: request.clone(),
+        query_call_count: 1,
+    };
+    let excessive = vec![SUBNET_ID; MAX_CLOUD_ENGINE_LIST_ROWS + 1];
+    let error = super::list::build_cloud_engine_list_report_from_catalog_with_source(
+        &request,
+        list_catalog_report(&excessive),
+        &source,
+    )
+    .expect_err("fanout above the hard bound must fail before lookups");
+    assert!(matches!(
+        error,
+        CloudEngineHostError::InvalidSourceData { reason }
+            if reason.contains("maximum is 100")
+    ));
+    assert_eq!(source.calls.get(), 0);
+
+    let source = BindingFixtureSource {
+        calls: Cell::new(0),
+        request: request.clone(),
+        query_call_count: 2,
+    };
+    let error = super::list::build_cloud_engine_list_report_from_catalog_with_source(
+        &request,
+        list_catalog_report(&[SUBNET_ID]),
+        &source,
+    )
+    .expect_err("a successful binding source must report exactly one call");
+    assert!(matches!(
+        error,
+        CloudEngineHostError::InvalidSourceData { reason }
+            if reason.contains("exactly one query call")
+    ));
+    assert_eq!(source.calls.get(), 1);
 }
 
 #[test]
@@ -285,5 +449,53 @@ fn price_row(
         net_cycles_per_month: net.to_string(),
         gross_cycles_per_month: gross.to_string(),
         updated_at_unix_nanos: 1_785_946_128_242_156_275,
+    }
+}
+
+fn list_catalog_report(subnet_ids: &[&str]) -> SubnetCatalogListReport {
+    SubnetCatalogListReport {
+        schema_version: 1,
+        network: MAINNET_NETWORK.to_string(),
+        catalog_path: "/tmp/subnet-catalog.json".to_string(),
+        catalog_schema_version: 1,
+        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+        registry_version: 123_456,
+        assurance: CatalogAssurance::UncertifiedQuery,
+        source_endpoints: vec!["https://icp-api.io".to_string()],
+        agreement_digest: None,
+        registry_query_call_count: 5,
+        catalog_digest: "0".repeat(64),
+        cache_disposition: CacheDisposition::CacheHit,
+        fetched_at: FETCHED_AT.to_string(),
+        catalog_stale: false,
+        stale_reason: "fresh".to_string(),
+        resolver_backend: "registry_routing_table".to_string(),
+        collector_version: "test".to_string(),
+        classification_schema_version: 1,
+        classification_policy_digest: "1".repeat(64),
+        resolver_schema_version: 1,
+        subnets: subnet_ids
+            .iter()
+            .enumerate()
+            .map(|(index, subnet_id)| SubnetCatalogSubnetRow {
+                subnet_principal: (*subnet_id).to_string(),
+                registry_subnet_type: 5,
+                subnet_kind: SubnetKind::CloudEngine,
+                subnet_kind_source: ClassificationSource::Registry,
+                subnet_specialization: SubnetSpecialization::None,
+                subnet_specialization_source: ClassificationSource::Curated,
+                geographic_scope: GeographicScope::Global,
+                geographic_scope_source: ClassificationSource::Curated,
+                subnet_label: format!("cloud-engine-{}", index + 1),
+                subnet_label_source: ClassificationSource::Curated,
+                node_count: Some(13),
+                charges_apply_by_default: true,
+                range_count: 1,
+                ranges_shown: 0,
+                range_offset: 0,
+                range_limit: 50,
+                ranges: Vec::new(),
+            })
+            .collect(),
     }
 }

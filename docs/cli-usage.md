@@ -75,11 +75,24 @@ requires refresh.
 ## CloudEngine
 
 ```bash
+icq cloud-engine list
+icq cloud-engine list --json
 icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe
 icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe --json
 icq cloud-engine prices
 icq cloud-engine prices --json
 ```
+
+`list` obtains the complete Registry-classified CloudEngine Subnet inventory
+through the existing Subnet Catalog missing-or-invalid cache policy, then
+attempts one exact `getEngineOperatorBySubnet` query per returned row, capped
+at 100. It preserves the Registry version, assurance, catalog provenance, and
+cache disposition separately from the control-plane endpoint, timestamp, and
+uncertified consistency limits. Each row distinguishes a resolved binding, a
+successful absent binding, and a failed lookup; one failed lookup does not
+discard the Registry inventory. `--registry-source-endpoint` selects the
+endpoint authorized for a needed catalog refresh, while `--source-endpoint`
+selects the control-plane query endpoint.
 
 `info` resolves exactly one Subnet through the fixed mainnet CloudEngine
 control-plane canister. An absent binding is a successful one-call result and
@@ -97,9 +110,10 @@ to 256 digits, the native flattened row key, structured
 node/data-center/provider identity, and signed
 Unix-nanosecond update timestamp. Text formats the cycle amounts for people.
 
-Both commands are mainnet-only bounded live queries. They never read or write a
-report cache, and `--source-endpoint` keeps the replica endpoint explicit.
-Their ordinary canister responses state `certified: false` and
+`info` and `prices` are mainnet-only bounded live queries. They never read or
+write a report cache, and `--source-endpoint` keeps the replica endpoint
+explicit. All three operations' ordinary control-plane responses state
+`certified: false` and
 `point_in_time_guaranteed: false`; sequential calls do not inherit a Registry
 version or form one snapshot. See
 [0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md).
@@ -418,8 +432,8 @@ creation and aging timestamps, source NNS neuron id, auto-stake setting, raw
 dissolve state, voting-power percentage multiplier, vesting period, and fees.
 JSON exposes all of those raw fields; compact text selects the operationally
 useful subset. This adds no follow-up request or cache fanout. Neuron report
-and cache schema 1 replace the former schema-2 contract in place; an existing
-schema-2 neuron snapshot requires an explicit refresh.
+and cache schema 1 replace the prior contract in place; a snapshot with any
+other schema identifier requires an explicit refresh.
 
 `sns neuron info` is a separate live-only exact lookup. It accepts exactly one
 32-byte neuron id as 64 lowercase hexadecimal characters and calls native

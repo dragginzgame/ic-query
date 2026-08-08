@@ -67,7 +67,7 @@ pub(crate) use time::format_utc_timestamp_secs;
 ))]
 pub(crate) use time::parse_utc_timestamp_secs;
 
-pub const CATALOG_SCHEMA_VERSION: u32 = 3;
+pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 pub const MAINNET_NETWORK: &str = "ic";
 pub const MAINNET_REGISTRY_CANISTER_ID: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 #[cfg(feature = "subnet-catalog-host")]
@@ -86,11 +86,11 @@ pub const MIN_SUBNET_CATALOG_AGREEMENT_ENDPOINTS: usize = 2;
 /// Maximum number of endpoints accepted by one bounded agreement collection.
 pub const MAX_SUBNET_CATALOG_AGREEMENT_ENDPOINTS: usize = 3;
 #[cfg(feature = "subnet-catalog-host")]
-pub(crate) const SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION: u32 = 2;
+pub(crate) const SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "subnet-catalog-host")]
-pub(crate) const SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION: u32 = 2;
+pub(crate) const SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "subnet-catalog-host")]
-pub(crate) const SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION: u32 = 2;
+pub(crate) const SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 #[cfg(test)]
 mod core_tests;

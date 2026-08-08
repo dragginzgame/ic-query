@@ -95,7 +95,7 @@ fn report_context(
     }
 }
 
-fn validate_source_request(
+pub(super) fn validate_source_request(
     expected: &CloudEngineSourceRequest,
     actual: &CloudEngineSourceRequest,
 ) -> Result<(), CloudEngineHostError> {
@@ -301,7 +301,10 @@ fn decimal_cmp(left: &str, right: &str) -> Ordering {
     left.len().cmp(&right.len()).then_with(|| left.cmp(right))
 }
 
-fn canonical_principal(field: &'static str, value: &str) -> Result<String, CloudEngineHostError> {
+pub(super) fn canonical_principal(
+    field: &'static str,
+    value: &str,
+) -> Result<String, CloudEngineHostError> {
     Principal::from_text(value)
         .map(|principal| principal.to_text())
         .map_err(|error| CloudEngineHostError::InvalidPrincipal {
@@ -310,7 +313,7 @@ fn canonical_principal(field: &'static str, value: &str) -> Result<String, Cloud
         })
 }
 
-fn validate_canonical_principal(
+pub(super) fn validate_canonical_principal(
     field: &'static str,
     value: &str,
 ) -> Result<(), CloudEngineHostError> {
@@ -330,7 +333,7 @@ fn validate_canonical_principal(
     Ok(())
 }
 
-fn validate_principal_match(
+pub(super) fn validate_principal_match(
     field: &'static str,
     expected: &str,
     actual: &str,
@@ -344,7 +347,7 @@ fn validate_principal_match(
     Ok(())
 }
 
-fn invalid_source<T>(reason: impl Into<String>) -> Result<T, CloudEngineHostError> {
+pub(super) fn invalid_source<T>(reason: impl Into<String>) -> Result<T, CloudEngineHostError> {
     Err(CloudEngineHostError::InvalidSourceData {
         reason: reason.into(),
     })

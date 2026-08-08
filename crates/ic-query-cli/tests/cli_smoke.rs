@@ -82,6 +82,15 @@ fn binary_cloud_engine_report_help_smoke() {
         assert!(stdout.contains("--json"));
         assert!(stdout.contains("Live query; does not read or write a report cache."));
     }
+
+    let output = run_icq(&["cloud-engine", "list", "--help"]);
+    assert_success(&output);
+    let stdout = stdout_text(&output);
+    assert!(stdout.contains("Usage: icq cloud-engine list"));
+    assert!(stdout.contains("--registry-source-endpoint <url>"));
+    assert!(stdout.contains("--source-endpoint <url>"));
+    assert!(stdout.contains("--json"));
+    assert!(stdout.contains("Cache-backed Registry inventory"));
 }
 
 #[test]

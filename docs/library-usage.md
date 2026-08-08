@@ -59,11 +59,22 @@ ic-query = { version = "0.31", default-features = false, features = ["cloud-engi
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
-the operator/price report builders. It directly enables `ic-agent`, Tokio, and
-URL validation. It does not directly enable cache-filesystem dependencies,
+the operator/price report builders. Combine it with `subnet-catalog-host` for
+the Registry-backed list builder and its focused operator-binding source trait;
+the convenience `host` feature already includes both. `cloud-engine-host`
+directly enables `ic-agent`, Tokio, and URL validation. It does not directly
+enable cache-filesystem dependencies,
 Registry Prost decoding, Futures fan-out, Reqwest REST transport, CBOR
 certification, or SHA-256 hashing. Packages in the latter groups can remain
 transitive through `ic-agent`.
+
+For the Registry-backed CloudEngine inventory, enable both authority features
+(or use `host`):
+
+```toml
+[dependencies]
+ic-query = { version = "0.31", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
 account-history caches, use:
@@ -187,7 +198,7 @@ also performs built-in mainnet reauthentication; structural source validation
 alone cannot establish archive authority. Neither function is called by a
 load/read-through policy, and neither selects a default path or history size.
 
-Archive manifest schema 2 supports explicit authenticated extension segments.
+Archive manifest schema 1 supports explicit authenticated extension segments.
 After a complete target, the next sealed batch selects a new segment target;
 that target may equal the prior version, allowing a fresh empty delta to update
 certificate-time evidence while preserving the same state digest. Use
@@ -196,8 +207,9 @@ and consume an existing archive into a resumable publisher under explicit
 cumulative replay and storage limits. Resume rewrites no historical object,
 makes no source call, and acquires no refresh lock. Callers coordinating live
 collection must hold the dedicated archive lock until `finish` publishes the
-complete new segment. Schema-1 archives have no compatibility reader or
-migration and must be explicitly force-bootstrapped again.
+complete new segment. Manifests with another schema identifier have no
+compatibility reader or migration and must be explicitly force-bootstrapped
+again.
 
 For the complete live boundary, call
 `refresh_nns_certified_registry_archive_async` with an explicit
@@ -372,8 +384,12 @@ return one canonical, unique metadata row for every requested Root principal
 and no unrequested rows.
 Certified Cycle Minting Canister reports expose `CmcSource` and the paired
 `build_cmc_*_report_with_source` builders.
-CloudEngine reports expose `CloudEngineSource` and the paired operator/prices
-`*_with_source` builders.
+CloudEngine direct reports expose `CloudEngineSource` and the paired
+operator/prices `*_with_source` builders. With both CloudEngine and Subnet
+Catalog host features, the list report additionally exposes
+`CloudEngineOperatorBindingSource` and
+`build_cloud_engine_list_report_with_sources`; Registry catalog construction
+and control-plane bindings retain separate source contracts.
 
 The built-in implementations are deliberately less fragmented than the
 capability traits. `ic_query::ic::LiveIcSource` owns official Dashboard
@@ -831,9 +847,9 @@ that threshold fails with `InsufficientAssurance` rather than being treated as
 missing, invalid, or stale. The
 `refresh_missing_invalid_or_older_than` constructor keeps the source and
 maximum accepted age explicit.
-Ordinary catalog caches use schema 3. Existing schema-2 content is invalid and
-can be replaced only when the selected read policy explicitly permits invalid
-cache refresh; there is no migration or fallback reader.
+Ordinary catalog caches use schema 1. Content with another schema identifier is
+invalid and can be replaced only when the selected read policy explicitly
+permits invalid cache refresh; there is no migration or fallback reader.
 
 `ValidatedSubnetCatalog::resolve_canister_route` binds the canonical canister
 and Subnet principals, complete matched `SubnetInfo`, routing range, Registry

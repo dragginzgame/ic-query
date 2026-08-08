@@ -170,7 +170,7 @@ fn archive_manifest_segments_retain_unchanged_and_advancing_authenticated_target
 
     let (manifest, authenticated) = builder.finish().expect("segmented archive manifest");
 
-    assert_eq!(manifest.schema_version, 2);
+    assert_eq!(manifest.schema_version, 1);
     assert_eq!(manifest.segment_count, 3);
     assert_eq!(manifest.selected_version, 4);
     assert_eq!(manifest.batch_count, 4);
@@ -481,7 +481,7 @@ fn confined_archive_publisher_resumes_reauthenticated_state_without_rewriting_hi
         .expect("durable extension object");
     let extended = resumed.finish().expect("extended archive manifest");
 
-    assert_eq!(extended.manifest().schema_version, 2);
+    assert_eq!(extended.manifest().schema_version, 1);
     assert_eq!(extended.manifest().segment_count, 2);
     assert_eq!(extended.manifest().selected_version, 3);
     assert_eq!(extended.manifest().batch_count, 3);

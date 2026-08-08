@@ -2,11 +2,12 @@
 //!
 //! Responsibility: define CloudEngine source capabilities and the bounded native adapter.
 //! Does not own: report validation, CLI parsing, caching, or rendering.
-//! Boundary: operator detail uses at most five queries; marketplace collection uses exactly two.
+//! Boundary: operator binding uses exactly one query, operator detail uses at most five,
+//! and marketplace collection uses exactly two.
 
 use super::{
-    CloudEngineHostError, CloudEngineOperatorSourceData, CloudEnginePricesSourceData,
-    MAINNET_CLOUD_ENGINE_CANISTER_ID, enforce_mainnet_network,
+    CloudEngineHostError, CloudEngineOperatorBindingSourceData, CloudEngineOperatorSourceData,
+    CloudEnginePricesSourceData, MAINNET_CLOUD_ENGINE_CANISTER_ID, enforce_mainnet_network,
     wire::{
         CloudEngineMarketplaceEntryWire, GetCaffeineSettingsResult, GetEngineOperatorBySubnetArgs,
         GetEngineOperatorBySubnetResult, GetEngineOwnerResult, GetPlatformAdminResult,
@@ -102,6 +103,21 @@ pub trait CloudEngineSource {
 }
 
 ///
+/// CloudEngineOperatorBindingSource
+///
+/// Focused source capability for one public Subnet-to-operator lookup without details.
+///
+
+pub trait CloudEngineOperatorBindingSource {
+    /// Resolve exactly one Subnet through the CloudEngine control plane.
+    fn fetch_operator_binding(
+        &self,
+        request: &CloudEngineSourceRequest,
+        subnet_id: &str,
+    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError>;
+}
+
+///
 /// LiveCloudEngineSource
 ///
 /// Built-in live adapter for the mainnet CloudEngine control-plane canister.
@@ -130,26 +146,39 @@ impl CloudEngineSource for LiveCloudEngineSource {
     }
 }
 
+impl CloudEngineOperatorBindingSource for LiveCloudEngineSource {
+    fn fetch_operator_binding(
+        &self,
+        request: &CloudEngineSourceRequest,
+        subnet_id: &str,
+    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
+        enforce_mainnet_network(&request.network)?;
+        let subnet = parse_principal("subnet_id", subnet_id)?;
+        block_on_current_thread(fetch_live_operator_binding(request, subnet))?
+    }
+}
+
+async fn fetch_live_operator_binding(
+    request: &CloudEngineSourceRequest,
+    subnet: Principal,
+) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
+    let (agent, engine_canister) = live_agent_and_canister(request)?;
+    let operator_canister_id = resolve_operator(&agent, &engine_canister, subnet).await?;
+    Ok(CloudEngineOperatorBindingSourceData {
+        source: request.clone(),
+        subnet_id: subnet.to_text(),
+        operator_canister_id: operator_canister_id.map(|principal| principal.to_text()),
+        query_call_count: 1,
+    })
+}
+
 async fn fetch_live_operator(
     request: &CloudEngineSourceRequest,
     subnet: Principal,
 ) -> Result<CloudEngineOperatorSourceData, CloudEngineHostError> {
     let (agent, engine_canister) = live_agent_and_canister(request)?;
-    let resolve_arg = encode_one(
-        &GetEngineOperatorBySubnetArgs {
-            subnet_id: Some(subnet),
-        },
-        "GetEngineOperatorBySubnetArgs",
-    )?;
-    let resolved: GetEngineOperatorBySubnetResult = query_candid(
-        &agent,
-        &engine_canister,
-        GET_ENGINE_OPERATOR_BY_SUBNET_METHOD,
-        resolve_arg,
-        "GetEngineOperatorBySubnetResult",
-    )
-    .await?;
-    let Some(operator) = resolved.engine_operator_id else {
+    let resolved = resolve_operator(&agent, &engine_canister, subnet).await?;
+    let Some(operator) = resolved else {
         return Ok(CloudEngineOperatorSourceData {
             source: request.clone(),
             subnet_id: subnet.to_text(),
@@ -206,6 +235,28 @@ async fn fetch_live_operator(
         claimed_domains: domains.domains,
         query_call_count: 5,
     })
+}
+
+async fn resolve_operator(
+    agent: &ic_agent::Agent,
+    engine_canister: &Principal,
+    subnet: Principal,
+) -> Result<Option<Principal>, CloudEngineHostError> {
+    let resolve_arg = encode_one(
+        &GetEngineOperatorBySubnetArgs {
+            subnet_id: Some(subnet),
+        },
+        "GetEngineOperatorBySubnetArgs",
+    )?;
+    let resolved: GetEngineOperatorBySubnetResult = query_candid(
+        agent,
+        engine_canister,
+        GET_ENGINE_OPERATOR_BY_SUBNET_METHOD,
+        resolve_arg,
+        "GetEngineOperatorBySubnetResult",
+    )
+    .await?;
+    Ok(resolved.engine_operator_id)
 }
 
 async fn fetch_live_prices(

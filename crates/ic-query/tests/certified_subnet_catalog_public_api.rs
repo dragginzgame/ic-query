@@ -31,7 +31,7 @@ fn focused_certified_subnet_catalog_surface_is_constructible() {
     );
     let request = NnsCertifiedSubnetCatalogLoadRequest::publish_missing(location.clone(), 300);
 
-    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 2);
+    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 1);
     assert_eq!(NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, 1);
     assert_eq!(replay_limits.max_registry_versions, 100);
     assert_eq!(storage_limits.max_manifest_bytes, 100_000);

@@ -307,7 +307,7 @@ fn host_refresh_request(
 #[must_use]
 fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefreshReport {
     SubnetCatalogRefreshReport {
-        schema_version: 2,
+        schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
         catalog_path: catalog_path.display().to_string(),
         refresh_lock_path: subnet_catalog_refresh_lock_path(root, MAINNET_NETWORK)

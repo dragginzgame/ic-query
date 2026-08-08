@@ -36,6 +36,7 @@ expected_ci_targets=(
   type-docs-check
   public-docs-check
   dependency-check
+  schema-version-check
   fmt-check
   check
   clippy
@@ -53,6 +54,21 @@ done
 workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/workflows/ci.yml" || true)"
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
+
+schema_version_case="${work_dir}/schema-version"
+mkdir -p "${schema_version_case}"
+cat > "${schema_version_case}/current.rs" <<'EOF'
+pub const REPORT_SCHEMA_VERSION: u32 = 1;
+EOF
+bash "${repo_root}/scripts/ci/check-schema-versions.sh" "${schema_version_case}" \
+  || fail "the schema-version check rejected the current pre-1.0 identifier"
+cat > "${schema_version_case}/future.rs" <<'EOF'
+pub const CACHE_SCHEMA_VERSION: u32 = 2;
+EOF
+if bash "${repo_root}/scripts/ci/check-schema-versions.sh" "${schema_version_case}" \
+  >/dev/null 2>&1; then
+  fail "the schema-version check accepted a pre-1.0 version bump"
+fi
 
 install_case="${work_dir}/install"
 mkdir -p "${install_case}/bin"

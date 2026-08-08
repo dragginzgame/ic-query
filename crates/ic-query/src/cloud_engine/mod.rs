@@ -2,6 +2,8 @@
 
 #[cfg(feature = "cloud-engine-host")]
 mod build;
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+mod list;
 mod model;
 #[cfg(feature = "cloud-engine-host")]
 mod source;
@@ -19,14 +21,26 @@ pub use build::{
     build_cloud_engine_operator_report, build_cloud_engine_operator_report_with_source,
     build_cloud_engine_prices_report, build_cloud_engine_prices_report_with_source,
 };
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+pub use list::{build_cloud_engine_list_report, build_cloud_engine_list_report_with_sources};
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+pub use model::{CloudEngineListReport, CloudEngineListRow, CloudEngineOperatorLookupStatus};
 pub use model::{
     CloudEngineNodeType, CloudEngineOperatorReport, CloudEnginePriceRow, CloudEnginePricesReport,
     CloudEngineReportContext,
 };
 #[cfg(feature = "cloud-engine-host")]
-pub use model::{CloudEngineOperatorSourceData, CloudEnginePricesSourceData};
+pub use model::{
+    CloudEngineOperatorBindingSourceData, CloudEngineOperatorSourceData,
+    CloudEnginePricesSourceData,
+};
 #[cfg(feature = "cloud-engine-host")]
-pub use source::{CloudEngineSource, CloudEngineSourceRequest, LiveCloudEngineSource};
+pub use source::{
+    CloudEngineOperatorBindingSource, CloudEngineSource, CloudEngineSourceRequest,
+    LiveCloudEngineSource,
+};
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+pub use text::cloud_engine_list_report_text;
 pub use text::{cloud_engine_operator_report_text, cloud_engine_prices_report_text};
 
 /// Mainnet CloudEngine control-plane registry canister principal.
@@ -37,6 +51,9 @@ pub const DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 /// Maximum marketplace rows accepted from one live response.
 pub const MAX_CLOUD_ENGINE_PRICE_ROWS: usize = 1_000;
+
+/// Maximum Registry CloudEngine Subnets followed by one list invocation.
+pub const MAX_CLOUD_ENGINE_LIST_ROWS: usize = 100;
 
 /// Maximum claimed domains accepted from one engine operator.
 pub const MAX_CLOUD_ENGINE_DOMAINS: usize = 100;
@@ -125,6 +142,11 @@ pub enum CloudEngineHostError {
         /// Deterministic source-contract failure.
         reason: String,
     },
+
+    /// The Registry-backed Subnet Catalog could not supply the list inventory.
+    #[cfg(feature = "subnet-catalog-host")]
+    #[error(transparent)]
+    SubnetCatalog(#[from] crate::subnet_catalog::SubnetCatalogHostError),
 
     /// The synchronous host runtime could not execute the live query.
     #[error(transparent)]

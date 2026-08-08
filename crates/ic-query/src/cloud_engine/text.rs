@@ -4,12 +4,150 @@
 //! Does not own: report construction, JSON output, live calls, or process output.
 //! Boundary: formats cycle amounts only for text while JSON retains raw decimal fields.
 
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+use super::{CloudEngineListReport, CloudEngineOperatorLookupStatus};
 use super::{CloudEngineOperatorReport, CloudEnginePricesReport, CloudEngineReportContext};
 use crate::{
     human_quantity::decimal_cycle_count_text,
     table::{ColumnAlign, render_table},
     text_value::{optional_text, sanitize_text, yes_no},
 };
+
+/// Render the Registry CloudEngine inventory and separate operator-binding observations.
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+#[must_use]
+pub fn cloud_engine_list_report_text(report: &CloudEngineListReport) -> String {
+    let mut lines = list_context_lines(report);
+    lines.push(String::new());
+    lines.push("CloudEngine subnets".to_string());
+    if report.cloud_engines.is_empty() {
+        lines.push("none".to_string());
+        return lines.join("\n");
+    }
+    lines.push(list_table(report));
+    append_lookup_failures(report, &mut lines);
+    lines.join("\n")
+}
+
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+fn list_context_lines(report: &CloudEngineListReport) -> Vec<String> {
+    vec![
+        format!("network: {}", sanitize_text(&report.network)),
+        format!(
+            "registry_authority: {}",
+            sanitize_text(&report.registry_authority)
+        ),
+        format!("registry_canister_id: {}", report.registry_canister_id),
+        format!("registry_version: {}", report.registry_version),
+        format!("registry_assurance: {}", report.registry_assurance.as_str()),
+        format!(
+            "registry_source_endpoints: {}",
+            report
+                .registry_source_endpoints
+                .iter()
+                .map(|endpoint| sanitize_text(endpoint))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        format!(
+            "catalog_fetched_at: {}",
+            sanitize_text(&report.catalog_fetched_at)
+        ),
+        format!(
+            "catalog_cache_disposition: {}",
+            report.catalog_cache_disposition.as_str()
+        ),
+        format!("catalog_stale: {}", yes_no(report.catalog_stale)),
+        String::new(),
+        format!(
+            "control_plane_authority: {}",
+            sanitize_text(&report.control_plane_authority)
+        ),
+        format!(
+            "control_plane_canister_id: {}",
+            report.control_plane_canister_id
+        ),
+        format!(
+            "control_plane_source_endpoint: {}",
+            sanitize_text(&report.control_plane_source_endpoint)
+        ),
+        format!(
+            "control_plane_fetched_at: {}",
+            sanitize_text(&report.control_plane_fetched_at)
+        ),
+        format!(
+            "control_plane_certified: {}",
+            yes_no(report.control_plane_certified)
+        ),
+        format!(
+            "control_plane_point_in_time_guaranteed: {}",
+            yes_no(report.control_plane_point_in_time_guaranteed)
+        ),
+        format!(
+            "control_plane_lookup_attempt_count: {}",
+            report.control_plane_lookup_attempt_count
+        ),
+        format!(
+            "operator_bindings: {} resolved, {} absent, {} failed",
+            report.operator_binding_count,
+            report.missing_operator_binding_count,
+            report.operator_lookup_failure_count
+        ),
+    ]
+}
+
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+fn list_table(report: &CloudEngineListReport) -> String {
+    let headers = ["Label", "Subnet", "Nodes", "Binding", "Operator"];
+    let alignments = [
+        ColumnAlign::Left,
+        ColumnAlign::Left,
+        ColumnAlign::Right,
+        ColumnAlign::Left,
+        ColumnAlign::Left,
+    ];
+    let rows = report
+        .cloud_engines
+        .iter()
+        .map(|row| {
+            [
+                sanitize_text(&row.subnet_label),
+                row.subnet_id.clone(),
+                row.node_count
+                    .map_or_else(|| "unknown".to_string(), |count| count.to_string()),
+                row.operator_lookup_status.as_str().to_string(),
+                row.operator_canister_id
+                    .clone()
+                    .unwrap_or_else(|| "-".to_string()),
+            ]
+        })
+        .collect::<Vec<_>>();
+    render_table(&headers, &rows, &alignments)
+}
+
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+fn append_lookup_failures(report: &CloudEngineListReport, lines: &mut Vec<String>) {
+    let failures = report
+        .cloud_engines
+        .iter()
+        .filter(|row| row.operator_lookup_status == CloudEngineOperatorLookupStatus::Failed)
+        .collect::<Vec<_>>();
+    if !failures.is_empty() {
+        lines.push(String::new());
+        lines.push("Operator lookup failures".to_string());
+        lines.extend(failures.into_iter().map(|row| {
+            format!(
+                "  {}: {}",
+                row.subnet_id,
+                sanitize_text(
+                    row.operator_lookup_error
+                        .as_deref()
+                        .unwrap_or("unspecified lookup failure")
+                )
+            )
+        }));
+    }
+}
 
 /// Render one CloudEngine Subnet-to-operator report.
 #[must_use]

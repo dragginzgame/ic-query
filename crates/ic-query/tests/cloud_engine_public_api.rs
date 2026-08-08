@@ -1,7 +1,8 @@
 #[cfg(feature = "cloud-engine-host")]
 use ic_query::cloud_engine::{
-    CloudEngineHostError, CloudEngineOperatorSourceData, CloudEnginePricesSourceData,
-    CloudEngineSource, CloudEngineSourceRequest, build_cloud_engine_operator_report_with_source,
+    CloudEngineHostError, CloudEngineOperatorBindingSource, CloudEngineOperatorBindingSourceData,
+    CloudEngineOperatorSourceData, CloudEnginePricesSourceData, CloudEngineSource,
+    CloudEngineSourceRequest, build_cloud_engine_operator_report_with_source,
     build_cloud_engine_prices_report_with_source,
 };
 use ic_query::cloud_engine::{
@@ -10,6 +11,14 @@ use ic_query::cloud_engine::{
     MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS,
     MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS, cloud_engine_operator_report_text,
     cloud_engine_prices_report_text,
+};
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+use ic_query::{
+    cloud_engine::{
+        CloudEngineListReport, MAX_CLOUD_ENGINE_LIST_ROWS, build_cloud_engine_list_report,
+        build_cloud_engine_list_report_with_sources, cloud_engine_list_report_text,
+    },
+    subnet_catalog::SubnetCatalogListRequest,
 };
 
 const SUBNET_ID: &str = "2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe";
@@ -70,6 +79,22 @@ fn public_cloud_engine_host_api_accepts_a_custom_source() {
     assert_eq!(prices.context.query_call_count, 2);
 }
 
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
+#[test]
+fn public_cloud_engine_list_api_exposes_bounded_registry_join() {
+    let _: fn(
+        &SubnetCatalogListRequest,
+        &CloudEngineSourceRequest,
+    ) -> Result<CloudEngineListReport, CloudEngineHostError> = build_cloud_engine_list_report;
+    assert_eq!(
+        std::mem::size_of_val(&build_cloud_engine_list_report_with_sources),
+        0
+    );
+    let _: fn(&CloudEngineListReport) -> String = cloud_engine_list_report_text;
+
+    assert_eq!(MAX_CLOUD_ENGINE_LIST_ROWS, 100);
+}
+
 #[cfg(feature = "cloud-engine-host")]
 struct Fixture;
 
@@ -101,6 +126,22 @@ impl CloudEngineSource for Fixture {
             network_fee: 0.25,
             prices: vec![price_row()],
             query_call_count: 2,
+        })
+    }
+}
+
+#[cfg(feature = "cloud-engine-host")]
+impl CloudEngineOperatorBindingSource for Fixture {
+    fn fetch_operator_binding(
+        &self,
+        request: &CloudEngineSourceRequest,
+        subnet_id: &str,
+    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
+        Ok(CloudEngineOperatorBindingSourceData {
+            source: request.clone(),
+            subnet_id: subnet_id.to_string(),
+            operator_canister_id: Some(OPERATOR_ID.to_string()),
+            query_call_count: 1,
         })
     }
 }

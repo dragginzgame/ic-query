@@ -11,6 +11,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.31.md](docs/changelog/0.31.md)
 
+- `0.31.1` hard-cuts the remaining active pre-1.0 schema identifiers to `1`
+  across Registry-version and certified-delta reports, certified Registry
+  archive manifests, ordinary Subnet Catalog caches, and Subnet Catalog
+  list/info/refresh reports. Current shapes are unchanged. Content carrying
+  another identifier is rejected without compatibility readers, migration, or
+  automatic rewriting and must be explicitly refreshed or bootstrapped. CI now
+  rejects active Rust schema constants above `1`.
+
+- `0.31.1` adds `cloud-engine list`. It reads the complete Registry-classified
+  CloudEngine Subnet inventory from the existing Subnet Catalog cache policy,
+  then makes one exact public control-plane operator-binding query per row, up
+  to 100. Registry and control-plane authority remain separate, and an absent
+  binding remains distinct from a per-row lookup failure. Operator details stay
+  in `cloud-engine info`.
+
+```bash
+icq --network ic cloud-engine list
+icq --network ic cloud-engine list --json
+```
+
 - `0.31.0` adds the top-level, mainnet-only `cloud-engine` family. `info`
   resolves one Subnet and, when an operator binding is returned, fetches four
   public details in a five-call bounded report; `prices` fetches the network

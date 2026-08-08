@@ -250,7 +250,7 @@ mod tests {
         assert!(text.contains("cache"));
         assert!(text.contains("Inspect the local ic-query cache"));
         assert!(text.contains("cloud-engine"));
-        assert!(text.contains("Inspect public CloudEngine control-plane metadata"));
+        assert!(text.contains("Inspect public CloudEngine metadata"));
         assert!(text.contains("icrc"));
         assert!(text.contains("Inspect generic ICRC ledgers"));
         assert!(text.contains("nns"));

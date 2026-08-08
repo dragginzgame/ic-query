@@ -82,9 +82,9 @@ fn certified_delta_public_builder_validates_custom_source_evidence() {
 fn certified_delta_pure_validator_rejects_sequence_and_derived_field_tampering() {
     let request = certified_delta_request();
     let mut report = certified_delta_report(&request);
-    report.schema_version = 2;
+    report.schema_version = u32::MAX;
     let error = validate_nns_certified_registry_delta_batch(&request, &report)
-        .expect_err("obsolete report schema");
+        .expect_err("unsupported report schema");
     assert!(matches!(
         error,
         NnsRegistryHostError::InvalidSourceData { reason }
@@ -290,7 +290,7 @@ fn registry_version_report_uses_live_source_shape() {
     let report = build_nns_registry_version_report_with_source(&request, &FixtureNnsRegistrySource)
         .expect("registry version report");
 
-    assert_eq!(report.schema_version, 2);
+    assert_eq!(report.schema_version, 1);
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(report.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
     assert_eq!(report.registry_version, 42);
@@ -342,7 +342,7 @@ fn registry_version_report_rejects_unverified_custom_source_evidence() {
 #[test]
 fn registry_version_text_is_key_value_output() {
     let report = NnsRegistryVersionReport {
-        schema_version: 2,
+        schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 42,
@@ -445,7 +445,7 @@ fn certified_delta_report(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
 ) -> NnsCertifiedRegistryDeltaBatchReport {
     NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 3,
+        schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         requested_version: request.requested_version,

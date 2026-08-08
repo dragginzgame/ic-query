@@ -11,7 +11,8 @@
 //! `std` types such as `String` and `Vec`.
 //!
 //! Enable `dashboard-host` for official Dashboard live/cache APIs,
-//! `cloud-engine-host` for native CloudEngine control-plane reports,
+//! `cloud-engine-host` for native CloudEngine control-plane reports (combine it
+//! with `subnet-catalog-host` for the Registry-backed CloudEngine list),
 //! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for native SNS
 //! live/cache APIs, `cmc-host` for certified Cycles Minting Canister reports,
 //! `subnet-catalog-host` for the focused live/cache Subnet catalog API,
