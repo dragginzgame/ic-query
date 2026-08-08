@@ -7,7 +7,7 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.31.x] - Unreleased - CloudEngine control-plane reporting
+## [0.31.x] - 2026-08-08 - CloudEngine control-plane reporting
 
 Detailed release notes: [docs/changelog/0.31.md](docs/changelog/0.31.md)
 
