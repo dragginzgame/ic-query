@@ -6,7 +6,7 @@ use super::{
     build_nns_neuron_cache_status_report, build_nns_neuron_info_report_from_cache,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
     build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
-    refresh_nns_neuron_cache_with_source,
+    nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
 };
 use crate::{
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
@@ -280,6 +280,50 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
 }
 
 #[test]
+fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
+    let root = temp_dir("ic-query-nns-neuron-cache-identity");
+    let refresh_request = NnsGovernanceRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        1_700_000_000,
+        2,
+    );
+    refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
+        .expect("refresh complete neuron cache");
+    let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).expect("read neuron cache"))
+            .expect("parse neuron cache");
+    cache["collection"] = serde_json::json!("wrong");
+    fs::write(
+        &path,
+        serde_json::to_vec_pretty(&cache).expect("serialize invalid cache"),
+    )
+    .expect("replace neuron cache");
+
+    let request = NnsNeuronListRequest::new(
+        MAINNET_NETWORK,
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        1_700_000_001,
+        2,
+    );
+    let error = build_nns_neuron_list_report_from_cache(&request, &root)
+        .expect_err("identity mismatch must remain typed");
+
+    assert!(matches!(
+        error,
+        NnsNeuronHostError::CacheIdentityMismatch {
+            path: error_path,
+            field: "collection",
+            expected,
+            actual,
+        } if error_path == path && expected == "neurons" && actual == "wrong"
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     let root = temp_dir("ic-query-nns-neuron-incomplete");
     let request = NnsGovernanceRefreshRequest::new(
@@ -314,6 +358,41 @@ fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     assert_eq!(attempt.pages_fetched, 1);
     assert_eq!(attempt.rows_fetched, 2);
     assert_eq!(attempt.last_cursor.as_deref(), Some("2"));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn cache_status_distinguishes_invalid_attempt_evidence_from_the_snapshot() {
+    let root = temp_dir("ic-query-nns-neuron-invalid-attempt");
+    let refresh_request = NnsGovernanceRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        1_700_000_000,
+        2,
+    );
+    refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
+        .expect("refresh complete neuron cache");
+    let attempt_path = nns_neuron_refresh_attempt_path(&root, MAINNET_NETWORK);
+    let mut attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(&attempt_path).expect("read attempt"))
+            .expect("parse attempt");
+    attempt["governance_canister_id"] = serde_json::Value::String("aaaaa-aa".to_string());
+    let invalid_attempt = serde_json::to_string_pretty(&attempt).expect("serialize attempt");
+    crate::cache_file::write_managed_text_atomically(&root, &attempt_path, &invalid_attempt)
+        .expect("replace attempt");
+
+    let error = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
+        &root,
+        MAINNET_NETWORK,
+    ))
+    .expect_err("invalid attempt must remain distinct from the complete snapshot");
+
+    assert!(matches!(
+        error,
+        NnsNeuronHostError::InvalidRefreshAttempt { path, reason }
+            if path == attempt_path && reason.contains("governance_canister_id")
+    ));
     let _ = fs::remove_dir_all(root);
 }
 

@@ -4,7 +4,6 @@
 //! Does not own: command parsing, live governance transport, or text rendering.
 //! Boundary: stores complete proposal snapshots and refresh-attempt metadata.
 
-mod attempt;
 mod collection;
 mod model;
 mod paths;

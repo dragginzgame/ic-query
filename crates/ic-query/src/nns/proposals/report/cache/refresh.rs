@@ -5,17 +5,17 @@
 //! Boundary: acquires the refresh lock, fetches pages, and publishes snapshots.
 
 use super::{
-    NNS_PROPOSAL_CACHE_COMPONENT,
-    attempt::{write_failed_attempt, write_starting_attempt},
-    collection::fetch_complete_nns_proposal_collection,
-    model::NnsProposalRefreshReport,
-    paths::nns_proposal_cache_paths,
+    NNS_PROPOSAL_CACHE_COMPONENT, collection::fetch_complete_nns_proposal_collection,
+    model::NnsProposalRefreshReport, paths::nns_proposal_cache_paths,
     publish::publish_complete_nns_proposal_cache,
 };
 use crate::{
     HostCacheError, QueryProgress,
     nns::{
         LiveNnsSource, NnsGovernanceRefreshRequest,
+        governance::{
+            write_failed_governance_refresh_attempt, write_starting_governance_refresh_attempt,
+        },
         proposals::report::{
             NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE, NnsProposalHostError, enforce_mainnet_network,
             source::NnsProposalSource,
@@ -83,7 +83,14 @@ pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
         },
         |refresh_state| {
             run_snapshot_refresh_with_attempts(
-                || write_starting_attempt(&paths.refresh_attempt_path, request),
+                || {
+                    write_starting_governance_refresh_attempt(
+                        &paths.refresh_attempt_path,
+                        request,
+                        NNS_PROPOSAL_CACHE_COMPONENT,
+                    )
+                    .map_err(NnsProposalHostError::from)
+                },
                 || {
                     let complete = fetch_complete_nns_proposal_collection(
                         request,
@@ -98,7 +105,14 @@ pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
                         complete,
                     )
                 },
-                |err| write_failed_attempt(&paths.refresh_attempt_path, request, err),
+                |error| {
+                    let _ = write_failed_governance_refresh_attempt(
+                        &paths.refresh_attempt_path,
+                        request,
+                        NNS_PROPOSAL_CACHE_COMPONENT,
+                        error.to_string(),
+                    );
+                },
             )
         },
     )

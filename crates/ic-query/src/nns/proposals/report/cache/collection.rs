@@ -4,12 +4,13 @@
 //! Does not own: refresh locking, cache publication, or command parsing.
 //! Boundary: drives proposal paging and refresh-attempt progress updates.
 
-use super::{attempt::write_running_attempt, model::CompleteNnsProposalCollection};
+use super::{NNS_PROPOSAL_CACHE_COMPONENT, model::CompleteNnsProposalCollection};
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 use crate::{
     QueryProgress,
     nns::{
         NnsGovernanceRefreshRequest, NnsSourceRequest,
+        governance::write_running_governance_refresh_attempt,
         proposals::report::{
             NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
             model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
@@ -99,15 +100,17 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
-        write_running_attempt(
+        write_running_governance_refresh_attempt(
             self.attempt_path,
             self.request,
+            NNS_PROPOSAL_CACHE_COMPONENT,
             SnapshotRefreshProgress::new(
                 self.state.page_count(),
                 self.state.row_count(),
                 page.last_cursor_text.clone(),
             ),
         )
+        .map_err(NnsProposalHostError::from)
     }
 
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {

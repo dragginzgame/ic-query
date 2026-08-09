@@ -2,7 +2,7 @@ use super::{
     NnsInventoryCacheRequest, NnsInventoryListRequest, NnsNodeOperatorHostError,
     NnsNodeOperatorListReport, NnsNodeOperatorRow, NnsNodeOperatorSource,
     build_nns_node_operator_list_report_with_source, nns_node_operator_list_report_text,
-    resolve_node_operator,
+    nns_node_operator_list_report_verbose_text, resolve_node_operator,
 };
 use crate::ic_registry::MainnetNodeOperator;
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
@@ -70,6 +70,7 @@ fn node_operator_text_keeps_compact_principals() {
     let report = node_operator_report_fixture();
 
     let text = nns_node_operator_list_report_text(&report);
+    let verbose_text = nns_node_operator_list_report_verbose_text(&report);
 
     assert!(text.contains("node_operators: ic count 1"));
     assert!(text.contains("NODE_OPERATOR"));
@@ -77,6 +78,8 @@ fn node_operator_text_keeps_compact_principals() {
     assert!(text.contains("aaaaa"));
     assert!(text.contains("13"));
     assert!(!text.contains("ryjl3-tyaaa-aaaaa-aaaba-cai"));
+    assert!(text.contains("fetched_at 2026-06-04T00:00:00Z\n\nNODE_OPERATOR"));
+    assert!(verbose_text.contains("fetched_by: test\n\nNODE_OPERATOR"));
 }
 
 #[test]

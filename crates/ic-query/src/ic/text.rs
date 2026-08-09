@@ -21,6 +21,25 @@ use crate::{
 const IC_REPLICA_VERSION_TITLE_TEXT_LIMIT: usize = 80;
 const IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT: usize = 240;
 
+pub fn dashboard_provenance_lines(provenance: &IcDashboardReportProvenance) -> Vec<String> {
+    vec![
+        format!("schema_version: {}", provenance.schema_version),
+        format!("network: {}", sanitize_text(&provenance.network)),
+        format!("authority: {}", sanitize_text(&provenance.authority)),
+        format!(
+            "source_endpoint: {}",
+            sanitize_text(&provenance.source_endpoint)
+        ),
+        format!("fetched_at: {}", sanitize_text(&provenance.fetched_at)),
+        format!("fetched_by: {}", sanitize_text(&provenance.fetched_by)),
+        format!("certified: {}", yes_no(provenance.certified)),
+        format!(
+            "point_in_time_guaranteed: {}",
+            yes_no(provenance.point_in_time_guaranteed)
+        ),
+    ]
+}
+
 /// Render one official boundary-node data-center report as human-facing text.
 #[must_use]
 pub fn ic_boundary_node_data_centers_report_text(

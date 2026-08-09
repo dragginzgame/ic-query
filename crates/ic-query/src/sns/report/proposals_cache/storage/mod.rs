@@ -16,10 +16,6 @@ use crate::sns::report::{
 };
 use std::path::PathBuf;
 
-mod lookup;
-
-pub(super) use lookup::load_sns_proposals_cache_for_input_with_path;
-
 impl SnsCacheStorageFamily for SnsProposalsCacheCollection {
     type Data = SnsProposalsCacheRows;
 

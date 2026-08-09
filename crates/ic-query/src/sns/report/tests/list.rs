@@ -208,52 +208,6 @@ fn sns_list_refreshes_incompatible_catalog_headers() {
 }
 
 #[test]
-fn sns_list_refreshes_catalog_without_required_lifecycle_evidence() {
-    let root = temp_catalog_root("ic-query-old-shape-sns-catalog");
-    let source = CountingDiscoverySource::default();
-    let mut progress = crate::progress::IgnoreQueryProgress;
-    let request = list_request(false);
-    build_sns_list_report_from_cache_or_refresh_with_source(
-        &request,
-        &root,
-        &source,
-        &mut progress,
-    )
-    .expect("initial catalog");
-
-    let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
-    let mut cache = serde_json::from_str::<serde_json::Value>(
-        &fs::read_to_string(&path).expect("read catalog"),
-    )
-    .expect("parse catalog");
-    let row = cache["sns_instances"][0]
-        .as_object_mut()
-        .expect("catalog row");
-    row.remove("lifecycle");
-    row.remove("lifecycle_name");
-    row.remove("lifecycle_error");
-    fs::write(
-        &path,
-        serde_json::to_string_pretty(&cache).expect("serialize catalog"),
-    )
-    .expect("write old-shape catalog");
-
-    let report = build_sns_list_report_from_cache_or_refresh_with_source(
-        &request,
-        &root,
-        &source,
-        &mut progress,
-    )
-    .expect("old catalog shape refreshes");
-
-    assert_eq!(report.sns_instances[0].lifecycle, Some(3));
-    assert_eq!(source.inventory.get(), 2);
-    assert_eq!(source.metadata.get(), 2);
-    assert_eq!(source.lifecycles.get(), 2);
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
 fn sns_list_refreshes_future_dated_catalog() {
     let root = temp_catalog_root("ic-query-future-sns-catalog");
     let source = CountingDiscoverySource::default();

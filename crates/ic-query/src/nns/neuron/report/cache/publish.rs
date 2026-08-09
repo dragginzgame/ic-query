@@ -6,9 +6,7 @@
 
 use super::{
     NNS_NEURON_CACHE_COMPONENT, NNS_NEURON_CACHE_SCHEMA_VERSION,
-    NNS_NEURON_REFRESH_REPORT_SCHEMA_VERSION,
-    attempt::write_complete_attempt,
-    cache_operation,
+    NNS_NEURON_REFRESH_REPORT_SCHEMA_VERSION, cache_operation,
     model::{CompleteNeuronCollection, NnsNeuronCache, NnsNeuronCacheRows, NnsNeuronRefreshReport},
     paths::{NNS_NEURON_CACHE_COLLECTION, NNS_NEURON_CACHE_DOMAIN, NNS_NEURON_CACHE_ENTITY},
 };
@@ -18,7 +16,9 @@ use crate::{
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
         NnsGovernanceRefreshRequest,
-        governance::mainnet_governance_cache_metadata,
+        governance::{
+            mainnet_governance_cache_metadata, write_complete_governance_refresh_attempt,
+        },
         neuron::report::{NNS_NEURON_FETCHED_BY, NnsNeuronHostError, source::validate_neuron_rows},
     },
     snapshot_cache::{
@@ -78,7 +78,15 @@ pub(super) fn publish_complete_neuron_cache(
                 cache_operation,
             )
         },
-        || write_complete_attempt(&paths.refresh_attempt_path, request, progress),
+        || {
+            write_complete_governance_refresh_attempt(
+                &paths.refresh_attempt_path,
+                request,
+                NNS_NEURON_CACHE_COMPONENT,
+                progress,
+            )
+            .map_err(NnsNeuronHostError::from)
+        },
     )?;
     Ok(NnsNeuronRefreshReport {
         schema_version: NNS_NEURON_REFRESH_REPORT_SCHEMA_VERSION,

@@ -120,6 +120,13 @@ pub use source::{
     IcMetricSource, IcNetworkSource, IcNodeProviderRewardSource, IcNodeStatusSource,
     IcReplicaVersionSource,
 };
+#[cfg(feature = "dashboard-host")]
+pub(crate) use source::{
+    canonical_request_principal, dashboard_source_request, invalid_source, invalid_source_value,
+    report_provenance, validate_canonical_principal, validate_dashboard_network,
+    validate_provenance,
+};
+pub(crate) use text::dashboard_provenance_lines;
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,

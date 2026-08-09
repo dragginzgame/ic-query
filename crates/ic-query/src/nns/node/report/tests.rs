@@ -2,7 +2,7 @@ use super::{
     NnsInventoryCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
     NnsNodeListRequest, NnsNodeRow, NnsNodeSource, build_nns_node_list_report_with_source,
     cache::load_cached_nns_node_report, filter_node_list_report, nns_node_cache_path,
-    nns_node_list_report_text, resolve_node,
+    nns_node_list_report_text, nns_node_list_report_verbose_text, resolve_node,
 };
 use crate::ic_registry::MainnetNode;
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
@@ -126,11 +126,14 @@ fn node_text_keeps_compact_principals() {
     let report = node_report_fixture();
 
     let text = nns_node_list_report_text(&report);
+    let verbose_text = nns_node_list_report_verbose_text(&report);
 
     assert!(text.contains("nodes: ic count 1"));
     assert!(text.contains("NODE"));
     assert!(text.contains("ryjl3"));
     assert!(!text.contains("ryjl3-tyaaa-aaaaa-aaaba-cai"));
+    assert!(text.contains("fetched_at 2026-06-04T00:00:00Z\n\nNODE"));
+    assert!(verbose_text.contains("fetched_by: test\n\nNODE"));
 }
 
 #[test]

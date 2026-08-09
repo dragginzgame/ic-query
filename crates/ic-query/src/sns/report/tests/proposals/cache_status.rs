@@ -134,11 +134,13 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
         cache_root: root.clone(),
     })
     .expect("proposal cache list");
+    let list_text = sns_proposals_cache_list_report_text(&list);
     assert_eq!(list.cache_count, 1);
     assert_eq!(list.caches[0].id, 1);
     assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
     assert_eq!(list.caches[0].cache_error, None);
     assert_eq!(list.caches[0].row_count, 1);
+    assert!(list_text.contains("COMPLETE"));
 
     let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -162,6 +164,8 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     );
     assert!(text.contains("found: yes"));
     assert!(text.contains("row_count: 1"));
+    assert_eq!(text.matches("refresh_attempt_path:").count(), 1);
+    assert!(text.contains("\n\nlatest_attempt:\n  status: complete"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -183,6 +187,16 @@ fn sns_proposals_cache_status_reports_missing_cache() {
     assert!(status.latest_attempt.is_none());
     assert!(text.contains("found: no"));
     assert!(text.contains("refresh_hint: icq sns proposal refresh"));
+
+    let numeric_status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
+        network: MAINNET_NETWORK.to_string(),
+        cache_root: root.clone(),
+        input: "99".to_string(),
+    })
+    .expect("missing numeric proposal cache status");
+    let numeric_text = sns_proposals_cache_status_report_text(&numeric_status);
+    assert!(numeric_status.expected_cache_path.is_none());
+    assert!(numeric_text.contains("refresh_hint: icq sns proposal refresh 99"));
 
     let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),

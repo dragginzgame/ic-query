@@ -1,13 +1,8 @@
 mod read;
 mod refresh;
 
-use super::commands::topology_command;
 use crate::nns::NnsCommandError;
 use clap::ArgMatches;
-
-pub(in crate::nns) fn command() -> clap::Command {
-    topology_command()
-}
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {

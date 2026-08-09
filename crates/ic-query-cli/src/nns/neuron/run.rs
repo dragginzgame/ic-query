@@ -1,10 +1,7 @@
 //! Runtime dispatch for public NNS neuron commands.
 
-use super::{
-    commands::neuron_command,
-    options::{
-        NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
-    },
+use super::options::{
+    NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
 };
 use crate::{
     nns::{NnsCommandError, command_cache_root, now_unix_secs, write_text_or_json},
@@ -19,9 +16,6 @@ use ic_query::nns::neuron::{
     nns_neuron_refresh_report_text, refresh_nns_neuron_cache_with_progress,
 };
 use ic_query::nns::{NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest};
-pub(in crate::nns) fn command() -> clap::Command {
-    neuron_command()
-}
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {

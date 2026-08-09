@@ -4,11 +4,12 @@
 //! Does not own: refresh locking, cache publication, or command parsing.
 //! Boundary: drives neuron paging and refresh-attempt progress updates.
 
-use super::{attempt::write_running_attempt, model::CompleteNeuronCollection};
+use super::{NNS_NEURON_CACHE_COMPONENT, model::CompleteNeuronCollection};
 use crate::{
     QueryProgress,
     nns::{
         NnsGovernanceRefreshRequest, NnsSourceRequest,
+        governance::write_running_governance_refresh_attempt,
         neuron::report::{
             NNS_NEURON_FETCHED_BY, NnsNeuronHostError,
             model::NnsNeuronRow,
@@ -104,15 +105,17 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
-        write_running_attempt(
+        write_running_governance_refresh_attempt(
             self.attempt_path,
             self.request,
+            NNS_NEURON_CACHE_COMPONENT,
             SnapshotRefreshProgress::new(
                 self.page_count,
                 self.neurons.len(),
                 page.last_cursor_text.clone(),
             ),
         )
+        .map_err(NnsNeuronHostError::from)
     }
 
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {

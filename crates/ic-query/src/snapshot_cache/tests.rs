@@ -183,7 +183,7 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
     write_snapshot_fixture(
         &path,
         serde_json::json!({
-            "schema_version": 1,
+            "schema_version": 999,
             "network": "ic"
         }),
     );
@@ -194,7 +194,7 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
             cache_root: &root,
             path,
             network: "ic",
-            expected_schema_version: 2,
+            expected_schema_version: 1,
         },
         &key,
         FIXTURE_SNAPSHOT_FIELDS,
@@ -207,8 +207,8 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
     assert_eq!(
         error,
         SnapshotLoadTestError::UnsupportedSchema {
-            version: 1,
-            expected: 2,
+            version: 999,
+            expected: 1,
         }
     );
     let _ = fs::remove_dir_all(root);

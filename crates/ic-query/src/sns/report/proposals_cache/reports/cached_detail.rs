@@ -8,9 +8,8 @@ use super::cache_projection::project_sns_proposals_cache;
 use crate::sns::report::{
     MainnetSnsProposal, SnsHostError, SnsProposalReport, SnsProposalRequest,
     assemble::{SnsProposalReportParts, SnsReportProvenance, sns_proposal_report_from_parts},
-    proposals_cache::{
-        model::SnsProposalsCache, storage::load_sns_proposals_cache_for_input_with_path,
-    },
+    cache_storage::load_sns_cache_for_input,
+    proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };
 use std::path::{Path, PathBuf};
 
@@ -19,7 +18,7 @@ pub(in crate::sns::report) fn build_sns_proposal_report_from_cache(
     request: &SnsProposalRequest,
     cache_root: &Path,
 ) -> Result<Option<SnsProposalReport>, SnsHostError> {
-    let (cache_path, cache) = match load_sns_proposals_cache_for_input_with_path(
+    let (cache_path, cache) = match load_sns_cache_for_input::<SnsProposalsCacheCollection>(
         cache_root,
         &request.network,
         &request.input,

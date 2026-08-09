@@ -16,12 +16,6 @@ pub struct SnapshotKey {
     network: String,
     entity: String,
     collection: String,
-    scope: SnapshotScope,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum SnapshotScope {
-    Full,
 }
 
 impl SnapshotKey {
@@ -36,7 +30,6 @@ impl SnapshotKey {
             network: network.into(),
             entity: entity.into(),
             collection: collection.into(),
-            scope: SnapshotScope::Full,
         }
     }
 
@@ -56,9 +49,7 @@ impl SnapshotKey {
         &self.collection
     }
 
-    pub const fn scope_file_stem(&self) -> &'static str {
-        match self.scope {
-            SnapshotScope::Full => "full",
-        }
+    pub const fn scope_file_stem() -> &'static str {
+        "full"
     }
 }

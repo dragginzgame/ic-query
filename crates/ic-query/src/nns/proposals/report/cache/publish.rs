@@ -7,7 +7,6 @@
 use super::{
     NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
     NNS_PROPOSAL_REFRESH_REPORT_SCHEMA_VERSION,
-    attempt::write_complete_attempt,
     model::{
         CompleteNnsProposalCollection, NnsProposalCache, NnsProposalCacheRows,
         NnsProposalRefreshReport,
@@ -18,7 +17,9 @@ use crate::{
     cache::CacheCollectionCompleteness,
     nns::{
         NnsGovernanceRefreshRequest,
-        governance::mainnet_governance_cache_metadata,
+        governance::{
+            mainnet_governance_cache_metadata, write_complete_governance_refresh_attempt,
+        },
         proposals::report::{
             MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
         },
@@ -84,11 +85,13 @@ pub(super) fn publish_complete_nns_proposal_cache(
             )
         },
         || {
-            write_complete_attempt(
+            write_complete_governance_refresh_attempt(
                 &paths.refresh_attempt_path,
                 request,
+                NNS_PROPOSAL_CACHE_COMPONENT,
                 SnapshotRefreshProgress::new(page_count, proposal_count, last_cursor),
             )
+            .map_err(NnsProposalHostError::from)
         },
     )?;
     Ok(NnsProposalRefreshReport {

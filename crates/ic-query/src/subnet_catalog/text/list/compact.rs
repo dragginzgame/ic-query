@@ -51,6 +51,7 @@ pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> Stri
         lines.push("subnets: none".to_string());
         return lines.join("\n");
     }
+    lines.push(String::new());
     lines.push(render_table(&headers, &rows, &alignments));
     append_compact_range_lines(report, &mut lines);
     lines.join("\n")

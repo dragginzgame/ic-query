@@ -19,8 +19,10 @@ use crate::{
             SnsCacheCollection, SnsSnapshotCachePaths, sns_snapshot_key_for_cache_path,
             sns_snapshot_network_cache_dir,
         },
+        enforce_mainnet_network,
     },
 };
+use candid::Principal;
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
 
@@ -40,6 +42,9 @@ pub(in crate::sns::report) trait SnsCacheStorageFamily:
     const CACHE_ITEM_NAME: &'static str;
 
     fn missing_cache_error(path: PathBuf) -> SnsHostError;
+    fn missing_cache_for_id(_id: usize, root: PathBuf) -> SnsHostError {
+        Self::missing_cache_error(root)
+    }
     fn row_count(data: &Self::Data) -> usize;
     fn validate_rows(data: &Self::Data) -> Result<(), String>;
 }
@@ -206,6 +211,37 @@ where
         SnsSnapshotCachePaths::<Family>::for_root(cache_root, network, root_canister_id).cache_path;
     let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network)?;
     Ok((path, cache))
+}
+
+/// Resolve an SNS id or root principal to one complete family cache.
+pub(in crate::sns::report) fn load_sns_cache_for_input<Family>(
+    cache_root: &Path,
+    network: &str,
+    input: &str,
+) -> Result<SnsStoredCacheWithPath<Family>, SnsHostError>
+where
+    Family: SnsCacheStorageFamily,
+{
+    enforce_mainnet_network(network)?;
+    if let Ok(id) = input.parse::<usize>() {
+        let network_root = sns_snapshot_network_cache_dir(cache_root, network);
+        return load_sns_cache_by_id::<Family>(cache_root, network, id)?
+            .ok_or_else(|| Family::missing_cache_for_id(id, network_root));
+    }
+
+    let root_canister_id = parse_sns_root_canister_input(input)?;
+    load_sns_cache_for_root::<Family>(cache_root, network, &root_canister_id)
+}
+
+/// Parse and normalize an SNS root canister principal input.
+pub(in crate::sns::report) fn parse_sns_root_canister_input(
+    input: &str,
+) -> Result<String, SnsHostError> {
+    Principal::from_text(input)
+        .map_err(|_| SnsHostError::InvalidLookup {
+            input: input.to_string(),
+        })
+        .map(|principal| principal.to_text())
 }
 
 /// Load and validate one complete SNS snapshot cache.

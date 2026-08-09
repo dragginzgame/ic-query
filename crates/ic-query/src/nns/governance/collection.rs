@@ -272,7 +272,7 @@ pub(in crate::nns) fn read_governance_refresh_attempt_status(
 }
 
 /// Construct and write one validated-shape NNS Governance refresh-attempt sidecar.
-pub(in crate::nns) fn write_governance_refresh_attempt(
+fn write_governance_refresh_attempt(
     path: &Path,
     request: &NnsGovernanceRefreshRequest,
     cache_component: &'static str,
@@ -301,6 +301,56 @@ pub(in crate::nns) fn write_governance_refresh_attempt(
         &attempt,
         |path, source| HostCacheError::serialize_cache(cache_component, path, source),
         |error| HostCacheError::operation(cache_component, error),
+    )
+}
+
+/// Write the initial running state for an NNS Governance refresh.
+pub(in crate::nns) fn write_starting_governance_refresh_attempt(
+    path: &Path,
+    request: &NnsGovernanceRefreshRequest,
+    cache_component: &'static str,
+) -> Result<(), HostCacheError> {
+    write_governance_refresh_attempt(
+        path,
+        request,
+        cache_component,
+        CacheRefreshAttemptStatus::Running,
+        SnapshotRefreshProgress::default(),
+        None,
+    )
+}
+
+/// Write the latest retained progress for an NNS Governance refresh.
+pub(in crate::nns) fn write_running_governance_refresh_attempt(
+    path: &Path,
+    request: &NnsGovernanceRefreshRequest,
+    cache_component: &'static str,
+    progress: SnapshotRefreshProgress,
+) -> Result<(), HostCacheError> {
+    write_governance_refresh_attempt(
+        path,
+        request,
+        cache_component,
+        CacheRefreshAttemptStatus::Running,
+        progress,
+        None,
+    )
+}
+
+/// Write the terminal complete state for an NNS Governance refresh.
+pub(in crate::nns) fn write_complete_governance_refresh_attempt(
+    path: &Path,
+    request: &NnsGovernanceRefreshRequest,
+    cache_component: &'static str,
+    progress: SnapshotRefreshProgress,
+) -> Result<(), HostCacheError> {
+    write_governance_refresh_attempt(
+        path,
+        request,
+        cache_component,
+        CacheRefreshAttemptStatus::Complete,
+        progress,
+        None,
     )
 }
 

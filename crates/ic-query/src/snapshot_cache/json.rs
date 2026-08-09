@@ -102,7 +102,11 @@ fn snapshot_identity_mismatch(
             )
         })
         .or_else(|| {
-            identity_field_mismatch("scope", key.scope_file_stem(), snapshot.snapshot_scope())
+            identity_field_mismatch(
+                "scope",
+                SnapshotKey::scope_file_stem(),
+                snapshot.snapshot_scope(),
+            )
         })
 }
 

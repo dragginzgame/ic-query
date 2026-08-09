@@ -6,7 +6,7 @@
 
 use super::{CloudEngineNodeInfoReport, CloudEngineNodeListReport, CloudEngineNodeRow};
 use crate::{
-    ic::IcDashboardReportProvenance,
+    ic::dashboard_provenance_lines,
     table::{ColumnAlign, render_table},
     text_value::{optional_text, sanitize_text, yes_no},
 };
@@ -14,7 +14,7 @@ use crate::{
 /// Render one complete explicitly scoped Type4 node list.
 #[must_use]
 pub fn cloud_engine_node_list_report_text(report: &CloudEngineNodeListReport) -> String {
-    let mut lines = provenance_lines(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("node_reward_type: {}", report.node_reward_type),
         format!("included_statuses: {}", report.included_statuses.join(",")),
@@ -50,7 +50,7 @@ pub fn cloud_engine_node_list_report_text(report: &CloudEngineNodeListReport) ->
 #[must_use]
 pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) -> String {
     let node = &report.node;
-    let mut lines = provenance_lines(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("node_id: {}", node.node_id),
         format!("status: {}", sanitize_text(&node.status)),
@@ -97,25 +97,6 @@ pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) ->
         format!("alert_name: {}", optional_text(node.alert_name.as_ref())),
     ]);
     lines.join("\n")
-}
-
-fn provenance_lines(provenance: &IcDashboardReportProvenance) -> Vec<String> {
-    vec![
-        format!("schema_version: {}", provenance.schema_version),
-        format!("network: {}", sanitize_text(&provenance.network)),
-        format!("authority: {}", sanitize_text(&provenance.authority)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&provenance.source_endpoint)
-        ),
-        format!("fetched_at: {}", sanitize_text(&provenance.fetched_at)),
-        format!("fetched_by: {}", sanitize_text(&provenance.fetched_by)),
-        format!("certified: {}", yes_no(provenance.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(provenance.point_in_time_guaranteed)
-        ),
-    ]
 }
 
 fn node_table(nodes: &[CloudEngineNodeRow]) -> String {

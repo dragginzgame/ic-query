@@ -14,6 +14,7 @@ use crate::{
             SnsProposalReportParts, SnsProposalsReportParts, SnsReportProvenance,
             sns_proposal_report_from_parts, sns_proposals_report_from_parts,
         },
+        enforce_mainnet_network,
         live::LiveSnsSource,
         lookup::{lookup_request_from_parts, resolve_sns_lookup},
         proposals_cache::{
@@ -54,6 +55,7 @@ pub fn build_sns_proposal_report_with_source(
     request: &SnsProposalRequest,
     source: &dyn SnsProposalSource,
 ) -> Result<SnsProposalReport, SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
     if let Some(cache_root) = request.cache_root.as_ref()
         && let Some(report) = build_sns_proposal_report_from_cache(request, cache_root)?
     {
@@ -104,6 +106,7 @@ fn build_sns_proposals_report_with_source_and_progress(
 }
 
 fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), SnsHostError> {
+    enforce_mainnet_network(&request.network)?;
     if request.status == SnsProposalStatusFilter::Decided && request.cache_root.is_none() {
         return Err(SnsHostError::UnsupportedProposalView {
             reason: "`--status decided` requires a complete proposal cache".to_string(),

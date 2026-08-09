@@ -7,7 +7,6 @@
 use super::{
     NNS_NEURON_CACHE_COMPONENT, NNS_NEURON_CACHE_SCHEMA_VERSION,
     NNS_NEURON_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    attempt::read_attempt_status,
     model::{
         NNS_NEURON_CACHE_FIELDS, NnsNeuronCache, NnsNeuronCacheStatusReport, NnsNeuronCacheSummary,
     },
@@ -18,13 +17,11 @@ use super::{
 };
 use crate::{
     HostCacheError,
-    cache::validate_cache_collection_completeness,
-    cache_file::{
-        HostJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache_strict, managed_file_exists,
-    },
+    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
+    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper, managed_file_exists},
     nns::{
         NnsGovernanceCacheRequest,
-        governance::validate_governance_cache_metadata,
+        governance::{read_governance_refresh_attempt_status, validate_governance_cache_metadata},
         neuron::report::{
             NnsNeuronHostError, enforce_mainnet_network,
             model::{
@@ -37,8 +34,9 @@ use crate::{
             },
         },
     },
+    snapshot_cache::{SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key},
 };
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Read a complete neuron snapshot and build a local list page when present.
 pub fn build_nns_neuron_list_report_from_cache(
@@ -118,10 +116,11 @@ pub fn build_nns_neuron_cache_status_report(
     } else {
         None
     };
-    let latest_attempt = read_attempt_status(
+    let latest_attempt = read_governance_refresh_attempt_status(
         &request.cache_root,
         &paths.refresh_attempt_path,
         &request.network,
+        NNS_NEURON_CACHE_COMPONENT,
     )?;
     Ok(NnsNeuronCacheStatusReport {
         schema_version: NNS_NEURON_CACHE_STATUS_REPORT_SCHEMA_VERSION,
@@ -145,19 +144,27 @@ fn load_cache_at(
     path: &Path,
     network: &str,
 ) -> Result<NnsNeuronCache, NnsNeuronHostError> {
-    let cached = load_json_cache_strict::<NnsNeuronCache, _>(
+    let key = SnapshotKey::full(
+        NNS_NEURON_CACHE_DOMAIN,
+        network,
+        NNS_NEURON_CACHE_ENTITY,
+        NNS_NEURON_CACHE_COLLECTION,
+    );
+    let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
             cache_root,
             path: path.to_path_buf(),
             network,
             expected_schema_version: NNS_NEURON_CACHE_SCHEMA_VERSION,
         },
+        &key,
         NNS_NEURON_CACHE_FIELDS,
-        HostJsonCacheErrorMapper::new(NNS_NEURON_CACHE_COMPONENT),
-    )
-    .map_err(NnsNeuronHostError::Cache)?;
-    validate_cache(path, &cached.report)?;
-    Ok(cached.report)
+        OwnerJsonCacheErrorMapper::new(NNS_NEURON_CACHE_COMPONENT, missing_neuron_cache_error),
+        incomplete_snapshot_error,
+        |mismatch| nns_neuron_identity_mismatch_error(path.to_path_buf(), mismatch),
+    )?;
+    validate_cache(path, &cache)?;
+    Ok(cache)
 }
 
 fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHostError> {
@@ -165,20 +172,6 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
         path: path.to_path_buf(),
         reason,
     };
-    for (field, expected, actual) in [
-        ("domain", NNS_NEURON_CACHE_DOMAIN, cache.domain.as_str()),
-        ("entity", NNS_NEURON_CACHE_ENTITY, cache.entity.as_str()),
-        (
-            "collection",
-            NNS_NEURON_CACHE_COLLECTION,
-            cache.collection.as_str(),
-        ),
-        ("scope", "full", cache.scope.as_str()),
-    ] {
-        if actual != expected {
-            return Err(invalid(format!("{field} is {actual}, expected {expected}")));
-        }
-    }
     validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
     validate_cache_collection_completeness(&cache.completeness, cache.data.neurons.len())
         .map_err(invalid)?;
@@ -228,6 +221,33 @@ fn invalid_cache_summary(path: &Path, error: String) -> NnsNeuronCacheSummary {
         fetched_at: String::new(),
         source_endpoint: String::new(),
         cache_path: path.display().to_string(),
+    }
+}
+
+fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsNeuronHostError {
+    NnsNeuronHostError::IncompleteRefresh {
+        pages_fetched: completeness.page_count,
+        rows_fetched: completeness.row_count,
+        reason: "cached NNS neuron snapshot is not complete".to_string(),
+    }
+}
+
+const fn missing_neuron_cache_error(path: PathBuf) -> NnsNeuronHostError {
+    NnsNeuronHostError::Cache(HostCacheError::missing_cache(
+        NNS_NEURON_CACHE_COMPONENT,
+        path,
+    ))
+}
+
+fn nns_neuron_identity_mismatch_error(
+    path: PathBuf,
+    mismatch: SnapshotIdentityMismatch,
+) -> NnsNeuronHostError {
+    NnsNeuronHostError::CacheIdentityMismatch {
+        path,
+        field: mismatch.field,
+        expected: mismatch.expected,
+        actual: mismatch.actual,
     }
 }
 

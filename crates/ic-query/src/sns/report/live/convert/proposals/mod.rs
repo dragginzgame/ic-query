@@ -4,17 +4,15 @@
 //! Does not own: governance transport, proposal request construction, or rendering.
 //! Boundary: maps live proposal data into report rows used by text and JSON output.
 
-mod ballot;
-mod timestamp;
-
 use super::common::clean_optional_text;
-use crate::sns::report::{
-    SnsHostError, SnsProposalAction, SnsProposalDecisionState, SnsProposalFailureReason,
-    SnsProposalRow, SnsProposalTally, hex_bytes,
-    live::types::{SnsGovernanceProposalData, SnsTopic},
+use crate::{
+    sns::report::{
+        SnsHostError, SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState,
+        SnsProposalFailureReason, SnsProposalRow, SnsProposalTally, SnsProposalVote, hex_bytes,
+        live::types::{SnsGovernanceBallot, SnsGovernanceProposalData, SnsTopic},
+    },
+    subnet_catalog::format_utc_timestamp_secs,
 };
-use ballot::sns_proposal_ballot_row;
-use timestamp::{nonzero_timestamp, optional_timestamp_text};
 
 /// Convert one SNS governance proposal wire row into a report row.
 pub(in crate::sns::report::live) fn sns_proposal_row(
@@ -47,9 +45,7 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
             .map(|topic| sns_topic_text(topic).to_string()),
         reject_cost_e8s: proposal.reject_cost_e8s,
         proposal_creation_timestamp_seconds: proposal.proposal_creation_timestamp_seconds,
-        created_at: crate::subnet_catalog::format_utc_timestamp_secs(
-            proposal.proposal_creation_timestamp_seconds,
-        ),
+        created_at: format_utc_timestamp_secs(proposal.proposal_creation_timestamp_seconds),
         decided_timestamp_seconds: nonzero_timestamp(proposal.decided_timestamp_seconds),
         decided_at: optional_timestamp_text(proposal.decided_timestamp_seconds),
         executed_timestamp_seconds: nonzero_timestamp(proposal.executed_timestamp_seconds),
@@ -103,4 +99,29 @@ const fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> SnsPro
     } else {
         SnsProposalDecisionState::Open
     }
+}
+
+fn sns_proposal_ballot_row(
+    (neuron_id, ballot): (String, SnsGovernanceBallot),
+) -> SnsProposalBallotRow {
+    SnsProposalBallotRow {
+        neuron_id,
+        vote: ballot.vote,
+        vote_text: SnsProposalVote::from_code(ballot.vote),
+        cast_timestamp_seconds: ballot.cast_timestamp_seconds,
+        cast_at: optional_timestamp_text(ballot.cast_timestamp_seconds),
+        voting_power: ballot.voting_power,
+    }
+}
+
+const fn nonzero_timestamp(timestamp_seconds: u64) -> Option<u64> {
+    if timestamp_seconds > 0 {
+        Some(timestamp_seconds)
+    } else {
+        None
+    }
+}
+
+fn optional_timestamp_text(timestamp_seconds: u64) -> Option<String> {
+    nonzero_timestamp(timestamp_seconds).map(format_utc_timestamp_secs)
 }

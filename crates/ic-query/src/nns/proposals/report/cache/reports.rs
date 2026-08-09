@@ -7,7 +7,6 @@
 use super::{
     NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
     NNS_PROPOSAL_CACHE_SCHEMA_VERSION, NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    attempt::{read_attempt_status, read_attempt_status_strict},
     model::{
         NNS_PROPOSAL_CACHE_FIELDS, NnsProposalCache, NnsProposalCacheListReport,
         NnsProposalCacheStatusReport, NnsProposalCacheSummary,
@@ -19,8 +18,8 @@ use crate::{
     cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper, managed_file_exists},
     ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
-        NnsGovernanceCacheRequest,
-        governance::validate_governance_cache_metadata,
+        NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus,
+        governance::{read_governance_refresh_attempt_status, validate_governance_cache_metadata},
         proposals::report::{
             NnsProposalHostError,
             assemble::{
@@ -40,6 +39,7 @@ use crate::{
         },
     },
     snapshot_cache::{SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key},
+    subnet_catalog::MAINNET_NETWORK,
 };
 use std::{
     collections::HashSet,
@@ -88,10 +88,11 @@ pub fn build_nns_proposal_cache_status_report(
     } else {
         None
     };
-    let latest_attempt = read_attempt_status_strict(
+    let latest_attempt = read_governance_refresh_attempt_status(
         &request.cache_root,
         &paths.refresh_attempt_path,
         &request.network,
+        NNS_PROPOSAL_CACHE_COMPONENT,
     )?;
     Ok(NnsProposalCacheStatusReport {
         schema_version: NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION,
@@ -325,6 +326,20 @@ fn invalid_nns_proposal_cache_summary(
 
 fn nns_proposal_cache_paths_for_cache_path(cache_path: &Path) -> PathBuf {
     cache_path.with_file_name("full.refresh-attempt.json")
+}
+
+fn read_attempt_status(
+    cache_root: &Path,
+    path: &Path,
+) -> Option<NnsGovernanceRefreshAttemptStatus> {
+    read_governance_refresh_attempt_status(
+        cache_root,
+        path,
+        MAINNET_NETWORK,
+        NNS_PROPOSAL_CACHE_COMPONENT,
+    )
+    .ok()
+    .flatten()
 }
 
 fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsProposalHostError {

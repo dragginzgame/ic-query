@@ -81,9 +81,10 @@ pub use build::{
     build_sns_upgrade_report_with_source,
 };
 #[cfg(feature = "sns-host")]
+pub(in crate::sns::report) use cache_storage::parse_sns_root_canister_input;
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use cache_summary::{
     build_sns_cache_list_report, find_sns_cache_summary_by_id, load_sns_cache_summary_at,
-    parse_sns_root_canister_input,
 };
 #[cfg(feature = "sns-host")]
 pub use catalog_cache::{

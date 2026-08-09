@@ -32,6 +32,48 @@ fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
 }
 
 #[test]
+fn cached_proposal_reports_reject_non_mainnet_before_cache_lookup() {
+    let root = temp_dir("ic-query-sns-proposals-cached-non-mainnet");
+    let mainnet_path = refresh_fixture_sns_proposals_cache(&root);
+    let mut cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(mainnet_path).expect("read mainnet cache"))
+            .expect("parse mainnet cache");
+    cache["network"] = serde_json::json!("local");
+    let local_path = sns_proposals_cache_path(&root, "local", ROOT_A);
+    fs::create_dir_all(local_path.parent().expect("local cache parent"))
+        .expect("create local cache parent");
+    fs::write(
+        &local_path,
+        serde_json::to_vec_pretty(&cache).expect("serialize local cache"),
+    )
+    .expect("write local cache");
+
+    let mut detail_request = proposal_request(ROOT_A);
+    detail_request.network = "local".to_string();
+    detail_request.cache_root = Some(root.clone());
+    let detail_error =
+        build_sns_proposal_report_with_source(&detail_request, &NoLiveSnsProposalsSource)
+            .expect_err("cached detail must reject non-mainnet");
+
+    let mut list_request = proposals_request(ROOT_A);
+    list_request.network = "local".to_string();
+    list_request.cache_root = Some(root.clone());
+    let list_error =
+        build_sns_proposals_report_with_source(&list_request, &NoLiveSnsProposalsSource)
+            .expect_err("cached list must reject non-mainnet");
+
+    assert!(matches!(
+        detail_error,
+        SnsHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+    assert!(matches!(
+        list_error,
+        SnsHostError::UnsupportedNetwork { network } if network == "local"
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
     let mut request = proposals_request("1");

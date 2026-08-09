@@ -11,6 +11,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.37.md](docs/changelog/0.37.md)
 
+- `0.37.1` makes cache-backed SNS proposal list and detail reports enforce the
+  mainnet-only contract before reading local snapshots. SNS neuron and proposal
+  cache text now shares one list/status format: proposal lists expose complete
+  snapshot evidence, missing numeric caches retain refresh guidance, refresh-
+  attempt paths are not duplicated, and attempt details form a separate visual
+  section. NNS neuron snapshot identity failures and malformed attempt sidecars
+  are reported through distinct typed errors.
+- `0.37.1` consolidates shared Dashboard request, principal, provenance, and
+  text helpers; NNS Governance refresh-attempt lifecycle handling; snapshot
+  identity loading; and SNS cache lookup, report, and rendering boundaries.
+  Redundant dispatch wrappers, leaf modules, and historical-form tests are
+  removed. CLI commands and options, JSON report fields, persisted schema-1
+  contracts, cache paths, and network-call bounds are unchanged.
 - `0.37.0` adds one-request official Dashboard ICRC `account list`, exact
   `account info`, and `holder list` reports. Pages accept at most 100 rows,
   expose reusable opaque forward/backward cursors without following them, and

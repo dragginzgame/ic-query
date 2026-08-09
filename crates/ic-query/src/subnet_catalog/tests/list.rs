@@ -25,6 +25,7 @@ fn list_report_loads_cached_catalog_and_caps_ranges() {
     }
     assert!(!text.contains("FETCHED_AT"));
     assert!(text.contains("showing 1 of 2 ranges"));
+    assert!(text.contains("\n\nSUBNET"));
 }
 
 #[test]
@@ -116,4 +117,5 @@ fn list_report_verbose_text_keeps_full_metadata() {
     assert!(text.contains("SPECIALIZATION"));
     assert!(text.contains("FETCHED_AT"));
     assert!(text.contains(SUBNET_A));
+    assert!(text.contains("\n\nSUBNET"));
 }

@@ -11,14 +11,11 @@ use super::{
     CloudEngineProviderRow, MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS,
     MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
 };
-use crate::{
-    ic::{
-        IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-        IcDashboardReportProvenance, IcHostError, IcSourceRequest, LiveIcSource,
-    },
-    subnet_catalog::format_utc_timestamp_secs,
+use crate::ic::{
+    IcHostError, IcSourceRequest, LiveIcSource, canonical_request_principal,
+    dashboard_source_request, invalid_source, report_provenance, validate_canonical_principal,
+    validate_dashboard_network, validate_provenance,
 };
-use candid::Principal;
 use std::collections::HashSet;
 
 ///
@@ -54,10 +51,10 @@ pub fn build_cloud_engine_provider_list_report_with_source(
     request: &CloudEngineProviderListRequest,
     source: &dyn CloudEngineProviderSource,
 ) -> Result<CloudEngineProviderListReport, IcHostError> {
-    validate_network(&request.network)?;
-    let expected = source_request(&request.source_endpoint, request.now_unix_secs);
+    validate_dashboard_network(&request.network)?;
+    let expected = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
     let mut source_data = source.fetch_cloud_engine_provider_list(&expected)?;
-    validate_source(&expected, &source_data.source)?;
+    validate_provenance(&expected, &source_data.source)?;
     validate_complete_provider_resource(&mut source_data.providers)?;
 
     let source_node_provider_count = source_data.providers.len();
@@ -86,11 +83,12 @@ pub fn build_cloud_engine_provider_info_report_with_source(
     request: &CloudEngineProviderInfoRequest,
     source: &dyn CloudEngineProviderSource,
 ) -> Result<CloudEngineProviderInfoReport, IcHostError> {
-    validate_network(&request.network)?;
-    let requested_provider = canonical_principal("node_provider_id", &request.node_provider_id)?;
-    let expected = source_request(&request.source_endpoint, request.now_unix_secs);
+    validate_dashboard_network(&request.network)?;
+    let requested_provider =
+        canonical_request_principal("node_provider_id", &request.node_provider_id)?;
+    let expected = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
     let source_data = source.fetch_cloud_engine_provider_info(&expected, &requested_provider)?;
-    validate_source(&expected, &source_data.source)?;
+    validate_provenance(&expected, &source_data.source)?;
     validate_provider(&source_data.provider)?;
     if source_data.provider.principal_id != requested_provider {
         return invalid_source(format!(
@@ -104,36 +102,6 @@ pub fn build_cloud_engine_provider_info_report_with_source(
         cloud_engine_evidence_present: source_data.provider.has_cloud_engine_evidence(),
         provider: source_data.provider,
     })
-}
-
-fn source_request(endpoint: &str, now_unix_secs: u64) -> IcSourceRequest {
-    IcSourceRequest::new(
-        endpoint,
-        format_utc_timestamp_secs(now_unix_secs),
-        "ic-query",
-    )
-}
-
-fn validate_network(network: &str) -> Result<(), IcHostError> {
-    if network == IC_DASHBOARD_NETWORK {
-        return Ok(());
-    }
-    Err(IcHostError::InvalidRequest {
-        field: "network",
-        reason: format!("must be the supported mainnet identity {IC_DASHBOARD_NETWORK:?}"),
-    })
-}
-
-fn validate_source(
-    expected: &IcSourceRequest,
-    actual: &IcSourceRequest,
-) -> Result<(), IcHostError> {
-    if expected == actual {
-        return Ok(());
-    }
-    invalid_source(format!(
-        "provider source provenance is {actual:?}, expected requested value {expected:?}"
-    ))
 }
 
 fn validate_complete_provider_resource(
@@ -275,47 +243,4 @@ fn validate_text(field: &'static str, value: &str, max_bytes: usize) -> Result<(
         ));
     }
     Ok(())
-}
-
-fn canonical_principal(field: &'static str, value: &str) -> Result<String, IcHostError> {
-    Principal::from_text(value)
-        .map(|principal| principal.to_text())
-        .map_err(|error| IcHostError::InvalidPrincipal {
-            field,
-            reason: error.to_string(),
-        })
-}
-
-fn validate_canonical_principal(field: &'static str, value: &str) -> Result<(), IcHostError> {
-    let canonical = canonical_principal(field, value).map_err(|error| match error {
-        IcHostError::InvalidPrincipal { reason, .. } => IcHostError::InvalidSourceData {
-            reason: format!("{field} {value:?}: {reason}"),
-        },
-        other => other,
-    })?;
-    if canonical != value {
-        return invalid_source(format!(
-            "{field} {value:?} is not canonical principal text; expected {canonical:?}"
-        ));
-    }
-    Ok(())
-}
-
-fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
-    IcDashboardReportProvenance {
-        schema_version: IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-        network: IC_DASHBOARD_NETWORK.to_string(),
-        authority: IC_DASHBOARD_AUTHORITY.to_string(),
-        source_endpoint: source.endpoint,
-        fetched_at: source.fetched_at,
-        fetched_by: source.fetched_by,
-        certified: false,
-        point_in_time_guaranteed: false,
-    }
-}
-
-fn invalid_source<T>(reason: impl Into<String>) -> Result<T, IcHostError> {
-    Err(IcHostError::InvalidSourceData {
-        reason: reason.into(),
-    })
 }

@@ -35,6 +35,7 @@ pub fn nns_node_provider_list_report_text(report: &NnsNodeProviderListReport) ->
         })
         .collect::<Vec<_>>();
     let alignments = [ColumnAlign::Left, ColumnAlign::Right];
+    lines.push(String::new());
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
 }
@@ -79,6 +80,7 @@ pub fn nns_node_provider_list_report_verbose_text(report: &NnsNodeProviderListRe
         ColumnAlign::Right,
         ColumnAlign::Left,
     ];
+    lines.push(String::new());
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
 }

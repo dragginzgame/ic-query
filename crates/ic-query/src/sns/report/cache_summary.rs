@@ -17,7 +17,6 @@ use crate::{
         enforce_mainnet_network,
     },
 };
-use candid::Principal;
 use std::path::{Path, PathBuf};
 
 /// Load one SNS snapshot and project either its valid or invalid cache summary.
@@ -125,17 +124,6 @@ where
         cache_count: caches.len(),
         caches,
     })
-}
-
-/// Parse and normalize an SNS root canister principal input.
-pub(in crate::sns::report) fn parse_sns_root_canister_input(
-    input: &str,
-) -> Result<String, SnsHostError> {
-    Principal::from_text(input)
-        .map_err(|_| SnsHostError::InvalidLookup {
-            input: input.to_string(),
-        })
-        .map(|principal| principal.to_text())
 }
 
 /// Sort SNS cache summaries by stable list id and root principal.

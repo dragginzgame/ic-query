@@ -30,6 +30,7 @@ fn node_provider_text_keeps_table_narrow() {
     assert!(!text.contains("DFINITY"));
     assert!(!text.contains("ryjl3-tyaaa-aaaaa-aaaba-cai"));
     assert!(!text.contains("abcd"));
+    assert!(text.contains("fetched_at 2026-06-04T00:00:00Z\n\nNODE_PROVIDER"));
 }
 
 #[test]
@@ -45,6 +46,7 @@ fn node_provider_verbose_text_keeps_full_metadata() {
     assert!(text.contains("FETCHED_AT"));
     assert!(!text.contains("NAME"));
     assert!(!text.contains("DFINITY"));
+    assert!(text.contains("fetched_by: test\n\nNODE_PROVIDER"));
 }
 
 #[test]

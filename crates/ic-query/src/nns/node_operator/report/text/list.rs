@@ -44,6 +44,7 @@ pub fn nns_node_operator_list_report_text(report: &NnsNodeOperatorListReport) ->
         ColumnAlign::Right,
         ColumnAlign::Left,
     ];
+    lines.push(String::new());
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
 }
@@ -94,6 +95,7 @@ pub fn nns_node_operator_list_report_verbose_text(report: &NnsNodeOperatorListRe
         ColumnAlign::Right,
         ColumnAlign::Left,
     ];
+    lines.push(String::new());
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
 }

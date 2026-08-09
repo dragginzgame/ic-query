@@ -13,9 +13,12 @@ mod node_provider_reward;
 mod node_status;
 mod replica_version;
 
-use crate::ic::{
-    IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-    IcDashboardReportProvenance, IcHostError, IcSourceRequest,
+use crate::{
+    ic::{
+        IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
+        IcDashboardReportProvenance, IcHostError, IcSourceRequest,
+    },
+    subnet_catalog::format_utc_timestamp_secs,
 };
 use candid::Principal;
 
@@ -62,7 +65,25 @@ pub(super) use replica_version::{
     validate_replica_version_id, validate_replica_version_list_query,
 };
 
-fn validate_provenance(
+pub fn dashboard_source_request(endpoint: &str, now_unix_secs: u64) -> IcSourceRequest {
+    IcSourceRequest::new(
+        endpoint,
+        format_utc_timestamp_secs(now_unix_secs),
+        "ic-query",
+    )
+}
+
+pub fn validate_dashboard_network(network: &str) -> Result<(), IcHostError> {
+    if network == IC_DASHBOARD_NETWORK {
+        return Ok(());
+    }
+    Err(IcHostError::InvalidRequest {
+        field: "network",
+        reason: format!("must be the supported mainnet identity {IC_DASHBOARD_NETWORK:?}"),
+    })
+}
+
+pub fn validate_provenance(
     expected: &IcSourceRequest,
     actual: &IcSourceRequest,
 ) -> Result<(), IcHostError> {
@@ -92,7 +113,7 @@ fn validate_provenance(
     Ok(())
 }
 
-pub(in crate::ic) fn canonical_request_principal(
+pub fn canonical_request_principal(
     field: &'static str,
     value: &str,
 ) -> Result<String, IcHostError> {
@@ -104,7 +125,7 @@ pub(in crate::ic) fn canonical_request_principal(
         })
 }
 
-fn validate_canonical_principal(field: &'static str, value: &str) -> Result<(), IcHostError> {
+pub fn validate_canonical_principal(field: &'static str, value: &str) -> Result<(), IcHostError> {
     let principal = Principal::from_text(value)
         .map_err(|error| invalid_source_value(format!("{field} {value:?}: {error}")))?;
     let canonical = principal.to_text();
@@ -144,7 +165,7 @@ fn inclusive_observation_count(start_unix_secs: u64, end_unix_secs: u64, step_se
     (end_unix_secs - start_unix_secs) / u64::from(step_secs) + 1
 }
 
-fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
+pub fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
     IcDashboardReportProvenance {
         schema_version: IC_DASHBOARD_REPORT_SCHEMA_VERSION,
         network: IC_DASHBOARD_NETWORK.to_string(),
@@ -157,11 +178,11 @@ fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
     }
 }
 
-fn invalid_source<T>(reason: impl Into<String>) -> Result<T, IcHostError> {
+pub fn invalid_source<T>(reason: impl Into<String>) -> Result<T, IcHostError> {
     Err(invalid_source_value(reason))
 }
 
-fn invalid_source_value(reason: impl Into<String>) -> IcHostError {
+pub fn invalid_source_value(reason: impl Into<String>) -> IcHostError {
     IcHostError::InvalidSourceData {
         reason: reason.into(),
     }

@@ -5,17 +5,17 @@
 //! Boundary: acquires the refresh lock, fetches pages, and publishes snapshots.
 
 use super::{
-    attempt::{write_failed_attempt, write_starting_attempt},
-    cache_operation,
-    collection::fetch_complete_neuron_collection,
-    model::NnsNeuronRefreshReport,
-    paths::nns_neuron_cache_paths,
+    NNS_NEURON_CACHE_COMPONENT, cache_operation, collection::fetch_complete_neuron_collection,
+    model::NnsNeuronRefreshReport, paths::nns_neuron_cache_paths,
     publish::publish_complete_neuron_cache,
 };
 use crate::{
     QueryProgress,
     nns::{
         LiveNnsSource, NnsGovernanceRefreshRequest,
+        governance::{
+            write_failed_governance_refresh_attempt, write_starting_governance_refresh_attempt,
+        },
         neuron::report::{
             NnsNeuronHostError, enforce_mainnet_network,
             source::{NnsNeuronSource, validate_page_size},
@@ -75,7 +75,14 @@ fn refresh_with_source_and_progress(
         cache_operation,
         |state| {
             run_snapshot_refresh_with_attempts(
-                || write_starting_attempt(&paths.refresh_attempt_path, request),
+                || {
+                    write_starting_governance_refresh_attempt(
+                        &paths.refresh_attempt_path,
+                        request,
+                        NNS_NEURON_CACHE_COMPONENT,
+                    )
+                    .map_err(NnsNeuronHostError::from)
+                },
                 || {
                     let complete = fetch_complete_neuron_collection(
                         request,
@@ -91,7 +98,12 @@ fn refresh_with_source_and_progress(
                     )
                 },
                 |error| {
-                    let _ = write_failed_attempt(&paths.refresh_attempt_path, request, error);
+                    let _ = write_failed_governance_refresh_attempt(
+                        &paths.refresh_attempt_path,
+                        request,
+                        NNS_NEURON_CACHE_COMPONENT,
+                        error.to_string(),
+                    );
                 },
             )
         },

@@ -2,17 +2,12 @@ mod info;
 mod list;
 mod refresh;
 
-use super::commands::subnet_command;
 use crate::{
     nns::{NnsCommandError, command_cache_root},
     progress::announce_missing_mainnet_cache,
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{SubnetCatalogCacheRequest, subnet_catalog_path};
-pub(in crate::nns) fn command() -> clap::Command {
-    subnet_command()
-}
-
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
         Some(("status", matches)) => crate::nns::operational_status::run(

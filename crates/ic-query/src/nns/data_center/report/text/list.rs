@@ -43,6 +43,7 @@ pub fn nns_data_center_list_report_text(report: &NnsDataCenterListReport) -> Str
         ColumnAlign::Right,
         ColumnAlign::Right,
     ];
+    lines.push(String::new());
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
 }
@@ -101,6 +102,7 @@ pub fn nns_data_center_list_report_verbose_text(report: &NnsDataCenterListReport
         ColumnAlign::Right,
         ColumnAlign::Left,
     ];
+    lines.push(String::new());
     lines.push(render_table(&headers, &rows, &alignments));
     lines.join("\n")
 }

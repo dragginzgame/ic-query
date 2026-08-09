@@ -16,10 +16,6 @@ use crate::sns::report::{
 };
 use std::path::PathBuf;
 
-mod lookup;
-
-pub(super) use lookup::load_sns_neurons_cache_for_input;
-
 impl SnsCacheStorageFamily for SnsNeuronsCacheCollection {
     type Data = SnsNeuronsCacheRows;
 
@@ -29,6 +25,10 @@ impl SnsCacheStorageFamily for SnsNeuronsCacheCollection {
 
     fn missing_cache_error(path: PathBuf) -> SnsHostError {
         SnsHostError::MissingNeuronsCache { path }
+    }
+
+    fn missing_cache_for_id(id: usize, root: PathBuf) -> SnsHostError {
+        SnsHostError::MissingNeuronsCacheForId { id, root }
     }
 
     fn row_count(data: &Self::Data) -> usize {

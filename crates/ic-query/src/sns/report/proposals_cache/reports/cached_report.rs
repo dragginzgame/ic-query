@@ -10,11 +10,12 @@ use crate::{
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
         assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
+        cache_storage::load_sns_cache_for_input,
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
+            paths::SnsProposalsCacheCollection,
             refresh_sns_proposals_cache_with_source_and_progress,
             reports::cache_projection::project_sns_proposals_cache,
-            storage::load_sns_proposals_cache_for_input_with_path,
         },
         source::{MainnetSnsProposals, SnsProposalsSource},
         view::{
@@ -46,7 +47,7 @@ fn load_or_refresh_sns_proposals_cache(
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
     load_or_refresh_missing_cache(
         || {
-            load_sns_proposals_cache_for_input_with_path(
+            load_sns_cache_for_input::<SnsProposalsCacheCollection>(
                 cache_root,
                 &request.network,
                 &request.input,

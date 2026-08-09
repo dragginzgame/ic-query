@@ -151,7 +151,7 @@ fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     );
     assert!(status_text.contains("found: yes"));
     assert!(status_text.contains("cache_path:"));
-    assert!(status_text.contains("latest_attempt_status: complete"));
+    assert!(status_text.contains("latest_attempt:\n  status: complete"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -319,7 +319,7 @@ fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     );
     assert!(status_text.contains("found: no"));
     assert!(status_text.contains("refresh_hint: icq sns neuron refresh"));
-    assert!(status_text.contains("latest_attempt_status: failed"));
+    assert!(status_text.contains("latest_attempt:\n  status: failed"));
 
     let numeric_status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),

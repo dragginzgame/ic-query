@@ -13,9 +13,8 @@ use crate::{
         CLOUD_ENGINE_NODE_INCLUDED_STATUSES, CLOUD_ENGINE_NODE_REWARD_TYPE,
         CloudEngineNodeInfoSourceData, CloudEngineNodeListSourceData, CloudEngineNodeSource,
     },
-    ic::{IcHostError, IcSourceRequest},
+    ic::{IcHostError, IcSourceRequest, canonical_request_principal},
 };
-use candid::Principal;
 use url::Url;
 
 impl CloudEngineNodeSource for LiveIcSource {
@@ -25,7 +24,7 @@ impl CloudEngineNodeSource for LiveIcSource {
         node_provider_id: Option<&str>,
     ) -> Result<CloudEngineNodeListSourceData, IcHostError> {
         let node_provider_id = node_provider_id
-            .map(|value| canonical_principal("node_provider_id", value))
+            .map(|value| canonical_request_principal("node_provider_id", value))
             .transpose()?;
         let url = cloud_engine_node_list_url(&request.endpoint, node_provider_id.as_deref())?;
         let wire: DashboardNodes = fetch_live(url)?;
@@ -47,7 +46,7 @@ impl CloudEngineNodeSource for LiveIcSource {
         request: &IcSourceRequest,
         node_id: &str,
     ) -> Result<CloudEngineNodeInfoSourceData, IcHostError> {
-        let node_id = canonical_principal("node_id", node_id)?;
+        let node_id = canonical_request_principal("node_id", node_id)?;
         let url = cloud_engine_node_info_url(&request.endpoint, &node_id)?;
         let node: DashboardNode = fetch_live(url)?;
         Ok(CloudEngineNodeInfoSourceData {
@@ -82,15 +81,6 @@ fn cloud_engine_node_info_url(endpoint: &str, node_id: &str) -> Result<Url, IcHo
     let mut url = dashboard_base_url(endpoint)?;
     append_path_segments(endpoint, &mut url, &["nodes", node_id])?;
     Ok(url)
-}
-
-fn canonical_principal(field: &'static str, value: &str) -> Result<String, IcHostError> {
-    Principal::from_text(value)
-        .map(|principal| principal.to_text())
-        .map_err(|error| IcHostError::InvalidPrincipal {
-            field,
-            reason: error.to_string(),
-        })
 }
 
 fn included_statuses() -> Vec<String> {

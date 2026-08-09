@@ -10,9 +10,8 @@ use crate::{
         CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData,
         CloudEngineProviderRow, CloudEngineProviderSource,
     },
-    ic::{IcHostError, IcSourceRequest},
+    ic::{IcHostError, IcSourceRequest, canonical_request_principal},
 };
-use candid::Principal;
 use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
@@ -34,7 +33,7 @@ impl CloudEngineProviderSource for LiveIcSource {
         request: &IcSourceRequest,
         node_provider_id: &str,
     ) -> Result<CloudEngineProviderInfoSourceData, IcHostError> {
-        let node_provider_id = canonical_provider_id(node_provider_id)?;
+        let node_provider_id = canonical_request_principal("node_provider_id", node_provider_id)?;
         let url = provider_info_url(&request.endpoint, &node_provider_id)?;
         let provider = fetch_live(url)?;
         Ok(CloudEngineProviderInfoSourceData {
@@ -54,15 +53,6 @@ fn provider_info_url(endpoint: &str, node_provider_id: &str) -> Result<Url, IcHo
     let mut url = dashboard_base_url(endpoint)?;
     append_path_segments(endpoint, &mut url, &["node-providers", node_provider_id])?;
     Ok(url)
-}
-
-fn canonical_provider_id(value: &str) -> Result<String, IcHostError> {
-    Principal::from_text(value)
-        .map(|principal| principal.to_text())
-        .map_err(|error| IcHostError::InvalidPrincipal {
-            field: "node_provider_id",
-            reason: error.to_string(),
-        })
 }
 
 #[derive(SerdeDeserialize)]

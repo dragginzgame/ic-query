@@ -28,7 +28,8 @@ pub use build::{
 pub(super) use collection::{
     NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata, mainnet_governance_cache_metadata,
     read_governance_refresh_attempt_status, validate_governance_cache_metadata,
-    write_failed_governance_refresh_attempt, write_governance_refresh_attempt,
+    write_complete_governance_refresh_attempt, write_failed_governance_refresh_attempt,
+    write_running_governance_refresh_attempt, write_starting_governance_refresh_attempt,
 };
 pub use model::{
     NnsGovernanceDecimal, NnsGovernanceEconomics, NnsGovernanceEconomicsReport,

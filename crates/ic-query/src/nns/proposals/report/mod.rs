@@ -19,7 +19,9 @@ mod wire;
 
 #[cfg(feature = "nns-host")]
 use crate::{
-    HostCacheError, ic_registry::MAINNET_GOVERNANCE_CANISTER_ID, nns::NnsGovernanceQueryError,
+    HostCacheError,
+    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
+    nns::{NnsGovernanceQueryError, governance::NnsGovernanceAttemptReadError},
     runtime::RuntimeError,
 };
 #[cfg(feature = "nns-host")]
@@ -134,6 +136,18 @@ pub enum NnsProposalHostError {
 
     #[error("failed to create Tokio runtime for NNS proposal query: {0}")]
     Runtime(#[from] RuntimeError),
+}
+
+#[cfg(feature = "nns-host")]
+impl From<NnsGovernanceAttemptReadError> for NnsProposalHostError {
+    fn from(error: NnsGovernanceAttemptReadError) -> Self {
+        match error {
+            NnsGovernanceAttemptReadError::Cache(error) => Self::Cache(error),
+            NnsGovernanceAttemptReadError::Invalid { path, reason } => {
+                Self::InvalidRefreshAttempt { path, reason }
+            }
+        }
+    }
 }
 
 #[cfg(feature = "nns-host")]

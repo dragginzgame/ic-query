@@ -31,10 +31,6 @@ const PROPOSAL_INFO_COMMAND: &str = "info";
 const PROPOSAL_LIST_COMMAND: &str = "list";
 const PROPOSAL_REFRESH_COMMAND: &str = "refresh";
 
-pub(in crate::nns) fn command() -> clap::Command {
-    super::commands::nns_proposal_command()
-}
-
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
         Some((PROPOSAL_CACHE_COMMAND, matches)) => run_nns_proposal_cache(matches, network),

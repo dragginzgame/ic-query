@@ -10,15 +10,12 @@ use super::{
     CloudEngineNodeListRequest, CloudEngineNodeListSourceData, CloudEngineNodeRow,
     MAX_CLOUD_ENGINE_NODE_ROWS,
 };
-use crate::{
-    ic::{
-        IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-        IcDashboardReportProvenance, IcHostError, IcSourceRequest, LiveIcSource,
-        canonicalize_node_status_rows_with_policy, node_status_counts,
-    },
-    subnet_catalog::format_utc_timestamp_secs,
+use crate::ic::{
+    IcHostError, IcSourceRequest, LiveIcSource, canonical_request_principal,
+    canonicalize_node_status_rows_with_policy, dashboard_source_request, invalid_source,
+    invalid_source_value, node_status_counts, report_provenance, validate_dashboard_network,
+    validate_provenance,
 };
-use candid::Principal;
 use std::collections::HashSet;
 
 ///
@@ -55,16 +52,16 @@ pub fn build_cloud_engine_node_list_report_with_source(
     request: &CloudEngineNodeListRequest,
     source: &dyn CloudEngineNodeSource,
 ) -> Result<CloudEngineNodeListReport, IcHostError> {
-    validate_network(&request.network)?;
+    validate_dashboard_network(&request.network)?;
     let requested_node_provider_id = request
         .node_provider_id
         .as_deref()
-        .map(|value| canonical_principal("node_provider_id", value))
+        .map(|value| canonical_request_principal("node_provider_id", value))
         .transpose()?;
-    let expected_source = source_request(&request.source_endpoint, request.now_unix_secs);
+    let expected_source = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
     let mut source_data = source
         .fetch_cloud_engine_node_list(&expected_source, requested_node_provider_id.as_deref())?;
-    validate_source(&expected_source, &source_data.source)?;
+    validate_provenance(&expected_source, &source_data.source)?;
     if source_data.requested_node_provider_id != requested_node_provider_id {
         return invalid_source(format!(
             "node-provider filter is {:?}, expected {:?}",
@@ -138,11 +135,11 @@ pub fn build_cloud_engine_node_info_report_with_source(
     request: &CloudEngineNodeInfoRequest,
     source: &dyn CloudEngineNodeSource,
 ) -> Result<CloudEngineNodeInfoReport, IcHostError> {
-    validate_network(&request.network)?;
-    let requested_node_id = canonical_principal("node_id", &request.node_id)?;
-    let expected_source = source_request(&request.source_endpoint, request.now_unix_secs);
+    validate_dashboard_network(&request.network)?;
+    let requested_node_id = canonical_request_principal("node_id", &request.node_id)?;
+    let expected_source = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
     let source_data = source.fetch_cloud_engine_node_info(&expected_source, &requested_node_id)?;
-    validate_source(&expected_source, &source_data.source)?;
+    validate_provenance(&expected_source, &source_data.source)?;
     if source_data.node_id != requested_node_id {
         return invalid_source(format!(
             "node target is {:?}, expected {requested_node_id:?}",
@@ -206,66 +203,4 @@ fn included_statuses() -> Vec<String> {
         .into_iter()
         .map(str::to_string)
         .collect()
-}
-
-fn source_request(endpoint: &str, now_unix_secs: u64) -> IcSourceRequest {
-    IcSourceRequest::new(
-        endpoint,
-        format_utc_timestamp_secs(now_unix_secs),
-        "ic-query",
-    )
-}
-
-fn validate_network(network: &str) -> Result<(), IcHostError> {
-    if network == IC_DASHBOARD_NETWORK {
-        return Ok(());
-    }
-    Err(IcHostError::InvalidRequest {
-        field: "network",
-        reason: format!("must be the supported mainnet identity {IC_DASHBOARD_NETWORK:?}"),
-    })
-}
-
-fn validate_source(
-    expected: &IcSourceRequest,
-    actual: &IcSourceRequest,
-) -> Result<(), IcHostError> {
-    if expected == actual {
-        return Ok(());
-    }
-    invalid_source(format!(
-        "CloudEngine node source provenance is {actual:?}, expected {expected:?}"
-    ))
-}
-
-fn canonical_principal(field: &'static str, value: &str) -> Result<String, IcHostError> {
-    Principal::from_text(value)
-        .map(|principal| principal.to_text())
-        .map_err(|error| IcHostError::InvalidPrincipal {
-            field,
-            reason: error.to_string(),
-        })
-}
-
-fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
-    IcDashboardReportProvenance {
-        schema_version: IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-        network: IC_DASHBOARD_NETWORK.to_string(),
-        authority: IC_DASHBOARD_AUTHORITY.to_string(),
-        source_endpoint: source.endpoint,
-        fetched_at: source.fetched_at,
-        fetched_by: source.fetched_by,
-        certified: false,
-        point_in_time_guaranteed: false,
-    }
-}
-
-fn invalid_source<T>(reason: impl Into<String>) -> Result<T, IcHostError> {
-    Err(invalid_source_value(reason))
-}
-
-fn invalid_source_value(reason: impl Into<String>) -> IcHostError {
-    IcHostError::InvalidSourceData {
-        reason: reason.into(),
-    }
 }

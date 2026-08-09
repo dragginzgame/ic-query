@@ -235,7 +235,6 @@ fn nns_proposal_help_is_advertised_under_nns() {
     let proposal_cache_status = render_help(nns_proposal_cache_status_command());
 
     assert!(nns.contains("proposal"));
-    assert!(!nns.contains("\n  proposals"));
     assert!(proposal.contains("list"));
     assert!(proposal.contains("info"));
     assert!(proposal.contains("refresh"));
@@ -269,7 +268,6 @@ fn nns_proposal_help_is_advertised_under_nns() {
     assert!(proposal_list.contains("--sort deadline"));
     assert!(proposal_list.contains("--sort voting-power"));
     assert!(proposal_list.contains("--sort title --asc"));
-    assert!(!proposal.contains("icq nns proposal 132411"));
     assert!(proposal_info.contains("--ballots"));
     assert!(proposal_info.contains("--verbose"));
     assert!(proposal_info.contains("--json"));

@@ -232,7 +232,7 @@ pub struct IcNodeStatusRow {
     pub alert_name: Option<String>,
     /// Assigned Subnet principal when present.
     pub subnet_id: Option<String>,
-    /// Cloud-engine Subnet principal when present in a future compatible scope.
+    /// CloudEngine Subnet principal when reported by the selected Dashboard scope.
     pub cloud_engine_subnet_id: Option<String>,
     /// Dashboard data-center identifier.
     pub data_center_id: String,

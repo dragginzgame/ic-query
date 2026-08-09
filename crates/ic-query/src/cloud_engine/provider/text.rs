@@ -8,7 +8,7 @@ use super::{
     CloudEngineProviderInfoReport, CloudEngineProviderListReport, CloudEngineProviderLocation,
 };
 use crate::{
-    ic::IcDashboardReportProvenance,
+    ic::dashboard_provenance_lines,
     table::{ColumnAlign, render_table},
     text_value::{optional_text, sanitize_text, yes_no},
 };
@@ -16,7 +16,7 @@ use crate::{
 /// Render the complete CloudEngine-bearing provider list.
 #[must_use]
 pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListReport) -> String {
-    let mut lines = provenance_lines(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "source_node_provider_count: {}",
@@ -71,7 +71,7 @@ pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListRe
 #[must_use]
 pub fn cloud_engine_provider_info_report_text(report: &CloudEngineProviderInfoReport) -> String {
     let provider = &report.provider;
-    let mut lines = provenance_lines(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "cloud_engine_evidence_present: {}",
@@ -113,25 +113,6 @@ pub fn cloud_engine_provider_info_report_text(report: &CloudEngineProviderInfoRe
         lines.push(location_table(&provider.cloud_engine_locations));
     }
     lines.join("\n")
-}
-
-fn provenance_lines(provenance: &IcDashboardReportProvenance) -> Vec<String> {
-    vec![
-        format!("schema_version: {}", provenance.schema_version),
-        format!("network: {}", sanitize_text(&provenance.network)),
-        format!("authority: {}", sanitize_text(&provenance.authority)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&provenance.source_endpoint)
-        ),
-        format!("fetched_at: {}", sanitize_text(&provenance.fetched_at)),
-        format!("fetched_by: {}", sanitize_text(&provenance.fetched_by)),
-        format!("certified: {}", yes_no(provenance.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(provenance.point_in_time_guaranteed)
-        ),
-    ]
 }
 
 fn location_table(locations: &[CloudEngineProviderLocation]) -> String {

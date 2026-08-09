@@ -1,6 +1,6 @@
 //! Runtime dispatch for direct NNS Governance reports.
 
-use super::{commands::governance_command, options::NnsGovernanceOptions};
+use super::options::NnsGovernanceOptions;
 use crate::nns::{NnsCommandError, now_unix_secs, write_text_or_json};
 use clap::ArgMatches;
 use ic_query::nns::{
@@ -14,9 +14,6 @@ use ic_query::nns::{
     },
 };
 use serde::Serialize;
-pub(in crate::nns) fn command() -> clap::Command {
-    governance_command()
-}
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {

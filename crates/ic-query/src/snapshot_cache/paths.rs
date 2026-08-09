@@ -34,7 +34,7 @@ impl SnapshotJsonPaths {
     #[must_use]
     pub fn for_key(cache_root: &Path, key: &SnapshotKey) -> Self {
         let collection_dir = snapshot_collection_dir(cache_root, key);
-        let file_stem = key.scope_file_stem();
+        let file_stem = SnapshotKey::scope_file_stem();
         Self {
             snapshot_path: collection_dir.join(format!("{file_stem}.json")),
             refresh_lock_path: collection_dir.join(format!("{file_stem}.refresh.lock")),

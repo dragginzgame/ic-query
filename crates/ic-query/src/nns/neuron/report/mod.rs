@@ -13,7 +13,11 @@ mod source;
 mod text;
 
 #[cfg(feature = "nns-host")]
-use crate::{HostCacheError, nns::NnsGovernanceQueryError, runtime::RuntimeError};
+use crate::{
+    HostCacheError,
+    nns::{NnsGovernanceQueryError, governance::NnsGovernanceAttemptReadError},
+    runtime::RuntimeError,
+};
 #[cfg(feature = "nns-host")]
 use std::path::PathBuf;
 #[cfg(feature = "nns-host")]
@@ -130,12 +134,37 @@ pub enum NnsNeuronHostError {
         reason: String,
     },
 
-    /// A stored neuron snapshot failed identity or completeness validation.
+    /// A stored neuron snapshot did not match its cache key.
+    #[error(
+        "cached NNS neuron snapshot identity mismatch at {}: {field} is {actual}, expected {expected}",
+        path.display()
+    )]
+    CacheIdentityMismatch {
+        /// Cache path being validated.
+        path: PathBuf,
+        /// Identity field that did not match.
+        field: &'static str,
+        /// Identity required by the cache key.
+        expected: String,
+        /// Identity stored in the snapshot.
+        actual: String,
+    },
+
+    /// A stored neuron snapshot failed family-specific validation.
     #[error("invalid NNS neuron cache at {}: {reason}", path.display())]
     InvalidCache {
         /// Cache path being validated.
         path: PathBuf,
         /// Cache invariant that failed.
+        reason: String,
+    },
+
+    /// A stored refresh-attempt sidecar failed identity or lifecycle validation.
+    #[error("invalid NNS neuron refresh attempt at {}: {reason}", path.display())]
+    InvalidRefreshAttempt {
+        /// Attempt sidecar path being validated.
+        path: PathBuf,
+        /// Attempt invariant that failed.
         reason: String,
     },
 
@@ -146,6 +175,18 @@ pub enum NnsNeuronHostError {
     /// The synchronous host runtime could not execute the live query.
     #[error(transparent)]
     Runtime(#[from] RuntimeError),
+}
+
+#[cfg(feature = "nns-host")]
+impl From<NnsGovernanceAttemptReadError> for NnsNeuronHostError {
+    fn from(error: NnsGovernanceAttemptReadError) -> Self {
+        match error {
+            NnsGovernanceAttemptReadError::Cache(error) => Self::Cache(error),
+            NnsGovernanceAttemptReadError::Invalid { path, reason } => {
+                Self::InvalidRefreshAttempt { path, reason }
+            }
+        }
+    }
 }
 
 #[cfg(feature = "nns-host")]

@@ -2,7 +2,7 @@ use super::{
     NnsDataCenterHostError, NnsDataCenterListReport, NnsDataCenterRow, NnsDataCenterSource,
     NnsInventoryCacheRequest, NnsInventoryListRequest,
     build_nns_data_center_list_report_with_source, nns_data_center_list_report_text,
-    resolve_data_center,
+    nns_data_center_list_report_verbose_text, resolve_data_center,
 };
 use crate::ic_registry::MainnetDataCenter;
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
@@ -57,12 +57,15 @@ fn data_center_text_renders_relation_counts() {
     let report = data_center_report_fixture();
 
     let text = nns_data_center_list_report_text(&report);
+    let verbose_text = nns_data_center_list_report_verbose_text(&report);
 
     assert!(text.contains("data_centers: ic count 1"));
     assert!(text.contains("OPS"));
     assert!(text.contains("PROVIDERS"));
     assert!(text.contains("NODES"));
     assert!(text.contains("dc1"));
+    assert!(text.contains("fetched_at 2026-06-04T00:00:00Z\n\nDC"));
+    assert!(verbose_text.contains("fetched_by: test\n\nDC"));
 }
 
 #[test]
