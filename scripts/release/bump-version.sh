@@ -12,6 +12,18 @@ cleanup_release_build_artifacts() {
   fi
 }
 
+update_documented_dependency_versions() {
+  local release_line="${1%.*}"
+  local usage_doc
+
+  for usage_doc in README.md docs/library-usage.md; do
+    [[ -f "${usage_doc}" ]] || continue
+    IC_QUERY_RELEASE_LINE="${release_line}" perl -0pi -e '
+      s/(^ic-query = \{ version = ")[0-9]+\.[0-9]+(".*$)/$1$ENV{IC_QUERY_RELEASE_LINE}$2/mg
+    ' "${usage_doc}"
+  done
+}
+
 bump="${1:-patch}"
 case "${bump}" in
   patch | minor | major) ;;
@@ -64,6 +76,7 @@ make --no-print-directory ensure-clean
 CHANGELOG_VERSION="${new_version}" make --no-print-directory ci
 
 perl -0pi -e "s/version = \"\\Q${previous_version}\\E\"/version = \"${new_version}\"/g" Cargo.toml
+update_documented_dependency_versions "${new_version}"
 
 if [[ -f Cargo.lock ]]; then
     cargo generate-lockfile >/dev/null

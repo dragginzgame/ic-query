@@ -19,6 +19,9 @@ Detailed release notes: [docs/changelog/0.37.md](docs/changelog/0.37.md)
   times are exposed as Unix seconds plus a lossless subsecond-nanosecond
   remainder. Reports are off-chain, uncertified, uncached, and not complete or
   point-in-time ledger snapshots.
+- Release bumps now update the `README.md` and library-usage dependency
+  examples automatically after the clean-tree CI gate, so maintainers no
+  longer need to pre-edit every documented minor version.
 
 ```bash
 icq icrc analytics account list mxzaz-hqaaa-aaaar-qaada-cai --limit 25

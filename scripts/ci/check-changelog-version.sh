@@ -59,19 +59,3 @@ if ! grep -Eq -- "^## ${version_pattern}( - .+)?$" <<<"${head_detail_changelog}"
   echo "error: ${detail_changelog} in HEAD has no heading for package version ${version}" >&2
   exit 1
 fi
-
-for usage_doc in README.md docs/library-usage.md; do
-  mapfile -t documented_versions < <(
-    sed -n 's/^ic-query = { version = "\([0-9][0-9]*\.[0-9][0-9]*\)".*$/\1/p' "${usage_doc}"
-  )
-  if [[ "${#documented_versions[@]}" -eq 0 ]]; then
-    echo "error: ${usage_doc} has no ic-query dependency example" >&2
-    exit 1
-  fi
-  for documented_version in "${documented_versions[@]}"; do
-    if [[ "${documented_version}" != "${minor}" ]]; then
-      echo "error: ${usage_doc} documents ic-query ${documented_version}; expected ${minor}" >&2
-      exit 1
-    fi
-  done
-done
