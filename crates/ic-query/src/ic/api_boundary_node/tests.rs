@@ -1,9 +1,12 @@
+#[cfg(feature = "ic-state-host")]
+use super::IcApiBoundaryNodeRequest;
 use super::{
-    IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION, IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest,
-    IcApiBoundaryNodeRow, IcCertifiedStateProvenance, ic_api_boundary_node_report_text,
+    IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION, IcApiBoundaryNodeReport, IcApiBoundaryNodeRow,
+    IcCertifiedStateProvenance, ic_api_boundary_node_report_text,
 };
 
 const NODE_A: &str = "rrkah-fqaaa-aaaaa-aaaaq-cai";
+#[cfg(feature = "ic-state-host")]
 const NODE_B: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const NOW: u64 = 1_800_000_000;
 

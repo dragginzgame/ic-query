@@ -79,6 +79,9 @@ nouns so discovered Registry principals flow directly into the observed view.
 They accept the global network identity, require it to be `ic`, and query the
 explicit Dashboard `--source-endpoint` only when their shared cache policy
 requires refresh.
+Node-provider `reward` operations share that NNS noun but use the separate
+official Dashboard v3 `--source-endpoint`; they are mainnet-only live reports
+and never reuse the Registry inventory or node-status caches.
 
 ## CloudEngine
 
@@ -342,6 +345,40 @@ consumers should use that API instead of joining component caches; see
 [Exact-Version NNS Subnet Topology](design/nns-subnet-topology.md).
 The component-cache consistency operation is named `topology check` so it is
 not confused with the observed operational status views.
+
+### Node-provider rewards
+
+```bash
+icq nns node-provider reward info 7562
+icq nns node-provider reward list --limit 25
+icq nns node-provider reward list \
+  --offset 25 --max-reward-index 6470 --json
+icq nns node-provider reward history
+icq nns node-provider reward history \
+  --start 1752537600 --end 1784073600 --step 86400 --json
+```
+
+Each operation makes exactly one official Dashboard request and creates no
+cache. `info` preserves one exact record id; raw e8s amount; canonical provider
+principal; Unix-second reward time; separate raw Dashboard update string;
+optional proposal, Registry, cap/floor, and XDR evidence; raw mode name; and
+mode-specific JSON details.
+
+`list` defaults to 50 rows, accepts at most 100, and never automatically
+follows an offset. The returned maximum reward index may pin a later explicit
+request, but live adjacent pages can contain overlapping ids even when pinned.
+JSON therefore exposes `pages_may_overlap: true`, preserves source row order,
+and calls the continuation only `next_offset_hint`; it does not claim API
+exhaustion or a complete snapshot.
+
+`history` defaults to the preceding 365 days at an 86,400-second step. Steps
+must be from 60 through 259,200 seconds and the inclusive request may imply at
+most 1,000 observations. Each returned aggregate is named explicitly as raw
+`amount_e8s` plus `timestamp_unix_secs`.
+
+All reward reports identify `official_ic_dashboard_api`, are off-chain and
+uncertified, and state that they are not point-in-time guaranteed. See
+[0.36 Node-Provider Reward Reporting](design/0.36/0.36-design.md).
 
 ### Governance
 

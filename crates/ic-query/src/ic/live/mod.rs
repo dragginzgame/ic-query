@@ -10,6 +10,7 @@ mod cloud_engine_provider;
 mod icrc_analytics;
 mod metric;
 mod network;
+mod node_provider_reward;
 mod node_status;
 mod replica_version;
 #[cfg(test)]

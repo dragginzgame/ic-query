@@ -8,6 +8,7 @@ mod canister;
 mod icrc_analytics;
 mod metric;
 mod network;
+mod node_provider_reward;
 mod node_status;
 mod replica_version;
 
@@ -21,6 +22,7 @@ pub use canister::{IcCanisterCollectionSource, IcCanisterSource};
 pub use icrc_analytics::IcIcrcAnalyticsSource;
 pub use metric::IcMetricSource;
 pub use network::IcNetworkSource;
+pub use node_provider_reward::IcNodeProviderRewardSource;
 pub use node_status::IcNodeStatusSource;
 pub use replica_version::IcReplicaVersionSource;
 
@@ -41,6 +43,11 @@ pub(super) use metric::{
 pub(super) use network::{
     boundary_node_data_centers_report_from_source, daily_stats_report_from_source,
     validate_daily_stats_query, validate_daily_stats_request,
+};
+pub(super) use node_provider_reward::{
+    node_provider_reward_history_report_from_source, node_provider_reward_info_report_from_source,
+    node_provider_reward_list_report_from_source, validate_node_provider_reward_history_query,
+    validate_node_provider_reward_history_request, validate_node_provider_reward_list_query,
 };
 pub(super) use node_status::node_status_snapshot_from_source;
 pub(super) use replica_version::{

@@ -8,6 +8,7 @@ use crate::nns::{NnsCommandError, leaf};
 use clap::ArgMatches;
 
 mod reports;
+mod reward;
 mod spec;
 
 pub(in crate::nns) fn command() -> clap::Command {
@@ -18,15 +19,20 @@ pub(in crate::nns) fn command() -> clap::Command {
     .subcommand(crate::nns::operational_status::command(
         crate::nns::operational_status::OperationalStatusSubject::NodeProvider,
     ))
+    .subcommand(reward::command())
 }
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
-    if let Some(("status", matches)) = matches.subcommand() {
-        return crate::nns::operational_status::run(
-            crate::nns::operational_status::OperationalStatusSubject::NodeProvider,
-            matches,
-            network,
-        );
+    match matches.subcommand() {
+        Some(("reward", matches)) => return reward::run(matches, network),
+        Some(("status", matches)) => {
+            return crate::nns::operational_status::run(
+                crate::nns::operational_status::OperationalStatusSubject::NodeProvider,
+                matches,
+                network,
+            );
+        }
+        _ => {}
     }
     leaf::run_cached_leaf(
         matches,

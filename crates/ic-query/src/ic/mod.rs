@@ -29,7 +29,12 @@ pub use build::{
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
-    build_ic_metric_report_with_source, build_ic_node_status_snapshot,
+    build_ic_metric_report_with_source, build_ic_node_provider_reward_history_report,
+    build_ic_node_provider_reward_history_report_with_source,
+    build_ic_node_provider_reward_info_report,
+    build_ic_node_provider_reward_info_report_with_source,
+    build_ic_node_provider_reward_list_report,
+    build_ic_node_provider_reward_list_report_with_source, build_ic_node_status_snapshot,
     build_ic_node_status_snapshot_with_source, build_ic_replica_version_info_report,
     build_ic_replica_version_info_report_with_source, build_ic_replica_version_list_report,
     build_ic_replica_version_list_report_with_source, build_icrc_indexed_count_report,
@@ -51,7 +56,12 @@ pub use model::{
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
-    IcMetricRequest, IcMetricSeries, IcReplicaVersionInfoReport, IcReplicaVersionInfoRequest,
+    IcMetricRequest, IcMetricSeries, IcNodeProviderRewardHistoryObservation,
+    IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryReport,
+    IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardInfoReport,
+    IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListQuery, IcNodeProviderRewardListReport,
+    IcNodeProviderRewardListRequest, IcNodeProviderRewardRow,
+    IcNodeProviderRewardXdrConversionRate, IcReplicaVersionInfoReport, IcReplicaVersionInfoRequest,
     IcReplicaVersionListQuery, IcReplicaVersionListReport, IcReplicaVersionListRequest,
     IcReplicaVersionListRow, IcReplicaVersionStatus, IcReplicaVersionSubnetRollout,
 };
@@ -60,8 +70,9 @@ pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
     IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcIndexedCountSourceData,
     IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData,
-    IcMetricSourceData, IcReplicaVersionInfoSourceData, IcReplicaVersionListSourceData,
-    IcSourceRequest,
+    IcMetricSourceData, IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
+    IcNodeProviderRewardListSourceData, IcReplicaVersionInfoSourceData,
+    IcReplicaVersionListSourceData, IcSourceRequest,
 };
 #[cfg(feature = "dashboard-host")]
 pub(crate) use node_status::canonicalize_node_status_rows_with_policy;
@@ -98,14 +109,15 @@ pub use node_status::{
 #[cfg(feature = "dashboard-host")]
 pub use source::{
     IcCanisterCollectionSource, IcCanisterSource, IcIcrcAnalyticsSource, IcMetricSource,
-    IcNetworkSource, IcNodeStatusSource, IcReplicaVersionSource,
+    IcNetworkSource, IcNodeProviderRewardSource, IcNodeStatusSource, IcReplicaVersionSource,
 };
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
     ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, ic_replica_version_info_report_text,
-    ic_replica_version_list_report_text, icrc_indexed_count_report_text,
-    icrc_token_value_report_text, icrc_total_supply_report_text,
+    ic_metric_report_text, ic_node_provider_reward_history_report_text,
+    ic_node_provider_reward_info_report_text, ic_node_provider_reward_list_report_text,
+    ic_replica_version_info_report_text, ic_replica_version_list_report_text,
+    icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 
 /// Default base endpoint for the official IC Dashboard API.
@@ -195,6 +207,27 @@ pub const DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT: u16 = 50;
 
 /// Maximum row limit accepted for one official Dashboard replica-version page.
 pub const MAX_IC_REPLICA_VERSION_PAGE_LIMIT: u16 = 100;
+
+/// Default row limit for one official Dashboard node-provider reward page.
+pub const DEFAULT_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT: u16 = 50;
+
+/// Maximum row limit accepted for one official Dashboard node-provider reward page.
+pub const MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT: u16 = 100;
+
+/// Default relative window for one node-provider reward history query.
+pub const DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS: u64 = 365 * 24 * 60 * 60;
+
+/// Default interval between node-provider reward history observations.
+pub const DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS: u32 = 86_400;
+
+/// Smallest step accepted by the official node-provider reward history API.
+pub const MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS: u32 = 60;
+
+/// Largest step accepted by the official node-provider reward history API.
+pub const MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS: u32 = 259_200;
+
+/// Maximum requested observations accepted for one node-provider reward history report.
+pub const MAX_IC_NODE_PROVIDER_REWARD_HISTORY_OBSERVATIONS: u64 = 1_000;
 
 #[cfg(feature = "dashboard-host")]
 pub(crate) const IC_DASHBOARD_REPORT_SCHEMA_VERSION: u32 = 1;

@@ -16,8 +16,9 @@ pub use data::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
     IcCanisterSourceData, IcDailyStatsSourceData, IcIcrcIndexedCountSourceData,
     IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData,
-    IcMetricSourceData, IcReplicaVersionInfoSourceData, IcReplicaVersionListSourceData,
-    IcSourceRequest,
+    IcMetricSourceData, IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
+    IcNodeProviderRewardListSourceData, IcReplicaVersionInfoSourceData,
+    IcReplicaVersionListSourceData, IcSourceRequest,
 };
 #[cfg(feature = "dashboard-host")]
 pub use error::IcHostError;
@@ -27,7 +28,9 @@ pub use reports::{
     IcCanisterUpgrade, IcDailyStatsReport, IcDailyStatsRow, IcDashboardReportProvenance,
     IcIcrcIndexedCountReport, IcIcrcTokenValueReport, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyReport, IcMetricObservation, IcMetricReport,
-    IcMetricSeries, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
+    IcMetricSeries, IcNodeProviderRewardHistoryObservation, IcNodeProviderRewardHistoryReport,
+    IcNodeProviderRewardInfoReport, IcNodeProviderRewardListReport, IcNodeProviderRewardRow,
+    IcNodeProviderRewardXdrConversionRate, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
     IcReplicaVersionListRow, IcReplicaVersionStatus, IcReplicaVersionSubnetRollout,
 };
 pub use requests::{
@@ -36,5 +39,8 @@ pub use requests::{
     IcIcrcAnalyticsRequest, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
     IcIcrcTokenValueQuery, IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricQuery, IcMetricRequest,
-    IcReplicaVersionInfoRequest, IcReplicaVersionListQuery, IcReplicaVersionListRequest,
+    IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryRequest,
+    IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListQuery,
+    IcNodeProviderRewardListRequest, IcReplicaVersionInfoRequest, IcReplicaVersionListQuery,
+    IcReplicaVersionListRequest,
 };

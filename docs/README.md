@@ -41,6 +41,7 @@ icq icrc account transaction --help
 | [0.33 Certified API Boundary-Node Reporting](design/0.33/0.33-design.md) | One authenticated state-tree inventory of API boundary-node principals, domains, addresses, and certificate time |
 | [0.34 CloudEngine Provider Reporting](design/0.34/0.34-design.md) | One-request official Dashboard provider inventory and exact provider detail with raw CloudEngine footprint evidence |
 | [0.35 CloudEngine Type4 Node Reporting](design/0.35/0.35-design.md) | Explicit one-request Type4 node inventory, provider filter, operational status, assignment, and exact detail |
+| [0.36 Node-Provider Reward Reporting](design/0.36/0.36-design.md) | Exact detail, one upstream page with explicit overlap evidence, and bounded aggregate reward history |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
 | [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |

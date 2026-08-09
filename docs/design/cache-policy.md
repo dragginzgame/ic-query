@@ -264,8 +264,9 @@ create another implicit cache or freshness policy.
 
 Official Dashboard canister detail, filtered count, explicitly bounded page,
 bounded metric time series, bounded daily statistics, boundary-node
-data-center reports, and CloudEngine provider and explicit Type4 node reports
-are live lookups. Count fetches no rows; page makes one request for at most 100
+data-center reports, node-provider reward reports, and CloudEngine provider
+and explicit Type4 node reports are live lookups. Count fetches no rows; page
+makes one request for at most 100
 rows and never follows a cursor automatically. A
 metric request selects one series family and is capped at 1,000 observations
 per returned series. Daily statistics select one network-activity projection,
@@ -276,6 +277,14 @@ their REST results are neither authoritative complete collections nor durable
 point-in-time evidence. A future complete Dashboard collection or long-range
 metric snapshot would require its own explicit operation, operational cap, and
 timestamped identity, and must not reuse Registry or canister-authority caches.
+
+Node-provider reward detail consumes one exact Dashboard record, list consumes
+one page of at most 100 records, and aggregate history consumes one bounded
+start/end/step response with at most 1,000 requested observations. Offset pages
+can overlap even under one maximum reward index, so list is not a complete
+collection protocol and must not acquire a cache identity or automatic paging
+policy. These reports do not reuse the NNS node-provider inventory or observed
+node-status caches.
 
 CloudEngine provider list consumes one complete node-provider resource capped
 at 1,000 rows and filters only after validation; exact provider info consumes

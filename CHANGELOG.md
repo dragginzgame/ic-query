@@ -7,7 +7,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.35.x] - Unreleased - CloudEngine Type4 node reporting
+## [0.36.x] - Unreleased - Node-provider reward reporting
+
+Detailed release notes: [docs/changelog/0.36.md](docs/changelog/0.36.md)
+
+- `0.36.0` adds live official Dashboard node-provider reward `info`, one-page
+  `list`, and bounded aggregate `history` reports below
+  `nns node-provider reward`. Records preserve raw ICP e8s, Unix-second reward
+  and history timestamps, optional proposal/Registry/XDR evidence, raw
+  Dashboard update time, and mode-specific JSON details. List never
+  auto-pages and explicitly reports that adjacent upstream offset pages may
+  overlap even with a pinned reward-index ceiling. All three operations are
+  off-chain, uncertified, uncached, and make exactly one request.
+
+```bash
+icq nns node-provider reward info 7562 --json
+icq nns node-provider reward list --limit 25
+icq nns node-provider reward history --start 1752537600 --end 1784073600 --step 86400
+```
+
+## [0.35.x] - 2026-08-08 - CloudEngine Type4 node reporting
 
 Detailed release notes: [docs/changelog/0.35.md](docs/changelog/0.35.md)
 

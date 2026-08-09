@@ -6,10 +6,11 @@
 
 use super::requests::{
     IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
-    IcIcrcTotalSupplyQuery, IcMetricQuery, IcReplicaVersionListQuery,
+    IcIcrcTotalSupplyQuery, IcMetricQuery, IcNodeProviderRewardHistoryQuery,
+    IcNodeProviderRewardListQuery, IcReplicaVersionListQuery,
 };
 use serde::Serialize;
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 ///
 /// IcCanisterUpgrade
@@ -297,6 +298,136 @@ pub struct IcBoundaryNodeDataCentersReport {
     pub total_node_count: u64,
     /// Rows in canonical data-center-id order, including zero-node locations.
     pub rows: Vec<IcBoundaryNodeDataCenterRow>,
+}
+
+///
+/// IcNodeProviderRewardXdrConversionRate
+///
+/// XDR conversion-rate evidence recorded with one node-provider reward.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcNodeProviderRewardXdrConversionRate {
+    /// Conversion-rate timestamp as Unix seconds, when present in the record.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp_unix_secs: Option<u64>,
+    /// XDR per ICP multiplied by 10,000, when present in the record.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xdr_permyriad_per_icp: Option<u64>,
+}
+
+///
+/// IcNodeProviderRewardRow
+///
+/// One raw node-provider reward record returned by the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcNodeProviderRewardRow {
+    /// Dashboard reward record id.
+    pub reward_id: u64,
+    /// Reward amount in raw ICP e8s.
+    pub amount_e8s: u64,
+    /// Mode-specific raw reward details preserved as a JSON object.
+    pub details: BTreeMap<String, serde_json::Value>,
+    /// Maximum node-provider reward in e8s used for this record, when available.
+    pub maximum_node_provider_rewards_e8s: Option<u64>,
+    /// Minimum XDR-permyriad-per-ICP floor used for this record, when available.
+    pub minimum_xdr_permyriad_per_icp: Option<u64>,
+    /// Canonical node-provider principal.
+    pub node_provider_id: String,
+    /// NNS proposal associated with this reward, when recorded by the Dashboard.
+    pub proposal_id: Option<u64>,
+    /// Registry version associated with this reward, when recorded by the Dashboard.
+    pub registry_version: Option<u64>,
+    /// Raw mode name so additive Dashboard reward modes remain visible.
+    pub reward_mode: String,
+    /// Reward timestamp as Unix seconds.
+    pub reward_timestamp_unix_secs: u64,
+    /// Raw Dashboard database update timestamp.
+    pub dashboard_updated_at: String,
+    /// XDR conversion-rate evidence, empty for historical records that predate it.
+    pub xdr_conversion_rate: IcNodeProviderRewardXdrConversionRate,
+}
+
+///
+/// IcNodeProviderRewardListReport
+///
+/// One explicitly bounded node-provider reward page from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcNodeProviderRewardListReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Exact requested page bounds, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcNodeProviderRewardListQuery,
+    /// Reward-index ceiling selected by the Dashboard for this page series.
+    pub resolved_max_reward_index: u64,
+    /// Number of reward records matching the selected reward-index ceiling.
+    pub total_reward_records: u64,
+    /// Number of rows returned in this page.
+    pub returned_count: usize,
+    /// Arithmetic offset hint for an explicit later request, when more records remain.
+    pub next_offset_hint: Option<u64>,
+    /// Whether adjacent upstream offset pages can contain overlapping record ids.
+    pub pages_may_overlap: bool,
+    /// Reward rows in the exact order returned by the Dashboard.
+    pub rows: Vec<IcNodeProviderRewardRow>,
+}
+
+///
+/// IcNodeProviderRewardInfoReport
+///
+/// One exact node-provider reward record from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcNodeProviderRewardInfoReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Exact reward record, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub reward: IcNodeProviderRewardRow,
+}
+
+///
+/// IcNodeProviderRewardHistoryObservation
+///
+/// One aggregate reward amount returned by the Dashboard history endpoint.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcNodeProviderRewardHistoryObservation {
+    /// Observation timestamp as Unix seconds.
+    pub timestamp_unix_secs: u64,
+    /// Aggregate node-provider reward amount in raw ICP e8s.
+    pub amount_e8s: u64,
+}
+
+///
+/// IcNodeProviderRewardHistoryReport
+///
+/// One bounded aggregate node-provider reward history response.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcNodeProviderRewardHistoryReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Exact requested history bounds, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcNodeProviderRewardHistoryQuery,
+    /// Maximum observations implied by the requested inclusive window.
+    pub requested_observation_limit: u64,
+    /// Number of observations returned by the API.
+    pub returned_observation_count: usize,
+    /// Aggregate observations in strictly increasing timestamp order.
+    pub observations: Vec<IcNodeProviderRewardHistoryObservation>,
 }
 
 ///

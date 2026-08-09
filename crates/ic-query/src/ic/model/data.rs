@@ -7,12 +7,13 @@
 use super::{
     reports::{
         IcBoundaryNodeDataCenterRow, IcCanisterPageRow, IcCanisterUpgrade, IcDailyStatsRow,
-        IcIcrcTotalSupplyObservation, IcMetricSeries, IcReplicaVersionListRow,
-        IcReplicaVersionSubnetRollout,
+        IcIcrcTotalSupplyObservation, IcMetricSeries, IcNodeProviderRewardHistoryObservation,
+        IcNodeProviderRewardRow, IcReplicaVersionListRow, IcReplicaVersionSubnetRollout,
     },
     requests::{
         IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
-        IcIcrcTotalSupplyQuery, IcMetricQuery, IcReplicaVersionListQuery,
+        IcIcrcTotalSupplyQuery, IcMetricQuery, IcNodeProviderRewardHistoryQuery,
+        IcNodeProviderRewardListQuery, IcReplicaVersionListQuery,
     },
 };
 
@@ -244,6 +245,56 @@ pub struct IcBoundaryNodeDataCentersSourceData {
     pub source: IcSourceRequest,
     /// Raw data-center rows returned by the source.
     pub rows: Vec<IcBoundaryNodeDataCenterRow>,
+}
+
+///
+/// IcNodeProviderRewardListSourceData
+///
+/// Raw bounded node-provider reward page and provenance returned by a Dashboard source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcNodeProviderRewardListSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Page query applied by the source.
+    pub query: IcNodeProviderRewardListQuery,
+    /// Reward-index ceiling selected by the source.
+    pub resolved_max_reward_index: u64,
+    /// Number of reward records matching the selected ceiling.
+    pub total_reward_records: u64,
+    /// Raw reward rows returned by the source.
+    pub rows: Vec<IcNodeProviderRewardRow>,
+}
+
+///
+/// IcNodeProviderRewardInfoSourceData
+///
+/// Raw exact node-provider reward record and provenance returned by a Dashboard source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcNodeProviderRewardInfoSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Raw reward record returned by the source.
+    pub reward: IcNodeProviderRewardRow,
+}
+
+///
+/// IcNodeProviderRewardHistorySourceData
+///
+/// Raw bounded node-provider reward history and provenance returned by a Dashboard source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcNodeProviderRewardHistorySourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// History query applied by the source.
+    pub query: IcNodeProviderRewardHistoryQuery,
+    /// Raw aggregate observations returned by the source.
+    pub observations: Vec<IcNodeProviderRewardHistoryObservation>,
 }
 
 ///

@@ -23,7 +23,7 @@ use crate::{
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::{
-    ic::IcNodeStatusHostError,
+    ic::{IcHostError, IcNodeStatusHostError},
     nns::{
         data_center::NnsDataCenterHostError, governance::NnsGovernanceHostError,
         neuron::NnsNeuronHostError, node::NnsNodeHostError,
@@ -72,6 +72,8 @@ pub enum NnsCommandError {
     TopologyHost(#[from] NnsTopologyHostError),
     #[error(transparent)]
     NodeStatusHost(#[from] IcNodeStatusHostError),
+    #[error(transparent)]
+    DashboardHost(#[from] IcHostError),
     #[error(transparent)]
     Clock(#[from] CurrentUnixSecsError),
     #[error(transparent)]

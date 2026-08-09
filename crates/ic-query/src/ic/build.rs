@@ -13,22 +13,28 @@ use crate::{
         IcIcrcAnalyticsRequest, IcIcrcAnalyticsSource, IcIcrcIndexedCountReport,
         IcIcrcIndexedCountRequest, IcIcrcTokenValueReport, IcIcrcTokenValueRequest,
         IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport, IcMetricRequest,
-        IcMetricSource, IcNetworkSource, IcNodeStatusSnapshot, IcNodeStatusSnapshotRequest,
-        IcNodeStatusSource, IcReplicaVersionInfoReport, IcReplicaVersionInfoRequest,
-        IcReplicaVersionListReport, IcReplicaVersionListRequest, IcReplicaVersionSource,
-        IcSourceRequest, LiveIcSource,
+        IcMetricSource, IcNetworkSource, IcNodeProviderRewardHistoryReport,
+        IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardInfoReport,
+        IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListReport,
+        IcNodeProviderRewardListRequest, IcNodeProviderRewardSource, IcNodeStatusSnapshot,
+        IcNodeStatusSnapshotRequest, IcNodeStatusSource, IcReplicaVersionInfoReport,
+        IcReplicaVersionInfoRequest, IcReplicaVersionListReport, IcReplicaVersionListRequest,
+        IcReplicaVersionSource, IcSourceRequest, LiveIcSource,
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
             canonical_page_cursors, canonical_request_principal, count_report_from_source,
             daily_stats_report_from_source, icrc_indexed_count_report_from_source,
             icrc_token_value_report_from_source, icrc_total_supply_report_from_source,
-            metric_report_from_source, node_status_snapshot_from_source, normalized_filters,
-            page_report_from_source, replica_version_info_report_from_source,
+            metric_report_from_source, node_provider_reward_history_report_from_source,
+            node_provider_reward_info_report_from_source,
+            node_provider_reward_list_report_from_source, node_status_snapshot_from_source,
+            normalized_filters, page_report_from_source, replica_version_info_report_from_source,
             replica_version_list_report_from_source, report_from_source,
             validate_daily_stats_request, validate_icrc_token_value_request,
             validate_icrc_total_supply_request, validate_metric_request,
-            validate_page_cursor_exclusivity, validate_page_limit, validate_replica_version_id,
-            validate_replica_version_list_query,
+            validate_node_provider_reward_history_request,
+            validate_node_provider_reward_list_query, validate_page_cursor_exclusivity,
+            validate_page_limit, validate_replica_version_id, validate_replica_version_list_query,
         },
     },
     subnet_catalog::format_utc_timestamp_secs,
@@ -84,6 +90,59 @@ pub fn build_ic_daily_stats_report_with_source(
     let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
     let source_data = source.fetch_daily_stats(&source_request, &request.query)?;
     daily_stats_report_from_source(&source_request, &request.query, source_data)
+}
+
+/// Build one live, bounded node-provider reward page from the official Dashboard API.
+pub fn build_ic_node_provider_reward_list_report(
+    request: &IcNodeProviderRewardListRequest,
+) -> Result<IcNodeProviderRewardListReport, IcHostError> {
+    build_ic_node_provider_reward_list_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded node-provider reward page through a custom Dashboard source.
+pub fn build_ic_node_provider_reward_list_report_with_source(
+    request: &IcNodeProviderRewardListRequest,
+    source: &dyn IcNodeProviderRewardSource,
+) -> Result<IcNodeProviderRewardListReport, IcHostError> {
+    validate_node_provider_reward_list_query(&request.query)?;
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data = source.fetch_node_provider_reward_list(&source_request, &request.query)?;
+    node_provider_reward_list_report_from_source(&source_request, &request.query, source_data)
+}
+
+/// Build one live exact node-provider reward report from the official Dashboard API.
+pub fn build_ic_node_provider_reward_info_report(
+    request: &IcNodeProviderRewardInfoRequest,
+) -> Result<IcNodeProviderRewardInfoReport, IcHostError> {
+    build_ic_node_provider_reward_info_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one exact node-provider reward report through a custom Dashboard source.
+pub fn build_ic_node_provider_reward_info_report_with_source(
+    request: &IcNodeProviderRewardInfoRequest,
+    source: &dyn IcNodeProviderRewardSource,
+) -> Result<IcNodeProviderRewardInfoReport, IcHostError> {
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data = source.fetch_node_provider_reward_info(&source_request, request.reward_id)?;
+    node_provider_reward_info_report_from_source(&source_request, request.reward_id, source_data)
+}
+
+/// Build one live, bounded node-provider reward history from the official Dashboard API.
+pub fn build_ic_node_provider_reward_history_report(
+    request: &IcNodeProviderRewardHistoryRequest,
+) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> {
+    build_ic_node_provider_reward_history_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded node-provider reward history through a custom Dashboard source.
+pub fn build_ic_node_provider_reward_history_report_with_source(
+    request: &IcNodeProviderRewardHistoryRequest,
+    source: &dyn IcNodeProviderRewardSource,
+) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> {
+    validate_node_provider_reward_history_request(request.now_unix_secs, &request.query)?;
+    let source_request = source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_data = source.fetch_node_provider_reward_history(&source_request, &request.query)?;
+    node_provider_reward_history_report_from_source(&source_request, &request.query, source_data)
 }
 
 /// Build one live, bounded replica-version page from the official Dashboard API.

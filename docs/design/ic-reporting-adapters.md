@@ -75,6 +75,10 @@ the Registry adapter. Official ICRC REST analytics use
 `IcIcrcAnalyticsSource` on the same `LiveIcSource`; they do not inherit the
 native `LiveIcrcSource` ledger/index authority merely because the CLI places
 them below the ICRC subject.
+Node-provider reward detail, one-page discovery, and aggregate history use
+`IcNodeProviderRewardSource` on `LiveIcSource`. The CLI keeps them below the
+NNS node-provider subject for entity navigation, while provenance retains the
+Dashboard as authority and the source never reuses NNS inventory caches.
 CloudEngine provider inventory uses `CloudEngineProviderSource` on that same
 `LiveIcSource`: the CLI keeps the product surface below `cloud-engine`, while
 the request and report preserve official Dashboard authority instead of
@@ -84,9 +88,10 @@ the same adapter and product surface. The source echoes the reward, status,
 and optional provider filters so report construction can reject a changed
 query scope; it does not reuse the default-scope node-status cache.
 Dashboard source-data DTOs echo that request as their source provenance, and
-canister, metric, network, node-status, and CloudEngine provider/node reports
-share one flattened `IcDashboardReportProvenance`, avoiding parallel field and
-validation flows without nesting the public report JSON.
+canister, metric, network, node-status, node-provider reward, and CloudEngine
+provider/node reports share one flattened `IcDashboardReportProvenance`,
+avoiding parallel field and validation flows without nesting the public report
+JSON.
 Certified IC state remains a distinct authority on `LiveIcStateSource`.
 `IcApiBoundaryNodeSource` returns one complete authenticated
 `api_boundary_nodes` subtree with its certificate time; it does not share the
@@ -231,6 +236,10 @@ assurance.
   modulation each preserve one native canister response plus endpoint and
   collection provenance. They do not inherit Registry versions or claim
   reward-history completeness.
+- Dashboard node-provider reward reporting makes one exact, one-page, or one
+  bounded aggregate-history request. It preserves raw e8s and Unix seconds,
+  does not join native Governance or Registry state, and explicitly denies
+  complete collection because offset pages can overlap.
 - ICRC block collection can follow ledger-supplied archive callbacks.
 - ICRC tip-certificate collection authenticates the certificate and proves the
   ledger tip witness against the canister's certified-data value.
@@ -318,6 +327,13 @@ assurance.
   ceiling, release-election fields, and Subnet rollout proposals under
   off-chain Dashboard provenance. It does not auto-page, cache, join Registry
   topology, or claim the elected release is the binary currently running.
+- Official Dashboard node-provider reward reporting sends one exact record,
+  one page of at most 100 records, or one bounded aggregate history request.
+  It preserves e8s, Unix seconds, optional proposal/Registry/XDR evidence, raw
+  reward mode, and mode-specific JSON details. Offset pages can overlap even
+  with the maximum reward index pinned, so it preserves source order, exposes
+  an overlap warning, never auto-pages or caches, and makes no completeness or
+  native Governance claim.
 - Official Dashboard CloudEngine provider reporting makes one request for the
   complete node-provider resource or one exact provider. Complete collection
   is capped at 1,000 rows and validated before filtering to explicit

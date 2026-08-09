@@ -8,6 +8,7 @@ mod canisters;
 mod icrc_analytics;
 mod metrics;
 mod network;
+mod node_provider_rewards;
 mod replica_versions;
 
 pub use canisters::{
@@ -20,6 +21,11 @@ pub use icrc_analytics::{
 };
 pub use metrics::{IcMetricKind, IcMetricQuery, IcMetricRequest};
 pub use network::{IcBoundaryNodeDataCentersRequest, IcDailyStatsQuery, IcDailyStatsRequest};
+pub use node_provider_rewards::{
+    IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryRequest,
+    IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListQuery,
+    IcNodeProviderRewardListRequest,
+};
 pub use replica_versions::{
     IcReplicaVersionInfoRequest, IcReplicaVersionListQuery, IcReplicaVersionListRequest,
 };

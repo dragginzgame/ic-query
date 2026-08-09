@@ -10,7 +10,8 @@ use crate::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
         IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
         IcIcrcIndexedCountReport, IcIcrcTokenValueReport, IcIcrcTotalSupplyReport, IcMetricKind,
-        IcMetricReport, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
+        IcMetricReport, IcNodeProviderRewardHistoryReport, IcNodeProviderRewardInfoReport,
+        IcNodeProviderRewardListReport, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
     },
     table::{ColumnAlign, render_table},
     text_value::{optional_text, optional_u64_text, sanitize_text, truncate_text, yes_no},
@@ -78,6 +79,156 @@ pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
                 sanitize_text(&row.blocks_per_second_average),
             )
         }));
+    }
+    lines.join("\n")
+}
+
+/// Render one bounded official Dashboard node-provider reward page as human-facing text.
+#[must_use]
+pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardListReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("limit: {}", report.query.limit),
+        format!("offset: {}", report.query.offset),
+        format!(
+            "requested_max_reward_index: {}",
+            optional_u64_text(report.query.max_reward_index)
+        ),
+        format!(
+            "resolved_max_reward_index: {}",
+            report.resolved_max_reward_index
+        ),
+        format!("total_reward_records: {}", report.total_reward_records),
+        format!("returned_count: {}", report.returned_count),
+        format!(
+            "next_offset_hint: {}",
+            optional_u64_text(report.next_offset_hint)
+        ),
+        format!("pages_may_overlap: {}", yes_no(report.pages_may_overlap)),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &[
+                "ID",
+                "PROVIDER",
+                "AMOUNT_E8S",
+                "MODE",
+                "REWARDED_AT",
+                "PROPOSAL",
+            ],
+            &report
+                .rows
+                .iter()
+                .map(|row| {
+                    [
+                        row.reward_id.to_string(),
+                        row.node_provider_id.clone(),
+                        row.amount_e8s.to_string(),
+                        sanitize_text(&row.reward_mode),
+                        row.reward_timestamp_unix_secs.to_string(),
+                        optional_u64_text(row.proposal_id),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        ));
+    }
+    lines.join("\n")
+}
+
+/// Render one exact official Dashboard node-provider reward report as human-facing text.
+#[must_use]
+pub fn ic_node_provider_reward_info_report_text(report: &IcNodeProviderRewardInfoReport) -> String {
+    let reward = &report.reward;
+    let details = serde_json::to_string(&reward.details).unwrap_or_else(|_| "{}".to_string());
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("reward_id: {}", reward.reward_id),
+        format!("node_provider_id: {}", reward.node_provider_id),
+        format!("amount_e8s: {}", reward.amount_e8s),
+        format!("reward_mode: {}", sanitize_text(&reward.reward_mode)),
+        format!(
+            "reward_timestamp_unix_secs: {}",
+            reward.reward_timestamp_unix_secs
+        ),
+        format!(
+            "dashboard_updated_at: {}",
+            sanitize_text(&reward.dashboard_updated_at)
+        ),
+        format!("proposal_id: {}", optional_u64_text(reward.proposal_id)),
+        format!(
+            "registry_version: {}",
+            optional_u64_text(reward.registry_version)
+        ),
+        format!(
+            "maximum_node_provider_rewards_e8s: {}",
+            optional_u64_text(reward.maximum_node_provider_rewards_e8s)
+        ),
+        format!(
+            "minimum_xdr_permyriad_per_icp: {}",
+            optional_u64_text(reward.minimum_xdr_permyriad_per_icp)
+        ),
+        format!(
+            "xdr_timestamp_unix_secs: {}",
+            optional_u64_text(reward.xdr_conversion_rate.timestamp_unix_secs)
+        ),
+        format!(
+            "xdr_permyriad_per_icp: {}",
+            optional_u64_text(reward.xdr_conversion_rate.xdr_permyriad_per_icp)
+        ),
+        format!("details: {}", sanitize_text(&details)),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+    lines.join("\n")
+}
+
+/// Render one bounded official Dashboard node-provider reward history as human-facing text.
+#[must_use]
+pub fn ic_node_provider_reward_history_report_text(
+    report: &IcNodeProviderRewardHistoryReport,
+) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("start_unix_secs: {}", report.query.start_unix_secs),
+        format!("end_unix_secs: {}", report.query.end_unix_secs),
+        format!("step_secs: {}", report.query.step_secs),
+        format!(
+            "requested_observation_limit: {}",
+            report.requested_observation_limit
+        ),
+        format!(
+            "returned_observation_count: {}",
+            report.returned_observation_count
+        ),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.observations.is_empty() {
+        lines.push(String::new());
+        lines.push(render_table(
+            &["TIMESTAMP", "AMOUNT_E8S"],
+            &report
+                .observations
+                .iter()
+                .map(|observation| {
+                    [
+                        observation.timestamp_unix_secs.to_string(),
+                        observation.amount_e8s.to_string(),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+            &[ColumnAlign::Right, ColumnAlign::Right],
+        ));
     }
     lines.join("\n")
 }

@@ -4,7 +4,8 @@ use ic_query::ic::{
     DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_CANISTER_PAGE_LIMIT,
     DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-    DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT,
+    DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS,
+    DEFAULT_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT, DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT,
     DEFAULT_IC_STATE_SOURCE_ENDPOINT, IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
     IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest, IcApiBoundaryNodeRow,
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
@@ -17,16 +18,22 @@ use ic_query::ic::{
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
     IcMetricRequest, IcMetricSeries, IcNodeAssignmentStatusCounts, IcNodeCountComparison,
-    IcNodeProviderStatusReport, IcNodeStatusCounts, IcNodeStatusGroupCounts,
-    IcNodeStatusObservation, IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope,
-    IcNodeStatusSnapshot, IcNodeStatusView, IcReplicaVersionInfoReport,
+    IcNodeProviderRewardHistoryObservation, IcNodeProviderRewardHistoryQuery,
+    IcNodeProviderRewardHistoryReport, IcNodeProviderRewardHistoryRequest,
+    IcNodeProviderRewardInfoReport, IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListQuery,
+    IcNodeProviderRewardListReport, IcNodeProviderRewardListRequest, IcNodeProviderRewardRow,
+    IcNodeProviderRewardXdrConversionRate, IcNodeProviderStatusReport, IcNodeStatusCounts,
+    IcNodeStatusGroupCounts, IcNodeStatusObservation, IcNodeStatusReport, IcNodeStatusRow,
+    IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView, IcReplicaVersionInfoReport,
     IcReplicaVersionInfoRequest, IcReplicaVersionListQuery, IcReplicaVersionListReport,
     IcReplicaVersionListRequest, IcReplicaVersionListRow, IcReplicaVersionStatus,
     IcReplicaVersionSubnetRollout, IcSubnetStatusReport, MAX_IC_CANISTER_PAGE_LIMIT,
-    MAX_IC_DASHBOARD_RESPONSE_BYTES, MAX_IC_REPLICA_VERSION_PAGE_LIMIT,
-    ic_api_boundary_node_report_text, ic_boundary_node_data_centers_report_text,
-    ic_canister_count_report_text, ic_canister_page_report_text, ic_canister_report_text,
-    ic_daily_stats_report_text, ic_metric_report_text,
+    MAX_IC_DASHBOARD_RESPONSE_BYTES, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT,
+    MAX_IC_REPLICA_VERSION_PAGE_LIMIT, ic_api_boundary_node_report_text,
+    ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
+    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
+    ic_metric_report_text, ic_node_provider_reward_history_report_text,
+    ic_node_provider_reward_info_report_text, ic_node_provider_reward_list_report_text,
     ic_node_provider_status_report_from_snapshot, ic_node_provider_status_report_text,
     ic_node_status_report_from_snapshot, ic_node_status_report_text,
     ic_replica_version_info_report_text, ic_replica_version_list_report_text,
@@ -45,15 +52,21 @@ use ic_query::ic::{
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
     IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
     IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData,
-    IcNetworkSource, IcNodeStatusHostError, IcNodeStatusSnapshotRequest, IcNodeStatusSource,
-    IcNodeStatusSourceData, IcReplicaVersionSource, IcSourceRequest, LiveIcSource,
+    IcNetworkSource, IcNodeProviderRewardSource, IcNodeStatusHostError,
+    IcNodeStatusSnapshotRequest, IcNodeStatusSource, IcNodeStatusSourceData,
+    IcReplicaVersionSource, IcSourceRequest, LiveIcSource,
     build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
     build_ic_canister_report_with_source, build_ic_daily_stats_report,
     build_ic_daily_stats_report_with_source, build_ic_metric_report,
-    build_ic_metric_report_with_source, build_ic_node_status_snapshot,
+    build_ic_metric_report_with_source, build_ic_node_provider_reward_history_report,
+    build_ic_node_provider_reward_history_report_with_source,
+    build_ic_node_provider_reward_info_report,
+    build_ic_node_provider_reward_info_report_with_source,
+    build_ic_node_provider_reward_list_report,
+    build_ic_node_provider_reward_list_report_with_source, build_ic_node_status_snapshot,
     build_ic_node_status_snapshot_with_source, build_ic_replica_version_info_report,
     build_ic_replica_version_info_report_with_source, build_ic_replica_version_list_report,
     build_ic_replica_version_list_report_with_source, build_icrc_indexed_count_report,
@@ -295,6 +308,89 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
     assert!(info_text.contains("summary: Raw release notes"));
     assert_eq!(list_json["rows"][0]["status"], "EXECUTED");
     assert_eq!(info_json["summary"], "Raw release notes");
+    assert!(list_json.get("provenance").is_none());
+}
+
+#[test]
+fn public_ic_node_provider_reward_api_is_constructible_serializable_and_renderable() {
+    let list_query = IcNodeProviderRewardListQuery::new(25, 0, Some(6_470));
+    let list_request = IcNodeProviderRewardListRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        1_800_000_000,
+        list_query.clone(),
+    );
+    let reward = IcNodeProviderRewardRow {
+        reward_id: 7_562,
+        amount_e8s: 1_583_574_085_000,
+        details: std::collections::BTreeMap::from([(
+            "to_account".to_string(),
+            serde_json::Value::String("00".repeat(32)),
+        )]),
+        maximum_node_provider_rewards_e8s: Some(10_000_000_000_000),
+        minimum_xdr_permyriad_per_icp: Some(20_000),
+        node_provider_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        proposal_id: None,
+        registry_version: None,
+        reward_mode: "RewardToAccount".to_string(),
+        reward_timestamp_unix_secs: 1_784_081_341,
+        dashboard_updated_at: "2026-07-15T04:30:01.558435".to_string(),
+        xdr_conversion_rate: IcNodeProviderRewardXdrConversionRate {
+            timestamp_unix_secs: Some(1_784_073_600),
+            xdr_permyriad_per_icp: Some(16_379),
+        },
+    };
+    let list = IcNodeProviderRewardListReport {
+        provenance: public_provenance(list_request.source_endpoint),
+        query: list_query,
+        resolved_max_reward_index: 6_470,
+        total_reward_records: 6_470,
+        returned_count: 1,
+        next_offset_hint: Some(1),
+        pages_may_overlap: true,
+        rows: vec![reward.clone()],
+    };
+    let info_request = IcNodeProviderRewardInfoRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        1_800_000_000,
+        reward.reward_id,
+    );
+    let info = IcNodeProviderRewardInfoReport {
+        provenance: public_provenance(info_request.source_endpoint),
+        reward,
+    };
+    let history_query = IcNodeProviderRewardHistoryQuery::new(1_783_900_000, 1_784_300_000, 86_400);
+    let history_request = IcNodeProviderRewardHistoryRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        1_800_000_000,
+        history_query.clone(),
+    );
+    let history = IcNodeProviderRewardHistoryReport {
+        provenance: public_provenance(history_request.source_endpoint),
+        query: history_query,
+        requested_observation_limit: 5,
+        returned_observation_count: 1,
+        observations: vec![IcNodeProviderRewardHistoryObservation {
+            timestamp_unix_secs: 1_784_073_600,
+            amount_e8s: 66_852_931_445_000,
+        }],
+    };
+
+    let list_json = serde_json::to_value(&list).expect("serializable reward list");
+    let info_json = serde_json::to_value(&info).expect("serializable reward info");
+    let history_json = serde_json::to_value(&history).expect("serializable reward history");
+
+    assert_eq!(DEFAULT_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT, 50);
+    assert_eq!(MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT, 100);
+    assert_eq!(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS, 86_400);
+    assert!(ic_node_provider_reward_list_report_text(&list).contains("pages_may_overlap: yes"));
+    assert!(ic_node_provider_reward_info_report_text(&info).contains("amount_e8s:"));
+    assert!(ic_node_provider_reward_history_report_text(&history).contains("AMOUNT_E8S"));
+    assert_eq!(list_json["rows"][0]["amount_e8s"], 1_583_574_085_000_u64);
+    assert_eq!(info_json["reward_timestamp_unix_secs"], 1_784_081_341_u64);
+    assert_eq!(
+        history_json["observations"][0]["amount_e8s"],
+        66_852_931_445_000_u64
+    );
     assert!(list_json.get("provenance").is_none());
 }
 
@@ -651,6 +747,38 @@ fn public_dashboard_replica_version_host_api_exposes_builders() {
         &dyn IcReplicaVersionSource,
     ) -> Result<IcReplicaVersionInfoReport, IcHostError> =
         build_ic_replica_version_info_report_with_source;
+}
+
+#[cfg(feature = "dashboard-host")]
+#[test]
+fn public_dashboard_node_provider_reward_host_api_exposes_builders() {
+    let _: fn(
+        &IcNodeProviderRewardListRequest,
+    ) -> Result<IcNodeProviderRewardListReport, IcHostError> =
+        build_ic_node_provider_reward_list_report;
+    let _: fn(
+        &IcNodeProviderRewardListRequest,
+        &dyn IcNodeProviderRewardSource,
+    ) -> Result<IcNodeProviderRewardListReport, IcHostError> =
+        build_ic_node_provider_reward_list_report_with_source;
+    let _: fn(
+        &IcNodeProviderRewardInfoRequest,
+    ) -> Result<IcNodeProviderRewardInfoReport, IcHostError> =
+        build_ic_node_provider_reward_info_report;
+    let _: fn(
+        &IcNodeProviderRewardInfoRequest,
+        &dyn IcNodeProviderRewardSource,
+    ) -> Result<IcNodeProviderRewardInfoReport, IcHostError> =
+        build_ic_node_provider_reward_info_report_with_source;
+    let _: fn(
+        &IcNodeProviderRewardHistoryRequest,
+    ) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> =
+        build_ic_node_provider_reward_history_report;
+    let _: fn(
+        &IcNodeProviderRewardHistoryRequest,
+        &dyn IcNodeProviderRewardSource,
+    ) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> =
+        build_ic_node_provider_reward_history_report_with_source;
 }
 
 #[cfg(feature = "dashboard-host")]

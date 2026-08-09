@@ -258,6 +258,29 @@ fn binary_ic_replica_version_help_smoke() {
 }
 
 #[test]
+fn binary_nns_node_provider_reward_help_smoke() {
+    let info = run_icq(&["nns", "node-provider", "reward", "info", "--help"]);
+    assert_success(&info);
+    let info_stdout = stdout_text(&info);
+    assert!(info_stdout.contains("Usage: icq nns node-provider reward info [OPTIONS] <reward-id>"));
+    assert!(info_stdout.contains("raw ICP e8s"));
+
+    let list = run_icq(&["nns", "node-provider", "reward", "list", "--help"]);
+    assert_success(&list);
+    let list_stdout = stdout_text(&list);
+    assert!(list_stdout.contains("Usage: icq nns node-provider reward list [OPTIONS]"));
+    assert!(list_stdout.contains("--max-reward-index <index>"));
+    assert!(list_stdout.contains("offset pages can overlap"));
+
+    let history = run_icq(&["nns", "node-provider", "reward", "history", "--help"]);
+    assert_success(&history);
+    let history_stdout = stdout_text(&history);
+    assert!(history_stdout.contains("Usage: icq nns node-provider reward history [OPTIONS]"));
+    assert!(history_stdout.contains("--step <seconds>"));
+    assert!(history_stdout.contains("1000 requested observations"));
+}
+
+#[test]
 fn binary_icrc_balance_help_smoke() {
     let output = run_icq(&["icrc", "account", "balance", "--help"]);
 
@@ -568,6 +591,10 @@ fn binary_command_namespaces_match_explicit_local_help() {
         (&["nns", "node"], &["nns", "node", "help"]),
         (&["nns", "node-operator"], &["nns", "node-operator", "help"]),
         (&["nns", "node-provider"], &["nns", "node-provider", "help"]),
+        (
+            &["nns", "node-provider", "reward"],
+            &["nns", "node-provider", "reward", "help"],
+        ),
         (&["nns", "proposal"], &["nns", "proposal", "help"]),
         (
             &["nns", "proposal", "cache"],

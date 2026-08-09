@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["host"] }
+ic-query = { version = "0.36", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -22,18 +22,19 @@ Both NNS subsets are nested under `nns-host`, and
 `certified-subnet-catalog-host` and `nns-topology-host` each include
 `subnet-catalog-host`.
 
-For official Dashboard REST reports, CloudEngine provider and Type4 node
-collection, and the shared observed default-scope node-status cache, use the
-independent Dashboard feature:
+For official Dashboard REST reports, node-provider rewards, CloudEngine
+provider and Type4 node collection, and the shared observed default-scope
+node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
-builders including `CloudEngineNodeSource` and `CloudEngineProviderSource`,
-and the confined node-status cache. It enables Reqwest, Tokio, URL,
+builders including `IcNodeProviderRewardSource`, `CloudEngineNodeSource`, and
+`CloudEngineProviderSource`, and the confined node-status cache. It enables
+Reqwest, Tokio, URL,
 and the capability-filesystem dependencies required by those APIs. It does not
 enable `ic-agent`, Registry protobuf decoding, `serde_cbor`, or native
 NNS/SNS/ICRC host adapters. Reqwest can retain cryptographic implementations
@@ -45,7 +46,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -59,7 +60,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -72,7 +73,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -90,7 +91,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
@@ -98,7 +99,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -114,7 +115,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -132,7 +133,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -149,7 +150,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -165,7 +166,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -181,7 +182,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.36", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -285,7 +286,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.35", default-features = false }
+ic-query = { version = "0.36", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -382,6 +383,7 @@ proposal, and SNS neuron host APIs expose this pattern with
 `IcCanisterSource`,
 `IcCanisterCollectionSource`,
 `IcMetricSource`, `IcNetworkSource`, `IcNodeStatusSource`,
+`IcNodeProviderRewardSource`,
 `IcIcrcAnalyticsSource`, and narrow native
 ICRC capabilities such as
 `IcrcTokenSource`,
@@ -571,6 +573,44 @@ query together with `report.next_offset`. Exact
 Subnet rollout rows in one request. Both reports are live-only, off-chain,
 uncertified, and separate from Registry desired-version or actual running
 version evidence.
+
+Node-provider rewards use another focused capability on `LiveIcSource`. One
+explicit page retains the upstream overlap warning, while history remains a
+single bounded aggregate request:
+
+```rust
+use ic_query::ic::{
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcHostError,
+    IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryRequest,
+    build_ic_node_provider_reward_history_report,
+};
+
+fn node_provider_reward_history(
+    now_unix_secs: u64,
+) -> Result<Vec<(u64, u64)>, IcHostError> {
+    let request = IcNodeProviderRewardHistoryRequest::new(
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        now_unix_secs,
+        IcNodeProviderRewardHistoryQuery::new(
+            now_unix_secs.saturating_sub(30 * 24 * 60 * 60),
+            now_unix_secs,
+            86_400,
+        ),
+    );
+    let report = build_ic_node_provider_reward_history_report(&request)?;
+    Ok(report
+        .observations
+        .into_iter()
+        .map(|row| (row.timestamp_unix_secs, row.amount_e8s))
+        .collect())
+}
+```
+
+`build_ic_node_provider_reward_info_report` and
+`build_ic_node_provider_reward_list_report` provide the exact and one-page
+forms. Raw amounts remain e8s, timestamps remain Unix seconds, and
+mode-specific detail stays a JSON object. Offset pages are not a complete
+collection protocol and are never followed automatically.
 
 Filtered discovery stays explicitly bounded. A count performs one REST request
 and fetches no rows. A page performs one REST request for at most 100 rows and
