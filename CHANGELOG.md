@@ -7,7 +7,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.36.x] - Unreleased - Node-provider reward reporting
+## [0.37.x] - Unreleased - ICRC account and holder index reporting
+
+Detailed release notes: [docs/changelog/0.37.md](docs/changelog/0.37.md)
+
+- `0.37.0` adds one-request official Dashboard ICRC `account list`, exact
+  `account info`, and `holder list` reports. Pages accept at most 100 rows,
+  expose reusable opaque forward/backward cursors without following them, and
+  preserve raw indexed balances, transactions, update evidence, fee-collector
+  details, holder percentages, and USD values. Upstream nanosecond creation
+  times are exposed as Unix seconds plus a lossless subsecond-nanosecond
+  remainder. Reports are off-chain, uncertified, uncached, and not complete or
+  point-in-time ledger snapshots.
+
+```bash
+icq icrc analytics account list mxzaz-hqaaa-aaaar-qaada-cai --limit 25
+icq icrc analytics account info mxzaz-hqaaa-aaaar-qaada-cai <account-id> --json
+icq icrc analytics holder list mxzaz-hqaaa-aaaar-qaada-cai --sort-by=-balance
+```
+
+## [0.36.x] - 2026-08-09 - Node-provider reward reporting
 
 Detailed release notes: [docs/changelog/0.36.md](docs/changelog/0.36.md)
 
@@ -80,7 +99,7 @@ icq ic api-boundary-node list
 icq ic api-boundary-node list --json
 ```
 
-## [0.32.x] - Unreleased - Bounded replica release reporting
+## [0.32.x] - 2026-08-08 - Bounded replica release reporting
 
 Detailed release notes: [docs/changelog/0.32.md](docs/changelog/0.32.md)
 

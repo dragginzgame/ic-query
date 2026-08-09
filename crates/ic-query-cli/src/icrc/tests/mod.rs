@@ -1,18 +1,20 @@
 use super::commands::{
     IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
     IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
-    IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
-    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions, command as icrc_command,
-    icrc_account_command, icrc_account_transaction_cache_command,
-    icrc_account_transaction_cache_status_command, icrc_account_transaction_command,
-    icrc_account_transaction_list_command, icrc_account_transaction_page_command,
-    icrc_account_transaction_refresh_command, icrc_allowance_command,
-    icrc_analytics_account_command, icrc_analytics_account_count_command, icrc_analytics_command,
-    icrc_analytics_holder_command, icrc_analytics_holder_count_command,
-    icrc_analytics_token_values_command, icrc_analytics_total_supply_command,
-    icrc_analytics_transaction_command, icrc_analytics_transaction_count_command,
-    icrc_archives_command, icrc_balance_command, icrc_block_types_command,
-    icrc_capabilities_command, icrc_index_command, icrc_ledger_command,
+    IcrcAnalyticsAccountInfoOptions, IcrcAnalyticsAccountListOptions,
+    IcrcAnalyticsHolderListOptions, IcrcAnalyticsTokenValueOptions,
+    IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
+    IcrcTransactionsOptions, command as icrc_command, icrc_account_command,
+    icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_command,
+    icrc_account_transaction_command, icrc_account_transaction_list_command,
+    icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
+    icrc_allowance_command, icrc_analytics_account_command, icrc_analytics_account_count_command,
+    icrc_analytics_account_info_command, icrc_analytics_account_list_command,
+    icrc_analytics_command, icrc_analytics_holder_command, icrc_analytics_holder_count_command,
+    icrc_analytics_holder_list_command, icrc_analytics_token_values_command,
+    icrc_analytics_total_supply_command, icrc_analytics_transaction_command,
+    icrc_analytics_transaction_count_command, icrc_archives_command, icrc_balance_command,
+    icrc_block_types_command, icrc_capabilities_command, icrc_index_command, icrc_ledger_command,
     icrc_tip_certificate_command, icrc_token_command, icrc_transactions_command,
 };
 use crate::cli::{
@@ -20,7 +22,10 @@ use crate::cli::{
     common::OutputFormat,
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::ic::DEFAULT_ICRC_TOKEN_VALUE_LIMIT;
+use ic_query::ic::{
+    DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_TOKEN_VALUE_LIMIT, IcIcrcAccountSort,
+    IcIcrcHolderSort,
+};
 use ic_query::icrc::IcrcAccountTransactionSort;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
@@ -390,6 +395,59 @@ fn analytics_indexed_count_options_reuse_the_shared_ledger_target() {
 }
 
 #[test]
+fn analytics_account_list_options_preserve_cursor_owner_and_descending_sort() {
+    let options = parse_test_options(
+        icrc_analytics_account_list_command(),
+        &[
+            LEDGER_CANISTER_ID,
+            "--owner",
+            ACCOUNT_OWNER,
+            "--after",
+            "1668734888.0,hkmli-faaaa-aaaar-qb4ba-cai",
+            "--limit",
+            "25",
+            "--sort-by=-balance",
+            "--json",
+        ],
+        IcrcAnalyticsAccountListOptions::from_matches,
+    );
+
+    assert_eq!(options.owner.as_deref(), Some(ACCOUNT_OWNER));
+    assert_eq!(
+        options.after.as_deref(),
+        Some("1668734888.0,hkmli-faaaa-aaaar-qb4ba-cai")
+    );
+    assert_eq!(options.before, None);
+    assert_eq!(options.limit, 25);
+    assert_eq!(options.sort_by, IcIcrcAccountSort::BalanceDescending);
+    assert_eq!(options.target.format, OutputFormat::Json);
+}
+
+#[test]
+fn analytics_holder_list_and_account_info_options_use_operation_specific_contracts() {
+    let holder = parse_test_options(
+        icrc_analytics_holder_list_command(),
+        &[LEDGER_CANISTER_ID, "--before", "holder-cursor"],
+        IcrcAnalyticsHolderListOptions::from_matches,
+    );
+    assert_eq!(holder.after, None);
+    assert_eq!(holder.before.as_deref(), Some("holder-cursor"));
+    assert_eq!(holder.limit, 20);
+    assert_eq!(holder.sort_by, IcIcrcHolderSort::Principal);
+
+    let info = parse_test_options(
+        icrc_analytics_account_info_command(),
+        &[LEDGER_CANISTER_ID, ACCOUNT_OWNER],
+        IcrcAnalyticsAccountInfoOptions::from_matches,
+    );
+    assert_eq!(info.account_id, ACCOUNT_OWNER);
+    assert_eq!(
+        info.target.source_endpoint,
+        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT
+    );
+}
+
+#[test]
 fn usage_mentions_icrc_command_surface() {
     let root = render_help(icrc_command());
     let ledger = render_help(icrc_ledger_command());
@@ -472,6 +530,9 @@ fn usage_mentions_icrc_analytics_surface() {
     let analytics = render_help(icrc_analytics_command());
     let analytics_token_values = render_help(icrc_analytics_token_values_command());
     let analytics_total_supply = render_help(icrc_analytics_total_supply_command());
+    let analytics_account_info = render_help(icrc_analytics_account_info_command());
+    let analytics_account_list = render_help(icrc_analytics_account_list_command());
+    let analytics_holder_list = render_help(icrc_analytics_holder_list_command());
     let count_usages = [
         (
             "account",
@@ -517,4 +578,13 @@ fn usage_mentions_icrc_analytics_surface() {
     assert!(analytics_total_supply.contains("bounded historical total supply"));
     assert!(analytics_total_supply.contains("Official IC Dashboard ICRC analytics API"));
     assert!(analytics_total_supply.contains("Collection mode: Live query"));
+    for usage in [
+        analytics_account_info,
+        analytics_account_list,
+        analytics_holder_list,
+    ] {
+        assert!(usage.contains("Collection mode: Live query"));
+        assert!(usage.contains("off-chain"));
+        assert!(usage.contains("not point-in-time") || usage.contains("not a complete"));
+    }
 }

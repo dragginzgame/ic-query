@@ -747,14 +747,43 @@ total supply adds one explicit time window:
 
 ```rust
 use ic_query::ic::{
+    DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
     DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, DEFAULT_ICRC_TOKEN_VALUE_LIMIT,
     DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
-    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcIndexedCountKind,
-    IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery, IcIcrcTokenValueRequest,
+    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcAccountInfoRequest,
+    IcIcrcAccountListQuery, IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort,
+    IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery, IcIcrcTokenValueRequest,
     IcIcrcTokenValueRow, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery,
-    IcIcrcTotalSupplyRequest, build_icrc_indexed_count_report, build_icrc_token_value_report,
-    build_icrc_total_supply_report,
+    IcIcrcTotalSupplyRequest, build_icrc_account_info_report, build_icrc_account_list_report,
+    build_icrc_indexed_count_report, build_icrc_token_value_report, build_icrc_total_supply_report,
 };
+
+fn account_page(
+    ledger_canister_id: &str,
+    now_unix_secs: u64,
+) -> Result<Vec<IcIcrcAccountRow>, IcHostError> {
+    let request = IcIcrcAccountListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        now_unix_secs,
+        ledger_canister_id,
+        IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::BalanceDescending),
+    );
+    Ok(build_icrc_account_list_report(&request)?.rows)
+}
+
+fn exact_account(
+    ledger_canister_id: &str,
+    account_id: &str,
+    now_unix_secs: u64,
+) -> Result<IcIcrcAccountRow, IcHostError> {
+    let request = IcIcrcAccountInfoRequest::new(
+        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+        now_unix_secs,
+        ledger_canister_id,
+        account_id,
+    );
+    Ok(build_icrc_account_info_report(&request)?.account)
+}
 
 fn indexed_count(
     ledger_canister_id: &str,
@@ -806,6 +835,13 @@ fn token_value_history(
 ```
 
 Each builder makes exactly one request and never reads or writes a cache.
+Account and holder pages accept at most 100 rows, preserve opaque cursors for
+explicit later requests, and never enumerate automatically. Account detail is
+an exact stable-id lookup. Creation timestamps use Unix seconds plus a
+subsecond nanosecond remainder so precision is retained without exposing raw
+nanoseconds as the primary time field. `IcIcrcIndexSource` is the focused host
+fixture/mirror boundary for these operations.
+
 Account, holder, and transaction counts request no rows or cursors and retain
 their exact typed kind in the report. Token values preserve nullable raw
 external prices, 24-hour volumes, provider names, and URLs across a maximum

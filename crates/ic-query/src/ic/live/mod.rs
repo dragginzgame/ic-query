@@ -8,6 +8,7 @@ mod canister;
 mod cloud_engine_node;
 mod cloud_engine_provider;
 mod icrc_analytics;
+mod icrc_index;
 mod metric;
 mod network;
 mod node_provider_reward;

@@ -18,7 +18,7 @@ and local-only inspection visibly distinct.
 | Family | Current surface |
 | --- | --- |
 | Certified IC state | Complete authenticated API boundary-node identities, domains, and IPv4/IPv6 configuration from one certified state tree |
-| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, exact/one-page replica releases, exact/one-page/aggregate node-provider rewards, one-request observed default-scope and explicit Type4 node status, cached default-scope node/Subnet/provider views with typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history plus indexed account, holder, and transaction counts |
+| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, exact/one-page replica releases, exact/one-page/aggregate node-provider rewards, one-request observed default-scope and explicit Type4 node status, cached default-scope node/Subnet/provider views with typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history, indexed counts, account detail/pages, and holder pages |
 | CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, public network fee and bounded marketplace prices, one-request official Dashboard provider footprint and exact provider detail, plus explicit Type4 node health, assignment, and exact detail |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
 | NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
@@ -123,7 +123,10 @@ icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc account balance ryjl3-tyaaa-aaaaa-aaaba-cai aaaaa-aa
 icq icrc analytics account count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics account list mxzaz-hqaaa-aaaar-qaada-cai --limit 25
+icq icrc analytics account info mxzaz-hqaaa-aaaar-qaada-cai 222nw-nqiei-h4uy6-fqm54-d3slu-jveav-vqrn6-yojxi-4eug3-2ejie-vae
 icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics holder list mxzaz-hqaaa-aaaar-qaada-cai --sort-by=-balance
 icq icrc analytics token-values mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics total-supply mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai
@@ -167,7 +170,7 @@ actually make:
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
 | Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
 | CloudEngine control plane | Ordinary public canister query responses from the fixed control-plane and resolved operator canister; list inventory separately comes from the versioned Registry Subnet Catalog | `certified: false`, `point_in_time_guaranteed: false` for control-plane observations; per-row calls do not become part of the Registry snapshot |
-| Official IC Dashboard, including CloudEngine provider footprint and explicit Type4 nodes, observed default-scope node status, replica releases, node-provider rewards, and ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`; provider aggregates and Type4 node observations are separately timed, default node scope still excludes CloudEngine nodes, release records do not prove the binary currently running, reward offset pages may overlap, and an accepted ledger principal does not prove indexing coverage |
+| Official IC Dashboard, including CloudEngine provider footprint and explicit Type4 nodes, observed default-scope node status, replica releases, node-provider rewards, and ICRC analytics | Timestamped off-chain REST analytics | `certified: false`, `point_in_time_guaranteed: false`; provider aggregates and Type4 node observations are separately timed, default node scope still excludes CloudEngine nodes, release records do not prove the binary currently running, reward offset pages may overlap, ICRC cursor pages are not complete snapshots, and an accepted ledger principal does not prove indexing coverage |
 
 JSON reports keep raw identifiers, numeric fields, classifications, timestamps,
 and explicit provenance. Text output may shorten or format values for people.
@@ -225,7 +228,9 @@ icq sns reward diff <before.json> <after.json>
 icq icrc account allowance|balance
 icq icrc account transaction cache|list|page|refresh
 icq icrc analytics account count <ledger-canister-id>
-icq icrc analytics holder count <ledger-canister-id>
+icq icrc analytics account info <ledger-canister-id> <account-id>
+icq icrc analytics account list <ledger-canister-id>
+icq icrc analytics holder count|list <ledger-canister-id>
 icq icrc analytics token-values <ledger-canister-id>
 icq icrc analytics total-supply <ledger-canister-id>
 icq icrc analytics transaction count <ledger-canister-id>

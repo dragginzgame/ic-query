@@ -5,17 +5,120 @@
 //! Boundary: validates command arguments before dispatch constructs public requests.
 
 use super::{
-    END_ARG, FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG,
-    LEDGER_CANISTER_ID_ARG, LIMIT_ARG, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG,
-    PAGE_SIZE_ARG, PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG,
-    START_ARG, STEP_ARG, SUBACCOUNT_ARG, format_from_matches, source_endpoint_from_matches,
+    ACCOUNT_ID_ARG, AFTER_ARG, BEFORE_ARG, END_ARG, FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG,
+    INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG, LIMIT_ARG, MAX_PAGES_ARG, OWNER_ARG,
+    OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG, PRINCIPAL_ARG, SORT_ARG, SORT_BY_ARG,
+    SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG, START_ARG, STEP_ARG, SUBACCOUNT_ARG,
+    format_from_matches, source_endpoint_from_matches,
 };
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option},
     common::OutputFormat,
 };
 use clap::ArgMatches;
-use ic_query::{ic::DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, icrc::IcrcAccountTransactionSort};
+use ic_query::{
+    ic::{DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, IcIcrcAccountSort, IcIcrcHolderSort},
+    icrc::IcrcAccountTransactionSort,
+};
+
+///
+/// IcrcAnalyticsAccountListOptions
+///
+/// Clap-parsed bounds and sort for one official account-index page.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAnalyticsAccountListOptions {
+    pub(in crate::icrc) target: IcrcLedgerOptions,
+    pub(in crate::icrc) owner: Option<String>,
+    pub(in crate::icrc) after: Option<String>,
+    pub(in crate::icrc) before: Option<String>,
+    pub(in crate::icrc) limit: u16,
+    pub(in crate::icrc) sort_by: IcIcrcAccountSort,
+}
+
+impl IcrcAnalyticsAccountListOptions {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            target: IcrcLedgerOptions::from_matches(matches),
+            owner: string_option(matches, OWNER_ARG),
+            after: string_option(matches, AFTER_ARG),
+            before: string_option(matches, BEFORE_ARG),
+            limit: required_typed(matches, LIMIT_ARG),
+            sort_by: match required_string(matches, SORT_BY_ARG).as_str() {
+                "id" => IcIcrcAccountSort::Id,
+                "-id" => IcIcrcAccountSort::IdDescending,
+                "balance" => IcIcrcAccountSort::Balance,
+                "-balance" => IcIcrcAccountSort::BalanceDescending,
+                "total_transactions" => IcIcrcAccountSort::TotalTransactions,
+                "-total_transactions" => IcIcrcAccountSort::TotalTransactionsDescending,
+                "created_timestamp" => IcIcrcAccountSort::CreatedTimestamp,
+                "-created_timestamp" => IcIcrcAccountSort::CreatedTimestampDescending,
+                "owner" => IcIcrcAccountSort::Owner,
+                "-owner" => IcIcrcAccountSort::OwnerDescending,
+                _ => unreachable!("Clap restricts ICRC account sort values"),
+            },
+        }
+    }
+}
+
+///
+/// IcrcAnalyticsAccountInfoOptions
+///
+/// Clap-parsed target for one exact official account-index lookup.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAnalyticsAccountInfoOptions {
+    pub(in crate::icrc) target: IcrcLedgerOptions,
+    pub(in crate::icrc) account_id: String,
+}
+
+impl IcrcAnalyticsAccountInfoOptions {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            target: IcrcLedgerOptions::from_matches(matches),
+            account_id: required_string(matches, ACCOUNT_ID_ARG),
+        }
+    }
+}
+
+///
+/// IcrcAnalyticsHolderListOptions
+///
+/// Clap-parsed bounds and sort for one official holder-index page.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::icrc) struct IcrcAnalyticsHolderListOptions {
+    pub(in crate::icrc) target: IcrcLedgerOptions,
+    pub(in crate::icrc) after: Option<String>,
+    pub(in crate::icrc) before: Option<String>,
+    pub(in crate::icrc) limit: u16,
+    pub(in crate::icrc) sort_by: IcIcrcHolderSort,
+}
+
+impl IcrcAnalyticsHolderListOptions {
+    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            target: IcrcLedgerOptions::from_matches(matches),
+            after: string_option(matches, AFTER_ARG),
+            before: string_option(matches, BEFORE_ARG),
+            limit: required_typed(matches, LIMIT_ARG),
+            sort_by: match required_string(matches, SORT_BY_ARG).as_str() {
+                "balance" => IcIcrcHolderSort::Balance,
+                "-balance" => IcIcrcHolderSort::BalanceDescending,
+                "total_transactions" => IcIcrcHolderSort::TotalTransactions,
+                "-total_transactions" => IcIcrcHolderSort::TotalTransactionsDescending,
+                "created_timestamp" => IcIcrcHolderSort::CreatedTimestamp,
+                "-created_timestamp" => IcIcrcHolderSort::CreatedTimestampDescending,
+                "principal" => IcIcrcHolderSort::Principal,
+                "-principal" => IcIcrcHolderSort::PrincipalDescending,
+                _ => unreachable!("Clap restricts ICRC holder sort values"),
+            },
+        }
+    }
+}
 
 ///
 /// IcrcAnalyticsWindowOptions

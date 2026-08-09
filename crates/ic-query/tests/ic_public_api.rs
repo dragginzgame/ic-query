@@ -6,14 +6,18 @@ use ic_query::ic::{
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
     DEFAULT_IC_METRIC_STEP_SECS, DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS,
     DEFAULT_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT, DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT,
-    DEFAULT_IC_STATE_SOURCE_ENDPOINT, IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
+    DEFAULT_IC_STATE_SOURCE_ENDPOINT, DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+    DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
     IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest, IcApiBoundaryNodeRow,
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
     IcCanisterRequest, IcCanisterUpgrade, IcCertifiedStateProvenance, IcDailyStatsQuery,
     IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
-    IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
+    IcIcrcAccountInfoReport, IcIcrcAccountInfoRequest, IcIcrcAccountListQuery,
+    IcIcrcAccountListReport, IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort,
+    IcIcrcHolderListQuery, IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcHolderRow,
+    IcIcrcHolderSort, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
@@ -38,6 +42,7 @@ use ic_query::ic::{
     ic_node_status_report_from_snapshot, ic_node_status_report_text,
     ic_replica_version_info_report_text, ic_replica_version_list_report_text,
     ic_subnet_status_report_from_snapshot, ic_subnet_status_report_text,
+    icrc_account_info_report_text, icrc_account_list_report_text, icrc_holder_list_report_text,
     icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 #[cfg(feature = "ic-state-host")]
@@ -50,12 +55,13 @@ use ic_query::ic::{
 use ic_query::ic::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCollectionSource, IcCanisterCountSourceData,
     IcCanisterPageSourceData, IcCanisterSource, IcCanisterSourceData, IcDailyStatsSourceData,
-    IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
-    IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData,
-    IcNetworkSource, IcNodeProviderRewardSource, IcNodeStatusHostError,
-    IcNodeStatusSnapshotRequest, IcNodeStatusSource, IcNodeStatusSourceData,
-    IcReplicaVersionSource, IcSourceRequest, LiveIcSource,
-    build_ic_boundary_node_data_centers_report,
+    IcHostError, IcIcrcAccountInfoSourceData, IcIcrcAccountListSourceData, IcIcrcAccountSourceRow,
+    IcIcrcAnalyticsSource, IcIcrcHolderListSourceData, IcIcrcHolderSourceRow, IcIcrcIndexSource,
+    IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow,
+    IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData, IcNetworkSource,
+    IcNodeProviderRewardSource, IcNodeStatusHostError, IcNodeStatusSnapshotRequest,
+    IcNodeStatusSource, IcNodeStatusSourceData, IcReplicaVersionSource, IcSourceRequest,
+    LiveIcSource, build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
@@ -69,7 +75,10 @@ use ic_query::ic::{
     build_ic_node_provider_reward_list_report_with_source, build_ic_node_status_snapshot,
     build_ic_node_status_snapshot_with_source, build_ic_replica_version_info_report,
     build_ic_replica_version_info_report_with_source, build_ic_replica_version_list_report,
-    build_ic_replica_version_list_report_with_source, build_icrc_indexed_count_report,
+    build_ic_replica_version_list_report_with_source, build_icrc_account_info_report,
+    build_icrc_account_info_report_with_source, build_icrc_account_list_report,
+    build_icrc_account_list_report_with_source, build_icrc_holder_list_report,
+    build_icrc_holder_list_report_with_source, build_icrc_indexed_count_report,
     build_icrc_indexed_count_report_with_source, build_icrc_token_value_report,
     build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
@@ -508,6 +517,93 @@ fn public_icrc_indexed_count_api_is_constructible_serializable_and_renderable() 
 }
 
 #[test]
+fn public_icrc_account_and_holder_index_api_is_constructible_serializable_and_renderable() {
+    let account_row = IcIcrcAccountRow {
+        account_id: "aaaaa-aa".to_string(),
+        owner: "aaaaa-aa".to_string(),
+        subaccount: String::new(),
+        balance_base_units: "1000".to_string(),
+        total_transactions: 3,
+        created_at_unix_secs: 1_731_833_720,
+        created_at_subsec_nanos: 56_622_711,
+        ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+        latest_transaction_index: 1_898_152,
+        dashboard_updated_at: "2026-04-14T18:54:04.330496".to_string(),
+        active_fee_collector: false,
+        fee_collector_block_ranges: Vec::new(),
+    };
+    let account_query = IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::Id)
+        .with_owner("aaaaa-aa")
+        .with_after("cursor");
+    let account_request = IcIcrcAccountListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        1_800_000_000,
+        ICRC_LEDGER_ID,
+        account_query.clone(),
+    );
+    let account_report = IcIcrcAccountListReport {
+        provenance: public_provenance(account_request.analytics.source_endpoint),
+        ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+        query: account_query,
+        returned_count: 1,
+        previous_cursor: Some("previous".to_string()),
+        next_cursor: Some("next".to_string()),
+        rows: vec![account_row.clone()],
+    };
+    let account_json = serde_json::to_value(&account_report).expect("serializable account page");
+    assert!(icrc_account_list_report_text(&account_report).contains("accounts:"));
+    assert_eq!(
+        account_json["rows"][0]["created_at_unix_secs"],
+        1_731_833_720_u64
+    );
+
+    let info_request = IcIcrcAccountInfoRequest::new(
+        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+        1_800_000_000,
+        ICRC_LEDGER_ID,
+        "aaaaa-aa",
+    );
+    let info_report = IcIcrcAccountInfoReport {
+        provenance: public_provenance(info_request.analytics.source_endpoint),
+        account: account_row,
+    };
+    assert!(icrc_account_info_report_text(&info_report).contains("account_id: aaaaa-aa"));
+
+    let holder_query = IcIcrcHolderListQuery::new(20, IcIcrcHolderSort::BalanceDescending);
+    let holder_request = IcIcrcHolderListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        1_800_000_000,
+        ICRC_LEDGER_ID,
+        holder_query.clone(),
+    );
+    let holder_report = IcIcrcHolderListReport {
+        provenance: public_provenance(holder_request.analytics.source_endpoint),
+        ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+        query: holder_query,
+        returned_count: 1,
+        previous_cursor: None,
+        next_cursor: Some("1000,aaaaa-aa".to_string()),
+        rows: vec![IcIcrcHolderRow {
+            principal: "aaaaa-aa".to_string(),
+            balance_base_units: "1000".to_string(),
+            total_transactions: 3,
+            created_at_unix_secs: 1_731_833_720,
+            created_at_subsec_nanos: 56_622_711,
+            ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+            latest_transaction_index: 1_898_152,
+            percentage: serde_json::json!(0.25),
+            value_usd: serde_json::Value::Null,
+            dashboard_updated_at: "2026-04-14T18:55:55.827947".to_string(),
+        }],
+    };
+    assert!(icrc_holder_list_report_text(&holder_report).contains("holders:"));
+    assert_eq!(
+        serde_json::to_value(holder_report).expect("serializable holder page")["rows"][0]["percentage"],
+        serde_json::json!(0.25)
+    );
+}
+
+#[test]
 fn public_icrc_token_value_api_is_constructible_serializable_and_renderable() {
     let request = IcIcrcTokenValueRequest::new(
         "https://icrc-api.internetcomputer.org/api/v2",
@@ -815,6 +911,24 @@ fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
 #[cfg(feature = "dashboard-host")]
 #[test]
 fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
+    let _: fn(&IcIcrcAccountListRequest) -> Result<IcIcrcAccountListReport, IcHostError> =
+        build_icrc_account_list_report;
+    let _: fn(
+        &IcIcrcAccountListRequest,
+        &dyn IcIcrcIndexSource,
+    ) -> Result<IcIcrcAccountListReport, IcHostError> = build_icrc_account_list_report_with_source;
+    let _: fn(&IcIcrcAccountInfoRequest) -> Result<IcIcrcAccountInfoReport, IcHostError> =
+        build_icrc_account_info_report;
+    let _: fn(
+        &IcIcrcAccountInfoRequest,
+        &dyn IcIcrcIndexSource,
+    ) -> Result<IcIcrcAccountInfoReport, IcHostError> = build_icrc_account_info_report_with_source;
+    let _: fn(&IcIcrcHolderListRequest) -> Result<IcIcrcHolderListReport, IcHostError> =
+        build_icrc_holder_list_report;
+    let _: fn(
+        &IcIcrcHolderListRequest,
+        &dyn IcIcrcIndexSource,
+    ) -> Result<IcIcrcHolderListReport, IcHostError> = build_icrc_holder_list_report_with_source;
     let _: fn(&IcIcrcIndexedCountRequest) -> Result<IcIcrcIndexedCountReport, IcHostError> =
         build_icrc_indexed_count_report;
     let _: fn(
@@ -846,6 +960,26 @@ fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         .expect("custom ICRC indexed-count source report");
     assert_eq!(count.kind, IcIcrcIndexedCountKind::Transaction);
     assert_eq!(count.total, 78_272);
+
+    let account_request = IcIcrcAccountListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+        IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::Id),
+    );
+    let accounts = build_icrc_account_list_report_with_source(&account_request, &source)
+        .expect("custom ICRC account source report");
+    assert_eq!(accounts.returned_count, 1);
+
+    let holder_request = IcIcrcHolderListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        1_785_628_800,
+        ICRC_LEDGER_ID,
+        IcIcrcHolderListQuery::new(20, IcIcrcHolderSort::Principal),
+    );
+    let holders = build_icrc_holder_list_report_with_source(&holder_request, &source)
+        .expect("custom ICRC holder source report");
+    assert_eq!(holders.returned_count, 1);
 
     let token_value_request = IcIcrcTokenValueRequest::new(
         "https://icrc-api.internetcomputer.org/api/v2",
@@ -1029,6 +1163,80 @@ impl IcIcrcAnalyticsSource for FixtureSource {
                 },
             ],
         })
+    }
+}
+
+#[cfg(feature = "dashboard-host")]
+impl IcIcrcIndexSource for FixtureSource {
+    fn fetch_account_list(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcAccountListQuery,
+    ) -> Result<IcIcrcAccountListSourceData, IcHostError> {
+        Ok(IcIcrcAccountListSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            previous_cursor: None,
+            next_cursor: Some("aaaaa-aa".to_string()),
+            rows: vec![public_icrc_account_source_row()],
+        })
+    }
+
+    fn fetch_account_info(
+        &self,
+        request: &IcSourceRequest,
+        _ledger_canister_id: &str,
+        _account_id: &str,
+    ) -> Result<IcIcrcAccountInfoSourceData, IcHostError> {
+        Ok(IcIcrcAccountInfoSourceData {
+            source: request.clone(),
+            account: public_icrc_account_source_row(),
+        })
+    }
+
+    fn fetch_holder_list(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcHolderListQuery,
+    ) -> Result<IcIcrcHolderListSourceData, IcHostError> {
+        Ok(IcIcrcHolderListSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            previous_cursor: None,
+            next_cursor: Some("aaaaa-aa".to_string()),
+            rows: vec![IcIcrcHolderSourceRow {
+                principal: "aaaaa-aa".to_string(),
+                balance_base_units: "1000".to_string(),
+                total_transactions: 3,
+                created_at_unix_nanos: 1_731_833_720_056_622_711,
+                ledger_canister_id: ledger_canister_id.to_string(),
+                latest_transaction_index: 1_898_152,
+                percentage: serde_json::json!(0.25),
+                value_usd: serde_json::Value::Null,
+                dashboard_updated_at: "2026-04-14T18:55:55.827947".to_string(),
+            }],
+        })
+    }
+}
+
+#[cfg(feature = "dashboard-host")]
+fn public_icrc_account_source_row() -> IcIcrcAccountSourceRow {
+    IcIcrcAccountSourceRow {
+        account_id: "aaaaa-aa".to_string(),
+        owner: "aaaaa-aa".to_string(),
+        subaccount: String::new(),
+        balance_base_units: "1000".to_string(),
+        total_transactions: 3,
+        created_at_unix_nanos: 1_731_833_720_056_622_711,
+        ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+        latest_transaction_index: 1_898_152,
+        dashboard_updated_at: "2026-04-14T18:54:04.330496".to_string(),
+        active_fee_collector: false,
+        fee_collector_block_ranges: Vec::new(),
     }
 }
 

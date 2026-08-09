@@ -7,9 +7,10 @@
 use super::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTokenValueOptions,
-    IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
-    IcrcTransactionsOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
+    IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
+    IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
+    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
@@ -20,11 +21,14 @@ use crate::{
 use clap::ArgMatches;
 use ic_query::ic::{
     DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
-    IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery,
-    IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
-    MIN_ICRC_ANALYTICS_TIMESTAMP, build_icrc_indexed_count_report, build_icrc_token_value_report,
-    build_icrc_total_supply_report, icrc_indexed_count_report_text, icrc_token_value_report_text,
-    icrc_total_supply_report_text,
+    IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListRequest,
+    IcIcrcHolderListQuery, IcIcrcHolderListRequest, IcIcrcIndexedCountKind,
+    IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery, IcIcrcTokenValueRequest,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, MIN_ICRC_ANALYTICS_TIMESTAMP,
+    build_icrc_account_info_report, build_icrc_account_list_report, build_icrc_holder_list_report,
+    build_icrc_indexed_count_report, build_icrc_token_value_report, build_icrc_total_supply_report,
+    icrc_account_info_report_text, icrc_account_list_report_text, icrc_holder_list_report_text,
+    icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 use ic_query::icrc::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
@@ -56,18 +60,75 @@ pub fn run_matches(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
 
 fn run_icrc_analytics(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("account", matches)) => {
-            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Account)
-        }
-        Some(("holder", matches)) => {
-            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Holder)
-        }
+        Some(("account", matches)) => run_icrc_analytics_account(matches),
+        Some(("holder", matches)) => run_icrc_analytics_holder(matches),
         Some(("token-values", matches)) => run_icrc_analytics_token_values(matches),
         Some(("total-supply", matches)) => run_icrc_analytics_total_supply(matches),
         Some(("transaction", matches)) => {
             run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Transaction)
         }
         _ => unreachable!("clap requires a known ICRC analytics subcommand"),
+    }
+}
+
+fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("count", matches)) => {
+            run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Account)
+        }
+        Some(("info", matches)) => {
+            let options = IcrcAnalyticsAccountInfoOptions::from_matches(matches);
+            let target = options.target;
+            let request = IcIcrcAccountInfoRequest::new(
+                target.source_endpoint,
+                current_unix_secs()?,
+                target.ledger_canister_id,
+                options.account_id,
+            );
+            let report = build_icrc_account_info_report(&request)?;
+            write_text_or_json(target.format, &report, icrc_account_info_report_text)
+        }
+        Some(("list", matches)) => {
+            let options = IcrcAnalyticsAccountListOptions::from_matches(matches);
+            let target = options.target;
+            let mut query = IcIcrcAccountListQuery::new(options.limit, options.sort_by);
+            query.owner = options.owner;
+            query.after = options.after;
+            query.before = options.before;
+            let request = IcIcrcAccountListRequest::new(
+                target.source_endpoint,
+                current_unix_secs()?,
+                target.ledger_canister_id,
+                query,
+            );
+            let report = build_icrc_account_list_report(&request)?;
+            write_text_or_json(target.format, &report, icrc_account_list_report_text)
+        }
+        _ => unreachable!("clap requires a known ICRC account analytics subcommand"),
+    }
+}
+
+fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+    match matches.subcommand() {
+        Some(("count", matches)) => {
+            run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Holder)
+        }
+        Some(("list", matches)) => {
+            let options = IcrcAnalyticsHolderListOptions::from_matches(matches);
+            let target = options.target;
+            let mut query = IcIcrcHolderListQuery::new(options.limit, options.sort_by);
+            query.after = options.after;
+            query.before = options.before;
+            let request = IcIcrcHolderListRequest::new(
+                target.source_endpoint,
+                current_unix_secs()?,
+                target.ledger_canister_id,
+                query,
+            );
+            let report = build_icrc_holder_list_report(&request)?;
+            write_text_or_json(target.format, &report, icrc_holder_list_report_text)
+        }
+        _ => unreachable!("clap requires a known ICRC holder analytics subcommand"),
     }
 }
 

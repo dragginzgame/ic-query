@@ -603,7 +603,13 @@ Bounded official ICRC analytics:
 
 ```bash
 icq icrc analytics account count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics account list mxzaz-hqaaa-aaaar-qaada-cai --limit 25
+icq icrc analytics account list mxzaz-hqaaa-aaaar-qaada-cai \
+  --sort-by=-balance --after '1668734888.0,hkmli-faaaa-aaaar-qb4ba-cai' --json
+icq icrc analytics account info mxzaz-hqaaa-aaaar-qaada-cai \
+  222nw-nqiei-h4uy6-fqm54-d3slu-jveav-vqrn6-yojxi-4eug3-2ejie-vae
 icq icrc analytics holder count mxzaz-hqaaa-aaaar-qaada-cai
+icq icrc analytics holder list mxzaz-hqaaa-aaaar-qaada-cai --sort-by=-balance
 icq icrc analytics token-values mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc analytics token-values mxzaz-hqaaa-aaaar-qaada-cai \
   --start 1785542400 --end 1785628800 --limit 100 --json
@@ -628,6 +634,25 @@ Dashboard-index values rather than scans performed by `ic-query`; the commands
 never follow up against the ledger or create a cache. Account and holder counts
 remain distinct API classifications.
 
+`analytics account list` and `analytics holder list` each make one v2 request
+for at most 100 rows. They preserve the selected upstream sort, make no hidden
+enumeration, and expose the response's opaque `previous_cursor` and
+`next_cursor`. A returned cursor can be supplied unchanged to `--before` or
+`--after`; composite cursors are translated to the upstream repeated query
+parameters only at the HTTP boundary. The commands never follow or merge
+pages automatically and do not claim API exhaustion, completeness, or one
+point-in-time snapshot. Account list can additionally restrict the one page
+to a canonical owner principal.
+
+`analytics account info` makes one v1 lookup for the exact opaque account id
+returned by account list. Account rows preserve owner, raw subaccount and
+base-unit balance, transaction counts, latest transaction index, raw Dashboard
+update time, and fee-collector evidence. Holder rows preserve the principal-
+level balance and transaction aggregate plus raw percentage and nullable USD
+value. The upstream nanosecond creation value is represented as ordinary
+`created_at_unix_secs` plus `created_at_subsec_nanos`, retaining full precision
+without making callers interpret a 19-digit timestamp.
+
 `analytics token-values` makes one v2 request for a bounded range of external
 price and 24-hour trading-volume observations. It defaults to 24 hours and
 1,000 rows, rejects ranges longer than 90 days or limits above 1,000, and marks
@@ -641,7 +666,9 @@ that the Dashboard service indexes that ledger. Use `icq icrc ledger token`
 for current supply reported directly by `icrc1_total_supply`; the two reports
 are not silently reconciled. See
 [0.27 Bounded Official ICRC Analytics](design/0.27/0.27-design.md) for the
-authority and bounds contract.
+authority and series/count bounds contract, and
+[0.37 ICRC Account and Holder Index Reporting](design/0.37/0.37-design.md) for
+cursor-page and exact-detail behavior.
 
 Ledger-wide live reports:
 

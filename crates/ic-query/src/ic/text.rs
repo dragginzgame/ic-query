@@ -9,6 +9,7 @@ use crate::{
     ic::{
         IcBoundaryNodeDataCentersReport, IcCanisterCountReport, IcCanisterFilters,
         IcCanisterPageReport, IcCanisterReport, IcDailyStatsReport, IcDashboardReportProvenance,
+        IcIcrcAccountInfoReport, IcIcrcAccountListReport, IcIcrcHolderListReport,
         IcIcrcIndexedCountReport, IcIcrcTokenValueReport, IcIcrcTotalSupplyReport, IcMetricKind,
         IcMetricReport, IcNodeProviderRewardHistoryReport, IcNodeProviderRewardInfoReport,
         IcNodeProviderRewardListReport, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
@@ -376,6 +377,177 @@ pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> Stri
     lines.join("\n")
 }
 
+/// Render one bounded official ICRC account-index page as human-facing text.
+#[must_use]
+pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!(
+            "ledger_canister_id: {}",
+            sanitize_text(&report.ledger_canister_id)
+        ),
+        format!("owner: {}", optional_text(report.query.owner.as_ref())),
+        format!("sort_by: {}", report.query.sort_by),
+        format!("limit: {}", report.query.limit),
+        format!("returned_count: {}", report.returned_count),
+        format!(
+            "previous_cursor: {}",
+            optional_text(report.previous_cursor.as_ref())
+        ),
+        format!(
+            "next_cursor: {}",
+            optional_text(report.next_cursor.as_ref())
+        ),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push("accounts:".to_string());
+        let rows = report
+            .rows
+            .iter()
+            .map(|row| {
+                [
+                    row.account_id.clone(),
+                    row.owner.clone(),
+                    row.balance_base_units.clone(),
+                    row.total_transactions.to_string(),
+                    row.created_at_unix_secs.to_string(),
+                    row.latest_transaction_index.to_string(),
+                ]
+            })
+            .collect::<Vec<_>>();
+        lines.push(render_table(
+            &[
+                "ACCOUNT ID",
+                "OWNER",
+                "BALANCE",
+                "TXS",
+                "CREATED",
+                "LATEST TX",
+            ],
+            &rows,
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        ));
+    }
+    lines.join("\n")
+}
+
+/// Render one exact official ICRC account record as human-facing text.
+#[must_use]
+pub fn icrc_account_info_report_text(report: &IcIcrcAccountInfoReport) -> String {
+    let account = &report.account;
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!("account_id: {}", sanitize_text(&account.account_id)),
+        format!("owner: {}", sanitize_text(&account.owner)),
+        format!("subaccount: {}", sanitize_text(&account.subaccount)),
+        format!(
+            "balance_base_units: {}",
+            sanitize_text(&account.balance_base_units)
+        ),
+        format!("total_transactions: {}", account.total_transactions),
+        format!("created_at_unix_secs: {}", account.created_at_unix_secs),
+        format!(
+            "created_at_subsec_nanos: {}",
+            account.created_at_subsec_nanos
+        ),
+        format!(
+            "ledger_canister_id: {}",
+            sanitize_text(&account.ledger_canister_id)
+        ),
+        format!(
+            "latest_transaction_index: {}",
+            account.latest_transaction_index
+        ),
+        format!(
+            "dashboard_updated_at: {}",
+            sanitize_text(&account.dashboard_updated_at)
+        ),
+        format!(
+            "active_fee_collector: {}",
+            yes_no(account.active_fee_collector)
+        ),
+        format!(
+            "fee_collector_block_range_count: {}",
+            account.fee_collector_block_ranges.len()
+        ),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+    lines.join("\n")
+}
+
+/// Render one bounded official ICRC holder-index page as human-facing text.
+#[must_use]
+pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
+    let mut lines = report_header(&report.provenance);
+    lines.extend([
+        format!(
+            "ledger_canister_id: {}",
+            sanitize_text(&report.ledger_canister_id)
+        ),
+        format!("sort_by: {}", report.query.sort_by),
+        format!("limit: {}", report.query.limit),
+        format!("returned_count: {}", report.returned_count),
+        format!(
+            "previous_cursor: {}",
+            optional_text(report.previous_cursor.as_ref())
+        ),
+        format!(
+            "next_cursor: {}",
+            optional_text(report.next_cursor.as_ref())
+        ),
+    ]);
+    append_report_footer(&mut lines, &report.provenance);
+
+    if !report.rows.is_empty() {
+        lines.push(String::new());
+        lines.push("holders:".to_string());
+        let rows = report
+            .rows
+            .iter()
+            .map(|row| {
+                [
+                    row.principal.clone(),
+                    row.balance_base_units.clone(),
+                    row.total_transactions.to_string(),
+                    json_scalar_text(&row.percentage),
+                    json_scalar_text(&row.value_usd),
+                    row.created_at_unix_secs.to_string(),
+                ]
+            })
+            .collect::<Vec<_>>();
+        lines.push(render_table(
+            &[
+                "PRINCIPAL",
+                "BALANCE",
+                "TXS",
+                "PERCENT",
+                "VALUE USD",
+                "CREATED",
+            ],
+            &rows,
+            &[
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        ));
+    }
+    lines.join("\n")
+}
+
 /// Render one bounded official ICRC token-value series as human-facing text.
 #[must_use]
 pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
@@ -644,5 +816,13 @@ fn text_or_dash(value: &str) -> String {
         "-".to_string()
     } else {
         sanitize_text(value)
+    }
+}
+
+fn json_scalar_text(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::Null => "-".to_string(),
+        serde_json::Value::String(value) => value.clone(),
+        _ => value.to_string(),
     }
 }

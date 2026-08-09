@@ -6,6 +6,7 @@
 
 mod canisters;
 mod icrc_analytics;
+mod icrc_index;
 mod metrics;
 mod network;
 mod node_provider_rewards;
@@ -18,6 +19,10 @@ pub use icrc_analytics::{
     IcIcrcAnalyticsRequest, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
     IcIcrcTokenValueQuery, IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery,
     IcIcrcTotalSupplyRequest,
+};
+pub use icrc_index::{
+    IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListRequest, IcIcrcAccountSort,
+    IcIcrcHolderListQuery, IcIcrcHolderListRequest, IcIcrcHolderSort,
 };
 pub use metrics::{IcMetricKind, IcMetricQuery, IcMetricRequest};
 pub use network::{IcBoundaryNodeDataCentersRequest, IcDailyStatsQuery, IcDailyStatsRequest};

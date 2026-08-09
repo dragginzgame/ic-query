@@ -37,7 +37,10 @@ pub use build::{
     build_ic_node_provider_reward_list_report_with_source, build_ic_node_status_snapshot,
     build_ic_node_status_snapshot_with_source, build_ic_replica_version_info_report,
     build_ic_replica_version_info_report_with_source, build_ic_replica_version_list_report,
-    build_ic_replica_version_list_report_with_source, build_icrc_indexed_count_report,
+    build_ic_replica_version_list_report_with_source, build_icrc_account_info_report,
+    build_icrc_account_info_report_with_source, build_icrc_account_list_report,
+    build_icrc_account_list_report_with_source, build_icrc_holder_list_report,
+    build_icrc_holder_list_report_with_source, build_icrc_indexed_count_report,
     build_icrc_indexed_count_report_with_source, build_icrc_token_value_report,
     build_icrc_token_value_report_with_source, build_icrc_total_supply_report,
     build_icrc_total_supply_report_with_source,
@@ -51,8 +54,11 @@ pub use model::{
     IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
     IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
     IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
-    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcAnalyticsRequest,
-    IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
+    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcAccountInfoReport,
+    IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListReport,
+    IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort, IcIcrcAnalyticsRequest,
+    IcIcrcHolderListQuery, IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcHolderRow,
+    IcIcrcHolderSort, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
@@ -68,9 +74,11 @@ pub use model::{
 #[cfg(feature = "dashboard-host")]
 pub use model::{
     IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
-    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcIndexedCountSourceData,
-    IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData,
-    IcMetricSourceData, IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
+    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcAccountInfoSourceData,
+    IcIcrcAccountListSourceData, IcIcrcAccountSourceRow, IcIcrcHolderListSourceData,
+    IcIcrcHolderSourceRow, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
+    IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSourceData,
+    IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
     IcNodeProviderRewardListSourceData, IcReplicaVersionInfoSourceData,
     IcReplicaVersionListSourceData, IcSourceRequest,
 };
@@ -108,8 +116,9 @@ pub use node_status::{
 };
 #[cfg(feature = "dashboard-host")]
 pub use source::{
-    IcCanisterCollectionSource, IcCanisterSource, IcIcrcAnalyticsSource, IcMetricSource,
-    IcNetworkSource, IcNodeProviderRewardSource, IcNodeStatusSource, IcReplicaVersionSource,
+    IcCanisterCollectionSource, IcCanisterSource, IcIcrcAnalyticsSource, IcIcrcIndexSource,
+    IcMetricSource, IcNetworkSource, IcNodeProviderRewardSource, IcNodeStatusSource,
+    IcReplicaVersionSource,
 };
 pub use text::{
     ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
@@ -117,6 +126,7 @@ pub use text::{
     ic_metric_report_text, ic_node_provider_reward_history_report_text,
     ic_node_provider_reward_info_report_text, ic_node_provider_reward_list_report_text,
     ic_replica_version_info_report_text, ic_replica_version_list_report_text,
+    icrc_account_info_report_text, icrc_account_list_report_text, icrc_holder_list_report_text,
     icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 
@@ -134,6 +144,10 @@ pub const DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT: &str =
 /// Default base endpoint for the official Dashboard ICRC analytics API.
 pub const DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT: &str =
     "https://icrc-api.internetcomputer.org/api/v2";
+
+/// Default base endpoint for exact official Dashboard ICRC account queries.
+pub const DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT: &str =
+    "https://icrc-api.internetcomputer.org/api/v1";
 
 /// Default base endpoint for official boundary-node data-center queries.
 pub const DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT: &str =
@@ -186,6 +200,12 @@ pub const MAX_ICRC_TOKEN_VALUE_WINDOW_SECS: u64 = 90 * 24 * 60 * 60;
 
 /// Maximum token-value rows requested or accepted by one report.
 pub const MAX_ICRC_TOKEN_VALUE_ROWS: u16 = 1_000;
+
+/// Maximum rows accepted for one official ICRC account or holder index page.
+pub const MAX_ICRC_INDEX_PAGE_ROWS: u16 = 100;
+
+/// Maximum characters accepted for an opaque official ICRC index cursor or account id.
+pub const MAX_ICRC_INDEX_CURSOR_CHARS: usize = 512;
 
 /// Default relative window for one Dashboard daily-statistics query.
 pub const DEFAULT_IC_DAILY_STATS_WINDOW_SECS: u64 = 7 * 24 * 60 * 60;

@@ -19,10 +19,11 @@ pub(in crate::icrc) use account::{
 #[cfg(test)]
 pub(in crate::icrc) use analytics::{
     command as icrc_analytics_command, icrc_analytics_account_command,
-    icrc_analytics_account_count_command, icrc_analytics_holder_command,
-    icrc_analytics_holder_count_command, icrc_analytics_token_values_command,
-    icrc_analytics_total_supply_command, icrc_analytics_transaction_command,
-    icrc_analytics_transaction_count_command,
+    icrc_analytics_account_count_command, icrc_analytics_account_info_command,
+    icrc_analytics_account_list_command, icrc_analytics_holder_command,
+    icrc_analytics_holder_count_command, icrc_analytics_holder_list_command,
+    icrc_analytics_token_values_command, icrc_analytics_total_supply_command,
+    icrc_analytics_transaction_command, icrc_analytics_transaction_count_command,
 };
 #[cfg(test)]
 pub(in crate::icrc) use ledger::{
@@ -35,9 +36,10 @@ pub use dispatch::run_matches;
 pub(in crate::icrc) use options::{
     IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
     IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsTokenValueOptions,
-    IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
-    IcrcTransactionsOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
+    IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
+    IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
+    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 
 use crate::cli::{
@@ -63,6 +65,11 @@ const START_ARG: &str = "start";
 const END_ARG: &str = "end";
 const STEP_ARG: &str = "step";
 const LIMIT_ARG: &str = "limit";
+const AFTER_ARG: &str = "after";
+const BEFORE_ARG: &str = "before";
+const ACCOUNT_ID_ARG: &str = "account-id";
+const OWNER_ARG: &str = "owner";
+const SORT_BY_ARG: &str = "sort-by";
 const PAGE_SIZE_ARG: &str = "page-size";
 const MAX_PAGES_ARG: &str = "max-pages";
 const SORT_ARG: &str = "sort";

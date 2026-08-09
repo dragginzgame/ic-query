@@ -6,6 +6,7 @@
 
 mod canister;
 mod icrc_analytics;
+mod icrc_index;
 mod metric;
 mod network;
 mod node_provider_reward;
@@ -20,6 +21,7 @@ use candid::Principal;
 
 pub use canister::{IcCanisterCollectionSource, IcCanisterSource};
 pub use icrc_analytics::IcIcrcAnalyticsSource;
+pub use icrc_index::IcIcrcIndexSource;
 pub use metric::IcMetricSource;
 pub use network::IcNetworkSource;
 pub use node_provider_reward::IcNodeProviderRewardSource;
@@ -36,6 +38,11 @@ pub(super) use icrc_analytics::{
     icrc_total_supply_report_from_source, validate_icrc_token_value_query,
     validate_icrc_token_value_request, validate_icrc_total_supply_query,
     validate_icrc_total_supply_request,
+};
+pub(super) use icrc_index::{
+    icrc_account_info_report_from_source, icrc_account_list_report_from_source,
+    icrc_holder_list_report_from_source, normalized_account_list_query, validate_account_id,
+    validate_holder_list_query,
 };
 pub(super) use metric::{
     metric_report_from_source, validate_metric_query, validate_metric_request,

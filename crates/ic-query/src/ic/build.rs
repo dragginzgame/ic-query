@@ -10,10 +10,12 @@ use crate::{
         IcCanisterCollectionSource, IcCanisterCountReport, IcCanisterCountRequest,
         IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport, IcCanisterRequest,
         IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest, IcHostError,
-        IcIcrcAnalyticsRequest, IcIcrcAnalyticsSource, IcIcrcIndexedCountReport,
-        IcIcrcIndexedCountRequest, IcIcrcTokenValueReport, IcIcrcTokenValueRequest,
-        IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport, IcMetricRequest,
-        IcMetricSource, IcNetworkSource, IcNodeProviderRewardHistoryReport,
+        IcIcrcAccountInfoReport, IcIcrcAccountInfoRequest, IcIcrcAccountListReport,
+        IcIcrcAccountListRequest, IcIcrcAnalyticsRequest, IcIcrcAnalyticsSource,
+        IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcIndexSource,
+        IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest, IcIcrcTokenValueReport,
+        IcIcrcTokenValueRequest, IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport,
+        IcMetricRequest, IcMetricSource, IcNetworkSource, IcNodeProviderRewardHistoryReport,
         IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardInfoReport,
         IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListReport,
         IcNodeProviderRewardListRequest, IcNodeProviderRewardSource, IcNodeStatusSnapshot,
@@ -23,14 +25,17 @@ use crate::{
         source::{
             boundary_node_data_centers_report_from_source, canonical_canister_id,
             canonical_page_cursors, canonical_request_principal, count_report_from_source,
-            daily_stats_report_from_source, icrc_indexed_count_report_from_source,
-            icrc_token_value_report_from_source, icrc_total_supply_report_from_source,
-            metric_report_from_source, node_provider_reward_history_report_from_source,
+            daily_stats_report_from_source, icrc_account_info_report_from_source,
+            icrc_account_list_report_from_source, icrc_holder_list_report_from_source,
+            icrc_indexed_count_report_from_source, icrc_token_value_report_from_source,
+            icrc_total_supply_report_from_source, metric_report_from_source,
+            node_provider_reward_history_report_from_source,
             node_provider_reward_info_report_from_source,
             node_provider_reward_list_report_from_source, node_status_snapshot_from_source,
-            normalized_filters, page_report_from_source, replica_version_info_report_from_source,
-            replica_version_list_report_from_source, report_from_source,
-            validate_daily_stats_request, validate_icrc_token_value_request,
+            normalized_account_list_query, normalized_filters, page_report_from_source,
+            replica_version_info_report_from_source, replica_version_list_report_from_source,
+            report_from_source, validate_account_id, validate_daily_stats_request,
+            validate_holder_list_query, validate_icrc_token_value_request,
             validate_icrc_total_supply_request, validate_metric_request,
             validate_node_provider_reward_history_request,
             validate_node_provider_reward_list_query, validate_page_cursor_exclusivity,
@@ -245,6 +250,72 @@ pub fn build_icrc_indexed_count_report_with_source(
         &source_request,
         &ledger_canister_id,
         request.kind,
+        source_data,
+    )
+}
+
+/// Build one live, bounded account-index page from the official Dashboard ICRC API.
+pub fn build_icrc_account_list_report(
+    request: &IcIcrcAccountListRequest,
+) -> Result<IcIcrcAccountListReport, IcHostError> {
+    build_icrc_account_list_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded account-index page through a custom Dashboard source capability.
+pub fn build_icrc_account_list_report_with_source(
+    request: &IcIcrcAccountListRequest,
+    source: &dyn IcIcrcIndexSource,
+) -> Result<IcIcrcAccountListReport, IcHostError> {
+    let query = normalized_account_list_query(&request.query)?;
+    let (source_request, ledger_canister_id) = icrc_analytics_target(&request.analytics)?;
+    let source_data = source.fetch_account_list(&source_request, &ledger_canister_id, &query)?;
+    icrc_account_list_report_from_source(&source_request, &ledger_canister_id, &query, source_data)
+}
+
+/// Build one live exact account record from the official Dashboard ICRC API.
+pub fn build_icrc_account_info_report(
+    request: &IcIcrcAccountInfoRequest,
+) -> Result<IcIcrcAccountInfoReport, IcHostError> {
+    build_icrc_account_info_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one exact account record through a custom Dashboard source capability.
+pub fn build_icrc_account_info_report_with_source(
+    request: &IcIcrcAccountInfoRequest,
+    source: &dyn IcIcrcIndexSource,
+) -> Result<IcIcrcAccountInfoReport, IcHostError> {
+    validate_account_id(&request.account_id)?;
+    let (source_request, ledger_canister_id) = icrc_analytics_target(&request.analytics)?;
+    let source_data =
+        source.fetch_account_info(&source_request, &ledger_canister_id, &request.account_id)?;
+    icrc_account_info_report_from_source(
+        &source_request,
+        &ledger_canister_id,
+        &request.account_id,
+        source_data,
+    )
+}
+
+/// Build one live, bounded holder-index page from the official Dashboard ICRC API.
+pub fn build_icrc_holder_list_report(
+    request: &IcIcrcHolderListRequest,
+) -> Result<IcIcrcHolderListReport, IcHostError> {
+    build_icrc_holder_list_report_with_source(request, &LiveIcSource)
+}
+
+/// Build one bounded holder-index page through a custom Dashboard source capability.
+pub fn build_icrc_holder_list_report_with_source(
+    request: &IcIcrcHolderListRequest,
+    source: &dyn IcIcrcIndexSource,
+) -> Result<IcIcrcHolderListReport, IcHostError> {
+    validate_holder_list_query(&request.query)?;
+    let (source_request, ledger_canister_id) = icrc_analytics_target(&request.analytics)?;
+    let source_data =
+        source.fetch_holder_list(&source_request, &ledger_canister_id, &request.query)?;
+    icrc_holder_list_report_from_source(
+        &source_request,
+        &ledger_canister_id,
+        &request.query,
         source_data,
     )
 }

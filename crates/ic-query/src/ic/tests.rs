@@ -14,6 +14,7 @@ const METRIC_END: u64 = 1_700_000_000;
 const DAILY_STATS_START: u64 = 1_784_937_600;
 const DAILY_STATS_END: u64 = 1_785_542_400;
 const ICRC_LEDGER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
+const ICRC_ACCOUNT_ID: &str = "222nw-nqiei-h4uy6-fqm54-d3slu-jveav-vqrn6-yojxi-4eug3-2ejie-vae";
 const ICRC_SUPPLY_START: u64 = 1_785_542_400;
 const ICRC_SUPPLY_END: u64 = 1_785_801_600;
 
@@ -71,6 +72,85 @@ fn icrc_indexed_count_validates_request_and_custom_source_identity() {
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
+}
+
+#[test]
+fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_evidence() {
+    let source = IcrcIndexFixture::default();
+    let account_query = IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::BalanceDescending)
+        .with_owner(ICRC_ACCOUNT_ID);
+    let account_request = IcIcrcAccountListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
+        account_query,
+    );
+    let account = build_icrc_account_list_report_with_source(&account_request, &source)
+        .expect("bounded account list");
+    let account_text = icrc_account_list_report_text(&account);
+
+    assert_eq!(account.returned_count, 1);
+    assert_eq!(account.next_cursor.as_deref(), Some(ICRC_ACCOUNT_ID));
+    assert_eq!(account.rows[0].created_at_unix_secs, 1_731_833_720);
+    assert_eq!(account.rows[0].created_at_subsec_nanos, 56_622_711);
+    assert!(account_text.contains("\n\naccounts:\n"));
+    assert!(!account.provenance.certified);
+    assert!(!account.provenance.point_in_time_guaranteed);
+
+    let info_request = IcIcrcAccountInfoRequest::new(
+        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
+        ICRC_ACCOUNT_ID,
+    );
+    let info = build_icrc_account_info_report_with_source(&info_request, &source)
+        .expect("exact account info");
+    assert_eq!(info.account.account_id, ICRC_ACCOUNT_ID);
+    assert!(icrc_account_info_report_text(&info).contains("created_at_unix_secs: 1731833720"));
+
+    let holder_request = IcIcrcHolderListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
+        IcIcrcHolderListQuery::new(2, IcIcrcHolderSort::Principal),
+    );
+    let holder = build_icrc_holder_list_report_with_source(&holder_request, &source)
+        .expect("bounded holder list");
+    assert_eq!(holder.rows[0].principal, ICRC_ACCOUNT_ID);
+    assert_eq!(holder.rows[0].percentage, serde_json::json!(0.0));
+    assert!(icrc_holder_list_report_text(&holder).contains("\n\nholders:\n"));
+    assert_eq!(source.calls.get(), 3);
+}
+
+#[test]
+fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_are_invalid() {
+    let source = IcrcIndexFixture::default();
+    let account_request = IcIcrcAccountListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
+        IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::Id)
+            .with_after("next")
+            .with_before("previous"),
+    );
+    assert!(build_icrc_account_list_report_with_source(&account_request, &source).is_err());
+
+    let holder_request = IcIcrcHolderListRequest::new(
+        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
+        IcIcrcHolderListQuery::new(0, IcIcrcHolderSort::Principal),
+    );
+    assert!(build_icrc_holder_list_report_with_source(&holder_request, &source).is_err());
+
+    let info_request = IcIcrcAccountInfoRequest::new(
+        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+        ICRC_SUPPLY_END,
+        ICRC_LEDGER_ID,
+        "",
+    );
+    assert!(build_icrc_account_info_report_with_source(&info_request, &source).is_err());
+    assert_eq!(source.calls.get(), 0);
 }
 
 #[test]
@@ -633,6 +713,34 @@ fn live_icrc_indexed_count_validates_principal_before_endpoint_or_http_request()
 }
 
 #[test]
+fn live_icrc_index_source_validates_bounds_and_exact_id_before_endpoint_or_http_request() {
+    let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
+    let invalid_page = IcIcrcAccountListQuery::new(0, IcIcrcAccountSort::Id);
+
+    let page_error = LiveIcSource
+        .fetch_account_list(&request, ICRC_LEDGER_ID, &invalid_page)
+        .expect_err("invalid account page must fail first");
+    assert!(matches!(
+        page_error,
+        IcHostError::InvalidRequest {
+            field: "query.limit",
+            ..
+        }
+    ));
+
+    let info_error = LiveIcSource
+        .fetch_account_info(&request, ICRC_LEDGER_ID, "")
+        .expect_err("empty account id must fail first");
+    assert!(matches!(
+        info_error,
+        IcHostError::InvalidRequest {
+            field: "account_id",
+            ..
+        }
+    ));
+}
+
+#[test]
 fn live_network_source_rejects_invalid_endpoint_before_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
@@ -1093,6 +1201,86 @@ enum IcrcAnalyticsMutation {
 struct IcrcAnalyticsFixture {
     calls: Cell<usize>,
     mutation: RefCell<Option<IcrcAnalyticsMutation>>,
+}
+
+#[derive(Default)]
+struct IcrcIndexFixture {
+    calls: Cell<usize>,
+}
+
+impl IcIcrcIndexSource for IcrcIndexFixture {
+    fn fetch_account_list(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcAccountListQuery,
+    ) -> Result<IcIcrcAccountListSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        Ok(IcIcrcAccountListSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            previous_cursor: None,
+            next_cursor: Some(ICRC_ACCOUNT_ID.to_string()),
+            rows: vec![icrc_account_source_row()],
+        })
+    }
+
+    fn fetch_account_info(
+        &self,
+        request: &IcSourceRequest,
+        _ledger_canister_id: &str,
+        _account_id: &str,
+    ) -> Result<IcIcrcAccountInfoSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        Ok(IcIcrcAccountInfoSourceData {
+            source: request.clone(),
+            account: icrc_account_source_row(),
+        })
+    }
+
+    fn fetch_holder_list(
+        &self,
+        request: &IcSourceRequest,
+        ledger_canister_id: &str,
+        query: &IcIcrcHolderListQuery,
+    ) -> Result<IcIcrcHolderListSourceData, IcHostError> {
+        self.calls.set(self.calls.get() + 1);
+        Ok(IcIcrcHolderListSourceData {
+            source: request.clone(),
+            ledger_canister_id: ledger_canister_id.to_string(),
+            query: query.clone(),
+            previous_cursor: None,
+            next_cursor: Some(ICRC_ACCOUNT_ID.to_string()),
+            rows: vec![IcIcrcHolderSourceRow {
+                principal: ICRC_ACCOUNT_ID.to_string(),
+                balance_base_units: "0".to_string(),
+                total_transactions: 3,
+                created_at_unix_nanos: 1_731_833_720_056_622_711,
+                ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+                latest_transaction_index: 1_898_152,
+                percentage: serde_json::json!(0.0),
+                value_usd: serde_json::json!("0.000000000000000000"),
+                dashboard_updated_at: "2026-04-14T18:55:55.827947".to_string(),
+            }],
+        })
+    }
+}
+
+fn icrc_account_source_row() -> IcIcrcAccountSourceRow {
+    IcIcrcAccountSourceRow {
+        account_id: ICRC_ACCOUNT_ID.to_string(),
+        owner: ICRC_ACCOUNT_ID.to_string(),
+        subaccount: String::new(),
+        balance_base_units: "0".to_string(),
+        total_transactions: 3,
+        created_at_unix_nanos: 1_731_833_720_056_622_711,
+        ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+        latest_transaction_index: 1_898_152,
+        dashboard_updated_at: "2026-04-14T18:54:04.330496".to_string(),
+        active_fee_collector: false,
+        fee_collector_block_ranges: Vec::new(),
+    }
 }
 
 impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {

@@ -5,9 +5,9 @@
 //! Boundary: preserves raw Dashboard values and explicit off-chain provenance.
 
 use super::requests::{
-    IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
-    IcIcrcTotalSupplyQuery, IcMetricQuery, IcNodeProviderRewardHistoryQuery,
-    IcNodeProviderRewardListQuery, IcReplicaVersionListQuery,
+    IcCanisterFilters, IcDailyStatsQuery, IcIcrcAccountListQuery, IcIcrcHolderListQuery,
+    IcIcrcIndexedCountKind, IcIcrcTokenValueQuery, IcIcrcTotalSupplyQuery, IcMetricQuery,
+    IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardListQuery, IcReplicaVersionListQuery,
 };
 use serde::Serialize;
 use std::{collections::BTreeMap, fmt};
@@ -159,6 +159,138 @@ pub struct IcIcrcIndexedCountReport {
     pub kind: IcIcrcIndexedCountKind,
     /// Number of matching resources currently represented by the Dashboard index.
     pub total: u64,
+}
+
+///
+/// IcIcrcAccountRow
+///
+/// One account record maintained by the official ICRC index.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcAccountRow {
+    /// Opaque stable account id used for exact API follow-up.
+    pub account_id: String,
+    /// Canonical account owner principal.
+    pub owner: String,
+    /// Raw subaccount text returned by the API; empty denotes the default subaccount.
+    pub subaccount: String,
+    /// Raw current indexed balance in ledger base units.
+    pub balance_base_units: String,
+    /// Number of indexed transactions involving this account.
+    pub total_transactions: u64,
+    /// Account creation timestamp normalized to Unix seconds.
+    pub created_at_unix_secs: u64,
+    /// Nanoseconds below the normalized creation second, preserving upstream precision.
+    pub created_at_subsec_nanos: u32,
+    /// Canonical ledger canister principal carried by the row.
+    pub ledger_canister_id: String,
+    /// Latest indexed transaction involving this account.
+    pub latest_transaction_index: u64,
+    /// Raw Dashboard database update timestamp.
+    pub dashboard_updated_at: String,
+    /// Whether the account is currently classified as an active fee collector.
+    pub active_fee_collector: bool,
+    /// Raw fee-collector block-range arrays returned by the Dashboard.
+    pub fee_collector_block_ranges: Vec<Vec<serde_json::Value>>,
+}
+
+///
+/// IcIcrcAccountListReport
+///
+/// One explicitly bounded account-index page from the official ICRC API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcAccountListReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Canonical ICRC ledger canister principal requested from the API.
+    pub ledger_canister_id: String,
+    /// Exact page query, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcIcrcAccountListQuery,
+    /// Number of account rows returned in this page.
+    pub returned_count: usize,
+    /// Opaque cursor for an explicit preceding-page request.
+    pub previous_cursor: Option<String>,
+    /// Opaque cursor for an explicit following-page request.
+    pub next_cursor: Option<String>,
+    /// Account rows in the exact order returned by the API.
+    pub rows: Vec<IcIcrcAccountRow>,
+}
+
+///
+/// IcIcrcAccountInfoReport
+///
+/// One exact account record from the official ICRC API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcAccountInfoReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Exact account record, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub account: IcIcrcAccountRow,
+}
+
+///
+/// IcIcrcHolderRow
+///
+/// One principal-level holder aggregate maintained by the official ICRC index.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcHolderRow {
+    /// Canonical holder principal.
+    pub principal: String,
+    /// Raw aggregate balance in ledger base units.
+    pub balance_base_units: String,
+    /// Number of indexed transactions across the holder's accounts.
+    pub total_transactions: u64,
+    /// Earliest indexed account creation timestamp normalized to Unix seconds.
+    pub created_at_unix_secs: u64,
+    /// Nanoseconds below the normalized creation second, preserving upstream precision.
+    pub created_at_subsec_nanos: u32,
+    /// Canonical ledger canister principal carried by the row.
+    pub ledger_canister_id: String,
+    /// Latest indexed transaction across the holder's accounts.
+    pub latest_transaction_index: u64,
+    /// Raw numeric supply percentage returned by the Dashboard.
+    pub percentage: serde_json::Value,
+    /// Raw nullable USD value returned by the Dashboard.
+    pub value_usd: serde_json::Value,
+    /// Raw Dashboard database update timestamp.
+    pub dashboard_updated_at: String,
+}
+
+///
+/// IcIcrcHolderListReport
+///
+/// One explicitly bounded holder-index page from the official ICRC API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcIcrcHolderListReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Canonical ICRC ledger canister principal requested from the API.
+    pub ledger_canister_id: String,
+    /// Exact page query, flattened in report JSON.
+    #[serde(flatten)]
+    pub query: IcIcrcHolderListQuery,
+    /// Number of holder rows returned in this page.
+    pub returned_count: usize,
+    /// Opaque cursor for an explicit preceding-page request.
+    pub previous_cursor: Option<String>,
+    /// Opaque cursor for an explicit following-page request.
+    pub next_cursor: Option<String>,
+    /// Holder rows in the exact order returned by the API.
+    pub rows: Vec<IcIcrcHolderRow>,
 }
 
 ///

@@ -11,9 +11,9 @@ use super::{
         IcNodeProviderRewardRow, IcReplicaVersionListRow, IcReplicaVersionSubnetRollout,
     },
     requests::{
-        IcCanisterFilters, IcDailyStatsQuery, IcIcrcIndexedCountKind, IcIcrcTokenValueQuery,
-        IcIcrcTotalSupplyQuery, IcMetricQuery, IcNodeProviderRewardHistoryQuery,
-        IcNodeProviderRewardListQuery, IcReplicaVersionListQuery,
+        IcCanisterFilters, IcDailyStatsQuery, IcIcrcAccountListQuery, IcIcrcHolderListQuery,
+        IcIcrcIndexedCountKind, IcIcrcTokenValueQuery, IcIcrcTotalSupplyQuery, IcMetricQuery,
+        IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardListQuery, IcReplicaVersionListQuery,
     },
 };
 
@@ -173,6 +173,124 @@ pub struct IcIcrcIndexedCountSourceData {
     pub kind: IcIcrcIndexedCountKind,
     /// Number of matching resources reported by the source.
     pub total: u64,
+}
+
+///
+/// IcIcrcAccountSourceRow
+///
+/// One untrusted raw account record returned by the official ICRC index.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcAccountSourceRow {
+    /// Opaque account id returned by the API.
+    pub account_id: String,
+    /// Raw owner principal returned by the API.
+    pub owner: String,
+    /// Raw subaccount text returned by the API.
+    pub subaccount: String,
+    /// Raw indexed balance in ledger base units.
+    pub balance_base_units: String,
+    /// Raw indexed transaction count.
+    pub total_transactions: u64,
+    /// Raw creation timestamp as Unix nanoseconds.
+    pub created_at_unix_nanos: u64,
+    /// Raw ledger canister principal carried by the row.
+    pub ledger_canister_id: String,
+    /// Raw latest indexed transaction.
+    pub latest_transaction_index: u64,
+    /// Raw Dashboard update timestamp.
+    pub dashboard_updated_at: String,
+    /// Raw active fee-collector classification.
+    pub active_fee_collector: bool,
+    /// Raw fee-collector block-range arrays.
+    pub fee_collector_block_ranges: Vec<Vec<serde_json::Value>>,
+}
+
+///
+/// IcIcrcAccountListSourceData
+///
+/// Raw bounded account page and provenance returned by an official ICRC index source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcAccountListSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Canonical ledger canister principal requested by the source.
+    pub ledger_canister_id: String,
+    /// Account page query applied by the source.
+    pub query: IcIcrcAccountListQuery,
+    /// Raw opaque cursor for the preceding page.
+    pub previous_cursor: Option<String>,
+    /// Raw opaque cursor for the following page.
+    pub next_cursor: Option<String>,
+    /// Raw account rows returned by the source.
+    pub rows: Vec<IcIcrcAccountSourceRow>,
+}
+
+///
+/// IcIcrcAccountInfoSourceData
+///
+/// Raw exact account record and provenance returned by an official ICRC index source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcAccountInfoSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Raw exact account record returned by the source.
+    pub account: IcIcrcAccountSourceRow,
+}
+
+///
+/// IcIcrcHolderSourceRow
+///
+/// One untrusted raw holder record returned by the official ICRC index.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcHolderSourceRow {
+    /// Raw holder principal returned by the API.
+    pub principal: String,
+    /// Raw aggregate indexed balance in ledger base units.
+    pub balance_base_units: String,
+    /// Raw aggregate indexed transaction count.
+    pub total_transactions: u64,
+    /// Raw earliest creation timestamp as Unix nanoseconds.
+    pub created_at_unix_nanos: u64,
+    /// Raw ledger canister principal carried by the row.
+    pub ledger_canister_id: String,
+    /// Raw latest indexed transaction.
+    pub latest_transaction_index: u64,
+    /// Raw numeric supply percentage.
+    pub percentage: serde_json::Value,
+    /// Raw nullable USD value.
+    pub value_usd: serde_json::Value,
+    /// Raw Dashboard update timestamp.
+    pub dashboard_updated_at: String,
+}
+
+///
+/// IcIcrcHolderListSourceData
+///
+/// Raw bounded holder page and provenance returned by an official ICRC index source.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IcIcrcHolderListSourceData {
+    /// Source request and provenance preserved by the source.
+    pub source: IcSourceRequest,
+    /// Canonical ledger canister principal requested by the source.
+    pub ledger_canister_id: String,
+    /// Holder page query applied by the source.
+    pub query: IcIcrcHolderListQuery,
+    /// Raw opaque cursor for the preceding page.
+    pub previous_cursor: Option<String>,
+    /// Raw opaque cursor for the following page.
+    pub next_cursor: Option<String>,
+    /// Raw holder rows returned by the source.
+    pub rows: Vec<IcIcrcHolderSourceRow>,
 }
 
 ///
