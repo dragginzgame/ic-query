@@ -17,7 +17,7 @@ pub use events::{
 };
 pub use metrics::nns_governance_metrics_report_text;
 
-fn context_lines(context: &NnsGovernanceReportContext) -> Vec<String> {
+pub fn context_lines(context: &NnsGovernanceReportContext) -> Vec<String> {
     let mut lines = vec![
         format!("network: {}", sanitize_text(&context.network)),
         format!("governance_canister_id: {}", context.governance_canister_id),

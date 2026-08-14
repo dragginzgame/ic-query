@@ -7,7 +7,10 @@
 use super::selection::{
     NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTopic, NnsProposalVote,
 };
-use crate::report::{ReportDataSource, ReportResultScope};
+use crate::{
+    nns::governance::NnsGovernanceReportContext,
+    report::{ReportDataSource, ReportResultScope},
+};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -18,12 +21,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsProposalListReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub governance_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared Governance authority and transport provenance.
+    #[serde(flatten)]
+    pub context: NnsGovernanceReportContext,
     pub data_source: ReportDataSource,
     pub cache_path: Option<String>,
     pub cache_complete: Option<bool>,
@@ -50,12 +50,9 @@ pub struct NnsProposalListReport {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsProposalReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub governance_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared Governance authority and transport provenance.
+    #[serde(flatten)]
+    pub context: NnsGovernanceReportContext,
     pub data_source: ReportDataSource,
     pub cache_path: Option<String>,
     pub cache_complete: Option<bool>,

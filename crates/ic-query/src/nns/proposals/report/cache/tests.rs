@@ -11,7 +11,10 @@ use crate::{
     ic_registry::DEFAULT_MAINNET_ENDPOINT,
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest,
-        NnsSourceRequest,
+        governance::{
+            NnsGovernanceRequest, NnsGovernanceSourceData, NnsGovernanceSourceProvenance,
+            NnsGovernanceSourceSelection,
+        },
         proposals::report::{
             NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
             NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
@@ -22,7 +25,7 @@ use crate::{
                 NnsProposalTopic, NnsProposalTopicFilter,
                 selection::{NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL},
             },
-            source::{NnsProposalSource, nns_proposal_row_from_info},
+            source::{NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info},
             text::{
                 nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
                 nns_proposal_refresh_report_text, nns_proposal_report_text,
@@ -42,31 +45,64 @@ use std::fs;
 struct FixtureSource;
 
 impl NnsProposalSource for FixtureSource {
-    fn fetch_proposals(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_proposals<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
         reward_status: NnsProposalRewardStatusFilter,
-    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
-        assert_eq!(limit, 2);
-        assert_eq!(status, NnsProposalStatusFilter::Any);
-        assert_eq!(reward_status, NnsProposalRewardStatusFilter::Any);
-        let rows = match before_proposal_id {
-            None => vec![proposal_info(3), proposal_info(2)],
-            Some(2) => vec![proposal_info(1)],
-            other => panic!("unexpected before proposal id: {other:?}"),
-        };
-        Ok(rows.into_iter().map(nns_proposal_row_from_info).collect())
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>> {
+        Box::pin(async move {
+            assert_eq!(limit, 2);
+            assert_eq!(status, NnsProposalStatusFilter::Any);
+            assert_eq!(reward_status, NnsProposalRewardStatusFilter::Any);
+            let rows = match before_proposal_id {
+                None => vec![proposal_info(3), proposal_info(2)],
+                Some(2) => vec![proposal_info(1)],
+                other => panic!("unexpected before proposal id: {other:?}"),
+            };
+            Ok(NnsGovernanceSourceData::new(
+                rows.into_iter().map(nns_proposal_row_from_info).collect(),
+                fixture_provenance(request),
+            ))
+        })
     }
 
-    fn fetch_proposal(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_proposal<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalRow, NnsProposalHostError> {
-        Ok(nns_proposal_row_from_info(proposal_info(proposal_id)))
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow> {
+        Box::pin(async move {
+            Ok(NnsGovernanceSourceData::new(
+                nns_proposal_row_from_info(proposal_info(proposal_id)),
+                fixture_provenance(request),
+            ))
+        })
+    }
+}
+
+fn proposal_governance_request(now_unix_secs: u64) -> NnsGovernanceRequest {
+    NnsGovernanceRequest::replica_query_from_unix_secs(
+        MAINNET_NETWORK,
+        DEFAULT_MAINNET_ENDPOINT,
+        now_unix_secs,
+        "ic-query",
+    )
+}
+
+fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProvenance {
+    let NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint,
+        fetched_by,
+    } = &request.source
+    else {
+        panic!("proposal fixture requires replica-query provenance");
+    };
+    NnsGovernanceSourceProvenance::ReplicaQuery {
+        endpoint: endpoint.clone(),
+        fetched_by: fetched_by.clone(),
     }
 }
 
@@ -260,9 +296,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     .expect("refresh cache");
 
     let request = NnsProposalListRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_100_000,
+        governance: proposal_governance_request(1_700_100_000),
         limit: 1,
         before_proposal_id: Some(3),
         status: NnsProposalStatusFilter::Executed,
@@ -281,7 +315,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     let json = serde_json::to_value(&report).expect("serialize cached NNS proposal list report");
 
     assert_eq!(
-        report.schema_version,
+        report.context.schema_version,
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION
     );
     assert_eq!(report.data_source.as_str(), "cache");
@@ -308,9 +342,7 @@ fn nns_proposal_list_cache_lookup_returns_none_when_cache_is_missing() {
     let root = temp_dir("ic-query-nns-proposal-list-cache-missing");
     let report = build_nns_proposal_list_report_from_cache(
         &NnsProposalListRequest {
-            network: MAINNET_NETWORK.to_string(),
-            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-            now_unix_secs: 1_700_100_000,
+            governance: proposal_governance_request(1_700_100_000),
             limit: 25,
             before_proposal_id: None,
             status: NnsProposalStatusFilter::Any,
@@ -411,9 +443,7 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     .expect("refresh cache");
 
     let request = NnsProposalRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_100_000,
+        governance: proposal_governance_request(1_700_100_000),
         proposal_id: 2,
         show_ballots: true,
         verbose: false,
@@ -423,7 +453,10 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
         .expect("cached proposal report");
     let text = nns_proposal_report_text(&report);
 
-    assert_eq!(report.schema_version, NNS_PROPOSAL_REPORT_SCHEMA_VERSION);
+    assert_eq!(
+        report.context.schema_version,
+        NNS_PROPOSAL_REPORT_SCHEMA_VERSION
+    );
     assert_eq!(report.proposal_id, 2);
     assert_eq!(report.proposal.title.as_deref(), Some("Proposal 2"));
     assert_eq!(report.data_source.as_str(), "cache");
@@ -458,9 +491,7 @@ fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
 
     let report = build_nns_proposal_report_from_cache(
         &NnsProposalRequest {
-            network: MAINNET_NETWORK.to_string(),
-            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-            now_unix_secs: 1_700_100_000,
+            governance: proposal_governance_request(1_700_100_000),
             proposal_id: 42,
             show_ballots: false,
             verbose: false,

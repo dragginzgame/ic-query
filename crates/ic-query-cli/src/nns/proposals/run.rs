@@ -22,7 +22,9 @@ use ic_query::nns::proposals::{
     nns_proposal_refresh_report_text, nns_proposal_report_text,
     refresh_nns_proposal_cache_with_progress,
 };
-use ic_query::nns::{NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest};
+use ic_query::nns::{
+    NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, governance::NnsGovernanceRequest,
+};
 
 const PROPOSAL_CACHE_COMMAND: &str = "cache";
 const PROPOSAL_CACHE_LIST_COMMAND: &str = "list";
@@ -49,18 +51,19 @@ fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), NnsC
 fn run_nns_proposal_list_with_options(
     options: NnsProposalListOptions,
 ) -> Result<(), NnsCommandError> {
-    let mut request = NnsProposalListRequest::new(
+    let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
         now_unix_secs()?,
-        options.limit,
-    )
-    .with_status(options.status)
-    .with_reward_status(options.reward_status)
-    .with_topic(options.topic)
-    .with_sort(options.sort)
-    .with_sort_direction(options.sort_direction)
-    .with_verbose(options.verbose);
+        "ic-query",
+    );
+    let mut request = NnsProposalListRequest::new(governance, options.limit)
+        .with_status(options.status)
+        .with_reward_status(options.reward_status)
+        .with_topic(options.topic)
+        .with_sort(options.sort)
+        .with_sort_direction(options.sort_direction)
+        .with_verbose(options.verbose);
 
     if let Some(before_proposal_id) = options.before_proposal_id {
         request = request.with_before_proposal_id(before_proposal_id);
@@ -83,14 +86,15 @@ fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsC
 }
 
 fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
-    let request = NnsProposalRequest::new(
+    let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
         now_unix_secs()?,
-        options.proposal_id,
-    )
-    .with_show_ballots(options.show_ballots)
-    .with_verbose(options.verbose);
+        "ic-query",
+    );
+    let request = NnsProposalRequest::new(governance, options.proposal_id)
+        .with_show_ballots(options.show_ballots)
+        .with_verbose(options.verbose);
     let report = build_nns_proposal_report_from_cache(&request, &command_cache_root()?)?
         .map_or_else(|| build_nns_proposal_report(&request), Ok)?;
     write_text_or_json(options.format, &report, nns_proposal_report_text)

@@ -45,11 +45,19 @@ pub use model::{
 pub use request::{NnsGovernanceRequest, NnsGovernanceSourceSelection};
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 pub use source::CanisterNnsSource;
+#[cfg(all(feature = "canister", target_arch = "wasm32"))]
+pub(crate) use source::canister::{call_with_arg, canister_provenance};
+#[cfg(feature = "nns-host")]
+pub(crate) use source::host::host_request;
 pub use source::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
+pub(crate) use text::context_lines as governance_context_lines;
 pub use text::{
     nns_governance_economics_report_text, nns_governance_maturity_modulation_report_text,
     nns_governance_metrics_report_text, nns_governance_reward_event_report_text,
 };
+#[cfg(feature = "nns-host")]
+pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
+pub(crate) use validation::{validate_governance_request, validate_source_provenance};
 /// Default replica endpoint used for direct NNS Governance reports.
 pub const DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 

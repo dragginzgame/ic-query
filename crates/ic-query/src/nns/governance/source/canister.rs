@@ -91,7 +91,7 @@ impl NnsGovernanceSource for CanisterNnsSource {
     }
 }
 
-fn canister_provenance(
+pub fn canister_provenance(
     request: &NnsGovernanceRequest,
 ) -> Result<NnsGovernanceSourceProvenance, NnsGovernanceError> {
     validate_governance_request(request)?;
@@ -121,7 +121,7 @@ where
     decode_response(&bytes, response_message)
 }
 
-async fn call_with_arg<Arg, Response>(
+pub async fn call_with_arg<Arg, Response>(
     method: &'static str,
     request_message: &'static str,
     response_message: &'static str,

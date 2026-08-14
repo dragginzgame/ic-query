@@ -14,6 +14,7 @@ use super::model::{
 #[cfg(feature = "nns-host")]
 use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
+    nns::governance::governance_context_lines,
     table::{ColumnAlign, render_table},
     text_value::{optional_u64_text, sanitize_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
@@ -23,9 +24,8 @@ const NNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;
 
 #[must_use]
 pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+    let mut lines = governance_context_lines(&report.context);
+    lines.extend([
         format!("requested_limit: {}", report.requested_limit),
         format!(
             "before_proposal_id: {}",
@@ -47,14 +47,8 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
         format!("result_scope: {}", report.result_scope),
         format!("verbose: {}", yes_no(report.verbose)),
         format!("proposal_count: {}", report.proposal_count),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
-        ),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
         format!("data_source: {}", report.data_source),
-    ];
+    ]);
     if let Some(cache_path) = report.cache_path.as_ref() {
         lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }
@@ -100,20 +94,13 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
 #[must_use]
 pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
     let proposal = &report.proposal;
-    let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+    let mut lines = governance_context_lines(&report.context);
+    lines.extend([
         format!("proposal_id: {}", report.proposal_id),
         format!("show_ballots: {}", yes_no(report.show_ballots)),
         format!("verbose: {}", yes_no(report.verbose)),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
-        ),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
         format!("data_source: {}", report.data_source),
-    ];
+    ]);
     if let Some(cache_path) = report.cache_path.as_ref() {
         lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }

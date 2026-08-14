@@ -93,7 +93,6 @@ pub mod nns;
 ))]
 mod progress;
 pub mod report;
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
 mod report_sort;
 #[cfg(any(
     feature = "cloud-engine-host",
@@ -124,7 +123,6 @@ pub mod system;
 ))]
 pub use cache_file::{CacheFileError, HostCacheError};
 mod table;
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
 mod text_search;
 mod text_value;
 mod token_amount;

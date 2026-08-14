@@ -15,9 +15,7 @@ fn nns_proposal_report_renders_detail() {
         ),
     };
     let request = NnsProposalRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_000_000,
+        governance: proposal_governance_request(1_700_000_000),
         proposal_id: 101,
         show_ballots: true,
         verbose: true,
@@ -27,7 +25,10 @@ fn nns_proposal_report_renders_detail() {
         build_nns_proposal_report_with_source(&request, &source).expect("build proposal report");
     let text = nns_proposal_report_text(&report);
 
-    assert_eq!(report.schema_version, NNS_PROPOSAL_REPORT_SCHEMA_VERSION);
+    assert_eq!(
+        report.context.schema_version,
+        NNS_PROPOSAL_REPORT_SCHEMA_VERSION
+    );
     assert_eq!(report.proposal_id, 101);
     assert_eq!(report.data_source.as_str(), "live");
     assert!(report.cache_path.is_none());
@@ -61,9 +62,7 @@ fn nns_proposal_report_truncates_summary_without_verbose() {
         ),
     };
     let request = NnsProposalRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_000_000,
+        governance: proposal_governance_request(1_700_000_000),
         proposal_id: 101,
         show_ballots: false,
         verbose: false,

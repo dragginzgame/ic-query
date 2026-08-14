@@ -5,18 +5,22 @@
 //! Boundary: drives proposal paging and refresh-attempt progress updates.
 
 use super::{NNS_PROPOSAL_CACHE_COMPONENT, model::CompleteNnsProposalCollection};
-use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
+use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
     QueryProgress,
     nns::{
-        NnsGovernanceRefreshRequest, NnsSourceRequest,
-        governance::write_running_governance_refresh_attempt,
+        NnsGovernanceRefreshRequest,
+        governance::{
+            NnsGovernanceRequest, validate_source_provenance,
+            write_running_governance_refresh_attempt,
+        },
         proposals::report::{
-            NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
+            NNS_PROPOSAL_FETCHED_BY, NnsProposalError, NnsProposalHostError,
             model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
             source::NnsProposalSource,
         },
     },
+    runtime::block_on_current_thread,
     snapshot_cache::{
         PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh, SnapshotRefreshProgress,
         run_paged_snapshot_refresh_with_progress,
@@ -34,10 +38,10 @@ pub(super) fn fetch_complete_nns_proposal_collection(
     run_paged_snapshot_refresh_with_progress(
         NnsProposalRefreshPages {
             request,
-            fetch_request: NnsSourceRequest::new(
+            fetch_request: NnsGovernanceRequest::replica_query_from_unix_secs(
                 MAINNET_NETWORK,
                 &request.source_endpoint,
-                format_utc_timestamp_secs(request.now_unix_secs),
+                request.now_unix_secs,
                 NNS_PROPOSAL_FETCHED_BY,
             ),
             source,
@@ -56,7 +60,7 @@ pub(super) fn fetch_complete_nns_proposal_collection(
 
 struct NnsProposalRefreshPages<'a> {
     request: &'a NnsGovernanceRefreshRequest,
-    fetch_request: NnsSourceRequest,
+    fetch_request: NnsGovernanceRequest,
     source: &'a dyn NnsProposalSource,
     attempt_path: &'a Path,
     state: NnsProposalCollectionState,
@@ -89,14 +93,16 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
     }
 
     fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let proposal_infos = self.source.fetch_proposals(
+        let data = block_on_current_thread(self.source.fetch_proposals(
             &self.fetch_request,
             self.request.page_size,
             self.state.before_proposal_id(),
             NnsProposalStatusFilter::Any,
             NnsProposalRewardStatusFilter::Any,
-        )?;
-        self.state.ingest_page(proposal_infos)
+        ))??;
+        validate_source_provenance(&self.fetch_request.source, &data.provenance)
+            .map_err(NnsProposalError::from)?;
+        self.state.ingest_page(data.value)
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
@@ -160,7 +166,7 @@ impl NnsProposalCollectionState {
         rows: Vec<NnsProposalRow>,
     ) -> Result<PagedCollectionPage, NnsProposalHostError> {
         if rows.iter().any(|row| row.proposal_id.is_none()) {
-            return Err(NnsProposalHostError::MissingProposalIdInPage);
+            return Err(NnsProposalError::MissingProposalIdInPage.into());
         }
         let next_cursor = rows
             .iter()

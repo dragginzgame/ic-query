@@ -1,6 +1,6 @@
 use super::{
-    NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-    NnsProposalHostError,
+    NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_MAX_PAGE_SIZE,
+    NNS_PROPOSAL_REPORT_SCHEMA_VERSION, NnsProposalError,
     model::{
         NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
         NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
@@ -14,8 +14,10 @@ use super::{
         },
     },
     source::{
-        NnsProposalSource, build_nns_proposal_list_report_with_source,
-        build_nns_proposal_report_with_source, nns_proposal_row_from_info,
+        NnsProposalSource, NnsProposalSourceFuture,
+        build_nns_proposal_list_report_with_source as build_nns_proposal_list_report_async,
+        build_nns_proposal_report_with_source as build_nns_proposal_report_async,
+        nns_proposal_row_from_info,
     },
     text::{nns_proposal_list_report_text, nns_proposal_report_text},
     view::proposal_matches_query,
@@ -26,37 +28,46 @@ use super::{
 };
 use crate::{
     ic_registry::DEFAULT_MAINNET_ENDPOINT,
-    nns::{LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest},
+    nns::{
+        LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID,
+        governance::{
+            NnsGovernanceError, NnsGovernanceRequest, NnsGovernanceSourceData,
+            NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
+        },
+    },
+    runtime::block_on_current_thread,
     subnet_catalog::MAINNET_NETWORK,
 };
 use candid::Reserved;
 
 mod detail;
 mod list;
+mod portable;
 mod sorts;
 
 #[test]
 fn live_proposal_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = NnsGovernanceRequest::replica_query(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
         "test",
     );
 
-    let error = LiveNnsSource
-        .fetch_proposals(
-            &request,
-            1,
-            None,
-            NnsProposalStatusFilter::Any,
-            NnsProposalRewardStatusFilter::Any,
-        )
-        .expect_err("unsupported network");
+    let error = block_on_current_thread(LiveNnsSource.fetch_proposals(
+        &request,
+        1,
+        None,
+        NnsProposalStatusFilter::Any,
+        NnsProposalRewardStatusFilter::Any,
+    ))
+    .expect("proposal source runtime")
+    .expect_err("unsupported network");
 
     assert!(matches!(
         error,
-        NnsProposalHostError::UnsupportedNetwork { network } if network == "local"
+        NnsProposalError::Governance(NnsGovernanceError::UnsupportedNetwork { network })
+            if network == "local"
     ));
 }
 
@@ -69,49 +80,95 @@ struct FixtureSource {
 }
 
 impl NnsProposalSource for FixtureSource {
-    fn fetch_proposals(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_proposals<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
         reward_status: NnsProposalRewardStatusFilter,
-    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
-        assert_eq!(limit, 50);
-        assert_eq!(before_proposal_id, Some(200));
-        let include_status = status
-            .governance_status_code()
-            .into_iter()
-            .collect::<Vec<_>>();
-        let include_reward_status = reward_status
-            .governance_reward_status_code()
-            .into_iter()
-            .collect::<Vec<_>>();
-        assert_eq!(include_status, self.expected_status);
-        assert_eq!(include_reward_status, self.expected_reward_status);
-        Ok(self
-            .proposals
-            .clone()
-            .into_iter()
-            .map(nns_proposal_row_from_info)
-            .collect())
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>> {
+        Box::pin(async move {
+            assert_eq!(limit, 50);
+            assert_eq!(before_proposal_id, Some(200));
+            let include_status = status
+                .governance_status_code()
+                .into_iter()
+                .collect::<Vec<_>>();
+            let include_reward_status = reward_status
+                .governance_reward_status_code()
+                .into_iter()
+                .collect::<Vec<_>>();
+            assert_eq!(include_status, self.expected_status);
+            assert_eq!(include_reward_status, self.expected_reward_status);
+            Ok(NnsGovernanceSourceData::new(
+                self.proposals
+                    .clone()
+                    .into_iter()
+                    .map(nns_proposal_row_from_info)
+                    .collect(),
+                fixture_provenance(request),
+            ))
+        })
     }
 
-    fn fetch_proposal(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_proposal<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalRow, NnsProposalHostError> {
-        assert_eq!(proposal_id, 101);
-        Ok(nns_proposal_row_from_info(self.proposal.clone()))
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow> {
+        Box::pin(async move {
+            assert_eq!(proposal_id, 101);
+            Ok(NnsGovernanceSourceData::new(
+                nns_proposal_row_from_info(self.proposal.clone()),
+                fixture_provenance(request),
+            ))
+        })
+    }
+}
+
+fn build_nns_proposal_list_report_with_source(
+    request: &NnsProposalListRequest,
+    source: &dyn NnsProposalSource,
+) -> Result<NnsProposalListReport, NnsProposalError> {
+    block_on_current_thread(build_nns_proposal_list_report_async(request, source))
+        .expect("proposal list test runtime")
+}
+
+fn build_nns_proposal_report_with_source(
+    request: &NnsProposalRequest,
+    source: &dyn NnsProposalSource,
+) -> Result<super::model::NnsProposalReport, NnsProposalError> {
+    block_on_current_thread(build_nns_proposal_report_async(request, source))
+        .expect("proposal detail test runtime")
+}
+
+fn proposal_governance_request(now_unix_secs: u64) -> NnsGovernanceRequest {
+    NnsGovernanceRequest::replica_query_from_unix_secs(
+        MAINNET_NETWORK,
+        DEFAULT_MAINNET_ENDPOINT,
+        now_unix_secs,
+        "ic-query",
+    )
+}
+
+fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProvenance {
+    let NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint,
+        fetched_by,
+    } = &request.source
+    else {
+        panic!("proposal fixture requires replica-query provenance");
+    };
+    NnsGovernanceSourceProvenance::ReplicaQuery {
+        endpoint: endpoint.clone(),
+        fetched_by: fetched_by.clone(),
     }
 }
 
 fn proposal_sort_request(sort: NnsProposalListSort) -> NnsProposalListRequest {
     NnsProposalListRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_000_000,
+        governance: proposal_governance_request(1_700_000_000),
         limit: 50,
         before_proposal_id: Some(200),
         status: NnsProposalStatusFilter::Any,

@@ -5,9 +5,9 @@
 //! Boundary: every adapter returns typed data with transport-specific provenance.
 
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
-mod canister;
+pub mod canister;
 #[cfg(feature = "nns-host")]
-mod host;
+pub mod host;
 
 use super::{
     NnsGovernanceEconomics, NnsGovernanceError, NnsGovernanceMaturityModulation,

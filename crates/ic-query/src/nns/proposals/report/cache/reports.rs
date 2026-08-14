@@ -19,7 +19,10 @@ use crate::{
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceCacheRequest,
         NnsGovernanceRefreshAttemptStatus,
-        governance::{read_governance_refresh_attempt_status, validate_governance_cache_metadata},
+        governance::{
+            NnsGovernanceReportContext, NnsGovernanceSourceProvenance,
+            read_governance_refresh_attempt_status, validate_governance_cache_metadata,
+        },
         proposals::report::{
             NnsProposalHostError,
             assemble::{
@@ -113,12 +116,16 @@ pub fn build_nns_proposal_list_report_from_cache(
     request: &NnsProposalListRequest,
     cache_root: &Path,
 ) -> Result<Option<NnsProposalListReport>, NnsProposalHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(cache_root, &request.network);
+    enforce_mainnet_network(&request.governance.network)?;
+    let paths = nns_proposal_cache_paths(cache_root, &request.governance.network);
     if !proposal_cache_exists(cache_root, &paths.snapshot_path)? {
         return Ok(None);
     }
-    let cache = load_nns_proposal_cache(cache_root, paths.snapshot_path.clone(), &request.network)?;
+    let cache = load_nns_proposal_cache(
+        cache_root,
+        paths.snapshot_path.clone(),
+        &request.governance.network,
+    )?;
     Ok(Some(nns_proposal_list_report_from_cache(
         request,
         paths.snapshot_path,
@@ -131,12 +138,16 @@ pub fn build_nns_proposal_report_from_cache(
     request: &NnsProposalRequest,
     cache_root: &Path,
 ) -> Result<Option<NnsProposalReport>, NnsProposalHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(cache_root, &request.network);
+    enforce_mainnet_network(&request.governance.network)?;
+    let paths = nns_proposal_cache_paths(cache_root, &request.governance.network);
     if !proposal_cache_exists(cache_root, &paths.snapshot_path)? {
         return Ok(None);
     }
-    let cache = load_nns_proposal_cache(cache_root, paths.snapshot_path.clone(), &request.network)?;
+    let cache = load_nns_proposal_cache(
+        cache_root,
+        paths.snapshot_path.clone(),
+        &request.governance.network,
+    )?;
     Ok(nns_proposal_report_from_cache(
         request,
         paths.snapshot_path,
@@ -221,6 +232,7 @@ fn nns_proposal_list_report_from_cache(
     cache: NnsProposalCache,
 ) -> NnsProposalListReport {
     let cache_complete = cache.completeness.is_api_exhausted();
+    let context = nns_proposal_cache_report_context(&cache);
     let mut proposals = cache
         .data
         .proposals
@@ -235,11 +247,7 @@ fn nns_proposal_list_report_from_cache(
     sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
     nns_proposal_list_report_from_parts(NnsProposalListReportParts {
-        network: cache.network,
-        governance_canister_id: cache.metadata.governance_canister_id,
-        fetched_at: cache.fetched_at,
-        source_endpoint: cache.source_endpoint,
-        fetched_by: cache.fetched_by,
+        context,
         provenance: NnsProposalReportProvenance::cache(&cache_path, cache_complete),
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
@@ -261,23 +269,33 @@ fn nns_proposal_report_from_cache(
     cache: NnsProposalCache,
 ) -> Option<NnsProposalReport> {
     let cache_complete = cache.completeness.is_api_exhausted();
+    let context = nns_proposal_cache_report_context(&cache);
     let proposal = cache
         .data
         .proposals
         .into_iter()
         .find(|proposal| proposal.proposal_id == Some(request.proposal_id))?;
     Some(nns_proposal_report_from_parts(NnsProposalReportParts {
-        network: cache.network,
-        governance_canister_id: cache.metadata.governance_canister_id,
-        fetched_at: cache.fetched_at,
-        source_endpoint: cache.source_endpoint,
-        fetched_by: cache.fetched_by,
+        context,
         provenance: NnsProposalReportProvenance::cache(&cache_path, cache_complete),
         proposal_id: request.proposal_id,
         show_ballots: request.show_ballots,
         verbose: request.verbose,
         proposal,
     }))
+}
+
+fn nns_proposal_cache_report_context(cache: &NnsProposalCache) -> NnsGovernanceReportContext {
+    NnsGovernanceReportContext {
+        schema_version: 1,
+        network: cache.network.clone(),
+        governance_canister_id: cache.metadata.governance_canister_id.clone(),
+        fetched_at: cache.fetched_at.clone(),
+        source: NnsGovernanceSourceProvenance::ReplicaQuery {
+            endpoint: cache.source_endpoint.clone(),
+            fetched_by: cache.fetched_by.clone(),
+        },
+    }
 }
 
 fn nns_proposal_cache_summary(

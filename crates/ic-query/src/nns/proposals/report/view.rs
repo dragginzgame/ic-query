@@ -5,9 +5,10 @@
 //! Boundary: transforms proposal rows without changing source identity.
 
 use super::model::{
-    NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
-    NnsProposalStatusFilter, NnsProposalTopicFilter,
+    NnsProposalListSort, NnsProposalRow, NnsProposalSortDirection, NnsProposalTopicFilter,
 };
+#[cfg(feature = "nns-host")]
+use super::model::{NnsProposalRewardStatusFilter, NnsProposalStatusFilter};
 use crate::{
     report_sort::{
         compare_ascii_case_insensitive_text, compare_optional_ascii_case_insensitive_text,
@@ -16,6 +17,7 @@ use crate::{
     text_search::optional_text_contains_case_insensitive,
 };
 
+#[cfg(feature = "nns-host")]
 pub(in crate::nns::proposals::report) fn proposal_matches_before(
     proposal: &NnsProposalRow,
     before_proposal_id: Option<u64>,
@@ -27,6 +29,7 @@ pub(in crate::nns::proposals::report) fn proposal_matches_before(
     })
 }
 
+#[cfg(feature = "nns-host")]
 pub(in crate::nns::proposals::report) fn proposal_matches_status(
     proposal: &NnsProposalRow,
     status: NnsProposalStatusFilter,
@@ -36,6 +39,7 @@ pub(in crate::nns::proposals::report) fn proposal_matches_status(
         .is_none_or(|status_code| proposal.status == status_code)
 }
 
+#[cfg(feature = "nns-host")]
 pub(in crate::nns::proposals::report) fn proposal_matches_reward_status(
     proposal: &NnsProposalRow,
     reward_status: NnsProposalRewardStatusFilter,

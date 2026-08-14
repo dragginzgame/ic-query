@@ -90,7 +90,7 @@ impl NnsGovernanceSource for LiveNnsSource {
     }
 }
 
-fn host_request(
+pub fn host_request(
     request: &NnsGovernanceRequest,
 ) -> Result<(NnsSourceRequest, NnsGovernanceSourceProvenance), NnsGovernanceError> {
     validate_governance_request(request)?;

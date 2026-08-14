@@ -16,13 +16,11 @@ use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
     nns::{
-        NnsGovernanceRefreshRequest,
+        MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceRefreshRequest,
         governance::{
             mainnet_governance_cache_metadata, write_complete_governance_refresh_attempt,
         },
-        proposals::report::{
-            MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
-        },
+        proposals::report::{NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError},
     },
     snapshot_cache::{
         SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt,

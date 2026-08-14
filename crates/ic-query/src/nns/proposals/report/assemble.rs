@@ -5,6 +5,7 @@
 //! Boundary: maps resolved proposal rows and provenance into serializable report DTOs.
 
 use crate::{
+    nns::governance::NnsGovernanceReportContext,
     nns::proposals::report::{
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
         model::{
@@ -15,6 +16,7 @@ use crate::{
     },
     report::{ReportDataSource, ReportResultScope},
 };
+#[cfg(feature = "nns-host")]
 use std::path::Path;
 
 ///
@@ -42,6 +44,7 @@ impl NnsProposalReportProvenance {
     }
 
     /// Build provenance for complete-cache NNS governance reports.
+    #[cfg(feature = "nns-host")]
     pub(in crate::nns::proposals::report) fn cache(
         cache_path: &Path,
         cache_complete: bool,
@@ -62,11 +65,7 @@ impl NnsProposalReportProvenance {
 ///
 
 pub(in crate::nns::proposals::report) struct NnsProposalListReportParts {
-    pub(in crate::nns::proposals::report) network: String,
-    pub(in crate::nns::proposals::report) governance_canister_id: String,
-    pub(in crate::nns::proposals::report) fetched_at: String,
-    pub(in crate::nns::proposals::report) source_endpoint: String,
-    pub(in crate::nns::proposals::report) fetched_by: String,
+    pub(in crate::nns::proposals::report) context: NnsGovernanceReportContext,
     pub(in crate::nns::proposals::report) requested_limit: u32,
     pub(in crate::nns::proposals::report) before_proposal_id: Option<u64>,
     pub(in crate::nns::proposals::report) status: NnsProposalStatusFilter,
@@ -88,11 +87,7 @@ pub(in crate::nns::proposals::report) struct NnsProposalListReportParts {
 ///
 
 pub(in crate::nns::proposals::report) struct NnsProposalReportParts {
-    pub(in crate::nns::proposals::report) network: String,
-    pub(in crate::nns::proposals::report) governance_canister_id: String,
-    pub(in crate::nns::proposals::report) fetched_at: String,
-    pub(in crate::nns::proposals::report) source_endpoint: String,
-    pub(in crate::nns::proposals::report) fetched_by: String,
+    pub(in crate::nns::proposals::report) context: NnsGovernanceReportContext,
     pub(in crate::nns::proposals::report) proposal_id: u64,
     pub(in crate::nns::proposals::report) show_ballots: bool,
     pub(in crate::nns::proposals::report) verbose: bool,
@@ -106,12 +101,10 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_parts(
 ) -> NnsProposalListReport {
     let proposal_count = parts.proposals.len();
     NnsProposalListReport {
-        schema_version: NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION,
-        network: parts.network,
-        governance_canister_id: parts.governance_canister_id,
-        fetched_at: parts.fetched_at,
-        source_endpoint: parts.source_endpoint,
-        fetched_by: parts.fetched_by,
+        context: NnsGovernanceReportContext {
+            schema_version: NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION,
+            ..parts.context
+        },
         data_source: parts.provenance.data_source,
         cache_path: parts.provenance.cache_path,
         cache_complete: parts.provenance.cache_complete,
@@ -136,12 +129,10 @@ pub(in crate::nns::proposals::report) fn nns_proposal_report_from_parts(
     parts: NnsProposalReportParts,
 ) -> NnsProposalReport {
     NnsProposalReport {
-        schema_version: NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-        network: parts.network,
-        governance_canister_id: parts.governance_canister_id,
-        fetched_at: parts.fetched_at,
-        source_endpoint: parts.source_endpoint,
-        fetched_by: parts.fetched_by,
+        context: NnsGovernanceReportContext {
+            schema_version: NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+            ..parts.context
+        },
         data_source: parts.provenance.data_source,
         cache_path: parts.provenance.cache_path,
         cache_complete: parts.provenance.cache_complete,

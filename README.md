@@ -170,7 +170,7 @@ actually make:
 | --- | --- | --- |
 | Certified IC state tree | API boundary-node principals, domains, addresses, and certificate time authenticated against the built-in mainnet root key | Configuration does not prove operational health, reachability, HTTP-gateway membership, ownership, or physical location |
 | NNS Registry | Authenticated certified latest-version and bounded contiguous delta-batch evidence, archive-bound exact-state catalog authority, plus exact-version joined Registry query evidence with explicit assurance | A single batch does not reconstruct Registry state; only a complete reauthenticated archive can promote a certified catalog, ordinary `get_value` reads remain uncertified, and endpoint agreement is not cryptographic certification |
-| NNS/SNS canisters | Native adapters expose ordinary read-only replica query responses; the `canister` adapter exposes replicated inter-canister execution for the four direct NNS Governance point reports | Replicated execution is not certificate evidence, and paginated or sequential calls may span state changes |
+| NNS/SNS canisters | Native adapters expose ordinary read-only replica query responses; the `canister` adapter exposes replicated inter-canister execution for the direct NNS Governance point reports plus one bounded proposal page or exact proposal | Replicated execution is not certificate evidence, and paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
 | Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
@@ -453,8 +453,9 @@ the native host graph:
 ic-query = { version = "0.38", default-features = false, features = ["canister"] }
 ```
 
-The initial canister surface collects the four bounded direct NNS Governance
-reports through replicated inter-canister calls:
+The canister surface collects the four bounded direct NNS Governance point
+reports plus one bounded proposal page or one exact proposal through
+replicated inter-canister calls:
 
 ```rust,no_run
 use ic_query::nns::governance::{
@@ -470,6 +471,30 @@ async fn governance_metrics(
         now_unix_secs,
     );
     build_nns_governance_metrics_report_with_source(&request, &CanisterNnsSource).await
+}
+```
+
+Proposal collection uses the same request, provenance, and source boundary. A
+list accepts 1 through 100 rows and never follows the next cursor:
+
+```rust,no_run
+use ic_query::nns::{
+    governance::{CanisterNnsSource, NnsGovernanceRequest},
+    proposals::{
+        NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
+        build_nns_proposal_list_report_with_source,
+    },
+};
+
+async fn latest_proposals(
+    now_unix_secs: u64,
+) -> Result<NnsProposalListReport, NnsProposalError> {
+    let governance = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
+        "ic",
+        now_unix_secs,
+    );
+    let request = NnsProposalListRequest::new(governance, 25);
+    build_nns_proposal_list_report_with_source(&request, &CanisterNnsSource).await
 }
 ```
 

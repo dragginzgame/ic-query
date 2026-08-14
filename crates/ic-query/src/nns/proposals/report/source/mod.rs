@@ -1,67 +1,92 @@
 //! Module: nns::proposals::report::source
 //!
-//! Responsibility: build NNS proposal reports from a proposal source.
-//! Does not own: CLI parsing, live transport internals, cache IO, or text rendering.
-//! Boundary: coordinates source trait calls and converts wire rows to report DTOs.
+//! Responsibility: build NNS proposal reports from a portable async source.
+//! Does not own: CLI parsing, cache IO, transport internals, or text rendering.
+//! Boundary: native, canister, and custom sources converge before report assembly.
 
-mod live;
+#[cfg(all(feature = "canister", target_arch = "wasm32"))]
+mod canister;
+#[cfg(feature = "nns-host")]
+mod host;
 
 use super::{
-    MAINNET_GOVERNANCE_CANISTER_ID, NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
+    NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalError,
     assemble::{
         NnsProposalListReportParts, NnsProposalReportParts, NnsProposalReportProvenance,
         nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
     },
-    enforce_mainnet_network,
     model::{
-        NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalReport,
-        NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
-        NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
-        NnsProposalVote,
+        NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
+        NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter,
     },
     view::{
         proposal_matches_proposer, proposal_matches_query, proposal_matches_topic,
         sort_nns_proposal_rows,
     },
+};
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
+use super::{
+    model::{
+        NnsProposalBallotRow, NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTally,
+        NnsProposalTopic, NnsProposalVote,
+    },
     wire::{NnsGovernanceBallot, NnsProposalInfo},
 };
-use crate::{
-    nns::{LiveNnsSource, NnsSourceRequest},
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+use crate::nns::{
+    MAINNET_GOVERNANCE_CANISTER_ID,
+    governance::{
+        NnsGovernanceReportContext, NnsGovernanceRequest, NnsGovernanceSourceData,
+        NnsGovernanceSourceProvenance, validate_governance_request, validate_source_provenance,
+    },
 };
+#[cfg(feature = "nns-host")]
+use crate::{nns::LiveNnsSource, runtime::block_on_current_thread};
+use std::{collections::HashSet, future::Future, pin::Pin};
 
+/// Build one bounded proposal list through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_proposal_list_report(
     request: &NnsProposalListRequest,
-) -> Result<NnsProposalListReport, NnsProposalHostError> {
-    build_nns_proposal_list_report_with_source(request, &LiveNnsSource)
+) -> Result<NnsProposalListReport, super::NnsProposalHostError> {
+    Ok(block_on_current_thread(
+        build_nns_proposal_list_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
+/// Build one exact proposal detail through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_proposal_report(
     request: &NnsProposalRequest,
-) -> Result<NnsProposalReport, NnsProposalHostError> {
-    build_nns_proposal_report_with_source(request, &LiveNnsSource)
+) -> Result<NnsProposalReport, super::NnsProposalHostError> {
+    Ok(block_on_current_thread(
+        build_nns_proposal_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
-pub fn build_nns_proposal_list_report_with_source(
+/// Build one bounded proposal list from a caller-owned async source.
+pub async fn build_nns_proposal_list_report_with_source(
     request: &NnsProposalListRequest,
     source: &dyn NnsProposalSource,
-) -> Result<NnsProposalListReport, NnsProposalHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request = NnsSourceRequest::new(
-        MAINNET_NETWORK,
-        &request.source_endpoint,
-        &fetched_at,
-        NNS_PROPOSAL_FETCHED_BY,
-    );
-    let mut proposals = source
+) -> Result<NnsProposalListReport, NnsProposalError> {
+    validate_list_request(request)?;
+    let data = source
         .fetch_proposals(
-            &fetch_request,
+            &request.governance,
             request.limit,
             request.before_proposal_id,
             request.status,
             request.reward_status,
-        )?
+        )
+        .await?;
+    validate_source_provenance(&request.governance.source, &data.provenance)?;
+    validate_proposal_page(&data.value, request.limit, request.before_proposal_id)?;
+
+    let mut proposals = data
+        .value
         .into_iter()
         .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
@@ -70,11 +95,7 @@ pub fn build_nns_proposal_list_report_with_source(
     sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     Ok(nns_proposal_list_report_from_parts(
         NnsProposalListReportParts {
-            network: MAINNET_NETWORK.to_string(),
-            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-            fetched_at,
-            source_endpoint: request.source_endpoint.clone(),
-            fetched_by: NNS_PROPOSAL_FETCHED_BY.to_string(),
+            context: report_context(&request.governance, data.provenance),
             provenance: NnsProposalReportProvenance::live(),
             requested_limit: request.limit,
             before_proposal_id: request.before_proposal_id,
@@ -91,56 +112,71 @@ pub fn build_nns_proposal_list_report_with_source(
     ))
 }
 
-pub fn build_nns_proposal_report_with_source(
+/// Build one exact proposal detail from a caller-owned async source.
+pub async fn build_nns_proposal_report_with_source(
     request: &NnsProposalRequest,
     source: &dyn NnsProposalSource,
-) -> Result<NnsProposalReport, NnsProposalHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request = NnsSourceRequest::new(
-        MAINNET_NETWORK,
-        &request.source_endpoint,
-        &fetched_at,
-        NNS_PROPOSAL_FETCHED_BY,
-    );
-    let proposal = source.fetch_proposal(&fetch_request, request.proposal_id)?;
+) -> Result<NnsProposalReport, NnsProposalError> {
+    validate_governance_request(&request.governance)?;
+    let data = source
+        .fetch_proposal(&request.governance, request.proposal_id)
+        .await?;
+    validate_source_provenance(&request.governance.source, &data.provenance)?;
+    if data.value.proposal_id != Some(request.proposal_id) {
+        return Err(NnsProposalError::ProposalIdMismatch {
+            expected: request.proposal_id,
+            actual: data.value.proposal_id,
+        });
+    }
     Ok(nns_proposal_report_from_parts(NnsProposalReportParts {
-        network: MAINNET_NETWORK.to_string(),
-        governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        fetched_at,
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_by: NNS_PROPOSAL_FETCHED_BY.to_string(),
+        context: report_context(&request.governance, data.provenance),
         provenance: NnsProposalReportProvenance::live(),
         proposal_id: request.proposal_id,
         show_ballots: request.show_ballots,
         verbose: request.verbose,
-        proposal,
+        proposal: data.value,
     }))
 }
 
 ///
-/// NnsProposalSource
+/// NnsProposalSourceFuture
 ///
-/// Source contract for fetching NNS governance proposal rows.
+/// Boxed caller-runtime future returned by a proposal source.
 ///
 
-pub trait NnsProposalSource {
-    fn fetch_proposals(
-        &self,
-        request: &NnsSourceRequest,
+pub type NnsProposalSourceFuture<'a, T> =
+    Pin<Box<dyn Future<Output = Result<NnsGovernanceSourceData<T>, NnsProposalError>> + Send + 'a>>;
+
+///
+/// NnsProposalSource
+///
+/// Portable async capability for bounded proposal list and exact detail calls.
+///
+
+pub trait NnsProposalSource: Send + Sync {
+    /// Fetch at most one bounded page of proposal rows.
+    fn fetch_proposals<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
         reward_status: NnsProposalRewardStatusFilter,
-    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError>;
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>>;
 
-    fn fetch_proposal(
-        &self,
-        request: &NnsSourceRequest,
+    /// Fetch one exact proposal row.
+    fn fetch_proposal<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalRow, NnsProposalHostError>;
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow>;
 }
 
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
 pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
     info: NnsProposalInfo,
 ) -> NnsProposalRow {
@@ -171,11 +207,13 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
             .map(|action| action.as_str().to_string()),
         reject_cost_e8s: info.reject_cost_e8s,
         proposal_timestamp_seconds: info.proposal_timestamp_seconds,
-        proposed_at: format_utc_timestamp_secs(info.proposal_timestamp_seconds),
+        proposed_at: crate::subnet_catalog::format_utc_timestamp_secs(
+            info.proposal_timestamp_seconds,
+        ),
         deadline_timestamp_seconds: info.deadline_timestamp_seconds,
         deadline_at: info
             .deadline_timestamp_seconds
-            .map(format_utc_timestamp_secs),
+            .map(crate::subnet_catalog::format_utc_timestamp_secs),
         decided_timestamp_seconds: info.decided_timestamp_seconds,
         decided_at: nonzero_timestamp_text(info.decided_timestamp_seconds),
         executed_timestamp_seconds: info.executed_timestamp_seconds,
@@ -195,6 +233,67 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
     }
 }
 
+fn validate_list_request(request: &NnsProposalListRequest) -> Result<(), NnsProposalError> {
+    validate_governance_request(&request.governance)?;
+    if (1..=NNS_PROPOSAL_MAX_PAGE_SIZE).contains(&request.limit) {
+        Ok(())
+    } else {
+        Err(NnsProposalError::InvalidLimit {
+            limit: request.limit,
+            maximum: NNS_PROPOSAL_MAX_PAGE_SIZE,
+        })
+    }
+}
+
+fn validate_proposal_page(
+    proposals: &[NnsProposalRow],
+    requested: u32,
+    before_proposal_id: Option<u64>,
+) -> Result<(), NnsProposalError> {
+    if proposals.len() > requested as usize {
+        return Err(NnsProposalError::PageTooLarge {
+            actual: proposals.len(),
+            requested,
+        });
+    }
+    let mut proposal_ids = HashSet::with_capacity(proposals.len());
+    for proposal in proposals {
+        let proposal_id = proposal
+            .proposal_id
+            .ok_or(NnsProposalError::MissingProposalIdInPage)?;
+        if !proposal_ids.insert(proposal_id) {
+            return Err(NnsProposalError::DuplicateProposalId { proposal_id });
+        }
+        if let Some(before_proposal_id) = before_proposal_id
+            && proposal_id >= before_proposal_id
+        {
+            return Err(NnsProposalError::ProposalCursorMismatch {
+                proposal_id,
+                before_proposal_id,
+            });
+        }
+    }
+    Ok(())
+}
+
+fn report_context(
+    request: &NnsGovernanceRequest,
+    source: NnsGovernanceSourceProvenance,
+) -> NnsGovernanceReportContext {
+    NnsGovernanceReportContext {
+        schema_version: 1,
+        network: request.network.clone(),
+        governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
+        fetched_at: request.fetched_at.clone(),
+        source,
+    }
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
 fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<NnsProposalBallotRow> {
     let mut rows = ballots
         .into_iter()
@@ -209,6 +308,12 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
     rows
 }
 
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
-    (timestamp_seconds > 0).then(|| format_utc_timestamp_secs(timestamp_seconds))
+    (timestamp_seconds > 0)
+        .then(|| crate::subnet_catalog::format_utc_timestamp_secs(timestamp_seconds))
 }

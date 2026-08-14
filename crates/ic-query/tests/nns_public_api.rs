@@ -80,24 +80,27 @@ use ic_query::nns::node_provider::{
     nns_node_provider_list_report_verbose_text,
 };
 #[cfg(feature = "nns-host")]
+use ic_query::nns::proposals::NnsProposalError;
+#[cfg(feature = "nns-host")]
 use ic_query::nns::proposals::{
-    DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
-    NnsProposalHostError, NnsProposalRefreshReport, NnsProposalSource,
-    build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
-    build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
-    build_nns_proposal_list_report_with_source, build_nns_proposal_report,
-    build_nns_proposal_report_from_cache, build_nns_proposal_report_with_source,
-    nns_proposal_cache_list_report_text, nns_proposal_cache_path, nns_proposal_cache_root,
-    nns_proposal_cache_status_report_text, nns_proposal_refresh_attempt_path,
-    nns_proposal_refresh_lock_path, nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
+    DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalHostError,
+    NnsProposalRefreshReport, build_nns_proposal_cache_list_report,
+    build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
+    build_nns_proposal_list_report_from_cache, build_nns_proposal_report,
+    build_nns_proposal_report_from_cache, nns_proposal_cache_list_report_text,
+    nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_cache_status_report_text,
+    nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path,
+    nns_proposal_refresh_report_text, refresh_nns_proposal_cache,
     refresh_nns_proposal_cache_with_source,
 };
 use ic_query::nns::proposals::{
-    NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
-    NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter,
-    NnsProposalRow, NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
-    NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
-    nns_proposal_list_report_text, nns_proposal_report_text,
+    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalBallotRow,
+    NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalReport,
+    NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
+    NnsProposalSortDirection, NnsProposalSource, NnsProposalSourceFuture, NnsProposalStatus,
+    NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter,
+    NnsProposalVote, build_nns_proposal_list_report_with_source,
+    build_nns_proposal_report_with_source, nns_proposal_list_report_text, nns_proposal_report_text,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
@@ -212,11 +215,15 @@ fn public_nns_governance_collection_contracts_are_shared() {
         reason: "fixture failure".to_string(),
     };
     assert!(matches!(
-        NnsProposalHostError::from(query_error.clone()),
-        NnsProposalHostError::GovernanceQuery(NnsGovernanceQueryError::AgentCall {
-            method: "list_proposals",
-            ..
-        })
+        NnsProposalHostError::from(NnsProposalError::from(NnsGovernanceError::from(
+            query_error.clone()
+        ))),
+        NnsProposalHostError::Proposal(NnsProposalError::Governance(
+            NnsGovernanceError::AgentCall {
+                method: "list_proposals",
+                ..
+            }
+        ))
     ));
     assert!(matches!(
         NnsNeuronHostError::from(query_error),
@@ -301,6 +308,48 @@ fn public_nns_governance_canister_source_builds_a_caller_runtime_future() {
     let future = build_nns_governance_economics_report_with_source(&request, &CanisterNnsSource);
 
     drop(future);
+}
+
+#[test]
+fn public_nns_proposal_portable_api_accepts_custom_source() {
+    let request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
+        .with_status(NnsProposalStatusFilter::Executed)
+        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
+        .with_topic(NnsProposalTopicFilter::Governance);
+    let report = run_ready(build_nns_proposal_list_report_with_source(
+        &request,
+        &FixtureNnsProposalSource,
+    ))
+    .expect("portable proposal source");
+    let detail_request =
+        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
+    let detail = run_ready(build_nns_proposal_report_with_source(
+        &detail_request,
+        &FixtureNnsProposalSource,
+    ))
+    .expect("portable proposal detail source");
+
+    assert_eq!(NNS_PROPOSAL_MAX_PAGE_SIZE, 100);
+    assert_eq!(report.proposal_count, 1);
+    assert_eq!(
+        report.context.source,
+        governance_fixture_provenance(&request.governance)
+    );
+    assert_eq!(detail.proposal_id, 132_411);
+}
+
+#[cfg(all(feature = "canister", target_arch = "wasm32"))]
+#[test]
+fn public_nns_proposal_canister_source_builds_caller_runtime_futures() {
+    let governance =
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
+    let list_request = NnsProposalListRequest::new(governance.clone(), 25);
+    let detail_request = NnsProposalRequest::new(governance, 132_411);
+
+    let list_future = build_nns_proposal_list_report_with_source(&list_request, &CanisterNnsSource);
+    let detail_future = build_nns_proposal_report_with_source(&detail_request, &CanisterNnsSource);
+
+    drop((list_future, detail_future));
 }
 
 struct FixtureGovernanceSource;
@@ -394,6 +443,25 @@ fn governance_fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanc
     NnsGovernanceSourceProvenance::ReplicaQuery {
         endpoint: endpoint.clone(),
         fetched_by: fetched_by.clone(),
+    }
+}
+
+fn proposal_governance_request(now_unix_secs: u64) -> NnsGovernanceRequest {
+    NnsGovernanceRequest::replica_query_from_unix_secs(
+        "ic",
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
+        now_unix_secs,
+        "ic-query",
+    )
+}
+
+fn proposal_report_context(request: &NnsGovernanceRequest) -> NnsGovernanceReportContext {
+    NnsGovernanceReportContext {
+        schema_version: 1,
+        network: request.network.clone(),
+        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        fetched_at: request.fetched_at.clone(),
+        source: governance_fixture_provenance(request),
     }
 }
 
@@ -1856,7 +1924,7 @@ fn assert_inventory_source_request(
 
 #[test]
 fn public_nns_proposal_api_is_constructible_and_renderable() {
-    let request = NnsProposalListRequest::new("ic", "https://icp-api.io", 1_700_000_000, 25)
+    let request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
         .with_before_proposal_id(132_500)
         .with_status(NnsProposalStatusFilter::Executed)
         .with_reward_status(NnsProposalRewardStatusFilter::Settled)
@@ -1874,12 +1942,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
 
     let proposal = sample_nns_proposal_row();
     let list_report = NnsProposalListReport {
-        schema_version: 1,
-        network: request.network,
-        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: "ic-query".to_string(),
+        context: proposal_report_context(&request.governance),
         data_source: ReportDataSource::Cache,
         cache_path: Some("/cache/nns/ic/governance/proposals/full.json".to_string()),
         cache_complete: Some(true),
@@ -1914,15 +1977,10 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     assert!(list_text.contains("title: Upgrade subnet"));
 
     let detail_request =
-        NnsProposalRequest::new("ic", "https://icp-api.io", 1_700_000_000, 132_411)
+        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411)
             .with_show_ballots(true);
     let detail_report = NnsProposalReport {
-        schema_version: 1,
-        network: detail_request.network,
-        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: detail_request.source_endpoint,
-        fetched_by: "ic-query".to_string(),
+        context: proposal_report_context(&detail_request.governance),
         data_source: ReportDataSource::Live,
         cache_path: None,
         cache_complete: None,
@@ -2437,26 +2495,17 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
 
     let cache_list_request = NnsGovernanceCacheRequest::new(&root, "ic");
     let cache_status_request = NnsGovernanceCacheRequest::new(&root, "ic");
-    let list_request = NnsProposalListRequest::new(
-        "ic",
-        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
-        1_700_000_000,
-        25,
-    )
-    .with_status(NnsProposalStatusFilter::Executed)
-    .with_reward_status(NnsProposalRewardStatusFilter::Settled)
-    .with_topic(NnsProposalTopicFilter::Governance)
-    .with_proposer_neuron_id(12_345)
-    .with_query("subnet")
-    .with_sort(NnsProposalListSort::TallyTime)
-    .with_sort_direction(NnsProposalSortDirection::Desc);
-    let detail_request = NnsProposalRequest::new(
-        "ic",
-        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
-        1_700_000_000,
-        132_411,
-    )
-    .with_show_ballots(true);
+    let list_request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
+        .with_status(NnsProposalStatusFilter::Executed)
+        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
+        .with_topic(NnsProposalTopicFilter::Governance)
+        .with_proposer_neuron_id(12_345)
+        .with_query("subnet")
+        .with_sort(NnsProposalListSort::TallyTime)
+        .with_sort_direction(NnsProposalSortDirection::Desc);
+    let detail_request =
+        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411)
+            .with_show_ballots(true);
     let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
@@ -2515,21 +2564,12 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
 fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
     let root = temp_root("nns-proposal-source-public-api");
     let source = FixtureNnsProposalSource;
-    let list_request = NnsProposalListRequest::new(
-        "ic",
-        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
-        1_700_000_000,
-        25,
-    )
-    .with_status(NnsProposalStatusFilter::Executed)
-    .with_reward_status(NnsProposalRewardStatusFilter::Settled)
-    .with_topic(NnsProposalTopicFilter::Governance);
-    let detail_request = NnsProposalRequest::new(
-        "ic",
-        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
-        1_700_000_000,
-        132_411,
-    );
+    let list_request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
+        .with_status(NnsProposalStatusFilter::Executed)
+        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
+        .with_topic(NnsProposalTopicFilter::Governance);
+    let detail_request =
+        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
     let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
@@ -2538,10 +2578,16 @@ fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
         2,
     );
 
-    let list = build_nns_proposal_list_report_with_source(&list_request, &source)
-        .expect("proposal list report");
-    let detail = build_nns_proposal_report_with_source(&detail_request, &source)
-        .expect("proposal detail report");
+    let list = run_ready(build_nns_proposal_list_report_with_source(
+        &list_request,
+        &source,
+    ))
+    .expect("proposal list report");
+    let detail = run_ready(build_nns_proposal_report_with_source(
+        &detail_request,
+        &source,
+    ))
+    .expect("proposal detail report");
     let refresh = refresh_nns_proposal_cache_with_source(&refresh_request, &source)
         .expect("proposal refresh report");
 
@@ -2556,51 +2602,63 @@ fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[cfg(feature = "nns-host")]
 struct FixtureNnsProposalSource;
 
-#[cfg(feature = "nns-host")]
 impl NnsProposalSource for FixtureNnsProposalSource {
-    fn fetch_proposals(
-        &self,
-        request: &NnsSourceRequest,
+    fn fetch_proposals<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         limit: u32,
         before_proposal_id: Option<u64>,
         status: NnsProposalStatusFilter,
         reward_status: NnsProposalRewardStatusFilter,
-    ) -> Result<Vec<NnsProposalRow>, NnsProposalHostError> {
-        assert_proposal_source_request(request);
-        match (limit, before_proposal_id, status, reward_status) {
-            (
-                25,
-                None,
-                NnsProposalStatusFilter::Executed,
-                NnsProposalRewardStatusFilter::Settled,
-            )
-            | (2, None, NnsProposalStatusFilter::Any, NnsProposalRewardStatusFilter::Any) => {
-                Ok(vec![sample_nns_proposal_row()])
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>> {
+        Box::pin(async move {
+            assert_proposal_source_request(request);
+            match (limit, before_proposal_id, status, reward_status) {
+                (
+                    25,
+                    None,
+                    NnsProposalStatusFilter::Executed,
+                    NnsProposalRewardStatusFilter::Settled,
+                )
+                | (2, None, NnsProposalStatusFilter::Any, NnsProposalRewardStatusFilter::Any) => {
+                    Ok(NnsGovernanceSourceData::new(
+                        vec![sample_nns_proposal_row()],
+                        governance_fixture_provenance(request),
+                    ))
+                }
+                other => panic!("unexpected proposal source call: {other:?}"),
             }
-            other => panic!("unexpected proposal source call: {other:?}"),
-        }
+        })
     }
 
-    fn fetch_proposal(
-        &self,
-        request: &NnsSourceRequest,
+    fn fetch_proposal<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         proposal_id: u64,
-    ) -> Result<NnsProposalRow, NnsProposalHostError> {
-        assert_proposal_source_request(request);
-        assert_eq!(proposal_id, 132_411);
-        Ok(sample_nns_proposal_row())
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow> {
+        Box::pin(async move {
+            assert_proposal_source_request(request);
+            assert_eq!(proposal_id, 132_411);
+            Ok(NnsGovernanceSourceData::new(
+                sample_nns_proposal_row(),
+                governance_fixture_provenance(request),
+            ))
+        })
     }
 }
 
-#[cfg(feature = "nns-host")]
-fn assert_proposal_source_request(request: &NnsSourceRequest) {
+fn assert_proposal_source_request(request: &NnsGovernanceRequest) {
     assert_eq!(request.network, "ic");
-    assert_eq!(request.endpoint, DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT);
     assert!(!request.fetched_at.is_empty());
-    assert_eq!(request.fetched_by, "ic-query");
+    assert_eq!(
+        request.source,
+        NnsGovernanceSourceSelection::ReplicaQuery {
+            endpoint: DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT.to_string(),
+            fetched_by: "ic-query".to_string(),
+        }
+    );
 }
 
 #[cfg(feature = "nns-host")]

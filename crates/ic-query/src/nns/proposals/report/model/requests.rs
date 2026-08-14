@@ -8,6 +8,7 @@ use super::selection::{
     NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
     NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
+use crate::nns::governance::NnsGovernanceRequest;
 
 ///
 /// NnsProposalListRequest
@@ -17,9 +18,8 @@ use super::selection::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsProposalListRequest {
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
+    /// Shared network, collection time, and source transport request.
+    pub governance: NnsGovernanceRequest,
     pub limit: u32,
     pub before_proposal_id: Option<u64>,
     pub status: NnsProposalStatusFilter,
@@ -34,16 +34,9 @@ pub struct NnsProposalListRequest {
 
 impl NnsProposalListRequest {
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        limit: u32,
-    ) -> Self {
+    pub fn new(governance: NnsGovernanceRequest, limit: u32) -> Self {
         Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            governance,
             limit,
             before_proposal_id: None,
             status: NnsProposalStatusFilter::default(),
@@ -124,9 +117,8 @@ impl NnsProposalListRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsProposalRequest {
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
+    /// Shared network, collection time, and source transport request.
+    pub governance: NnsGovernanceRequest,
     pub proposal_id: u64,
     pub show_ballots: bool,
     pub verbose: bool,
@@ -134,16 +126,9 @@ pub struct NnsProposalRequest {
 
 impl NnsProposalRequest {
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        proposal_id: u64,
-    ) -> Self {
+    pub const fn new(governance: NnsGovernanceRequest, proposal_id: u64) -> Self {
         Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            governance,
             proposal_id,
             show_ballots: false,
             verbose: false,

@@ -12,7 +12,7 @@ use super::{
 };
 use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
 
-pub(super) fn validate_governance_request(
+pub fn validate_governance_request(
     request: &NnsGovernanceRequest,
 ) -> Result<(), NnsGovernanceError> {
     enforce_mainnet_network(&request.network)?;
@@ -35,7 +35,7 @@ pub(super) const fn validate_governance_response_size(
     }
 }
 
-fn enforce_mainnet_network(network: &str) -> Result<(), NnsGovernanceError> {
+pub fn enforce_mainnet_network(network: &str) -> Result<(), NnsGovernanceError> {
     if network == MAINNET_NETWORK {
         Ok(())
     } else {
@@ -90,7 +90,7 @@ fn validate_source_selection(
     Ok(())
 }
 
-pub(super) fn validate_source_provenance(
+pub fn validate_source_provenance(
     selection: &NnsGovernanceSourceSelection,
     provenance: &NnsGovernanceSourceProvenance,
 ) -> Result<(), NnsGovernanceError> {

@@ -11,6 +11,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
 
+- `0.38.2` adds canister-native bounded NNS proposal list and exact detail
+  reports through the existing `canister` feature and `CanisterNnsSource`.
+  Each report makes one replicated inter-canister call, shares validation and
+  row projection with the native adapter, enforces the existing 8 MiB response
+  ceiling, and records tagged transport provenance. Complete proposal refresh
+  and persistence remain native and caller-owned respectively.
+- `0.38.1` makes minor and major release staging include generated README and
+  library-usage dependency versions. Release commits reject unstaged,
+  untracked, and unexpected staged files, create a tag only after the commit
+  leaves a clean tree, and retry one transient post-gate `cargo clean` failure.
 - `0.38.0` adds one `canister` runtime feature inside `ic-query`, giving Rust
   canisters async access to the four bounded direct NNS Governance reports
   through replicated inter-canister calls and the same validation and assembly
@@ -23,10 +33,6 @@ Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
   dependency-gate run. Stale files in its shared advisory cache can no longer
   create duplicate-ID parse failures, and the exact temporary checkout is
   removed after both successful and failed checks.
-- `0.38.1` makes minor and major release staging include generated README and
-  library-usage dependency versions. Release commits reject unstaged,
-  untracked, and unexpected staged files, create a tag only after the commit
-  leaves a clean tree, and retry one transient post-gate `cargo clean` failure.
 
 ## [0.37.x] - Unreleased - ICRC account and holder index reporting
 

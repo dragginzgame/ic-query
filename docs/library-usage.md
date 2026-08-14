@@ -22,6 +22,50 @@ Both NNS subsets are nested under `nns-host`, and
 `certified-subnet-catalog-host` and `nns-topology-host` each include
 `subnet-catalog-host`.
 
+For a Rust canister that needs direct NNS Governance point reports or one
+bounded proposal page/detail without the native host graph, use:
+
+```toml
+[dependencies]
+ic-query = { version = "0.38", default-features = false, features = ["canister"] }
+```
+
+`canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
+`ic-agent`, Tokio, Reqwest, Futures, or filesystem caching. The shared async
+builders run on the caller's executor. Each built-in operation makes exactly
+one bounded-wait replicated inter-canister call to the fixed mainnet
+Governance canister, attaches no cycles, retries nothing, caps the raw response
+at 8 MiB, and records the executing collector canister in tagged provenance.
+The caller owns collection time, scheduling, retry policy, cycle budgeting,
+and persistence.
+
+```rust,no_run
+use ic_query::nns::{
+    governance::{CanisterNnsSource, NnsGovernanceRequest},
+    proposals::{
+        NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
+        build_nns_proposal_list_report_with_source,
+    },
+};
+
+async fn latest_proposals(
+    now_unix_secs: u64,
+) -> Result<NnsProposalListReport, NnsProposalError> {
+    let governance = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
+        "ic",
+        now_unix_secs,
+    );
+    let request = NnsProposalListRequest::new(governance, 25);
+    build_nns_proposal_list_report_with_source(&request, &CanisterNnsSource).await
+}
+```
+
+Proposal list limits are 1 through 100. One builder call fetches one page and
+does not refill after local topic, proposer, text, or sort operations. Exact
+detail similarly makes one `get_proposal_info` call. Complete proposal refresh
+remains an explicit native `nns-host` cache operation; canister stable-memory
+layout and publication policy remain application-owned.
+
 For official Dashboard REST reports, node-provider rewards, CloudEngine
 provider and Type4 node collection, and the shared observed default-scope
 node-status cache, use the independent Dashboard feature:

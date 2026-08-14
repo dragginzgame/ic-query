@@ -30,9 +30,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         ),
     };
     let request = NnsProposalListRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
-        now_unix_secs: 1_700_000_000,
+        governance: proposal_governance_request(1_700_000_000),
         limit: 50,
         before_proposal_id: Some(200),
         status: NnsProposalStatusFilter::Executed,
@@ -50,12 +48,12 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     let text = nns_proposal_list_report_text(&report);
 
     assert_eq!(
-        report.schema_version,
+        report.context.schema_version,
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION
     );
-    assert_eq!(report.network, MAINNET_NETWORK);
+    assert_eq!(report.context.network, MAINNET_NETWORK);
     assert_eq!(
-        report.governance_canister_id,
+        report.context.governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
     assert_eq!(report.status_filter, NnsProposalStatus::Executed.as_str());

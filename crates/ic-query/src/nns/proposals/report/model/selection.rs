@@ -482,7 +482,11 @@ impl NnsProposalRewardStatusFilter {
         }
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(any(
+        feature = "nns-host",
+        all(feature = "canister", target_arch = "wasm32"),
+        test
+    ))]
     pub(in crate::nns) const fn governance_reward_status_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
@@ -507,7 +511,11 @@ impl NnsProposalStatusFilter {
         }
     }
 
-    #[cfg(feature = "nns-host")]
+    #[cfg(any(
+        feature = "nns-host",
+        all(feature = "canister", target_arch = "wasm32"),
+        test
+    ))]
     pub(in crate::nns) const fn governance_status_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
@@ -578,7 +586,6 @@ impl NnsProposalTopicFilter {
         }
     }
 
-    #[cfg(feature = "nns-host")]
     pub(in crate::nns) const fn topic_code(self) -> Option<i32> {
         match self {
             Self::Any => None,
