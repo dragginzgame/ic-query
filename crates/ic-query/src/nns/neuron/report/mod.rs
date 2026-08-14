@@ -7,6 +7,7 @@
 #[cfg(feature = "nns-host")]
 mod cache;
 mod classification;
+mod collection;
 mod error;
 mod model;
 mod source;
@@ -28,6 +29,12 @@ pub use cache::{
     refresh_nns_neuron_cache_with_source,
 };
 pub use classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote};
+#[cfg(feature = "nns-host")]
+pub use collection::advance_nns_neuron_collection;
+pub use collection::{
+    NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION, NnsNeuronCollectionState,
+    NnsNeuronCollectionStatus, NnsNeuronCollectionStep, advance_nns_neuron_collection_with_source,
+};
 pub use error::NnsNeuronError;
 #[cfg(feature = "nns-host")]
 pub use error::NnsNeuronHostError;

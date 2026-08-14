@@ -77,6 +77,15 @@ introduce another cache identity, stable-memory layout, lock, refresh policy,
 or stale-data claim. A consuming process or canister owns scheduling, retries,
 cycle budgeting, and persistence of the returned Serde report.
 
+Proposal and public-neuron collection separately expose serializable schema-1
+continuations. Each advance performs one bounded family-specific page call and
+returns the page with candidate next state. Each state binds source identity
+and concrete collector provenance, accounts cumulative pages and rows under an
+explicit page ceiling, and distinguishes API exhaustion from a page-limit
+stop. Proposal cursors descend; neuron cursors ascend and remain exclusive.
+Neither continuation prescribes a storage or publication format, and
+sequential pages are not point-in-time.
+
 ## CLI Contract
 
 ```bash

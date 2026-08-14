@@ -6,9 +6,7 @@
 
 use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote};
 use crate::nns::governance::{NnsGovernanceReportContext, NnsGovernanceRequest};
-#[cfg(feature = "nns-host")]
-use serde::Deserialize as SerdeDeserialize;
-use serde::Serialize;
+use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
 /// NnsKnownNeuronData
@@ -16,8 +14,7 @@ use serde::Serialize;
 /// Public metadata attached to a registered known neuron.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(SerdeDeserialize))]
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsKnownNeuronData {
     /// Registered neuron name.
     pub name: String,
@@ -33,8 +30,7 @@ pub struct NnsKnownNeuronData {
 /// One recent public ballot exposed by the Governance neuron index.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(SerdeDeserialize))]
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronBallotRow {
     /// Proposal identifier when supplied by Governance.
     pub proposal_id: Option<u64>,
@@ -50,8 +46,7 @@ pub struct NnsNeuronBallotRow {
 /// Public limited view of one NNS neuron returned by Governance.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(SerdeDeserialize))]
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronRow {
     /// Stable Governance neuron identifier.
     pub neuron_id: u64,
@@ -183,7 +178,7 @@ impl NnsNeuronInfoRequest {
 /// Serializable page from the public NNS Governance neuron index.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronListReport {
     /// Shared Governance authority and transport provenance.
     #[serde(flatten)]
@@ -216,7 +211,7 @@ pub struct NnsNeuronListReport {
 /// Serializable public view of one NNS neuron.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronInfoReport {
     /// Shared Governance authority and transport provenance.
     #[serde(flatten)]

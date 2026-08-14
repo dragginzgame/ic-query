@@ -4,6 +4,7 @@
 //! Does not own: source fetching, progress rendering, or cache publication.
 //! Boundary: tracks page counters, cursors, and duplicate row suppression.
 
+#[cfg(feature = "sns-host")]
 use std::collections::HashSet;
 
 ///
@@ -12,6 +13,7 @@ use std::collections::HashSet;
 /// Deduplicated rows and pagination metadata from a complete API walk.
 ///
 
+#[cfg(feature = "sns-host")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompletePagedCollection<Row> {
     pub rows: Vec<Row>,
@@ -37,6 +39,7 @@ pub struct PagedCollectionPage {
 /// Accumulates unique rows while walking a cursor-based collection.
 ///
 
+#[cfg(feature = "sns-host")]
 pub struct PagedCollectionState<Row, Cursor> {
     rows: Vec<Row>,
     seen_row_ids: HashSet<String>,
@@ -44,6 +47,7 @@ pub struct PagedCollectionState<Row, Cursor> {
     next_cursor: Option<Cursor>,
 }
 
+#[cfg(feature = "sns-host")]
 impl<Row, Cursor> Default for PagedCollectionState<Row, Cursor> {
     fn default() -> Self {
         Self {
@@ -55,6 +59,7 @@ impl<Row, Cursor> Default for PagedCollectionState<Row, Cursor> {
     }
 }
 
+#[cfg(feature = "sns-host")]
 impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
     pub fn new() -> Self {
         Self::default()

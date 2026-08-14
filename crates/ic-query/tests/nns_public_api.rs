@@ -26,10 +26,12 @@ use ic_query::nns::governance::{
     nns_governance_maturity_modulation_report_text,
 };
 use ic_query::nns::neuron::{
-    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData,
-    NnsNeuronError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
-    NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronType, NnsNeuronVisibility,
-    NnsNeuronVote, build_nns_neuron_info_report_with_source,
+    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
+    NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData, NnsNeuronCollectionState,
+    NnsNeuronCollectionStatus, NnsNeuronCollectionStep, NnsNeuronError, NnsNeuronInfoRequest,
+    NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource, NnsNeuronSourceFuture,
+    NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote,
+    advance_nns_neuron_collection_with_source, build_nns_neuron_info_report_with_source,
     build_nns_neuron_list_report_with_source, nns_neuron_info_report_text,
     nns_neuron_list_report_text,
 };
@@ -81,8 +83,6 @@ use ic_query::nns::node_provider::{
     nns_node_provider_list_report_verbose_text,
 };
 #[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::NnsProposalError;
-#[cfg(feature = "nns-host")]
 use ic_query::nns::proposals::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalHostError,
     NnsProposalRefreshReport, build_nns_proposal_cache_list_report,
@@ -95,12 +95,14 @@ use ic_query::nns::proposals::{
     refresh_nns_proposal_cache_with_source,
 };
 use ic_query::nns::proposals::{
-    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalBallotRow,
-    NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalReport,
-    NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
-    NnsProposalSortDirection, NnsProposalSource, NnsProposalSourceFuture, NnsProposalStatus,
-    NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter,
-    NnsProposalVote, build_nns_proposal_list_report_with_source,
+    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION,
+    NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalBallotRow, NnsProposalCollectionState,
+    NnsProposalCollectionStatus, NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
+    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus,
+    NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection, NnsProposalSource,
+    NnsProposalSourceFuture, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally,
+    NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
+    advance_nns_proposal_collection_with_source, build_nns_proposal_list_report_with_source,
     build_nns_proposal_report_with_source, nns_proposal_list_report_text, nns_proposal_report_text,
 };
 #[cfg(feature = "nns-host")]
@@ -339,6 +341,160 @@ fn public_nns_proposal_portable_api_accepts_custom_source() {
     assert_eq!(detail.proposal_id, 132_411);
 }
 
+#[test]
+fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
+    let first_request = proposal_governance_request(1_700_000_000);
+    let state = NnsProposalCollectionState::new(&first_request, 2, 3)
+        .expect("valid proposal collection state");
+    let first = run_ready(advance_nns_proposal_collection_with_source(
+        &first_request,
+        &state,
+        &PagedFixtureNnsProposalSource,
+    ))
+    .expect("first proposal collection page");
+
+    assert_eq!(
+        NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION,
+        first.state.schema_version()
+    );
+    assert_eq!(
+        first.state.status(),
+        NnsProposalCollectionStatus::Collecting
+    );
+    assert_eq!(first.state.pages_fetched(), 1);
+    assert_eq!(first.state.proposals_fetched(), 2);
+    assert_eq!(first.state.next_before_proposal_id(), Some(2));
+    assert_eq!(first.state.network(), "ic");
+    assert_eq!(
+        first.state.governance_canister_id(),
+        "rrkah-fqaaa-aaaaa-aaaaq-cai"
+    );
+    assert_eq!(first.state.requested_source(), &first_request.source);
+    assert_eq!(
+        first.state.source(),
+        Some(&governance_fixture_provenance(&first_request))
+    );
+    assert_eq!(first.state.page_size(), 2);
+    assert!(!first.state.is_complete());
+
+    let persisted = serde_json::to_string(&first.state).expect("serialize collection state");
+    let persisted_json: serde_json::Value =
+        serde_json::from_str(&persisted).expect("parse serialized collection state");
+    assert_eq!(persisted_json["schema_version"], 1);
+    assert_eq!(
+        persisted_json["requested_source"]["source_transport"],
+        "replica_query"
+    );
+    let resumed: NnsProposalCollectionState =
+        serde_json::from_str(&persisted).expect("deserialize collection state");
+    let second_request = proposal_governance_request(1_700_000_100);
+    let second = run_ready(advance_nns_proposal_collection_with_source(
+        &second_request,
+        &resumed,
+        &PagedFixtureNnsProposalSource,
+    ))
+    .expect("final proposal collection page");
+
+    assert_eq!(second.page.proposal_count, 1);
+    assert_eq!(second.state.status(), NnsProposalCollectionStatus::Complete);
+    assert_eq!(second.state.pages_fetched(), 2);
+    assert_eq!(second.state.proposals_fetched(), 3);
+    assert_eq!(second.state.next_before_proposal_id(), None);
+    assert_eq!(second.state.started_at(), "2023-11-14T22:13:20Z");
+    assert_eq!(second.state.updated_at(), "2023-11-14T22:15:00Z");
+    assert!(second.state.is_complete());
+
+    let error = run_ready(advance_nns_proposal_collection_with_source(
+        &second_request,
+        &second.state,
+        &PagedFixtureNnsProposalSource,
+    ))
+    .expect_err("complete collection cannot make another source call");
+    assert!(matches!(
+        error,
+        NnsProposalError::CollectionComplete { pages_fetched: 2 }
+    ));
+}
+
+#[test]
+fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
+    let request = proposal_governance_request(1_700_000_000);
+    let state = NnsProposalCollectionState::new(&request, 2, 1).expect("bounded collection state");
+    let step = run_ready(advance_nns_proposal_collection_with_source(
+        &request,
+        &state,
+        &PagedFixtureNnsProposalSource,
+    ))
+    .expect("bounded collection page");
+
+    assert_eq!(
+        step.state.status(),
+        NnsProposalCollectionStatus::PageLimitReached
+    );
+    assert_eq!(step.state.max_pages(), 1);
+    assert!(!step.state.is_complete());
+    let error = run_ready(advance_nns_proposal_collection_with_source(
+        &request,
+        &step.state,
+        &PagedFixtureNnsProposalSource,
+    ))
+    .expect_err("page-limited collection cannot advance");
+    assert!(matches!(
+        error,
+        NnsProposalError::CollectionPageLimitReached {
+            pages_fetched: 1,
+            max_pages: 1
+        }
+    ));
+
+    let changed_request = NnsGovernanceRequest::replica_query_from_unix_secs(
+        "ic",
+        "https://example.com",
+        1_700_000_100,
+        "ic-query",
+    );
+    let error = run_ready(advance_nns_proposal_collection_with_source(
+        &changed_request,
+        &state,
+        &PagedFixtureNnsProposalSource,
+    ))
+    .expect_err("collection identity must be fixed before source invocation");
+    assert!(matches!(
+        error,
+        NnsProposalError::CollectionRequestMismatch {
+            field: "requested_source",
+            ..
+        }
+    ));
+}
+
+#[test]
+fn public_nns_proposal_collection_rejects_a_changed_canister_collector() {
+    let first_request =
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
+    let state = NnsProposalCollectionState::new(&first_request, 2, 3)
+        .expect("valid canister collection state");
+    let first = run_ready(advance_nns_proposal_collection_with_source(
+        &first_request,
+        &state,
+        &ChangingCanisterProposalSource,
+    ))
+    .expect("first canister proposal page");
+    let second_request =
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_100);
+
+    let error = run_ready(advance_nns_proposal_collection_with_source(
+        &second_request,
+        &first.state,
+        &ChangingCanisterProposalSource,
+    ))
+    .expect_err("collector principal must remain fixed");
+    assert!(matches!(
+        error,
+        NnsProposalError::CollectionSourceChanged { .. }
+    ));
+}
+
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 #[test]
 fn public_nns_proposal_canister_source_builds_caller_runtime_futures() {
@@ -347,10 +503,17 @@ fn public_nns_proposal_canister_source_builds_caller_runtime_futures() {
     let list_request = NnsProposalListRequest::new(governance.clone(), 25);
     let detail_request = NnsProposalRequest::new(governance, 132_411);
 
+    let collection_state =
+        NnsProposalCollectionState::new(&list_request.governance, 25, 10).expect("valid state");
     let list_future = build_nns_proposal_list_report_with_source(&list_request, &CanisterNnsSource);
     let detail_future = build_nns_proposal_report_with_source(&detail_request, &CanisterNnsSource);
+    let collection_future = advance_nns_proposal_collection_with_source(
+        &list_request.governance,
+        &collection_state,
+        &CanisterNnsSource,
+    );
 
-    drop((list_future, detail_future));
+    drop((list_future, detail_future, collection_future));
 }
 
 struct FixtureGovernanceSource;
@@ -559,6 +722,177 @@ fn public_nns_neuron_portable_api_accepts_custom_source() {
     assert!(matches!(error, NnsNeuronError::InvalidPageSize { .. }));
 }
 
+#[test]
+fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
+    let first_request = neuron_governance_request(1_700_000_000);
+    let state =
+        NnsNeuronCollectionState::new(&first_request, 2, 3).expect("valid neuron collection state");
+    let first = run_ready(advance_nns_neuron_collection_with_source(
+        &first_request,
+        &state,
+        &PagedFixtureNnsNeuronSource,
+    ))
+    .expect("first neuron collection page");
+
+    assert_eq!(
+        NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
+        first.state.schema_version()
+    );
+    assert_eq!(first.state.status(), NnsNeuronCollectionStatus::Collecting);
+    assert_eq!(first.state.pages_fetched(), 1);
+    assert_eq!(first.state.neurons_fetched(), 2);
+    assert_eq!(first.state.next_start_neuron_id(), Some(2));
+    assert_eq!(first.state.network(), "ic");
+    assert_eq!(
+        first.state.governance_canister_id(),
+        "rrkah-fqaaa-aaaaa-aaaaq-cai"
+    );
+    assert_eq!(first.state.requested_source(), &first_request.source);
+    assert_eq!(
+        first.state.source(),
+        Some(&governance_fixture_provenance(&first_request))
+    );
+    assert_eq!(first.state.page_size(), 2);
+    assert!(!first.state.is_complete());
+
+    let persisted = serde_json::to_string(&first).expect("serialize collection step");
+    let persisted_json: serde_json::Value =
+        serde_json::from_str(&persisted).expect("parse serialized collection step");
+    assert_eq!(persisted_json["state"]["schema_version"], 1);
+    assert_eq!(
+        persisted_json["state"]["requested_source"]["source_transport"],
+        "replica_query"
+    );
+    let resumed: NnsNeuronCollectionStep =
+        serde_json::from_str(&persisted).expect("deserialize collection step");
+    let second_request = neuron_governance_request(1_700_000_100);
+    let second = run_ready(advance_nns_neuron_collection_with_source(
+        &second_request,
+        &resumed.state,
+        &PagedFixtureNnsNeuronSource,
+    ))
+    .expect("final neuron collection page");
+
+    assert_eq!(second.page.returned_neuron_count, 1);
+    assert_eq!(second.state.status(), NnsNeuronCollectionStatus::Complete);
+    assert_eq!(second.state.pages_fetched(), 2);
+    assert_eq!(second.state.neurons_fetched(), 3);
+    assert_eq!(second.state.next_start_neuron_id(), None);
+    assert_eq!(second.state.started_at(), "2023-11-14T22:13:20Z");
+    assert_eq!(second.state.updated_at(), "2023-11-14T22:15:00Z");
+    assert!(second.state.is_complete());
+
+    let error = run_ready(advance_nns_neuron_collection_with_source(
+        &second_request,
+        &second.state,
+        &PagedFixtureNnsNeuronSource,
+    ))
+    .expect_err("complete collection cannot make another source call");
+    assert!(matches!(
+        error,
+        NnsNeuronError::CollectionComplete { pages_fetched: 2 }
+    ));
+}
+
+#[test]
+fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
+    let request = neuron_governance_request(1_700_000_000);
+    assert!(matches!(
+        NnsNeuronCollectionState::new(&request, 2, 0),
+        Err(NnsNeuronError::InvalidCollectionMaxPages)
+    ));
+    let state = NnsNeuronCollectionState::new(&request, 2, 1).expect("bounded collection state");
+    let step = run_ready(advance_nns_neuron_collection_with_source(
+        &request,
+        &state,
+        &PagedFixtureNnsNeuronSource,
+    ))
+    .expect("bounded collection page");
+
+    assert_eq!(
+        step.state.status(),
+        NnsNeuronCollectionStatus::PageLimitReached
+    );
+    assert_eq!(step.state.max_pages(), 1);
+    assert!(!step.state.is_complete());
+    let error = run_ready(advance_nns_neuron_collection_with_source(
+        &request,
+        &step.state,
+        &PagedFixtureNnsNeuronSource,
+    ))
+    .expect_err("page-limited collection cannot advance");
+    assert!(matches!(
+        error,
+        NnsNeuronError::CollectionPageLimitReached {
+            pages_fetched: 1,
+            max_pages: 1
+        }
+    ));
+
+    let changed_request = NnsGovernanceRequest::replica_query_from_unix_secs(
+        "ic",
+        "https://example.com",
+        1_700_000_100,
+        "ic-query",
+    );
+    let error = run_ready(advance_nns_neuron_collection_with_source(
+        &changed_request,
+        &state,
+        &PagedFixtureNnsNeuronSource,
+    ))
+    .expect_err("collection identity must be fixed before source invocation");
+    assert!(matches!(
+        error,
+        NnsNeuronError::CollectionRequestMismatch {
+            field: "requested_source",
+            ..
+        }
+    ));
+
+    let mut invalid_json = serde_json::to_value(&step.state).expect("serialize collection state");
+    invalid_json["next_start_neuron_id"] = serde_json::Value::Null;
+    invalid_json["status"] = serde_json::json!("complete");
+    let invalid_state: NnsNeuronCollectionState =
+        serde_json::from_value(invalid_json).expect("deserialize modified collection state");
+    let error = run_ready(advance_nns_neuron_collection_with_source(
+        &request,
+        &invalid_state,
+        &PagedFixtureNnsNeuronSource,
+    ))
+    .expect_err("a full page cannot be changed into false completion");
+    assert!(matches!(
+        error,
+        NnsNeuronError::InvalidCollectionState { .. }
+    ));
+}
+
+#[test]
+fn public_nns_neuron_collection_rejects_a_changed_canister_collector() {
+    let first_request =
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
+    let state = NnsNeuronCollectionState::new(&first_request, 2, 3)
+        .expect("valid canister collection state");
+    let first = run_ready(advance_nns_neuron_collection_with_source(
+        &first_request,
+        &state,
+        &ChangingCanisterNeuronSource,
+    ))
+    .expect("first canister neuron page");
+    let second_request =
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_100);
+
+    let error = run_ready(advance_nns_neuron_collection_with_source(
+        &second_request,
+        &first.state,
+        &ChangingCanisterNeuronSource,
+    ))
+    .expect_err("collector principal must remain fixed");
+    assert!(matches!(
+        error,
+        NnsNeuronError::CollectionSourceChanged { .. }
+    ));
+}
+
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 #[test]
 fn public_nns_neuron_canister_source_builds_caller_runtime_futures() {
@@ -567,10 +901,17 @@ fn public_nns_neuron_canister_source_builds_caller_runtime_futures() {
     let list_request = NnsNeuronListRequest::new(governance.clone(), 25);
     let info_request = NnsNeuronInfoRequest::new(governance, 7);
 
+    let collection_state =
+        NnsNeuronCollectionState::new(&list_request.governance, 25, 10).expect("valid state");
     let list = build_nns_neuron_list_report_with_source(&list_request, &CanisterNnsSource);
     let info = build_nns_neuron_info_report_with_source(&info_request, &CanisterNnsSource);
+    let collection = advance_nns_neuron_collection_with_source(
+        &list_request.governance,
+        &collection_state,
+        &CanisterNnsSource,
+    );
 
-    drop((list, info));
+    drop((list, info, collection));
 }
 
 #[cfg(feature = "nns-host")]
@@ -595,6 +936,10 @@ fn public_nns_neuron_host_api_exposes_cache_requests() {
 }
 
 struct FixtureNnsNeuronSource;
+
+struct PagedFixtureNnsNeuronSource;
+
+struct ChangingCanisterNeuronSource;
 
 impl NnsNeuronSource for FixtureNnsNeuronSource {
     fn fetch_neuron_page<'a>(
@@ -626,6 +971,82 @@ impl NnsNeuronSource for FixtureNnsNeuronSource {
                 governance_fixture_provenance(request),
             ))
         })
+    }
+}
+
+impl NnsNeuronSource for PagedFixtureNnsNeuronSource {
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        exclusive_start_neuron_id: Option<u64>,
+        page_size: u32,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
+        Box::pin(async move {
+            assert_eq!(page_size, 2);
+            let (neurons, next_start_neuron_id) = match exclusive_start_neuron_id {
+                None => (
+                    vec![sample_public_neuron(1), sample_public_neuron(2)],
+                    Some(2),
+                ),
+                Some(2) => (vec![sample_public_neuron(3)], None),
+                other => panic!("unexpected neuron collection cursor: {other:?}"),
+            };
+            Ok(NnsGovernanceSourceData::new(
+                NnsNeuronPage {
+                    neurons,
+                    next_start_neuron_id,
+                },
+                governance_fixture_provenance(request),
+            ))
+        })
+    }
+
+    fn fetch_neuron<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+        _neuron_id: u64,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
+        panic!("neuron collection does not fetch exact detail")
+    }
+}
+
+impl NnsNeuronSource for ChangingCanisterNeuronSource {
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+        exclusive_start_neuron_id: Option<u64>,
+        page_size: u32,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
+        Box::pin(async move {
+            assert_eq!(page_size, 2);
+            let (neurons, next_start_neuron_id, collector_canister_id) =
+                match exclusive_start_neuron_id {
+                    None => (
+                        vec![sample_public_neuron(1), sample_public_neuron(2)],
+                        Some(2),
+                        "aaaaa-aa",
+                    ),
+                    Some(2) => (vec![sample_public_neuron(3)], None, "2vxsx-fae"),
+                    other => panic!("unexpected neuron collection cursor: {other:?}"),
+                };
+            Ok(NnsGovernanceSourceData::new(
+                NnsNeuronPage {
+                    neurons,
+                    next_start_neuron_id,
+                },
+                NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+                    collector_canister_id: collector_canister_id.to_string(),
+                },
+            ))
+        })
+    }
+
+    fn fetch_neuron<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+        _neuron_id: u64,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
+        panic!("neuron collection does not fetch exact detail")
     }
 }
 
@@ -2650,6 +3071,10 @@ fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
 
 struct FixtureNnsProposalSource;
 
+struct PagedFixtureNnsProposalSource;
+
+struct ChangingCanisterProposalSource;
+
 impl NnsProposalSource for FixtureNnsProposalSource {
     fn fetch_proposals<'a>(
         &'a self,
@@ -2692,6 +3117,93 @@ impl NnsProposalSource for FixtureNnsProposalSource {
                 governance_fixture_provenance(request),
             ))
         })
+    }
+}
+
+impl NnsProposalSource for PagedFixtureNnsProposalSource {
+    fn fetch_proposals<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>> {
+        Box::pin(async move {
+            assert_proposal_source_request(request);
+            assert_eq!(limit, 2);
+            assert_eq!(status, NnsProposalStatusFilter::Any);
+            assert_eq!(reward_status, NnsProposalRewardStatusFilter::Any);
+            let proposals = match before_proposal_id {
+                None => vec![
+                    sample_nns_proposal_row_with_id(3),
+                    sample_nns_proposal_row_with_id(2),
+                ],
+                Some(2) => vec![sample_nns_proposal_row_with_id(1)],
+                other => panic!("unexpected proposal collection cursor: {other:?}"),
+            };
+            Ok(NnsGovernanceSourceData::new(
+                proposals,
+                governance_fixture_provenance(request),
+            ))
+        })
+    }
+
+    fn fetch_proposal<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+        _proposal_id: u64,
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow> {
+        panic!("proposal collection does not fetch exact detail")
+    }
+}
+
+impl NnsProposalSource for ChangingCanisterProposalSource {
+    fn fetch_proposals<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>> {
+        Box::pin(async move {
+            assert_eq!(limit, 2);
+            assert_eq!(status, NnsProposalStatusFilter::Any);
+            assert_eq!(reward_status, NnsProposalRewardStatusFilter::Any);
+            let (proposals, collector_canister_id) = match before_proposal_id {
+                None => (
+                    vec![
+                        sample_nns_proposal_row_with_id(3),
+                        sample_nns_proposal_row_with_id(2),
+                    ],
+                    "aaaaa-aa",
+                ),
+                Some(2) => (vec![sample_nns_proposal_row_with_id(1)], "2vxsx-fae"),
+                other => panic!("unexpected proposal collection cursor: {other:?}"),
+            };
+            Ok(NnsGovernanceSourceData::new(
+                proposals,
+                NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+                    collector_canister_id: collector_canister_id.to_string(),
+                },
+            ))
+        })
+    }
+
+    fn fetch_proposal<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+        _proposal_id: u64,
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow> {
+        panic!("proposal collection does not fetch exact detail")
+    }
+}
+
+fn sample_nns_proposal_row_with_id(proposal_id: u64) -> NnsProposalRow {
+    NnsProposalRow {
+        proposal_id: Some(proposal_id),
+        ..sample_nns_proposal_row()
     }
 }
 

@@ -67,7 +67,6 @@ macro_rules! native_code_classification {
             }
         }
 
-        #[cfg(feature = "nns-host")]
         impl<'de> serde::Deserialize<'de> for $name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
@@ -155,7 +154,6 @@ macro_rules! native_optional_code_classification {
             }
         }
 
-        #[cfg(feature = "nns-host")]
         impl<'de> serde::Deserialize<'de> for $name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
@@ -256,7 +254,6 @@ native_code_classification! {
     }
 }
 
-#[cfg(feature = "nns-host")]
 fn deserialize_code_label<'de, D, T>(
     deserializer: D,
     classification: &str,
@@ -280,7 +277,6 @@ where
     Ok(unknown(code))
 }
 
-#[cfg(feature = "nns-host")]
 fn parse_unknown_code(label: &str) -> Option<i32> {
     let code = label
         .strip_prefix("unknown(")?
@@ -360,7 +356,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "nns-host")]
     #[test]
     fn classifications_read_canonical_cache_labels_only() {
         assert_eq!(

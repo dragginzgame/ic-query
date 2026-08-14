@@ -235,11 +235,15 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
 
 fn validate_list_request(request: &NnsProposalListRequest) -> Result<(), NnsProposalError> {
     validate_governance_request(&request.governance)?;
-    if (1..=NNS_PROPOSAL_MAX_PAGE_SIZE).contains(&request.limit) {
+    validate_proposal_page_size(request.limit)
+}
+
+pub(super) fn validate_proposal_page_size(limit: u32) -> Result<(), NnsProposalError> {
+    if (1..=NNS_PROPOSAL_MAX_PAGE_SIZE).contains(&limit) {
         Ok(())
     } else {
         Err(NnsProposalError::InvalidLimit {
-            limit: request.limit,
+            limit,
             maximum: NNS_PROPOSAL_MAX_PAGE_SIZE,
         })
     }
@@ -261,6 +265,9 @@ fn validate_proposal_page(
         let proposal_id = proposal
             .proposal_id
             .ok_or(NnsProposalError::MissingProposalIdInPage)?;
+        if proposal_id == 0 {
+            return Err(NnsProposalError::InvalidProposalIdInPage);
+        }
         if !proposal_ids.insert(proposal_id) {
             return Err(NnsProposalError::DuplicateProposalId { proposal_id });
         }

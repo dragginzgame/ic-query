@@ -22,9 +22,9 @@ Both NNS subsets are nested under `nns-host`, and
 `certified-subnet-catalog-host` and `nns-topology-host` each include
 `subnet-catalog-host`.
 
-For a Rust canister that needs direct NNS Governance point reports or one
-bounded proposal/neuron page or exact detail without the native host graph,
-use:
+For a Rust canister that needs direct NNS Governance point reports, bounded
+proposal/neuron pages, resumable complete collection, or exact detail without
+the native host graph, use:
 
 ```toml
 [dependencies]
@@ -63,16 +63,75 @@ async fn latest_proposals(
 
 Proposal list limits are 1 through 100. One builder call fetches one page and
 does not refill after local topic, proposer, text, or sort operations. Exact
-detail similarly makes one `get_proposal_info` call. Complete proposal refresh
-remains an explicit native `nns-host` cache operation; canister stable-memory
-layout and publication policy remain application-owned.
+detail similarly makes one `get_proposal_info` call.
 
-Neuron list limits are 1 through 300. One builder call makes one
-`get_neuron_index` call, validates strictly ascending unique ids and its
-exclusive cursor, and returns a next cursor only for a full page. Exact neuron
-detail makes one `get_neuron_info` call. Complete neuron refresh remains an
-explicit native `nns-host` cache operation; the canister adapter does not
-schedule or persist a multi-page collection.
+Complete proposal walks use the same one-call boundary through a serializable
+continuation:
+
+```rust,no_run
+use ic_query::nns::{
+    governance::{CanisterNnsSource, NnsGovernanceRequest},
+    proposals::{
+        NnsProposalCollectionState, NnsProposalCollectionStep, NnsProposalError,
+        advance_nns_proposal_collection_with_source,
+    },
+};
+
+async fn next_proposal_page(
+    now_unix_secs: u64,
+    state: &NnsProposalCollectionState,
+) -> Result<NnsProposalCollectionStep, NnsProposalError> {
+    let request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
+        "ic",
+        now_unix_secs,
+    );
+    advance_nns_proposal_collection_with_source(&request, state, &CanisterNnsSource).await
+}
+```
+
+Create the initial state with `NnsProposalCollectionState::new`, supplying a
+page size from 1 through 100 and a nonzero cumulative page ceiling. Retain each
+returned page before replacing the stored state. Only `complete` proves API
+exhaustion; `page_limit_reached` is intentionally incomplete. State schema 1
+binds request identity and first-page collector provenance and records
+cumulative pages, rows, cursor, and caller-supplied start/update times. It is
+coordination metadata, not authenticated data or a prescribed stable-memory
+layout. Sequential pages can span Governance changes. Native `nns-host` cache
+refresh uses the same continuation beneath its existing atomic publication
+boundary.
+
+Complete public-neuron walks use the corresponding one-call continuation:
+
+```rust,no_run
+use ic_query::nns::{
+    governance::{CanisterNnsSource, NnsGovernanceRequest},
+    neuron::{
+        NnsNeuronCollectionState, NnsNeuronCollectionStep, NnsNeuronError,
+        advance_nns_neuron_collection_with_source,
+    },
+};
+
+async fn next_neuron_page(
+    now_unix_secs: u64,
+    state: &NnsNeuronCollectionState,
+) -> Result<NnsNeuronCollectionStep, NnsNeuronError> {
+    let request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
+        "ic",
+        now_unix_secs,
+    );
+    advance_nns_neuron_collection_with_source(&request, state, &CanisterNnsSource).await
+}
+```
+
+Create `NnsNeuronCollectionState` with a page size from 1 through 300 and a
+nonzero cumulative page ceiling. One advance makes one `get_neuron_index`
+call, validates strictly ascending unique ids and the exclusive cursor, and
+returns a next cursor only for a full page. Retain the page before replacing
+the stored state. Only `complete` proves exhaustion; `page_limit_reached`
+retains explicitly incomplete progress. Exact neuron detail makes one
+`get_neuron_info` call. Native `nns-host` complete-neuron refresh uses the same
+continuation beneath its filesystem cache boundary, while canister scheduling,
+storage, and publication remain caller-owned.
 
 For official Dashboard REST reports, node-provider rewards, CloudEngine
 provider and Type4 node collection, and the shared observed default-scope

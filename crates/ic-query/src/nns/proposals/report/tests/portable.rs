@@ -99,6 +99,12 @@ fn proposal_list_rejects_oversized_duplicate_and_out_of_cursor_pages() {
     ));
 
     request.limit = 50;
+    let source = static_source(vec![proposal_row(0)], proposal_row(101));
+    assert!(matches!(
+        build_nns_proposal_list_report_with_source(&request, &source),
+        Err(NnsProposalError::InvalidProposalIdInPage)
+    ));
+
     let source = static_source(
         vec![proposal_row(101), proposal_row(101)],
         proposal_row(101),

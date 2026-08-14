@@ -21,7 +21,7 @@ and local-only inspection visibly distinct.
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, exact/one-page replica releases, exact/one-page/aggregate node-provider rewards, one-request observed default-scope and explicit Type4 node status, cached default-scope node/Subnet/provider views with typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history, indexed counts, account detail/pages, and holder pages |
 | CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, public network fee and bounded marketplace prices, one-request official Dashboard provider footprint and exact provider detail, plus explicit Type4 node health, assignment, and exact detail |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
-| NNS Governance | Proposals, publicly readable neurons, economics, metrics, latest reward event, and maturity modulation |
+| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
@@ -454,8 +454,9 @@ ic-query = { version = "0.38", default-features = false, features = ["canister"]
 ```
 
 The canister surface collects the four bounded direct NNS Governance point
-reports plus one bounded proposal or neuron page and exact proposal or neuron
-detail through replicated inter-canister calls:
+reports plus proposal and neuron pages and exact proposal or neuron detail
+through replicated inter-canister calls. Proposal and neuron pages can also be
+advanced through serializable caller-owned continuations:
 
 ```rust,no_run
 use ic_query::nns::governance::{
@@ -498,19 +499,27 @@ async fn latest_proposals(
 }
 ```
 
-Public neuron collection uses the same transport-aware request and source.
-One list builder call accepts 1 through 300 rows, returns the validated next
+For a complete proposal or public-neuron walk, create the corresponding
+`NnsProposalCollectionState` or `NnsNeuronCollectionState` with an explicit
+page size and cumulative page ceiling, then persist each returned page before
+replacing the retained state. Every advance makes exactly one call. `complete`
+means API exhaustion; `page_limit_reached` preserves bounded progress without
+making that claim. The states define no stable-memory layout or publication
+policy, and sequential pages are not one point-in-time view.
+
+One neuron list call accepts 1 through 300 rows, returns the validated next
 neuron-id cursor when the page is full, and never follows it automatically.
-Exact detail makes one `get_neuron_info` call. Complete neuron refresh and
-filesystem caches remain native-only.
+Exact detail makes one `get_neuron_info` call. Complete filesystem cache
+refresh remains native-only, but it uses the same portable continuation
+engine.
 
 Call these builders from an update, timer, heartbeat, or another replicated
-execution context that permits inter-canister calls. Each builder issues one
-bounded-wait call, attaches no cycles, performs no retry or state write, and
-records the executing collector canister in tagged provenance. The caller owns
-scheduling, retry policy, cycle budgeting, and persistence. The `canister`
-feature does not enable `host`, `ic-agent`, Tokio, Reqwest, Futures, or the
-filesystem cache graph.
+execution context that permits inter-canister calls. Each builder or
+collection advance issues one bounded-wait call, attaches no cycles, performs
+no retry or state write, and records the executing collector canister in
+tagged provenance. The caller owns scheduling, retry policy, cycle budgeting,
+and persistence. The `canister` feature does not enable `host`, `ic-agent`,
+Tokio, Reqwest, Futures, or the filesystem cache graph.
 
 Focused host features let embedders select one reporting family:
 

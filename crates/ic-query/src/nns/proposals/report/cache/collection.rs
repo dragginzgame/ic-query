@@ -10,19 +10,17 @@ use crate::{
     QueryProgress,
     nns::{
         NnsGovernanceRefreshRequest,
-        governance::{
-            NnsGovernanceRequest, validate_source_provenance,
-            write_running_governance_refresh_attempt,
-        },
+        governance::{NnsGovernanceRequest, write_running_governance_refresh_attempt},
         proposals::report::{
-            NNS_PROPOSAL_FETCHED_BY, NnsProposalError, NnsProposalHostError,
-            model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
+            NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
+            collection::{NnsProposalCollectionState, advance_nns_proposal_collection_with_source},
+            model::NnsProposalRow,
             source::NnsProposalSource,
         },
     },
     runtime::block_on_current_thread,
     snapshot_cache::{
-        PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh, SnapshotRefreshProgress,
+        PagedCollectionPage, PagedSnapshotRefresh, SnapshotRefreshProgress,
         run_paged_snapshot_refresh_with_progress,
     },
 };
@@ -35,18 +33,22 @@ pub(super) fn fetch_complete_nns_proposal_collection(
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
 ) -> Result<CompleteNnsProposalCollection, NnsProposalHostError> {
+    let fetch_request = NnsGovernanceRequest::replica_query_from_unix_secs(
+        MAINNET_NETWORK,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        NNS_PROPOSAL_FETCHED_BY,
+    );
+    let collection_state =
+        NnsProposalCollectionState::new(&fetch_request, request.page_size, u32::MAX)?;
     run_paged_snapshot_refresh_with_progress(
         NnsProposalRefreshPages {
             request,
-            fetch_request: NnsGovernanceRequest::replica_query_from_unix_secs(
-                MAINNET_NETWORK,
-                &request.source_endpoint,
-                request.now_unix_secs,
-                NNS_PROPOSAL_FETCHED_BY,
-            ),
+            fetch_request,
             source,
             attempt_path,
-            state: NnsProposalCollectionState::new(),
+            collection_state,
+            proposals: Vec::new(),
         },
         progress,
     )
@@ -63,7 +65,8 @@ struct NnsProposalRefreshPages<'a> {
     fetch_request: NnsGovernanceRequest,
     source: &'a dyn NnsProposalSource,
     attempt_path: &'a Path,
-    state: NnsProposalCollectionState,
+    collection_state: NnsProposalCollectionState,
+    proposals: Vec<NnsProposalRow>,
 }
 
 impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
@@ -73,36 +76,40 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
     fn progress_text(&self) -> String {
         format!(
             "refreshing NNS proposals: pages={} rows={}",
-            self.state.page_count(),
-            self.state.row_count()
+            self.collection_state.pages_fetched(),
+            self.collection_state.proposals_fetched()
         )
     }
 
     fn max_pages_reached(&self) -> bool {
         self.request
             .max_pages
-            .is_some_and(|max_pages| self.state.page_count() >= max_pages)
+            .is_some_and(|max_pages| self.collection_state.pages_fetched() >= max_pages)
     }
 
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
         NnsProposalHostError::IncompleteRefresh {
-            pages_fetched: self.state.page_count(),
-            rows_fetched: self.state.row_count(),
+            pages_fetched: self.collection_state.pages_fetched(),
+            rows_fetched: self.collection_state.proposals_fetched(),
             reason: reason.to_string(),
         }
     }
 
     fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let data = block_on_current_thread(self.source.fetch_proposals(
+        let step = block_on_current_thread(advance_nns_proposal_collection_with_source(
             &self.fetch_request,
-            self.request.page_size,
-            self.state.before_proposal_id(),
-            NnsProposalStatusFilter::Any,
-            NnsProposalRewardStatusFilter::Any,
+            &self.collection_state,
+            self.source,
         ))??;
-        validate_source_provenance(&self.fetch_request.source, &data.provenance)
-            .map_err(NnsProposalError::from)?;
-        self.state.ingest_page(data.value)
+        let page_len = step.page.proposals.len();
+        let next_cursor = step.state.next_before_proposal_id();
+        self.proposals.extend(step.page.proposals);
+        self.collection_state = step.state;
+        Ok(PagedCollectionPage::new(
+            page_len,
+            page_len,
+            next_cursor.map(|cursor| cursor.to_string()),
+        ))
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
@@ -111,8 +118,8 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             self.request,
             NNS_PROPOSAL_CACHE_COMPONENT,
             SnapshotRefreshProgress::new(
-                self.state.page_count(),
-                self.state.row_count(),
+                self.collection_state.pages_fetched(),
+                self.collection_state.proposals_fetched(),
                 page.last_cursor_text.clone(),
             ),
         )
@@ -120,77 +127,22 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
     }
 
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        page.exhausts_collection(self.request.page_size, self.state.has_next_cursor())
-    }
-
-    fn into_complete(self) -> Self::Complete {
-        self.state.into_complete()
-    }
-}
-
-///
-/// NnsProposalCollectionState
-///
-/// Page accumulator and cursor tracker for NNS proposal refreshes.
-///
-
-struct NnsProposalCollectionState {
-    state: PagedCollectionState<NnsProposalRow, u64>,
-}
-
-impl NnsProposalCollectionState {
-    fn new() -> Self {
-        Self {
-            state: PagedCollectionState::new(),
-        }
-    }
-
-    const fn page_count(&self) -> u32 {
-        self.state.page_count()
-    }
-
-    const fn row_count(&self) -> usize {
-        self.state.row_count()
-    }
-
-    const fn before_proposal_id(&self) -> Option<u64> {
-        self.state.next_cursor().copied()
-    }
-
-    const fn has_next_cursor(&self) -> bool {
-        self.state.has_next_cursor()
-    }
-
-    fn ingest_page(
-        &mut self,
-        rows: Vec<NnsProposalRow>,
-    ) -> Result<PagedCollectionPage, NnsProposalHostError> {
-        if rows.iter().any(|row| row.proposal_id.is_none()) {
-            return Err(NnsProposalError::MissingProposalIdInPage.into());
-        }
-        let next_cursor = rows
-            .iter()
-            .filter_map(|row| row.proposal_id)
-            .min()
-            .filter(|proposal_id| *proposal_id > 1);
-        Ok(self
-            .state
-            .ingest_page(rows, next_cursor, ToString::to_string, row_id))
+        page.exhausts_collection(
+            self.request.page_size,
+            self.collection_state.next_before_proposal_id().is_some(),
+        )
     }
 
     fn into_complete(self) -> CompleteNnsProposalCollection {
-        let complete = self.state.into_complete(ToString::to_string);
-        let mut proposals = complete.rows;
+        let mut proposals = self.proposals;
         proposals.sort_by_key(|proposal| Reverse(proposal.proposal_id));
         CompleteNnsProposalCollection {
             proposals,
-            page_count: complete.page_count,
-            last_cursor: complete.last_cursor,
+            page_count: self.collection_state.pages_fetched(),
+            last_cursor: self
+                .collection_state
+                .next_before_proposal_id()
+                .map(|cursor| cursor.to_string()),
         }
     }
-}
-
-fn row_id(row: &NnsProposalRow) -> String {
-    row.proposal_id
-        .map_or_else(|| "missing-proposal-id".to_string(), |id| id.to_string())
 }

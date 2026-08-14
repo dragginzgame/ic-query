@@ -5,6 +5,7 @@
 //! Boundary: keeps caller intent separate from source-returned provenance.
 
 use crate::subnet_catalog::format_utc_timestamp_secs;
+use serde::{Deserialize, Serialize};
 
 ///
 /// NnsGovernanceSourceSelection
@@ -12,7 +13,8 @@ use crate::subnet_catalog::format_utc_timestamp_secs;
 /// Transport selected for one direct NNS Governance collection.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(tag = "source_transport", rename_all = "snake_case")]
 pub enum NnsGovernanceSourceSelection {
     /// Submit an ordinary unreplicated query through one replica endpoint.
     ReplicaQuery {

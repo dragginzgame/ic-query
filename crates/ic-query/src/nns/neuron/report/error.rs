@@ -4,7 +4,7 @@
 //! Does not own: transport execution, cache mechanics, or process presentation.
 //! Boundary: keeps canister and custom callers independent of native host dependencies.
 
-use crate::nns::governance::NnsGovernanceError;
+use crate::nns::governance::{NnsGovernanceError, NnsGovernanceSourceProvenance};
 #[cfg(feature = "nns-host")]
 use crate::{
     HostCacheError, nns::governance::NnsGovernanceAttemptReadError, runtime::RuntimeError,
@@ -60,6 +60,59 @@ pub enum NnsNeuronError {
         /// Response invariant that failed.
         reason: String,
     },
+
+    /// A resumable collection was configured without any page capacity.
+    #[error("invalid NNS neuron collection page limit 0; expected at least one page")]
+    InvalidCollectionMaxPages,
+
+    /// Serialized or caller-modified resumable collection state is inconsistent.
+    #[error("invalid NNS neuron collection state: {reason}")]
+    InvalidCollectionState {
+        /// Deterministic state invariant that failed.
+        reason: String,
+    },
+
+    /// A continuation request changed an identity fixed when collection started.
+    #[error(
+        "NNS neuron collection request changed {field}: received {actual}, expected {expected}"
+    )]
+    CollectionRequestMismatch {
+        /// Fixed request field that changed.
+        field: &'static str,
+        /// Value retained by the collection state.
+        expected: String,
+        /// Value supplied by the continuation request.
+        actual: String,
+    },
+
+    /// A caller attempted to advance a collection that already exhausted the API.
+    #[error("NNS neuron collection is already complete after {pages_fetched} pages")]
+    CollectionComplete {
+        /// Pages admitted before API exhaustion.
+        pages_fetched: u32,
+    },
+
+    /// A caller attempted to advance a collection after consuming its page budget.
+    #[error("NNS neuron collection reached its {max_pages}-page limit after {pages_fetched} pages")]
+    CollectionPageLimitReached {
+        /// Pages admitted before the stopped advance.
+        pages_fetched: u32,
+        /// Configured cumulative page ceiling.
+        max_pages: u32,
+    },
+
+    /// A later collection page was returned by a different collector.
+    #[error("NNS neuron collection source changed: received {actual:?}, expected {expected:?}")]
+    CollectionSourceChanged {
+        /// Concrete source retained from the first admitted page.
+        expected: NnsGovernanceSourceProvenance,
+        /// Concrete source returned with the candidate page.
+        actual: NnsGovernanceSourceProvenance,
+    },
+
+    /// Cumulative page or row accounting exceeded its integer representation.
+    #[error("NNS neuron collection accounting overflow")]
+    CollectionAccountingOverflow,
 }
 
 ///

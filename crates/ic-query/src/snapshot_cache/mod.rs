@@ -41,7 +41,7 @@ pub use model::{SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotReport};
 pub use paged::CompletePagedCollection;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 pub use paged::PagedCollectionPage;
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+#[cfg(feature = "sns-host")]
 pub use paged::PagedCollectionState;
 pub use paths::SnapshotJsonPaths;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]

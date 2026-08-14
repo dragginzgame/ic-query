@@ -9,14 +9,12 @@ use crate::{
     QueryProgress,
     nns::{
         NnsGovernanceRefreshRequest,
-        governance::{
-            NnsGovernanceRequest, validate_source_provenance,
-            write_running_governance_refresh_attempt,
-        },
+        governance::{NnsGovernanceRequest, write_running_governance_refresh_attempt},
         neuron::report::{
-            NNS_NEURON_FETCHED_BY, NnsNeuronError, NnsNeuronHostError,
+            NNS_NEURON_FETCHED_BY, NnsNeuronHostError,
+            collection::{NnsNeuronCollectionState, advance_nns_neuron_collection_with_source},
             model::NnsNeuronRow,
-            source::{NnsNeuronSource, validate_neuron_page},
+            source::NnsNeuronSource,
         },
     },
     runtime::block_on_current_thread,
@@ -34,20 +32,22 @@ pub(super) fn fetch_complete_neuron_collection(
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
 ) -> Result<CompleteNeuronCollection, NnsNeuronHostError> {
+    let fetch_request = NnsGovernanceRequest::replica_query_from_unix_secs(
+        MAINNET_NETWORK,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        NNS_NEURON_FETCHED_BY,
+    );
+    let collection_state =
+        NnsNeuronCollectionState::new(&fetch_request, request.page_size, u32::MAX)?;
     run_paged_snapshot_refresh_with_progress(
         NeuronRefreshPages {
             request,
-            fetch_request: NnsGovernanceRequest::replica_query_from_unix_secs(
-                MAINNET_NETWORK,
-                &request.source_endpoint,
-                request.now_unix_secs,
-                NNS_NEURON_FETCHED_BY,
-            ),
+            fetch_request,
             source,
             attempt_path,
+            collection_state,
             neurons: Vec::new(),
-            page_count: 0,
-            next_cursor: None,
         },
         progress,
     )
@@ -58,9 +58,8 @@ struct NeuronRefreshPages<'a> {
     fetch_request: NnsGovernanceRequest,
     source: &'a dyn NnsNeuronSource,
     attempt_path: &'a Path,
+    collection_state: NnsNeuronCollectionState,
     neurons: Vec<NnsNeuronRow>,
-    page_count: u32,
-    next_cursor: Option<u64>,
 }
 
 impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
@@ -70,40 +69,35 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     fn progress_text(&self) -> String {
         format!(
             "refreshing NNS neurons: pages={} rows={}",
-            self.page_count,
-            self.neurons.len()
+            self.collection_state.pages_fetched(),
+            self.collection_state.neurons_fetched()
         )
     }
 
     fn max_pages_reached(&self) -> bool {
         self.request
             .max_pages
-            .is_some_and(|max_pages| self.page_count >= max_pages)
+            .is_some_and(|max_pages| self.collection_state.pages_fetched() >= max_pages)
     }
 
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
         NnsNeuronHostError::IncompleteRefresh {
-            pages_fetched: self.page_count,
-            rows_fetched: self.neurons.len(),
+            pages_fetched: self.collection_state.pages_fetched(),
+            rows_fetched: self.collection_state.neurons_fetched(),
             reason: reason.to_string(),
         }
     }
 
     fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let data = block_on_current_thread(self.source.fetch_neuron_page(
+        let step = block_on_current_thread(advance_nns_neuron_collection_with_source(
             &self.fetch_request,
-            self.next_cursor,
-            self.request.page_size,
+            &self.collection_state,
+            self.source,
         ))??;
-        validate_source_provenance(&self.fetch_request.source, &data.provenance)
-            .map_err(NnsNeuronError::from)?;
-        let page = data.value;
-        validate_neuron_page(&page, self.next_cursor, self.request.page_size)?;
-        let page_len = page.neurons.len();
-        let cursor = page.next_start_neuron_id;
-        self.neurons.extend(page.neurons);
-        self.page_count = self.page_count.saturating_add(1);
-        self.next_cursor = cursor;
+        let page_len = step.page.neurons.len();
+        let cursor = step.state.next_start_neuron_id();
+        self.neurons.extend(step.page.neurons);
+        self.collection_state = step.state;
         Ok(PagedCollectionPage::new(
             page_len,
             page_len,
@@ -117,8 +111,8 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
             self.request,
             NNS_NEURON_CACHE_COMPONENT,
             SnapshotRefreshProgress::new(
-                self.page_count,
-                self.neurons.len(),
+                self.collection_state.pages_fetched(),
+                self.collection_state.neurons_fetched(),
                 page.last_cursor_text.clone(),
             ),
         )
@@ -126,14 +120,20 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     }
 
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        page.exhausts_collection(self.request.page_size, self.next_cursor.is_some())
+        page.exhausts_collection(
+            self.request.page_size,
+            self.collection_state.next_start_neuron_id().is_some(),
+        )
     }
 
     fn into_complete(self) -> Self::Complete {
         CompleteNeuronCollection {
             neurons: self.neurons,
-            page_count: self.page_count,
-            last_cursor: self.next_cursor.map(|cursor| cursor.to_string()),
+            page_count: self.collection_state.pages_fetched(),
+            last_cursor: self
+                .collection_state
+                .next_start_neuron_id()
+                .map(|cursor| cursor.to_string()),
         }
     }
 }

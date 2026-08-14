@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
 
+- `0.38.4` adds portable, serializable schema-1 continuation states for
+  complete NNS proposal and public-neuron walks. Each advance validates the
+  retained identity, concrete collector provenance, family cursor, lifecycle,
+  and cumulative accounting before making exactly one bounded call, then
+  returns that page with the next state. Explicit page ceilings distinguish
+  incomplete progress from observed API exhaustion. Native proposal and
+  neuron cache refreshes now use the same continuation engines; stable-memory
+  layout, scheduling, retries, and atomic publication remain caller-owned.
 - `0.38.3` adds canister-native bounded NNS neuron index pages and exact public
   neuron detail through the existing `canister` feature and
   `CanisterNnsSource`. Native, canister, and custom sources now share one async
