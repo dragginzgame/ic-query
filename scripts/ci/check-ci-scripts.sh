@@ -144,6 +144,68 @@ fi
 [[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the failed feature-boundary check left temporary files"
 
+dependency_check_case="${work_dir}/dependency-check"
+mkdir -p "${dependency_check_case}/bin" "${dependency_check_case}/tmp"
+cat > "${dependency_check_case}/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+case "${1:-}" in
+  audit)
+    shift
+    [[ "${1:-}" == "--db" ]] || exit 61
+    advisory_db="${2:-}"
+    shift 2
+    [[ "${advisory_db}" == "${EXPECTED_TMP_ROOT}"/ic-query-dependency-check.*/advisory-db ]] \
+      || exit 62
+    [[ ! -e "${advisory_db}" ]] || exit 63
+    [[ "$*" == "--deny warnings --ignore RUSTSEC-2021-0127 --ignore RUSTSEC-2024-0436" ]] \
+      || exit 64
+    mkdir -p "${advisory_db}"
+    printf 'audit\n' >> "${TRACE_FILE}"
+    [[ -z "${FAIL_AUDIT:-}" ]] || exit 52
+    ;;
+  machete)
+    shift
+    [[ "$*" == "--with-metadata" ]] || exit 65
+    printf 'machete\n' >> "${TRACE_FILE}"
+    ;;
+  *)
+    exit 66
+    ;;
+esac
+EOF
+chmod +x "${dependency_check_case}/bin/cargo"
+TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
+  EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
+  TRACE_FILE="${dependency_check_case}/trace" \
+  bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null
+mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
+[[ "${dependency_check_trace[0]:-}" == "audit" \
+  && "${dependency_check_trace[1]:-}" == "machete" \
+  && "${#dependency_check_trace[@]}" -eq 2 ]] \
+  || fail "the dependency check did not run one isolated audit before cargo machete"
+[[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
+  || fail "the successful dependency check left its advisory database behind"
+
+: > "${dependency_check_case}/trace"
+if TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
+  EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
+  TRACE_FILE="${dependency_check_case}/trace" FAIL_AUDIT=1 \
+  bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null 2>&1; then
+  dependency_check_status=0
+else
+  dependency_check_status="$?"
+fi
+[[ "${dependency_check_status}" -eq 52 ]] \
+  || fail "the dependency check hid a failed cargo audit"
+mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
+[[ "${dependency_check_trace[0]:-}" == "audit" \
+  && "${#dependency_check_trace[@]}" -eq 1 ]] \
+  || fail "the dependency check continued after a failed cargo audit"
+[[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
+  || fail "the failed dependency check left its advisory database behind"
+
 package_retry_case="${work_dir}/package-retry"
 mkdir -p "${package_retry_case}/bin"
 cat > "${package_retry_case}/bin/cargo" <<'EOF'

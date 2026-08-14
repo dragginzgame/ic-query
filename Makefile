@@ -125,12 +125,7 @@ public-docs-check:
 	bash scripts/ci/check-public-docs.sh
 
 dependency-check:
-	# These maintenance advisories are transitive through ic-agent/candid.
-	# Deny every warning that is not part of this reviewed baseline.
-	cargo audit --deny warnings \
-		--ignore RUSTSEC-2021-0127 \
-		--ignore RUSTSEC-2024-0436
-	cargo machete --with-metadata
+	bash scripts/ci/check-dependencies.sh
 
 clippy:
 	cargo clippy --workspace --all-targets --all-features --locked -- -D warnings

@@ -52,7 +52,9 @@ passes and version metadata is updated. A failed gate retains `target/` for
 diagnosis. Cleanup failure after a successful bump is reported as a warning
 rather than disguising the release result. CI helper scripts likewise remove
 only their own exact temporary paths. They do not sweep shared `/tmp` or remove
-the shared Cargo download cache.
+the shared Cargo download cache. Dependency checks give `cargo audit` a fresh,
+disposable RustSec checkout on every run, so stale files in the shared advisory
+cache cannot break the release gate.
 
 ## Quick start
 
