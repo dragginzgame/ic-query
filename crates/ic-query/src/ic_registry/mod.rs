@@ -100,9 +100,6 @@ use wire::{
 };
 
 pub const DEFAULT_MAINNET_ENDPOINT: &str = "https://icp-api.io";
-#[cfg(feature = "nns-host")]
-pub const MAINNET_GOVERNANCE_CANISTER_ID: &str = "rrkah-fqaaa-aaaaa-aaaaq-cai";
-
 pub const SUBNET_LIST_KEY: &str = "subnet_list";
 pub const ROUTING_TABLE_KEY: &str = "routing_table";
 const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";

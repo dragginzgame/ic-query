@@ -2,16 +2,18 @@
 
 ## Status
 
-- Status: implemented for the 0.16.0 slice
+- Status: implemented for the 0.16.0 slice; canister runtime added in 0.38.0
 - Authority: mainnet NNS Governance canister
 - Public boundary: native economics, cached metrics, latest reward event, and
   maturity modulation query responses
-- Collection guarantee: one live canister query per report
+- Collection guarantee: one live replica query or replicated inter-canister
+  call per report
 
 ## Authority and Scope
 
-`ic-query` reads four public query methods from the native NNS Governance
-canister through `LiveNnsSource`:
+`ic-query` reads four public methods from the NNS Governance canister through
+`LiveNnsSource` on native hosts or `CanisterNnsSource` in replicated canister
+execution:
 
 | Report | Governance method |
 | --- | --- |
@@ -20,11 +22,15 @@ canister through `LiveNnsSource`:
 | reward event | `get_latest_reward_event` |
 | maturity modulation | `get_maturity_modulation` |
 
-The public `NnsGovernanceSource` capability exposes the same four operations
-for fixture, mirror, proxy, or pre-collected implementations. Every operation
-uses the shared `NnsSourceRequest`, and every report records the network,
-Governance canister principal, source endpoint, collection timestamp, and
-collector.
+The portable async `NnsGovernanceSource` capability exposes the same four
+operations for fixture, mirror, proxy, or pre-collected implementations. Every
+operation uses `NnsGovernanceRequest`, which selects either a replica query or
+a replicated inter-canister call. Every report records the network, fixed
+Governance canister principal, collection timestamp, and one tagged
+`NnsGovernanceSourceProvenance` value. Replica provenance carries the endpoint
+and collector label; inter-canister provenance carries the executing collector
+canister principal. Execution assurance is derived from that variant rather
+than stored independently.
 
 These reports preserve Governance terminology and values. JSON retains the
 full current native response fields, including nested optional wrappers,
@@ -42,29 +48,34 @@ reward coverage.
 
 ## Network and Query Contract
 
-Only the mainnet `ic` network is supported. Both public builders and the
-direct `LiveNnsSource` methods reject another network before constructing an
-agent or making a live call.
+Only the mainnet `ic` network is supported. Public builders and both built-in
+source adapters reject another network before constructing a transport or
+making a live call. Replica endpoints must be credential-free absolute
+HTTP(S) URLs without a query or fragment. The inter-canister selection cannot
+override the mainnet Governance principal or claim an HTTP endpoint.
 
-Each report comes from one Governance query response. It does not join
-independently timed calls and does not inherit a Registry version. The
-collection timestamp records when `ic-query` initiated the report, while
+Each report comes from one Governance response. The native adapter submits an
+ordinary unreplicated replica query. The canister adapter uses one
+`Call::bounded_wait` from replicated execution, attaches no cycles, performs
+no retry, bounds the raw response before Candid decoding, and records the
+executing canister principal. Composite-query collection is not supported.
+Neither transport joins independently timed calls or inherits a Registry
+version. The caller-supplied collection timestamp is report provenance, while
 native timestamps such as metrics `timestamp_seconds`, reward-event
 `actual_timestamp_seconds`, and maturity-modulation
 `updated_at_timestamp_seconds` remain unchanged inside the payload.
 
 `get_metrics` can return a typed Governance application error. That error is
-preserved separately from agent, Candid encoding, Candid decoding, and local
-runtime failures.
+preserved separately from agent calls, inter-canister rejects, Candid encoding,
+Candid decoding, response-size validation, and local runtime failures.
 
 ## Cache Contract
 
-These four bounded point-value reports are live-only in this slice. They do
-not read or write the proposal or neuron complete-collection caches, and they
-do not introduce another cache identity, lock, refresh policy, or stale-data
-claim. If durable evidence becomes necessary, a future explicit snapshot
-operation must retain the same canister, endpoint, collection timestamp, and
-native payload timestamps.
+These four bounded point-value reports are live-only. They do not read or
+write the proposal or neuron complete-collection caches, and they do not
+introduce another cache identity, stable-memory layout, lock, refresh policy,
+or stale-data claim. A consuming process or canister owns scheduling, retries,
+cycle budgeting, and persistence of the returned Serde report.
 
 ## CLI Contract
 

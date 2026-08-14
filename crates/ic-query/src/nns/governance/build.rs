@@ -1,105 +1,131 @@
 //! Module: nns::governance::build
 //!
 //! Responsibility: assemble direct NNS Governance reports with shared provenance.
-//! Does not own: live transport, Candid wire types, or text rendering.
-//! Boundary: validates target identity before invoking any source capability.
+//! Does not own: live transport, Candid wire types, persistence, or text rendering.
+//! Boundary: validates request and returned source evidence around one source invocation.
 
 use super::{
-    NNS_GOVERNANCE_REPORT_SCHEMA_VERSION, NnsGovernanceEconomicsReport, NnsGovernanceHostError,
+    NNS_GOVERNANCE_REPORT_SCHEMA_VERSION, NnsGovernanceEconomicsReport, NnsGovernanceError,
     NnsGovernanceMaturityModulationReport, NnsGovernanceMetricsReport, NnsGovernanceReportContext,
-    NnsGovernanceRewardEventReport, NnsGovernanceSource, enforce_mainnet_network,
-    validate_governance_metrics,
+    NnsGovernanceRequest, NnsGovernanceRewardEventReport, NnsGovernanceSource,
+    NnsGovernanceSourceProvenance,
+    validation::{
+        validate_governance_metrics, validate_governance_request, validate_source_provenance,
+    },
 };
-use crate::{
-    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
-    nns::{LiveNnsSource, NnsSourceRequest},
-};
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+#[cfg(feature = "nns-host")]
+use crate::{nns::LiveNnsSource, runtime::block_on_current_thread};
 
-/// Build one live NNS Governance economics report.
+#[cfg(feature = "nns-host")]
+use super::NnsGovernanceHostError;
+
+/// Build one live NNS Governance economics report through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_governance_economics_report(
-    request: &NnsSourceRequest,
+    request: &NnsGovernanceRequest,
 ) -> Result<NnsGovernanceEconomicsReport, NnsGovernanceHostError> {
-    build_nns_governance_economics_report_with_source(request, &LiveNnsSource)
+    Ok(block_on_current_thread(
+        build_nns_governance_economics_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
-/// Build one NNS Governance economics report from a custom source.
-pub fn build_nns_governance_economics_report_with_source(
-    request: &NnsSourceRequest,
+/// Build one NNS Governance economics report from a caller-owned async source.
+pub async fn build_nns_governance_economics_report_with_source(
+    request: &NnsGovernanceRequest,
     source: &dyn NnsGovernanceSource,
-) -> Result<NnsGovernanceEconomicsReport, NnsGovernanceHostError> {
-    enforce_mainnet_network(&request.network)?;
+) -> Result<NnsGovernanceEconomicsReport, NnsGovernanceError> {
+    validate_governance_request(request)?;
+    let data = source.fetch_economics(request).await?;
+    validate_source_provenance(&request.source, &data.provenance)?;
     Ok(NnsGovernanceEconomicsReport {
-        context: report_context(request),
-        economics: source.fetch_economics(request)?,
+        context: report_context(request, data.provenance),
+        economics: data.value,
     })
 }
 
-/// Build one live NNS Governance metrics report.
+/// Build one live NNS Governance metrics report through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_governance_metrics_report(
-    request: &NnsSourceRequest,
+    request: &NnsGovernanceRequest,
 ) -> Result<NnsGovernanceMetricsReport, NnsGovernanceHostError> {
-    build_nns_governance_metrics_report_with_source(request, &LiveNnsSource)
+    Ok(block_on_current_thread(
+        build_nns_governance_metrics_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
-/// Build one NNS Governance metrics report from a custom source.
-pub fn build_nns_governance_metrics_report_with_source(
-    request: &NnsSourceRequest,
+/// Build one NNS Governance metrics report from a caller-owned async source.
+pub async fn build_nns_governance_metrics_report_with_source(
+    request: &NnsGovernanceRequest,
     source: &dyn NnsGovernanceSource,
-) -> Result<NnsGovernanceMetricsReport, NnsGovernanceHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let metrics = source.fetch_metrics(request)?;
-    validate_governance_metrics(&metrics)?;
+) -> Result<NnsGovernanceMetricsReport, NnsGovernanceError> {
+    validate_governance_request(request)?;
+    let data = source.fetch_metrics(request).await?;
+    validate_source_provenance(&request.source, &data.provenance)?;
+    validate_governance_metrics(&data.value)?;
     Ok(NnsGovernanceMetricsReport {
-        context: report_context(request),
-        metrics,
+        context: report_context(request, data.provenance),
+        metrics: data.value,
     })
 }
 
-/// Build one live latest NNS Governance reward-event report.
+/// Build one live latest reward-event report through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_governance_reward_event_report(
-    request: &NnsSourceRequest,
+    request: &NnsGovernanceRequest,
 ) -> Result<NnsGovernanceRewardEventReport, NnsGovernanceHostError> {
-    build_nns_governance_reward_event_report_with_source(request, &LiveNnsSource)
+    Ok(block_on_current_thread(
+        build_nns_governance_reward_event_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
-/// Build one latest NNS Governance reward-event report from a custom source.
-pub fn build_nns_governance_reward_event_report_with_source(
-    request: &NnsSourceRequest,
+/// Build one latest reward-event report from a caller-owned async source.
+pub async fn build_nns_governance_reward_event_report_with_source(
+    request: &NnsGovernanceRequest,
     source: &dyn NnsGovernanceSource,
-) -> Result<NnsGovernanceRewardEventReport, NnsGovernanceHostError> {
-    enforce_mainnet_network(&request.network)?;
+) -> Result<NnsGovernanceRewardEventReport, NnsGovernanceError> {
+    validate_governance_request(request)?;
+    let data = source.fetch_reward_event(request).await?;
+    validate_source_provenance(&request.source, &data.provenance)?;
     Ok(NnsGovernanceRewardEventReport {
-        context: report_context(request),
-        reward_event: source.fetch_reward_event(request)?,
+        context: report_context(request, data.provenance),
+        reward_event: data.value,
     })
 }
 
-/// Build one live NNS Governance maturity-modulation report.
+/// Build one live maturity-modulation report through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_governance_maturity_modulation_report(
-    request: &NnsSourceRequest,
+    request: &NnsGovernanceRequest,
 ) -> Result<NnsGovernanceMaturityModulationReport, NnsGovernanceHostError> {
-    build_nns_governance_maturity_modulation_report_with_source(request, &LiveNnsSource)
+    Ok(block_on_current_thread(
+        build_nns_governance_maturity_modulation_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
-/// Build one NNS Governance maturity-modulation report from a custom source.
-pub fn build_nns_governance_maturity_modulation_report_with_source(
-    request: &NnsSourceRequest,
+/// Build one maturity-modulation report from a caller-owned async source.
+pub async fn build_nns_governance_maturity_modulation_report_with_source(
+    request: &NnsGovernanceRequest,
     source: &dyn NnsGovernanceSource,
-) -> Result<NnsGovernanceMaturityModulationReport, NnsGovernanceHostError> {
-    enforce_mainnet_network(&request.network)?;
+) -> Result<NnsGovernanceMaturityModulationReport, NnsGovernanceError> {
+    validate_governance_request(request)?;
+    let data = source.fetch_maturity_modulation(request).await?;
+    validate_source_provenance(&request.source, &data.provenance)?;
     Ok(NnsGovernanceMaturityModulationReport {
-        context: report_context(request),
-        maturity_modulation: source.fetch_maturity_modulation(request)?,
+        context: report_context(request, data.provenance),
+        maturity_modulation: data.value,
     })
 }
 
-fn report_context(request: &NnsSourceRequest) -> NnsGovernanceReportContext {
+fn report_context(
+    request: &NnsGovernanceRequest,
+    source: NnsGovernanceSourceProvenance,
+) -> NnsGovernanceReportContext {
     NnsGovernanceReportContext {
         schema_version: NNS_GOVERNANCE_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
         fetched_at: request.fetched_at.clone(),
-        source_endpoint: request.endpoint.clone(),
-        fetched_by: request.fetched_by.clone(),
+        source,
     }
 }

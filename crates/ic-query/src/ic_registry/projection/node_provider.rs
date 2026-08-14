@@ -1,10 +1,11 @@
 use crate::{
     ic_registry::{
-        MAINNET_GOVERNANCE_CANISTER_ID, MainnetNodeProvider, MainnetNodeProviderList,
-        MainnetRegistryFetchRequest, RegistryFetchError,
+        MainnetNodeProvider, MainnetNodeProviderList, MainnetRegistryFetchRequest,
+        RegistryFetchError,
         transport::hex_bytes,
         wire::{GovernanceNodeProvider, ListNodeProvidersResponse},
     },
+    nns::MAINNET_GOVERNANCE_CANISTER_ID,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 use std::collections::BTreeMap;

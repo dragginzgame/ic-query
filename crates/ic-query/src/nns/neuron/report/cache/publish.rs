@@ -13,9 +13,8 @@ use super::{
 use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
-    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
-        NnsGovernanceRefreshRequest,
+        MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceRefreshRequest,
         governance::{
             mainnet_governance_cache_metadata, write_complete_governance_refresh_attempt,
         },

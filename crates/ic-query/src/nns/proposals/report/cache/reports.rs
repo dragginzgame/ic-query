@@ -16,9 +16,9 @@ use super::{
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper, managed_file_exists},
-    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
     nns::{
-        NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus,
+        MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceCacheRequest,
+        NnsGovernanceRefreshAttemptStatus,
         governance::{read_governance_refresh_attempt_status, validate_governance_cache_metadata},
         proposals::report::{
             NnsProposalHostError,

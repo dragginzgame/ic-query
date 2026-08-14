@@ -8,9 +8,10 @@ use super::{
 use crate::{
     HostCacheError,
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
-    ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
+    ic_registry::DEFAULT_MAINNET_ENDPOINT,
     nns::{
-        NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
+        MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest,
+        NnsSourceRequest,
         proposals::report::{
             NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
             NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,

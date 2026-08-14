@@ -165,7 +165,7 @@ actually make:
 | --- | --- | --- |
 | Certified IC state tree | API boundary-node principals, domains, addresses, and certificate time authenticated against the built-in mainnet root key | Configuration does not prove operational health, reachability, HTTP-gateway membership, ownership, or physical location |
 | NNS Registry | Authenticated certified latest-version and bounded contiguous delta-batch evidence, archive-bound exact-state catalog authority, plus exact-version joined Registry query evidence with explicit assurance | A single batch does not reconstruct Registry state; only a complete reauthenticated archive can promote a certified catalog, ordinary `get_value` reads remain uncertified, and endpoint agreement is not cryptographic certification |
-| NNS/SNS canisters | Read-only canister query responses | Paginated or sequential calls may span state changes |
+| NNS/SNS canisters | Native adapters expose ordinary read-only replica query responses; the `canister` adapter exposes replicated inter-canister execution for the four direct NNS Governance point reports | Replicated execution is not certificate evidence, and paginated or sequential calls may span state changes |
 | ICRC ledger/index | Ledger queries, index analytics, and archive callbacks | Index histories expose API exhaustion, not a stable snapshot version |
 | ICRC tip certificate | Certificate and hash-tree evidence verified by the host adapter | Verification applies only when the ledger returns the required evidence |
 | Cycle Minting Canister | Application-level certificate and hash-tree witness verified against the CMC and returned rate | Cycles per ICP is derived from the certified rate and the documented one-trillion-cycles-per-XDR protocol constant |
@@ -439,6 +439,42 @@ ic-query = { version = "0.37", default-features = false, features = ["host"] }
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
 `ic-agent`, Reqwest, Tokio, or `futures`. This is a host-dependency boundary,
 not a `no_std` promise.
+
+Rust canisters can enable the focused IC runtime adapter without pulling in
+the native host graph:
+
+```toml
+[dependencies]
+ic-query = { version = "0.38", default-features = false, features = ["canister"] }
+```
+
+The initial canister surface collects the four bounded direct NNS Governance
+reports through replicated inter-canister calls:
+
+```rust,no_run
+use ic_query::nns::governance::{
+    CanisterNnsSource, NnsGovernanceError, NnsGovernanceMetricsReport,
+    NnsGovernanceRequest, build_nns_governance_metrics_report_with_source,
+};
+
+async fn governance_metrics(
+    now_unix_secs: u64,
+) -> Result<NnsGovernanceMetricsReport, NnsGovernanceError> {
+    let request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
+        "ic",
+        now_unix_secs,
+    );
+    build_nns_governance_metrics_report_with_source(&request, &CanisterNnsSource).await
+}
+```
+
+Call these builders from an update, timer, heartbeat, or another replicated
+execution context that permits inter-canister calls. Each builder issues one
+bounded-wait call, attaches no cycles, performs no retry or state write, and
+records the executing collector canister in tagged provenance. The caller owns
+scheduling, retry policy, cycle budgeting, and persistence. The `canister`
+feature does not enable `host`, `ic-agent`, Tokio, Reqwest, Futures, or the
+filesystem cache graph.
 
 Focused host features let embedders select one reporting family:
 
@@ -856,6 +892,8 @@ guidance.
 - [0.34 CloudEngine provider reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.34/0.34-design.md)
 - [0.35 CloudEngine Type4 node reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.35/0.35-design.md)
 - [0.36 node-provider reward reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.36/0.36-design.md)
+- [0.37 ICRC account and holder index reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.37/0.37-design.md)
+- [0.38 canister-native NNS Governance reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.38/0.38-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

@@ -20,9 +20,10 @@
 //! `certified-subnet-catalog-host` for that API plus certified Registry archive,
 //! replay, and archive-bound catalog authority,
 //! `nns-topology-host` for that API plus exact-version joined NNS Subnet
-//! topology, `nns-host` for the complete NNS host surface, or `host` for every
-//! native live-call adapter and runtime helper. CLI parsing and process IO
-//! belong to the separate `ic-query-cli` crate.
+//! topology, `nns-host` for the complete NNS host surface, `canister` for the
+//! replicated NNS Governance adapter on `wasm32`, or `host` for every native
+//! live-call adapter and runtime helper. CLI parsing and process IO belong to
+//! the separate `ic-query-cli` crate.
 
 #[cfg(any(
     feature = "cloud-engine-host",

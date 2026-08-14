@@ -7,7 +7,7 @@
 use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
-    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
+    nns::MAINNET_GOVERNANCE_CANISTER_ID,
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
         SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,

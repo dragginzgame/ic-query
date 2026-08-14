@@ -20,8 +20,10 @@ mod wire;
 #[cfg(feature = "nns-host")]
 use crate::{
     HostCacheError,
-    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
-    nns::{NnsGovernanceQueryError, governance::NnsGovernanceAttemptReadError},
+    nns::{
+        MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceQueryError,
+        governance::NnsGovernanceAttemptReadError,
+    },
     runtime::RuntimeError,
 };
 #[cfg(feature = "nns-host")]

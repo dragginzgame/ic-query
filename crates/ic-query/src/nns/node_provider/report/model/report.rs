@@ -41,11 +41,11 @@ impl_nns_inventory_report!(
     node_provider_count,
     node_providers,
     |report: &NnsNodeProviderListReport| {
-        if report.governance_canister_id != crate::ic_registry::MAINNET_GOVERNANCE_CANISTER_ID {
+        if report.governance_canister_id != crate::nns::MAINNET_GOVERNANCE_CANISTER_ID {
             return Err(format!(
                 "governance_canister_id is {}, expected {}",
                 report.governance_canister_id,
-                crate::ic_registry::MAINNET_GOVERNANCE_CANISTER_ID
+                crate::nns::MAINNET_GOVERNANCE_CANISTER_ID
             ));
         }
         Ok(())

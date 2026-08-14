@@ -1,5 +1,5 @@
 #[cfg(feature = "nns-host")]
-use crate::ic_registry::MAINNET_GOVERNANCE_CANISTER_ID;
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 use crate::{
     agent::build_ic_agent,
     ic_registry::{MainnetRegistryFetchRequest, RegistryFetchError},

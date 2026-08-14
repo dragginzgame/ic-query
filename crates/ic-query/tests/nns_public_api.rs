@@ -1,3 +1,5 @@
+use std::future::Future;
+
 #[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::{
     DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
@@ -13,15 +15,15 @@ use ic_query::nns::data_center::{
     nns_data_center_info_report_text, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text,
 };
+#[cfg(all(feature = "canister", target_arch = "wasm32"))]
+use ic_query::nns::governance::CanisterNnsSource;
 use ic_query::nns::governance::{
-    DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceMaturityModulation,
-    NnsGovernanceMaturityModulationReport, NnsGovernanceReportContext,
-    nns_governance_maturity_modulation_report_text,
-};
-#[cfg(feature = "nns-host")]
-use ic_query::nns::governance::{
-    NnsGovernanceEconomics, NnsGovernanceHostError, NnsGovernanceSource,
+    DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceError, NnsGovernanceMaturityModulation,
+    NnsGovernanceMaturityModulationReport, NnsGovernanceReportContext, NnsGovernanceRequest,
+    NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture,
+    NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
     build_nns_governance_economics_report_with_source,
+    nns_governance_maturity_modulation_report_text,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::neuron::{
@@ -233,8 +235,10 @@ fn public_nns_governance_report_api_is_constructible_and_renderable() {
             network: "ic".to_string(),
             governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
             fetched_at: "2026-07-30T00:00:00Z".to_string(),
-            source_endpoint: DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "fixture".to_string(),
+            source: NnsGovernanceSourceProvenance::ReplicaQuery {
+                endpoint: DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT.to_string(),
+                fetched_by: "fixture".to_string(),
+            },
         },
         maturity_modulation: Some(NnsGovernanceMaturityModulation {
             current_value_permyriad: Some(-125),
@@ -246,68 +250,164 @@ fn public_nns_governance_report_api_is_constructible_and_renderable() {
     assert!(text.contains("current_value_permyriad: -125"));
     let json = serde_json::to_value(report).expect("serialize public report");
     assert_eq!(json["network"], "ic");
+    assert_eq!(json["source"]["source_transport"], "replica_query");
     assert_eq!(json["maturity_modulation"]["current_value_permyriad"], -125);
 }
 
-#[cfg(feature = "nns-host")]
 #[test]
-fn public_nns_governance_host_api_accepts_custom_source() {
-    let request = NnsSourceRequest::from_unix_secs(
+fn public_nns_governance_portable_api_accepts_custom_source() {
+    let request = NnsGovernanceRequest::replica_query_from_unix_secs(
         "ic",
         DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT,
         1_700_000_000,
         "fixture",
     );
-    let report =
-        build_nns_governance_economics_report_with_source(&request, &FixtureGovernanceSource)
-            .expect("custom Governance source");
+    let report = run_ready(build_nns_governance_economics_report_with_source(
+        &request,
+        &FixtureGovernanceSource,
+    ))
+    .expect("custom Governance source");
 
     assert_eq!(report.economics.transaction_fee_e8s, 10_000);
     assert_eq!(report.context.fetched_at, "2023-11-14T22:13:20Z");
 }
 
-#[cfg(feature = "nns-host")]
+#[test]
+fn public_nns_governance_builder_rejects_invalid_replica_selection_before_source() {
+    let request = NnsGovernanceRequest::replica_query(
+        "ic",
+        "not-an-absolute-url",
+        "2026-08-14T00:00:00Z",
+        "fixture",
+    );
+    let error = run_ready(build_nns_governance_economics_report_with_source(
+        &request,
+        &PanicGovernanceSource,
+    ))
+    .expect_err("invalid endpoint must fail");
+
+    assert!(matches!(
+        error,
+        NnsGovernanceError::InvalidSourceSelection { reason }
+            if reason.contains("absolute HTTP(S) URL")
+    ));
+}
+
+#[cfg(all(feature = "canister", target_arch = "wasm32"))]
+#[test]
+fn public_nns_governance_canister_source_builds_a_caller_runtime_future() {
+    let request =
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
+    let future = build_nns_governance_economics_report_with_source(&request, &CanisterNnsSource);
+
+    drop(future);
+}
+
 struct FixtureGovernanceSource;
 
-#[cfg(feature = "nns-host")]
+struct PanicGovernanceSource;
+
 impl NnsGovernanceSource for FixtureGovernanceSource {
-    fn fetch_economics(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsGovernanceEconomics, NnsGovernanceHostError> {
-        Ok(NnsGovernanceEconomics {
-            neuron_minimum_stake_e8s: 100_000_000,
-            max_proposals_to_keep_per_topic: 100,
-            neuron_management_fee_per_proposal_e8s: 10_000,
-            reject_cost_e8s: 1_000_000_000,
-            transaction_fee_e8s: 10_000,
-            neuron_spawn_dissolve_delay_seconds: 604_800,
-            minimum_icp_xdr_rate: 100,
-            maximum_node_provider_rewards_e8s: 200_000_000,
-            neurons_fund_economics: None,
-            voting_power_economics: None,
+    fn fetch_economics<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, ic_query::nns::governance::NnsGovernanceEconomics> {
+        Box::pin(async move {
+            Ok(NnsGovernanceSourceData::new(
+                ic_query::nns::governance::NnsGovernanceEconomics {
+                    neuron_minimum_stake_e8s: 100_000_000,
+                    max_proposals_to_keep_per_topic: 100,
+                    neuron_management_fee_per_proposal_e8s: 10_000,
+                    reject_cost_e8s: 1_000_000_000,
+                    transaction_fee_e8s: 10_000,
+                    neuron_spawn_dissolve_delay_seconds: 604_800,
+                    minimum_icp_xdr_rate: 100,
+                    maximum_node_provider_rewards_e8s: 200_000_000,
+                    neurons_fund_economics: None,
+                    voting_power_economics: None,
+                },
+                governance_fixture_provenance(request),
+            ))
         })
     }
 
-    fn fetch_metrics(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<ic_query::nns::governance::NnsGovernanceMetrics, NnsGovernanceHostError> {
-        unreachable!("not used by this public API fixture")
+    fn fetch_metrics<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, ic_query::nns::governance::NnsGovernanceMetrics> {
+        Box::pin(async { unreachable!("not used by this public API fixture") })
     }
 
-    fn fetch_reward_event(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<ic_query::nns::governance::NnsGovernanceRewardEvent, NnsGovernanceHostError> {
-        unreachable!("not used by this public API fixture")
+    fn fetch_reward_event<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, ic_query::nns::governance::NnsGovernanceRewardEvent> {
+        Box::pin(async { unreachable!("not used by this public API fixture") })
     }
 
-    fn fetch_maturity_modulation(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<Option<NnsGovernanceMaturityModulation>, NnsGovernanceHostError> {
-        unreachable!("not used by this public API fixture")
+    fn fetch_maturity_modulation<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, Option<NnsGovernanceMaturityModulation>> {
+        Box::pin(async { unreachable!("not used by this public API fixture") })
+    }
+}
+
+impl NnsGovernanceSource for PanicGovernanceSource {
+    fn fetch_economics<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, ic_query::nns::governance::NnsGovernanceEconomics> {
+        panic!("source must not be called")
+    }
+
+    fn fetch_metrics<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, ic_query::nns::governance::NnsGovernanceMetrics> {
+        panic!("source must not be called")
+    }
+
+    fn fetch_reward_event<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, ic_query::nns::governance::NnsGovernanceRewardEvent> {
+        panic!("source must not be called")
+    }
+
+    fn fetch_maturity_modulation<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, Option<NnsGovernanceMaturityModulation>> {
+        panic!("source must not be called")
+    }
+}
+
+fn governance_fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProvenance {
+    let NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint,
+        fetched_by,
+    } = &request.source
+    else {
+        panic!("fixture requires a replica query")
+    };
+    NnsGovernanceSourceProvenance::ReplicaQuery {
+        endpoint: endpoint.clone(),
+        fetched_by: fetched_by.clone(),
+    }
+}
+
+fn run_ready<T>(future: impl Future<Output = T>) -> T {
+    use std::{
+        pin::pin,
+        task::{Context, Poll, Waker},
+    };
+
+    let mut future = pin!(future);
+    let mut context = Context::from_waker(Waker::noop());
+    match future.as_mut().poll(&mut context) {
+        Poll::Ready(value) => value,
+        Poll::Pending => panic!("fixture future unexpectedly returned Pending"),
     }
 }
 

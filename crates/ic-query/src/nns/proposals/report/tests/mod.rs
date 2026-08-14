@@ -25,8 +25,8 @@ use super::{
     },
 };
 use crate::{
-    ic_registry::{DEFAULT_MAINNET_ENDPOINT, MAINNET_GOVERNANCE_CANISTER_ID},
-    nns::{LiveNnsSource, NnsSourceRequest},
+    ic_registry::DEFAULT_MAINNET_ENDPOINT,
+    nns::{LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest},
     subnet_catalog::MAINNET_NETWORK,
 };
 use candid::Reserved;

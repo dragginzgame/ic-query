@@ -3,15 +3,12 @@
 use super::options::NnsGovernanceOptions;
 use crate::nns::{NnsCommandError, now_unix_secs, write_text_or_json};
 use clap::ArgMatches;
-use ic_query::nns::{
-    NnsSourceRequest,
-    governance::{
-        NnsGovernanceHostError, build_nns_governance_economics_report,
-        build_nns_governance_maturity_modulation_report, build_nns_governance_metrics_report,
-        build_nns_governance_reward_event_report, nns_governance_economics_report_text,
-        nns_governance_maturity_modulation_report_text, nns_governance_metrics_report_text,
-        nns_governance_reward_event_report_text,
-    },
+use ic_query::nns::governance::{
+    NnsGovernanceHostError, NnsGovernanceRequest, build_nns_governance_economics_report,
+    build_nns_governance_maturity_modulation_report, build_nns_governance_metrics_report,
+    build_nns_governance_reward_event_report, nns_governance_economics_report_text,
+    nns_governance_maturity_modulation_report_text, nns_governance_metrics_report_text,
+    nns_governance_reward_event_report_text,
 };
 use serde::Serialize;
 
@@ -48,14 +45,14 @@ pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), Nns
 fn run_report<Report>(
     matches: &ArgMatches,
     network: &str,
-    build: fn(&NnsSourceRequest) -> Result<Report, NnsGovernanceHostError>,
+    build: fn(&NnsGovernanceRequest) -> Result<Report, NnsGovernanceHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), NnsCommandError>
 where
     Report: Serialize,
 {
     let options = NnsGovernanceOptions::from_matches(matches, network);
-    let request = NnsSourceRequest::from_unix_secs(
+    let request = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
         now_unix_secs()?,

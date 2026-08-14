@@ -23,6 +23,8 @@ pub mod render;
 pub(crate) mod source;
 pub mod topology;
 
+pub(crate) const MAINNET_GOVERNANCE_CANISTER_ID: &str = "rrkah-fqaaa-aaaaa-aaaaq-cai";
+
 #[cfg(feature = "nns-host")]
 pub use governance::collection::{
     NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus, NnsGovernanceRefreshRequest,

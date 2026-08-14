@@ -18,6 +18,17 @@ forbidden_direct_pure_library_dependencies=(
   time
 )
 
+forbidden_canister_dependencies=(
+  cap-fs-ext
+  cap-std
+  clap
+  futures
+  ic-agent
+  prost
+  reqwest
+  tokio
+)
+
 forbidden_host_dependencies=(
   clap
 )
@@ -159,6 +170,10 @@ run_quiet() {
 cargo check -p ic-query --locked
 cargo check -p ic-query --no-default-features --locked
 cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked
+run_quiet "ic-query wasm32-unknown-unknown --features canister" \
+  cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --features canister --locked
+run_quiet "ic-query nns canister public API" \
+  cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked
 run_quiet "ic-query --features host" \
   cargo check -p ic-query --no-default-features --features host --locked
 run_quiet "ic-query --features dashboard-host" \
@@ -238,6 +253,14 @@ check_tree_absent "ic-query wasm32-unknown-unknown --no-default-features" \
   -p ic-query \
   --target wasm32-unknown-unknown \
   --no-default-features
+
+check_tree_absent "ic-query wasm32-unknown-unknown --features canister" \
+  "${forbidden_canister_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --target wasm32-unknown-unknown \
+  --no-default-features \
+  --features canister
 
 check_tree_absent "ic-query --features host --no-default-features" \
   "${forbidden_host_dependencies[@]}" \

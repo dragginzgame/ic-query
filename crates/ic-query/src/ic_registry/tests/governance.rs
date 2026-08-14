@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 
 #[test]
 fn governance_node_provider_response_converts_to_domain_structs() {

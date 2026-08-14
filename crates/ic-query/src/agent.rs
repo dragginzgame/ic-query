@@ -37,8 +37,8 @@ pub fn build_historical_certificate_agent<Error>(
     )
 }
 
-#[cfg(test)]
-fn build_ic_agent_with_response_limit<Error>(
+#[cfg(any(feature = "nns-host", test))]
+pub fn build_ic_agent_with_response_limit<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,
     max_response_body_bytes: usize,

@@ -5,7 +5,7 @@
 //! Boundary: preserves the complete network-economics response and nested native wrappers.
 
 use super::NnsGovernanceReportContext;
-#[cfg(feature = "nns-host")]
+#[cfg(any(feature = "nns-host", feature = "canister"))]
 use candid::CandidType;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
@@ -30,7 +30,7 @@ pub struct NnsGovernanceEconomicsReport {
 /// Native NNS Governance network economics parameters.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(CandidType))]
+#[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceEconomics {
     /// Minimum neuron stake in e8s.
@@ -61,7 +61,7 @@ pub struct NnsGovernanceEconomics {
 /// Native optional parameters governing Neurons' Fund participation.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(CandidType))]
+#[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronsFundEconomics {
     /// Maximum ICP/XDR rate.
@@ -81,7 +81,7 @@ pub struct NnsNeuronsFundEconomics {
 /// Native decimal-string parameters for the Neurons' Fund matching curve.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(CandidType))]
+#[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronsFundMatchedFundingCurveCoefficients {
     /// Contribution threshold in XDR.
@@ -98,7 +98,7 @@ pub struct NnsNeuronsFundMatchedFundingCurveCoefficients {
 /// Native optional-basis-points percentage wrapper used by Governance.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(CandidType))]
+#[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernancePercentage {
     /// Percentage value in basis points when supplied.
@@ -111,7 +111,7 @@ pub struct NnsGovernancePercentage {
 /// Native human-readable decimal wrapper used by Governance.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(CandidType))]
+#[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceDecimal {
     /// Decimal representation when supplied.
@@ -124,7 +124,7 @@ pub struct NnsGovernanceDecimal {
 /// Native optional parameters governing NNS neuron voting power.
 ///
 
-#[cfg_attr(feature = "nns-host", derive(CandidType))]
+#[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsVotingPowerEconomics {
     /// Inactivity duration before voting power starts decreasing.

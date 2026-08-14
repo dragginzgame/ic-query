@@ -7,6 +7,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.38.x] - Unreleased - Canister-native NNS Governance reporting
+
+Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
+
+- `0.38.0` adds one `canister` runtime feature inside `ic-query`, giving Rust
+  canisters async access to the four bounded direct NNS Governance reports
+  through replicated inter-canister calls and the same validation and assembly
+  path as the native adapter. Direct Governance requests and schema-1 reports
+  now use tagged transport-aware provenance; the canister adapter records the
+  executing collector principal, bounds raw responses before decoding, and
+  owns no scheduling, retries, or persistence. The workspace remains two
+  crates, and `ic-query-cli` retains no feature matrix.
+
 ## [0.37.x] - Unreleased - ICRC account and holder index reporting
 
 Detailed release notes: [docs/changelog/0.37.md](docs/changelog/0.37.md)

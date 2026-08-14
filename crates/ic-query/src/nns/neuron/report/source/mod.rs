@@ -17,8 +17,7 @@ use super::{
     },
 };
 use crate::{
-    ic_registry::MAINNET_GOVERNANCE_CANISTER_ID,
-    nns::{LiveNnsSource, NnsSourceRequest},
+    nns::{LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest},
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
 

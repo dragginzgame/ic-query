@@ -1,7 +1,7 @@
 use super::*;
-use crate::{
-    nns::{LiveNnsSource, NnsSourceRequest},
-    subnet_catalog::MAINNET_NETWORK,
+use crate::{runtime::block_on_current_thread, subnet_catalog::MAINNET_NETWORK};
+use validation::{
+    validate_governance_metrics, validate_governance_response_size, validate_source_provenance,
 };
 use wire::{
     GetMaturityModulationResponse, GetMetricsResult, GovernanceCachedMetrics, GovernanceError,
@@ -16,8 +16,10 @@ fn governance_report_context_serializes_flattened() {
             network: "ic".to_string(),
             governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
             fetched_at: "2026-07-30T00:00:00Z".to_string(),
-            source_endpoint: DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "fixture".to_string(),
+            source: NnsGovernanceSourceProvenance::ReplicaQuery {
+                endpoint: DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT.to_string(),
+                fetched_by: "fixture".to_string(),
+            },
         },
         maturity_modulation: None,
     };
@@ -26,12 +28,59 @@ fn governance_report_context_serializes_flattened() {
     assert_eq!(value["schema_version"], 1);
     assert_eq!(value["network"], "ic");
     assert!(value.get("context").is_none());
+    assert_eq!(value["source"]["source_transport"], "replica_query");
     assert!(value["maturity_modulation"].is_null());
 }
 
 #[test]
+fn canister_provenance_is_tagged_and_derives_replicated_assurance() {
+    let source = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+        collector_canister_id: "aaaaa-aa".to_string(),
+    };
+    let value = serde_json::to_value(&source).expect("serialize canister provenance");
+
+    assert_eq!(value["source_transport"], "replicated_inter_canister_call");
+    assert_eq!(value["collector_canister_id"], "aaaaa-aa");
+    assert_eq!(
+        source.execution_assurance(),
+        NnsGovernanceExecutionAssurance::ReplicatedExecution
+    );
+}
+
+#[test]
+fn source_provenance_must_echo_the_selected_transport() {
+    let selection = NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint: "https://example.test".to_string(),
+        fetched_by: "fixture".to_string(),
+    };
+    let actual = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+        collector_canister_id: "aaaaa-aa".to_string(),
+    };
+
+    assert!(matches!(
+        validate_source_provenance(&selection, &actual),
+        Err(NnsGovernanceError::SourceEvidenceMismatch { .. })
+    ));
+}
+
+#[test]
+fn raw_governance_response_limit_is_enforced_before_decode() {
+    assert!(
+        validate_governance_response_size("fixture", MAX_NNS_GOVERNANCE_RESPONSE_BYTES).is_ok()
+    );
+    assert!(matches!(
+        validate_governance_response_size("fixture", MAX_NNS_GOVERNANCE_RESPONSE_BYTES + 1),
+        Err(NnsGovernanceError::ResponseTooLarge {
+            method: "fixture",
+            actual_bytes,
+            maximum_bytes: MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
+        }) if actual_bytes == MAX_NNS_GOVERNANCE_RESPONSE_BYTES + 1
+    ));
+}
+
+#[test]
 fn live_governance_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = NnsGovernanceRequest::replica_query(
         "local",
         "this-is-not-a-valid-url",
         "2026-07-30T00:00:00Z",
@@ -39,53 +88,76 @@ fn live_governance_source_rejects_non_mainnet_before_agent_construction() {
     );
 
     assert!(matches!(
-        LiveNnsSource.fetch_economics(&request),
-        Err(NnsGovernanceHostError::UnsupportedNetwork { network }) if network == "local"
+        build_nns_governance_economics_report(&request),
+        Err(NnsGovernanceHostError::Governance(
+            NnsGovernanceError::UnsupportedNetwork { network }
+        )) if network == "local"
     ));
     assert!(matches!(
-        LiveNnsSource.fetch_metrics(&request),
-        Err(NnsGovernanceHostError::UnsupportedNetwork { network }) if network == "local"
+        build_nns_governance_metrics_report(&request),
+        Err(NnsGovernanceHostError::Governance(
+            NnsGovernanceError::UnsupportedNetwork { network }
+        )) if network == "local"
     ));
     assert!(matches!(
-        LiveNnsSource.fetch_reward_event(&request),
-        Err(NnsGovernanceHostError::UnsupportedNetwork { network }) if network == "local"
+        build_nns_governance_reward_event_report(&request),
+        Err(NnsGovernanceHostError::Governance(
+            NnsGovernanceError::UnsupportedNetwork { network }
+        )) if network == "local"
     ));
     assert!(matches!(
-        LiveNnsSource.fetch_maturity_modulation(&request),
-        Err(NnsGovernanceHostError::UnsupportedNetwork { network }) if network == "local"
+        build_nns_governance_maturity_modulation_report(&request),
+        Err(NnsGovernanceHostError::Governance(
+            NnsGovernanceError::UnsupportedNetwork { network }
+        )) if network == "local"
     ));
 }
 
 #[test]
 fn custom_source_builder_preserves_shared_provenance() {
-    let request = NnsSourceRequest::new(
+    let request = NnsGovernanceRequest::replica_query(
         MAINNET_NETWORK,
         "https://example.test",
         "2026-07-30T00:00:00Z",
         "fixture",
     );
 
-    let report = build_nns_governance_economics_report_with_source(&request, &FixtureSource)
-        .expect("fixture economics report");
+    let report = block_on_current_thread(build_nns_governance_economics_report_with_source(
+        &request,
+        &FixtureSource,
+    ))
+    .expect("fixture runtime")
+    .expect("fixture economics report");
 
     assert_eq!(report.context.network, MAINNET_NETWORK);
-    assert_eq!(report.context.source_endpoint, "https://example.test");
-    assert_eq!(report.context.fetched_by, "fixture");
+    assert_eq!(
+        report.context.source,
+        NnsGovernanceSourceProvenance::ReplicaQuery {
+            endpoint: "https://example.test".to_string(),
+            fetched_by: "fixture".to_string(),
+        }
+    );
     assert_eq!(report.economics.reject_cost_e8s, 1_000_000_000);
 }
 
 #[test]
 fn builder_rejects_non_mainnet_before_custom_source_call() {
-    let request = NnsSourceRequest::new(
+    let request = NnsGovernanceRequest::replica_query(
         "local",
         "https://example.test",
         "2026-07-30T00:00:00Z",
         "fixture",
     );
 
+    let error = block_on_current_thread(build_nns_governance_economics_report_with_source(
+        &request,
+        &PanicSource,
+    ))
+    .expect("fixture runtime")
+    .expect_err("non-mainnet request must fail");
     assert!(matches!(
-        build_nns_governance_economics_report_with_source(&request, &PanicSource),
-        Err(NnsGovernanceHostError::UnsupportedNetwork { network }) if network == "local"
+        error,
+        NnsGovernanceError::UnsupportedNetwork { network } if network == "local"
     ));
 }
 
@@ -235,7 +307,7 @@ fn metrics_validation_rejects_non_finite_json_values() {
     let error = validate_governance_metrics(&metrics).expect_err("non-finite metric must fail");
     assert!(matches!(
         error,
-        NnsGovernanceHostError::InvalidMetrics {
+        NnsGovernanceError::InvalidMetrics {
             field: "dissolving_neurons_e8s_buckets",
             key: 30,
             value,
@@ -255,7 +327,7 @@ fn metrics_governance_error_remains_typed() {
 
     assert!(matches!(
         error,
-        NnsGovernanceHostError::Governance {
+        NnsGovernanceError::Governance {
             error_type: 5,
             message,
         } if message == "unavailable"
@@ -265,64 +337,83 @@ fn metrics_governance_error_remains_typed() {
 struct FixtureSource;
 
 impl NnsGovernanceSource for FixtureSource {
-    fn fetch_economics(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsGovernanceEconomics, NnsGovernanceHostError> {
-        Ok(sample_economics())
+    fn fetch_economics<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceEconomics> {
+        Box::pin(async move {
+            Ok(NnsGovernanceSourceData::new(
+                sample_economics(),
+                fixture_provenance(request),
+            ))
+        })
     }
 
-    fn fetch_metrics(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsGovernanceMetrics, NnsGovernanceHostError> {
-        unreachable!("not used by this fixture")
+    fn fetch_metrics<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceMetrics> {
+        Box::pin(async { unreachable!("not used by this fixture") })
     }
 
-    fn fetch_reward_event(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsGovernanceRewardEvent, NnsGovernanceHostError> {
-        unreachable!("not used by this fixture")
+    fn fetch_reward_event<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceRewardEvent> {
+        Box::pin(async { unreachable!("not used by this fixture") })
     }
 
-    fn fetch_maturity_modulation(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<Option<NnsGovernanceMaturityModulation>, NnsGovernanceHostError> {
-        unreachable!("not used by this fixture")
+    fn fetch_maturity_modulation<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, Option<NnsGovernanceMaturityModulation>> {
+        Box::pin(async { unreachable!("not used by this fixture") })
     }
 }
 
 struct PanicSource;
 
 impl NnsGovernanceSource for PanicSource {
-    fn fetch_economics(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsGovernanceEconomics, NnsGovernanceHostError> {
+    fn fetch_economics<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceEconomics> {
         panic!("source must not be called")
     }
 
-    fn fetch_metrics(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsGovernanceMetrics, NnsGovernanceHostError> {
+    fn fetch_metrics<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceMetrics> {
         panic!("source must not be called")
     }
 
-    fn fetch_reward_event(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsGovernanceRewardEvent, NnsGovernanceHostError> {
+    fn fetch_reward_event<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceRewardEvent> {
         panic!("source must not be called")
     }
 
-    fn fetch_maturity_modulation(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<Option<NnsGovernanceMaturityModulation>, NnsGovernanceHostError> {
+    fn fetch_maturity_modulation<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
+    ) -> NnsGovernanceSourceFuture<'a, Option<NnsGovernanceMaturityModulation>> {
         panic!("source must not be called")
+    }
+}
+
+fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProvenance {
+    let NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint,
+        fetched_by,
+    } = &request.source
+    else {
+        panic!("fixture requires replica provenance")
+    };
+    NnsGovernanceSourceProvenance::ReplicaQuery {
+        endpoint: endpoint.clone(),
+        fetched_by: fetched_by.clone(),
     }
 }
 
