@@ -183,21 +183,11 @@ release-major:
 	+$(MAKE) --no-print-directory release-push
 
 release-stage:
-	git add Cargo.toml Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-cli/Cargo.toml
+	git add Cargo.toml Cargo.lock README.md docs/library-usage.md \
+		crates/ic-query/Cargo.toml crates/ic-query-cli/Cargo.toml
 
 release-commit:
-	@set -eu; \
-	version="$$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"; \
-	if [ -z "$$version" ]; then \
-		echo "error: failed to read package version from Cargo.toml" >&2; \
-		exit 1; \
-	fi; \
-	if git rev-parse "v$$version" >/dev/null 2>&1; then \
-		echo "error: tag v$$version already exists; aborting" >&2; \
-		exit 1; \
-	fi; \
-	git commit -m "Release $$version"; \
-	git tag -a "v$$version" -m "Release $$version"
+	bash "$(REPO_ROOT)scripts/release/commit-version.sh"
 
 release-tag-check:
 	bash "$(REPO_ROOT)scripts/release/check-tag-at-head.sh"

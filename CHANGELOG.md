@@ -19,10 +19,14 @@ Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
   executing collector principal, bounds raw responses before decoding, and
   owns no scheduling, retries, or persistence. The workspace remains two
   crates, and `ic-query-cli` retains no feature matrix.
-- The dependency gate now gives `cargo audit` a fresh disposable RustSec
-  checkout on every run. Stale files in its shared advisory cache can no longer
+- `0.38.0` gives `cargo audit` a fresh disposable RustSec checkout on every
+  dependency-gate run. Stale files in its shared advisory cache can no longer
   create duplicate-ID parse failures, and the exact temporary checkout is
   removed after both successful and failed checks.
+- `0.38.1` makes minor and major release staging include generated README and
+  library-usage dependency versions. Release commits reject unstaged,
+  untracked, and unexpected staged files, create a tag only after the commit
+  leaves a clean tree, and retry one transient post-gate `cargo clean` failure.
 
 ## [0.37.x] - Unreleased - ICRC account and holder index reporting
 

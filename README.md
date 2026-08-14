@@ -50,11 +50,14 @@ Local `make patch`, `make minor`, and `make major` runs execute the complete
 release gate and remove this workspace's Cargo build artifacts only after CI
 passes and version metadata is updated. A failed gate retains `target/` for
 diagnosis. Cleanup failure after a successful bump is reported as a warning
-rather than disguising the release result. CI helper scripts likewise remove
-only their own exact temporary paths. They do not sweep shared `/tmp` or remove
-the shared Cargo download cache. Dependency checks give `cargo audit` a fresh,
-disposable RustSec checkout on every run, so stale files in the shared advisory
-cache cannot break the release gate.
+rather than disguising the release result, and one transient cleanup failure is
+retried. Release staging includes every generated version and dependency-
+example edit; committing rejects unstaged, untracked, or unexpected staged
+paths and creates the tag only from a clean completed commit. CI helper scripts
+likewise remove only their own exact temporary paths. They do not sweep shared
+`/tmp` or remove the shared Cargo download cache. Dependency checks give
+`cargo audit` a fresh, disposable RustSec checkout on every run, so stale files
+in the shared advisory cache cannot break the release gate.
 
 ## Quick start
 
@@ -427,7 +430,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false }
+ic-query = { version = "0.38", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -435,7 +438,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["host"] }
+ic-query = { version = "0.38", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -521,7 +524,7 @@ operator and marketplace reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
@@ -534,7 +537,7 @@ features (or the convenience `host` feature):
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
@@ -543,7 +546,7 @@ node collection, and the shared observed default-scope node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders including
@@ -560,7 +563,7 @@ report:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["ic-state-host"] }
 ```
 
 This exposes `LiveIcStateSource`, its focused source trait, and live/custom
@@ -573,7 +576,7 @@ Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -586,7 +589,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -598,7 +601,7 @@ proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -622,7 +625,7 @@ inventory, or derived-topology surface:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 This feature includes `subnet-catalog-host` and adds certified Registry delta
@@ -637,7 +640,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -650,7 +653,7 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.37", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.38", default-features = false, features = ["nns-host"] }
 ```
 
 This is a strict superset of both `nns-topology-host` and

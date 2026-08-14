@@ -6,10 +6,24 @@ usage() {
 }
 
 cleanup_release_build_artifacts() {
+  local cleanup_output
+
   echo "Cleaning Cargo build artifacts after the successful release gate..."
-  if ! cargo clean; then
-    echo "warning: cargo clean failed after the successful release gate" >&2
+  if cleanup_output="$(cargo clean 2>&1)"; then
+    [[ -z "${cleanup_output}" ]] || printf '%s\n' "${cleanup_output}"
+    return
   fi
+
+  # A concurrent Cargo process can remove an artifact between discovery and
+  # deletion. One fresh pass makes that benign race invisible while persistent
+  # cleanup failures remain non-fatal and observable.
+  if cleanup_output="$(cargo clean 2>&1)"; then
+    [[ -z "${cleanup_output}" ]] || printf '%s\n' "${cleanup_output}"
+    return
+  fi
+
+  [[ -z "${cleanup_output}" ]] || printf '%s\n' "${cleanup_output}" >&2
+  echo "warning: cargo clean failed twice after the successful release gate" >&2
 }
 
 update_documented_dependency_versions() {
