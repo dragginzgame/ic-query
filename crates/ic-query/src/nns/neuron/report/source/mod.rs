@@ -1,25 +1,49 @@
 //! Module: nns::neuron::report::source
 //!
-//! Responsibility: expose the public NNS neuron source capability and assemble validated reports.
-//! Does not own: Governance wire transport, cache publication, CLI parsing, or Dashboard analytics.
-//! Boundary: keeps source-independent pagination, provenance, and report projection together.
+//! Responsibility: build NNS neuron reports from a portable async source.
+//! Does not own: CLI parsing, cache IO, transport internals, or text rendering.
+//! Boundary: native, canister, and custom sources converge before report assembly.
 
-mod live;
+#[cfg(all(feature = "canister", target_arch = "wasm32"))]
+mod canister;
+#[cfg(feature = "nns-host")]
+mod host;
 
 use super::{
-    NNS_NEURON_FETCHED_BY, NNS_NEURON_INFO_REPORT_SCHEMA_VERSION,
-    NNS_NEURON_LIST_REPORT_SCHEMA_VERSION, NNS_NEURON_MAX_PAGE_SIZE, NnsNeuronHostError,
+    NNS_NEURON_INFO_REPORT_SCHEMA_VERSION, NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
+    NNS_NEURON_MAX_PAGE_SIZE, NnsNeuronError,
     classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote},
-    enforce_mainnet_network,
     model::{
         NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport, NnsNeuronListRequest,
         NnsNeuronRow,
     },
 };
-use crate::{
-    nns::{LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest},
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
+use super::{
+    model::{NnsKnownNeuronData, NnsNeuronBallotRow},
+    wire::{GovernanceResult, NeuronInfoWire},
 };
+use crate::nns::{
+    MAINNET_GOVERNANCE_CANISTER_ID,
+    governance::{
+        NnsGovernanceReportContext, NnsGovernanceRequest, NnsGovernanceSourceData,
+        NnsGovernanceSourceProvenance, validate_governance_request, validate_source_provenance,
+    },
+};
+#[cfg(feature = "nns-host")]
+use crate::{nns::LiveNnsSource, runtime::block_on_current_thread};
+use std::{future::Future, pin::Pin};
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
+const GOVERNANCE_ERROR_TYPE_NOT_FOUND: i32 = 4;
 
 ///
 /// NnsNeuronPage
@@ -35,85 +59,111 @@ pub struct NnsNeuronPage {
     pub next_start_neuron_id: Option<u64>,
 }
 
-///
-/// NnsNeuronSource
-///
-/// Source capability for public NNS Governance neuron views.
-///
-
-pub trait NnsNeuronSource {
-    /// Fetch one page from the comprehensive public neuron index.
-    fn fetch_neuron_page(
-        &self,
-        request: &NnsSourceRequest,
-        exclusive_start_neuron_id: Option<u64>,
-        page_size: u32,
-    ) -> Result<NnsNeuronPage, NnsNeuronHostError>;
-
-    /// Fetch one public limited neuron view.
-    fn fetch_neuron(
-        &self,
-        request: &NnsSourceRequest,
-        neuron_id: u64,
-    ) -> Result<NnsNeuronRow, NnsNeuronHostError>;
-}
-
-/// Build one live public NNS neuron-index page.
+/// Build one bounded neuron-index page through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_neuron_list_report(
     request: &NnsNeuronListRequest,
-) -> Result<NnsNeuronListReport, NnsNeuronHostError> {
-    build_nns_neuron_list_report_with_source(request, &LiveNnsSource)
+) -> Result<NnsNeuronListReport, super::NnsNeuronHostError> {
+    Ok(block_on_current_thread(
+        build_nns_neuron_list_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
-/// Build one public live NNS neuron detail report.
+/// Build one exact neuron detail through the native replica adapter.
+#[cfg(feature = "nns-host")]
 pub fn build_nns_neuron_info_report(
     request: &NnsNeuronInfoRequest,
-) -> Result<NnsNeuronInfoReport, NnsNeuronHostError> {
-    build_nns_neuron_info_report_with_source(request, &LiveNnsSource)
+) -> Result<NnsNeuronInfoReport, super::NnsNeuronHostError> {
+    Ok(block_on_current_thread(
+        build_nns_neuron_info_report_with_source(request, &LiveNnsSource),
+    )??)
 }
 
-/// Build one public NNS neuron-index page from a custom source.
-pub fn build_nns_neuron_list_report_with_source(
+/// Build one bounded NNS neuron-index page from a caller-owned async source.
+pub async fn build_nns_neuron_list_report_with_source(
     request: &NnsNeuronListRequest,
     source: &dyn NnsNeuronSource,
-) -> Result<NnsNeuronListReport, NnsNeuronHostError> {
+) -> Result<NnsNeuronListReport, NnsNeuronError> {
+    validate_governance_request(&request.governance)?;
     validate_page_size(request.limit)?;
-    enforce_mainnet_network(&request.network)?;
-    let provenance = live_provenance(request.now_unix_secs, &request.source_endpoint);
-    let fetch_request = provenance.source_request();
-    let page = source.fetch_neuron_page(
-        &fetch_request,
+    let data = source
+        .fetch_neuron_page(
+            &request.governance,
+            request.exclusive_start_neuron_id,
+            request.limit,
+        )
+        .await?;
+    validate_source_provenance(&request.governance.source, &data.provenance)?;
+    validate_neuron_page(
+        &data.value,
         request.exclusive_start_neuron_id,
         request.limit,
     )?;
-    validate_neuron_page(&page, request.exclusive_start_neuron_id, request.limit)?;
     Ok(list_report_from_rows(
         request,
-        provenance,
-        page.neurons,
-        page.next_start_neuron_id,
+        NnsNeuronReportProvenance::live(report_context(&request.governance, data.provenance)),
+        data.value.neurons,
+        data.value.next_start_neuron_id,
         None,
     ))
 }
 
-/// Build one public NNS neuron detail report from a custom source.
-pub fn build_nns_neuron_info_report_with_source(
+/// Build one exact NNS neuron detail from a caller-owned async source.
+pub async fn build_nns_neuron_info_report_with_source(
     request: &NnsNeuronInfoRequest,
     source: &dyn NnsNeuronSource,
-) -> Result<NnsNeuronInfoReport, NnsNeuronHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let provenance = live_provenance(request.now_unix_secs, &request.source_endpoint);
-    let neuron = source.fetch_neuron(&provenance.source_request(), request.neuron_id)?;
-    if neuron.neuron_id != request.neuron_id {
-        return Err(NnsNeuronHostError::InvalidPage {
+) -> Result<NnsNeuronInfoReport, NnsNeuronError> {
+    validate_governance_request(&request.governance)?;
+    let data = source
+        .fetch_neuron(&request.governance, request.neuron_id)
+        .await?;
+    validate_source_provenance(&request.governance.source, &data.provenance)?;
+    if data.value.neuron_id != request.neuron_id {
+        return Err(NnsNeuronError::InvalidResponse {
             reason: format!(
                 "source returned neuron {}, expected {}",
-                neuron.neuron_id, request.neuron_id
+                data.value.neuron_id, request.neuron_id
             ),
         });
     }
-    validate_neuron_rows(std::slice::from_ref(&neuron))?;
-    Ok(info_report_from_row(request, provenance, neuron))
+    validate_neuron_rows(std::slice::from_ref(&data.value))?;
+    Ok(info_report_from_row(
+        request,
+        NnsNeuronReportProvenance::live(report_context(&request.governance, data.provenance)),
+        data.value,
+    ))
+}
+
+///
+/// NnsNeuronSourceFuture
+///
+/// Boxed caller-runtime future returned by a neuron source.
+///
+
+pub type NnsNeuronSourceFuture<'a, T> =
+    Pin<Box<dyn Future<Output = Result<NnsGovernanceSourceData<T>, NnsNeuronError>> + Send + 'a>>;
+
+///
+/// NnsNeuronSource
+///
+/// Portable async capability for bounded neuron list and exact detail calls.
+///
+
+pub trait NnsNeuronSource: Send + Sync {
+    /// Fetch at most one bounded page from the public neuron index.
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        exclusive_start_neuron_id: Option<u64>,
+        page_size: u32,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage>;
+
+    /// Fetch one exact public limited neuron view.
+    fn fetch_neuron<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        neuron_id: u64,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow>;
 }
 
 ///
@@ -124,21 +174,18 @@ pub fn build_nns_neuron_info_report_with_source(
 
 #[derive(Clone)]
 pub(super) struct NnsNeuronReportProvenance {
-    pub(super) fetched_at: String,
-    pub(super) source_endpoint: String,
-    pub(super) fetched_by: String,
+    pub(super) context: NnsGovernanceReportContext,
     pub(super) cache_path: Option<String>,
     pub(super) from_cache: bool,
 }
 
 impl NnsNeuronReportProvenance {
-    fn source_request(&self) -> NnsSourceRequest {
-        NnsSourceRequest::new(
-            MAINNET_NETWORK,
-            &self.source_endpoint,
-            &self.fetched_at,
-            &self.fetched_by,
-        )
+    const fn live(context: NnsGovernanceReportContext) -> Self {
+        Self {
+            context,
+            cache_path: None,
+            from_cache: false,
+        }
     }
 }
 
@@ -150,12 +197,10 @@ pub(super) fn list_report_from_rows(
     total_neuron_count: Option<usize>,
 ) -> NnsNeuronListReport {
     NnsNeuronListReport {
-        schema_version: NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
-        network: MAINNET_NETWORK.to_string(),
-        governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        fetched_at: provenance.fetched_at,
-        source_endpoint: provenance.source_endpoint,
-        fetched_by: provenance.fetched_by,
+        context: NnsGovernanceReportContext {
+            schema_version: NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
+            ..provenance.context
+        },
         cache_path: provenance.cache_path,
         from_cache: provenance.from_cache,
         requested_limit: request.limit,
@@ -175,12 +220,10 @@ pub(super) fn info_report_from_row(
     neuron: NnsNeuronRow,
 ) -> NnsNeuronInfoReport {
     NnsNeuronInfoReport {
-        schema_version: NNS_NEURON_INFO_REPORT_SCHEMA_VERSION,
-        network: MAINNET_NETWORK.to_string(),
-        governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        fetched_at: provenance.fetched_at,
-        source_endpoint: provenance.source_endpoint,
-        fetched_by: provenance.fetched_by,
+        context: NnsGovernanceReportContext {
+            schema_version: NNS_NEURON_INFO_REPORT_SCHEMA_VERSION,
+            ..provenance.context
+        },
         cache_path: provenance.cache_path,
         from_cache: provenance.from_cache,
         verbose: request.verbose,
@@ -188,21 +231,21 @@ pub(super) fn info_report_from_row(
     }
 }
 
-pub(super) fn validate_page_size(page_size: u32) -> Result<(), NnsNeuronHostError> {
+pub(super) fn validate_page_size(page_size: u32) -> Result<(), NnsNeuronError> {
     if (1..=NNS_NEURON_MAX_PAGE_SIZE).contains(&page_size) {
         Ok(())
     } else {
-        Err(NnsNeuronHostError::InvalidPageSize {
+        Err(NnsNeuronError::InvalidPageSize {
             page_size,
             max_page_size: NNS_NEURON_MAX_PAGE_SIZE,
         })
     }
 }
 
-pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuronHostError> {
+pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuronError> {
     for row in rows {
         if row.state_text != NnsNeuronState::from_code(row.state) {
-            return Err(NnsNeuronHostError::InvalidPage {
+            return Err(NnsNeuronError::InvalidResponse {
                 reason: format!(
                     "neuron {} state classification {} does not match raw code {}",
                     row.neuron_id, row.state_text, row.state
@@ -210,7 +253,7 @@ pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuro
             });
         }
         if row.visibility_text != NnsNeuronVisibility::from_code(row.visibility) {
-            return Err(NnsNeuronHostError::InvalidPage {
+            return Err(NnsNeuronError::InvalidResponse {
                 reason: format!(
                     "neuron {} visibility classification {} does not match raw code {:?}",
                     row.neuron_id, row.visibility_text, row.visibility
@@ -218,7 +261,7 @@ pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuro
             });
         }
         if row.neuron_type_text != NnsNeuronType::from_code(row.neuron_type) {
-            return Err(NnsNeuronHostError::InvalidPage {
+            return Err(NnsNeuronError::InvalidResponse {
                 reason: format!(
                     "neuron {} type classification {} does not match raw code {:?}",
                     row.neuron_id, row.neuron_type_text, row.neuron_type
@@ -230,7 +273,7 @@ pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuro
             .iter()
             .find(|ballot| ballot.vote_text != NnsNeuronVote::from_code(ballot.vote))
         {
-            return Err(NnsNeuronHostError::InvalidPage {
+            return Err(NnsNeuronError::InvalidResponse {
                 reason: format!(
                     "neuron {} ballot vote classification {} does not match raw code {}",
                     row.neuron_id, ballot.vote_text, ballot.vote
@@ -242,7 +285,7 @@ pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuro
         .windows(2)
         .any(|pair| pair[0].neuron_id >= pair[1].neuron_id)
     {
-        return Err(NnsNeuronHostError::InvalidPage {
+        return Err(NnsNeuronError::InvalidResponse {
             reason: "neuron ids are not strictly ascending and unique".to_string(),
         });
     }
@@ -253,9 +296,9 @@ pub(super) fn validate_neuron_page(
     page: &NnsNeuronPage,
     exclusive_start_neuron_id: Option<u64>,
     page_size: u32,
-) -> Result<(), NnsNeuronHostError> {
+) -> Result<(), NnsNeuronError> {
     if page.neurons.len() > page_size as usize {
-        return Err(NnsNeuronHostError::InvalidPage {
+        return Err(NnsNeuronError::InvalidResponse {
             reason: format!(
                 "source returned {} rows for page size {page_size}",
                 page.neurons.len()
@@ -268,7 +311,7 @@ pub(super) fn validate_neuron_page(
         page.neurons.first().map(|row| row.neuron_id),
     ) && first <= start
     {
-        return Err(NnsNeuronHostError::InvalidPage {
+        return Err(NnsNeuronError::InvalidResponse {
             reason: format!("first neuron id {first} is not greater than cursor {start}"),
         });
     }
@@ -276,7 +319,7 @@ pub(super) fn validate_neuron_page(
         .then(|| page.neurons.last().map(|row| row.neuron_id))
         .flatten();
     if page.next_start_neuron_id != expected_next {
-        return Err(NnsNeuronHostError::InvalidPage {
+        return Err(NnsNeuronError::InvalidResponse {
             reason: format!(
                 "next cursor {:?} does not match expected {:?}",
                 page.next_start_neuron_id, expected_next
@@ -286,12 +329,128 @@ pub(super) fn validate_neuron_page(
     Ok(())
 }
 
-fn live_provenance(now_unix_secs: u64, source_endpoint: &str) -> NnsNeuronReportProvenance {
-    NnsNeuronReportProvenance {
-        fetched_at: format_utc_timestamp_secs(now_unix_secs),
-        source_endpoint: source_endpoint.to_string(),
-        fetched_by: NNS_NEURON_FETCHED_BY.to_string(),
-        cache_path: None,
-        from_cache: false,
+fn report_context(
+    request: &NnsGovernanceRequest,
+    source: NnsGovernanceSourceProvenance,
+) -> NnsGovernanceReportContext {
+    NnsGovernanceReportContext {
+        schema_version: 1,
+        network: request.network.clone(),
+        governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
+        fetched_at: request.fetched_at.clone(),
+        source,
+    }
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
+pub(in crate::nns::neuron::report) fn governance_result<Response>(
+    result: impl GovernanceResult<Response>,
+) -> Result<Response, NnsNeuronError> {
+    result
+        .into_result()
+        .map_err(|error| NnsNeuronError::GovernanceResponse {
+            error_type: error.error_type,
+            message: error.error_message,
+        })
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
+pub(in crate::nns::neuron::report) fn map_neuron_info_error(
+    error: NnsNeuronError,
+    neuron_id: u64,
+) -> NnsNeuronError {
+    match error {
+        NnsNeuronError::GovernanceResponse { error_type, .. }
+            if error_type == GOVERNANCE_ERROR_TYPE_NOT_FOUND =>
+        {
+            NnsNeuronError::NeuronNotFound { neuron_id }
+        }
+        error => error,
+    }
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32"),
+    test
+))]
+pub(in crate::nns::neuron::report) fn neuron_row_from_wire(
+    wire: NeuronInfoWire,
+) -> Result<NnsNeuronRow, NnsNeuronError> {
+    let neuron_id = wire.id.ok_or(NnsNeuronError::MissingNeuronId)?.id;
+    Ok(NnsNeuronRow {
+        neuron_id,
+        state: wire.state,
+        state_text: NnsNeuronState::from_code(wire.state),
+        visibility: wire.visibility,
+        visibility_text: NnsNeuronVisibility::from_code(wire.visibility),
+        neuron_type: wire.neuron_type,
+        neuron_type_text: NnsNeuronType::from_code(wire.neuron_type),
+        stake_e8s: wire.stake_e8s,
+        staked_maturity_e8s_equivalent: wire.staked_maturity_e8s_equivalent,
+        dissolve_delay_seconds: wire.dissolve_delay_seconds,
+        age_seconds: wire.age_seconds,
+        created_timestamp_seconds: wire.created_timestamp_seconds,
+        retrieved_at_timestamp_seconds: wire.retrieved_at_timestamp_seconds,
+        voting_power: wire.voting_power,
+        deciding_voting_power: wire.deciding_voting_power,
+        potential_voting_power: wire.potential_voting_power,
+        voting_power_refreshed_timestamp_seconds: wire.voting_power_refreshed_timestamp_seconds,
+        joined_community_fund_timestamp_seconds: wire.joined_community_fund_timestamp_seconds,
+        eight_year_gang_bonus_base_e8s: wire.eight_year_gang_bonus_base_e8s,
+        known_neuron_data: wire.known_neuron_data.map(|known| NnsKnownNeuronData {
+            name: known.name,
+            description: known.description,
+            links: known.links.unwrap_or_default(),
+        }),
+        recent_ballots: wire
+            .recent_ballots
+            .into_iter()
+            .map(|ballot| NnsNeuronBallotRow {
+                proposal_id: ballot.proposal_id.map(|proposal| proposal.id),
+                vote: ballot.vote,
+                vote_text: NnsNeuronVote::from_code(ballot.vote),
+            })
+            .collect(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NnsNeuronError, map_neuron_info_error};
+
+    #[test]
+    fn neuron_info_maps_only_the_native_not_found_error() {
+        let not_found = map_neuron_info_error(
+            NnsNeuronError::GovernanceResponse {
+                error_type: 4,
+                message: "wording is not part of the contract".to_string(),
+            },
+            42,
+        );
+        assert!(matches!(
+            not_found,
+            NnsNeuronError::NeuronNotFound { neuron_id: 42 }
+        ));
+
+        let unrelated = map_neuron_info_error(
+            NnsNeuronError::GovernanceResponse {
+                error_type: 12,
+                message: "not found text must not override the code".to_string(),
+            },
+            42,
+        );
+        assert!(matches!(
+            unrelated,
+            NnsNeuronError::GovernanceResponse { error_type: 12, .. }
+        ));
     }
 }

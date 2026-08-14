@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
 
+- `0.38.3` adds canister-native bounded NNS neuron index pages and exact public
+  neuron detail through the existing `canister` feature and
+  `CanisterNnsSource`. Native, canister, and custom sources now share one async
+  source, row conversion, validation, report assembly, and tagged Governance
+  provenance contract. Complete neuron refresh and filesystem caches remain
+  native-only; persistence and multi-page orchestration remain caller-owned.
 - `0.38.2` adds canister-native bounded NNS proposal list and exact detail
   reports through the existing `canister` feature and `CanisterNnsSource`.
   Each report makes one replicated inter-canister call, shares validation and

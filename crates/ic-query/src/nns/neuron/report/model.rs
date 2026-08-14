@@ -5,6 +5,7 @@
 //! Boundary: preserves the unauthenticated Governance `NeuronInfo` fields without private state.
 
 use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote};
+use crate::nns::governance::{NnsGovernanceReportContext, NnsGovernanceRequest};
 #[cfg(feature = "nns-host")]
 use serde::Deserialize as SerdeDeserialize;
 use serde::Serialize;
@@ -104,12 +105,8 @@ pub struct NnsNeuronRow {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNeuronListRequest {
-    /// Requested network identity.
-    pub network: String,
-    /// Replica endpoint used for the query.
-    pub source_endpoint: String,
-    /// Caller-provided collection time in Unix seconds.
-    pub now_unix_secs: u64,
+    /// Shared network, collection time, and source transport request.
+    pub governance: NnsGovernanceRequest,
     /// Maximum rows to return.
     pub limit: u32,
     /// Exclusive lower neuron-id bound.
@@ -121,16 +118,9 @@ pub struct NnsNeuronListRequest {
 impl NnsNeuronListRequest {
     /// Construct a first-page public neuron-index request.
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        limit: u32,
-    ) -> Self {
+    pub const fn new(governance: NnsGovernanceRequest, limit: u32) -> Self {
         Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            governance,
             limit,
             exclusive_start_neuron_id: None,
             verbose: false,
@@ -160,12 +150,8 @@ impl NnsNeuronListRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNeuronInfoRequest {
-    /// Requested network identity.
-    pub network: String,
-    /// Replica endpoint used for the query.
-    pub source_endpoint: String,
-    /// Caller-provided collection time in Unix seconds.
-    pub now_unix_secs: u64,
+    /// Shared network, collection time, and source transport request.
+    pub governance: NnsGovernanceRequest,
     /// Governance neuron identifier.
     pub neuron_id: u64,
     /// Whether text output should include expanded metadata.
@@ -175,16 +161,9 @@ pub struct NnsNeuronInfoRequest {
 impl NnsNeuronInfoRequest {
     /// Construct a public neuron-detail request.
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        neuron_id: u64,
-    ) -> Self {
+    pub const fn new(governance: NnsGovernanceRequest, neuron_id: u64) -> Self {
         Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            governance,
             neuron_id,
             verbose: false,
         }
@@ -206,18 +185,9 @@ impl NnsNeuronInfoRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronListReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Queried network identity.
-    pub network: String,
-    /// NNS Governance canister principal.
-    pub governance_canister_id: String,
-    /// UTC collection timestamp.
-    pub fetched_at: String,
-    /// Replica endpoint or cached snapshot endpoint provenance.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
+    /// Shared Governance authority and transport provenance.
+    #[serde(flatten)]
+    pub context: NnsGovernanceReportContext,
     /// Cache path when the page came from a complete snapshot.
     pub cache_path: Option<String>,
     /// Whether rows came from a complete local snapshot.
@@ -248,18 +218,9 @@ pub struct NnsNeuronListReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronInfoReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Queried network identity.
-    pub network: String,
-    /// NNS Governance canister principal.
-    pub governance_canister_id: String,
-    /// UTC collection timestamp.
-    pub fetched_at: String,
-    /// Replica endpoint or cached snapshot endpoint provenance.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
+    /// Shared Governance authority and transport provenance.
+    #[serde(flatten)]
+    pub context: NnsGovernanceReportContext,
     /// Cache path when the row came from a complete snapshot.
     pub cache_path: Option<String>,
     /// Whether the row came from a complete local snapshot.

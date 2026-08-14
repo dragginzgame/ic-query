@@ -8,19 +8,23 @@ use super::{NNS_NEURON_CACHE_COMPONENT, model::CompleteNeuronCollection};
 use crate::{
     QueryProgress,
     nns::{
-        NnsGovernanceRefreshRequest, NnsSourceRequest,
-        governance::write_running_governance_refresh_attempt,
+        NnsGovernanceRefreshRequest,
+        governance::{
+            NnsGovernanceRequest, validate_source_provenance,
+            write_running_governance_refresh_attempt,
+        },
         neuron::report::{
-            NNS_NEURON_FETCHED_BY, NnsNeuronHostError,
+            NNS_NEURON_FETCHED_BY, NnsNeuronError, NnsNeuronHostError,
             model::NnsNeuronRow,
             source::{NnsNeuronSource, validate_neuron_page},
         },
     },
+    runtime::block_on_current_thread,
     snapshot_cache::{
         PagedCollectionPage, PagedSnapshotRefresh, SnapshotRefreshProgress,
         run_paged_snapshot_refresh_with_progress,
     },
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+    subnet_catalog::MAINNET_NETWORK,
 };
 use std::path::Path;
 
@@ -33,10 +37,10 @@ pub(super) fn fetch_complete_neuron_collection(
     run_paged_snapshot_refresh_with_progress(
         NeuronRefreshPages {
             request,
-            fetch_request: NnsSourceRequest::new(
+            fetch_request: NnsGovernanceRequest::replica_query_from_unix_secs(
                 MAINNET_NETWORK,
                 &request.source_endpoint,
-                format_utc_timestamp_secs(request.now_unix_secs),
+                request.now_unix_secs,
                 NNS_NEURON_FETCHED_BY,
             ),
             source,
@@ -51,7 +55,7 @@ pub(super) fn fetch_complete_neuron_collection(
 
 struct NeuronRefreshPages<'a> {
     request: &'a NnsGovernanceRefreshRequest,
-    fetch_request: NnsSourceRequest,
+    fetch_request: NnsGovernanceRequest,
     source: &'a dyn NnsNeuronSource,
     attempt_path: &'a Path,
     neurons: Vec<NnsNeuronRow>,
@@ -86,11 +90,14 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     }
 
     fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let page = self.source.fetch_neuron_page(
+        let data = block_on_current_thread(self.source.fetch_neuron_page(
             &self.fetch_request,
             self.next_cursor,
             self.request.page_size,
-        )?;
+        ))??;
+        validate_source_provenance(&self.fetch_request.source, &data.provenance)
+            .map_err(NnsNeuronError::from)?;
+        let page = data.value;
         validate_neuron_page(&page, self.next_cursor, self.request.page_size)?;
         let page_len = page.neurons.len();
         let cursor = page.next_start_neuron_id;

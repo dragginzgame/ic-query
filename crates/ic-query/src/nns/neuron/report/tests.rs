@@ -1,9 +1,9 @@
 use super::source::validate_neuron_rows;
 use super::{
-    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronHostError,
-    NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource,
-    NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote,
-    build_nns_neuron_cache_status_report, build_nns_neuron_info_report_from_cache,
+    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronError,
+    NnsNeuronHostError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
+    NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronType, NnsNeuronVisibility,
+    NnsNeuronVote, build_nns_neuron_cache_status_report, build_nns_neuron_info_report_from_cache,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
     build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
     nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
@@ -11,13 +11,18 @@ use super::{
 use crate::{
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
     nns::{
-        LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsSourceRequest,
+        LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest,
+        governance::{
+            NnsGovernanceError, NnsGovernanceRequest, NnsGovernanceSourceData,
+            NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
+        },
     },
     subnet_catalog::MAINNET_NETWORK,
     test_support::temp_dir,
 };
 use std::{
     fs,
+    future::Future,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
@@ -26,69 +31,126 @@ static LIVE_SOURCE_CALLS: AtomicUsize = AtomicUsize::new(0);
 struct FixtureSource;
 
 impl NnsNeuronSource for FixtureSource {
-    fn fetch_neuron_page(
-        &self,
-        request: &NnsSourceRequest,
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         exclusive_start_neuron_id: Option<u64>,
         page_size: u32,
-    ) -> Result<NnsNeuronPage, NnsNeuronHostError> {
-        assert_eq!(request.network, MAINNET_NETWORK);
-        assert_eq!(request.endpoint, DEFAULT_NNS_NEURON_SOURCE_ENDPOINT);
-        assert_eq!(page_size, 2);
-        let (neurons, next_start_neuron_id) = match exclusive_start_neuron_id {
-            None => (vec![sample_neuron(1), sample_neuron(2)], Some(2)),
-            Some(2) => (vec![sample_neuron(3)], None),
-            other => panic!("unexpected neuron cursor: {other:?}"),
-        };
-        Ok(NnsNeuronPage {
-            neurons,
-            next_start_neuron_id,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
+        Box::pin(async move {
+            assert_eq!(request.network, MAINNET_NETWORK);
+            assert_replica_request(request, DEFAULT_NNS_NEURON_SOURCE_ENDPOINT);
+            assert_eq!(page_size, 2);
+            let (neurons, next_start_neuron_id) = match exclusive_start_neuron_id {
+                None => (vec![sample_neuron(1), sample_neuron(2)], Some(2)),
+                Some(2) => (vec![sample_neuron(3)], None),
+                other => panic!("unexpected neuron cursor: {other:?}"),
+            };
+            Ok(fixture_source_data(
+                request,
+                NnsNeuronPage {
+                    neurons,
+                    next_start_neuron_id,
+                },
+            ))
         })
     }
 
-    fn fetch_neuron(
-        &self,
-        request: &NnsSourceRequest,
+    fn fetch_neuron<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         neuron_id: u64,
-    ) -> Result<NnsNeuronRow, NnsNeuronHostError> {
-        assert_eq!(request.network, MAINNET_NETWORK);
-        Ok(sample_neuron(neuron_id))
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
+        Box::pin(async move {
+            assert_eq!(request.network, MAINNET_NETWORK);
+            Ok(fixture_source_data(request, sample_neuron(neuron_id)))
+        })
     }
 }
 
 struct CountingSource;
 
 impl NnsNeuronSource for CountingSource {
-    fn fetch_neuron_page(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
         _exclusive_start_neuron_id: Option<u64>,
         _page_size: u32,
-    ) -> Result<NnsNeuronPage, NnsNeuronHostError> {
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
         LIVE_SOURCE_CALLS.fetch_add(1, Ordering::SeqCst);
         unreachable!("unsupported network must be rejected before source invocation")
     }
 
-    fn fetch_neuron(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_neuron<'a>(
+        &'a self,
+        _request: &'a NnsGovernanceRequest,
         _neuron_id: u64,
-    ) -> Result<NnsNeuronRow, NnsNeuronHostError> {
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
         LIVE_SOURCE_CALLS.fetch_add(1, Ordering::SeqCst);
         unreachable!("unsupported network must be rejected before source invocation")
     }
 }
 
-#[test]
-fn public_list_and_info_reports_preserve_governance_rows() {
-    let list_request = NnsNeuronListRequest::new(
+fn governance_request(now_unix_secs: u64) -> NnsGovernanceRequest {
+    NnsGovernanceRequest::replica_query_from_unix_secs(
         MAINNET_NETWORK,
         DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
-        1_700_000_000,
-        2,
-    );
-    let list = build_nns_neuron_list_report_with_source(&list_request, &FixtureSource)
-        .expect("live list report");
+        now_unix_secs,
+        "ic-query",
+    )
+}
+
+fn fixture_source_data<T>(request: &NnsGovernanceRequest, value: T) -> NnsGovernanceSourceData<T> {
+    let NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint,
+        fetched_by,
+    } = &request.source
+    else {
+        panic!("fixture requires a replica query request")
+    };
+    NnsGovernanceSourceData::new(
+        value,
+        NnsGovernanceSourceProvenance::ReplicaQuery {
+            endpoint: endpoint.clone(),
+            fetched_by: fetched_by.clone(),
+        },
+    )
+}
+
+fn assert_replica_request(request: &NnsGovernanceRequest, expected_endpoint: &str) {
+    let NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint,
+        fetched_by,
+    } = &request.source
+    else {
+        panic!("expected replica query request")
+    };
+    assert_eq!(endpoint, expected_endpoint);
+    assert_eq!(fetched_by, "ic-query");
+}
+
+fn run_ready<T>(future: impl Future<Output = T>) -> T {
+    use std::{
+        pin::pin,
+        task::{Context, Poll, Waker},
+    };
+
+    let mut future = pin!(future);
+    let mut context = Context::from_waker(Waker::noop());
+    match future.as_mut().poll(&mut context) {
+        Poll::Ready(value) => value,
+        Poll::Pending => panic!("fixture future unexpectedly returned Pending"),
+    }
+}
+
+#[test]
+fn public_list_and_info_reports_preserve_governance_rows() {
+    let list_request = NnsNeuronListRequest::new(governance_request(1_700_000_000), 2);
+    let list = run_ready(build_nns_neuron_list_report_with_source(
+        &list_request,
+        &FixtureSource,
+    ))
+    .expect("live list report");
 
     assert!(!list.from_cache);
     assert_eq!(list.next_start_neuron_id, Some(2));
@@ -102,14 +164,12 @@ fn public_list_and_info_reports_preserve_governance_rows() {
     assert_eq!(list.neurons[0].visibility, Some(2));
     assert_eq!(list.neurons[0].visibility_text, NnsNeuronVisibility::Public);
 
-    let info_request = NnsNeuronInfoRequest::new(
-        MAINNET_NETWORK,
-        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
-        1_700_000_000,
-        42,
-    );
-    let info = build_nns_neuron_info_report_with_source(&info_request, &FixtureSource)
-        .expect("live info report");
+    let info_request = NnsNeuronInfoRequest::new(governance_request(1_700_000_000), 42);
+    let info = run_ready(build_nns_neuron_info_report_with_source(
+        &info_request,
+        &FixtureSource,
+    ))
+    .expect("live info report");
 
     assert!(!info.from_cache);
     assert_eq!(info.neuron.neuron_id, 42);
@@ -126,40 +186,64 @@ fn public_list_and_info_reports_preserve_governance_rows() {
 #[test]
 fn public_builders_reject_non_mainnet_before_invoking_a_source() {
     LIVE_SOURCE_CALLS.store(0, Ordering::SeqCst);
-    let list_request = NnsNeuronListRequest::new("local", "http://127.0.0.1:1", 1_700_000_000, 2);
-    let list_error = build_nns_neuron_list_report_with_source(&list_request, &CountingSource)
-        .expect_err("non-mainnet list must fail");
+    let list_request = NnsNeuronListRequest::new(
+        NnsGovernanceRequest::replica_query_from_unix_secs(
+            "local",
+            "http://127.0.0.1:1",
+            1_700_000_000,
+            "test",
+        ),
+        2,
+    );
+    let list_error = run_ready(build_nns_neuron_list_report_with_source(
+        &list_request,
+        &CountingSource,
+    ))
+    .expect_err("non-mainnet list must fail");
     assert!(matches!(
         list_error,
-        NnsNeuronHostError::UnsupportedNetwork { ref network } if network == "local"
+        NnsNeuronError::Governance(NnsGovernanceError::UnsupportedNetwork { ref network })
+            if network == "local"
     ));
 
-    let info_request = NnsNeuronInfoRequest::new("local", "http://127.0.0.1:1", 1_700_000_000, 1);
-    let info_error = build_nns_neuron_info_report_with_source(&info_request, &CountingSource)
-        .expect_err("non-mainnet info must fail");
+    let info_request = NnsNeuronInfoRequest::new(
+        NnsGovernanceRequest::replica_query_from_unix_secs(
+            "local",
+            "http://127.0.0.1:1",
+            1_700_000_000,
+            "test",
+        ),
+        1,
+    );
+    let info_error = run_ready(build_nns_neuron_info_report_with_source(
+        &info_request,
+        &CountingSource,
+    ))
+    .expect_err("non-mainnet info must fail");
     assert!(matches!(
         info_error,
-        NnsNeuronHostError::UnsupportedNetwork { ref network } if network == "local"
+        NnsNeuronError::Governance(NnsGovernanceError::UnsupportedNetwork { ref network })
+            if network == "local"
     ));
     assert_eq!(LIVE_SOURCE_CALLS.load(Ordering::SeqCst), 0);
 }
 
 #[test]
 fn live_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = NnsGovernanceRequest::replica_query(
         "local",
         "not a valid replica endpoint",
         "2023-11-14T22:13:20Z",
         "test",
     );
 
-    let error = LiveNnsSource
-        .fetch_neuron_page(&request, None, 2)
+    let error = run_ready(LiveNnsSource.fetch_neuron_page(&request, None, 2))
         .expect_err("live source must reject non-mainnet");
 
     assert!(matches!(
         error,
-        NnsNeuronHostError::UnsupportedNetwork { ref network } if network == "local"
+        NnsNeuronError::Governance(NnsGovernanceError::UnsupportedNetwork { ref network })
+            if network == "local"
     ));
 }
 
@@ -168,37 +252,40 @@ fn list_rejects_a_cursor_that_does_not_match_the_page() {
     struct InvalidCursorSource;
 
     impl NnsNeuronSource for InvalidCursorSource {
-        fn fetch_neuron_page(
-            &self,
-            _request: &NnsSourceRequest,
+        fn fetch_neuron_page<'a>(
+            &'a self,
+            request: &'a NnsGovernanceRequest,
             _exclusive_start_neuron_id: Option<u64>,
             _page_size: u32,
-        ) -> Result<NnsNeuronPage, NnsNeuronHostError> {
-            Ok(NnsNeuronPage {
-                neurons: vec![sample_neuron(1), sample_neuron(2)],
-                next_start_neuron_id: Some(1),
+        ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
+            Box::pin(async move {
+                Ok(fixture_source_data(
+                    request,
+                    NnsNeuronPage {
+                        neurons: vec![sample_neuron(1), sample_neuron(2)],
+                        next_start_neuron_id: Some(1),
+                    },
+                ))
             })
         }
 
-        fn fetch_neuron(
-            &self,
-            _request: &NnsSourceRequest,
+        fn fetch_neuron<'a>(
+            &'a self,
+            request: &'a NnsGovernanceRequest,
             neuron_id: u64,
-        ) -> Result<NnsNeuronRow, NnsNeuronHostError> {
-            Ok(sample_neuron(neuron_id))
+        ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
+            Box::pin(async move { Ok(fixture_source_data(request, sample_neuron(neuron_id))) })
         }
     }
 
-    let request = NnsNeuronListRequest::new(
-        MAINNET_NETWORK,
-        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
-        1_700_000_000,
-        2,
-    );
-    let error = build_nns_neuron_list_report_with_source(&request, &InvalidCursorSource)
-        .expect_err("invalid cursor must fail");
+    let request = NnsNeuronListRequest::new(governance_request(1_700_000_000), 2);
+    let error = run_ready(build_nns_neuron_list_report_with_source(
+        &request,
+        &InvalidCursorSource,
+    ))
+    .expect_err("invalid cursor must fail");
 
-    assert!(matches!(error, NnsNeuronHostError::InvalidPage { .. }));
+    assert!(matches!(error, NnsNeuronError::InvalidResponse { .. }));
 }
 
 #[test]
@@ -228,13 +315,8 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     assert_eq!(cache["completeness"]["status"], "api_exhausted");
     assert_eq!(cache["completeness"]["point_in_time_guaranteed"], false);
 
-    let list_request = NnsNeuronListRequest::new(
-        MAINNET_NETWORK,
-        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
-        1_700_000_001,
-        2,
-    )
-    .with_exclusive_start_neuron_id(1);
+    let list_request = NnsNeuronListRequest::new(governance_request(1_700_000_001), 2)
+        .with_exclusive_start_neuron_id(1);
     let list = build_nns_neuron_list_report_from_cache(&list_request, &root)
         .expect("load cached list")
         .expect("complete cache");
@@ -250,12 +332,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     );
     assert_eq!(list.next_start_neuron_id, None);
 
-    let info_request = NnsNeuronInfoRequest::new(
-        MAINNET_NETWORK,
-        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
-        1_700_000_001,
-        2,
-    );
+    let info_request = NnsNeuronInfoRequest::new(governance_request(1_700_000_001), 2);
     let info = build_nns_neuron_info_report_from_cache(&info_request, &root)
         .expect("load cached detail")
         .expect("cached neuron");
@@ -302,12 +379,7 @@ fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
     )
     .expect("replace neuron cache");
 
-    let request = NnsNeuronListRequest::new(
-        MAINNET_NETWORK,
-        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
-        1_700_000_001,
-        2,
-    );
+    let request = NnsNeuronListRequest::new(governance_request(1_700_000_001), 2);
     let error = build_nns_neuron_list_report_from_cache(&request, &root)
         .expect_err("identity mismatch must remain typed");
 
@@ -432,7 +504,7 @@ fn neuron_rows_reject_classifications_that_contradict_raw_codes() {
     state_mismatch.state_text = NnsNeuronState::Dissolved;
     assert!(matches!(
         validate_neuron_rows(&[state_mismatch]),
-        Err(NnsNeuronHostError::InvalidPage { reason })
+        Err(NnsNeuronError::InvalidResponse { reason })
             if reason.contains("state classification dissolved does not match raw code 1")
     ));
 
@@ -440,7 +512,7 @@ fn neuron_rows_reject_classifications_that_contradict_raw_codes() {
     visibility_mismatch.visibility_text = NnsNeuronVisibility::Private;
     assert!(matches!(
         validate_neuron_rows(&[visibility_mismatch]),
-        Err(NnsNeuronHostError::InvalidPage { reason })
+        Err(NnsNeuronError::InvalidResponse { reason })
             if reason.contains("visibility classification private does not match raw code Some(2)")
     ));
 
@@ -448,7 +520,7 @@ fn neuron_rows_reject_classifications_that_contradict_raw_codes() {
     type_mismatch.neuron_type_text = NnsNeuronType::Seed;
     assert!(matches!(
         validate_neuron_rows(&[type_mismatch]),
-        Err(NnsNeuronHostError::InvalidPage { reason })
+        Err(NnsNeuronError::InvalidResponse { reason })
             if reason.contains("type classification seed does not match raw code None")
     ));
 
@@ -460,7 +532,7 @@ fn neuron_rows_reject_classifications_that_contradict_raw_codes() {
     });
     assert!(matches!(
         validate_neuron_rows(&[vote_mismatch]),
-        Err(NnsNeuronHostError::InvalidPage { reason })
+        Err(NnsNeuronError::InvalidResponse { reason })
             if reason.contains("ballot vote classification no does not match raw code 1")
     ));
 }

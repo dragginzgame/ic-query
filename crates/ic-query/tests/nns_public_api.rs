@@ -25,17 +25,18 @@ use ic_query::nns::governance::{
     build_nns_governance_economics_report_with_source,
     nns_governance_maturity_modulation_report_text,
 };
+use ic_query::nns::neuron::{
+    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData,
+    NnsNeuronError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
+    NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronType, NnsNeuronVisibility,
+    NnsNeuronVote, build_nns_neuron_info_report_with_source,
+    build_nns_neuron_list_report_with_source, nns_neuron_info_report_text,
+    nns_neuron_list_report_text,
+};
 #[cfg(feature = "nns-host")]
 use ic_query::nns::neuron::{
-    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsNeuronHostError, NnsNeuronInfoRequest, NnsNeuronPage,
-    NnsNeuronSource, build_nns_neuron_cache_status_report,
-    build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_with_source,
-    nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
-};
-use ic_query::nns::neuron::{
-    NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData, NnsNeuronListRequest, NnsNeuronRow,
-    NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote, nns_neuron_info_report_text,
-    nns_neuron_list_report_text,
+    NnsNeuronHostError, build_nns_neuron_cache_status_report, nns_neuron_cache_path,
+    nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::{
@@ -226,11 +227,11 @@ fn public_nns_governance_collection_contracts_are_shared() {
         ))
     ));
     assert!(matches!(
-        NnsNeuronHostError::from(query_error),
-        NnsNeuronHostError::GovernanceQuery(NnsGovernanceQueryError::AgentCall {
+        NnsNeuronHostError::from(NnsNeuronError::from(NnsGovernanceError::from(query_error))),
+        NnsNeuronHostError::Neuron(NnsNeuronError::Governance(NnsGovernanceError::AgentCall {
             method: "list_proposals",
             ..
-        })
+        }))
     ));
 }
 
@@ -455,7 +456,7 @@ fn proposal_governance_request(now_unix_secs: u64) -> NnsGovernanceRequest {
     )
 }
 
-fn proposal_report_context(request: &NnsGovernanceRequest) -> NnsGovernanceReportContext {
+fn governance_report_context(request: &NnsGovernanceRequest) -> NnsGovernanceReportContext {
     NnsGovernanceReportContext {
         schema_version: 1,
         network: request.network.clone(),
@@ -481,7 +482,7 @@ fn run_ready<T>(future: impl Future<Output = T>) -> T {
 
 #[test]
 fn public_nns_neuron_api_is_constructible_and_renderable() {
-    let request = NnsNeuronListRequest::new("ic", "https://icp-api.io", 1_700_000_000, 25)
+    let request = NnsNeuronListRequest::new(neuron_governance_request(1_700_000_000), 25)
         .with_exclusive_start_neuron_id(10)
         .with_verbose(true);
     assert_eq!(request.limit, 25);
@@ -490,12 +491,7 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
 
     let row = sample_public_neuron(11);
     let report = ic_query::nns::neuron::NnsNeuronListReport {
-        schema_version: 1,
-        network: request.network,
-        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: "ic-query".to_string(),
+        context: governance_report_context(&request.governance),
         cache_path: None,
         from_cache: false,
         requested_limit: request.limit,
@@ -509,6 +505,8 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     };
     assert!(nns_neuron_list_report_text(&report).contains("Neuron 11"));
     let report_json = serde_json::to_value(&report).expect("serialize NNS neuron list report");
+    assert_eq!(report_json["schema_version"], 1);
+    assert_eq!(report_json["source"]["source_transport"], "replica_query");
     assert_eq!(report_json["neurons"][0]["state_text"], "not-dissolving");
     assert_eq!(report_json["neurons"][0]["visibility_text"], "public");
     assert_eq!(report_json["neurons"][0]["neuron_type_text"], "unknown");
@@ -518,12 +516,7 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     );
 
     let info = ic_query::nns::neuron::NnsNeuronInfoReport {
-        schema_version: 1,
-        network: "ic".to_string(),
-        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
+        context: governance_report_context(&request.governance),
         cache_path: None,
         from_cache: false,
         verbose: true,
@@ -532,21 +525,57 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     assert!(nns_neuron_info_report_text(&info).contains("neuron_id: 11"));
 }
 
-#[cfg(feature = "nns-host")]
 #[test]
-fn public_nns_neuron_host_api_accepts_custom_source_and_cache_requests() {
-    let list_request =
-        NnsNeuronListRequest::new("ic", DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, 1_700_000_000, 1);
-    let list = build_nns_neuron_list_report_with_source(&list_request, &FixtureNnsNeuronSource)
-        .expect("custom neuron source");
+fn public_nns_neuron_portable_api_accepts_custom_source() {
+    let list_request = NnsNeuronListRequest::new(neuron_governance_request(1_700_000_000), 1);
+    let list = run_ready(build_nns_neuron_list_report_with_source(
+        &list_request,
+        &FixtureNnsNeuronSource,
+    ))
+    .expect("custom neuron source");
     assert_eq!(list.neurons[0].neuron_id, 7);
+    assert_eq!(
+        list.context.source,
+        governance_fixture_provenance(&list_request.governance)
+    );
 
-    let info_request =
-        NnsNeuronInfoRequest::new("ic", DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, 1_700_000_000, 7);
-    let info = build_nns_neuron_info_report_with_source(&info_request, &FixtureNnsNeuronSource)
-        .expect("custom neuron detail");
+    let info_request = NnsNeuronInfoRequest::new(neuron_governance_request(1_700_000_000), 7);
+    let info = run_ready(build_nns_neuron_info_report_with_source(
+        &info_request,
+        &FixtureNnsNeuronSource,
+    ))
+    .expect("custom neuron detail");
     assert_eq!(info.neuron.neuron_id, 7);
 
+    let invalid_request = NnsNeuronListRequest::new(
+        neuron_governance_request(1_700_000_000),
+        NNS_NEURON_MAX_PAGE_SIZE + 1,
+    );
+    let error = run_ready(build_nns_neuron_list_report_with_source(
+        &invalid_request,
+        &FixtureNnsNeuronSource,
+    ))
+    .expect_err("oversized neuron page must fail");
+    assert!(matches!(error, NnsNeuronError::InvalidPageSize { .. }));
+}
+
+#[cfg(all(feature = "canister", target_arch = "wasm32"))]
+#[test]
+fn public_nns_neuron_canister_source_builds_caller_runtime_futures() {
+    let governance =
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
+    let list_request = NnsNeuronListRequest::new(governance.clone(), 25);
+    let info_request = NnsNeuronInfoRequest::new(governance, 7);
+
+    let list = build_nns_neuron_list_report_with_source(&list_request, &CanisterNnsSource);
+    let info = build_nns_neuron_info_report_with_source(&info_request, &CanisterNnsSource);
+
+    drop((list, info));
+}
+
+#[cfg(feature = "nns-host")]
+#[test]
+fn public_nns_neuron_host_api_exposes_cache_requests() {
     let root = PathBuf::from("/tmp/ic-query-public-neuron-api");
     let refresh = NnsGovernanceRefreshRequest::new(
         &root,
@@ -565,31 +594,48 @@ fn public_nns_neuron_host_api_accepts_custom_source_and_cache_requests() {
     assert!(!status.found);
 }
 
-#[cfg(feature = "nns-host")]
 struct FixtureNnsNeuronSource;
 
-#[cfg(feature = "nns-host")]
 impl NnsNeuronSource for FixtureNnsNeuronSource {
-    fn fetch_neuron_page(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         _exclusive_start_neuron_id: Option<u64>,
         page_size: u32,
-    ) -> Result<NnsNeuronPage, NnsNeuronHostError> {
-        let neurons = vec![sample_public_neuron(7)];
-        Ok(NnsNeuronPage {
-            next_start_neuron_id: (page_size == 1).then_some(7),
-            neurons,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
+        Box::pin(async move {
+            let neurons = vec![sample_public_neuron(7)];
+            Ok(NnsGovernanceSourceData::new(
+                NnsNeuronPage {
+                    next_start_neuron_id: (page_size == 1).then_some(7),
+                    neurons,
+                },
+                governance_fixture_provenance(request),
+            ))
         })
     }
 
-    fn fetch_neuron(
-        &self,
-        _request: &NnsSourceRequest,
+    fn fetch_neuron<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
         neuron_id: u64,
-    ) -> Result<NnsNeuronRow, NnsNeuronHostError> {
-        Ok(sample_public_neuron(neuron_id))
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
+        Box::pin(async move {
+            Ok(NnsGovernanceSourceData::new(
+                sample_public_neuron(neuron_id),
+                governance_fixture_provenance(request),
+            ))
+        })
     }
+}
+
+fn neuron_governance_request(now_unix_secs: u64) -> NnsGovernanceRequest {
+    NnsGovernanceRequest::replica_query_from_unix_secs(
+        "ic",
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        now_unix_secs,
+        "ic-query",
+    )
 }
 
 fn sample_public_neuron(neuron_id: u64) -> NnsNeuronRow {
@@ -1942,7 +1988,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
 
     let proposal = sample_nns_proposal_row();
     let list_report = NnsProposalListReport {
-        context: proposal_report_context(&request.governance),
+        context: governance_report_context(&request.governance),
         data_source: ReportDataSource::Cache,
         cache_path: Some("/cache/nns/ic/governance/proposals/full.json".to_string()),
         cache_complete: Some(true),
@@ -1980,7 +2026,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411)
             .with_show_ballots(true);
     let detail_report = NnsProposalReport {
-        context: proposal_report_context(&detail_request.governance),
+        context: governance_report_context(&detail_request.governance),
         data_source: ReportDataSource::Live,
         cache_path: None,
         cache_complete: None,

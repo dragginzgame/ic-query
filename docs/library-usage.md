@@ -23,7 +23,8 @@ Both NNS subsets are nested under `nns-host`, and
 `subnet-catalog-host`.
 
 For a Rust canister that needs direct NNS Governance point reports or one
-bounded proposal page/detail without the native host graph, use:
+bounded proposal/neuron page or exact detail without the native host graph,
+use:
 
 ```toml
 [dependencies]
@@ -65,6 +66,13 @@ does not refill after local topic, proposer, text, or sort operations. Exact
 detail similarly makes one `get_proposal_info` call. Complete proposal refresh
 remains an explicit native `nns-host` cache operation; canister stable-memory
 layout and publication policy remain application-owned.
+
+Neuron list limits are 1 through 300. One builder call makes one
+`get_neuron_index` call, validates strictly ascending unique ids and its
+exclusive cursor, and returns a next cursor only for a full page. Exact neuron
+detail makes one `get_neuron_info` call. Complete neuron refresh remains an
+explicit native `nns-host` cache operation; the canister adapter does not
+schedule or persist a multi-page collection.
 
 For official Dashboard REST reports, node-provider rewards, CloudEngine
 provider and Type4 node collection, and the shared observed default-scope

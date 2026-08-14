@@ -11,6 +11,7 @@ use super::model::{NnsNeuronInfoReport, NnsNeuronListReport, NnsNeuronRow};
 use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     duration::display_duration_seconds,
+    nns::governance::governance_context_lines,
     table::{ColumnAlign, render_table},
     text_value::{optional_u64_text, sanitize_text, yes_no},
     token_amount::e8s_decimal_text,
@@ -19,9 +20,8 @@ use crate::{
 /// Render one public NNS neuron-index page.
 #[must_use]
 pub fn nns_neuron_list_report_text(report: &NnsNeuronListReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+    let mut lines = governance_context_lines(&report.context);
+    lines.extend([
         format!("from_cache: {}", yes_no(report.from_cache)),
         format!("requested_limit: {}", report.requested_limit),
         format!(
@@ -44,13 +44,7 @@ pub fn nns_neuron_list_report_text(report: &NnsNeuronListReport) -> String {
         ),
         format!("returned_neuron_count: {}", report.returned_neuron_count),
         format!("verbose: {}", yes_no(report.verbose)),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
-        ),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
-    ];
+    ]);
     if let Some(cache_path) = report.cache_path.as_deref() {
         lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }
@@ -70,17 +64,8 @@ pub fn nns_neuron_list_report_text(report: &NnsNeuronListReport) -> String {
 /// Render one public NNS neuron detail report.
 #[must_use]
 pub fn nns_neuron_info_report_text(report: &NnsNeuronInfoReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("governance_canister_id: {}", report.governance_canister_id),
-        format!("from_cache: {}", yes_no(report.from_cache)),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
-        ),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
-    ];
+    let mut lines = governance_context_lines(&report.context);
+    lines.extend([format!("from_cache: {}", yes_no(report.from_cache))]);
     if let Some(cache_path) = report.cache_path.as_deref() {
         lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
     }

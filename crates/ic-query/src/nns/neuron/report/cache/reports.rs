@@ -21,7 +21,10 @@ use crate::{
     cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper, managed_file_exists},
     nns::{
         NnsGovernanceCacheRequest,
-        governance::{read_governance_refresh_attempt_status, validate_governance_cache_metadata},
+        governance::{
+            NnsGovernanceReportContext, NnsGovernanceSourceProvenance,
+            read_governance_refresh_attempt_status, validate_governance_cache_metadata,
+        },
         neuron::report::{
             NnsNeuronHostError, enforce_mainnet_network,
             model::{
@@ -44,9 +47,9 @@ pub fn build_nns_neuron_list_report_from_cache(
     cache_root: &Path,
 ) -> Result<Option<NnsNeuronListReport>, NnsNeuronHostError> {
     validate_page_size(request.limit)?;
-    enforce_mainnet_network(&request.network)?;
-    let path = nns_neuron_cache_path(cache_root, &request.network);
-    let cache = match load_cache_at(cache_root, &path, &request.network) {
+    enforce_mainnet_network(&request.governance.network)?;
+    let path = nns_neuron_cache_path(cache_root, &request.governance.network);
+    let cache = match load_cache_at(cache_root, &path, &request.governance.network) {
         Ok(cache) => cache,
         Err(error) if is_missing_cache(&error) => return Ok(None),
         Err(error) => return Err(error),
@@ -79,9 +82,9 @@ pub fn build_nns_neuron_info_report_from_cache(
     request: &NnsNeuronInfoRequest,
     cache_root: &Path,
 ) -> Result<Option<NnsNeuronInfoReport>, NnsNeuronHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let path = nns_neuron_cache_path(cache_root, &request.network);
-    let cache = match load_cache_at(cache_root, &path, &request.network) {
+    enforce_mainnet_network(&request.governance.network)?;
+    let path = nns_neuron_cache_path(cache_root, &request.governance.network);
+    let cache = match load_cache_at(cache_root, &path, &request.governance.network) {
         Ok(cache) => cache,
         Err(error) if is_missing_cache(&error) => return Ok(None),
         Err(error) => return Err(error),
@@ -186,9 +189,16 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
 
 fn cache_provenance(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronReportProvenance {
     NnsNeuronReportProvenance {
-        fetched_at: cache.fetched_at.clone(),
-        source_endpoint: cache.source_endpoint.clone(),
-        fetched_by: cache.fetched_by.clone(),
+        context: NnsGovernanceReportContext {
+            schema_version: 1,
+            network: cache.network.clone(),
+            governance_canister_id: cache.metadata.governance_canister_id.clone(),
+            fetched_at: cache.fetched_at.clone(),
+            source: NnsGovernanceSourceProvenance::ReplicaQuery {
+                endpoint: cache.source_endpoint.clone(),
+                fetched_by: cache.fetched_by.clone(),
+            },
+        },
         cache_path: Some(path.display().to_string()),
         from_cache: true,
     }
