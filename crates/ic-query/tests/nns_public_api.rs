@@ -27,13 +27,16 @@ use ic_query::nns::governance::{
 };
 use ic_query::nns::neuron::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
-    NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData, NnsNeuronCollectionState,
-    NnsNeuronCollectionStatus, NnsNeuronCollectionStep, NnsNeuronError, NnsNeuronInfoRequest,
-    NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource, NnsNeuronSourceFuture,
-    NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote,
-    advance_nns_neuron_collection_with_source, build_nns_neuron_info_report_with_source,
-    build_nns_neuron_list_report_with_source, nns_neuron_info_report_text,
-    nns_neuron_list_report_text,
+    NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData,
+    NnsNeuronCollectionState, NnsNeuronCollectionStatus, NnsNeuronCollectionStep,
+    NnsNeuronDistributionError, NnsNeuronDistributionReport, NnsNeuronDistributionValidationError,
+    NnsNeuronError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
+    NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronStateDistribution,
+    NnsNeuronType, NnsNeuronTypeDistribution, NnsNeuronVisibility, NnsNeuronVisibilityDistribution,
+    NnsNeuronVote, advance_nns_neuron_collection_with_source, build_nns_neuron_distribution_report,
+    build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_with_source,
+    nns_neuron_distribution_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
+    validate_nns_neuron_distribution_report,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::neuron::{
@@ -836,6 +839,8 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
     assert_eq!(second.state.updated_at(), "2023-11-14T22:15:00Z");
     assert!(second.state.is_complete());
 
+    assert_public_nns_neuron_distribution(&first.page.neurons, &second.page.neurons, &second.state);
+
     let error = run_ready(advance_nns_neuron_collection_with_source(
         &second_request,
         &second.state,
@@ -845,6 +850,42 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
     assert!(matches!(
         error,
         NnsNeuronError::CollectionComplete { pages_fetched: 2 }
+    ));
+}
+
+fn assert_public_nns_neuron_distribution(
+    first_page: &[NnsNeuronRow],
+    final_page: &[NnsNeuronRow],
+    state: &NnsNeuronCollectionState,
+) {
+    let neurons = first_page
+        .iter()
+        .chain(final_page)
+        .cloned()
+        .collect::<Vec<_>>();
+    let distribution: NnsNeuronDistributionReport =
+        build_nns_neuron_distribution_report(state, &neurons)
+            .expect("portable public-neuron distribution");
+    assert_eq!(
+        distribution.schema_version,
+        NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION
+    );
+    assert_eq!(distribution.collected_neuron_count, 3);
+    assert_eq!(distribution.total_effective_stake_e8s, 300_000_000);
+    assert!(!distribution.point_in_time_guaranteed);
+    let _: &[NnsNeuronStateDistribution] = &distribution.state_distribution;
+    let _: &[NnsNeuronVisibilityDistribution] = &distribution.visibility_distribution;
+    let _: &[NnsNeuronTypeDistribution] = &distribution.neuron_type_distribution;
+    let validation: Result<(), NnsNeuronDistributionValidationError> =
+        validate_nns_neuron_distribution_report(&distribution);
+    validation.expect("validate neuron distribution through public API");
+    assert!(nns_neuron_distribution_report_text(&distribution).contains("states:"));
+    let json = serde_json::to_value(&distribution).expect("serialize neuron distribution");
+    assert_eq!(json["source"]["source_transport"], "replica_query");
+
+    assert!(matches!(
+        build_nns_neuron_distribution_report(state, &neurons[..2]),
+        Err(NnsNeuronDistributionError::NeuronCountMismatch { .. })
     ));
 }
 

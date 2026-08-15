@@ -21,7 +21,7 @@ and local-only inspection visibly distinct.
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, exact/one-page replica releases, exact/one-page/aggregate node-provider rewards, one-request observed default-scope and explicit Type4 node status, cached default-scope node/Subnet/provider views with typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history, indexed counts, account detail/pages, and holder pages |
 | CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, public network fee and bounded marketplace prices, one-request official Dashboard provider footprint and exact provider detail, plus explicit Type4 node health, assignment, and exact detail |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
-| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, pure complete-collection proposal activity analytics, economics, metrics, latest reward event, and maturity modulation |
+| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, pure complete-collection proposal activity and public-neuron distribution analytics, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
@@ -549,6 +549,31 @@ Exact detail makes one `get_neuron_info` call. Complete filesystem cache
 refresh remains native-only, but it uses the same portable continuation
 engine.
 
+After that walk reaches API exhaustion, its retained public rows can be
+projected into a portable distribution without another source call:
+
+```rust,no_run
+use ic_query::nns::neuron::{
+    NnsNeuronCollectionState, NnsNeuronDistributionError,
+    NnsNeuronDistributionReport, NnsNeuronRow,
+    build_nns_neuron_distribution_report,
+};
+
+fn neuron_distribution(
+    state: &NnsNeuronCollectionState,
+    neurons: &[NnsNeuronRow],
+) -> Result<NnsNeuronDistributionReport, NnsNeuronDistributionError> {
+    build_nns_neuron_distribution_report(state, neurons)
+}
+```
+
+The schema-1 report preserves raw state, optional visibility, optional neuron-
+type, effective-stake, optional-field coverage, source, and retrieval-time
+evidence. It explicitly does not turn the limited unauthenticated public rows
+or their sequential collection into owner state or a point-in-time balance.
+Use `validate_nns_neuron_distribution_report` after restoring a caller-owned
+serialized report.
+
 Call these builders from an update, timer, heartbeat, or another replicated
 execution context that permits inter-canister calls. Each builder or
 collection advance issues one bounded-wait call, attaches no cycles, performs
@@ -976,6 +1001,7 @@ guidance.
 - [0.37 ICRC account and holder index reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.37/0.37-design.md)
 - [0.38 canister-native NNS Governance reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.38/0.38-design.md)
 - [0.39 portable NNS proposal activity analytics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.39/0.39-design.md)
+- [0.40 portable NNS public-neuron distribution analytics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.40/0.40-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

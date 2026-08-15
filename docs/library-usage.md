@@ -133,6 +133,30 @@ retains explicitly incomplete progress. Exact neuron detail makes one
 continuation beneath its filesystem cache boundary, while canister scheduling,
 storage, and publication remain caller-owned.
 
+Once a retained public-neuron walk is `complete`, project its rows locally
+without another call:
+
+```rust,no_run
+use ic_query::nns::neuron::{
+    NnsNeuronCollectionState, NnsNeuronDistributionError,
+    NnsNeuronDistributionReport, NnsNeuronRow,
+    build_nns_neuron_distribution_report,
+};
+
+fn neuron_distribution(
+    state: &NnsNeuronCollectionState,
+    neurons: &[NnsNeuronRow],
+) -> Result<NnsNeuronDistributionReport, NnsNeuronDistributionError> {
+    build_nns_neuron_distribution_report(state, neurons)
+}
+```
+
+The pure schema-1 report retains collection provenance and the false point-in-
+time guarantee while aggregating raw state, optional visibility, optional
+neuron type, effective stake, and explicit optional-field coverage. Validate
+a restored caller-owned report with
+`validate_nns_neuron_distribution_report` before publishing it.
+
 For official Dashboard REST reports, node-provider rewards, CloudEngine
 provider and Type4 node collection, and the shared observed default-scope
 node-status cache, use the independent Dashboard feature:

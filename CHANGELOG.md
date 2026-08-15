@@ -7,6 +7,21 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.40.x] - Unreleased - Portable NNS public-neuron distribution analytics
+
+Detailed release notes: [docs/changelog/0.40.md](docs/changelog/0.40.md)
+
+- `0.40.0` adds a pure portable distribution builder and retained-report
+  validator over caller-supplied, API-exhausted public NNS neuron collections.
+  Schema-1 reports retain collection and transport provenance, the false
+  point-in-time guarantee, and row retrieval-time range; emit canonical raw-
+  code state, optional visibility, and optional neuron-type counts with
+  effective stake; and preserve reported/unreported coverage for optional
+  staked maturity and current voting-power totals. Known-neuron metadata and
+  Neurons' Fund join-timestamp presence remain factual counts. No crate,
+  feature, dependency, network call, cache, stable-memory policy, or CLI
+  surface is added.
+
 ## [0.39.x] - Unreleased - Portable NNS proposal activity analytics
 
 Detailed release notes: [docs/changelog/0.39.md](docs/changelog/0.39.md)

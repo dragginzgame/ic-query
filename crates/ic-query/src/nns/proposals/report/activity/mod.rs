@@ -12,10 +12,7 @@ use super::{
 use crate::{
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID,
-        governance::{
-            NnsGovernanceRequest, NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
-            validate_governance_request, validate_source_provenance,
-        },
+        governance::{NnsGovernanceSourceProvenance, validate_governance_report_source},
     },
     subnet_catalog::MAINNET_NETWORK,
 };
@@ -334,27 +331,13 @@ fn validate_activity_header(
         ));
     }
 
-    let source = match &report.source {
-        NnsGovernanceSourceProvenance::ReplicaQuery {
-            endpoint,
-            fetched_by,
-        } => NnsGovernanceSourceSelection::ReplicaQuery {
-            endpoint: endpoint.clone(),
-            fetched_by: fetched_by.clone(),
-        },
-        NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall { .. } => {
-            NnsGovernanceSourceSelection::ReplicatedInterCanisterCall
-        }
-    };
-    let request = NnsGovernanceRequest {
-        network: report.network.clone(),
-        fetched_at: report.collection_started_at.clone(),
-        source,
-    };
-    validate_governance_request(&request)
-        .map_err(|error| invalid_validation(format!("invalid collection source: {error}")))?;
-    validate_source_provenance(&request.source, &report.source)
-        .map_err(|error| invalid_validation(format!("invalid collection provenance: {error}")))
+    validate_governance_report_source(&report.network, &report.source).map_err(|error| {
+        let context = match &report.source {
+            NnsGovernanceSourceProvenance::ReplicaQuery { .. } => "source",
+            NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall { .. } => "provenance",
+        };
+        invalid_validation(format!("invalid collection {context}: {error}"))
+    })
 }
 
 fn validate_activity_selection(

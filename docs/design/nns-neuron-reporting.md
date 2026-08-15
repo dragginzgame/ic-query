@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: implemented for the 0.15.0 slice
+- Status: implemented through the 0.40.0 slice
 - Authority: mainnet NNS Governance canister
 - Public boundary: unauthenticated `NeuronInfo` views
 - Collection guarantee: API exhaustion without a point-in-time guarantee
@@ -41,6 +41,24 @@ Complete refresh walks the same endpoint and Governance canister until a
 short or empty page proves API exhaustion. Final rows are validated again
 before publication. The collector retains the row vector and relies on the
 strict global order instead of allocating a second full-history id set.
+
+## Portable Distribution Contract
+
+`build_nns_neuron_distribution_report` accepts a valid final collection state
+and every retained row accounted for by it. It makes no network or cache call.
+The schema-1 output preserves collection and source provenance, the false
+point-in-time guarantee, and the row retrieval-time range.
+
+The report provides raw-code state, optional visibility, and optional neuron-
+type counts with effective-stake totals. It also keeps reported and unreported
+coverage separate for optional staked maturity, deciding voting power, and
+potential voting power. Known-neuron metadata and Neurons' Fund join-timestamp
+presence are factual counts, not owner or membership inference.
+
+Fresh reports and restored caller-owned reports use the same pure validator.
+API exhaustion and internally consistent aggregates do not authenticate the
+retained rows, recover private neuron fields, or establish an atomic
+Governance balance.
 
 ## Cache Contract
 

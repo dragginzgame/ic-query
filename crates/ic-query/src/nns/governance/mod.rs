@@ -59,7 +59,9 @@ pub use text::{
 };
 #[cfg(feature = "nns-host")]
 pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
-pub(crate) use validation::{validate_governance_request, validate_source_provenance};
+pub(crate) use validation::{
+    validate_governance_report_source, validate_governance_request, validate_source_provenance,
+};
 /// Default replica endpoint used for direct NNS Governance reports.
 pub const DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 

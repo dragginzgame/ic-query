@@ -315,7 +315,9 @@ fn validate_continuation_request(
     Ok(())
 }
 
-fn validate_collection_state(state: &NnsNeuronCollectionState) -> Result<(), NnsNeuronError> {
+pub(super) fn validate_collection_state(
+    state: &NnsNeuronCollectionState,
+) -> Result<(), NnsNeuronError> {
     let invalid = |reason| NnsNeuronError::InvalidCollectionState { reason };
     if state.schema_version != NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION {
         return Err(invalid(format!(

@@ -8,6 +8,7 @@
 mod cache;
 mod classification;
 mod collection;
+mod distribution;
 mod error;
 mod model;
 mod source;
@@ -35,6 +36,12 @@ pub use collection::{
     NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION, NnsNeuronCollectionState,
     NnsNeuronCollectionStatus, NnsNeuronCollectionStep, advance_nns_neuron_collection_with_source,
 };
+pub use distribution::{
+    NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NnsNeuronDistributionError,
+    NnsNeuronDistributionReport, NnsNeuronDistributionValidationError, NnsNeuronStateDistribution,
+    NnsNeuronTypeDistribution, NnsNeuronVisibilityDistribution,
+    build_nns_neuron_distribution_report, validate_nns_neuron_distribution_report,
+};
 pub use error::NnsNeuronError;
 #[cfg(feature = "nns-host")]
 pub use error::NnsNeuronHostError;
@@ -50,7 +57,9 @@ pub use source::{
 pub use source::{build_nns_neuron_info_report, build_nns_neuron_list_report};
 #[cfg(feature = "nns-host")]
 pub use text::{nns_neuron_cache_status_report_text, nns_neuron_refresh_report_text};
-pub use text::{nns_neuron_info_report_text, nns_neuron_list_report_text};
+pub use text::{
+    nns_neuron_distribution_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
+};
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;

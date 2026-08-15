@@ -48,14 +48,19 @@ pub fn enforce_mainnet_network(network: &str) -> Result<(), NnsGovernanceError> 
 fn validate_source_selection(
     selection: &NnsGovernanceSourceSelection,
 ) -> Result<(), NnsGovernanceError> {
-    let NnsGovernanceSourceSelection::ReplicaQuery {
-        endpoint,
-        fetched_by,
-    } = selection
-    else {
-        return Ok(());
-    };
+    match selection {
+        NnsGovernanceSourceSelection::ReplicaQuery {
+            endpoint,
+            fetched_by,
+        } => validate_replica_query_source(endpoint, fetched_by),
+        NnsGovernanceSourceSelection::ReplicatedInterCanisterCall => Ok(()),
+    }
+}
 
+fn validate_replica_query_source(
+    endpoint: &str,
+    fetched_by: &str,
+) -> Result<(), NnsGovernanceError> {
     if fetched_by.trim().is_empty() {
         return Err(NnsGovernanceError::InvalidSourceSelection {
             reason: "replica_query fetched_by must not be empty".to_string(),
@@ -127,6 +132,26 @@ pub fn validate_source_provenance(
         _ => Err(NnsGovernanceError::SourceEvidenceMismatch {
             reason: format!("requested {selection:?}, received {provenance:?}"),
         }),
+    }
+}
+
+/// Validate the network and concrete source retained by a caller-owned Governance report.
+pub fn validate_governance_report_source(
+    network: &str,
+    provenance: &NnsGovernanceSourceProvenance,
+) -> Result<(), NnsGovernanceError> {
+    enforce_mainnet_network(network)?;
+    match provenance {
+        NnsGovernanceSourceProvenance::ReplicaQuery {
+            endpoint,
+            fetched_by,
+        } => validate_replica_query_source(endpoint, fetched_by),
+        NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall { .. } => {
+            validate_source_provenance(
+                &NnsGovernanceSourceSelection::ReplicatedInterCanisterCall,
+                provenance,
+            )
+        }
     }
 }
 

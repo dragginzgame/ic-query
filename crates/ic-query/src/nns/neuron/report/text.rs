@@ -6,16 +6,223 @@
 
 #[cfg(feature = "nns-host")]
 use super::cache::{NnsNeuronCacheStatusReport, NnsNeuronRefreshReport};
+use super::distribution::NnsNeuronDistributionReport;
 use super::model::{NnsNeuronInfoReport, NnsNeuronListReport, NnsNeuronRow};
 #[cfg(feature = "nns-host")]
 use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     duration::display_duration_seconds,
-    nns::governance::governance_context_lines,
+    nns::governance::{governance_context_lines, governance_source_lines},
     table::{ColumnAlign, render_table},
     text_value::{optional_u64_text, sanitize_text, yes_no},
     token_amount::e8s_decimal_text,
 };
+
+/// Render one portable public-neuron distribution without selecting a process output sink.
+#[must_use]
+pub fn nns_neuron_distribution_report_text(report: &NnsNeuronDistributionReport) -> String {
+    let mut lines = distribution_preamble(report);
+    push_distribution_section(&mut lines, "states:", state_distribution_table(report));
+    push_distribution_section(
+        &mut lines,
+        "visibilities:",
+        visibility_distribution_table(report),
+    );
+    push_distribution_section(
+        &mut lines,
+        "neuron_types:",
+        neuron_type_distribution_table(report),
+    );
+    lines.join("\n")
+}
+
+fn distribution_preamble(report: &NnsNeuronDistributionReport) -> Vec<String> {
+    let mut lines = vec![
+        format!("network: {}", sanitize_text(&report.network)),
+        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!(
+            "collection_started_at: {}",
+            sanitize_text(&report.collection_started_at)
+        ),
+        format!(
+            "collection_updated_at: {}",
+            sanitize_text(&report.collection_updated_at)
+        ),
+    ];
+    lines.extend(governance_source_lines(&report.source));
+    lines.extend([
+        format!("collection_page_count: {}", report.collection_page_count),
+        format!("collected_neuron_count: {}", report.collected_neuron_count),
+        format!(
+            "point_in_time_guaranteed: {}",
+            yes_no(report.point_in_time_guaranteed)
+        ),
+        format!(
+            "earliest_retrieved_at_timestamp_seconds: {}",
+            optional_u64_text(report.earliest_retrieved_at_timestamp_seconds)
+        ),
+        format!(
+            "latest_retrieved_at_timestamp_seconds: {}",
+            optional_u64_text(report.latest_retrieved_at_timestamp_seconds)
+        ),
+        format!(
+            "total_effective_stake_e8s: {}",
+            report.total_effective_stake_e8s
+        ),
+        format!(
+            "total_effective_stake_icp: {}",
+            e8s_decimal_text(report.total_effective_stake_e8s)
+        ),
+        format!(
+            "reported_staked_maturity_neuron_count: {}",
+            report.reported_staked_maturity_neuron_count
+        ),
+        format!(
+            "unreported_staked_maturity_neuron_count: {}",
+            report.unreported_staked_maturity_neuron_count
+        ),
+        format!(
+            "total_reported_staked_maturity_e8s_equivalent: {}",
+            report.total_reported_staked_maturity_e8s_equivalent
+        ),
+        format!(
+            "total_reported_staked_maturity_icp: {}",
+            e8s_decimal_text(report.total_reported_staked_maturity_e8s_equivalent)
+        ),
+        format!(
+            "reported_deciding_voting_power_neuron_count: {}",
+            report.reported_deciding_voting_power_neuron_count
+        ),
+        format!(
+            "unreported_deciding_voting_power_neuron_count: {}",
+            report.unreported_deciding_voting_power_neuron_count
+        ),
+        format!(
+            "total_reported_deciding_voting_power: {}",
+            report.total_reported_deciding_voting_power
+        ),
+        format!(
+            "reported_potential_voting_power_neuron_count: {}",
+            report.reported_potential_voting_power_neuron_count
+        ),
+        format!(
+            "unreported_potential_voting_power_neuron_count: {}",
+            report.unreported_potential_voting_power_neuron_count
+        ),
+        format!(
+            "total_reported_potential_voting_power: {}",
+            report.total_reported_potential_voting_power
+        ),
+        format!(
+            "known_neuron_metadata_count: {}",
+            report.known_neuron_metadata_count
+        ),
+        format!(
+            "neurons_fund_join_timestamp_present_count: {}",
+            report.neurons_fund_join_timestamp_present_count
+        ),
+    ]);
+    lines
+}
+
+fn state_distribution_table(report: &NnsNeuronDistributionReport) -> Option<String> {
+    (!report.state_distribution.is_empty()).then(|| {
+        let rows = report
+            .state_distribution
+            .iter()
+            .map(|row| {
+                [
+                    row.state.to_string(),
+                    row.state_text.to_string(),
+                    row.neuron_count.to_string(),
+                    e8s_decimal_text(row.effective_stake_e8s),
+                ]
+            })
+            .collect::<Vec<_>>();
+        render_table(
+            &["STATE_CODE", "STATE", "NEURONS", "EFFECTIVE_STAKE_ICP"],
+            &rows,
+            &[
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        )
+    })
+}
+
+fn visibility_distribution_table(report: &NnsNeuronDistributionReport) -> Option<String> {
+    (!report.visibility_distribution.is_empty()).then(|| {
+        let rows = report
+            .visibility_distribution
+            .iter()
+            .map(|row| {
+                [
+                    row.visibility
+                        .map_or_else(|| "-".to_string(), |value| value.to_string()),
+                    row.visibility_text.to_string(),
+                    row.neuron_count.to_string(),
+                    e8s_decimal_text(row.effective_stake_e8s),
+                ]
+            })
+            .collect::<Vec<_>>();
+        render_table(
+            &[
+                "VISIBILITY_CODE",
+                "VISIBILITY",
+                "NEURONS",
+                "EFFECTIVE_STAKE_ICP",
+            ],
+            &rows,
+            &[
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        )
+    })
+}
+
+fn neuron_type_distribution_table(report: &NnsNeuronDistributionReport) -> Option<String> {
+    (!report.neuron_type_distribution.is_empty()).then(|| {
+        let rows = report
+            .neuron_type_distribution
+            .iter()
+            .map(|row| {
+                [
+                    row.neuron_type
+                        .map_or_else(|| "-".to_string(), |value| value.to_string()),
+                    row.neuron_type_text.to_string(),
+                    row.neuron_count.to_string(),
+                    e8s_decimal_text(row.effective_stake_e8s),
+                ]
+            })
+            .collect::<Vec<_>>();
+        render_table(
+            &[
+                "NEURON_TYPE_CODE",
+                "NEURON_TYPE",
+                "NEURONS",
+                "EFFECTIVE_STAKE_ICP",
+            ],
+            &rows,
+            &[
+                ColumnAlign::Right,
+                ColumnAlign::Left,
+                ColumnAlign::Right,
+                ColumnAlign::Right,
+            ],
+        )
+    })
+}
+
+fn push_distribution_section(lines: &mut Vec<String>, title: &str, table: Option<String>) {
+    lines.push(String::new());
+    lines.push(title.to_string());
+    lines.push(table.unwrap_or_else(|| "-".to_string()));
+}
 
 /// Render one public NNS neuron-index page.
 #[must_use]
