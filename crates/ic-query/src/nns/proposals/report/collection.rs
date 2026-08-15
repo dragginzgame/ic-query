@@ -82,7 +82,7 @@ pub struct NnsProposalCollectionState {
     page_size: u32,
     max_pages: u32,
     pages_fetched: u32,
-    proposals_fetched: usize,
+    proposals_fetched: u64,
     next_before_proposal_id: Option<u64>,
     started_at: String,
     updated_at: String,
@@ -168,7 +168,7 @@ impl NnsProposalCollectionState {
 
     /// Return the number of successfully admitted proposal rows.
     #[must_use]
-    pub const fn proposals_fetched(&self) -> usize {
+    pub const fn proposals_fetched(&self) -> u64 {
         self.proposals_fetched
     }
 
@@ -266,13 +266,15 @@ pub async fn advance_nns_proposal_collection_with_source(
 
     let page_count = u32::try_from(page.proposal_count)
         .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
+    let page_row_count = u64::try_from(page.proposal_count)
+        .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
     let pages_fetched = state
         .pages_fetched
         .checked_add(1)
         .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
     let proposals_fetched = state
         .proposals_fetched
-        .checked_add(page.proposal_count)
+        .checked_add(page_row_count)
         .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
     let next_before_proposal_id = (page_count == state.page_size)
         .then(|| {
@@ -365,8 +367,7 @@ pub(super) fn validate_collection_state(
 
     let page_size = u64::from(state.page_size);
     let pages_fetched = u64::from(state.pages_fetched);
-    let proposals_fetched = u64::try_from(state.proposals_fetched)
-        .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
+    let proposals_fetched = state.proposals_fetched;
     let maximum_rows = pages_fetched
         .checked_mul(page_size)
         .ok_or(NnsProposalError::CollectionAccountingOverflow)?;

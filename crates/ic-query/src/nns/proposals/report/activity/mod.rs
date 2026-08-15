@@ -594,11 +594,7 @@ pub fn build_nns_proposal_activity_report(
     }
     validate_time_window(request)?;
 
-    let expected = u64::try_from(collection.proposals_fetched()).map_err(|_| {
-        NnsProposalActivityError::AccountingOverflow {
-            field: "collected_proposal_count",
-        }
-    })?;
+    let expected = collection.proposals_fetched();
     let actual = u64::try_from(proposals.len()).map_err(|_| {
         NnsProposalActivityError::AccountingOverflow {
             field: "supplied_proposal_count",

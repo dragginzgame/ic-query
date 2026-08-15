@@ -90,7 +90,7 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
         NnsProposalHostError::IncompleteRefresh {
             pages_fetched: self.collection_state.pages_fetched(),
-            rows_fetched: self.collection_state.proposals_fetched(),
+            rows_fetched: self.proposals.len(),
             reason: reason.to_string(),
         }
     }
@@ -119,7 +119,7 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             NNS_PROPOSAL_CACHE_COMPONENT,
             SnapshotRefreshProgress::new(
                 self.collection_state.pages_fetched(),
-                self.collection_state.proposals_fetched(),
+                self.proposals.len(),
                 page.last_cursor_text.clone(),
             ),
         )

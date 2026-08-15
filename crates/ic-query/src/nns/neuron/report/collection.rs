@@ -80,7 +80,7 @@ pub struct NnsNeuronCollectionState {
     page_size: u32,
     max_pages: u32,
     pages_fetched: u32,
-    neurons_fetched: usize,
+    neurons_fetched: u64,
     next_start_neuron_id: Option<u64>,
     started_at: String,
     updated_at: String,
@@ -166,7 +166,7 @@ impl NnsNeuronCollectionState {
 
     /// Return the number of successfully admitted neuron rows.
     #[must_use]
-    pub const fn neurons_fetched(&self) -> usize {
+    pub const fn neurons_fetched(&self) -> u64 {
         self.neurons_fetched
     }
 
@@ -266,9 +266,11 @@ pub async fn advance_nns_neuron_collection_with_source(
         .pages_fetched
         .checked_add(1)
         .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
+    let page_row_count = u64::try_from(page.returned_neuron_count)
+        .map_err(|_| NnsNeuronError::CollectionAccountingOverflow)?;
     let neurons_fetched = state
         .neurons_fetched
-        .checked_add(page.returned_neuron_count)
+        .checked_add(page_row_count)
         .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
     let next_start_neuron_id = page.next_start_neuron_id;
     let status = if next_start_neuron_id.is_none() {
@@ -353,8 +355,7 @@ pub(super) fn validate_collection_state(
 
     let page_size = u64::from(state.page_size);
     let pages_fetched = u64::from(state.pages_fetched);
-    let neurons_fetched = u64::try_from(state.neurons_fetched)
-        .map_err(|_| NnsNeuronError::CollectionAccountingOverflow)?;
+    let neurons_fetched = state.neurons_fetched;
     let maximum_rows = pages_fetched
         .checked_mul(page_size)
         .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;

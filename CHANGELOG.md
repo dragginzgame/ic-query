@@ -7,9 +7,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.40.x] - Unreleased - Portable NNS public-neuron distribution analytics
+## [0.40.x] - 2026-08-15 - Portable NNS public-neuron distribution analytics
 
 Detailed release notes: [docs/changelog/0.40.md](docs/changelog/0.40.md)
+
+- `0.40.1` hard-cuts the portable proposal and public-neuron continuation
+  states' cumulative row counters from target-width `usize` to fixed-width
+  `u64`. Schema-1 continuations now keep the same numeric contract when native
+  hosts exchange state with 32-bit Wasm consumers. Release documentation also
+  records the dates of the tagged 0.38.0–0.40.0 releases and explicitly notes
+  that the repository has no retained receipt for the 0.38 mainnet canister
+  smoke requirement.
 
 - `0.40.0` adds a pure portable distribution builder and retained-report
   validator over caller-supplied, API-exhausted public NNS neuron collections.
@@ -22,7 +30,7 @@ Detailed release notes: [docs/changelog/0.40.md](docs/changelog/0.40.md)
   feature, dependency, network call, cache, stable-memory policy, or CLI
   surface is added.
 
-## [0.39.x] - Unreleased - Portable NNS proposal activity analytics
+## [0.39.x] - 2026-08-15 - Portable NNS proposal activity analytics
 
 Detailed release notes: [docs/changelog/0.39.md](docs/changelog/0.39.md)
 
@@ -38,7 +46,7 @@ Detailed release notes: [docs/changelog/0.39.md](docs/changelog/0.39.md)
   path. No feature, dependency, schema version, cache, network call,
   persistence policy, or CLI surface is added.
 
-## [0.38.x] - Unreleased - Canister-native NNS Governance reporting
+## [0.38.x] - 2026-08-14 - Canister-native NNS Governance reporting
 
 Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
 

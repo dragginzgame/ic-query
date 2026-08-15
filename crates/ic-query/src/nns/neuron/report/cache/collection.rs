@@ -83,7 +83,7 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
         NnsNeuronHostError::IncompleteRefresh {
             pages_fetched: self.collection_state.pages_fetched(),
-            rows_fetched: self.collection_state.neurons_fetched(),
+            rows_fetched: self.neurons.len(),
             reason: reason.to_string(),
         }
     }
@@ -112,7 +112,7 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
             NNS_NEURON_CACHE_COMPONENT,
             SnapshotRefreshProgress::new(
                 self.collection_state.pages_fetched(),
-                self.collection_state.neurons_fetched(),
+                self.neurons.len(),
                 page.last_cursor_text.clone(),
             ),
         )

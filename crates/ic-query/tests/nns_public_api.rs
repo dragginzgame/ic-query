@@ -370,7 +370,8 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
         NnsProposalCollectionStatus::Collecting
     );
     assert_eq!(first.state.pages_fetched(), 1);
-    assert_eq!(first.state.proposals_fetched(), 2);
+    let proposals_fetched: u64 = first.state.proposals_fetched();
+    assert_eq!(proposals_fetched, 2);
     assert_eq!(first.state.next_before_proposal_id(), Some(2));
     assert_eq!(first.state.network(), "ic");
     assert_eq!(
@@ -797,7 +798,8 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
     );
     assert_eq!(first.state.status(), NnsNeuronCollectionStatus::Collecting);
     assert_eq!(first.state.pages_fetched(), 1);
-    assert_eq!(first.state.neurons_fetched(), 2);
+    let neurons_fetched: u64 = first.state.neurons_fetched();
+    assert_eq!(neurons_fetched, 2);
     assert_eq!(first.state.next_start_neuron_id(), Some(2));
     assert_eq!(first.state.network(), "ic");
     assert_eq!(

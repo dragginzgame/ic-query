@@ -227,11 +227,7 @@ pub fn build_nns_neuron_distribution_report(
         }
     })?;
 
-    let expected = u64::try_from(collection.neurons_fetched()).map_err(|_| {
-        NnsNeuronDistributionError::AccountingOverflow {
-            field: "collected_neuron_count",
-        }
-    })?;
+    let expected = collection.neurons_fetched();
     let actual = u64::try_from(neurons.len()).map_err(|_| {
         NnsNeuronDistributionError::AccountingOverflow {
             field: "supplied_neuron_count",
