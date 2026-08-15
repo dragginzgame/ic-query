@@ -44,6 +44,7 @@ icq icrc account transaction --help
 | [0.36 Node-Provider Reward Reporting](design/0.36/0.36-design.md) | Exact detail, one upstream page with explicit overlap evidence, and bounded aggregate reward history |
 | [0.37 ICRC Account and Holder Index Reporting](design/0.37/0.37-design.md) | Bounded cursor pages, exact account follow-up, and lossless Unix-second creation timestamps |
 | [0.38 Canister-Native NNS Governance Reporting](design/0.38/0.38-design.md) | Two-runtime library boundary, replicated inter-canister collection, and shared Governance report assembly |
+| [0.39 Portable NNS Proposal Activity Analytics](design/0.39/0.39-design.md) | Complete-collection validation and deterministic topic, status, reward-status, and UTC-day counts |
 | [IC Dashboard Canister Reporting](design/ic-dashboard-canister-reporting.md) | Official REST authority and bounded canister detail, count, and page reports |
 | [IC Dashboard Network Metrics](design/ic-dashboard-network-metrics.md) | Official Metrics API authority, bounded time-series queries, and raw series contract |
 | [IC Dashboard Daily Statistics](design/ic-dashboard-daily-stats.md) | Bounded daily network activity, selected raw rate fields, and one-request contract |

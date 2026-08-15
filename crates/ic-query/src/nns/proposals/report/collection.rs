@@ -327,7 +327,9 @@ fn validate_continuation_request(
     Ok(())
 }
 
-fn validate_collection_state(state: &NnsProposalCollectionState) -> Result<(), NnsProposalError> {
+pub(super) fn validate_collection_state(
+    state: &NnsProposalCollectionState,
+) -> Result<(), NnsProposalError> {
     let invalid = |reason| NnsProposalError::InvalidCollectionState { reason };
     if state.schema_version != NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION {
         return Err(invalid(format!(

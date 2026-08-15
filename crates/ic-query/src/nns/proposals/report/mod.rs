@@ -2,8 +2,9 @@
 //!
 //! Responsibility: build NNS governance proposal reports.
 //! Does not own: CLI parsing, SNS proposal reports, cache files, or topology reports.
-//! Boundary: maps live NNS governance proposal rows into text and JSON reports.
+//! Boundary: maps NNS Governance proposal and collection evidence into text and JSON reports.
 
+mod activity;
 mod assemble;
 #[cfg(feature = "nns-host")]
 mod cache;
@@ -20,6 +21,13 @@ mod view;
 ))]
 mod wire;
 
+pub use activity::{
+    NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION, NnsProposalActivityError,
+    NnsProposalActivityReport, NnsProposalActivityRequest, NnsProposalActivityValidationError,
+    NnsProposalDayCount, NnsProposalRewardStatusCount, NnsProposalStatusCount,
+    NnsProposalTopicCount, build_nns_proposal_activity_report,
+    validate_nns_proposal_activity_report,
+};
 #[cfg(feature = "nns-host")]
 pub use cache::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalCacheListReport,
@@ -52,12 +60,14 @@ pub use source::{
 };
 #[cfg(feature = "nns-host")]
 pub use source::{build_nns_proposal_list_report, build_nns_proposal_report};
+pub use text::{
+    nns_proposal_activity_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
+};
 #[cfg(feature = "nns-host")]
 pub use text::{
     nns_proposal_cache_list_report_text, nns_proposal_cache_status_report_text,
     nns_proposal_refresh_report_text,
 };
-pub use text::{nns_proposal_list_report_text, nns_proposal_report_text};
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;

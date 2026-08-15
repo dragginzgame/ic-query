@@ -21,7 +21,7 @@ and local-only inspection visibly distinct.
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, exact/one-page replica releases, exact/one-page/aggregate node-provider rewards, one-request observed default-scope and explicit Type4 node status, cached default-scope node/Subnet/provider views with typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history, indexed counts, account detail/pages, and holder pages |
 | CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, public network fee and bounded marketplace prices, one-request official Dashboard provider footprint and exact provider detail, plus explicit Type4 node health, assignment, and exact detail |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
-| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, economics, metrics, latest reward event, and maturity modulation |
+| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, pure complete-collection proposal activity analytics, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
@@ -507,6 +507,42 @@ means API exhaustion; `page_limit_reached` preserves bounded progress without
 making that claim. The states define no stable-memory layout or publication
 policy, and sequential pages are not one point-in-time view.
 
+Once a proposal walk is complete, its retained rows can be projected locally
+without another source call or a runtime-specific implementation:
+
+```rust,no_run
+use ic_query::nns::proposals::{
+    NnsProposalActivityError, NnsProposalActivityReport,
+    NnsProposalActivityRequest, NnsProposalCollectionState, NnsProposalRow,
+    build_nns_proposal_activity_report,
+};
+
+fn proposal_activity(
+    state: &NnsProposalCollectionState,
+    proposals: &[NnsProposalRow],
+) -> Result<NnsProposalActivityReport, NnsProposalActivityError> {
+    build_nns_proposal_activity_report(
+        &NnsProposalActivityRequest {
+            from_proposal_timestamp_seconds: None,
+            until_proposal_timestamp_seconds: None,
+        },
+        state,
+        proposals,
+    )
+}
+```
+
+The schema-1 report preserves raw topic, decision-status, and reward-status
+codes, provides UTC-day counts, and records that a sequential collection is
+not one point-in-time snapshot. The builder rejects partial collections,
+row-count mismatches, duplicate or missing proposal ids, zero timestamps, and
+raw/typed classification inconsistencies before returning a report. It is
+available in the no-default build as well as to callers using `canister` or a
+native host feature. After restoring a report from caller-owned storage, use
+`validate_nns_proposal_activity_report` to recheck its schema-1 identity,
+provenance, window accounting, included range, and canonical count tables
+without making a source call.
+
 One neuron list call accepts 1 through 300 rows, returns the validated next
 neuron-id cursor when the page is full, and never follows it automatically.
 Exact detail makes one `get_neuron_info` call. Complete filesystem cache
@@ -939,6 +975,7 @@ guidance.
 - [0.36 node-provider reward reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.36/0.36-design.md)
 - [0.37 ICRC account and holder index reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.37/0.37-design.md)
 - [0.38 canister-native NNS Governance reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.38/0.38-design.md)
+- [0.39 portable NNS proposal activity analytics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.39/0.39-design.md)
 - [IC Dashboard canister reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-canister-reporting.md)
 - [IC Dashboard network metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-network-metrics.md)
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)

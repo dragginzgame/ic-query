@@ -95,15 +95,20 @@ use ic_query::nns::proposals::{
     refresh_nns_proposal_cache_with_source,
 };
 use ic_query::nns::proposals::{
-    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION,
-    NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalBallotRow, NnsProposalCollectionState,
-    NnsProposalCollectionStatus, NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
-    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus,
-    NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection, NnsProposalSource,
-    NnsProposalSourceFuture, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally,
-    NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
-    advance_nns_proposal_collection_with_source, build_nns_proposal_list_report_with_source,
-    build_nns_proposal_report_with_source, nns_proposal_list_report_text, nns_proposal_report_text,
+    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
+    NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION, NNS_PROPOSAL_MAX_PAGE_SIZE,
+    NnsProposalActivityError, NnsProposalActivityReport, NnsProposalActivityRequest,
+    NnsProposalActivityValidationError, NnsProposalBallotRow, NnsProposalCollectionState,
+    NnsProposalCollectionStatus, NnsProposalDayCount, NnsProposalError, NnsProposalListReport,
+    NnsProposalListRequest, NnsProposalListSort, NnsProposalReport, NnsProposalRequest,
+    NnsProposalRewardStatus, NnsProposalRewardStatusCount, NnsProposalRewardStatusFilter,
+    NnsProposalRow, NnsProposalSortDirection, NnsProposalSource, NnsProposalSourceFuture,
+    NnsProposalStatus, NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally,
+    NnsProposalTopic, NnsProposalTopicCount, NnsProposalTopicFilter, NnsProposalVote,
+    advance_nns_proposal_collection_with_source, build_nns_proposal_activity_report,
+    build_nns_proposal_list_report_with_source, build_nns_proposal_report_with_source,
+    nns_proposal_activity_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
+    validate_nns_proposal_activity_report,
 };
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::{
@@ -404,6 +409,12 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
     assert_eq!(second.state.updated_at(), "2023-11-14T22:15:00Z");
     assert!(second.state.is_complete());
 
+    assert_public_nns_proposal_activity(
+        &first.page.proposals,
+        &second.page.proposals,
+        &second.state,
+    );
+
     let error = run_ready(advance_nns_proposal_collection_with_source(
         &second_request,
         &second.state,
@@ -413,6 +424,49 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
     assert!(matches!(
         error,
         NnsProposalError::CollectionComplete { pages_fetched: 2 }
+    ));
+}
+
+fn assert_public_nns_proposal_activity(
+    first_page: &[NnsProposalRow],
+    final_page: &[NnsProposalRow],
+    state: &NnsProposalCollectionState,
+) {
+    let proposals = first_page
+        .iter()
+        .chain(final_page)
+        .cloned()
+        .collect::<Vec<_>>();
+    let activity: NnsProposalActivityReport = build_nns_proposal_activity_report(
+        &NnsProposalActivityRequest::default(),
+        state,
+        &proposals,
+    )
+    .expect("portable proposal activity report");
+    assert_eq!(
+        activity.schema_version,
+        NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION
+    );
+    assert_eq!(activity.included_proposal_count, 3);
+    assert!(!activity.point_in_time_guaranteed);
+    let _: &[NnsProposalTopicCount] = &activity.topic_counts;
+    let _: &[NnsProposalStatusCount] = &activity.status_counts;
+    let _: &[NnsProposalRewardStatusCount] = &activity.reward_status_counts;
+    let _: &[NnsProposalDayCount] = &activity.day_counts;
+    let validation: Result<(), NnsProposalActivityValidationError> =
+        validate_nns_proposal_activity_report(&activity);
+    validation.expect("validate activity through public API");
+    assert!(nns_proposal_activity_report_text(&activity).contains("topics:"));
+    let activity_json = serde_json::to_value(&activity).expect("serialize activity report");
+    assert_eq!(activity_json["source"]["source_transport"], "replica_query");
+
+    let invalid_window = NnsProposalActivityRequest {
+        from_proposal_timestamp_seconds: Some(10),
+        until_proposal_timestamp_seconds: Some(10),
+    };
+    assert!(matches!(
+        build_nns_proposal_activity_report(&invalid_window, state, &proposals),
+        Err(NnsProposalActivityError::InvalidTimeWindow { .. })
     ));
 }
 

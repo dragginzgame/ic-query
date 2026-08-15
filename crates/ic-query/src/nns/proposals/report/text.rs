@@ -1,9 +1,10 @@
 //! Module: nns::proposals::report::text
 //!
-//! Responsibility: render NNS proposal reports as text.
+//! Responsibility: render NNS proposal reports as human-readable text.
 //! Does not own: live governance calls, JSON output, or report assembly.
-//! Boundary: formats NNS proposal rows for human CLI output.
+//! Boundary: returns formatted strings without selecting or writing to a process output sink.
 
+use super::NnsProposalActivityReport;
 #[cfg(feature = "nns-host")]
 use super::cache::{
     NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshReport,
@@ -14,13 +15,169 @@ use super::model::{
 #[cfg(feature = "nns-host")]
 use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
-    nns::governance::governance_context_lines,
+    nns::governance::{governance_context_lines, governance_source_lines},
+    subnet_catalog::format_utc_timestamp_secs,
     table::{ColumnAlign, render_table},
     text_value::{optional_u64_text, sanitize_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
 const NNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;
+
+/// Render a portable NNS proposal activity report without selecting a process output sink.
+#[must_use]
+pub fn nns_proposal_activity_report_text(report: &NnsProposalActivityReport) -> String {
+    let mut lines = activity_preamble(report);
+    push_activity_section(&mut lines, "topics:", topic_activity_table(report));
+    push_activity_section(&mut lines, "statuses:", status_activity_table(report));
+    push_activity_section(
+        &mut lines,
+        "reward_statuses:",
+        reward_status_activity_table(report),
+    );
+    push_activity_section(&mut lines, "daily_activity:", daily_activity_table(report));
+    lines.join("\n")
+}
+
+fn activity_preamble(report: &NnsProposalActivityReport) -> Vec<String> {
+    let mut lines = vec![
+        format!("network: {}", sanitize_text(&report.network)),
+        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!(
+            "collection_started_at: {}",
+            sanitize_text(&report.collection_started_at)
+        ),
+        format!(
+            "collection_updated_at: {}",
+            sanitize_text(&report.collection_updated_at)
+        ),
+    ];
+    lines.extend(governance_source_lines(&report.source));
+    lines.extend([
+        format!("collection_page_count: {}", report.collection_page_count),
+        format!(
+            "collected_proposal_count: {}",
+            report.collected_proposal_count
+        ),
+        format!(
+            "point_in_time_guaranteed: {}",
+            yes_no(report.point_in_time_guaranteed)
+        ),
+        format!(
+            "from_proposal_timestamp_seconds: {}",
+            optional_u64_text(report.from_proposal_timestamp_seconds)
+        ),
+        format!(
+            "until_proposal_timestamp_seconds: {}",
+            optional_u64_text(report.until_proposal_timestamp_seconds)
+        ),
+        format!(
+            "included_proposal_count: {}",
+            report.included_proposal_count
+        ),
+        format!(
+            "excluded_before_from_count: {}",
+            report.excluded_before_from_count
+        ),
+        format!(
+            "excluded_at_or_after_until_count: {}",
+            report.excluded_at_or_after_until_count
+        ),
+        format!(
+            "earliest_included_proposal_timestamp_seconds: {}",
+            optional_u64_text(report.earliest_included_proposal_timestamp_seconds)
+        ),
+        format!(
+            "latest_included_proposal_timestamp_seconds: {}",
+            optional_u64_text(report.latest_included_proposal_timestamp_seconds)
+        ),
+    ]);
+    lines
+}
+
+fn topic_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
+    (!report.topic_counts.is_empty()).then(|| {
+        let rows = report
+            .topic_counts
+            .iter()
+            .map(|row| {
+                [
+                    row.topic.to_string(),
+                    row.topic_text.as_str().to_string(),
+                    row.proposal_count.to_string(),
+                ]
+            })
+            .collect::<Vec<_>>();
+        render_table(
+            &["TOPIC_CODE", "TOPIC", "PROPOSALS"],
+            &rows,
+            &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+        )
+    })
+}
+
+fn status_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
+    (!report.status_counts.is_empty()).then(|| {
+        let rows = report
+            .status_counts
+            .iter()
+            .map(|row| {
+                [
+                    row.status.to_string(),
+                    row.status_text.as_str().to_string(),
+                    row.proposal_count.to_string(),
+                ]
+            })
+            .collect::<Vec<_>>();
+        render_table(
+            &["STATUS_CODE", "STATUS", "PROPOSALS"],
+            &rows,
+            &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+        )
+    })
+}
+
+fn reward_status_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
+    (!report.reward_status_counts.is_empty()).then(|| {
+        let rows = report
+            .reward_status_counts
+            .iter()
+            .map(|row| {
+                [
+                    row.reward_status.to_string(),
+                    row.reward_status_text.as_str().to_string(),
+                    row.proposal_count.to_string(),
+                ]
+            })
+            .collect::<Vec<_>>();
+        render_table(
+            &["REWARD_STATUS_CODE", "REWARD_STATUS", "PROPOSALS"],
+            &rows,
+            &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+        )
+    })
+}
+
+fn daily_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
+    (!report.day_counts.is_empty()).then(|| {
+        let rows = report
+            .day_counts
+            .iter()
+            .map(|row| {
+                [
+                    format_utc_timestamp_secs(row.day_start_timestamp_seconds),
+                    row.day_start_timestamp_seconds.to_string(),
+                    row.proposal_count.to_string(),
+                ]
+            })
+            .collect::<Vec<_>>();
+        render_table(
+            &["DAY_START_UTC", "DAY_START_SECONDS", "PROPOSALS"],
+            &rows,
+            &[ColumnAlign::Left, ColumnAlign::Right, ColumnAlign::Right],
+        )
+    })
+}
 
 #[must_use]
 pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
@@ -365,6 +522,12 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
             .collect::<Vec<_>>(),
         &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
     ))
+}
+
+fn push_activity_section(lines: &mut Vec<String>, title: &str, table: Option<String>) {
+    lines.push(String::new());
+    lines.push(title.to_string());
+    lines.push(table.unwrap_or_else(|| "-".to_string()));
 }
 
 #[cfg(feature = "nns-host")]

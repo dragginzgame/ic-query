@@ -7,6 +7,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.39.x] - Unreleased - Portable NNS proposal activity analytics
+
+Detailed release notes: [docs/changelog/0.39.md](docs/changelog/0.39.md)
+
+- `0.39.1` adds `validate_nns_proposal_activity_report`, a pure validator for
+  caller-retained or deserialized schema-1 activity reports. It rejects
+  invalid identity or source provenance, inconsistent time-window accounting,
+  point-in-time claims, malformed included ranges, and noncanonical or
+  count-inconsistent topic, decision-status, reward-status, and UTC-day rows.
+  Freshly built reports pass through the same validation path before return.
+  No feature, dependency, schema version, network call, persistence policy, or
+  CLI surface changes.
+- `0.39.0` adds a pure portable activity builder over caller-supplied,
+  API-exhausted NNS proposal collections. Schema-1 reports retain collection
+  provenance and the false point-in-time guarantee, apply an optional
+  half-open proposal-time window, and emit deterministic raw-code topic,
+  decision-status, reward-status, and UTC-day counts. Partial collections and
+  malformed retained rows fail with typed errors. No feature, dependency,
+  cache, network call, or CLI surface is added.
+
 ## [0.38.x] - Unreleased - Canister-native NNS Governance reporting
 
 Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
