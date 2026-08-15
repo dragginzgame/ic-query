@@ -72,10 +72,41 @@ mod tests {
     use candid::Principal;
     use ic_agent::{AgentError, agent_error::TransportError};
     use std::{
-        io::{Read, Write},
-        net::TcpListener,
+        io::{BufRead, BufReader, Read, Write},
+        net::{TcpListener, TcpStream},
         thread,
     };
+
+    fn read_complete_request(stream: &mut TcpStream) {
+        let mut reader = BufReader::new(stream);
+        let mut content_length = None;
+        loop {
+            let mut line = String::new();
+            let bytes_read = reader
+                .read_line(&mut line)
+                .expect("read test agent request");
+            assert!(bytes_read > 0, "test agent request must not be empty");
+            if line == "\r\n" {
+                break;
+            }
+            if let Some((name, value)) = line.split_once(':')
+                && name.eq_ignore_ascii_case("content-length")
+            {
+                content_length = Some(
+                    value
+                        .trim()
+                        .parse::<usize>()
+                        .expect("test agent request body length must be numeric"),
+                );
+            }
+        }
+
+        let mut body =
+            vec![0_u8; content_length.expect("test agent request must declare its body length")];
+        reader
+            .read_exact(&mut body)
+            .expect("read complete test agent request body");
+    }
 
     #[test]
     fn constructs_agent_for_valid_endpoint_without_network_io() {
@@ -100,9 +131,7 @@ mod tests {
         let address = listener.local_addr().expect("test replica address");
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().expect("accept test agent request");
-            let mut request = [0_u8; 2_048];
-            let bytes_read = stream.read(&mut request).expect("read test agent request");
-            assert!(bytes_read > 0, "test agent request must not be empty");
+            read_complete_request(&mut stream);
             stream
                 .write_all(
                     b"HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: 65\r\nConnection: close\r\n\r\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
