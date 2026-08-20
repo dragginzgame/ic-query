@@ -18,8 +18,9 @@ Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
   routing/endpoint/field subject when known, stable code/category,
   retryability including typed `Unknown`, and the original host error. Existing
   simple load APIs now map the same implementation back to their prior source
-  errors. No CLI, cache schema, network-call bound, or persistence behavior
-  changes.
+  errors. Managed-cache creation also tolerates concurrent creators without
+  weakening symlink, file-type, or permission validation. No CLI, cache schema,
+  network-call bound, or persistence behavior changes.
 
 ## [0.40.x] - 2026-08-15 - Portable NNS public-neuron distribution analytics
 

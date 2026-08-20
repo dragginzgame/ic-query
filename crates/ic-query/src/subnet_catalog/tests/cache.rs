@@ -100,7 +100,7 @@ fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryabi
         });
     let subject = SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
         kind: SubnetCatalogRegistryRecordKind::SubnetList,
-        key: Some(crate::ic_registry::SUBNET_LIST_KEY.to_string()),
+        key: crate::ic_registry::SUBNET_LIST_KEY.to_string(),
         subnet: None,
     });
 
@@ -149,18 +149,14 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
     let cases = [
         (
             None,
-            SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
-                kind: SubnetCatalogRegistryRecordKind::LatestVersion,
-                key: None,
-                subnet: None,
-            }),
+            SubnetCatalogSubject::RegistryLatestVersion,
             "RegistryGetLatestVersionResponse",
         ),
         (
             Some(445_566),
             SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
                 kind: SubnetCatalogRegistryRecordKind::SubnetList,
-                key: Some(crate::ic_registry::SUBNET_LIST_KEY.to_string()),
+                key: crate::ic_registry::SUBNET_LIST_KEY.to_string(),
                 subnet: None,
             }),
             "SubnetListRecord",
@@ -169,7 +165,7 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
             Some(445_566),
             SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
                 kind: SubnetCatalogRegistryRecordKind::RoutingTable,
-                key: Some(crate::ic_registry::ROUTING_TABLE_KEY.to_string()),
+                key: crate::ic_registry::ROUTING_TABLE_KEY.to_string(),
                 subnet: None,
             }),
             "RoutingTable",
@@ -178,7 +174,7 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
             Some(445_566),
             SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
                 kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
-                key: Some(crate::ic_registry::subnet_record_key(SUBNET_A)),
+                key: crate::ic_registry::subnet_record_key(SUBNET_A),
                 subnet: Some(candid::Principal::from_text(SUBNET_A).expect("subnet")),
             }),
             "SubnetRecord",

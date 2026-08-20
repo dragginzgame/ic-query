@@ -31,6 +31,12 @@ The failure separately carries:
 No field is inferred by parsing `Display` output. Unknown version, subject, or
 retryability evidence remains explicitly unknown.
 
+`SubnetCatalogSubject::RegistryLatestVersion` identifies version acquisition
+without pretending that the method is a Registry record. Every
+`SubnetCatalogRegistryRecordSubject` has an exact key. An indexed malformed
+Registry entry is `RegistryRoutingTableEntry`; `RoutingRange` is reserved for a
+complete offending range value.
+
 ## Registry Version Boundary
 
 `get_latest_version` is the pinning boundary. Agent construction, Registry

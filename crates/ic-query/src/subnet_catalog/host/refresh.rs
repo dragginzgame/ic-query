@@ -110,12 +110,12 @@ pub async fn refresh_subnet_catalog_with_source_async(
     request: &SubnetCatalogRefreshRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
-    refresh_subnet_catalog_with_source_detailed_async(request, source)
+    refresh_subnet_catalog_detailed_with_source_async(request, source)
         .await
         .map_err(SubnetCatalogSourceFailure::into_source)
 }
 
-pub(super) async fn refresh_subnet_catalog_with_source_detailed_async(
+pub(super) async fn refresh_subnet_catalog_detailed_with_source_async(
     request: &SubnetCatalogRefreshRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogSourceFailure> {

@@ -9,7 +9,7 @@ use super::{
     SubnetCatalogLoadFailure, SubnetCatalogLoadStage, SubnetCatalogRefreshRequest,
     SubnetCatalogRefreshTrigger, SubnetCatalogSource, SubnetCatalogSourceFailure,
     SubnetCatalogSubject, error::enforce_mainnet_network, failure::subject_from_catalog_error,
-    refresh::refresh_subnet_catalog_with_source_detailed_async, subnet_catalog_path,
+    refresh::refresh_subnet_catalog_detailed_with_source_async, subnet_catalog_path,
 };
 use crate::{
     cache_file::read_managed_text,
@@ -572,7 +572,7 @@ async fn refresh_then_load_detailed(
         DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     )
     .with_max_future_skew_seconds(request.max_future_skew_seconds);
-    let refresh = refresh_subnet_catalog_with_source_detailed_async(&refresh_request, source)
+    let refresh = refresh_subnet_catalog_detailed_with_source_async(&refresh_request, source)
         .await
         .map_err(|failure| {
             load_failure(

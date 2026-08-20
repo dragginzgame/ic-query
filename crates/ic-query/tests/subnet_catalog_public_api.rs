@@ -230,7 +230,7 @@ fn public_custom_source_can_supply_exact_failure_version_and_subject() {
                     Some(SubnetCatalogSubject::RegistryRecord(
                         SubnetCatalogRegistryRecordSubject {
                             kind: SubnetCatalogRegistryRecordKind::RoutingTable,
-                            key: Some("routing_table".to_string()),
+                            key: "routing_table".to_string(),
                             subnet: None,
                         },
                     )),

@@ -42,6 +42,50 @@ fn managed_round_trip_uses_owner_only_modes() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[cfg(unix)]
+#[test]
+fn managed_directory_creation_tolerates_an_observation_race_without_weakening_confinement() {
+    let parent_path = temp_dir("ic-query-confined-directory-race-parent");
+    fs::create_dir(&parent_path).expect("create race parent");
+    let parent = cap_std::fs::Dir::open_ambient_dir(&parent_path, cap_std::ambient_authority())
+        .expect("open race parent");
+    let root = parent_path.join("cache");
+    let name = std::ffi::OsStr::new("cache");
+
+    create_directory_component(&parent, name, &root, &root).expect("first creator succeeds");
+    create_directory_component(&parent, name, &root, &root)
+        .expect("creator that lost the observation race validates the directory");
+
+    assert!(root.is_dir());
+
+    let file_path = parent_path.join("file");
+    fs::write(&file_path, "not a directory").expect("create race file");
+    let file_error = create_directory_component(
+        &parent,
+        std::ffi::OsStr::new("file"),
+        &file_path,
+        &file_path,
+    )
+    .expect_err("existing file is rejected");
+    assert!(matches!(file_error, CacheFileError::Confinement { .. }));
+
+    let outside = temp_dir("ic-query-confined-directory-race-outside");
+    fs::create_dir(&outside).expect("create symlink target");
+    let symlink_path = parent_path.join("symlink");
+    symlink(&outside, &symlink_path).expect("create race symlink");
+    let symlink_error = create_directory_component(
+        &parent,
+        std::ffi::OsStr::new("symlink"),
+        &symlink_path,
+        &symlink_path,
+    )
+    .expect_err("existing symlink is rejected");
+    assert!(matches!(symlink_error, CacheFileError::Confinement { .. }));
+
+    let _ = fs::remove_dir_all(parent_path);
+    let _ = fs::remove_dir_all(outside);
+}
+
 #[test]
 fn bounded_managed_read_accepts_exact_limit_and_rejects_larger_file() {
     let root = temp_dir("ic-query-confined-bounded-read");

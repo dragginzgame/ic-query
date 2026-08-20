@@ -154,8 +154,6 @@ pub enum SubnetCatalogFailureCacheDisposition {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SubnetCatalogRegistryRecordKind {
-    /// The Registry latest-version query.
-    LatestVersion,
     /// The Registry Subnet list record.
     SubnetList,
     /// The Registry routing table record.
@@ -169,7 +167,6 @@ impl SubnetCatalogRegistryRecordKind {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::LatestVersion => "latest_version",
             Self::SubnetList => "subnet_list",
             Self::RoutingTable => "routing_table",
             Self::SubnetRecord => "subnet_record",
@@ -185,29 +182,20 @@ impl SubnetCatalogRegistryRecordKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogRegistryRecordSubject {
-    /// Record or method family.
+    /// Registry record family.
     pub kind: SubnetCatalogRegistryRecordKind,
-    /// Exact Registry key when the operation used `get_value`.
-    pub key: Option<String>,
+    /// Exact Registry key used by `get_value`.
+    pub key: String,
     /// Exact Subnet principal for a Subnet-record operation.
     pub subnet: Option<Principal>,
 }
 
 impl SubnetCatalogRegistryRecordSubject {
     #[must_use]
-    pub(crate) const fn latest_version() -> Self {
-        Self {
-            kind: SubnetCatalogRegistryRecordKind::LatestVersion,
-            key: None,
-            subnet: None,
-        }
-    }
-
-    #[must_use]
     pub(crate) fn keyed(kind: SubnetCatalogRegistryRecordKind, key: impl Into<String>) -> Self {
         Self {
             kind,
-            key: Some(key.into()),
+            key: key.into(),
             subnet: None,
         }
     }
@@ -216,7 +204,7 @@ impl SubnetCatalogRegistryRecordSubject {
     pub(crate) fn subnet_record(key: impl Into<String>, subnet: Principal) -> Self {
         Self {
             kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
-            key: Some(key.into()),
+            key: key.into(),
             subnet: Some(subnet),
         }
     }
@@ -231,7 +219,7 @@ impl SubnetCatalogRegistryRecordSubject {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SubnetCatalogField {
     /// One principal entry in the Registry Subnet list.
-    SubnetListSubnet,
+    SubnetListEntry,
     /// The range object in one routing-table entry.
     RoutingTableRange,
     /// The target Subnet id in one routing-table entry.
@@ -276,6 +264,8 @@ pub enum SubnetCatalogSubject {
     Endpoint(String),
     /// Exact managed cache path.
     CachePath(PathBuf),
+    /// The Registry latest-version query, before an exact version is known.
+    RegistryLatestVersion,
     /// Registry record, key, and optional Subnet identity.
     RegistryRecord(SubnetCatalogRegistryRecordSubject),
     /// Exact Subnet principal, optionally narrowed to one typed field.
@@ -285,15 +275,15 @@ pub enum SubnetCatalogSubject {
         /// Narrower field identity when known.
         field: Option<SubnetCatalogField>,
     },
-    /// One indexed Registry routing range and its offending field when known.
-    RoutingRange {
+    /// One indexed Registry routing-table entry and its offending field when known.
+    RegistryRoutingTableEntry {
         /// Zero-based position in the pinned routing table.
         index: usize,
         /// Narrower field identity when known.
         field: Option<SubnetCatalogField>,
     },
     /// One complete routing-range value from cache or source validation.
-    RoutingRangeValue {
+    RoutingRange {
         /// Offending routing range.
         range: RoutingRange,
         /// Narrower field identity when known.
@@ -475,7 +465,7 @@ pub(super) fn subject_from_catalog_error(error: &CatalogError) -> Option<SubnetC
             start_canister_id,
             end_canister_id,
             subnet_principal,
-        } => Some(SubnetCatalogSubject::RoutingRangeValue {
+        } => Some(SubnetCatalogSubject::RoutingRange {
             range: RoutingRange {
                 start_canister_id: start_canister_id.clone(),
                 end_canister_id: end_canister_id.clone(),
@@ -486,7 +476,7 @@ pub(super) fn subject_from_catalog_error(error: &CatalogError) -> Option<SubnetC
         CatalogError::OverlappingRoutingRanges { first, .. }
         | CatalogError::NonCanonicalRoutingOrder {
             previous: first, ..
-        } => Some(SubnetCatalogSubject::RoutingRangeValue {
+        } => Some(SubnetCatalogSubject::RoutingRange {
             range: first.as_ref().clone(),
             field: None,
         }),

@@ -51,7 +51,7 @@ pub(super) async fn catalog_from_registry_records_detailed(
                         SubnetCatalogRegistryFailure::new(
                             Some(registry_version),
                             Some(SubnetCatalogSubject::Field(
-                                SubnetCatalogField::SubnetListSubnet,
+                                SubnetCatalogField::SubnetListEntry,
                             )),
                             source,
                         )
@@ -60,7 +60,7 @@ pub(super) async fn catalog_from_registry_records_detailed(
                     SubnetCatalogRegistryFailure::new(
                         Some(registry_version),
                         Some(SubnetCatalogSubject::Field(
-                            SubnetCatalogField::SubnetListSubnet,
+                            SubnetCatalogField::SubnetListEntry,
                         )),
                         RegistryFetchError::InvalidPrincipal {
                             field: "subnet_list.subnets",
@@ -235,7 +235,7 @@ const fn routing_range_failure(
 ) -> SubnetCatalogRegistryFailure {
     SubnetCatalogRegistryFailure::new(
         None,
-        Some(SubnetCatalogSubject::RoutingRange {
+        Some(SubnetCatalogSubject::RegistryRoutingTableEntry {
             index,
             field: Some(field),
         }),
@@ -266,7 +266,7 @@ mod detailed_failure_tests {
             Some(SubnetCatalogSubject::RegistryRecord(
                 SubnetCatalogRegistryRecordSubject {
                     kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
-                    key: Some(key),
+                    key,
                     subnet: Some(subnet),
                 }
             ))
@@ -306,7 +306,7 @@ mod detailed_failure_tests {
         assert_eq!(range_failure.registry_version, Some(882_111));
         assert_eq!(
             range_failure.subject,
-            Some(SubnetCatalogSubject::RoutingRange {
+            Some(SubnetCatalogSubject::RegistryRoutingTableEntry {
                 index: 7,
                 field: Some(SubnetCatalogField::RoutingRangeStart),
             })

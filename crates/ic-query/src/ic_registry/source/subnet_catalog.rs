@@ -98,9 +98,7 @@ pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_detailed_async(
 const fn latest_version_failure(source: RegistryFetchError) -> SubnetCatalogRegistryFailure {
     SubnetCatalogRegistryFailure::new(
         None,
-        Some(SubnetCatalogSubject::RegistryRecord(
-            SubnetCatalogRegistryRecordSubject::latest_version(),
-        )),
+        Some(SubnetCatalogSubject::RegistryLatestVersion),
         source,
     )
 }
@@ -153,13 +151,7 @@ mod detailed_failure_tests {
         assert_eq!(failure.registry_version, None);
         assert_eq!(
             failure.subject,
-            Some(SubnetCatalogSubject::RegistryRecord(
-                SubnetCatalogRegistryRecordSubject {
-                    kind: SubnetCatalogRegistryRecordKind::LatestVersion,
-                    key: None,
-                    subnet: None,
-                }
-            ))
+            Some(SubnetCatalogSubject::RegistryLatestVersion)
         );
     }
 
@@ -180,7 +172,7 @@ mod detailed_failure_tests {
             Some(SubnetCatalogSubject::RegistryRecord(
                 SubnetCatalogRegistryRecordSubject {
                     kind: SubnetCatalogRegistryRecordKind::SubnetList,
-                    key: Some(SUBNET_LIST_KEY.to_string()),
+                    key: SUBNET_LIST_KEY.to_string(),
                     subnet: None,
                 }
             ))
