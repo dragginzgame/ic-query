@@ -121,6 +121,51 @@ pub enum SubnetCatalogRetryability {
     Retryable,
     /// The caller must change policy, input, or local evidence first.
     NotRetryable,
+    /// Available evidence does not support a truthful binary classification.
+    Unknown(SubnetCatalogUnknownRetryReason),
+}
+
+impl SubnetCatalogRetryability {
+    /// Return the stable snake-case classification.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Retryable => "retryable",
+            Self::NotRetryable => "not_retryable",
+            Self::Unknown(_) => "unknown",
+        }
+    }
+}
+
+///
+/// SubnetCatalogUnknownRetryReason
+///
+/// Typed reason a Subnet Catalog host failure cannot be classified as retryable or not.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SubnetCatalogUnknownRetryReason {
+    /// A filesystem operation may reflect either transient IO or persistent local state.
+    CacheOperation,
+    /// A Registry response failure may change, but no safe retry guarantee is available.
+    RegistryResponse,
+    /// A Registry transport failure does not expose enough typed detail to classify safely.
+    RegistryTransport,
+    /// Runtime availability cannot be inferred from the adapter failure alone.
+    RuntimeAdapter,
+}
+
+impl SubnetCatalogUnknownRetryReason {
+    /// Return the stable snake-case reason.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CacheOperation => "cache_operation",
+            Self::RegistryResponse => "registry_response",
+            Self::RegistryTransport => "registry_transport",
+            Self::RuntimeAdapter => "runtime_adapter",
+        }
+    }
 }
 
 ///
@@ -303,8 +348,13 @@ impl SubnetCatalogHostError {
     pub fn retryability(&self) -> SubnetCatalogRetryability {
         match self {
             Self::AgreementEndpoint { source, .. } => source.retryability(),
-            Self::RegistryRefresh(_) | Self::AgreementMismatch { .. } | Self::RuntimeAdapter(_) => {
-                SubnetCatalogRetryability::Retryable
+            Self::RegistryRefresh(source) => registry_retryability(source),
+            Self::AgreementMismatch { .. } => SubnetCatalogRetryability::Retryable,
+            Self::RuntimeAdapter(_) => {
+                SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RuntimeAdapter)
+            }
+            Self::Cache(_) => {
+                SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::CacheOperation)
             }
             _ => SubnetCatalogRetryability::NotRetryable,
         }
@@ -318,6 +368,47 @@ impl SubnetCatalogHostError {
             Self::MissingCatalog { .. } => Some(SubnetCatalogRemediation::RefreshCatalog),
             _ => None,
         }
+    }
+}
+
+const fn registry_retryability(error: &RegistryFetchError) -> SubnetCatalogRetryability {
+    match error {
+        RegistryFetchError::AgentCall { .. } => {
+            SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RegistryTransport)
+        }
+        RegistryFetchError::EmptyRegistryChunkList
+        | RegistryFetchError::InvalidRegistryChunkDigest { .. }
+        | RegistryFetchError::ProtobufDecode { .. }
+        | RegistryFetchError::RegistryValue { .. }
+        | RegistryFetchError::MissingValue { .. }
+        | RegistryFetchError::CandidDecode { .. }
+        | RegistryFetchError::RegistryChunkRejected { .. }
+        | RegistryFetchError::MissingChunkContent { .. }
+        | RegistryFetchError::ChunkHashMismatch { .. }
+        | RegistryFetchError::MissingField { .. }
+        | RegistryFetchError::CountOverflow { .. }
+        | RegistryFetchError::InvalidPrincipal { .. }
+        | RegistryFetchError::DuplicateNodeAssignment { .. }
+        | RegistryFetchError::MissingNodeRecord { .. }
+        | RegistryFetchError::MissingNodeOperatorPrincipal { .. }
+        | RegistryFetchError::MissingNodeOperatorRecord { .. }
+        | RegistryFetchError::MissingNodeProviderPrincipal { .. }
+        | RegistryFetchError::InvalidDataCenterRecordId { .. }
+        | RegistryFetchError::EmptySubnetList
+        | RegistryFetchError::DuplicateSubnetPrincipal { .. }
+        | RegistryFetchError::EmptyRoutingTable
+        | RegistryFetchError::Catalog(_)
+        | RegistryFetchError::CertificateAuthentication { .. }
+        | RegistryFetchError::InvalidCertifiedRegistry { .. } => {
+            SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RegistryResponse)
+        }
+        RegistryFetchError::Runtime(_) => {
+            SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RuntimeAdapter)
+        }
+        RegistryFetchError::AgentBuild { .. }
+        | RegistryFetchError::RegistryChunkLimit { .. }
+        | RegistryFetchError::ProtobufEncode { .. }
+        | RegistryFetchError::CandidEncode { .. } => SubnetCatalogRetryability::NotRetryable,
     }
 }
 

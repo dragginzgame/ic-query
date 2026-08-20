@@ -200,6 +200,17 @@ calls or replacing the cache. Successful outcomes can emit compact authority
 evidence containing the exact Registry version, digest, assurance, endpoints,
 and cache disposition.
 
+`CacheDisposition` is success-only evidence: it says whether the returned
+catalog was a hit, refreshed missing/invalid/stale content, or came from a
+forced refresh. It must not be reused to describe a failure. Detailed Subnet
+Catalog loads use `SubnetCatalogLoadStage` plus
+`SubnetCatalogFailureCacheDisposition` for failure provenance. Together they
+distinguish cache-only loading, forced cache bypass, missing and rejected
+content, refresh preflight, refresh failure with its missing/rejected/stale/
+forced trigger, and a post-refresh cache-load failure. The detailed failure
+separately retains the optional pinned Registry version, typed subject, stable
+error classification, retryability, and original host error.
+
 The exact-version NNS Subnet topology and ICRC account-transaction libraries
 apply the same recovery only through their explicit refresh-if-missing and
 refresh-if-stale APIs. Their direct cache loaders remain local and strict.

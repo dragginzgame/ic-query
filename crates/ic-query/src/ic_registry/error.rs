@@ -1,4 +1,7 @@
-use crate::{runtime::RuntimeError, subnet_catalog::CatalogError};
+use crate::{
+    runtime::RuntimeError,
+    subnet_catalog::{CatalogError, SubnetCatalogSubject},
+};
 use thiserror::Error as ThisError;
 
 ///
@@ -152,4 +155,31 @@ pub enum RegistryFetchError {
 
     #[error("failed to create Tokio runtime for registry refresh: {0}")]
     Runtime(#[from] RuntimeError),
+}
+
+///
+/// SubnetCatalogRegistryFailure
+///
+/// Internal pinned-version and subject provenance for one Registry catalog failure.
+///
+
+#[derive(Debug)]
+pub struct SubnetCatalogRegistryFailure {
+    pub registry_version: Option<u64>,
+    pub subject: Option<SubnetCatalogSubject>,
+    pub source: RegistryFetchError,
+}
+
+impl SubnetCatalogRegistryFailure {
+    pub const fn new(
+        registry_version: Option<u64>,
+        subject: Option<SubnetCatalogSubject>,
+        source: RegistryFetchError,
+    ) -> Self {
+        Self {
+            registry_version,
+            subject,
+            source,
+        }
+    }
 }

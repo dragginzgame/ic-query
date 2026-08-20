@@ -1130,6 +1130,29 @@ Ordinary catalog caches use schema 1. Content with another schema identifier is
 invalid and can be replaced only when the selected read policy explicitly
 permits invalid cache refresh; there is no migration or fallback reader.
 
+Callers that need failure provenance use
+`load_cached_subnet_catalog_detailed`, `load_subnet_catalog_detailed`,
+`load_subnet_catalog_detailed_async`,
+`load_subnet_catalog_detailed_with_source`, or
+`load_subnet_catalog_detailed_with_source_async`. These return
+`SubnetCatalogLoadFailure`, whose request retains the requested network,
+selected `CatalogSourceSelection`, and minimum assurance. Its typed stage and
+failure-side cache disposition distinguish cache-only loading, cache bypass,
+absence, rejection, attempted/failed refresh, and a failed post-refresh cache
+load. Optional Registry version and typed subjects retain exact Registry
+record/key, Subnet principal, routing range, endpoint, or field evidence when
+the failing layer knows it. Stable code/category fields and
+`SubnetCatalogRetryability::{Retryable, NotRetryable, Unknown(reason)}` require
+no error-text parsing. `source` is the original `SubnetCatalogHostError`.
+
+The existing simple load functions execute the detailed implementation and
+map a failure back through `SubnetCatalogLoadFailure::into_source`; their
+observable host-error variants are unchanged. Existing `SubnetCatalogSource`
+implementations also remain valid because `fetch_catalog_detailed` has a
+truthful default with unknown version/subject provenance. A custom source that
+knows more may override it and return `SubnetCatalogSourceFailure` without
+forking the load or cache algorithm.
+
 `ValidatedSubnetCatalog::resolve_canister_route` binds the canonical canister
 and Subnet principals, complete matched `SubnetInfo`, routing range, Registry
 version, binary catalog digest, and provenance in one result. The caller can
@@ -1144,6 +1167,7 @@ Async embedders can use `fetch_subnet_catalog_async`,
 `load_subnet_catalog_async`, and `refresh_subnet_catalog_async` on their own
 runtime. The async source seam returns `SubnetCatalogSourceFuture`; custom
 sources must return single-endpoint evidence for the exact requested endpoint.
+The detailed source seam returns `SubnetCatalogDetailedSourceFuture`.
 Dropping an in-flight async refresh releases its owned lock without publishing.
 
 Agreement is an explicit bounded source selection rather than a different

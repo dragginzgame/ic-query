@@ -22,6 +22,7 @@ pub use client::fetch_mainnet_certified_registry_delta_batch_async;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use client::fetch_mainnet_registry_version;
 pub use client::fetch_mainnet_subnet_catalog_async;
+pub use client::fetch_mainnet_subnet_catalog_detailed_async;
 #[cfg(feature = "nns-topology-host")]
 pub use client::fetch_mainnet_subnet_topology;
 #[cfg(feature = "nns-host")]
@@ -30,6 +31,7 @@ pub use client::{
     fetch_mainnet_node_provider_list,
 };
 pub use error::RegistryFetchError;
+pub use error::SubnetCatalogRegistryFailure;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use model::AuthenticatedRegistryDeltaWitness;
 pub use model::MainnetRegistryFetchRequest;

@@ -11,16 +11,22 @@ use ic_query::subnet_catalog::{
 use ic_query::subnet_catalog::{
     CacheDisposition, CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
-    SubnetCatalogFilters, SubnetCatalogHostError, SubnetCatalogInfoReport,
-    SubnetCatalogInfoRequest, SubnetCatalogListReport, SubnetCatalogListRequest,
-    SubnetCatalogLoadRequest, SubnetCatalogRefreshReport, SubnetCatalogRefreshRequest,
-    SubnetCatalogSource, SubnetCatalogSourceFuture, SubnetCatalogSubnetRow,
+    SubnetCatalogDetailedSourceFuture, SubnetCatalogFailureCacheDisposition, SubnetCatalogFilters,
+    SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
+    SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogLoadFailure,
+    SubnetCatalogLoadRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshReport,
+    SubnetCatalogRefreshRequest, SubnetCatalogRegistryRecordKind,
+    SubnetCatalogRegistryRecordSubject, SubnetCatalogSource, SubnetCatalogSourceFailure,
+    SubnetCatalogSourceFuture, SubnetCatalogSubject, SubnetCatalogSubnetRow,
     build_subnet_catalog_info_report, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source, fetch_subnet_catalog_async,
-    load_cached_subnet_catalog, load_subnet_catalog_with_source_async, refresh_subnet_catalog,
-    refresh_subnet_catalog_with_source_async, subnet_catalog_info_report_text,
-    subnet_catalog_list_report_text, subnet_catalog_list_report_verbose_text, subnet_catalog_path,
-    subnet_catalog_refresh_lock_path, subnet_catalog_refresh_report_text,
+    load_cached_subnet_catalog, load_cached_subnet_catalog_detailed, load_subnet_catalog_detailed,
+    load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
+    load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source_async,
+    refresh_subnet_catalog, refresh_subnet_catalog_with_source_async,
+    subnet_catalog_info_report_text, subnet_catalog_list_report_text,
+    subnet_catalog_list_report_verbose_text, subnet_catalog_path, subnet_catalog_refresh_lock_path,
+    subnet_catalog_refresh_report_text,
 };
 #[cfg(all(feature = "subnet-catalog-host", unix))]
 use std::os::unix::fs::PermissionsExt;
@@ -163,6 +169,101 @@ fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(report.subnets.len(), 1);
     assert_eq!(report.subnets[0].subnet_principal, SUBNET_A);
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[test]
+fn public_detailed_load_api_exposes_typed_failure_provenance() {
+    let root = temp_root("subnet-catalog-host-detailed-public-api");
+    let request =
+        SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test());
+
+    let failure = load_cached_subnet_catalog_detailed(&request).expect_err("cache missing");
+
+    assert_eq!(failure.stage, SubnetCatalogLoadStage::CacheAbsence);
+    assert_eq!(
+        failure.cache_disposition,
+        SubnetCatalogFailureCacheDisposition::CacheMissing
+    );
+    assert_eq!(failure.registry_version, None);
+    assert_eq!(failure.request.network, MAINNET_NETWORK);
+    assert!(matches!(
+        failure.source,
+        SubnetCatalogHostError::MissingCatalog { .. }
+    ));
+
+    let _: fn(&SubnetCatalogLoadRequest) -> Result<_, SubnetCatalogLoadFailure> =
+        load_subnet_catalog_detailed;
+    let _: fn(
+        &SubnetCatalogLoadRequest,
+        &dyn SubnetCatalogSource,
+    ) -> Result<_, SubnetCatalogLoadFailure> = load_subnet_catalog_detailed_with_source;
+    let _ = load_subnet_catalog_detailed_async;
+    let _ = load_subnet_catalog_detailed_with_source_async;
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[test]
+fn public_custom_source_can_supply_exact_failure_version_and_subject() {
+    struct DetailedSource;
+
+    impl SubnetCatalogSource for DetailedSource {
+        fn fetch_catalog<'a>(
+            &'a self,
+            _request: &'a NnsSourceRequest,
+        ) -> SubnetCatalogSourceFuture<'a> {
+            Box::pin(async {
+                Err(SubnetCatalogHostError::Catalog(
+                    ic_query::subnet_catalog::CatalogError::EmptySubnets,
+                ))
+            })
+        }
+
+        fn fetch_catalog_detailed<'a>(
+            &'a self,
+            _request: &'a NnsSourceRequest,
+        ) -> SubnetCatalogDetailedSourceFuture<'a> {
+            Box::pin(async {
+                Err(SubnetCatalogSourceFailure::new(
+                    Some(700_008),
+                    Some(SubnetCatalogSubject::RegistryRecord(
+                        SubnetCatalogRegistryRecordSubject {
+                            kind: SubnetCatalogRegistryRecordKind::RoutingTable,
+                            key: Some("routing_table".to_string()),
+                            subnet: None,
+                        },
+                    )),
+                    SubnetCatalogHostError::Catalog(
+                        ic_query::subnet_catalog::CatalogError::EmptyRoutingRanges,
+                    ),
+                ))
+            })
+        }
+    }
+
+    let root = temp_root("subnet-catalog-host-detailed-source-public-api");
+    let request =
+        SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test())
+            .with_policy(ic_query::subnet_catalog::CatalogReadPolicy::ForceRefresh {
+                source: CatalogSourceSelection::uncertified_query(
+                    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+                ),
+            });
+    let failure = load_subnet_catalog_detailed_with_source(&request, &DetailedSource)
+        .expect_err("fixture source fails");
+
+    assert_eq!(failure.registry_version, Some(700_008));
+    assert!(matches!(
+        failure.subject,
+        Some(SubnetCatalogSubject::RegistryRecord(
+            SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::RoutingTable,
+                ..
+            }
+        ))
+    ));
+    let _ = fs::remove_dir_all(root);
 }
 
 #[cfg(feature = "subnet-catalog-host")]

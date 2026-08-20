@@ -358,6 +358,16 @@ payload digest before returning a `ValidatedSubnetCatalog`. The digest detects
 an inconsistent payload; it is not a signature and does not promote the
 current `UncertifiedQuery` assurance. Bounded NNS Registry inventory
 read-through operations retain their owner-selected invalid-content repair.
+Successful `CacheDisposition` values describe how a catalog was supplied; they
+do not describe a failed attempt. Detailed host loads instead return a
+`SubnetCatalogLoadFailure` with the requested network, selected
+`CatalogSourceSelection`, minimum assurance, exact `SubnetCatalogLoadStage`,
+failure-side `SubnetCatalogFailureCacheDisposition`, optional pinned Registry
+version, typed subject, stable code/category, and typed retryability. Once the
+live collector pins a Registry version, every later Subnet-list, routing-table,
+Subnet-record, decoding, validation, or aggregation failure retains that exact
+version. A failure before version acquisition retains `None`, and uncertain
+retryability is `Unknown(reason)` rather than a binary guess.
 Exact-version topology and ICRC account-history library callers receive the
 same behavior only through explicitly selected read-through APIs. Direct cache
 loads, filesystem failures, and complete Governance history caches remain

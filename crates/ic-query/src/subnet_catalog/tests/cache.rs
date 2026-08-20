@@ -60,6 +60,181 @@ fn missing_catalog_error_explains_cached_only_slice() {
 }
 
 #[test]
+fn detailed_cache_failures_distinguish_absence_and_rejection() {
+    let root = temp_dir("ic-query-subnet-detailed-cache-stages");
+    let request = cache_only_load_request(&root);
+
+    let missing = load_cached_subnet_catalog_detailed(&request).expect_err("cache missing");
+    assert_eq!(missing.stage, SubnetCatalogLoadStage::CacheAbsence);
+    assert_eq!(
+        missing.cache_disposition,
+        SubnetCatalogFailureCacheDisposition::CacheMissing
+    );
+    assert_eq!(missing.registry_version, None);
+
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
+        .expect("invalid cache");
+    let rejected = load_cached_subnet_catalog_detailed(&request).expect_err("cache rejected");
+
+    let _ = fs::remove_dir_all(root);
+    assert_eq!(rejected.stage, SubnetCatalogLoadStage::CacheRejection);
+    assert_eq!(
+        rejected.cache_disposition,
+        SubnetCatalogFailureCacheDisposition::CacheRejected
+    );
+    assert_eq!(rejected.registry_version, None);
+    assert!(matches!(
+        rejected.source,
+        SubnetCatalogHostError::Catalog(CatalogError::Json(_))
+    ));
+}
+
+#[test]
+fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryability() {
+    let root = temp_dir("ic-query-subnet-detailed-refresh-failure");
+    let endpoint = DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
+    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+        .with_policy(CatalogReadPolicy::RefreshMissing {
+            source: CatalogSourceSelection::uncertified_query(endpoint),
+        });
+    let subject = SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
+        kind: SubnetCatalogRegistryRecordKind::SubnetList,
+        key: Some(crate::ic_registry::SUBNET_LIST_KEY.to_string()),
+        subnet: None,
+    });
+
+    let failure = load_subnet_catalog_detailed_with_source(
+        &request,
+        &DetailedFailureSource::new(Some(881_337), Some(subject.clone()), "SubnetListRecord"),
+    )
+    .expect_err("refresh fails");
+
+    assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
+    assert_eq!(
+        failure.cache_disposition,
+        SubnetCatalogFailureCacheDisposition::RefreshFailed(SubnetCatalogRefreshTrigger::Missing)
+    );
+    assert_eq!(failure.registry_version, Some(881_337));
+    assert_eq!(failure.subject, Some(subject));
+    assert_eq!(failure.request.network, MAINNET_NETWORK);
+    assert_eq!(
+        failure.request.minimum_assurance,
+        CatalogAssurance::UncertifiedQuery
+    );
+    assert_eq!(
+        failure.request.source,
+        Some(CatalogSourceSelection::uncertified_query(endpoint))
+    );
+    assert_eq!(failure.code, SubnetCatalogErrorCode::RegistryRefresh);
+    assert_eq!(failure.category, SubnetCatalogErrorCategory::Network);
+    assert_eq!(
+        failure.retryability,
+        SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RegistryResponse)
+    );
+    assert!(matches!(
+        failure.source,
+        SubnetCatalogHostError::RegistryRefresh(
+            crate::ic_registry::RegistryFetchError::ProtobufDecode {
+                message: "SubnetListRecord",
+                ..
+            }
+        )
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() {
+    let cases = [
+        (
+            None,
+            SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::LatestVersion,
+                key: None,
+                subnet: None,
+            }),
+            "RegistryGetLatestVersionResponse",
+        ),
+        (
+            Some(445_566),
+            SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::SubnetList,
+                key: Some(crate::ic_registry::SUBNET_LIST_KEY.to_string()),
+                subnet: None,
+            }),
+            "SubnetListRecord",
+        ),
+        (
+            Some(445_566),
+            SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::RoutingTable,
+                key: Some(crate::ic_registry::ROUTING_TABLE_KEY.to_string()),
+                subnet: None,
+            }),
+            "RoutingTable",
+        ),
+        (
+            Some(445_566),
+            SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
+                key: Some(crate::ic_registry::subnet_record_key(SUBNET_A)),
+                subnet: Some(candid::Principal::from_text(SUBNET_A).expect("subnet")),
+            }),
+            "SubnetRecord",
+        ),
+    ];
+
+    for (index, (registry_version, subject, message)) in cases.into_iter().enumerate() {
+        let root = temp_dir(&format!("ic-query-subnet-version-failure-{index}"));
+        let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+            .with_policy(CatalogReadPolicy::ForceRefresh {
+                source: CatalogSourceSelection::uncertified_query(
+                    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+                ),
+            });
+        let failure = load_subnet_catalog_detailed_with_source(
+            &request,
+            &DetailedFailureSource::new(registry_version, Some(subject.clone()), message),
+        )
+        .expect_err("fixture fails");
+
+        assert_eq!(failure.registry_version, registry_version);
+        assert_eq!(failure.subject, Some(subject));
+        assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
+fn simple_load_api_returns_the_original_observable_source_error() {
+    let root = temp_dir("ic-query-subnet-simple-source-error");
+    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+        .with_policy(CatalogReadPolicy::ForceRefresh {
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
+        });
+
+    let failure = load_subnet_catalog_with_source(
+        &request,
+        &DetailedFailureSource::new(Some(77), None, "RoutingTable"),
+    )
+    .expect_err("simple API fails");
+
+    let _ = fs::remove_dir_all(root);
+    assert!(matches!(
+        failure,
+        SubnetCatalogHostError::RegistryRefresh(
+            crate::ic_registry::RegistryFetchError::ProtobufDecode {
+                message: "RoutingTable",
+                ..
+            }
+        )
+    ));
+}
+
+#[test]
 fn cache_only_policy_never_invokes_the_supplied_source() {
     let root = temp_dir("ic-query-subnet-cache-only-source");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
@@ -72,6 +247,31 @@ fn cache_only_policy_never_invokes_the_supplied_source() {
         error,
         SubnetCatalogHostError::MissingCatalog { .. }
     ));
+}
+
+#[test]
+fn every_simple_load_entry_point_preserves_the_missing_catalog_error() {
+    let root = temp_dir("ic-query-subnet-simple-load-wrappers");
+    let request = cache_only_load_request(&root);
+    let source = FixtureRefreshSource::err();
+
+    let cached = load_cached_subnet_catalog(&request).expect_err("cached load");
+    let sync = load_subnet_catalog(&request).expect_err("sync load");
+    let sync_source =
+        load_subnet_catalog_with_source(&request, &source).expect_err("sync source load");
+    let async_load =
+        futures::executor::block_on(load_subnet_catalog_async(&request)).expect_err("async load");
+    let async_source =
+        futures::executor::block_on(load_subnet_catalog_with_source_async(&request, &source))
+            .expect_err("async source load");
+
+    let _ = fs::remove_dir_all(root);
+    for failure in [cached, sync, sync_source, async_load, async_source] {
+        assert!(matches!(
+            failure,
+            SubnetCatalogHostError::MissingCatalog { .. }
+        ));
+    }
 }
 
 #[test]

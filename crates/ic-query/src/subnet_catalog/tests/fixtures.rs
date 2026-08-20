@@ -210,6 +210,63 @@ impl SubnetCatalogSource for FixtureRefreshSource {
     }
 }
 
+///
+/// DetailedFailureSource
+///
+/// Fixture source that returns caller-selected typed collection failure provenance.
+///
+
+pub(super) struct DetailedFailureSource {
+    registry_version: Option<u64>,
+    subject: Option<SubnetCatalogSubject>,
+    message: &'static str,
+}
+
+impl DetailedFailureSource {
+    pub(super) const fn new(
+        registry_version: Option<u64>,
+        subject: Option<SubnetCatalogSubject>,
+        message: &'static str,
+    ) -> Self {
+        Self {
+            registry_version,
+            subject,
+            message,
+        }
+    }
+
+    fn source_error(&self) -> SubnetCatalogHostError {
+        SubnetCatalogHostError::RegistryRefresh(
+            crate::ic_registry::RegistryFetchError::ProtobufDecode {
+                message: self.message,
+                reason: "fixture failure".to_string(),
+            },
+        )
+    }
+}
+
+impl SubnetCatalogSource for DetailedFailureSource {
+    fn fetch_catalog<'a>(
+        &'a self,
+        _request: &'a NnsSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a> {
+        Box::pin(async move { Err(self.source_error()) })
+    }
+
+    fn fetch_catalog_detailed<'a>(
+        &'a self,
+        _request: &'a NnsSourceRequest,
+    ) -> SubnetCatalogDetailedSourceFuture<'a> {
+        Box::pin(async move {
+            Err(SubnetCatalogSourceFailure::new(
+                self.registry_version,
+                self.subject.clone(),
+                self.source_error(),
+            ))
+        })
+    }
+}
+
 pub(super) fn fixture_catalog() -> RawSubnetCatalog {
     RawSubnetCatalog::new_mainnet_uncertified(
         UncertifiedCatalogCollection::new(

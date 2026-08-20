@@ -7,6 +7,20 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.41.x] - Unreleased - Typed Subnet Catalog load failures
+
+Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
+
+- `0.41.0` adds detailed synchronous, asynchronous, and caller-supplied-source
+  Subnet Catalog load APIs under `subnet-catalog-host`. Typed failures retain
+  requested authority policy, exact load stage and failure-side cache
+  disposition, the pinned Registry version and offending Registry/Subnet/
+  routing/endpoint/field subject when known, stable code/category,
+  retryability including typed `Unknown`, and the original host error. Existing
+  simple load APIs now map the same implementation back to their prior source
+  errors. No CLI, cache schema, network-call bound, or persistence behavior
+  changes.
+
 ## [0.40.x] - 2026-08-15 - Portable NNS public-neuron distribution analytics
 
 Detailed release notes: [docs/changelog/0.40.md](docs/changelog/0.40.md)
