@@ -391,7 +391,7 @@ impl Error for SubnetCatalogLoadFailure {
     }
 }
 
-pub(super) fn subject_from_catalog_error(error: &CatalogError) -> Option<SubnetCatalogSubject> {
+pub fn subject_from_catalog_error(error: &CatalogError) -> Option<SubnetCatalogSubject> {
     match error {
         CatalogError::NetworkMismatch { actual, .. } => {
             Some(SubnetCatalogSubject::Network(actual.clone()))
@@ -421,25 +421,22 @@ pub(super) fn subject_from_catalog_error(error: &CatalogError) -> Option<SubnetC
                 SubnetCatalogField::CatalogDigest,
             ))
         }
-        CatalogError::DuplicateSubnet { subnet_principal }
-        | CatalogError::UnknownRoutingSubnet { subnet_principal }
-        | CatalogError::SubnetKindMismatch {
+        CatalogError::DuplicateSubnet { subnet_principal } => {
+            subnet_subject(subnet_principal, Some(SubnetCatalogField::SubnetListEntry))
+        }
+        CatalogError::UnknownRoutingSubnet { subnet_principal } => subnet_subject(
+            subnet_principal,
+            Some(SubnetCatalogField::RoutingTableSubnetId),
+        ),
+        CatalogError::SubnetKindMismatch {
             subnet_principal, ..
         }
         | CatalogError::ChargingPolicyMismatch {
             subnet_principal, ..
-        }
-        | CatalogError::ClassificationMismatch {
+        } => subnet_subject(subnet_principal, None),
+        CatalogError::ClassificationMismatch {
             subnet_principal, ..
-        } => {
-            Principal::from_text(subnet_principal)
-                .ok()
-                .map(|subnet| SubnetCatalogSubject::Subnet {
-                    subnet,
-                    field: matches!(error, CatalogError::ClassificationMismatch { .. })
-                        .then_some(SubnetCatalogField::Classification),
-                })
-        }
+        } => subnet_subject(subnet_principal, Some(SubnetCatalogField::Classification)),
         CatalogError::InvalidRoutingRange {
             start_canister_id,
             end_canister_id,
@@ -473,6 +470,15 @@ pub(super) fn subject_from_catalog_error(error: &CatalogError) -> Option<SubnetC
         | CatalogError::AmbiguousPrincipalPrefix { .. }
         | CatalogError::RouteNotFound { .. } => None,
     }
+}
+
+fn subnet_subject(
+    subnet_principal: &str,
+    field: Option<SubnetCatalogField>,
+) -> Option<SubnetCatalogSubject> {
+    Principal::from_text(subnet_principal)
+        .ok()
+        .map(|subnet| SubnetCatalogSubject::Subnet { subnet, field })
 }
 
 fn subject_from_principal_field(field: &str) -> Option<SubnetCatalogSubject> {

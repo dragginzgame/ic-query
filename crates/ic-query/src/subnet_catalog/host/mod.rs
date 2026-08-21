@@ -17,6 +17,7 @@ pub use error::{
     SubnetCatalogErrorCategory, SubnetCatalogErrorCode, SubnetCatalogHostError,
     SubnetCatalogRemediation, SubnetCatalogRetryability, SubnetCatalogUnknownRetryReason,
 };
+pub use failure::subject_from_catalog_error;
 pub use failure::{
     SubnetCatalogFailureCacheDisposition, SubnetCatalogField, SubnetCatalogLoadFailure,
     SubnetCatalogLoadFailureRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshTrigger,

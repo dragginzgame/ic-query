@@ -129,12 +129,14 @@ fn subnet_id_text(subnet_id: &SubnetId) -> Result<String, RegistryFetchError> {
 }
 
 fn principal_text_from_raw(raw: &[u8], field: &'static str) -> Result<String, RegistryFetchError> {
-    Principal::try_from_slice(raw)
-        .map(|principal| principal.to_text())
-        .map_err(|err| RegistryFetchError::InvalidPrincipal {
-            field,
-            reason: err.to_string(),
-        })
+    principal_from_raw(raw, field).map(|principal| principal.to_text())
+}
+
+fn principal_from_raw(raw: &[u8], field: &'static str) -> Result<Principal, RegistryFetchError> {
+    Principal::try_from_slice(raw).map_err(|err| RegistryFetchError::InvalidPrincipal {
+        field,
+        reason: err.to_string(),
+    })
 }
 
 #[cfg(feature = "nns-topology-host")]

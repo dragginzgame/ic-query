@@ -237,6 +237,7 @@ impl SubnetCatalogSource for FixtureRefreshSource {
             }
             let mut catalog = self.catalog.clone().expect("fixture catalog");
             catalog.provenance.source_endpoints = vec![request.endpoint.clone()];
+            attach_complete_registry_evidence(&mut catalog, &request.endpoint);
             catalog.canonicalize_and_seal()?;
             Ok(catalog)
         })
@@ -324,7 +325,7 @@ impl SubnetCatalogSource for DetailedFailureSource {
 }
 
 pub(super) fn fixture_catalog() -> RawSubnetCatalog {
-    RawSubnetCatalog::new_mainnet_uncertified(
+    let mut catalog = RawSubnetCatalog::new_mainnet_uncertified(
         UncertifiedCatalogCollection::new(
             123_456,
             "https://icp-api.io",
@@ -381,5 +382,11 @@ pub(super) fn fixture_catalog() -> RawSubnetCatalog {
             },
         ],
     )
-    .expect("valid fixture catalog")
+    .expect("valid fixture catalog");
+    let endpoint = catalog.provenance.source_endpoints[0].clone();
+    attach_complete_registry_evidence(&mut catalog, &endpoint);
+    catalog
+        .canonicalize_and_seal()
+        .expect("seal complete Registry evidence fixture");
+    catalog
 }

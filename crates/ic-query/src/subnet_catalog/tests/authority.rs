@@ -9,43 +9,6 @@ fn validation_context() -> CatalogValidationContext {
     )
 }
 
-fn fixture_catalog_with_complete_registry_evidence() -> RawSubnetCatalog {
-    let mut raw = fixture_catalog();
-    let endpoint = raw.provenance.source_endpoints[0].clone();
-    let registry_version = raw.provenance.registry_version;
-    let evidence = |record| SubnetCatalogRegistryRecordEvidence {
-        record,
-        requested_registry_version: registry_version,
-        returned_registry_version: registry_version.saturating_sub(1),
-        timestamp_nanoseconds: 1_780_531_200_000_000_000,
-        source_endpoint: endpoint.clone(),
-        assurance: CatalogAssurance::UncertifiedQuery,
-        value_encoding: SubnetCatalogRegistryValueEncoding::Inline,
-    };
-    let mut registry_records = vec![
-        evidence(SubnetCatalogRegistryRecordSubject::keyed(
-            SubnetCatalogRegistryRecordKind::SubnetList,
-            crate::ic_registry::SUBNET_LIST_KEY,
-        )),
-        evidence(SubnetCatalogRegistryRecordSubject::keyed(
-            SubnetCatalogRegistryRecordKind::RoutingTable,
-            crate::ic_registry::ROUTING_TABLE_KEY,
-        )),
-    ];
-    registry_records.extend(raw.subnets.iter().map(|subnet| {
-        let principal = candid::Principal::from_text(&subnet.subnet_principal)
-            .expect("fixture Subnet principal");
-        evidence(SubnetCatalogRegistryRecordSubject::subnet_record(
-            crate::ic_registry::subnet_record_key(&subnet.subnet_principal),
-            principal,
-        ))
-    }));
-    raw.provenance.registry_records = registry_records;
-    raw.canonicalize_and_seal()
-        .expect("seal complete Registry evidence fixture");
-    raw
-}
-
 #[test]
 fn validated_route_retains_exact_catalog_authority() {
     let raw = fixture_catalog();
@@ -253,14 +216,18 @@ fn authority_validation_requires_call_counts_and_recomputes_agreement_digest() {
     ));
 
     let mut agreement = fixture_catalog();
+    let alpha = "https://alpha.example";
+    let beta = "https://beta.example";
+    for evidence in &mut agreement.provenance.registry_records {
+        evidence.source_endpoint = alpha.to_string();
+    }
+    let mut beta_records = agreement.provenance.registry_records.clone();
+    for evidence in &mut beta_records {
+        evidence.source_endpoint = beta.to_string();
+    }
+    agreement.provenance.registry_records.extend(beta_records);
     agreement
-        .promote_to_multi_endpoint_agreement(
-            vec![
-                "https://alpha.example".to_string(),
-                "https://beta.example".to_string(),
-            ],
-            10,
-        )
+        .promote_to_multi_endpoint_agreement(vec![alpha.to_string(), beta.to_string()], 10)
         .expect("promote fixture agreement");
     ValidatedSubnetCatalog::try_from_raw(agreement.clone(), &validation_context())
         .expect("valid agreement");
@@ -277,9 +244,22 @@ fn authority_validation_requires_call_counts_and_recomputes_agreement_digest() {
 
 #[test]
 fn authority_validation_requires_complete_exact_registry_record_subjects() {
-    let complete = fixture_catalog_with_complete_registry_evidence();
+    let complete = fixture_catalog();
     ValidatedSubnetCatalog::try_from_raw(complete.clone(), &validation_context())
         .expect("complete exact Registry evidence");
+
+    let mut missing_all = complete.clone();
+    missing_all.provenance.registry_records.clear();
+    missing_all
+        .canonicalize_and_seal()
+        .expect("seal missing-evidence fixture");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(missing_all, &validation_context()),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_records",
+            ..
+        })
+    ));
 
     let mut missing_routing = complete.clone();
     missing_routing

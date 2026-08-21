@@ -16,10 +16,10 @@ use ic_query::subnet_catalog::{
     SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogLoadFailure,
     SubnetCatalogLoadRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshReport,
-    SubnetCatalogRefreshRequest, SubnetCatalogRegistryRecordKind,
-    SubnetCatalogRegistryRecordSubject, SubnetCatalogSource, SubnetCatalogSourceFailure,
-    SubnetCatalogSourceFuture, SubnetCatalogSubject, SubnetCatalogSubnetRow,
-    build_subnet_catalog_info_report, build_subnet_catalog_list_report,
+    SubnetCatalogRefreshRequest, SubnetCatalogRegistryRecordEvidence,
+    SubnetCatalogRegistryRecordKind, SubnetCatalogRegistryRecordSubject, SubnetCatalogSource,
+    SubnetCatalogSourceFailure, SubnetCatalogSourceFuture, SubnetCatalogSubject,
+    SubnetCatalogSubnetRow, build_subnet_catalog_info_report, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source, fetch_subnet_catalog_async,
     load_cached_subnet_catalog, load_cached_subnet_catalog_detailed, load_subnet_catalog_detailed,
     load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
@@ -527,6 +527,41 @@ fn fixture_catalog() -> RawSubnetCatalog {
     };
     #[cfg(feature = "subnet-catalog-host")]
     let mut catalog = catalog;
+    #[cfg(feature = "subnet-catalog-host")]
+    {
+        let endpoint = catalog.provenance.source_endpoints[0].clone();
+        let registry_version = catalog.provenance.registry_version;
+        let evidence = |record| SubnetCatalogRegistryRecordEvidence {
+            record,
+            requested_registry_version: registry_version,
+            returned_registry_version: registry_version - 1,
+            timestamp_nanoseconds: 1_780_531_200_000_000_000,
+            source_endpoint: endpoint.clone(),
+            assurance: CatalogAssurance::UncertifiedQuery,
+            value_encoding: SubnetCatalogRegistryValueEncoding::Inline,
+        };
+        let subnet = candid::Principal::from_text(SUBNET_A).expect("fixture Subnet principal");
+        catalog.provenance.registry_records = vec![
+            evidence(SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::SubnetList,
+                key: "subnet_list".to_string(),
+                subnet: None,
+                canister_range_start: None,
+            }),
+            evidence(SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::RoutingTable,
+                key: "routing_table".to_string(),
+                subnet: None,
+                canister_range_start: None,
+            }),
+            evidence(SubnetCatalogRegistryRecordSubject {
+                kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
+                key: format!("subnet_record_{SUBNET_A}"),
+                subnet: Some(subnet),
+                canister_range_start: None,
+            }),
+        ];
+    }
     #[cfg(feature = "subnet-catalog-host")]
     catalog
         .canonicalize_and_seal()

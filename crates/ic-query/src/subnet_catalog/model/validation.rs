@@ -358,7 +358,12 @@ fn validate_provenance(
 #[cfg(feature = "subnet-catalog-host")]
 fn validate_registry_record_evidence(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
     if raw.provenance.registry_records.is_empty() {
-        return Ok(());
+        if raw.provenance.assurance == CatalogAssurance::Certified {
+            return Ok(());
+        }
+        return Err(invalid_registry_record_evidence(
+            "catalog has no Registry record evidence".to_string(),
+        ));
     }
 
     let expected_subnets = raw

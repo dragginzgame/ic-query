@@ -3,20 +3,21 @@ use crate::{
     ic_registry::{
         CANISTER_RANGES_KEY_PREFIX, MainnetRegistryFetchRequest, RegistryFetchError,
         SUBNET_LIST_KEY, SubnetCatalogRegistryFailure,
-        catalog::{CatalogRegistryReader, catalog_from_registry_records_detailed},
+        catalog::{
+            CatalogRegistryReader, catalog_from_registry_records_detailed, get_catalog_record,
+            record_evidence, record_failure,
+        },
         proto::{RoutingTable, SubnetListRecord},
         routing_shards::{canister_range_start_from_key, validate_routing_table_shard_bounds},
         transport::{
             RegistryQueryCounter, decode_message, get_latest_version_counted,
             get_registry_key_family_counted, get_registry_versioned_value_counted,
         },
-        wire::{RegistryValueEncoding, RegistryVersionedValue, RegistryVersionedValueFailure},
+        wire::{RegistryVersionedValue, RegistryVersionedValueFailure},
     },
     subnet_catalog::{
-        CatalogAssurance, RawSubnetCatalog, SubnetCatalogField,
-        SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
-        SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
-        SubnetCatalogRoutingSource, SubnetCatalogSubject,
+        RawSubnetCatalog, SubnetCatalogField, SubnetCatalogRegistryRecordKind,
+        SubnetCatalogRegistryRecordSubject, SubnetCatalogRoutingSource, SubnetCatalogSubject,
     },
 };
 use candid::Principal;
@@ -278,99 +279,6 @@ const fn latest_version_failure(source: RegistryFetchError) -> SubnetCatalogRegi
     )
 }
 
-async fn get_catalog_record<R>(
-    reader: &R,
-    subject: &SubnetCatalogRegistryRecordSubject,
-    registry_version: u64,
-    request: &MainnetRegistryFetchRequest,
-    registry_records: &[SubnetCatalogRegistryRecordEvidence],
-) -> Result<RegistryVersionedValue, SubnetCatalogRegistryFailure>
-where
-    R: CatalogRegistryReader,
-{
-    let value = reader
-        .value(&subject.key, registry_version)
-        .await
-        .map_err(|failure| {
-            value_fetch_failure(
-                request,
-                registry_version,
-                subject.clone(),
-                registry_records.to_vec(),
-                failure,
-            )
-        })?;
-    if value.version > registry_version {
-        return Err(record_failure(
-            request,
-            registry_version,
-            subject.clone(),
-            Some(value.version),
-            registry_records.to_vec(),
-            RegistryFetchError::InvalidRegistryValueVersion {
-                key: subject.key.clone(),
-                requested_version: registry_version,
-                returned_version: value.version,
-            },
-        ));
-    }
-    Ok(value)
-}
-
-fn record_evidence(
-    request: &MainnetRegistryFetchRequest,
-    registry_version: u64,
-    record: SubnetCatalogRegistryRecordSubject,
-    value: &RegistryVersionedValue,
-) -> SubnetCatalogRegistryRecordEvidence {
-    SubnetCatalogRegistryRecordEvidence {
-        record,
-        requested_registry_version: registry_version,
-        returned_registry_version: value.version,
-        timestamp_nanoseconds: value.timestamp_nanoseconds,
-        source_endpoint: request.endpoint.clone(),
-        assurance: CatalogAssurance::UncertifiedQuery,
-        value_encoding: match value.encoding {
-            RegistryValueEncoding::Inline => SubnetCatalogRegistryValueEncoding::Inline,
-            RegistryValueEncoding::Chunked => SubnetCatalogRegistryValueEncoding::Chunked,
-        },
-    }
-}
-
-fn value_fetch_failure(
-    request: &MainnetRegistryFetchRequest,
-    registry_version: u64,
-    subject: SubnetCatalogRegistryRecordSubject,
-    registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-    failure: RegistryVersionedValueFailure,
-) -> SubnetCatalogRegistryFailure {
-    record_failure(
-        request,
-        registry_version,
-        subject,
-        failure.returned_version,
-        registry_records,
-        failure.source,
-    )
-}
-
-fn record_failure(
-    request: &MainnetRegistryFetchRequest,
-    registry_version: u64,
-    record: SubnetCatalogRegistryRecordSubject,
-    returned_registry_value_version: Option<u64>,
-    registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-    source: RegistryFetchError,
-) -> SubnetCatalogRegistryFailure {
-    SubnetCatalogRegistryFailure::new(
-        Some(registry_version),
-        Some(SubnetCatalogSubject::RegistryRecord(record)),
-        source,
-    )
-    .with_value_response(&request.endpoint, returned_registry_value_version)
-    .with_registry_records(registry_records)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -379,7 +287,9 @@ mod tests {
         proto::{
             CanisterId, CanisterIdRange, PrincipalId, RoutingTableEntry, SubnetId, SubnetRecord,
         },
+        wire::RegistryValueEncoding,
     };
+    use crate::subnet_catalog::{CatalogAssurance, SubnetCatalogRegistryValueEncoding};
     use prost::Message;
     use std::{collections::BTreeMap, sync::Mutex};
 

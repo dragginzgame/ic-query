@@ -15,6 +15,8 @@ mod time;
 
 pub use error::CatalogError;
 #[cfg(feature = "subnet-catalog-host")]
+pub(crate) use host::subject_from_catalog_error;
+#[cfg(feature = "subnet-catalog-host")]
 pub use host::{
     CacheDisposition, CatalogAuthorityEvidence, CatalogLoadOutcome, CatalogReadPolicy,
     CatalogSourceSelection, SubnetCatalogCacheRequest, SubnetCatalogDetailedSourceFuture,
