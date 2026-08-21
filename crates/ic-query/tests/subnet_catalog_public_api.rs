@@ -1,12 +1,14 @@
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::nns::NnsSourceRequest;
 use ic_query::subnet_catalog::{
-    CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance,
-    CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope, MAINNET_NETWORK,
-    MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, ResolveAs,
-    ResolvedSubnetSubject, RoutingRange, SubnetCatalogProvenance,
-    SubnetCatalogRegistryValueEncoding, SubnetCatalogRoutingSource, SubnetInfo, SubnetKind,
-    SubnetSpecialization, catalog_to_pretty_json, parse_catalog_json,
+    CANISTER_RANGES_KEY_PREFIX, CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION,
+    CatalogAssurance, CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope,
+    MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION, ROUTING_TABLE_KEY,
+    RawSubnetCatalog, ResolveAs, ResolvedSubnetSubject, RoutingRange, SUBNET_LIST_KEY,
+    SUBNET_RECORD_KEY_PREFIX, SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence,
+    SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
+    SubnetCatalogRoutingSource, SubnetInfo, SubnetKind, SubnetSpecialization,
+    catalog_to_pretty_json, parse_catalog_json,
 };
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::{
@@ -16,10 +18,9 @@ use ic_query::subnet_catalog::{
     SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogLoadFailure,
     SubnetCatalogLoadRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshReport,
-    SubnetCatalogRefreshRequest, SubnetCatalogRegistryRecordEvidence,
-    SubnetCatalogRegistryRecordKind, SubnetCatalogRegistryRecordSubject, SubnetCatalogSource,
-    SubnetCatalogSourceFailure, SubnetCatalogSourceFuture, SubnetCatalogSubject,
-    SubnetCatalogSubnetRow, build_subnet_catalog_info_report, build_subnet_catalog_list_report,
+    SubnetCatalogRefreshRequest, SubnetCatalogSource, SubnetCatalogSourceFailure,
+    SubnetCatalogSourceFuture, SubnetCatalogSubject, SubnetCatalogSubnetRow,
+    build_subnet_catalog_info_report, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source, fetch_subnet_catalog_async,
     load_cached_subnet_catalog, load_cached_subnet_catalog_detailed, load_subnet_catalog_detailed,
     load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
@@ -220,6 +221,38 @@ fn public_registry_value_encoding_exposes_stable_labels() {
     );
 }
 
+#[test]
+fn public_registry_evidence_builders_derive_exact_subject_keys() {
+    let subnet = candid::Principal::from_text(SUBNET_A).expect("fixture Subnet principal");
+    let range_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
+
+    let subnet_list = SubnetCatalogRegistryRecordSubject::subnet_list();
+    let legacy_routing = SubnetCatalogRegistryRecordSubject::legacy_routing_table();
+    let subnet_record = SubnetCatalogRegistryRecordSubject::subnet_record(subnet);
+    let routing_shard = SubnetCatalogRegistryRecordSubject::canister_ranges(range_start);
+
+    assert_eq!(subnet_list.key, SUBNET_LIST_KEY);
+    assert_eq!(legacy_routing.key, ROUTING_TABLE_KEY);
+    assert_eq!(
+        subnet_record.key,
+        format!("{SUBNET_RECORD_KEY_PREFIX}{SUBNET_A}")
+    );
+    assert!(routing_shard.key.starts_with(CANISTER_RANGES_KEY_PREFIX));
+    assert_eq!(routing_shard.canister_range_start, Some(range_start));
+
+    let evidence = SubnetCatalogRegistryRecordEvidence::uncertified_query(
+        routing_shard,
+        63_438,
+        63_420,
+        1_780_531_200_000_000_000,
+        "https://icp-api.io",
+        SubnetCatalogRegistryValueEncoding::Chunked,
+    );
+    assert_eq!(evidence.assurance, CatalogAssurance::UncertifiedQuery);
+    assert_eq!(evidence.requested_registry_version, 63_438);
+    assert_eq!(evidence.returned_registry_version, 63_420);
+}
+
 #[cfg(feature = "subnet-catalog-host")]
 #[test]
 fn public_custom_source_can_supply_exact_failure_version_and_subject() {
@@ -245,12 +278,7 @@ fn public_custom_source_can_supply_exact_failure_version_and_subject() {
                 Err(SubnetCatalogSourceFailure::new(
                     Some(700_008),
                     Some(SubnetCatalogSubject::RegistryRecord(
-                        SubnetCatalogRegistryRecordSubject {
-                            kind: SubnetCatalogRegistryRecordKind::RoutingTable,
-                            key: "routing_table".to_string(),
-                            subnet: None,
-                            canister_range_start: None,
-                        },
+                        SubnetCatalogRegistryRecordSubject::legacy_routing_table(),
                     )),
                     SubnetCatalogHostError::Catalog(
                         ic_query::subnet_catalog::CatalogError::EmptyRoutingRanges,
@@ -272,15 +300,12 @@ fn public_custom_source_can_supply_exact_failure_version_and_subject() {
         .expect_err("fixture source fails");
 
     assert_eq!(failure.registry_version, Some(700_008));
-    assert!(matches!(
+    assert_eq!(
         failure.subject,
         Some(SubnetCatalogSubject::RegistryRecord(
-            SubnetCatalogRegistryRecordSubject {
-                kind: SubnetCatalogRegistryRecordKind::RoutingTable,
-                ..
-            }
+            SubnetCatalogRegistryRecordSubject::legacy_routing_table()
         ))
-    ));
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -531,35 +556,21 @@ fn fixture_catalog() -> RawSubnetCatalog {
     {
         let endpoint = catalog.provenance.source_endpoints[0].clone();
         let registry_version = catalog.provenance.registry_version;
-        let evidence = |record| SubnetCatalogRegistryRecordEvidence {
-            record,
-            requested_registry_version: registry_version,
-            returned_registry_version: registry_version - 1,
-            timestamp_nanoseconds: 1_780_531_200_000_000_000,
-            source_endpoint: endpoint.clone(),
-            assurance: CatalogAssurance::UncertifiedQuery,
-            value_encoding: SubnetCatalogRegistryValueEncoding::Inline,
+        let evidence = |record| {
+            SubnetCatalogRegistryRecordEvidence::uncertified_query(
+                record,
+                registry_version,
+                registry_version - 1,
+                1_780_531_200_000_000_000,
+                &endpoint,
+                SubnetCatalogRegistryValueEncoding::Inline,
+            )
         };
         let subnet = candid::Principal::from_text(SUBNET_A).expect("fixture Subnet principal");
         catalog.provenance.registry_records = vec![
-            evidence(SubnetCatalogRegistryRecordSubject {
-                kind: SubnetCatalogRegistryRecordKind::SubnetList,
-                key: "subnet_list".to_string(),
-                subnet: None,
-                canister_range_start: None,
-            }),
-            evidence(SubnetCatalogRegistryRecordSubject {
-                kind: SubnetCatalogRegistryRecordKind::RoutingTable,
-                key: "routing_table".to_string(),
-                subnet: None,
-                canister_range_start: None,
-            }),
-            evidence(SubnetCatalogRegistryRecordSubject {
-                kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
-                key: format!("subnet_record_{SUBNET_A}"),
-                subnet: Some(subnet),
-                canister_range_start: None,
-            }),
+            evidence(SubnetCatalogRegistryRecordSubject::subnet_list()),
+            evidence(SubnetCatalogRegistryRecordSubject::legacy_routing_table()),
+            evidence(SubnetCatalogRegistryRecordSubject::subnet_record(subnet)),
         ];
     }
     #[cfg(feature = "subnet-catalog-host")]

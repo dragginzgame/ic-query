@@ -103,10 +103,10 @@ use wire::{
 };
 
 pub const DEFAULT_MAINNET_ENDPOINT: &str = "https://icp-api.io";
-pub const SUBNET_LIST_KEY: &str = "subnet_list";
-pub const ROUTING_TABLE_KEY: &str = "routing_table";
-pub const CANISTER_RANGES_KEY_PREFIX: &str = "canister_ranges_";
-const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";
+pub const SUBNET_LIST_KEY: &str = crate::subnet_catalog::SUBNET_LIST_KEY;
+pub const ROUTING_TABLE_KEY: &str = crate::subnet_catalog::ROUTING_TABLE_KEY;
+pub const CANISTER_RANGES_KEY_PREFIX: &str = crate::subnet_catalog::CANISTER_RANGES_KEY_PREFIX;
+const SUBNET_RECORD_KEY_PREFIX: &str = crate::subnet_catalog::SUBNET_RECORD_KEY_PREFIX;
 
 fn canister_id_text(
     canister_id: Option<&CanisterId>,

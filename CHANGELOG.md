@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
 
+- `0.41.2` adds portable public constants for the Subnet Catalog's Registry
+  keys and typed constructors for Subnet-list, legacy-routing, modern routing-
+  shard, and Subnet-record subjects. A companion constructor builds ordinary
+  pinned-value evidence with explicit requested/returned versions, Registry
+  timestamp, endpoint, and inline/chunked representation while fixing the
+  individual-read assurance to `UncertifiedQuery`. Downstream fixtures and
+  custom sources no longer need to spell or assemble Registry keys manually.
+  The helpers align with the existing fail-closed evidence rules; they do not
+  relax catalog validation or fabricate records. No schema shape, routing-
+  source rule, cache format, network call, or CLI surface changes.
+
 - `0.41.1` fixes mainnet Subnet Catalog routing by reconstructing the complete
   pinned `canister_ranges_*` family used by current DFINITY Registry clients.
   The live collector requires nonempty modern authority and never reads the

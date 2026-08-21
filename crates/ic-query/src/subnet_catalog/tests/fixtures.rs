@@ -183,32 +183,24 @@ impl SubnetCatalogSource for AgreementFixtureSource {
 
 fn attach_complete_registry_evidence(catalog: &mut RawSubnetCatalog, endpoint: &str) {
     let registry_version = catalog.provenance.registry_version;
-    let evidence = |record| SubnetCatalogRegistryRecordEvidence {
-        record,
-        requested_registry_version: registry_version,
-        returned_registry_version: registry_version.saturating_sub(1),
-        timestamp_nanoseconds: 1_780_531_200_000_000_000,
-        source_endpoint: endpoint.to_string(),
-        assurance: CatalogAssurance::UncertifiedQuery,
-        value_encoding: SubnetCatalogRegistryValueEncoding::Inline,
+    let evidence = |record| {
+        SubnetCatalogRegistryRecordEvidence::uncertified_query(
+            record,
+            registry_version,
+            registry_version.saturating_sub(1),
+            1_780_531_200_000_000_000,
+            endpoint,
+            SubnetCatalogRegistryValueEncoding::Inline,
+        )
     };
     let mut registry_records = vec![
-        evidence(SubnetCatalogRegistryRecordSubject::keyed(
-            SubnetCatalogRegistryRecordKind::SubnetList,
-            crate::ic_registry::SUBNET_LIST_KEY,
-        )),
-        evidence(SubnetCatalogRegistryRecordSubject::keyed(
-            SubnetCatalogRegistryRecordKind::RoutingTable,
-            crate::ic_registry::ROUTING_TABLE_KEY,
-        )),
+        evidence(SubnetCatalogRegistryRecordSubject::subnet_list()),
+        evidence(SubnetCatalogRegistryRecordSubject::legacy_routing_table()),
     ];
     registry_records.extend(catalog.subnets.iter().map(|subnet| {
         let principal = candid::Principal::from_text(&subnet.subnet_principal)
             .expect("fixture Subnet principal");
-        evidence(SubnetCatalogRegistryRecordSubject::subnet_record(
-            crate::ic_registry::subnet_record_key(&subnet.subnet_principal),
-            principal,
-        ))
+        evidence(SubnetCatalogRegistryRecordSubject::subnet_record(principal))
     }));
     catalog.provenance.registry_records = registry_records;
 }

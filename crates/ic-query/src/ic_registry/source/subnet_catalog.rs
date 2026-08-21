@@ -2,7 +2,7 @@ use super::agent::{mainnet_agent, mainnet_registry_canister};
 use crate::{
     ic_registry::{
         CANISTER_RANGES_KEY_PREFIX, MainnetRegistryFetchRequest, RegistryFetchError,
-        SUBNET_LIST_KEY, SubnetCatalogRegistryFailure,
+        SubnetCatalogRegistryFailure,
         catalog::{
             CatalogRegistryReader, catalog_from_registry_records_detailed, get_catalog_record,
             record_evidence, record_failure,
@@ -75,10 +75,7 @@ where
 {
     let mut registry_records = Vec::new();
 
-    let subnet_list_subject = SubnetCatalogRegistryRecordSubject::keyed(
-        SubnetCatalogRegistryRecordKind::SubnetList,
-        SUBNET_LIST_KEY,
-    );
+    let subnet_list_subject = SubnetCatalogRegistryRecordSubject::subnet_list();
     let subnet_list_value = get_catalog_record(
         reader,
         &subnet_list_subject,
@@ -115,7 +112,7 @@ where
             record_failure(
                 request,
                 registry_version,
-                SubnetCatalogRegistryRecordSubject::keyed(
+                SubnetCatalogRegistryRecordSubject::exact_keyed(
                     SubnetCatalogRegistryRecordKind::RoutingTable,
                     format!("{CANISTER_RANGES_KEY_PREFIX}*"),
                 ),
@@ -129,7 +126,7 @@ where
         return Err(record_failure(
             request,
             registry_version,
-            SubnetCatalogRegistryRecordSubject::keyed(
+            SubnetCatalogRegistryRecordSubject::exact_keyed(
                 SubnetCatalogRegistryRecordKind::RoutingTable,
                 format!("{CANISTER_RANGES_KEY_PREFIX}*"),
             ),
@@ -150,7 +147,7 @@ where
                 record_failure(
                     request,
                     registry_version,
-                    SubnetCatalogRegistryRecordSubject::keyed(
+                    SubnetCatalogRegistryRecordSubject::exact_keyed(
                         SubnetCatalogRegistryRecordKind::RoutingTable,
                         &key,
                     ),
@@ -160,7 +157,6 @@ where
                 )
             })?;
         shard_subjects.push(SubnetCatalogRegistryRecordSubject::canister_ranges(
-            &key,
             range_start,
         ));
     }
@@ -283,7 +279,7 @@ const fn latest_version_failure(source: RegistryFetchError) -> SubnetCatalogRegi
 mod tests {
     use super::*;
     use crate::ic_registry::{
-        ROUTING_TABLE_KEY,
+        ROUTING_TABLE_KEY, SUBNET_LIST_KEY,
         proto::{
             CanisterId, CanisterIdRange, PrincipalId, RoutingTableEntry, SubnetId, SubnetRecord,
         },
@@ -526,13 +522,7 @@ mod tests {
         let next = canister_id(5);
         let below = canister_id(0);
         let inside = canister_id(2);
-        let subject = SubnetCatalogRegistryRecordSubject::canister_ranges(
-            format!(
-                "{CANISTER_RANGES_KEY_PREFIX}{}",
-                crate::hex::hex_bytes(start.as_slice())
-            ),
-            start,
-        );
+        let subject = SubnetCatalogRegistryRecordSubject::canister_ranges(start);
 
         let lower_bound = subject
             .canister_range_start

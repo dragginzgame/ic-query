@@ -42,9 +42,10 @@ pub(crate) use model::canonicalize_subnet_catalog_content;
 #[cfg(feature = "subnet-catalog-host")]
 pub(in crate::subnet_catalog) use model::catalog_agreement_digest;
 pub use model::{
-    CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance, CatalogValidationContext,
-    CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope,
-    RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance,
+    CANISTER_RANGES_KEY_PREFIX, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance,
+    CatalogValidationContext, CertifiedRegistryCatalogEvidence, ClassificationSource,
+    GeographicScope, RESOLVER_SCHEMA_VERSION, ROUTING_TABLE_KEY, RawSubnetCatalog, RoutingRange,
+    SUBNET_LIST_KEY, SUBNET_RECORD_KEY_PREFIX, SubnetCatalogProvenance,
     SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
     SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
     SubnetCatalogRoutingSource, SubnetInfo, SubnetKind, SubnetSpecialization,

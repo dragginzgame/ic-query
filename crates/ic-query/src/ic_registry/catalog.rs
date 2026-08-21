@@ -1,15 +1,15 @@
 use super::{
-    MainnetRegistryFetchRequest, ROUTING_TABLE_KEY, RegistryFetchError, SUBNET_LIST_KEY,
+    MainnetRegistryFetchRequest, ROUTING_TABLE_KEY, RegistryFetchError,
     SubnetCatalogRegistryFailure, canister_id_text, principal_from_raw,
     projection::subnet_kind_from_registry,
     proto::{RoutingTable, SubnetListRecord, SubnetRecord},
-    subnet_id_text, subnet_record_key,
+    subnet_id_text,
     transport::decode_message,
     wire::{RegistryValueEncoding, RegistryVersionedValue, RegistryVersionedValueFailure},
 };
 use crate::subnet_catalog::{
-    CatalogAssurance, ClassificationSource, GeographicScope, RawSubnetCatalog, RoutingRange,
-    SubnetCatalogField, SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
+    ClassificationSource, GeographicScope, RawSubnetCatalog, RoutingRange, SubnetCatalogField,
+    SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
     SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
     SubnetCatalogRoutingSource, SubnetCatalogSubject, SubnetInfo, SubnetSpecialization,
     UncertifiedCatalogCollection, subject_from_catalog_error,
@@ -38,10 +38,6 @@ pub(super) trait CatalogRegistryReader: Sync {
     fn query_call_count(&self) -> u64;
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "the collector keeps one visible fail-closed sequence for Subnet records and evidence"
-)]
 pub(super) async fn catalog_from_registry_records_detailed<R>(
     request: &MainnetRegistryFetchRequest,
     registry_version: u64,
@@ -58,10 +54,7 @@ where
         return Err(record_failure(
             request,
             registry_version,
-            SubnetCatalogRegistryRecordSubject::keyed(
-                SubnetCatalogRegistryRecordKind::SubnetList,
-                SUBNET_LIST_KEY,
-            ),
+            SubnetCatalogRegistryRecordSubject::subnet_list(),
             None,
             registry_records,
             RegistryFetchError::EmptySubnetList,
@@ -77,7 +70,7 @@ where
         return Err(record_failure(
             request,
             registry_version,
-            SubnetCatalogRegistryRecordSubject::keyed(
+            SubnetCatalogRegistryRecordSubject::exact_keyed(
                 SubnetCatalogRegistryRecordKind::RoutingTable,
                 key,
             ),
@@ -101,8 +94,7 @@ where
             .with_registry_records(registry_records.clone())
         })?;
         let subnet_principal = subnet.to_text();
-        let key = subnet_record_key(&subnet_principal);
-        let subject = SubnetCatalogRegistryRecordSubject::subnet_record(&key, subnet);
+        let subject = SubnetCatalogRegistryRecordSubject::subnet_record(subnet);
         let value = get_catalog_record(
             reader,
             &subject,
@@ -294,18 +286,17 @@ pub(super) fn record_evidence(
     record: SubnetCatalogRegistryRecordSubject,
     value: &RegistryVersionedValue,
 ) -> SubnetCatalogRegistryRecordEvidence {
-    SubnetCatalogRegistryRecordEvidence {
+    SubnetCatalogRegistryRecordEvidence::uncertified_query(
         record,
-        requested_registry_version: registry_version,
-        returned_registry_version: value.version,
-        timestamp_nanoseconds: value.timestamp_nanoseconds,
-        source_endpoint: request.endpoint.clone(),
-        assurance: CatalogAssurance::UncertifiedQuery,
-        value_encoding: match value.encoding {
+        registry_version,
+        value.version,
+        value.timestamp_nanoseconds,
+        &request.endpoint,
+        match value.encoding {
             RegistryValueEncoding::Inline => SubnetCatalogRegistryValueEncoding::Inline,
             RegistryValueEncoding::Chunked => SubnetCatalogRegistryValueEncoding::Chunked,
         },
-    }
+    )
 }
 
 pub(super) fn record_failure(
@@ -355,11 +346,11 @@ mod detailed_failure_tests {
             fetched_by: "test".to_string(),
         };
         let subnet = Principal::from_text(SUBNET).expect("subnet");
-        let key = subnet_record_key(SUBNET);
+        let key = crate::ic_registry::subnet_record_key(SUBNET);
         let failure = record_failure(
             &request,
             882_110,
-            SubnetCatalogRegistryRecordSubject::subnet_record(&key, subnet),
+            SubnetCatalogRegistryRecordSubject::subnet_record(subnet),
             Some(882_000),
             Vec::new(),
             RegistryFetchError::MissingValue { key: key.clone() },
@@ -394,10 +385,7 @@ mod detailed_failure_tests {
         let table_failure = record_failure(
             &request,
             882_111,
-            SubnetCatalogRegistryRecordSubject::keyed(
-                SubnetCatalogRegistryRecordKind::RoutingTable,
-                ROUTING_TABLE_KEY,
-            ),
+            SubnetCatalogRegistryRecordSubject::legacy_routing_table(),
             None,
             Vec::new(),
             RegistryFetchError::EmptyRoutingTable,

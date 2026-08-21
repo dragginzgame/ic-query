@@ -387,6 +387,13 @@ timestamps, endpoint, assurance, and inline/chunked representation. Agreement
 does not become certified evidence and never falls back to one endpoint on a
 mismatch.
 
+Custom sources and downstream fixtures can construct that evidence without
+hand-formatting Registry keys. The portable API exposes the canonical key
+constants, typed Subnet-list, legacy-routing, routing-shard, and Subnet-record
+subject constructors, and
+`SubnetCatalogRegistryRecordEvidence::uncertified_query` for one ordinary
+pinned value response.
+
 Mainnet routing authority follows the current Registry helper contract. At the
 pinned Registry version, the collector reconstructs the complete present-key
 set under `canister_ranges_*`, fetches and decodes every shard at that same

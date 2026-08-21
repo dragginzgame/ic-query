@@ -3,10 +3,11 @@
 ## Purpose
 
 `ic-query` 0.41.1 hard-cuts the pre-1.0 schema-1 Subnet Catalog contract to
-retain current Registry routing authority and per-value provenance. Downstream
-crates do not need a routing compatibility adapter, but direct Rust struct
-literals, copied evidence projections, and persisted older schema-1 JSON need
-an explicit update.
+retain current Registry routing authority and per-value provenance. Version
+0.41.2 adds portable typed constructors for downstream fixtures and custom
+sources. Downstream crates do not need a routing compatibility adapter, but
+direct Rust struct literals, copied evidence projections, and persisted older
+schema-1 JSON need an explicit update.
 
 This document is the adoption checklist. It does not define a legacy reader,
 Serde default, migration, or monolithic-routing fallback.
@@ -62,6 +63,36 @@ Prefer `SubnetCatalogSourceFailure::new` for caller-supplied source failures;
 attach real value evidence with `with_registry_evidence` when the source has
 it.
 
+For successful Registry reads, prefer the portable 0.41.2 constructors over
+raw subject literals or hand-built key strings:
+
+```rust
+use candid::Principal;
+use ic_query::subnet_catalog::{
+    SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordSubject,
+    SubnetCatalogRegistryValueEncoding,
+};
+
+let subnet = Principal::from_text(
+    "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae",
+)?;
+let record = SubnetCatalogRegistryRecordSubject::subnet_record(subnet);
+let evidence = SubnetCatalogRegistryRecordEvidence::uncertified_query(
+    record,
+    63_438,
+    63_300,
+    1_780_531_200_000_000_000,
+    "https://icp-api.io",
+    SubnetCatalogRegistryValueEncoding::Inline,
+);
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+Use `subnet_list`, `legacy_routing_table`, or `canister_ranges` for the other
+typed subjects. The public `SUBNET_LIST_KEY`, `ROUTING_TABLE_KEY`,
+`CANISTER_RANGES_KEY_PREFIX`, and `SUBNET_RECORD_KEY_PREFIX` constants remain
+available when a fixture needs to assert the exact wire key.
+
 ## Typed downstream projections
 
 A downstream failure DTO that claims complete upstream evidence needs to copy:
@@ -87,10 +118,11 @@ older returned versions.
 ## Custom sources
 
 `UncertifiedCatalogCollection::new` remains source compatible for simple
-custom sources and produces legacy-routing/empty-record defaults. A custom
-source claiming modern routing authority must call `with_registry_evidence`
-with `CanisterRanges` and its complete fetched-record evidence. It must not use
-the defaults to describe a modern collection.
+custom sources and produces legacy-routing/empty-record defaults. That
+intermediate collection is not valid authority until complete evidence is
+attached. A custom source claiming modern routing authority must call
+`with_registry_evidence` with `CanisterRanges` and its complete fetched-record
+evidence. It must not use the defaults to describe a modern collection.
 
 Detailed custom-source failures use `SubnetCatalogSourceFailure::new` and then
 `with_registry_evidence` whenever an individual returned version, endpoint,
@@ -106,16 +138,10 @@ source.
 
 ## Canic audit
 
-Against the current Canic worktree, production `canic-host` code type-checks
-with the patched crate. Its test build has two mechanical fixture failures:
-
-- a `SubnetCatalogLoadFailure` literal omits the four failure-provenance fields
-  listed above;
-- a `SubnetCatalogRegistryRecordSubject` literal omits
-  `canister_range_start`.
-
-Canic's owned `SubnetCatalogLoadFailureEvidenceV1` projection also currently
-omits the returned value version, failing endpoint, failing-read assurance,
-completed Registry records, and shard lower-bound subject. Filling only the
-two literals restores compilation; extending that owned DTO and its renderer
-is required before Canic can claim complete failure provenance.
+Canic has confirmed that the modern-first routing change integrates without a
+compatibility adapter. Its typed projection can retain the returned value
+version, failing endpoint and assurance, completed Registry records, shard
+lower-bound subject, and retry classification without parsing strings or
+fabricating provenance. Older cache shapes correctly fail closed and require
+refresh. The 0.41.2 constructors remove the remaining need for Canic fixtures
+to spell Registry keys manually.

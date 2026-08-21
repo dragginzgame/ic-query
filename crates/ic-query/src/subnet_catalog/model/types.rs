@@ -12,6 +12,15 @@ use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Exact Registry key containing the current Subnet list.
+pub const SUBNET_LIST_KEY: &str = "subnet_list";
+/// Retired monolithic Registry routing-table key used only by explicit historical replay.
+pub const ROUTING_TABLE_KEY: &str = "routing_table";
+/// Registry key prefix for authoritative canister-range routing shards.
+pub const CANISTER_RANGES_KEY_PREFIX: &str = "canister_ranges_";
+/// Registry key prefix for individual Subnet records.
+pub const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";
+
 ///
 /// CatalogAssurance
 ///
@@ -113,10 +122,49 @@ pub struct SubnetCatalogRegistryRecordSubject {
     pub canister_range_start: Option<Principal>,
 }
 
-#[cfg(feature = "subnet-catalog-host")]
 impl SubnetCatalogRegistryRecordSubject {
+    /// Build the exact current Subnet-list subject.
     #[must_use]
-    pub(crate) fn keyed(kind: SubnetCatalogRegistryRecordKind, key: impl Into<String>) -> Self {
+    pub fn subnet_list() -> Self {
+        Self::keyed(SubnetCatalogRegistryRecordKind::SubnetList, SUBNET_LIST_KEY)
+    }
+
+    /// Build the exact retired monolithic routing-table subject.
+    #[must_use]
+    pub fn legacy_routing_table() -> Self {
+        Self::keyed(
+            SubnetCatalogRegistryRecordKind::RoutingTable,
+            ROUTING_TABLE_KEY,
+        )
+    }
+
+    /// Build the exact Registry subject for one Subnet record.
+    #[must_use]
+    pub fn subnet_record(subnet: Principal) -> Self {
+        Self {
+            kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
+            key: format!("{SUBNET_RECORD_KEY_PREFIX}{}", subnet.to_text()),
+            subnet: Some(subnet),
+            canister_range_start: None,
+        }
+    }
+
+    /// Build the exact authoritative routing-shard subject for one lower bound.
+    #[must_use]
+    pub fn canister_ranges(canister_range_start: Principal) -> Self {
+        Self {
+            kind: SubnetCatalogRegistryRecordKind::RoutingTable,
+            key: format!(
+                "{CANISTER_RANGES_KEY_PREFIX}{}",
+                crate::hex::hex_bytes(canister_range_start.as_slice())
+            ),
+            subnet: None,
+            canister_range_start: Some(canister_range_start),
+        }
+    }
+
+    #[must_use]
+    fn keyed(kind: SubnetCatalogRegistryRecordKind, key: impl Into<String>) -> Self {
         Self {
             kind,
             key: key.into(),
@@ -125,24 +173,13 @@ impl SubnetCatalogRegistryRecordSubject {
         }
     }
 
+    #[cfg(feature = "subnet-catalog-host")]
     #[must_use]
-    pub(crate) fn subnet_record(key: impl Into<String>, subnet: Principal) -> Self {
-        Self {
-            kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
-            key: key.into(),
-            subnet: Some(subnet),
-            canister_range_start: None,
-        }
-    }
-
-    #[must_use]
-    pub(crate) fn canister_ranges(key: impl Into<String>, canister_range_start: Principal) -> Self {
-        Self {
-            kind: SubnetCatalogRegistryRecordKind::RoutingTable,
-            key: key.into(),
-            subnet: None,
-            canister_range_start: Some(canister_range_start),
-        }
+    pub(crate) fn exact_keyed(
+        kind: SubnetCatalogRegistryRecordKind,
+        key: impl Into<String>,
+    ) -> Self {
+        Self::keyed(kind, key)
     }
 }
 
@@ -195,6 +232,29 @@ pub struct SubnetCatalogRegistryRecordEvidence {
     pub assurance: CatalogAssurance,
     /// Inline or hash-verified chunked value representation.
     pub value_encoding: SubnetCatalogRegistryValueEncoding,
+}
+
+impl SubnetCatalogRegistryRecordEvidence {
+    /// Build evidence for one ordinary pinned Registry value response.
+    #[must_use]
+    pub fn uncertified_query(
+        record: SubnetCatalogRegistryRecordSubject,
+        requested_registry_version: u64,
+        returned_registry_version: u64,
+        timestamp_nanoseconds: u64,
+        source_endpoint: impl Into<String>,
+        value_encoding: SubnetCatalogRegistryValueEncoding,
+    ) -> Self {
+        Self {
+            record,
+            requested_registry_version,
+            returned_registry_version,
+            timestamp_nanoseconds,
+            source_endpoint: source_endpoint.into(),
+            assurance: CatalogAssurance::UncertifiedQuery,
+            value_encoding,
+        }
+    }
 }
 
 impl CatalogAssurance {
