@@ -1,6 +1,8 @@
 use crate::{
     runtime::RuntimeError,
-    subnet_catalog::{CatalogError, SubnetCatalogSubject},
+    subnet_catalog::{
+        CatalogAssurance, CatalogError, SubnetCatalogRegistryRecordEvidence, SubnetCatalogSubject,
+    },
 };
 use thiserror::Error as ThisError;
 
@@ -78,6 +80,36 @@ pub enum RegistryFetchError {
 
     #[error("registry get_value for key {key} returned no value content")]
     MissingValue { key: String },
+
+    #[error(
+        "registry get_value for key {key} returned value version {returned_version} for pinned version {requested_version}"
+    )]
+    InvalidRegistryValueVersion {
+        key: String,
+        requested_version: u64,
+        returned_version: u64,
+    },
+
+    #[error("registry get_changes_since failed with code {code}: {reason}")]
+    RegistryChanges { code: String, reason: String },
+
+    #[error(
+        "registry key-family enumeration observed latest version {observed_version}, before pinned version {requested_version}"
+    )]
+    IncompleteRegistryChanges {
+        requested_version: u64,
+        observed_version: u64,
+    },
+
+    #[error("registry key-family evidence is invalid: {reason}")]
+    InvalidRegistryKeyFamily { reason: String },
+
+    #[error("registry key-family {field} count {actual} exceeds maximum {maximum}")]
+    RegistryKeyFamilyLimit {
+        field: &'static str,
+        maximum: usize,
+        actual: usize,
+    },
 
     #[error("failed to encode candid {message}: {reason}")]
     CandidEncode {
@@ -166,6 +198,10 @@ pub enum RegistryFetchError {
 #[derive(Debug)]
 pub struct SubnetCatalogRegistryFailure {
     pub registry_version: Option<u64>,
+    pub returned_registry_value_version: Option<u64>,
+    pub source_endpoint: Option<String>,
+    pub assurance: Option<CatalogAssurance>,
+    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     pub subject: Option<SubnetCatalogSubject>,
     pub source: RegistryFetchError,
 }
@@ -178,8 +214,31 @@ impl SubnetCatalogRegistryFailure {
     ) -> Self {
         Self {
             registry_version,
+            returned_registry_value_version: None,
+            source_endpoint: None,
+            assurance: None,
+            registry_records: Vec::new(),
             subject,
             source,
         }
+    }
+
+    pub fn with_value_response(
+        mut self,
+        endpoint: &str,
+        returned_registry_value_version: Option<u64>,
+    ) -> Self {
+        self.returned_registry_value_version = returned_registry_value_version;
+        self.source_endpoint = Some(endpoint.to_string());
+        self.assurance = Some(CatalogAssurance::UncertifiedQuery);
+        self
+    }
+
+    pub fn with_registry_records(
+        mut self,
+        registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
+    ) -> Self {
+        self.registry_records = registry_records;
+        self
     }
 }

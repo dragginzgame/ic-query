@@ -15,6 +15,10 @@ fn complete_replay_projects_through_shared_catalog_classification() {
 
     assert_eq!(projection.registry_version(), 1);
     assert_eq!(projection.replay_session(), &session);
+    assert_eq!(
+        projection.routing_source(),
+        SubnetCatalogRoutingSource::CanisterRanges
+    );
     assert_eq!(projection.subnets().len(), 1);
     let subnet = &projection.subnets()[0];
     assert_eq!(subnet.subnet_principal, PROJECTION_SUBNET);
@@ -41,6 +45,20 @@ fn complete_replay_projects_through_shared_catalog_classification() {
             .complete_state_digest()
             .is_some()
     );
+}
+
+#[test]
+fn diagnostic_replay_explicitly_supports_legacy_historical_routing() {
+    let session = complete_legacy_catalog_projection_session();
+
+    let projection = project_nns_registry_subnet_catalog(&session)
+        .expect("diagnostic historical catalog projection");
+
+    assert_eq!(
+        projection.routing_source(),
+        SubnetCatalogRoutingSource::LegacyRoutingTable
+    );
+    assert_eq!(projection.routing_ranges().len(), 1);
 }
 
 #[test]
@@ -136,10 +154,13 @@ fn catalog_projection_preserves_typed_record_and_catalog_failures() {
 
     let empty_routing = complete_catalog_projection_session_with_routing(RoutingTable::default());
     let error = project_nns_registry_subnet_catalog(&empty_routing)
-        .expect_err("empty routing projection fails shared catalog validation");
+        .expect_err("empty modern routing shard fails closed");
     assert!(matches!(
         error,
-        NnsRegistrySubnetCatalogProjectionError::Catalog(CatalogError::EmptyRoutingRanges)
+        NnsRegistrySubnetCatalogProjectionError::InvalidRegistryRecord {
+            message: "RoutingTable",
+            ..
+        }
     ));
 }
 
@@ -181,6 +202,10 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
     assert_eq!(authority.archive(), &archive);
     assert_eq!(catalog.raw().catalog_schema_version, CATALOG_SCHEMA_VERSION);
     assert_eq!(catalog.provenance().assurance, CatalogAssurance::Certified);
+    assert_eq!(
+        catalog.provenance().routing_source,
+        SubnetCatalogRoutingSource::CanisterRanges
+    );
     assert_eq!(catalog.provenance().registry_version, 1);
     assert_eq!(catalog.subnets().len(), 1);
     assert_eq!(catalog.subnets()[0].subnet_principal, PROJECTION_SUBNET);
@@ -236,6 +261,25 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
             field: "provenance",
             ..
         })
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn certified_latest_policy_rejects_legacy_only_routing_state() {
+    let root = crate::test_support::temp_dir("ic-query-certified-catalog-legacy-latest");
+    let archive = complete_legacy_catalog_archive(&root);
+    let request = certified_catalog_projection_request(
+        NOW,
+        0,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
+
+    assert!(matches!(
+        project_nns_certified_subnet_catalog(&archive, &request),
+        Err(
+            NnsRegistrySubnetCatalogProjectionError::MissingRequiredRegistryKey { key }
+        ) if key == format!("{}*", crate::ic_registry::CANISTER_RANGES_KEY_PREFIX)
     ));
     let _ = fs::remove_dir_all(root);
 }
@@ -332,6 +376,10 @@ fn certified_catalog_projection_makes_known_version_lag_explicit() {
     assert_eq!(
         authority.freshness().version_policy,
         NnsCertifiedSubnetCatalogVersionPolicy::AllowHistoricalTarget
+    );
+    assert_eq!(
+        authority.catalog().provenance().routing_source,
+        SubnetCatalogRoutingSource::LegacyRoutingTable
     );
     let _ = fs::remove_dir_all(root);
 }

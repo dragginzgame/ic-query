@@ -68,6 +68,8 @@ pub fn build_subnet_catalog_info_report_with_source(
         source_endpoints: cached.catalog.provenance().source_endpoints.clone(),
         agreement_digest: cached.catalog.provenance().agreement_digest.clone(),
         registry_query_call_count: cached.catalog.provenance().registry_query_call_count,
+        routing_source: cached.catalog.provenance().routing_source,
+        registry_records: cached.catalog.provenance().registry_records.clone(),
         catalog_digest: cached.catalog.raw().catalog_digest.clone(),
         cache_disposition: cached.disposition,
         catalog_schema_version: cached.catalog.raw().catalog_schema_version,

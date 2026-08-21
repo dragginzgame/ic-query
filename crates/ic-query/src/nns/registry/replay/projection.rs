@@ -13,14 +13,20 @@ use super::{
 use crate::{
     hex::hex_bytes,
     ic_registry::{
-        ROUTING_TABLE_KEY, SUBNET_LIST_KEY, proto::RoutingTable, proto::SubnetListRecord,
-        proto::SubnetRecord, routing_ranges_from_table, subnet_info_from_record, subnet_record_key,
+        CANISTER_RANGES_KEY_PREFIX, ROUTING_TABLE_KEY, SUBNET_LIST_KEY,
+        proto::RoutingTable,
+        proto::SubnetListRecord,
+        proto::SubnetRecord,
+        routing_ranges_from_table,
+        routing_shards::{canister_range_start_from_key, validate_routing_table_shard_bounds},
+        subnet_info_from_record, subnet_record_key,
     },
     subnet_catalog::{
         CATALOG_SCHEMA_VERSION, CatalogAssurance, CatalogError, CatalogValidationContext,
         CertifiedRegistryCatalogEvidence, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID,
-        RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance, SubnetInfo,
-        ValidatedSubnetCatalog, canonicalize_subnet_catalog_content, format_utc_timestamp_secs,
+        RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance, SubnetCatalogRoutingSource,
+        SubnetInfo, ValidatedSubnetCatalog, canonicalize_subnet_catalog_content,
+        format_utc_timestamp_secs,
     },
 };
 use candid::Principal;
@@ -39,6 +45,7 @@ const NANOS_PER_SECOND: u128 = 1_000_000_000;
 pub struct NnsRegistrySubnetCatalogProjection<'a> {
     session: &'a NnsRegistryReplaySession,
     registry_version: u64,
+    routing_source: SubnetCatalogRoutingSource,
     subnets: Vec<SubnetInfo>,
     routing_ranges: Vec<RoutingRange>,
 }
@@ -54,6 +61,12 @@ impl<'a> NnsRegistrySubnetCatalogProjection<'a> {
     #[must_use]
     pub const fn registry_version(&self) -> u64 {
         self.registry_version
+    }
+
+    /// Return the Registry record family used as routing authority.
+    #[must_use]
+    pub const fn routing_source(&self) -> SubnetCatalogRoutingSource {
+        self.routing_source
     }
 
     /// Return canonical Subnet rows classified through the existing catalog policy.
@@ -77,9 +90,9 @@ impl<'a> NnsRegistrySubnetCatalogProjection<'a> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NnsCertifiedSubnetCatalogVersionPolicy {
-    /// Accept the authenticated exact target even when a later batch observed a newer Registry.
+    /// Accept an authenticated historical target and its pre-shard legacy routing authority.
     AllowHistoricalTarget,
-    /// Require the selected target to equal the newest Registry version observed by every batch.
+    /// Require the newest observed target and nonempty modern routing-shard authority.
     RequireLatestObserved,
 }
 
@@ -261,9 +274,18 @@ pub enum NnsRegistrySubnetCatalogProjectionError {
 ///
 /// The returned value borrows `session`, keeping the projected rows attached to
 /// their replay provenance. It is not a serialized mirror, a
-/// `ValidatedSubnetCatalog`, or a `CatalogAssurance::Certified` promotion.
+/// `ValidatedSubnetCatalog`, or a `CatalogAssurance::Certified` promotion. This
+/// explicitly historical diagnostic boundary permits a pre-shard legacy routing
+/// table when the replayed modern family is empty.
 pub fn project_nns_registry_subnet_catalog(
     session: &NnsRegistryReplaySession,
+) -> Result<NnsRegistrySubnetCatalogProjection<'_>, NnsRegistrySubnetCatalogProjectionError> {
+    project_nns_registry_subnet_catalog_with_policy(session, true)
+}
+
+fn project_nns_registry_subnet_catalog_with_policy(
+    session: &NnsRegistryReplaySession,
+    allow_legacy_routing: bool,
 ) -> Result<NnsRegistrySubnetCatalogProjection<'_>, NnsRegistrySubnetCatalogProjectionError> {
     let selected_version = session.selected_version();
     let (true, Some(registry_version)) = (
@@ -282,8 +304,7 @@ pub fn project_nns_registry_subnet_catalog(
     let state = session.state();
     let subnet_list =
         decode_required_record::<SubnetListRecord>(state, SUBNET_LIST_KEY, "SubnetListRecord")?;
-    let routing_table =
-        decode_required_record::<RoutingTable>(state, ROUTING_TABLE_KEY, "RoutingTable")?;
+    let (routing_source, routing_table) = routing_table_from_state(state, allow_legacy_routing)?;
     let mut subnets = Vec::with_capacity(subnet_list.subnets.len());
     for raw_subnet_principal in subnet_list.subnets {
         let subnet_principal = Principal::try_from_slice(&raw_subnet_principal)
@@ -300,6 +321,7 @@ pub fn project_nns_registry_subnet_catalog(
     Ok(NnsRegistrySubnetCatalogProjection {
         session,
         registry_version,
+        routing_source,
         subnets,
         routing_ranges,
     })
@@ -309,15 +331,18 @@ pub fn project_nns_registry_subnet_catalog(
 ///
 /// The returned capability borrows `archive`; serializing its raw catalog does not preserve
 /// certified authority, and ordinary `ValidatedSubnetCatalog::try_from_raw` validation will
-/// continue to reject the serialized `Certified` claim.
+/// continue to reject the serialized `Certified` claim. `RequireLatestObserved` requires
+/// nonempty modern routing shards; only `AllowHistoricalTarget` permits legacy routing.
 pub fn project_nns_certified_subnet_catalog<'a>(
     archive: &'a NnsAuthenticatedRegistryArchive,
     request: &NnsCertifiedSubnetCatalogProjectionRequest,
 ) -> Result<NnsCertifiedSubnetCatalogAuthority<'a>, NnsRegistrySubnetCatalogProjectionError> {
     validate_archive_replay_alignment(archive)?;
     let freshness = validate_archive_certificate_freshness(archive, request)?;
-    let projection =
-        project_nns_registry_subnet_catalog(archive.replay_session().replay_session())?;
+    let projection = project_nns_registry_subnet_catalog_with_policy(
+        archive.replay_session().replay_session(),
+        request.version_policy == NnsCertifiedSubnetCatalogVersionPolicy::AllowHistoricalTarget,
+    )?;
     let manifest = archive.manifest();
     require_archive_match(
         "projected_registry_version",
@@ -332,6 +357,8 @@ pub fn project_nns_certified_subnet_catalog<'a>(
         source_endpoints: manifest.source_endpoints.clone(),
         agreement_digest: None,
         registry_query_call_count: manifest.query_call_count,
+        routing_source: projection.routing_source,
+        registry_records: Vec::new(),
         fetched_at: format_utc_timestamp_secs(
             manifest.maximum_certificate_time_nanos / 1_000_000_000,
         ),
@@ -526,6 +553,48 @@ where
         );
     }
     Ok(())
+}
+
+fn routing_table_from_state(
+    state: &super::NnsRegistryReplayState,
+    allow_legacy_routing: bool,
+) -> Result<(SubnetCatalogRoutingSource, RoutingTable), NnsRegistrySubnetCatalogProjectionError> {
+    let shards = state
+        .entries()
+        .filter(|(key, _)| key.starts_with(CANISTER_RANGES_KEY_PREFIX.as_bytes()))
+        .collect::<Vec<_>>();
+    if shards.is_empty() {
+        if !allow_legacy_routing {
+            return Err(
+                NnsRegistrySubnetCatalogProjectionError::MissingRequiredRegistryKey {
+                    key: format!("{CANISTER_RANGES_KEY_PREFIX}*"),
+                },
+            );
+        }
+        return decode_required_record::<RoutingTable>(state, ROUTING_TABLE_KEY, "RoutingTable")
+            .map(|table| (SubnetCatalogRoutingSource::LegacyRoutingTable, table));
+    }
+
+    let mut parsed_shards = Vec::with_capacity(shards.len());
+    for (raw_key, value) in shards {
+        let key = std::str::from_utf8(raw_key)
+            .map_err(|error| invalid_record(CANISTER_RANGES_KEY_PREFIX, "RoutingTable", error))?
+            .to_string();
+        let lower_bound = canister_range_start_from_key(CANISTER_RANGES_KEY_PREFIX, &key)
+            .map_err(|error| invalid_record(&key, "RoutingTable", error))?;
+        parsed_shards.push((key, lower_bound, value));
+    }
+
+    let mut combined = RoutingTable::default();
+    for (index, (key, lower_bound, value)) in parsed_shards.iter().enumerate() {
+        let shard = RoutingTable::decode(value.value())
+            .map_err(|error| invalid_record(key, "RoutingTable", error))?;
+        let next_start = parsed_shards.get(index + 1).map(|(_, start, _)| start);
+        validate_routing_table_shard_bounds(key, lower_bound, &shard, next_start)
+            .map_err(|error| invalid_record(key, "RoutingTable", error))?;
+        combined.entries.extend(shard.entries);
+    }
+    Ok((SubnetCatalogRoutingSource::CanisterRanges, combined))
 }
 
 fn decode_required_record<M>(

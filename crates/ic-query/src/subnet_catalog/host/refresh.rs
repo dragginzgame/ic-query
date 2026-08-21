@@ -221,6 +221,8 @@ async fn refresh_subnet_catalog_under_lock(
         source_endpoints: catalog.provenance().source_endpoints.clone(),
         agreement_digest: catalog.provenance().agreement_digest.clone(),
         registry_query_call_count: catalog.provenance().registry_query_call_count,
+        routing_source: catalog.provenance().routing_source,
+        registry_records: catalog.provenance().registry_records.clone(),
         catalog_digest: catalog.raw().catalog_digest.clone(),
         fetched_at: catalog.provenance().fetched_at.clone(),
         fetched_by: catalog.provenance().fetched_by.clone(),

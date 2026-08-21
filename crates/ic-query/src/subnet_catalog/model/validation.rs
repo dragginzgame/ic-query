@@ -49,6 +49,8 @@ impl RawSubnetCatalog {
                 source_endpoints: vec![collection.source_endpoint],
                 agreement_digest: None,
                 registry_query_call_count: collection.registry_query_call_count,
+                routing_source: collection.routing_source,
+                registry_records: collection.registry_records,
                 fetched_at: collection.fetched_at,
                 certified_registry: None,
                 fetched_by: collection.fetched_by,
@@ -70,6 +72,16 @@ impl RawSubnetCatalog {
     #[cfg(feature = "subnet-catalog-host")]
     pub fn canonicalize_and_seal(&mut self) -> Result<(), CatalogError> {
         canonicalize_subnet_catalog_content(&mut self.subnets, &mut self.routing_ranges)?;
+        self.provenance.registry_records.sort_by(|left, right| {
+            left.source_endpoint
+                .cmp(&right.source_endpoint)
+                .then_with(|| left.record.key.cmp(&right.record.key))
+                .then_with(|| left.record.kind.as_str().cmp(right.record.kind.as_str()))
+                .then_with(|| {
+                    left.returned_registry_version
+                        .cmp(&right.returned_registry_version)
+                })
+        });
         self.provenance.classification_schema_version = CLASSIFICATION_SCHEMA_VERSION;
         self.provenance.classification_policy_digest = classification_policy_digest();
         self.provenance.resolver_schema_version = RESOLVER_SCHEMA_VERSION;
@@ -339,7 +351,188 @@ fn validate_provenance(
     validate_collector_identity(raw)?;
     let parsed_endpoints = validated_source_endpoints(raw)?;
     validate_assurance(raw, &parsed_endpoints, admit_certified)?;
+    validate_registry_record_evidence(raw)?;
     validate_policy_identity(raw)
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validate_registry_record_evidence(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
+    if raw.provenance.registry_records.is_empty() {
+        return Ok(());
+    }
+
+    let expected_subnets = raw
+        .subnets
+        .iter()
+        .map(|subnet| subnet.subnet_principal.clone())
+        .collect::<BTreeSet<_>>();
+    let mut subnet_list_endpoints = BTreeSet::new();
+    let mut routing_endpoints = BTreeSet::new();
+    let mut subnet_record_identities = BTreeSet::new();
+    let mut previous_record = None;
+    for evidence in &raw.provenance.registry_records {
+        if evidence.requested_registry_version != raw.provenance.registry_version {
+            return Err(invalid_registry_record_evidence(
+                "record request version does not match the pinned catalog version".to_string(),
+            ));
+        }
+        if evidence.returned_registry_version > evidence.requested_registry_version {
+            return Err(invalid_registry_record_evidence(
+                "record value version is newer than its requested version".to_string(),
+            ));
+        }
+        if !raw
+            .provenance
+            .source_endpoints
+            .contains(&evidence.source_endpoint)
+        {
+            return Err(invalid_registry_record_evidence(
+                "record source endpoint is not a catalog source endpoint".to_string(),
+            ));
+        }
+        if evidence.assurance != CatalogAssurance::UncertifiedQuery {
+            return Err(invalid_registry_record_evidence(
+                "individual get_value evidence must have uncertified-query assurance".to_string(),
+            ));
+        }
+
+        let record_identity = (
+            evidence.source_endpoint.as_str(),
+            evidence.record.key.as_str(),
+        );
+        if previous_record.is_some_and(|previous| previous >= record_identity) {
+            return Err(invalid_registry_record_evidence(
+                "record evidence is duplicated or not in canonical endpoint/key order".to_string(),
+            ));
+        }
+        previous_record = Some(record_identity);
+
+        match validated_registry_record_subject(
+            evidence,
+            raw.provenance.routing_source,
+            &expected_subnets,
+        )? {
+            RegistryRecordEvidenceSubject::SubnetList => {
+                subnet_list_endpoints.insert(evidence.source_endpoint.as_str());
+            }
+            RegistryRecordEvidenceSubject::Routing => {
+                routing_endpoints.insert(evidence.source_endpoint.as_str());
+            }
+            RegistryRecordEvidenceSubject::Subnet(subnet) => {
+                subnet_record_identities.insert((evidence.source_endpoint.as_str(), subnet));
+            }
+        }
+    }
+
+    for endpoint in &raw.provenance.source_endpoints {
+        if !subnet_list_endpoints.contains(endpoint.as_str()) {
+            return Err(invalid_registry_record_evidence(format!(
+                "source endpoint {endpoint:?} has no Subnet-list record evidence"
+            )));
+        }
+        if !routing_endpoints.contains(endpoint.as_str()) {
+            return Err(invalid_registry_record_evidence(format!(
+                "source endpoint {endpoint:?} has no selected routing record evidence"
+            )));
+        }
+        for subnet in &expected_subnets {
+            if !subnet_record_identities.contains(&(endpoint.as_str(), subnet.clone())) {
+                return Err(invalid_registry_record_evidence(format!(
+                    "source endpoint {endpoint:?} has no record evidence for Subnet {subnet}"
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+enum RegistryRecordEvidenceSubject {
+    SubnetList,
+    Routing,
+    Subnet(String),
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+fn validated_registry_record_subject(
+    evidence: &super::SubnetCatalogRegistryRecordEvidence,
+    routing_source: super::SubnetCatalogRoutingSource,
+    expected_subnets: &BTreeSet<String>,
+) -> Result<RegistryRecordEvidenceSubject, CatalogError> {
+    match evidence.record.kind {
+        super::SubnetCatalogRegistryRecordKind::SubnetList => {
+            if evidence.record.key != crate::ic_registry::SUBNET_LIST_KEY
+                || evidence.record.subnet.is_some()
+                || evidence.record.canister_range_start.is_some()
+            {
+                return Err(invalid_registry_record_evidence(
+                    "Subnet-list evidence does not match its exact Registry subject".to_string(),
+                ));
+            }
+            Ok(RegistryRecordEvidenceSubject::SubnetList)
+        }
+        super::SubnetCatalogRegistryRecordKind::RoutingTable => {
+            if evidence.record.subnet.is_some() {
+                return Err(invalid_registry_record_evidence(
+                    "routing evidence unexpectedly names a Subnet-record subject".to_string(),
+                ));
+            }
+            let is_modern = if evidence.record.key == crate::ic_registry::ROUTING_TABLE_KEY {
+                if evidence.record.canister_range_start.is_some() {
+                    return Err(invalid_registry_record_evidence(
+                        "legacy routing evidence has a shard lower-bound subject".to_string(),
+                    ));
+                }
+                false
+            } else {
+                let parsed = crate::ic_registry::routing_shards::canister_range_start_from_key(
+                    crate::ic_registry::CANISTER_RANGES_KEY_PREFIX,
+                    &evidence.record.key,
+                )
+                .map_err(invalid_registry_record_evidence)?;
+                if evidence.record.canister_range_start.as_ref() != Some(&parsed) {
+                    return Err(invalid_registry_record_evidence(
+                        "routing shard subject does not match the lower bound encoded by its key"
+                            .to_string(),
+                    ));
+                }
+                true
+            };
+            let selected_modern =
+                routing_source == super::SubnetCatalogRoutingSource::CanisterRanges;
+            if is_modern != selected_modern {
+                return Err(invalid_registry_record_evidence(
+                    "routing record evidence contradicts the selected routing source".to_string(),
+                ));
+            }
+            Ok(RegistryRecordEvidenceSubject::Routing)
+        }
+        super::SubnetCatalogRegistryRecordKind::SubnetRecord => {
+            let Some(subnet) = evidence.record.subnet else {
+                return Err(invalid_registry_record_evidence(
+                    "Subnet-record evidence has no Subnet subject".to_string(),
+                ));
+            };
+            let subnet = subnet.to_text();
+            if evidence.record.canister_range_start.is_some()
+                || evidence.record.key != crate::ic_registry::subnet_record_key(&subnet)
+                || !expected_subnets.contains(&subnet)
+            {
+                return Err(invalid_registry_record_evidence(
+                    "Subnet-record evidence does not match a current catalog Subnet".to_string(),
+                ));
+            }
+            Ok(RegistryRecordEvidenceSubject::Subnet(subnet))
+        }
+    }
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+const fn invalid_registry_record_evidence(reason: String) -> CatalogError {
+    CatalogError::InvalidProvenance {
+        field: "provenance.registry_records",
+        reason,
+    }
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -688,15 +881,41 @@ pub(in crate::subnet_catalog) fn catalog_agreement_digest(
         network: &'a str,
         registry_canister_id: &'a str,
         registry_version: u64,
+        routing_source: super::SubnetCatalogRoutingSource,
+        registry_records: Vec<AgreementRegistryRecord<'a>>,
         subnets: &'a [SubnetInfo],
         routing_ranges: &'a [RoutingRange],
     }
+
+    #[derive(serde::Serialize)]
+    struct AgreementRegistryRecord<'a> {
+        record: &'a super::SubnetCatalogRegistryRecordSubject,
+        requested_registry_version: u64,
+        returned_registry_version: u64,
+        timestamp_nanoseconds: u64,
+        value_encoding: super::SubnetCatalogRegistryValueEncoding,
+    }
+
+    let registry_records = raw
+        .provenance
+        .registry_records
+        .iter()
+        .map(|evidence| AgreementRegistryRecord {
+            record: &evidence.record,
+            requested_registry_version: evidence.requested_registry_version,
+            returned_registry_version: evidence.returned_registry_version,
+            timestamp_nanoseconds: evidence.timestamp_nanoseconds,
+            value_encoding: evidence.value_encoding,
+        })
+        .collect();
 
     let payload = AgreementPayload {
         catalog_schema_version: raw.catalog_schema_version,
         network: &raw.provenance.network,
         registry_canister_id: &raw.provenance.registry_canister_id,
         registry_version: raw.provenance.registry_version,
+        routing_source: raw.provenance.routing_source,
+        registry_records,
         subnets: &raw.subnets,
         routing_ranges: &raw.routing_ranges,
     };

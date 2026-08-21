@@ -363,11 +363,13 @@ do not describe a failed attempt. Detailed host loads instead return a
 `SubnetCatalogLoadFailure` with the requested network, selected
 `CatalogSourceSelection`, minimum assurance, exact `SubnetCatalogLoadStage`,
 failure-side `SubnetCatalogFailureCacheDisposition`, optional pinned Registry
-version, typed subject, stable code/category, and typed retryability. Once the
-live collector pins a Registry version, every later Subnet-list, routing-table,
+version, returned individual value version when available, source endpoint,
+individual assurance, completed record evidence, typed subject, stable code/
+category, and typed retryability. Once the live collector pins a Registry
+version, every later Subnet-list, routing-key-family, routing-shard,
 Subnet-record, decoding, validation, or aggregation failure retains that exact
-version. A failure before version acquisition retains `None`, and uncertain
-retryability is `Unknown(reason)` rather than a binary guess.
+requested version. A failure before version acquisition retains `None`, and
+uncertain retryability is `Unknown(reason)` rather than a binary guess.
 Exact-version topology and ICRC account-history library callers receive the
 same behavior only through explicitly selected read-through APIs. Direct cache
 loads, filesystem failures, and complete Governance history caches remain
@@ -379,9 +381,23 @@ Library Subnet Catalog refresh policies use `CatalogSourceSelection`: one
 endpoint keeps `UncertifiedQuery`, while an explicit two-to-three-endpoint
 selection requires distinct hostnames and exact Registry-version/payload
 agreement. Successful provenance records canonical endpoints, an agreement
-digest when applicable, and exact Registry query-call counts. Agreement does
-not become certified evidence and never falls back to one endpoint on a
+digest when applicable, exact Registry query-call counts, the selected routing
+source, and per-value requested/returned versions, keys, schemas, subjects,
+timestamps, endpoint, assurance, and inline/chunked representation. Agreement
+does not become certified evidence and never falls back to one endpoint on a
 mismatch.
+
+Mainnet routing authority follows the current Registry helper contract. At the
+pinned Registry version, the collector reconstructs the complete present-key
+set under `canister_ranges_*`, fetches and decodes every shard at that same
+version, and flattens the shards into one strictly validated routing table. If
+the modern family is empty, live collection fails closed; the retired
+monolithic `routing_table` is never queried or considered. Missing, empty,
+malformed, overlapping, contradictory, shard-boundary-violating, or unknown-
+Subnet shard evidence likewise fails closed, so a stale legacy value cannot
+resurrect a deleted Subnet or mask lost modern authority. Size-bounded
+`get_changes_since` pages advance by their highest returned mutation version;
+the response's latest-version field is not treated as a page watermark.
 
 `sns list` uses a one-hour joined catalog cache containing Governance metadata
 and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
@@ -903,9 +919,11 @@ reauthenticate a custom source or establish catalog assurance by themselves.
 
 A completed replay session can be projected in memory into canonical Subnet
 Catalog rows. This pure diagnostic projection reads the replayed Subnet list,
-routing table, and referenced Subnet records at the pinned version and reuses
-the live catalog's classification and routing-validation path. It does not by
-itself produce validated certified authority.
+routing authority, and referenced Subnet records at the pinned version and
+reuses the live catalog's classification and routing-validation path. It uses
+the complete present `canister_ranges_*` family when nonempty and explicitly
+permits the legacy `routing_table` only to inspect a pre-shard historical
+state. It does not by itself produce validated certified authority.
 
 `project_nns_certified_subnet_catalog` is the authority boundary. It accepts
 only a fully reauthenticated `NnsAuthenticatedRegistryArchive`, rechecks its
@@ -913,8 +931,10 @@ manifest against the sealed replay session, projects the exact reconstructed
 state, and returns `NnsCertifiedSubnetCatalogAuthority`. Its required
 `NnsCertifiedSubnetCatalogProjectionRequest` carries caller-owned validation
 context, a maximum certificate age, and an explicit choice between an
-authenticated historical target and requiring the newest version observed by
-every archive batch; there are no default policies. Stale or knowingly
+authenticated historical target, which alone permits pre-shard legacy routing,
+and requiring the selected target to be the newest version observed by every
+archive batch with nonempty modern routing shards; there are no default
+policies. Stale or knowingly
 superseded archives fail before catalog record projection when prohibited. The
 result keeps its private-field `ValidatedSubnetCatalog` attached to the archive
 that proves it and exposes the exact age and version decision through
@@ -949,7 +969,10 @@ archive, certificate, endpoint, assurance, and cache-action identity without
 duplicating the catalog snapshot. The serialized `Certified` label and evidence
 DTO remain descriptive rather than authority constructors: reloading authority
 still requires the matching authenticated archive and fresh projection. The
-ordinary schema-1 Subnet Catalog cache is unchanged.
+ordinary Subnet Catalog remains schema 1, but its pre-1.0 shape is hard-cut to
+require routing-source and per-record provenance fields. Older cache content is
+invalid under the current reader and is refreshed only when the caller's
+explicit cache policy authorizes invalid-content repair.
 
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case

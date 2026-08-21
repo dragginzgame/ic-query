@@ -174,10 +174,43 @@ impl SubnetCatalogSource for AgreementFixtureSource {
                     AgreementFixtureMode::Matching | AgreementFixtureMode::EndpointFailure => {}
                 }
             }
+            attach_complete_registry_evidence(&mut catalog, &request.endpoint);
             catalog.canonicalize_and_seal()?;
             Ok(catalog)
         })
     }
+}
+
+fn attach_complete_registry_evidence(catalog: &mut RawSubnetCatalog, endpoint: &str) {
+    let registry_version = catalog.provenance.registry_version;
+    let evidence = |record| SubnetCatalogRegistryRecordEvidence {
+        record,
+        requested_registry_version: registry_version,
+        returned_registry_version: registry_version.saturating_sub(1),
+        timestamp_nanoseconds: 1_780_531_200_000_000_000,
+        source_endpoint: endpoint.to_string(),
+        assurance: CatalogAssurance::UncertifiedQuery,
+        value_encoding: SubnetCatalogRegistryValueEncoding::Inline,
+    };
+    let mut registry_records = vec![
+        evidence(SubnetCatalogRegistryRecordSubject::keyed(
+            SubnetCatalogRegistryRecordKind::SubnetList,
+            crate::ic_registry::SUBNET_LIST_KEY,
+        )),
+        evidence(SubnetCatalogRegistryRecordSubject::keyed(
+            SubnetCatalogRegistryRecordKind::RoutingTable,
+            crate::ic_registry::ROUTING_TABLE_KEY,
+        )),
+    ];
+    registry_records.extend(catalog.subnets.iter().map(|subnet| {
+        let principal = candid::Principal::from_text(&subnet.subnet_principal)
+            .expect("fixture Subnet principal");
+        evidence(SubnetCatalogRegistryRecordSubject::subnet_record(
+            crate::ic_registry::subnet_record_key(&subnet.subnet_principal),
+            principal,
+        ))
+    }));
+    catalog.provenance.registry_records = registry_records;
 }
 
 impl FixtureRefreshSource {
@@ -218,6 +251,9 @@ impl SubnetCatalogSource for FixtureRefreshSource {
 
 pub(super) struct DetailedFailureSource {
     registry_version: Option<u64>,
+    returned_registry_value_version: Option<u64>,
+    source_endpoint: Option<String>,
+    assurance: Option<CatalogAssurance>,
     subject: Option<SubnetCatalogSubject>,
     message: &'static str,
 }
@@ -230,9 +266,23 @@ impl DetailedFailureSource {
     ) -> Self {
         Self {
             registry_version,
+            returned_registry_value_version: None,
+            source_endpoint: None,
+            assurance: None,
             subject,
             message,
         }
+    }
+
+    pub(super) fn with_value_response(
+        mut self,
+        returned_registry_value_version: u64,
+        source_endpoint: &str,
+    ) -> Self {
+        self.returned_registry_value_version = Some(returned_registry_value_version);
+        self.source_endpoint = Some(source_endpoint.to_string());
+        self.assurance = Some(CatalogAssurance::UncertifiedQuery);
+        self
     }
 
     fn source_error(&self) -> SubnetCatalogHostError {
@@ -262,6 +312,12 @@ impl SubnetCatalogSource for DetailedFailureSource {
                 self.registry_version,
                 self.subject.clone(),
                 self.source_error(),
+            )
+            .with_registry_evidence(
+                self.returned_registry_value_version,
+                self.source_endpoint.clone(),
+                self.assurance,
+                Vec::new(),
             ))
         })
     }

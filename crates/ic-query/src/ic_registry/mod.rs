@@ -10,6 +10,7 @@ mod projection;
 pub mod proto;
 #[cfg(feature = "nns-topology-host")]
 mod relations;
+pub mod routing_shards;
 mod source;
 mod transport;
 mod wire;
@@ -104,6 +105,7 @@ use wire::{
 pub const DEFAULT_MAINNET_ENDPOINT: &str = "https://icp-api.io";
 pub const SUBNET_LIST_KEY: &str = "subnet_list";
 pub const ROUTING_TABLE_KEY: &str = "routing_table";
+pub const CANISTER_RANGES_KEY_PREFIX: &str = "canister_ranges_";
 const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";
 
 fn canister_id_text(

@@ -102,11 +102,13 @@ fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryabi
         kind: SubnetCatalogRegistryRecordKind::SubnetList,
         key: crate::ic_registry::SUBNET_LIST_KEY.to_string(),
         subnet: None,
+        canister_range_start: None,
     });
 
     let failure = load_subnet_catalog_detailed_with_source(
         &request,
-        &DetailedFailureSource::new(Some(881_337), Some(subject.clone()), "SubnetListRecord"),
+        &DetailedFailureSource::new(Some(881_337), Some(subject.clone()), "SubnetListRecord")
+            .with_value_response(881_100, endpoint),
     )
     .expect_err("refresh fails");
 
@@ -116,6 +118,9 @@ fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryabi
         SubnetCatalogFailureCacheDisposition::RefreshFailed(SubnetCatalogRefreshTrigger::Missing)
     );
     assert_eq!(failure.registry_version, Some(881_337));
+    assert_eq!(failure.returned_registry_value_version, Some(881_100));
+    assert_eq!(failure.source_endpoint.as_deref(), Some(endpoint));
+    assert_eq!(failure.assurance, Some(CatalogAssurance::UncertifiedQuery));
     assert_eq!(failure.subject, Some(subject));
     assert_eq!(failure.request.network, MAINNET_NETWORK);
     assert_eq!(
@@ -158,6 +163,7 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
                 kind: SubnetCatalogRegistryRecordKind::SubnetList,
                 key: crate::ic_registry::SUBNET_LIST_KEY.to_string(),
                 subnet: None,
+                canister_range_start: None,
             }),
             "SubnetListRecord",
         ),
@@ -167,6 +173,7 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
                 kind: SubnetCatalogRegistryRecordKind::RoutingTable,
                 key: crate::ic_registry::ROUTING_TABLE_KEY.to_string(),
                 subnet: None,
+                canister_range_start: None,
             }),
             "RoutingTable",
         ),
@@ -176,6 +183,7 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
                 kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
                 key: crate::ic_registry::subnet_record_key(SUBNET_A),
                 subnet: Some(candid::Principal::from_text(SUBNET_A).expect("subnet")),
+                canister_range_start: None,
             }),
             "SubnetRecord",
         ),

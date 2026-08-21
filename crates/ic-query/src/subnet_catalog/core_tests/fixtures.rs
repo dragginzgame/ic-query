@@ -1,8 +1,8 @@
 use crate::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance, ClassificationSource,
     GeographicScope, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION,
-    RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance, SubnetInfo, SubnetKind,
-    SubnetSpecialization, principal_bytes,
+    RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance, SubnetCatalogRoutingSource,
+    SubnetInfo, SubnetKind, SubnetSpecialization, principal_bytes,
 };
 
 pub(super) const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
@@ -19,6 +19,8 @@ pub(super) fn fixture_catalog() -> RawSubnetCatalog {
             source_endpoints: vec!["https://icp-api.io".to_string()],
             agreement_digest: None,
             registry_query_call_count: 5,
+            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
             fetched_at: "2026-06-04T00:00:00Z".to_string(),
             certified_registry: None,
             fetched_by: "fixture".to_string(),

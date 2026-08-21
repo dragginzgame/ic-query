@@ -9,6 +9,43 @@ fn validation_context() -> CatalogValidationContext {
     )
 }
 
+fn fixture_catalog_with_complete_registry_evidence() -> RawSubnetCatalog {
+    let mut raw = fixture_catalog();
+    let endpoint = raw.provenance.source_endpoints[0].clone();
+    let registry_version = raw.provenance.registry_version;
+    let evidence = |record| SubnetCatalogRegistryRecordEvidence {
+        record,
+        requested_registry_version: registry_version,
+        returned_registry_version: registry_version.saturating_sub(1),
+        timestamp_nanoseconds: 1_780_531_200_000_000_000,
+        source_endpoint: endpoint.clone(),
+        assurance: CatalogAssurance::UncertifiedQuery,
+        value_encoding: SubnetCatalogRegistryValueEncoding::Inline,
+    };
+    let mut registry_records = vec![
+        evidence(SubnetCatalogRegistryRecordSubject::keyed(
+            SubnetCatalogRegistryRecordKind::SubnetList,
+            crate::ic_registry::SUBNET_LIST_KEY,
+        )),
+        evidence(SubnetCatalogRegistryRecordSubject::keyed(
+            SubnetCatalogRegistryRecordKind::RoutingTable,
+            crate::ic_registry::ROUTING_TABLE_KEY,
+        )),
+    ];
+    registry_records.extend(raw.subnets.iter().map(|subnet| {
+        let principal = candid::Principal::from_text(&subnet.subnet_principal)
+            .expect("fixture Subnet principal");
+        evidence(SubnetCatalogRegistryRecordSubject::subnet_record(
+            crate::ic_registry::subnet_record_key(&subnet.subnet_principal),
+            principal,
+        ))
+    }));
+    raw.provenance.registry_records = registry_records;
+    raw.canonicalize_and_seal()
+        .expect("seal complete Registry evidence fixture");
+    raw
+}
+
 #[test]
 fn validated_route_retains_exact_catalog_authority() {
     let raw = fixture_catalog();
@@ -235,5 +272,55 @@ fn authority_validation_requires_call_counts_and_recomputes_agreement_digest() {
     assert!(matches!(
         ValidatedSubnetCatalog::try_from_raw(agreement, &validation_context()),
         Err(CatalogError::AgreementDigestMismatch { .. })
+    ));
+}
+
+#[test]
+fn authority_validation_requires_complete_exact_registry_record_subjects() {
+    let complete = fixture_catalog_with_complete_registry_evidence();
+    ValidatedSubnetCatalog::try_from_raw(complete.clone(), &validation_context())
+        .expect("complete exact Registry evidence");
+
+    let mut missing_routing = complete.clone();
+    missing_routing
+        .provenance
+        .registry_records
+        .retain(|evidence| evidence.record.kind != SubnetCatalogRegistryRecordKind::RoutingTable);
+    missing_routing
+        .canonicalize_and_seal()
+        .expect("seal missing-routing fixture");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(missing_routing, &validation_context()),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_records",
+            ..
+        })
+    ));
+
+    let mut contradictory_shard = complete;
+    contradictory_shard.provenance.routing_source = SubnetCatalogRoutingSource::CanisterRanges;
+    let key_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
+    let claimed_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 2, 1, 1]);
+    let routing = contradictory_shard
+        .provenance
+        .registry_records
+        .iter_mut()
+        .find(|evidence| evidence.record.kind == SubnetCatalogRegistryRecordKind::RoutingTable)
+        .expect("routing evidence");
+    routing.record.key = format!(
+        "{}{}",
+        crate::ic_registry::CANISTER_RANGES_KEY_PREFIX,
+        crate::hex::hex_bytes(key_start.as_slice())
+    );
+    routing.record.canister_range_start = Some(claimed_start);
+    contradictory_shard
+        .canonicalize_and_seal()
+        .expect("seal contradictory-shard fixture");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(contradictory_shard, &validation_context()),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_records",
+            ..
+        })
     ));
 }

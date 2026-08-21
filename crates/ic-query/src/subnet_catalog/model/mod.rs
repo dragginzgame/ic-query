@@ -9,7 +9,10 @@ pub use policy::{CLASSIFICATION_SCHEMA_VERSION, RESOLVER_SCHEMA_VERSION};
 pub use types::UncertifiedCatalogCollection;
 pub use types::{
     CatalogAssurance, CatalogValidationContext, CertifiedRegistryCatalogEvidence, RawSubnetCatalog,
-    RoutingRange, SubnetCatalogProvenance, SubnetInfo, ValidatedSubnetCatalog,
+    RoutingRange, SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence,
+    SubnetCatalogRegistryRecordKind, SubnetCatalogRegistryRecordSubject,
+    SubnetCatalogRegistryValueEncoding, SubnetCatalogRoutingSource, SubnetInfo,
+    ValidatedSubnetCatalog,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use validation::canonicalize_subnet_catalog_content;

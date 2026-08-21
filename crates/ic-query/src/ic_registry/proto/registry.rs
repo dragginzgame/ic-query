@@ -126,11 +126,88 @@ pub struct RegistryGetLatestVersionResponse {
 ///
 
 #[derive(Clone, Eq, prost::Message, PartialEq)]
-#[cfg(feature = "certified-subnet-catalog-host")]
 pub struct RegistryGetChangesSinceRequest {
     /// Last Registry version already held by the caller.
     #[prost(uint64, tag = "1")]
     pub version: u64,
+}
+
+///
+/// HighCapacityRegistryValue
+///
+/// One versioned value returned in an ordinary Registry delta.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+pub struct HighCapacityRegistryValue {
+    /// Registry version at which this value was mutated.
+    #[prost(uint64, tag = "2")]
+    pub version: u64,
+    /// Inline value, deletion marker, or large-value chunk references.
+    #[prost(oneof = "high_capacity_registry_value::Content", tags = "1, 3, 4")]
+    pub content: Option<high_capacity_registry_value::Content>,
+    /// Registry-assigned mutation timestamp in nanoseconds.
+    #[prost(uint64, tag = "5")]
+    pub timestamp_nanoseconds: u64,
+}
+
+pub mod high_capacity_registry_value {
+    use super::LargeValueChunkKeys;
+    use prost::Oneof;
+
+    ///
+    /// Content
+    ///
+    /// Value representation in one high-capacity Registry delta.
+    ///
+
+    #[derive(Clone, Eq, Oneof, PartialEq)]
+    pub enum Content {
+        /// Complete inline value bytes.
+        #[prost(bytes = "vec", tag = "1")]
+        Value(Vec<u8>),
+        /// True when this mutation deleted the key.
+        #[prost(bool, tag = "3")]
+        DeletionMarker(bool),
+        /// Content-addressed chunks for one large value.
+        #[prost(message, tag = "4")]
+        LargeValueChunkKeys(LargeValueChunkKeys),
+    }
+}
+
+///
+/// HighCapacityRegistryDelta
+///
+/// All returned mutations for one Registry key.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+pub struct HighCapacityRegistryDelta {
+    /// Raw Registry key bytes.
+    #[prost(bytes = "vec", tag = "1")]
+    pub key: Vec<u8>,
+    /// Mutations for the key in Registry-version order.
+    #[prost(message, repeated, tag = "2")]
+    pub values: Vec<HighCapacityRegistryValue>,
+}
+
+///
+/// HighCapacityRegistryGetChangesSinceResponse
+///
+/// Ordinary-query Registry deltas and the latest version observed by the query.
+///
+
+#[derive(Clone, Eq, prost::Message, PartialEq)]
+pub struct HighCapacityRegistryGetChangesSinceResponse {
+    /// Registry-side query error.
+    #[prost(message, optional, tag = "1")]
+    pub error: Option<RegistryError>,
+    /// Latest Registry version observed by the query.
+    #[prost(uint64, tag = "2")]
+    pub version: u64,
+    /// All key deltas since the requested version.
+    #[prost(message, repeated, tag = "3")]
+    pub deltas: Vec<HighCapacityRegistryDelta>,
 }
 
 ///

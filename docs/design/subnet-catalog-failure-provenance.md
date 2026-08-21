@@ -21,6 +21,12 @@ forcibly bypassed cache content caused the refresh path.
 The failure separately carries:
 
 - `registry_version: Option<u64>`;
+- `returned_registry_value_version: Option<u64>` for an individual
+  `get_value` response that progressed far enough to return it;
+- `source_endpoint` and individual read `assurance` when known;
+- completed `registry_records`, with each record's requested and returned
+  Registry versions, exact key/schema/subject, Registry timestamp, endpoint,
+  assurance, and inline or chunked representation;
 - `Option<SubnetCatalogSubject>` with typed Registry record/key, Subnet
   principal, routing range, endpoint, cache path, or field identity;
 - stable `SubnetCatalogErrorCode` and `SubnetCatalogErrorCategory` values;
@@ -41,9 +47,11 @@ complete offending range value.
 
 `get_latest_version` is the pinning boundary. Agent construction, Registry
 canister selection, or latest-version failures retain `registry_version =
-None`. Once the query succeeds, every later Subnet-list, routing-table,
-Subnet-record, decoding, routing-range projection, catalog validation, and
-multi-endpoint aggregation failure carries exactly that pinned version.
+None`. Once the query succeeds, every later Subnet-list, routing-key-family,
+routing-shard, Subnet-record, decoding, routing-range projection, catalog
+validation, and multi-endpoint aggregation failure carries exactly that pinned
+requested version. A Registry response's individual value version is retained
+separately and is never substituted for the pin.
 
 For multi-endpoint agreement, an endpoint failure carries the version pinned
 by that endpoint when known. A version or payload mismatch carries the exact
@@ -69,4 +77,6 @@ algorithms are not duplicated.
 
 All of these types and functions are available only with
 `subnet-catalog-host` (or a broader feature that includes it). They add no
-process output, cache schema, migration, CLI surface, or network request.
+process output, migration, or CLI surface. The schema identifier remains 1
+under the repository's pre-1.0 hard-cut policy, while the current schema-1
+catalog and report shape includes routing-source and per-record evidence.

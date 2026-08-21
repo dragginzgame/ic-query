@@ -8,7 +8,10 @@ use super::{
     CatalogSourceSelection, SubnetCatalogErrorCategory, SubnetCatalogErrorCode,
     SubnetCatalogHostError, SubnetCatalogLoadRequest, SubnetCatalogRetryability,
 };
-use crate::subnet_catalog::{CatalogAssurance, CatalogError, RoutingRange};
+use crate::subnet_catalog::{
+    CatalogAssurance, CatalogError, RoutingRange, SubnetCatalogRegistryRecordEvidence,
+    SubnetCatalogRegistryRecordSubject,
+};
 use candid::Principal;
 use std::{error::Error, fmt, path::PathBuf};
 
@@ -147,70 +150,6 @@ pub enum SubnetCatalogFailureCacheDisposition {
 }
 
 ///
-/// SubnetCatalogRegistryRecordKind
-///
-/// Registry method or record family involved in a Subnet Catalog failure.
-///
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SubnetCatalogRegistryRecordKind {
-    /// The Registry Subnet list record.
-    SubnetList,
-    /// The Registry routing table record.
-    RoutingTable,
-    /// One exact Registry Subnet record.
-    SubnetRecord,
-}
-
-impl SubnetCatalogRegistryRecordKind {
-    /// Return the stable snake-case kind.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::SubnetList => "subnet_list",
-            Self::RoutingTable => "routing_table",
-            Self::SubnetRecord => "subnet_record",
-        }
-    }
-}
-
-///
-/// SubnetCatalogRegistryRecordSubject
-///
-/// Typed Registry record identity retained for a Subnet Catalog failure.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SubnetCatalogRegistryRecordSubject {
-    /// Registry record family.
-    pub kind: SubnetCatalogRegistryRecordKind,
-    /// Exact Registry key used by `get_value`.
-    pub key: String,
-    /// Exact Subnet principal for a Subnet-record operation.
-    pub subnet: Option<Principal>,
-}
-
-impl SubnetCatalogRegistryRecordSubject {
-    #[must_use]
-    pub(crate) fn keyed(kind: SubnetCatalogRegistryRecordKind, key: impl Into<String>) -> Self {
-        Self {
-            kind,
-            key: key.into(),
-            subnet: None,
-        }
-    }
-
-    #[must_use]
-    pub(crate) fn subnet_record(key: impl Into<String>, subnet: Principal) -> Self {
-        Self {
-            kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
-            key: key.into(),
-            subnet: Some(subnet),
-        }
-    }
-}
-
-///
 /// SubnetCatalogField
 ///
 /// Typed field identity known by the Subnet Catalog collector or validator.
@@ -303,6 +242,14 @@ pub enum SubnetCatalogSubject {
 pub struct SubnetCatalogSourceFailure {
     /// Exact pinned Registry version when collection progressed far enough to know it.
     pub registry_version: Option<u64>,
+    /// Individual Registry value version returned for the failing record.
+    pub returned_registry_value_version: Option<u64>,
+    /// Exact endpoint that returned the failing record, when known.
+    pub source_endpoint: Option<String>,
+    /// Assurance of the individual failing read, when known.
+    pub assurance: Option<CatalogAssurance>,
+    /// Successful Registry reads completed before the failure.
+    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     /// Typed offending identity when known.
     pub subject: Option<SubnetCatalogSubject>,
     /// Original host error.
@@ -319,9 +266,29 @@ impl SubnetCatalogSourceFailure {
     ) -> Self {
         Self {
             registry_version,
+            returned_registry_value_version: None,
+            source_endpoint: None,
+            assurance: None,
+            registry_records: Vec::new(),
             subject,
             source,
         }
+    }
+
+    /// Attach typed per-value Registry evidence retained by a live collector.
+    #[must_use]
+    pub fn with_registry_evidence(
+        mut self,
+        returned_registry_value_version: Option<u64>,
+        source_endpoint: Option<String>,
+        assurance: Option<CatalogAssurance>,
+        registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
+    ) -> Self {
+        self.returned_registry_value_version = returned_registry_value_version;
+        self.source_endpoint = source_endpoint;
+        self.assurance = assurance;
+        self.registry_records = registry_records;
+        self
     }
 
     /// Wrap a source that cannot provide narrower provenance.
@@ -351,6 +318,14 @@ pub struct SubnetCatalogLoadFailure {
     pub stage: SubnetCatalogLoadStage,
     /// Exact Registry version when known.
     pub registry_version: Option<u64>,
+    /// Individual Registry value version returned for the failing record.
+    pub returned_registry_value_version: Option<u64>,
+    /// Exact endpoint that returned the failing record, when known.
+    pub source_endpoint: Option<String>,
+    /// Assurance of the individual failing read, when known.
+    pub assurance: Option<CatalogAssurance>,
+    /// Successful Registry reads completed before the failure.
+    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     /// Failure-side cache state or action.
     pub cache_disposition: SubnetCatalogFailureCacheDisposition,
     /// Typed offending identity when known.
@@ -379,6 +354,10 @@ impl SubnetCatalogLoadFailure {
             request: SubnetCatalogLoadFailureRequest::from_load_request(request),
             stage,
             registry_version: failure.registry_version,
+            returned_registry_value_version: failure.returned_registry_value_version,
+            source_endpoint: failure.source_endpoint,
+            assurance: failure.assurance,
+            registry_records: failure.registry_records,
             cache_disposition,
             subject: failure.subject,
             code,

@@ -36,6 +36,8 @@ icq icrc account transaction --help
 | [0.28 Observed IC Node And Subnet Status](design/0.28/0.28-design.md) | One bounded Dashboard node snapshot, short-lived atomic cache, and node/Subnet/provider operational projections |
 | [0.29 Subnet Catalog Authority And Embedder Hardening](design/0.29/0.29-design.md) | Explicit Registry assurance, raw/validated catalog separation, provenance-bound routes, freshness policy, and staged host hardening |
 | [Subnet Catalog Failure Provenance](design/subnet-catalog-failure-provenance.md) | Detailed typed host-load failures with pinned Registry version, exact stage/cache context, subjects, and truthful retryability |
+| [Subnet Catalog Routing Authority](design/subnet-catalog-routing-authority.md) | Pinned `canister_ranges_*` reconstruction, strict shard validation, explicit historical legacy policy, and per-record provenance |
+| [Subnet Catalog Downstream Adoption](design/subnet-catalog-downstream-adoption.md) | Schema-1 hard-cut checklist for typed provenance projections, fixtures, and cache refresh |
 | [0.30 Certified Registry Evidence](design/0.30/0.30-design.md) | Authenticated latest-version and bounded single-delta-batch evidence, with staged certified Registry reconstruction |
 | [0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md) | Top-level exact-target operator details, Registry/control-plane inventory, and bounded marketplace reports |
 | [0.32 Bounded Replica-Version Reporting](design/0.32/0.32-design.md) | One-page release discovery and exact release detail with explicit off-chain authority and no runtime-version claim |

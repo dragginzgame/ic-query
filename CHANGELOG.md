@@ -7,9 +7,33 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.41.x] - Unreleased - Typed Subnet Catalog load failures
+## [0.41.x] - Unreleased - Mainnet Subnet Catalog routing authority
 
 Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
+
+- `0.41.1` fixes mainnet Subnet Catalog routing by reconstructing the complete
+  pinned `canister_ranges_*` family used by current DFINITY Registry clients.
+  The live collector requires nonempty modern authority and never reads the
+  retired monolithic `routing_table`, so an empty family fails closed and a
+  frozen deleted-Subnet route cannot create false catalog inconsistency.
+  Complete bounded delta pagination reconstructs the pinned family; missing,
+  malformed, shard-boundary-violating, overlapping, contradictory, or unknown-
+  Subnet evidence fails closed, and large values retain bounded hash-verified
+  chunk retrieval. Diagnostic replay may inspect pre-shard legacy history;
+  certified promotion permits legacy routing only under the caller's explicit
+  `AllowHistoricalTarget` policy, while `RequireLatestObserved` requires modern
+  shards.
+  Schema-1 catalog and report provenance is hard-cut in place to retain routing
+  source plus every value's requested/returned versions, key/schema/subject,
+  timestamp, endpoint, assurance, and transport representation. Existing
+  detailed failures now retain the returned individual value version, failing
+  endpoint and assurance, and all completed record evidence. Exact typed
+  subjects and per-endpoint record completeness are validated, including the
+  lower bound encoded by each shard key. No CLI surface is added. Detailed
+  release notes include the downstream fixture, projection, custom-source, and
+  cache-refresh adoption contract; ordinary load, refresh, and resolution call
+  sites need no routing adapter, while direct schema literals and older
+  schema-1 caches require the documented hard-cut update.
 
 - `0.41.0` adds detailed synchronous, asynchronous, and caller-supplied-source
   Subnet Catalog load APIs under `subnet-catalog-host`. Typed failures retain

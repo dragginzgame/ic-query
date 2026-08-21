@@ -4,93 +4,172 @@ use super::{
     projection::subnet_kind_from_registry,
     proto::{RoutingTable, SubnetListRecord, SubnetRecord},
     subnet_id_text, subnet_record_key,
-    transport::{RegistryQueryCounter, decode_message, get_registry_value_counted},
+    transport::decode_message,
+    wire::{RegistryValueEncoding, RegistryVersionedValue, RegistryVersionedValueFailure},
 };
 use crate::subnet_catalog::{
-    ClassificationSource, GeographicScope, RawSubnetCatalog, RoutingRange, SubnetCatalogField,
-    SubnetCatalogRegistryRecordKind, SubnetCatalogRegistryRecordSubject, SubnetCatalogSubject,
+    CatalogAssurance, CatalogError, ClassificationSource, GeographicScope, RawSubnetCatalog,
+    RoutingRange, SubnetCatalogField, SubnetCatalogRegistryRecordEvidence,
+    SubnetCatalogRegistryRecordKind, SubnetCatalogRegistryRecordSubject,
+    SubnetCatalogRegistryValueEncoding, SubnetCatalogRoutingSource, SubnetCatalogSubject,
     SubnetInfo, SubnetSpecialization, UncertifiedCatalogCollection,
 };
 use candid::Principal;
-use futures::future::try_join_all;
-use ic_agent::Agent;
+use std::future::Future;
 
-pub(super) async fn catalog_from_registry_records_detailed(
+pub(super) trait CatalogRegistryReader: Sync {
+    fn key_family(
+        &self,
+        prefix: &str,
+        registry_version: u64,
+    ) -> impl Future<Output = Result<Vec<String>, RegistryFetchError>> + Send;
+
+    fn value(
+        &self,
+        key: &str,
+        registry_version: u64,
+    ) -> impl Future<Output = Result<RegistryVersionedValue, RegistryVersionedValueFailure>> + Send;
+
+    fn query_call_count(&self) -> u64;
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "the collector keeps one visible fail-closed sequence for Subnet records and evidence"
+)]
+pub(super) async fn catalog_from_registry_records_detailed<R>(
     request: &MainnetRegistryFetchRequest,
     registry_version: u64,
-    agent: &Agent,
-    registry_canister: &Principal,
+    reader: &R,
     subnet_list: SubnetListRecord,
     routing_table: RoutingTable,
-    query_counter: &RegistryQueryCounter,
-) -> Result<RawSubnetCatalog, SubnetCatalogRegistryFailure> {
+    routing_source: SubnetCatalogRoutingSource,
+    mut registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
+) -> Result<RawSubnetCatalog, SubnetCatalogRegistryFailure>
+where
+    R: CatalogRegistryReader,
+{
     if subnet_list.subnets.is_empty() {
         return Err(registry_record_failure(
+            request,
             registry_version,
             SUBNET_LIST_KEY,
             SubnetCatalogRegistryRecordKind::SubnetList,
+            None,
+            registry_records,
             RegistryFetchError::EmptySubnetList,
         ));
     }
     if routing_table.entries.is_empty() {
+        let (key, kind) = match routing_source {
+            SubnetCatalogRoutingSource::CanisterRanges => (
+                crate::ic_registry::CANISTER_RANGES_KEY_PREFIX,
+                SubnetCatalogRegistryRecordKind::RoutingTable,
+            ),
+            SubnetCatalogRoutingSource::LegacyRoutingTable => (
+                ROUTING_TABLE_KEY,
+                SubnetCatalogRegistryRecordKind::RoutingTable,
+            ),
+        };
         return Err(registry_record_failure(
+            request,
             registry_version,
-            ROUTING_TABLE_KEY,
-            SubnetCatalogRegistryRecordKind::RoutingTable,
+            key,
+            kind,
+            None,
+            registry_records,
             RegistryFetchError::EmptyRoutingTable,
         ));
     }
 
-    let subnets = try_join_all(
-        subnet_list
-            .subnets
-            .into_iter()
-            .map(|subnet_raw| async move {
-                let subnet_principal = principal_text_from_raw(&subnet_raw, "subnet_list.subnets")
-                    .map_err(|source| {
-                        SubnetCatalogRegistryFailure::new(
-                            Some(registry_version),
-                            Some(SubnetCatalogSubject::Field(
-                                SubnetCatalogField::SubnetListEntry,
-                            )),
-                            source,
-                        )
-                    })?;
-                let subnet = Principal::from_text(&subnet_principal).map_err(|error| {
-                    SubnetCatalogRegistryFailure::new(
-                        Some(registry_version),
-                        Some(SubnetCatalogSubject::Field(
-                            SubnetCatalogField::SubnetListEntry,
-                        )),
-                        RegistryFetchError::InvalidPrincipal {
-                            field: "subnet_list.subnets",
-                            reason: error.to_string(),
-                        },
-                    )
-                })?;
-                let key = subnet_record_key(&subnet_principal);
-                let record_bytes = get_registry_value_counted(
-                    agent,
-                    registry_canister,
-                    &key,
-                    registry_version,
-                    query_counter,
+    let mut subnets = Vec::with_capacity(subnet_list.subnets.len());
+    for subnet_raw in subnet_list.subnets {
+        let subnet_principal = principal_text_from_raw(&subnet_raw, "subnet_list.subnets")
+            .map_err(|source| {
+                SubnetCatalogRegistryFailure::new(
+                    Some(registry_version),
+                    Some(SubnetCatalogSubject::Field(
+                        SubnetCatalogField::SubnetListEntry,
+                    )),
+                    source,
                 )
-                .await
-                .map_err(|source| subnet_record_failure(registry_version, &key, subnet, source))?;
-                let record = decode_message::<SubnetRecord>("SubnetRecord", &record_bytes)
-                    .map_err(|source| {
-                        subnet_record_failure(registry_version, &key, subnet, source)
-                    })?;
-                Ok::<_, SubnetCatalogRegistryFailure>(subnet_info_from_record(
-                    &subnet_principal,
-                    &record,
-                ))
-            }),
-    )
-    .await?;
+                .with_value_response(&request.endpoint, None)
+                .with_registry_records(registry_records.clone())
+            })?;
+        let subnet = Principal::from_text(&subnet_principal).map_err(|error| {
+            SubnetCatalogRegistryFailure::new(
+                Some(registry_version),
+                Some(SubnetCatalogSubject::Field(
+                    SubnetCatalogField::SubnetListEntry,
+                )),
+                RegistryFetchError::InvalidPrincipal {
+                    field: "subnet_list.subnets",
+                    reason: error.to_string(),
+                },
+            )
+            .with_value_response(&request.endpoint, None)
+            .with_registry_records(registry_records.clone())
+        })?;
+        let key = subnet_record_key(&subnet_principal);
+        let subject = SubnetCatalogRegistryRecordSubject::subnet_record(&key, subnet);
+        let value = reader
+            .value(&key, registry_version)
+            .await
+            .map_err(|failure| {
+                subnet_record_fetch_failure(
+                    request,
+                    registry_version,
+                    subject.clone(),
+                    registry_records.clone(),
+                    failure,
+                )
+            })?;
+        if value.version > registry_version {
+            return Err(subnet_record_failure(
+                request,
+                registry_version,
+                subject,
+                Some(value.version),
+                registry_records,
+                RegistryFetchError::InvalidRegistryValueVersion {
+                    key,
+                    requested_version: registry_version,
+                    returned_version: value.version,
+                },
+            ));
+        }
+        registry_records.push(SubnetCatalogRegistryRecordEvidence {
+            record: subject.clone(),
+            requested_registry_version: registry_version,
+            returned_registry_version: value.version,
+            timestamp_nanoseconds: value.timestamp_nanoseconds,
+            source_endpoint: request.endpoint.clone(),
+            assurance: CatalogAssurance::UncertifiedQuery,
+            value_encoding: match value.encoding {
+                RegistryValueEncoding::Inline => SubnetCatalogRegistryValueEncoding::Inline,
+                RegistryValueEncoding::Chunked => SubnetCatalogRegistryValueEncoding::Chunked,
+            },
+        });
+        let record = decode_message::<SubnetRecord>(subject.kind.protobuf_schema(), &value.value)
+            .map_err(|source| {
+            subnet_record_failure(
+                request,
+                registry_version,
+                subject,
+                Some(value.version),
+                registry_records.clone(),
+                source,
+            )
+        })?;
+        subnets.push(subnet_info_from_record(&subnet_principal, &record));
+    }
 
-    let routing_ranges = routing_ranges_from_table_detailed(&routing_table, registry_version)?;
+    let routing_ranges = routing_ranges_from_table_detailed(&routing_table, registry_version)
+        .map_err(|failure| {
+            failure
+                .with_value_response(&request.endpoint, None)
+                .with_registry_records(registry_records.clone())
+        })?;
     RawSubnetCatalog::new_mainnet_uncertified(
         UncertifiedCatalogCollection::new(
             registry_version,
@@ -98,14 +177,59 @@ pub(super) async fn catalog_from_registry_records_detailed(
             &request.fetched_at,
             &request.fetched_by,
             env!("CARGO_PKG_VERSION"),
-            query_counter.call_count(),
-        ),
+            reader.query_call_count(),
+        )
+        .with_registry_evidence(routing_source, registry_records.clone()),
         subnets,
         routing_ranges,
     )
     .map_err(|source| {
-        SubnetCatalogRegistryFailure::new(Some(registry_version), None, source.into())
+        let subject = catalog_error_subject(&source);
+        SubnetCatalogRegistryFailure::new(Some(registry_version), subject, source.into())
+            .with_value_response(&request.endpoint, None)
+            .with_registry_records(registry_records)
     })
+}
+
+fn catalog_error_subject(source: &CatalogError) -> Option<SubnetCatalogSubject> {
+    match source {
+        CatalogError::UnknownRoutingSubnet { subnet_principal } => {
+            Principal::from_text(subnet_principal)
+                .ok()
+                .map(|subnet| SubnetCatalogSubject::Subnet {
+                    subnet,
+                    field: Some(SubnetCatalogField::RoutingTableSubnetId),
+                })
+        }
+        CatalogError::DuplicateSubnet { subnet_principal } => {
+            Principal::from_text(subnet_principal)
+                .ok()
+                .map(|subnet| SubnetCatalogSubject::Subnet {
+                    subnet,
+                    field: Some(SubnetCatalogField::SubnetListEntry),
+                })
+        }
+        CatalogError::InvalidRoutingRange {
+            start_canister_id,
+            end_canister_id,
+            subnet_principal,
+        } => Some(SubnetCatalogSubject::RoutingRange {
+            range: RoutingRange {
+                start_canister_id: start_canister_id.clone(),
+                end_canister_id: end_canister_id.clone(),
+                subnet_principal: subnet_principal.clone(),
+            },
+            field: None,
+        }),
+        CatalogError::OverlappingRoutingRanges { first, .. }
+        | CatalogError::NonCanonicalRoutingOrder {
+            previous: first, ..
+        } => Some(SubnetCatalogSubject::RoutingRange {
+            range: first.as_ref().clone(),
+            field: None,
+        }),
+        _ => None,
+    }
 }
 
 pub fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRecord) -> SubnetInfo {
@@ -199,9 +323,12 @@ fn routing_ranges_from_table_inner(
 }
 
 fn registry_record_failure(
+    request: &MainnetRegistryFetchRequest,
     registry_version: u64,
     key: &str,
     kind: SubnetCatalogRegistryRecordKind,
+    returned_registry_value_version: Option<u64>,
+    registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     source: RegistryFetchError,
 ) -> SubnetCatalogRegistryFailure {
     SubnetCatalogRegistryFailure::new(
@@ -211,20 +338,41 @@ fn registry_record_failure(
         )),
         source,
     )
+    .with_value_response(&request.endpoint, returned_registry_value_version)
+    .with_registry_records(registry_records)
 }
 
 fn subnet_record_failure(
+    request: &MainnetRegistryFetchRequest,
     registry_version: u64,
-    key: &str,
-    subnet: Principal,
+    subject: SubnetCatalogRegistryRecordSubject,
+    returned_registry_value_version: Option<u64>,
+    registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     source: RegistryFetchError,
 ) -> SubnetCatalogRegistryFailure {
     SubnetCatalogRegistryFailure::new(
         Some(registry_version),
-        Some(SubnetCatalogSubject::RegistryRecord(
-            SubnetCatalogRegistryRecordSubject::subnet_record(key, subnet),
-        )),
+        Some(SubnetCatalogSubject::RegistryRecord(subject)),
         source,
+    )
+    .with_value_response(&request.endpoint, returned_registry_value_version)
+    .with_registry_records(registry_records)
+}
+
+fn subnet_record_fetch_failure(
+    request: &MainnetRegistryFetchRequest,
+    registry_version: u64,
+    subject: SubnetCatalogRegistryRecordSubject,
+    registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
+    failure: RegistryVersionedValueFailure,
+) -> SubnetCatalogRegistryFailure {
+    subnet_record_failure(
+        request,
+        registry_version,
+        subject,
+        failure.returned_version,
+        registry_records,
+        failure.source,
     )
 }
 
@@ -251,12 +399,19 @@ mod detailed_failure_tests {
 
     #[test]
     fn subnet_record_failure_retains_exact_pinned_subject() {
+        let request = MainnetRegistryFetchRequest {
+            endpoint: "https://icp-api.io".to_string(),
+            fetched_at: "2026-08-20T00:00:00Z".to_string(),
+            fetched_by: "test".to_string(),
+        };
         let subnet = Principal::from_text(SUBNET).expect("subnet");
         let key = subnet_record_key(SUBNET);
         let failure = subnet_record_failure(
+            &request,
             882_110,
-            &key,
-            subnet,
+            SubnetCatalogRegistryRecordSubject::subnet_record(&key, subnet),
+            Some(882_000),
+            Vec::new(),
             RegistryFetchError::MissingValue { key: key.clone() },
         );
 
@@ -268,17 +423,31 @@ mod detailed_failure_tests {
                     kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
                     key,
                     subnet: Some(subnet),
+                    canister_range_start: None,
                 }
             ))
+        );
+        assert_eq!(failure.returned_registry_value_version, Some(882_000));
+        assert_eq!(
+            failure.source_endpoint.as_deref(),
+            Some(request.endpoint.as_str())
         );
     }
 
     #[test]
     fn routing_table_and_range_failures_retain_pinned_typed_subjects() {
+        let request = MainnetRegistryFetchRequest {
+            endpoint: "https://icp-api.io".to_string(),
+            fetched_at: "2026-08-20T00:00:00Z".to_string(),
+            fetched_by: "test".to_string(),
+        };
         let table_failure = registry_record_failure(
+            &request,
             882_111,
             ROUTING_TABLE_KEY,
             SubnetCatalogRegistryRecordKind::RoutingTable,
+            None,
+            Vec::new(),
             RegistryFetchError::EmptyRoutingTable,
         );
         assert_eq!(table_failure.registry_version, Some(882_111));

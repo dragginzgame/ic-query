@@ -464,6 +464,8 @@ fn list_catalog_report(subnet_ids: &[&str]) -> SubnetCatalogListReport {
         source_endpoints: vec!["https://icp-api.io".to_string()],
         agreement_digest: None,
         registry_query_call_count: 5,
+        routing_source: crate::subnet_catalog::SubnetCatalogRoutingSource::LegacyRoutingTable,
+        registry_records: Vec::new(),
         catalog_digest: "0".repeat(64),
         cache_disposition: CacheDisposition::CacheHit,
         fetched_at: FETCHED_AT.to_string(),

@@ -32,6 +32,8 @@ pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -
             "registry_query_call_count: {}",
             report.registry_query_call_count
         ),
+        format!("routing_source: {}", report.routing_source.as_str()),
+        format!("registry_record_count: {}", report.registry_records.len()),
         format!("catalog_digest: {}", report.catalog_digest),
         format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
         format!("fetched_by: {}", sanitize_text(&report.fetched_by)),

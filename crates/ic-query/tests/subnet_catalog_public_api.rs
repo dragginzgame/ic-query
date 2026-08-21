@@ -4,7 +4,8 @@ use ic_query::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance,
     CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope, MAINNET_NETWORK,
     MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, ResolveAs,
-    ResolvedSubnetSubject, RoutingRange, SubnetCatalogProvenance, SubnetInfo, SubnetKind,
+    ResolvedSubnetSubject, RoutingRange, SubnetCatalogProvenance,
+    SubnetCatalogRegistryValueEncoding, SubnetCatalogRoutingSource, SubnetInfo, SubnetKind,
     SubnetSpecialization, catalog_to_pretty_json, parse_catalog_json,
 };
 #[cfg(feature = "subnet-catalog-host")]
@@ -186,6 +187,10 @@ fn public_detailed_load_api_exposes_typed_failure_provenance() {
         SubnetCatalogFailureCacheDisposition::CacheMissing
     );
     assert_eq!(failure.registry_version, None);
+    assert_eq!(failure.returned_registry_value_version, None);
+    assert_eq!(failure.source_endpoint, None);
+    assert_eq!(failure.assurance, None);
+    assert!(failure.registry_records.is_empty());
     assert_eq!(failure.request.network, MAINNET_NETWORK);
     assert!(matches!(
         failure.source,
@@ -201,6 +206,18 @@ fn public_detailed_load_api_exposes_typed_failure_provenance() {
     let _ = load_subnet_catalog_detailed_async;
     let _ = load_subnet_catalog_detailed_with_source_async;
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn public_registry_value_encoding_exposes_stable_labels() {
+    assert_eq!(
+        SubnetCatalogRegistryValueEncoding::Inline.as_str(),
+        "inline"
+    );
+    assert_eq!(
+        SubnetCatalogRegistryValueEncoding::Chunked.as_str(),
+        "chunked"
+    );
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -232,6 +249,7 @@ fn public_custom_source_can_supply_exact_failure_version_and_subject() {
                             kind: SubnetCatalogRegistryRecordKind::RoutingTable,
                             key: "routing_table".to_string(),
                             subnet: None,
+                            canister_range_start: None,
                         },
                     )),
                     SubnetCatalogHostError::Catalog(
@@ -421,6 +439,8 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
         source_endpoints: vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()],
         agreement_digest: None,
         registry_query_call_count: 5,
+        routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+        registry_records: Vec::new(),
         catalog_digest: "00".repeat(32),
         fetched_at: "2026-06-26T00:00:00Z".to_string(),
         fetched_by: "fixture".to_string(),
@@ -473,6 +493,8 @@ fn fixture_catalog() -> RawSubnetCatalog {
             source_endpoints: vec!["https://icp-api.io".to_string()],
             agreement_digest: None,
             registry_query_call_count: 5,
+            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
             fetched_at: "2026-06-26T00:00:00Z".to_string(),
             certified_registry: None,
             fetched_by: "fixture".to_string(),

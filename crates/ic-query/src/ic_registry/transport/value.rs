@@ -9,7 +9,10 @@ use crate::ic_registry::{
         RegistryErrorCode, RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value,
         registry_get_value_response,
     },
-    wire::RegistryValueContent,
+    wire::{
+        RegistryValueContent, RegistryValueEncoding, RegistryVersionedValue,
+        RegistryVersionedValueFailure,
+    },
 };
 use ic_agent::Agent;
 use prost::Message;
@@ -21,37 +24,40 @@ pub(in crate::ic_registry) async fn get_registry_value(
     key: &str,
     version: u64,
 ) -> Result<Vec<u8>, RegistryFetchError> {
-    get_registry_value_inner(agent, registry_canister, key, version, None).await
+    get_registry_versioned_value_inner(agent, registry_canister, key, version, None)
+        .await
+        .map(|value| value.value)
+        .map_err(|failure| failure.source)
 }
 
-pub(in crate::ic_registry) async fn get_registry_value_counted(
+pub(in crate::ic_registry) async fn get_registry_versioned_value_counted(
     agent: &Agent,
     registry_canister: &candid::Principal,
     key: &str,
     version: u64,
     counter: &RegistryQueryCounter,
-) -> Result<Vec<u8>, RegistryFetchError> {
-    get_registry_value_inner(agent, registry_canister, key, version, Some(counter)).await
+) -> Result<RegistryVersionedValue, RegistryVersionedValueFailure> {
+    get_registry_versioned_value_inner(agent, registry_canister, key, version, Some(counter)).await
 }
 
-async fn get_registry_value_inner(
+async fn get_registry_versioned_value_inner(
     agent: &Agent,
     registry_canister: &candid::Principal,
     key: &str,
     version: u64,
     counter: Option<&RegistryQueryCounter>,
-) -> Result<Vec<u8>, RegistryFetchError> {
+) -> Result<RegistryVersionedValue, RegistryVersionedValueFailure> {
     let request = RegistryGetValueRequest {
         version: Some(UInt64Value { value: version }),
         key: key.as_bytes().to_vec(),
     };
     let mut arg = Vec::new();
-    request
-        .encode(&mut arg)
-        .map_err(|err| RegistryFetchError::ProtobufEncode {
+    request.encode(&mut arg).map_err(|err| {
+        value_failure(RegistryFetchError::ProtobufEncode {
             message: "RegistryGetValueRequest",
             reason: err.to_string(),
-        })?;
+        })
+    })?;
     if let Some(counter) = counter {
         counter.record_call();
     }
@@ -60,16 +66,35 @@ async fn get_registry_value_inner(
         .with_arg(arg)
         .call()
         .await
-        .map_err(|err| RegistryFetchError::AgentCall {
-            method: "get_value",
-            reason: err.to_string(),
+        .map_err(|err| {
+            value_failure(RegistryFetchError::AgentCall {
+                method: "get_value",
+                reason: err.to_string(),
+            })
         })?;
-    let response = decode_message::<RegistryGetValueResponse>("RegistryGetValueResponse", &bytes)?;
-    match registry_value_content_from_response(key, response)? {
-        RegistryValueContent::Value(value) => Ok(value),
+    let response = decode_message::<RegistryGetValueResponse>("RegistryGetValueResponse", &bytes)
+        .map_err(value_failure)?;
+    let returned_version = response.version;
+    let timestamp_nanoseconds = response.timestamp_nanoseconds;
+    match registry_value_content_from_response(key, response).map_err(|source| {
+        RegistryVersionedValueFailure {
+            source,
+            returned_version: Some(returned_version),
+        }
+    })? {
+        RegistryValueContent::Value(value) => Ok(RegistryVersionedValue {
+            value,
+            version: returned_version,
+            timestamp_nanoseconds,
+            encoding: RegistryValueEncoding::Inline,
+        }),
         RegistryValueContent::LargeValueChunkKeys(keys) => {
-            let mut budget = RegistryChunkBudget::new(RegistryChunkLimits::ordinary_value(), 0)?;
-            get_large_registry_value(
+            let mut budget = RegistryChunkBudget::new(RegistryChunkLimits::ordinary_value(), 0)
+                .map_err(|source| RegistryVersionedValueFailure {
+                    source,
+                    returned_version: Some(returned_version),
+                })?;
+            let value = get_large_registry_value(
                 agent,
                 registry_canister,
                 &keys.chunk_content_sha256s,
@@ -77,7 +102,24 @@ async fn get_registry_value_inner(
                 &mut budget,
             )
             .await
+            .map_err(|source| RegistryVersionedValueFailure {
+                source,
+                returned_version: Some(returned_version),
+            })?;
+            Ok(RegistryVersionedValue {
+                value,
+                version: returned_version,
+                timestamp_nanoseconds,
+                encoding: RegistryValueEncoding::Chunked,
+            })
         }
+    }
+}
+
+const fn value_failure(source: RegistryFetchError) -> RegistryVersionedValueFailure {
+    RegistryVersionedValueFailure {
+        source,
+        returned_version: None,
     }
 }
 

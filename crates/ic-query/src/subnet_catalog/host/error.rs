@@ -381,6 +381,10 @@ const fn registry_retryability(error: &RegistryFetchError) -> SubnetCatalogRetry
         | RegistryFetchError::ProtobufDecode { .. }
         | RegistryFetchError::RegistryValue { .. }
         | RegistryFetchError::MissingValue { .. }
+        | RegistryFetchError::InvalidRegistryValueVersion { .. }
+        | RegistryFetchError::RegistryChanges { .. }
+        | RegistryFetchError::IncompleteRegistryChanges { .. }
+        | RegistryFetchError::InvalidRegistryKeyFamily { .. }
         | RegistryFetchError::CandidDecode { .. }
         | RegistryFetchError::RegistryChunkRejected { .. }
         | RegistryFetchError::MissingChunkContent { .. }
@@ -407,6 +411,7 @@ const fn registry_retryability(error: &RegistryFetchError) -> SubnetCatalogRetry
         }
         RegistryFetchError::AgentBuild { .. }
         | RegistryFetchError::RegistryChunkLimit { .. }
+        | RegistryFetchError::RegistryKeyFamilyLimit { .. }
         | RegistryFetchError::ProtobufEncode { .. }
         | RegistryFetchError::CandidEncode { .. } => SubnetCatalogRetryability::NotRetryable,
     }

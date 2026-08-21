@@ -20,7 +20,6 @@ pub use error::{
 pub use failure::{
     SubnetCatalogFailureCacheDisposition, SubnetCatalogField, SubnetCatalogLoadFailure,
     SubnetCatalogLoadFailureRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshTrigger,
-    SubnetCatalogRegistryRecordKind, SubnetCatalogRegistryRecordSubject,
     SubnetCatalogSourceFailure, SubnetCatalogSubject,
 };
 pub use paths::{subnet_catalog_path, subnet_catalog_refresh_lock_path};

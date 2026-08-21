@@ -13,9 +13,9 @@ use crate::{
     },
     subnet_catalog::{
         CATALOG_SCHEMA_VERSION, CatalogAssurance, CatalogError, CatalogValidationContext,
-        MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind, SubnetSpecialization,
-        ValidatedSubnetCatalog, catalog_to_pretty_json, format_utc_timestamp_secs,
-        parse_catalog_json,
+        MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetCatalogRoutingSource, SubnetKind,
+        SubnetSpecialization, ValidatedSubnetCatalog, catalog_to_pretty_json,
+        format_utc_timestamp_secs, parse_catalog_json,
     },
 };
 use candid::Principal;
@@ -309,6 +309,19 @@ fn complete_catalog_projection_session_with_routing(
     complete_catalog_projection_session_from_parts(true, false, routing_table)
 }
 
+fn complete_legacy_catalog_projection_session() -> NnsRegistryReplaySession {
+    let (request, report) = legacy_catalog_projection_report_from_parts(
+        true,
+        false,
+        projection_routing_table_with_range(PROJECTION_SUBNET),
+    );
+    let mut session = projection_session();
+    session
+        .apply_batch(&request, &report)
+        .expect("complete legacy catalog fixture replay");
+    session
+}
+
 fn complete_catalog_projection_session_from_parts(
     include_subnet_record: bool,
     invalid_subnet_list: bool,
@@ -341,10 +354,56 @@ fn catalog_projection_report_from_parts(
     (request, report)
 }
 
+fn legacy_catalog_projection_report_from_parts(
+    include_subnet_record: bool,
+    invalid_subnet_list: bool,
+    routing_table: RoutingTable,
+) -> (
+    NnsCertifiedRegistryDeltaBatchRequest,
+    NnsCertifiedRegistryDeltaBatchReport,
+) {
+    let mutations = legacy_catalog_projection_mutations(
+        include_subnet_record,
+        invalid_subnet_list,
+        routing_table,
+    );
+    let request = request(0);
+    let report = report(&request, 1, 1, mutations, Vec::new());
+    (request, report)
+}
+
 fn catalog_projection_mutations(
     include_subnet_record: bool,
     invalid_subnet_list: bool,
     routing_table: RoutingTable,
+) -> Vec<NnsCertifiedRegistryMutation> {
+    let routing_key = projection_routing_shard_key();
+    catalog_projection_mutations_with_key(
+        include_subnet_record,
+        invalid_subnet_list,
+        routing_table,
+        routing_key.as_bytes(),
+    )
+}
+
+fn legacy_catalog_projection_mutations(
+    include_subnet_record: bool,
+    invalid_subnet_list: bool,
+    routing_table: RoutingTable,
+) -> Vec<NnsCertifiedRegistryMutation> {
+    catalog_projection_mutations_with_key(
+        include_subnet_record,
+        invalid_subnet_list,
+        routing_table,
+        b"routing_table",
+    )
+}
+
+fn catalog_projection_mutations_with_key(
+    include_subnet_record: bool,
+    invalid_subnet_list: bool,
+    routing_table: RoutingTable,
+    routing_key: &[u8],
 ) -> Vec<NnsCertifiedRegistryMutation> {
     let subnet_list = SubnetListRecord {
         subnets: vec![principal_bytes(PROJECTION_SUBNET)],
@@ -358,9 +417,9 @@ fn catalog_projection_mutations(
         canister_cycles_cost_schedule: 0,
     };
     let mut records = vec![
-        (b"routing_table".as_slice(), routing_table.encode_to_vec()),
+        (routing_key.to_vec(), routing_table.encode_to_vec()),
         (
-            b"subnet_list".as_slice(),
+            b"subnet_list".to_vec(),
             if invalid_subnet_list {
                 vec![0xff]
             } else {
@@ -370,23 +429,42 @@ fn catalog_projection_mutations(
     ];
     let subnet_record_key = format!("subnet_record_{PROJECTION_SUBNET}");
     if include_subnet_record {
-        records.push((subnet_record_key.as_bytes(), subnet_record.encode_to_vec()));
+        records.push((
+            subnet_record_key.into_bytes(),
+            subnet_record.encode_to_vec(),
+        ));
     }
-    records.sort_by(|left, right| left.0.cmp(right.0));
+    records.sort_by(|left, right| left.0.cmp(&right.0));
     records
         .into_iter()
-        .map(|(key, value)| mutation(NnsCertifiedRegistryMutationKind::Upsert, key, Some(&value)))
+        .map(|(key, value)| mutation(NnsCertifiedRegistryMutationKind::Upsert, &key, Some(&value)))
         .collect()
 }
 
 fn complete_catalog_archive(root: &Path) -> NnsAuthenticatedRegistryArchive {
-    let archive_root = root.join("nns/ic/registry-certified-v1");
     let (_, report) = catalog_projection_report_from_parts(
         true,
         false,
         projection_routing_table_with_range(PROJECTION_SUBNET),
     );
-    let batch = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&report);
+    complete_catalog_archive_from_report(root, &report)
+}
+
+fn complete_legacy_catalog_archive(root: &Path) -> NnsAuthenticatedRegistryArchive {
+    let (_, report) = legacy_catalog_projection_report_from_parts(
+        true,
+        false,
+        projection_routing_table_with_range(PROJECTION_SUBNET),
+    );
+    complete_catalog_archive_from_report(root, &report)
+}
+
+fn complete_catalog_archive_from_report(
+    root: &Path,
+    report: &NnsCertifiedRegistryDeltaBatchReport,
+) -> NnsAuthenticatedRegistryArchive {
+    let archive_root = root.join("nns/ic/registry-certified-v1");
+    let batch = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(report);
     let storage_limits = NnsCertifiedRegistryArchiveStorageLimits::new(
         100_000,
         NnsCertifiedRegistryArchiveLimits::new(1, 100_000, 100_000),
@@ -410,7 +488,7 @@ fn superseded_catalog_archive(root: &Path) -> NnsAuthenticatedRegistryArchive {
         &first_request,
         2,
         1,
-        catalog_projection_mutations(
+        legacy_catalog_projection_mutations(
             true,
             false,
             projection_routing_table_with_range(PROJECTION_SUBNET),
@@ -481,6 +559,18 @@ fn projection_routing_table_with_range(subnet: &str) -> RoutingTable {
             }),
         }],
     }
+}
+
+fn projection_routing_shard_key() -> String {
+    let range_start = Principal::from_text(PROJECTION_CANISTER)
+        .expect("projection canister principal")
+        .as_slice()
+        .to_vec();
+    format!(
+        "{}{}",
+        crate::ic_registry::CANISTER_RANGES_KEY_PREFIX,
+        crate::hex::hex_bytes(&range_start)
+    )
 }
 
 fn canister_id(principal: &str) -> CanisterId {

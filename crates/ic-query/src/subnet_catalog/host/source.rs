@@ -187,6 +187,12 @@ impl SubnetCatalogSource for LiveNnsSource {
                         failure.subject,
                         SubnetCatalogHostError::RegistryRefresh(failure.source),
                     )
+                    .with_registry_evidence(
+                        failure.returned_registry_value_version,
+                        failure.source_endpoint,
+                        failure.assurance,
+                        failure.registry_records,
+                    )
                 })
         })
     }
@@ -215,6 +221,7 @@ pub(super) async fn collect_subnet_catalog_detailed(
             .await
             .map_err(|error| endpoint_error(error, endpoint, endpoints.len()))?;
         let registry_version = raw.provenance.registry_version;
+        let registry_records = raw.provenance.registry_records.clone();
         let catalog = ValidatedSubnetCatalog::try_from_raw(raw, &validation)
             .map_err(|source| {
                 let subject = subject_from_catalog_error(&source);
@@ -223,6 +230,7 @@ pub(super) async fn collect_subnet_catalog_detailed(
                     subject,
                     SubnetCatalogHostError::from(source),
                 )
+                .with_registry_evidence(None, None, None, registry_records)
             })
             .map_err(|error| endpoint_error(error, endpoint, endpoints.len()))?;
         if catalog.provenance().assurance != CatalogAssurance::UncertifiedQuery
@@ -237,6 +245,12 @@ pub(super) async fn collect_subnet_catalog_detailed(
                     actual_assurance: catalog.provenance().assurance,
                     actual_endpoints: catalog.provenance().source_endpoints.clone(),
                 },
+            )
+            .with_registry_evidence(
+                None,
+                None,
+                None,
+                catalog.provenance().registry_records.clone(),
             ));
         }
         snapshots.push(catalog.into_raw());
@@ -251,13 +265,18 @@ pub(super) async fn collect_subnet_catalog_detailed(
 
 #[expect(
     clippy::result_large_err,
-    reason = "agreement failures retain the original host error and typed subject"
+    clippy::too_many_lines,
+    reason = "agreement failures retain completed per-endpoint evidence in one auditable sequence"
 )]
 fn finish_agreement(
     mut snapshots: Vec<RawSubnetCatalog>,
     endpoints: Vec<String>,
     validation: &CatalogValidationContext,
 ) -> Result<RawSubnetCatalog, SubnetCatalogSourceFailure> {
+    let completed_registry_records = snapshots
+        .iter()
+        .flat_map(|snapshot| snapshot.provenance.registry_records.iter().cloned())
+        .collect::<Vec<_>>();
     let mut first = snapshots.remove(0);
     let reference_endpoint = endpoints[0].clone();
     let reference_registry_version = first.provenance.registry_version;
@@ -268,6 +287,12 @@ fn finish_agreement(
                 Some(reference_registry_version),
                 subject,
                 SubnetCatalogHostError::Catalog(source),
+            )
+            .with_registry_evidence(
+                None,
+                None,
+                None,
+                completed_registry_records.clone(),
             )
         })?);
     let mut registry_query_call_count = first.provenance.registry_query_call_count;
@@ -280,6 +305,12 @@ fn finish_agreement(
                     Some(registry_version),
                     subject,
                     SubnetCatalogHostError::Catalog(source),
+                )
+                .with_registry_evidence(
+                    None,
+                    None,
+                    None,
+                    completed_registry_records.clone(),
                 )
             })?);
         if registry_version != reference_registry_version
@@ -296,7 +327,8 @@ fn finish_agreement(
                     registry_version,
                     agreement_digest,
                 },
-            ));
+            )
+            .with_registry_evidence(None, None, None, completed_registry_records));
         }
         registry_query_call_count = registry_query_call_count
             .checked_add(snapshot.provenance.registry_query_call_count)
@@ -306,8 +338,18 @@ fn finish_agreement(
                     None,
                     SubnetCatalogHostError::RegistryQueryCallCountOverflow,
                 )
+                .with_registry_evidence(
+                    None,
+                    None,
+                    None,
+                    completed_registry_records.clone(),
+                )
             })?;
     }
+    first
+        .provenance
+        .registry_records
+        .clone_from(&completed_registry_records);
     first
         .promote_to_multi_endpoint_agreement(endpoints, registry_query_call_count)
         .map_err(|source| {
@@ -317,6 +359,12 @@ fn finish_agreement(
                 subject,
                 SubnetCatalogHostError::Catalog(source),
             )
+            .with_registry_evidence(
+                None,
+                None,
+                None,
+                completed_registry_records.clone(),
+            )
         })?;
     ValidatedSubnetCatalog::try_from_raw(first.clone(), validation).map_err(|source| {
         let subject = subject_from_catalog_error(&source);
@@ -325,6 +373,7 @@ fn finish_agreement(
             subject,
             SubnetCatalogHostError::Catalog(source),
         )
+        .with_registry_evidence(None, None, None, completed_registry_records)
     })?;
     Ok(first)
 }
@@ -339,11 +388,17 @@ fn endpoint_error(
     } else {
         SubnetCatalogSourceFailure::new(
             error.registry_version,
-            Some(SubnetCatalogSubject::Endpoint(endpoint.to_string())),
+            error.subject,
             SubnetCatalogHostError::AgreementEndpoint {
                 endpoint: endpoint.to_string(),
                 source: Box::new(error.source),
             },
+        )
+        .with_registry_evidence(
+            error.returned_registry_value_version,
+            error.source_endpoint.or_else(|| Some(endpoint.to_string())),
+            error.assurance,
+            error.registry_records,
         )
     }
 }
