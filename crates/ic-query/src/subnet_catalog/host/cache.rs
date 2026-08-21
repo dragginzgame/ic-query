@@ -2,7 +2,7 @@
 //!
 //! Responsibility: load validated catalogs under explicit caller freshness policy.
 //! Does not own: live Registry collection, cache paths, or report rendering.
-//! Boundary: returns both validated authority evidence and observable cache disposition.
+//! Boundary: returns validated snapshot authority separately from observable acquisition state.
 
 use super::{
     CatalogSourceSelection, SubnetCatalogFailureCacheDisposition, SubnetCatalogHostError,
@@ -16,9 +16,10 @@ use crate::{
     nns::LiveNnsSource,
     runtime::block_on_current_thread,
     subnet_catalog::{
-        CatalogAssurance, CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
-        DEFAULT_REFRESH_LOCK_STALE_SECONDS, MAINNET_REGISTRY_CANISTER_ID, ValidatedSubnetCatalog,
-        catalog_stale_status, parse_catalog_json,
+        CatalogAssurance, CatalogSnapshotAuthorityEvidence, CatalogValidationContext,
+        DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+        MAINNET_REGISTRY_CANISTER_ID, ValidatedSubnetCatalog, catalog_stale_status,
+        parse_catalog_json,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -207,26 +208,6 @@ pub enum CacheDisposition {
     ForcedRefresh,
 }
 
-///
-/// CatalogAuthorityEvidence
-///
-/// Compact persistable authority identity for one successful catalog load.
-///
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct CatalogAuthorityEvidence {
-    /// Exact Registry version represented by the validated catalog.
-    pub registry_version: u64,
-    /// Lowercase SHA-256 digest of the validated catalog authority payload.
-    pub catalog_digest: String,
-    /// Assurance established for the loaded evidence.
-    pub assurance: CatalogAssurance,
-    /// Canonically ordered endpoints contributing to the evidence.
-    pub source_endpoints: Vec<String>,
-    /// Observable cache action used to supply the catalog.
-    pub cache_disposition: CacheDisposition,
-}
-
 impl CacheDisposition {
     /// Return the stable JSON and report label.
     #[must_use]
@@ -249,26 +230,19 @@ impl CacheDisposition {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CatalogLoadOutcome {
-    /// Cache path supplying the validated catalog.
+    /// Cache path read or published by this acquisition.
     pub path: PathBuf,
-    /// Privately held validated authority evidence.
+    /// Validated catalog whose authority is independent of acquisition state.
     pub catalog: ValidatedSubnetCatalog,
-    /// Result of applying the requested cache policy.
+    /// Transient result of applying the requested cache policy.
     pub disposition: CacheDisposition,
 }
 
 impl CatalogLoadOutcome {
-    /// Return compact authority evidence suitable for embedding in a durable plan.
+    /// Return stable authority derived only from the validated catalog snapshot.
     #[must_use]
-    pub fn authority_evidence(&self) -> CatalogAuthorityEvidence {
-        let provenance = self.catalog.provenance();
-        CatalogAuthorityEvidence {
-            registry_version: provenance.registry_version,
-            catalog_digest: self.catalog.raw().catalog_digest.clone(),
-            assurance: provenance.assurance,
-            source_endpoints: provenance.source_endpoints.clone(),
-            cache_disposition: self.disposition,
-        }
+    pub fn snapshot_authority(&self) -> CatalogSnapshotAuthorityEvidence {
+        self.catalog.snapshot_authority()
     }
 }
 

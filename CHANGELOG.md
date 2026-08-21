@@ -7,6 +7,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.42.x] - Unreleased - Stable Subnet Catalog authority identity
+
+Detailed release notes: [docs/changelog/0.42.md](docs/changelog/0.42.md)
+
+- `0.42.0` hard-cuts the Subnet Catalog load authority API so
+  `CatalogSnapshotAuthorityEvidence` contains only Registry version, catalog
+  digest, assurance, and canonical source endpoints. `snapshot_authority()`
+  derives that stable value exclusively from `ValidatedSubnetCatalog`, while
+  `CatalogLoadOutcome::path` and `CatalogLoadOutcome::disposition` continue to
+  report transient acquisition/cache provenance. The removed
+  `CatalogAuthorityEvidence` and `authority_evidence()` names are not retained
+  as compatibility aliases. The certified-cache outcome follows the same
+  naming boundary with `snapshot_authority()` and diagnostic
+  `cache_evidence()`. Read policies, atomic refresh, cache and failure behavior,
+  schemas, network calls, and CLI surfaces are unchanged.
+
 ## [0.41.x] - Unreleased - Mainnet Subnet Catalog routing authority
 
 Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)

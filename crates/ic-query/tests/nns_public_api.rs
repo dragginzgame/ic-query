@@ -1733,6 +1733,8 @@ fn public_certified_catalog_cache_contract_is_explicit_and_archive_bound() {
         NnsCertifiedSubnetCatalogCacheError,
     > = load_nns_certified_subnet_catalog;
     let _ = cache_loader;
+    let _ = NnsCertifiedSubnetCatalogLoadOutcome::snapshot_authority;
+    let _ = NnsCertifiedSubnetCatalogLoadOutcome::cache_evidence;
     assert_eq!(
         NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid.as_str(),
         "published_invalid"

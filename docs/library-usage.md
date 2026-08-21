@@ -415,7 +415,8 @@ authority attached and reports the exact cache path and disposition. All four
 policies are local-only: they can publish from the supplied archive, but cannot
 refresh it or make a network call. Recoverable invalidity is limited to cache
 content; filesystem, projection, serialization, and accounting errors remain
-failures.
+failures. Use `snapshot_authority()` for the stable catalog identity and
+`cache_evidence()` only when combined archive/cache diagnostics are required.
 
 For pure model/rendering use, keep all features off:
 
@@ -1130,6 +1131,37 @@ Ordinary catalog caches use schema 1. Content with another schema identifier is
 invalid and can be replaced only when the selected read policy explicitly
 permits invalid cache refresh; there is no migration or fallback reader.
 
+Stable snapshot authority and per-load acquisition provenance are separate:
+
+```rust
+use ic_query::subnet_catalog::{
+    CatalogSnapshotAuthorityEvidence, CatalogSourceSelection,
+    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
+    SubnetCatalogHostError, SubnetCatalogLoadRequest, load_subnet_catalog,
+};
+
+fn load_catalog(
+    cache: SubnetCatalogCacheRequest,
+    now_unix_secs: u64,
+) -> Result<CatalogSnapshotAuthorityEvidence, SubnetCatalogHostError> {
+    let request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
+        cache,
+        CatalogSourceSelection::uncertified_query(
+            DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+        ),
+        now_unix_secs,
+    );
+    let loaded = load_subnet_catalog(&request)?;
+    let stable_authority = loaded.snapshot_authority();
+
+    // Acquisition diagnostics remain separate from stable authority identity.
+    eprintln!("catalog path: {}", loaded.path.display());
+    eprintln!("cache disposition: {}", loaded.disposition.as_str());
+
+    Ok(stable_authority)
+}
+```
+
 Callers that need failure provenance use
 `load_cached_subnet_catalog_detailed`, `load_subnet_catalog_detailed`,
 `load_subnet_catalog_detailed_async`,
@@ -1157,12 +1189,13 @@ forking the load or cache algorithm.
 and Subnet principals, complete matched `SubnetInfo`, routing range, Registry
 version, binary catalog digest, and provenance in one result. The caller can
 therefore use `SubnetKind` without a second catalog lookup.
-`CatalogLoadOutcome::authority_evidence` returns a compact serializable record
-of Registry version, digest, assurance, source endpoints, and cache
-disposition for a durable plan. That record identifies the load outcome; it is
-not a substitute for validated catalog content. The digest detects a payload
-that was edited without being resealed; it is not a signature or local-tamper
-boundary.
+`CatalogLoadOutcome::snapshot_authority` returns the same compact serializable
+snapshot identity as `ValidatedSubnetCatalog::snapshot_authority`: Registry
+version, digest, assurance, and canonical source endpoints. Cache path and
+disposition describe only the individual acquisition and are not part of that
+identity. Snapshot evidence is not a substitute for validated catalog content.
+The digest detects a payload that was edited without being resealed; it is not
+a signature or local-tamper boundary.
 Async embedders can use `fetch_subnet_catalog_async`,
 `load_subnet_catalog_async`, and `refresh_subnet_catalog_async` on their own
 runtime. The async source seam returns `SubnetCatalogSourceFuture`; custom

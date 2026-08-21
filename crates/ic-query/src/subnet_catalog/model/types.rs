@@ -477,6 +477,25 @@ impl CatalogValidationContext {
 }
 
 ///
+/// CatalogSnapshotAuthorityEvidence
+///
+/// Stable persistable identity derived only from one validated catalog snapshot.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CatalogSnapshotAuthorityEvidence {
+    /// Exact Registry version represented by the validated catalog.
+    pub registry_version: u64,
+    /// Lowercase SHA-256 digest of the validated catalog authority payload.
+    pub catalog_digest: String,
+    /// Assurance established for the validated catalog evidence.
+    pub assurance: CatalogAssurance,
+    /// Canonically ordered endpoints contributing to the validated evidence.
+    pub source_endpoints: Vec<String>,
+}
+
+///
 /// ValidatedSubnetCatalog
 ///
 /// Authority-bearing catalog whose raw content passed host validation.
@@ -522,6 +541,18 @@ impl ValidatedSubnetCatalog {
     #[must_use]
     pub fn routing_ranges(&self) -> &[RoutingRange] {
         &self.raw.routing_ranges
+    }
+
+    /// Return stable persistable authority derived only from this validated snapshot.
+    #[must_use]
+    pub fn snapshot_authority(&self) -> CatalogSnapshotAuthorityEvidence {
+        let provenance = self.provenance();
+        CatalogSnapshotAuthorityEvidence {
+            registry_version: provenance.registry_version,
+            catalog_digest: self.raw.catalog_digest.clone(),
+            assurance: provenance.assurance,
+            source_endpoints: provenance.source_endpoints.clone(),
+        }
     }
 
     /// Return the validated binary catalog digest.

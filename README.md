@@ -971,11 +971,13 @@ refreshes archive evidence or makes a network call.
 
 Every successful outcome exposes its path and `cache_hit`,
 `published_missing`, `published_invalid`, or `forced_publication` disposition.
-`authority_evidence()` returns a compact persistable Registry, catalog,
-archive, certificate, endpoint, assurance, and cache-action identity without
-duplicating the catalog snapshot. The serialized `Certified` label and evidence
-DTO remain descriptive rather than authority constructors: reloading authority
-still requires the matching authenticated archive and fresh projection. The
+`snapshot_authority()` returns the same stable Registry, catalog, endpoint, and
+assurance identity as an ordinary validated catalog, excluding cache action.
+`cache_evidence()` separately returns combined archive, certificate, and cache-
+action diagnostics without duplicating the catalog snapshot. The serialized
+`Certified` label and diagnostic DTO remain descriptive rather than authority
+constructors: reloading authority still requires the matching authenticated
+archive and fresh projection. The
 ordinary Subnet Catalog remains schema 1, but its pre-1.0 shape is hard-cut to
 require routing-source and per-record provenance fields. Older cache content is
 invalid under the current reader and is refreshed only when the caller's
@@ -1002,10 +1004,13 @@ it is not a successful bootstrap, cache input, or catalog authority.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return
-both the validated catalog and an observable cache disposition; validated
-canister resolution returns the matched range, Registry version, catalog
-digest, and full provenance together. Single-endpoint live collection is
-always labelled `CatalogAssurance::UncertifiedQuery`. Async embedders can call
+both the validated catalog and observable acquisition path/disposition.
+`CatalogLoadOutcome::snapshot_authority()` derives a stable persistable
+`CatalogSnapshotAuthorityEvidence` only from the validated catalog; cache hits
+and refresh dispositions are deliberately excluded. Validated canister
+resolution returns the matched range, Registry version, catalog digest, and
+full provenance together. Single-endpoint live collection is always labelled
+`CatalogAssurance::UncertifiedQuery`. Async embedders can call
 `fetch_subnet_catalog_async`, `load_subnet_catalog_async`, or
 `refresh_subnet_catalog_async` on their own runtime. Dropping an async refresh
 releases its owned lock without publishing. Synchronous adapters may use a

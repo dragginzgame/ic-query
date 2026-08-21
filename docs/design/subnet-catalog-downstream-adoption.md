@@ -9,6 +9,11 @@ sources. Downstream crates do not need a routing compatibility adapter, but
 direct Rust struct literals, copied evidence projections, and persisted older
 schema-1 JSON need an explicit update.
 
+`ic-query` 0.42.0 hard-cuts load authority into stable snapshot
+identity and transient acquisition provenance. Downstream code using the
+removed `CatalogAuthorityEvidence` or `authority_evidence()` surface must adopt
+the boundary below; no compatibility alias is retained.
+
 This document is the adoption checklist. It does not define a legacy reader,
 Serde default, migration, or monolithic-routing fallback.
 
@@ -38,6 +43,20 @@ Live collection never selects legacy evidence: an empty pinned
 historical replay or in a caller-supplied custom collection. Certified replay
 requires `AllowHistoricalTarget` before it permits that legacy source;
 `RequireLatestObserved` requires modern shards.
+
+## Stable snapshot authority
+
+Use `CatalogLoadOutcome::snapshot_authority()` when persisting or comparing the
+authority identity of a successfully validated catalog. It returns
+`CatalogSnapshotAuthorityEvidence`, whose only fields are `registry_version`,
+`catalog_digest`, `assurance`, and canonical `source_endpoints`. The same value
+is available from `ValidatedSubnetCatalog::snapshot_authority()`.
+
+Treat `CatalogLoadOutcome::path` and `CatalogLoadOutcome::disposition` as
+acquisition provenance for that individual load. A repaired missing or invalid
+cache and a later cache hit intentionally produce equal snapshot authority and
+different `CacheDisposition` values. Do not copy the disposition into a stable
+authority projection.
 
 ## Direct Rust fixtures
 
@@ -144,4 +163,7 @@ version, failing endpoint and assurance, completed Registry records, shard
 lower-bound subject, and retry classification without parsing strings or
 fabricating provenance. Older cache shapes correctly fail closed and require
 refresh. The 0.41.2 constructors remove the remaining need for Canic fixtures
-to spell Registry keys manually.
+to spell Registry keys manually. Adopting the current hard cut requires
+replacing `authority_evidence()` with `snapshot_authority()` and reading `path`
+and `disposition` separately; routing, refresh, cache, and failure adapters
+remain unnecessary.

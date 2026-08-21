@@ -17,7 +17,9 @@ use crate::{
         read_bounded_managed_file, with_refresh_lock, write_managed_file_atomically,
     },
     hex::hex_bytes,
-    subnet_catalog::{CatalogAssurance, MAINNET_NETWORK, RawSubnetCatalog},
+    subnet_catalog::{
+        CatalogAssurance, CatalogSnapshotAuthorityEvidence, MAINNET_NETWORK, RawSubnetCatalog,
+    },
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -223,8 +225,8 @@ impl NnsCertifiedSubnetCatalogCacheDisposition {
 ///
 /// NnsCertifiedSubnetCatalogCacheEvidence
 ///
-/// Compact persistable catalog, archive, certificate, and cache-action identity.
-/// This serde DTO describes a successful authority but cannot reconstruct or self-assert it.
+/// Combined catalog, archive, certificate, and cache-action diagnostics for one load.
+/// This serde DTO is not the stable snapshot authority and cannot reconstruct or self-assert it.
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -250,7 +252,7 @@ pub struct NnsCertifiedSubnetCatalogCacheEvidence {
     pub minimum_certificate_time_nanos: u64,
     /// Latest authenticated certificate time across retained archive batches.
     pub maximum_certificate_time_nanos: u64,
-    /// Observable local cache action that supplied the authority.
+    /// Observable local cache action performed by this load.
     pub cache_disposition: NnsCertifiedSubnetCatalogCacheDisposition,
 }
 
@@ -287,9 +289,15 @@ impl<'a> NnsCertifiedSubnetCatalogLoadOutcome<'a> {
         self.disposition
     }
 
-    /// Return compact authority evidence suitable for embedding in a durable plan.
+    /// Return stable authority derived only from the validated catalog snapshot.
     #[must_use]
-    pub fn authority_evidence(&self) -> NnsCertifiedSubnetCatalogCacheEvidence {
+    pub fn snapshot_authority(&self) -> CatalogSnapshotAuthorityEvidence {
+        self.authority.catalog().snapshot_authority()
+    }
+
+    /// Return combined archive and cache diagnostics for this load operation.
+    #[must_use]
+    pub fn cache_evidence(&self) -> NnsCertifiedSubnetCatalogCacheEvidence {
         let provenance = self.authority.catalog().provenance();
         let manifest = self.authority.archive().manifest();
         NnsCertifiedSubnetCatalogCacheEvidence {

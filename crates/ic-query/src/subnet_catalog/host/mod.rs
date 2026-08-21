@@ -6,12 +6,12 @@ mod refresh;
 mod source;
 
 pub use cache::{
-    CacheDisposition, CatalogAuthorityEvidence, CatalogLoadOutcome, CatalogReadPolicy,
-    SubnetCatalogCacheRequest, SubnetCatalogLoadRequest, load_cached_subnet_catalog,
-    load_cached_subnet_catalog_detailed, load_subnet_catalog, load_subnet_catalog_async,
-    load_subnet_catalog_detailed, load_subnet_catalog_detailed_async,
-    load_subnet_catalog_detailed_with_source, load_subnet_catalog_detailed_with_source_async,
-    load_subnet_catalog_with_source, load_subnet_catalog_with_source_async,
+    CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, SubnetCatalogCacheRequest,
+    SubnetCatalogLoadRequest, load_cached_subnet_catalog, load_cached_subnet_catalog_detailed,
+    load_subnet_catalog, load_subnet_catalog_async, load_subnet_catalog_detailed,
+    load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
+    load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source,
+    load_subnet_catalog_with_source_async,
 };
 pub use error::{
     SubnetCatalogErrorCategory, SubnetCatalogErrorCode, SubnetCatalogHostError,

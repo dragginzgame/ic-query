@@ -1,15 +1,17 @@
 # Subnet Catalog Failure Provenance
 
-- Status: implemented for the active 0.41.0 release slice
-- Last reviewed: 2026-08-20
+- Status: implemented; stable authority/acquisition separation updated for 0.42.0
+- Last reviewed: 2026-08-21
 - Scope: `subnet-catalog-host` detailed load failures
 
 ## Contract
 
 Successful and failed loads answer different questions. A successful
 `CacheDisposition` records how the returned validated catalog was supplied. It
-does not identify where an unsuccessful operation stopped or what happened to
-the cache on that path.
+is transient acquisition provenance and is excluded from
+`CatalogSnapshotAuthorityEvidence`, which is derived only from the validated
+catalog. It does not identify where an unsuccessful operation stopped or what
+happened to the cache on that path.
 
 Detailed loads therefore return `SubnetCatalogLoadFailure`. Its request
 retains the requested network, selected `CatalogSourceSelection`, and minimum

@@ -12,8 +12,9 @@ use ic_query::subnet_catalog::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::{
-    CacheDisposition, CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
-    DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
+    CacheDisposition, CatalogSnapshotAuthorityEvidence, CatalogSourceSelection,
+    DEFAULT_REFRESH_LOCK_STALE_SECONDS, DEFAULT_STALE_AFTER_SECONDS,
+    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
     SubnetCatalogDetailedSourceFuture, SubnetCatalogFailureCacheDisposition, SubnetCatalogFilters,
     SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogLoadFailure,
@@ -86,10 +87,10 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
     assert_eq!(resolved.subnet_info.subnet_kind, SubnetKind::Application);
     assert_eq!(resolved.registry_version, 123_456);
     assert_eq!(cached.disposition, CacheDisposition::CacheHit);
-    let authority = cached.authority_evidence();
+    let authority: CatalogSnapshotAuthorityEvidence = cached.snapshot_authority();
     assert_eq!(authority.registry_version, 123_456);
     assert_eq!(authority.assurance, CatalogAssurance::UncertifiedQuery);
-    assert_eq!(authority.cache_disposition, CacheDisposition::CacheHit);
+    assert_eq!(authority, cached.catalog.snapshot_authority());
 }
 
 #[cfg(feature = "subnet-catalog-host")]
