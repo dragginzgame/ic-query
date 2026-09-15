@@ -22,6 +22,10 @@ Detailed release notes: [docs/changelog/0.43.md](docs/changelog/0.43.md)
   while preserving the Rust 1.91.0 minimum. Production `icq` commands and
   report contracts retain their existing behavior.
 
+- Fetches a fresh, shallow RustSec database with visible Git progress and a
+  slow-transfer cutoff before dependency auditing; failed downloads stop the
+  check and remove the partial database.
+
 ```bash
 make canister-build
 make canister-smoke

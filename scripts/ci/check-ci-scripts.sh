@@ -146,6 +146,19 @@ fi
 
 dependency_check_case="${work_dir}/dependency-check"
 mkdir -p "${dependency_check_case}/bin" "${dependency_check_case}/tmp"
+cat > "${dependency_check_case}/bin/git" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${GIT_TERMINAL_PROMPT:-}" == 0 ]] || exit 67
+[[ "$*" == "-c http.lowSpeedLimit=1024 -c http.lowSpeedTime=30 clone --depth 1 --single-branch --no-tags --progress https://github.com/RustSec/advisory-db.git "* ]] || exit 68
+advisory_db="${!#}"
+[[ "${advisory_db}" == "${EXPECTED_TMP_ROOT}"/ic-query-dependency-check.*/advisory-db ]] || exit 69
+[[ ! -e "${advisory_db}" ]] || exit 70
+mkdir -p "${advisory_db}"
+printf 'fetch\n' >> "${TRACE_FILE}"
+[[ -z "${FAIL_FETCH:-}" ]] || exit 53
+EOF
+chmod +x "${dependency_check_case}/bin/git"
 cat > "${dependency_check_case}/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -153,15 +166,16 @@ set -euo pipefail
 case "${1:-}" in
   audit)
     shift
+    [[ "${1:-}" == "--no-fetch" ]] || exit 60
+    shift
     [[ "${1:-}" == "--db" ]] || exit 61
     advisory_db="${2:-}"
     shift 2
     [[ "${advisory_db}" == "${EXPECTED_TMP_ROOT}"/ic-query-dependency-check.*/advisory-db ]] \
       || exit 62
-    [[ ! -e "${advisory_db}" ]] || exit 63
+    [[ -d "${advisory_db}" ]] || exit 63
     [[ "$*" == "--deny warnings --ignore RUSTSEC-2021-0127 --ignore RUSTSEC-2024-0436" ]] \
       || exit 64
-    mkdir -p "${advisory_db}"
     printf 'audit\n' >> "${TRACE_FILE}"
     [[ -z "${FAIL_AUDIT:-}" ]] || exit 52
     ;;
@@ -181,9 +195,10 @@ TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}
   TRACE_FILE="${dependency_check_case}/trace" \
   bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null
 mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
-[[ "${dependency_check_trace[0]:-}" == "audit" \
-  && "${dependency_check_trace[1]:-}" == "machete" \
-  && "${#dependency_check_trace[@]}" -eq 2 ]] \
+[[ "${dependency_check_trace[0]:-}" == "fetch" \
+  && "${dependency_check_trace[1]:-}" == "audit" \
+  && "${dependency_check_trace[2]:-}" == "machete" \
+  && "${#dependency_check_trace[@]}" -eq 3 ]] \
   || fail "the dependency check did not run one isolated audit before cargo machete"
 [[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the successful dependency check left its advisory database behind"
@@ -200,11 +215,29 @@ fi
 [[ "${dependency_check_status}" -eq 52 ]] \
   || fail "the dependency check hid a failed cargo audit"
 mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
-[[ "${dependency_check_trace[0]:-}" == "audit" \
-  && "${#dependency_check_trace[@]}" -eq 1 ]] \
+[[ "${dependency_check_trace[0]:-}" == "fetch" \
+  && "${dependency_check_trace[1]:-}" == "audit" \
+  && "${#dependency_check_trace[@]}" -eq 2 ]] \
   || fail "the dependency check continued after a failed cargo audit"
 [[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the failed dependency check left its advisory database behind"
+
+: > "${dependency_check_case}/trace"
+if TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
+  EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
+  TRACE_FILE="${dependency_check_case}/trace" FAIL_FETCH=1 \
+  bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null 2>&1; then
+  dependency_check_status=0
+else
+  dependency_check_status="$?"
+fi
+[[ "${dependency_check_status}" -eq 53 ]] \
+  || fail "the dependency check hid a failed database fetch"
+mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
+[[ "${dependency_check_trace[*]}" == "fetch" ]] \
+  || fail "the dependency check continued after a failed database fetch"
+[[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
+  || fail "the failed fetch left its partial database behind"
 
 package_retry_case="${work_dir}/package-retry"
 mkdir -p "${package_retry_case}/bin"
