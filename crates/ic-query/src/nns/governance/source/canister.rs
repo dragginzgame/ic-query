@@ -121,6 +121,10 @@ where
     decode_response(&bytes, response_message)
 }
 
+#[expect(
+    clippy::future_not_send,
+    reason = "IC canister futures run on one thread"
+)]
 pub async fn call_with_arg<Arg, Response>(
     method: &'static str,
     request_message: &'static str,

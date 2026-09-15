@@ -31,6 +31,10 @@ surface, current coverage estimates, and the remaining work.
 
 ## Install
 
+For canister-adapter development, see the [Governance canister smoke harness](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md)
+for ICP CLI 1.5.0 builds, local NNS integration tests, retained execution
+receipts, and environment-specific bundles.
+
 From this checkout:
 
 ```bash

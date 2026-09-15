@@ -7,6 +7,27 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.41.x] - Unreleased - Reproducible Governance canister testing
+
+Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
+
+- `0.41.0` adds a deployable Governance probe, pinned local NNS smoke tests,
+  deployed metadata and module-hash verification, and schema-1 execution
+  receipts. ICP CLI 1.5.0 builds environment-specific bundles, and a separate
+  CI job retains local test evidence and artifacts for 30 days. Mainnet
+  verification requires an explicitly supplied, already deployed probe.
+  Receipts are saved incrementally with atomic replacement, and interrupted
+  or timed-out local startup attempts trigger process and network cleanup.
+- Updates development and CI to Rust 1.98.1 and refreshes locked dependencies
+  while preserving the Rust 1.91.0 minimum. Production `icq` commands and
+  report contracts retain their existing behavior.
+
+```bash
+make canister-build
+make canister-smoke
+make canister-bundle
+```
+
 ## [0.40.x] - 2026-08-15 - Portable NNS public-neuron distribution analytics
 
 Detailed release notes: [docs/changelog/0.40.md](docs/changelog/0.40.md)

@@ -120,5 +120,11 @@ name = "sns_public_api"
 [[test]]
 name = "system_public_api"
 
+[[example]]
+name = "governance_probe"
+crate-type = ["cdylib"]
+required-features = ["canister"]
+test = false
+
 [lints]
 workspace = true

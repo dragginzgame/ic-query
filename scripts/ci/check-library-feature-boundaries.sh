@@ -172,6 +172,8 @@ cargo check -p ic-query --no-default-features --locked
 cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked
 run_quiet "ic-query wasm32-unknown-unknown --features canister" \
   cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --features canister --locked
+run_quiet "ic-query deployable Governance probe" \
+  cargo check -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked
 run_quiet "ic-query nns canister public API" \
   cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked
 run_quiet "ic-query --features host" \

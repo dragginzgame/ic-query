@@ -1,4 +1,5 @@
 .PHONY: \
+	canister-build canister-bundle canister-smoke \
 	actions-check build changelog-check check ci ci-scripts-check clean clippy \
 	dependency-check ensure-clean feature-boundary-check fmt fmt-check help \
 	install install-dev library-process-boundary-check major minor msrv package \
@@ -34,6 +35,9 @@ export CARGO_PUBLISH_INDEX_DELAY_SECONDS
 help:
 	@echo "Available commands:"
 	@echo ""
+	@echo "  canister-build   Build the isolated Governance probe with ICP CLI 1.5.0"
+	@echo "  canister-bundle  Bundle the probe for explicit mainnet-smoke deployment"
+	@echo "  canister-smoke   Deploy on a local NNS network and retain an execution receipt"
 	@echo "  fmt        Format Rust code"
 	@echo "  fmt-check  Check Rust formatting"
 	@echo "  actions-check  Check GitHub Actions are pinned to commit SHAs"
@@ -114,6 +118,16 @@ release-guards-check:
 
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
+	python3 -m unittest discover -s scripts/canister -p 'test_*.py'
+
+canister-build:
+	python3 scripts/canister/smoke.py build
+
+canister-bundle:
+	python3 scripts/canister/smoke.py bundle
+
+canister-smoke:
+	python3 scripts/canister/smoke.py local
 
 publish-guards-check:
 	bash scripts/ci/check-publish-guards.sh

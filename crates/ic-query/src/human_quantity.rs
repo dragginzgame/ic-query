@@ -119,7 +119,7 @@ const fn rounded_parts(value: u128, divisor: u128) -> (u128, u128) {
 }
 
 fn decimal_parts(value: &str) -> Option<(&str, &str)> {
-    let (whole, fraction) = value.split_once('.').map_or((value, ""), |parts| parts);
+    let (whole, fraction) = value.split_once('.').unwrap_or((value, ""));
     if whole.is_empty()
         || !whole.bytes().all(|byte| byte.is_ascii_digit())
         || !fraction.bytes().all(|byte| byte.is_ascii_digit())

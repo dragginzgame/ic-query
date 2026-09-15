@@ -2,7 +2,7 @@ name: CI
 
 env:
   IC_QUERY_MSRV: 1.91.0
-  IC_QUERY_INTERNAL_TOOLCHAIN: 1.96.0
+  IC_QUERY_INTERNAL_TOOLCHAIN: 1.98.1
 
 permissions:
   contents: read
@@ -20,6 +20,48 @@ on:
   pull_request:
 
 jobs:
+  canister:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # actions/checkout v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      # dtolnay/rust-toolchain v1
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+        with:
+          toolchain: ${{ env.IC_QUERY_INTERNAL_TOOLCHAIN }}
+          targets: wasm32-unknown-unknown
+          components: clippy
+      - name: Install verified ICP CLI 1.5.0
+        shell: bash
+        run: |
+          mkdir -p target/icp-tools
+          curl --fail --location --retry 3 --output target/icp-tools/icp.tar.xz \
+            https://github.com/dfinity/icp-cli/releases/download/v1.5.0/icp-cli-x86_64-unknown-linux-gnu.tar.xz
+          echo 'a6ffbc61ca728ce13492493b828f4cfd8aa9c953384e56e46fa6f2d86284d9bd  target/icp-tools/icp.tar.xz' | sha256sum --check
+          tar -xJf target/icp-tools/icp.tar.xz --strip-components=1 -C target/icp-tools
+          echo "$GITHUB_WORKSPACE/target/icp-tools" >> "$GITHUB_PATH"
+      - name: Check receipt validation
+        run: python3 -m unittest discover -s scripts/canister -p 'test_*.py'
+      - name: Lint the canister example
+        run: cargo clippy -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked -- -D warnings
+      - name: Run local NNS integration smoke
+        run: make canister-smoke
+      - name: Build environment-specific bundle
+        run: make canister-bundle
+      - name: Retain execution evidence and bundle
+        if: always()
+        # actions/upload-artifact v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: canister-smoke
+          path: |
+            target/canister-smoke/receipt-*/receipt.json
+            target/canister-smoke/governance_probe.wasm
+            target/canister-smoke/governance-probe.tar.gz
+          retention-days: 30
+
   msrv:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest

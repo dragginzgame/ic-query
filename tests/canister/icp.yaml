@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://github.com/dfinity/icp-cli/raw/refs/tags/v1.5.0/docs/schemas/icp-yaml-schema.json
+canisters:
+  - name: governance-probe
+    build:
+      steps:
+        - type: script
+          command: python3 ../../scripts/canister/smoke.py build-wasm
+
+networks:
+  - name: local
+    mode: managed
+    version: 16.0.0
+    nns: true
+    gateway:
+      bind: 127.0.0.1
+      port: 0
+
+environments:
+  - name: ic
+    network: ic
+    canisters: []
+  - name: local
+    network: local
+    canisters: [governance-probe]
+  - name: mainnet-smoke
+    network: ic
+    canisters: [governance-probe]
