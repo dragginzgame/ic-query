@@ -95,6 +95,14 @@ fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<Str
         report.registry_query_call_count
     ));
     lines.push(format!(
+        "routing_source: {}",
+        report.routing_source.as_str()
+    ));
+    lines.push(format!(
+        "registry_record_count: {}",
+        report.registry_records.len()
+    ));
+    lines.push(format!(
         "collector_version: {}",
         sanitize_text(&report.collector_version)
     ));

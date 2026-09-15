@@ -1,26 +1,35 @@
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::nns::NnsSourceRequest;
 use ic_query::subnet_catalog::{
-    CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance,
-    CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope, MAINNET_NETWORK,
-    MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, ResolveAs,
-    ResolvedSubnetSubject, RoutingRange, SubnetCatalogProvenance, SubnetInfo, SubnetKind,
-    SubnetSpecialization, catalog_to_pretty_json, parse_catalog_json,
+    CANISTER_RANGES_KEY_PREFIX, CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION,
+    CatalogAssurance, CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope,
+    MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION, ROUTING_TABLE_KEY,
+    RawSubnetCatalog, ResolveAs, ResolvedSubnetSubject, RoutingRange, SUBNET_LIST_KEY,
+    SUBNET_RECORD_KEY_PREFIX, SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence,
+    SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
+    SubnetCatalogRoutingSource, SubnetInfo, SubnetKind, SubnetSpecialization,
+    catalog_to_pretty_json, parse_catalog_json,
 };
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::{
-    CacheDisposition, CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
-    DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
-    SubnetCatalogFilters, SubnetCatalogHostError, SubnetCatalogInfoReport,
-    SubnetCatalogInfoRequest, SubnetCatalogListReport, SubnetCatalogListRequest,
-    SubnetCatalogLoadRequest, SubnetCatalogRefreshReport, SubnetCatalogRefreshRequest,
-    SubnetCatalogSource, SubnetCatalogSourceFuture, SubnetCatalogSubnetRow,
+    CacheDisposition, CatalogSnapshotAuthorityEvidence, CatalogSourceSelection,
+    DEFAULT_REFRESH_LOCK_STALE_SECONDS, DEFAULT_STALE_AFTER_SECONDS,
+    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
+    SubnetCatalogDetailedSourceFuture, SubnetCatalogFailureCacheDisposition, SubnetCatalogFilters,
+    SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
+    SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogLoadFailure,
+    SubnetCatalogLoadRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshReport,
+    SubnetCatalogRefreshRequest, SubnetCatalogSource, SubnetCatalogSourceFailure,
+    SubnetCatalogSourceFuture, SubnetCatalogSubject, SubnetCatalogSubnetRow,
     build_subnet_catalog_info_report, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source, fetch_subnet_catalog_async,
-    load_cached_subnet_catalog, load_subnet_catalog_with_source_async, refresh_subnet_catalog,
-    refresh_subnet_catalog_with_source_async, subnet_catalog_info_report_text,
-    subnet_catalog_list_report_text, subnet_catalog_list_report_verbose_text, subnet_catalog_path,
-    subnet_catalog_refresh_lock_path, subnet_catalog_refresh_report_text,
+    load_cached_subnet_catalog, load_cached_subnet_catalog_detailed, load_subnet_catalog_detailed,
+    load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
+    load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source_async,
+    refresh_subnet_catalog, refresh_subnet_catalog_with_source_async,
+    subnet_catalog_info_report_text, subnet_catalog_list_report_text,
+    subnet_catalog_list_report_verbose_text, subnet_catalog_path, subnet_catalog_refresh_lock_path,
+    subnet_catalog_refresh_report_text,
 };
 #[cfg(all(feature = "subnet-catalog-host", unix))]
 use std::os::unix::fs::PermissionsExt;
@@ -78,10 +87,10 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
     assert_eq!(resolved.subnet_info.subnet_kind, SubnetKind::Application);
     assert_eq!(resolved.registry_version, 123_456);
     assert_eq!(cached.disposition, CacheDisposition::CacheHit);
-    let authority = cached.authority_evidence();
+    let authority: CatalogSnapshotAuthorityEvidence = cached.snapshot_authority();
     assert_eq!(authority.registry_version, 123_456);
     assert_eq!(authority.assurance, CatalogAssurance::UncertifiedQuery);
-    assert_eq!(authority.cache_disposition, CacheDisposition::CacheHit);
+    assert_eq!(authority, cached.catalog.snapshot_authority());
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -163,6 +172,142 @@ fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(report.subnets.len(), 1);
     assert_eq!(report.subnets[0].subnet_principal, SUBNET_A);
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[test]
+fn public_detailed_load_api_exposes_typed_failure_provenance() {
+    let root = temp_root("subnet-catalog-host-detailed-public-api");
+    let request =
+        SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test());
+
+    let failure = load_cached_subnet_catalog_detailed(&request).expect_err("cache missing");
+
+    assert_eq!(failure.stage, SubnetCatalogLoadStage::CacheAbsence);
+    assert_eq!(
+        failure.cache_disposition,
+        SubnetCatalogFailureCacheDisposition::CacheMissing
+    );
+    assert_eq!(failure.registry_version, None);
+    assert_eq!(failure.returned_registry_value_version, None);
+    assert_eq!(failure.source_endpoint, None);
+    assert_eq!(failure.assurance, None);
+    assert!(failure.registry_records.is_empty());
+    assert_eq!(failure.request.network, MAINNET_NETWORK);
+    assert!(matches!(
+        failure.source,
+        SubnetCatalogHostError::MissingCatalog { .. }
+    ));
+
+    let _: fn(&SubnetCatalogLoadRequest) -> Result<_, SubnetCatalogLoadFailure> =
+        load_subnet_catalog_detailed;
+    let _: fn(
+        &SubnetCatalogLoadRequest,
+        &dyn SubnetCatalogSource,
+    ) -> Result<_, SubnetCatalogLoadFailure> = load_subnet_catalog_detailed_with_source;
+    let _ = load_subnet_catalog_detailed_async;
+    let _ = load_subnet_catalog_detailed_with_source_async;
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn public_registry_value_encoding_exposes_stable_labels() {
+    assert_eq!(
+        SubnetCatalogRegistryValueEncoding::Inline.as_str(),
+        "inline"
+    );
+    assert_eq!(
+        SubnetCatalogRegistryValueEncoding::Chunked.as_str(),
+        "chunked"
+    );
+}
+
+#[test]
+fn public_registry_evidence_builders_derive_exact_subject_keys() {
+    let subnet = candid::Principal::from_text(SUBNET_A).expect("fixture Subnet principal");
+    let range_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
+
+    let subnet_list = SubnetCatalogRegistryRecordSubject::subnet_list();
+    let legacy_routing = SubnetCatalogRegistryRecordSubject::legacy_routing_table();
+    let subnet_record = SubnetCatalogRegistryRecordSubject::subnet_record(subnet);
+    let routing_shard = SubnetCatalogRegistryRecordSubject::canister_ranges(range_start);
+
+    assert_eq!(subnet_list.key, SUBNET_LIST_KEY);
+    assert_eq!(legacy_routing.key, ROUTING_TABLE_KEY);
+    assert_eq!(
+        subnet_record.key,
+        format!("{SUBNET_RECORD_KEY_PREFIX}{SUBNET_A}")
+    );
+    assert!(routing_shard.key.starts_with(CANISTER_RANGES_KEY_PREFIX));
+    assert_eq!(routing_shard.canister_range_start, Some(range_start));
+
+    let evidence = SubnetCatalogRegistryRecordEvidence::uncertified_query(
+        routing_shard,
+        63_438,
+        63_420,
+        1_780_531_200_000_000_000,
+        "https://icp-api.io",
+        SubnetCatalogRegistryValueEncoding::Chunked,
+    );
+    assert_eq!(evidence.assurance, CatalogAssurance::UncertifiedQuery);
+    assert_eq!(evidence.requested_registry_version, 63_438);
+    assert_eq!(evidence.returned_registry_version, 63_420);
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[test]
+fn public_custom_source_can_supply_exact_failure_version_and_subject() {
+    struct DetailedSource;
+
+    impl SubnetCatalogSource for DetailedSource {
+        fn fetch_catalog<'a>(
+            &'a self,
+            _request: &'a NnsSourceRequest,
+        ) -> SubnetCatalogSourceFuture<'a> {
+            Box::pin(async {
+                Err(SubnetCatalogHostError::Catalog(
+                    ic_query::subnet_catalog::CatalogError::EmptySubnets,
+                ))
+            })
+        }
+
+        fn fetch_catalog_detailed<'a>(
+            &'a self,
+            _request: &'a NnsSourceRequest,
+        ) -> SubnetCatalogDetailedSourceFuture<'a> {
+            Box::pin(async {
+                Err(SubnetCatalogSourceFailure::new(
+                    Some(700_008),
+                    Some(SubnetCatalogSubject::RegistryRecord(
+                        SubnetCatalogRegistryRecordSubject::legacy_routing_table(),
+                    )),
+                    SubnetCatalogHostError::Catalog(
+                        ic_query::subnet_catalog::CatalogError::EmptyRoutingRanges,
+                    ),
+                ))
+            })
+        }
+    }
+
+    let root = temp_root("subnet-catalog-host-detailed-source-public-api");
+    let request =
+        SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test())
+            .with_policy(ic_query::subnet_catalog::CatalogReadPolicy::ForceRefresh {
+                source: CatalogSourceSelection::uncertified_query(
+                    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+                ),
+            });
+    let failure = load_subnet_catalog_detailed_with_source(&request, &DetailedSource)
+        .expect_err("fixture source fails");
+
+    assert_eq!(failure.registry_version, Some(700_008));
+    assert_eq!(
+        failure.subject,
+        Some(SubnetCatalogSubject::RegistryRecord(
+            SubnetCatalogRegistryRecordSubject::legacy_routing_table()
+        ))
+    );
+    let _ = fs::remove_dir_all(root);
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -320,6 +465,8 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
         source_endpoints: vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()],
         agreement_digest: None,
         registry_query_call_count: 5,
+        routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+        registry_records: Vec::new(),
         catalog_digest: "00".repeat(32),
         fetched_at: "2026-06-26T00:00:00Z".to_string(),
         fetched_by: "fixture".to_string(),
@@ -372,6 +519,8 @@ fn fixture_catalog() -> RawSubnetCatalog {
             source_endpoints: vec!["https://icp-api.io".to_string()],
             agreement_digest: None,
             registry_query_call_count: 5,
+            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
             fetched_at: "2026-06-26T00:00:00Z".to_string(),
             certified_registry: None,
             fetched_by: "fixture".to_string(),
@@ -404,6 +553,27 @@ fn fixture_catalog() -> RawSubnetCatalog {
     };
     #[cfg(feature = "subnet-catalog-host")]
     let mut catalog = catalog;
+    #[cfg(feature = "subnet-catalog-host")]
+    {
+        let endpoint = catalog.provenance.source_endpoints[0].clone();
+        let registry_version = catalog.provenance.registry_version;
+        let evidence = |record| {
+            SubnetCatalogRegistryRecordEvidence::uncertified_query(
+                record,
+                registry_version,
+                registry_version - 1,
+                1_780_531_200_000_000_000,
+                &endpoint,
+                SubnetCatalogRegistryValueEncoding::Inline,
+            )
+        };
+        let subnet = candid::Principal::from_text(SUBNET_A).expect("fixture Subnet principal");
+        catalog.provenance.registry_records = vec![
+            evidence(SubnetCatalogRegistryRecordSubject::subnet_list()),
+            evidence(SubnetCatalogRegistryRecordSubject::legacy_routing_table()),
+            evidence(SubnetCatalogRegistryRecordSubject::subnet_record(subnet)),
+        ];
+    }
     #[cfg(feature = "subnet-catalog-host")]
     catalog
         .canonicalize_and_seal()

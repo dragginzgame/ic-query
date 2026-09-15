@@ -46,7 +46,8 @@ fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archive() {
         published.disposition(),
         NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication
     );
-    let published_evidence = published.authority_evidence();
+    let published_authority = published.snapshot_authority();
+    let published_evidence = published.cache_evidence();
     assert_eq!(published_evidence.registry_version, 1);
     assert_eq!(
         published_evidence.archive_manifest_sha256,
@@ -94,6 +95,7 @@ fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archive() {
         loaded.disposition(),
         NnsCertifiedSubnetCatalogCacheDisposition::CacheHit
     );
+    assert_eq!(published_authority, loaded.snapshot_authority());
     assert!(matches!(
         ValidatedSubnetCatalog::try_from_raw(
             envelope.catalog,
@@ -128,9 +130,10 @@ fn certified_catalog_cache_recovery_operations_are_explicit_and_observable() {
         NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing
     );
     assert_eq!(
-        missing.authority_evidence().cache_disposition.as_str(),
+        missing.cache_evidence().cache_disposition.as_str(),
         "published_missing"
     );
+    let missing_authority = missing.snapshot_authority();
 
     let hit = load_nns_certified_subnet_catalog(&archive, &projection, &publish_missing)
         .expect("reuse valid cache");
@@ -138,6 +141,7 @@ fn certified_catalog_cache_recovery_operations_are_explicit_and_observable() {
         hit.disposition(),
         NnsCertifiedSubnetCatalogCacheDisposition::CacheHit
     );
+    assert_eq!(missing_authority, hit.snapshot_authority());
 
     let cache_path = nns_certified_subnet_catalog_cache_path(&cache_directory);
     let mut envelope: NnsCertifiedSubnetCatalogCacheEnvelope =

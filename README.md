@@ -362,6 +362,18 @@ payload digest before returning a `ValidatedSubnetCatalog`. The digest detects
 an inconsistent payload; it is not a signature and does not promote the
 current `UncertifiedQuery` assurance. Bounded NNS Registry inventory
 read-through operations retain their owner-selected invalid-content repair.
+Successful `CacheDisposition` values describe how a catalog was supplied; they
+do not describe a failed attempt. Detailed host loads instead return a
+`SubnetCatalogLoadFailure` with the requested network, selected
+`CatalogSourceSelection`, minimum assurance, exact `SubnetCatalogLoadStage`,
+failure-side `SubnetCatalogFailureCacheDisposition`, optional pinned Registry
+version, returned individual value version when available, source endpoint,
+individual assurance, completed record evidence, typed subject, stable code/
+category, and typed retryability. Once the live collector pins a Registry
+version, every later Subnet-list, routing-key-family, routing-shard,
+Subnet-record, decoding, validation, or aggregation failure retains that exact
+requested version. A failure before version acquisition retains `None`, and
+uncertain retryability is `Unknown(reason)` rather than a binary guess.
 Exact-version topology and ICRC account-history library callers receive the
 same behavior only through explicitly selected read-through APIs. Direct cache
 loads, filesystem failures, and complete Governance history caches remain
@@ -373,9 +385,30 @@ Library Subnet Catalog refresh policies use `CatalogSourceSelection`: one
 endpoint keeps `UncertifiedQuery`, while an explicit two-to-three-endpoint
 selection requires distinct hostnames and exact Registry-version/payload
 agreement. Successful provenance records canonical endpoints, an agreement
-digest when applicable, and exact Registry query-call counts. Agreement does
-not become certified evidence and never falls back to one endpoint on a
+digest when applicable, exact Registry query-call counts, the selected routing
+source, and per-value requested/returned versions, keys, schemas, subjects,
+timestamps, endpoint, assurance, and inline/chunked representation. Agreement
+does not become certified evidence and never falls back to one endpoint on a
 mismatch.
+
+Custom sources and downstream fixtures can construct that evidence without
+hand-formatting Registry keys. The portable API exposes the canonical key
+constants, typed Subnet-list, legacy-routing, routing-shard, and Subnet-record
+subject constructors, and
+`SubnetCatalogRegistryRecordEvidence::uncertified_query` for one ordinary
+pinned value response.
+
+Mainnet routing authority follows the current Registry helper contract. At the
+pinned Registry version, the collector reconstructs the complete present-key
+set under `canister_ranges_*`, fetches and decodes every shard at that same
+version, and flattens the shards into one strictly validated routing table. If
+the modern family is empty, live collection fails closed; the retired
+monolithic `routing_table` is never queried or considered. Missing, empty,
+malformed, overlapping, contradictory, shard-boundary-violating, or unknown-
+Subnet shard evidence likewise fails closed, so a stale legacy value cannot
+resurrect a deleted Subnet or mask lost modern authority. Size-bounded
+`get_changes_since` pages advance by their highest returned mutation version;
+the response's latest-version field is not treated as a page watermark.
 
 `sns list` uses a one-hour joined catalog cache containing Governance metadata
 and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
@@ -434,7 +467,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false }
+ic-query = { version = "0.42", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -442,7 +475,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["host"] }
+ic-query = { version = "0.42", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -454,7 +487,7 @@ the native host graph:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["canister"] }
+ic-query = { version = "0.42", default-features = false, features = ["canister"] }
 ```
 
 The canister surface collects the four bounded direct NNS Governance point
@@ -629,7 +662,7 @@ operator and marketplace reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
@@ -642,7 +675,7 @@ features (or the convenience `host` feature):
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
@@ -651,7 +684,7 @@ node collection, and the shared observed default-scope node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders including
@@ -668,7 +701,7 @@ report:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["ic-state-host"] }
 ```
 
 This exposes `LiveIcStateSource`, its focused source trait, and live/custom
@@ -681,7 +714,7 @@ Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -694,7 +727,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -706,7 +739,7 @@ proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -730,7 +763,7 @@ inventory, or derived-topology surface:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 This feature includes `subnet-catalog-host` and adds certified Registry delta
@@ -745,7 +778,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -758,7 +791,7 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["nns-host"] }
 ```
 
 This is a strict superset of both `nns-topology-host` and
@@ -897,9 +930,11 @@ reauthenticate a custom source or establish catalog assurance by themselves.
 
 A completed replay session can be projected in memory into canonical Subnet
 Catalog rows. This pure diagnostic projection reads the replayed Subnet list,
-routing table, and referenced Subnet records at the pinned version and reuses
-the live catalog's classification and routing-validation path. It does not by
-itself produce validated certified authority.
+routing authority, and referenced Subnet records at the pinned version and
+reuses the live catalog's classification and routing-validation path. It uses
+the complete present `canister_ranges_*` family when nonempty and explicitly
+permits the legacy `routing_table` only to inspect a pre-shard historical
+state. It does not by itself produce validated certified authority.
 
 `project_nns_certified_subnet_catalog` is the authority boundary. It accepts
 only a fully reauthenticated `NnsAuthenticatedRegistryArchive`, rechecks its
@@ -907,8 +942,10 @@ manifest against the sealed replay session, projects the exact reconstructed
 state, and returns `NnsCertifiedSubnetCatalogAuthority`. Its required
 `NnsCertifiedSubnetCatalogProjectionRequest` carries caller-owned validation
 context, a maximum certificate age, and an explicit choice between an
-authenticated historical target and requiring the newest version observed by
-every archive batch; there are no default policies. Stale or knowingly
+authenticated historical target, which alone permits pre-shard legacy routing,
+and requiring the selected target to be the newest version observed by every
+archive batch with nonempty modern routing shards; there are no default
+policies. Stale or knowingly
 superseded archives fail before catalog record projection when prohibited. The
 result keeps its private-field `ValidatedSubnetCatalog` attached to the archive
 that proves it and exposes the exact age and version decision through
@@ -938,12 +975,17 @@ refreshes archive evidence or makes a network call.
 
 Every successful outcome exposes its path and `cache_hit`,
 `published_missing`, `published_invalid`, or `forced_publication` disposition.
-`authority_evidence()` returns a compact persistable Registry, catalog,
-archive, certificate, endpoint, assurance, and cache-action identity without
-duplicating the catalog snapshot. The serialized `Certified` label and evidence
-DTO remain descriptive rather than authority constructors: reloading authority
-still requires the matching authenticated archive and fresh projection. The
-ordinary schema-1 Subnet Catalog cache is unchanged.
+`snapshot_authority()` returns the same stable Registry, catalog, endpoint, and
+assurance identity as an ordinary validated catalog, excluding cache action.
+`cache_evidence()` separately returns combined archive, certificate, and cache-
+action diagnostics without duplicating the catalog snapshot. The serialized
+`Certified` label and diagnostic DTO remain descriptive rather than authority
+constructors: reloading authority still requires the matching authenticated
+archive and fresh projection. The
+ordinary Subnet Catalog remains schema 1, but its pre-1.0 shape is hard-cut to
+require routing-source and per-record provenance fields. Older cache content is
+invalid under the current reader and is refreshed only when the caller's
+explicit cache policy authorizes invalid-content repair.
 
 `bootstrap_nns_certified_registry_async` is the explicit live counterpart. It
 starts at version zero on the caller's async runtime and reserves worst-case
@@ -966,10 +1008,13 @@ it is not a successful bootstrap, cache input, or catalog authority.
 
 The Subnet Catalog API separates serde-facing `RawSubnetCatalog` data from
 private-field `ValidatedSubnetCatalog` evidence. Explicit load policies return
-both the validated catalog and an observable cache disposition; validated
-canister resolution returns the matched range, Registry version, catalog
-digest, and full provenance together. Single-endpoint live collection is
-always labelled `CatalogAssurance::UncertifiedQuery`. Async embedders can call
+both the validated catalog and observable acquisition path/disposition.
+`CatalogLoadOutcome::snapshot_authority()` derives a stable persistable
+`CatalogSnapshotAuthorityEvidence` only from the validated catalog; cache hits
+and refresh dispositions are deliberately excluded. Validated canister
+resolution returns the matched range, Registry version, catalog digest, and
+full provenance together. Single-endpoint live collection is always labelled
+`CatalogAssurance::UncertifiedQuery`. Async embedders can call
 `fetch_subnet_catalog_async`, `load_subnet_catalog_async`, or
 `refresh_subnet_catalog_async` on their own runtime. Dropping an async refresh
 releases its owned lock without publishing. Synchronous adapters may use a

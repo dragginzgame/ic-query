@@ -159,6 +159,10 @@ pub struct SubnetCatalogListReport {
     pub agreement_digest: Option<String>,
     /// Exact number of Registry query calls made during collection.
     pub registry_query_call_count: u64,
+    /// Registry record family selected as routing authority.
+    pub routing_source: crate::subnet_catalog::SubnetCatalogRoutingSource,
+    /// Per-value Registry provenance retained by the catalog.
+    pub registry_records: Vec<crate::subnet_catalog::SubnetCatalogRegistryRecordEvidence>,
     /// Lowercase SHA-256 digest of the canonical catalog payload.
     pub catalog_digest: String,
     /// Observable result of applying the requested cache policy.

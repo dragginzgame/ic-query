@@ -8,8 +8,18 @@
 //! privately held validated catalog by the host authority boundary.
 
 use super::{ClassificationSource, GeographicScope, SubnetKind, SubnetSpecialization};
+use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+
+/// Exact Registry key containing the current Subnet list.
+pub const SUBNET_LIST_KEY: &str = "subnet_list";
+/// Retired monolithic Registry routing-table key used only by explicit historical replay.
+pub const ROUTING_TABLE_KEY: &str = "routing_table";
+/// Registry key prefix for authoritative canister-range routing shards.
+pub const CANISTER_RANGES_KEY_PREFIX: &str = "canister_ranges_";
+/// Registry key prefix for individual Subnet records.
+pub const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";
 
 ///
 /// CatalogAssurance
@@ -26,6 +36,225 @@ pub enum CatalogAssurance {
     MultiEndpointAgreement,
     /// Version-consistent ordinary query evidence from one replica endpoint.
     UncertifiedQuery,
+}
+
+///
+/// SubnetCatalogRoutingSource
+///
+/// Registry record family selected as routing authority for one catalog.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SubnetCatalogRoutingSource {
+    /// The complete current `canister_ranges_*` key family.
+    CanisterRanges,
+    /// The retired monolithic `routing_table`, used only when no shards exist.
+    LegacyRoutingTable,
+}
+
+impl SubnetCatalogRoutingSource {
+    /// Return the stable JSON and report label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CanisterRanges => "canister_ranges",
+            Self::LegacyRoutingTable => "legacy_routing_table",
+        }
+    }
+}
+
+///
+/// SubnetCatalogRegistryRecordKind
+///
+/// Exact Registry key family and protobuf schema used by a catalog record.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SubnetCatalogRegistryRecordKind {
+    /// The `subnet_list` key containing a `SubnetListRecord`.
+    SubnetList,
+    /// A legacy `routing_table` or modern `canister_ranges_*` `RoutingTable` value.
+    RoutingTable,
+    /// One `subnet_record_*` key containing a `SubnetRecord`.
+    SubnetRecord,
+}
+
+impl SubnetCatalogRegistryRecordKind {
+    /// Return the stable source-family label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SubnetList => "subnet_list",
+            Self::RoutingTable => "routing_table",
+            Self::SubnetRecord => "subnet_record",
+        }
+    }
+
+    /// Return the exact protobuf schema decoded for this record family.
+    #[must_use]
+    pub const fn protobuf_schema(self) -> &'static str {
+        match self {
+            Self::SubnetList => "SubnetListRecord",
+            Self::RoutingTable => "RoutingTable",
+            Self::SubnetRecord => "SubnetRecord",
+        }
+    }
+}
+
+///
+/// SubnetCatalogRegistryRecordSubject
+///
+/// Typed Registry key and domain subject retained for one catalog record.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SubnetCatalogRegistryRecordSubject {
+    /// Registry record family and protobuf schema.
+    pub kind: SubnetCatalogRegistryRecordKind,
+    /// Exact Registry key used by `get_value`.
+    pub key: String,
+    /// Exact Subnet principal for a Subnet-record operation.
+    pub subnet: Option<Principal>,
+    /// Range-start canister principal encoded in a `canister_ranges_*` key.
+    pub canister_range_start: Option<Principal>,
+}
+
+impl SubnetCatalogRegistryRecordSubject {
+    /// Build the exact current Subnet-list subject.
+    #[must_use]
+    pub fn subnet_list() -> Self {
+        Self::keyed(SubnetCatalogRegistryRecordKind::SubnetList, SUBNET_LIST_KEY)
+    }
+
+    /// Build the exact retired monolithic routing-table subject.
+    #[must_use]
+    pub fn legacy_routing_table() -> Self {
+        Self::keyed(
+            SubnetCatalogRegistryRecordKind::RoutingTable,
+            ROUTING_TABLE_KEY,
+        )
+    }
+
+    /// Build the exact Registry subject for one Subnet record.
+    #[must_use]
+    pub fn subnet_record(subnet: Principal) -> Self {
+        Self {
+            kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
+            key: format!("{SUBNET_RECORD_KEY_PREFIX}{}", subnet.to_text()),
+            subnet: Some(subnet),
+            canister_range_start: None,
+        }
+    }
+
+    /// Build the exact authoritative routing-shard subject for one lower bound.
+    #[must_use]
+    pub fn canister_ranges(canister_range_start: Principal) -> Self {
+        Self {
+            kind: SubnetCatalogRegistryRecordKind::RoutingTable,
+            key: format!(
+                "{CANISTER_RANGES_KEY_PREFIX}{}",
+                crate::hex::hex_bytes(canister_range_start.as_slice())
+            ),
+            subnet: None,
+            canister_range_start: Some(canister_range_start),
+        }
+    }
+
+    #[must_use]
+    fn keyed(kind: SubnetCatalogRegistryRecordKind, key: impl Into<String>) -> Self {
+        Self {
+            kind,
+            key: key.into(),
+            subnet: None,
+            canister_range_start: None,
+        }
+    }
+
+    #[cfg(feature = "subnet-catalog-host")]
+    #[must_use]
+    pub(crate) fn exact_keyed(
+        kind: SubnetCatalogRegistryRecordKind,
+        key: impl Into<String>,
+    ) -> Self {
+        Self::keyed(kind, key)
+    }
+}
+
+///
+/// SubnetCatalogRegistryValueEncoding
+///
+/// Registry transport representation used to complete one fetched value.
+///
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SubnetCatalogRegistryValueEncoding {
+    /// The complete protobuf value was returned inline.
+    Inline,
+    /// The protobuf value was reconstructed from hash-verified chunks.
+    Chunked,
+}
+
+impl SubnetCatalogRegistryValueEncoding {
+    /// Return the stable JSON and report label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Inline => "inline",
+            Self::Chunked => "chunked",
+        }
+    }
+}
+
+///
+/// SubnetCatalogRegistryRecordEvidence
+///
+/// Exact request, returned value, source, and transport provenance for one record.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SubnetCatalogRegistryRecordEvidence {
+    /// Exact Registry key, family, schema, and domain subject.
+    pub record: SubnetCatalogRegistryRecordSubject,
+    /// Pinned Registry version requested from `get_value`.
+    pub requested_registry_version: u64,
+    /// Individual value version returned by the Registry.
+    pub returned_registry_version: u64,
+    /// Registry-assigned timestamp of the returned value's last mutation.
+    pub timestamp_nanoseconds: u64,
+    /// Exact endpoint that returned the value.
+    pub source_endpoint: String,
+    /// Assurance of the individual read, before any endpoint aggregation.
+    pub assurance: CatalogAssurance,
+    /// Inline or hash-verified chunked value representation.
+    pub value_encoding: SubnetCatalogRegistryValueEncoding,
+}
+
+impl SubnetCatalogRegistryRecordEvidence {
+    /// Build evidence for one ordinary pinned Registry value response.
+    #[must_use]
+    pub fn uncertified_query(
+        record: SubnetCatalogRegistryRecordSubject,
+        requested_registry_version: u64,
+        returned_registry_version: u64,
+        timestamp_nanoseconds: u64,
+        source_endpoint: impl Into<String>,
+        value_encoding: SubnetCatalogRegistryValueEncoding,
+    ) -> Self {
+        Self {
+            record,
+            requested_registry_version,
+            returned_registry_version,
+            timestamp_nanoseconds,
+            source_endpoint: source_endpoint.into(),
+            assurance: CatalogAssurance::UncertifiedQuery,
+            value_encoding,
+        }
+    }
 }
 
 impl CatalogAssurance {
@@ -75,6 +304,10 @@ pub struct UncertifiedCatalogCollection {
     pub collector_version: String,
     /// Exact number of Registry query calls made during collection.
     pub registry_query_call_count: u64,
+    /// Registry record family selected as routing authority.
+    pub routing_source: SubnetCatalogRoutingSource,
+    /// Canonical evidence for every fetched Registry value.
+    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -96,7 +329,21 @@ impl UncertifiedCatalogCollection {
             fetched_by: fetched_by.to_string(),
             collector_version: collector_version.to_string(),
             registry_query_call_count,
+            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
         }
+    }
+
+    /// Attach explicit routing authority and per-value evidence.
+    #[must_use]
+    pub fn with_registry_evidence(
+        mut self,
+        routing_source: SubnetCatalogRoutingSource,
+        registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
+    ) -> Self {
+        self.routing_source = routing_source;
+        self.registry_records = registry_records;
+        self
     }
 }
 
@@ -151,6 +398,10 @@ pub struct SubnetCatalogProvenance {
     pub agreement_digest: Option<String>,
     /// Exact number of Registry query calls used to collect this snapshot.
     pub registry_query_call_count: u64,
+    /// Registry record family selected as routing authority.
+    pub routing_source: SubnetCatalogRoutingSource,
+    /// Canonical evidence for every fetched Registry value.
+    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     /// Caller-supplied UTC collection timestamp.
     pub fetched_at: String,
     /// Certified archive commitments, present only for certified assurance.
@@ -226,6 +477,25 @@ impl CatalogValidationContext {
 }
 
 ///
+/// CatalogSnapshotAuthorityEvidence
+///
+/// Stable persistable identity derived only from one validated catalog snapshot.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CatalogSnapshotAuthorityEvidence {
+    /// Exact Registry version represented by the validated catalog.
+    pub registry_version: u64,
+    /// Lowercase SHA-256 digest of the validated catalog authority payload.
+    pub catalog_digest: String,
+    /// Assurance established for the validated catalog evidence.
+    pub assurance: CatalogAssurance,
+    /// Canonically ordered endpoints contributing to the validated evidence.
+    pub source_endpoints: Vec<String>,
+}
+
+///
 /// ValidatedSubnetCatalog
 ///
 /// Authority-bearing catalog whose raw content passed host validation.
@@ -271,6 +541,18 @@ impl ValidatedSubnetCatalog {
     #[must_use]
     pub fn routing_ranges(&self) -> &[RoutingRange] {
         &self.raw.routing_ranges
+    }
+
+    /// Return stable persistable authority derived only from this validated snapshot.
+    #[must_use]
+    pub fn snapshot_authority(&self) -> CatalogSnapshotAuthorityEvidence {
+        let provenance = self.provenance();
+        CatalogSnapshotAuthorityEvidence {
+            registry_version: provenance.registry_version,
+            catalog_digest: self.raw.catalog_digest.clone(),
+            assurance: provenance.assurance,
+            source_endpoints: provenance.source_endpoints.clone(),
+        }
     }
 
     /// Return the validated binary catalog digest.

@@ -174,10 +174,35 @@ impl SubnetCatalogSource for AgreementFixtureSource {
                     AgreementFixtureMode::Matching | AgreementFixtureMode::EndpointFailure => {}
                 }
             }
+            attach_complete_registry_evidence(&mut catalog, &request.endpoint);
             catalog.canonicalize_and_seal()?;
             Ok(catalog)
         })
     }
+}
+
+fn attach_complete_registry_evidence(catalog: &mut RawSubnetCatalog, endpoint: &str) {
+    let registry_version = catalog.provenance.registry_version;
+    let evidence = |record| {
+        SubnetCatalogRegistryRecordEvidence::uncertified_query(
+            record,
+            registry_version,
+            registry_version.saturating_sub(1),
+            1_780_531_200_000_000_000,
+            endpoint,
+            SubnetCatalogRegistryValueEncoding::Inline,
+        )
+    };
+    let mut registry_records = vec![
+        evidence(SubnetCatalogRegistryRecordSubject::subnet_list()),
+        evidence(SubnetCatalogRegistryRecordSubject::legacy_routing_table()),
+    ];
+    registry_records.extend(catalog.subnets.iter().map(|subnet| {
+        let principal = candid::Principal::from_text(&subnet.subnet_principal)
+            .expect("fixture Subnet principal");
+        evidence(SubnetCatalogRegistryRecordSubject::subnet_record(principal))
+    }));
+    catalog.provenance.registry_records = registry_records;
 }
 
 impl FixtureRefreshSource {
@@ -204,14 +229,95 @@ impl SubnetCatalogSource for FixtureRefreshSource {
             }
             let mut catalog = self.catalog.clone().expect("fixture catalog");
             catalog.provenance.source_endpoints = vec![request.endpoint.clone()];
+            attach_complete_registry_evidence(&mut catalog, &request.endpoint);
             catalog.canonicalize_and_seal()?;
             Ok(catalog)
         })
     }
 }
 
+///
+/// DetailedFailureSource
+///
+/// Fixture source that returns caller-selected typed collection failure provenance.
+///
+
+pub(super) struct DetailedFailureSource {
+    registry_version: Option<u64>,
+    returned_registry_value_version: Option<u64>,
+    source_endpoint: Option<String>,
+    assurance: Option<CatalogAssurance>,
+    subject: Option<SubnetCatalogSubject>,
+    message: &'static str,
+}
+
+impl DetailedFailureSource {
+    pub(super) const fn new(
+        registry_version: Option<u64>,
+        subject: Option<SubnetCatalogSubject>,
+        message: &'static str,
+    ) -> Self {
+        Self {
+            registry_version,
+            returned_registry_value_version: None,
+            source_endpoint: None,
+            assurance: None,
+            subject,
+            message,
+        }
+    }
+
+    pub(super) fn with_value_response(
+        mut self,
+        returned_registry_value_version: u64,
+        source_endpoint: &str,
+    ) -> Self {
+        self.returned_registry_value_version = Some(returned_registry_value_version);
+        self.source_endpoint = Some(source_endpoint.to_string());
+        self.assurance = Some(CatalogAssurance::UncertifiedQuery);
+        self
+    }
+
+    fn source_error(&self) -> SubnetCatalogHostError {
+        SubnetCatalogHostError::RegistryRefresh(
+            crate::ic_registry::RegistryFetchError::ProtobufDecode {
+                message: self.message,
+                reason: "fixture failure".to_string(),
+            },
+        )
+    }
+}
+
+impl SubnetCatalogSource for DetailedFailureSource {
+    fn fetch_catalog<'a>(
+        &'a self,
+        _request: &'a NnsSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a> {
+        Box::pin(async move { Err(self.source_error()) })
+    }
+
+    fn fetch_catalog_detailed<'a>(
+        &'a self,
+        _request: &'a NnsSourceRequest,
+    ) -> SubnetCatalogDetailedSourceFuture<'a> {
+        Box::pin(async move {
+            Err(SubnetCatalogSourceFailure::new(
+                self.registry_version,
+                self.subject.clone(),
+                self.source_error(),
+            )
+            .with_registry_evidence(
+                self.returned_registry_value_version,
+                self.source_endpoint.clone(),
+                self.assurance,
+                Vec::new(),
+            ))
+        })
+    }
+}
+
 pub(super) fn fixture_catalog() -> RawSubnetCatalog {
-    RawSubnetCatalog::new_mainnet_uncertified(
+    let mut catalog = RawSubnetCatalog::new_mainnet_uncertified(
         UncertifiedCatalogCollection::new(
             123_456,
             "https://icp-api.io",
@@ -268,5 +374,11 @@ pub(super) fn fixture_catalog() -> RawSubnetCatalog {
             },
         ],
     )
-    .expect("valid fixture catalog")
+    .expect("valid fixture catalog");
+    let endpoint = catalog.provenance.source_endpoints[0].clone();
+    attach_complete_registry_evidence(&mut catalog, &endpoint);
+    catalog
+        .canonicalize_and_seal()
+        .expect("seal complete Registry evidence fixture");
+    catalog
 }

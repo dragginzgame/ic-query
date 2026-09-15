@@ -15,13 +15,20 @@ mod time;
 
 pub use error::CatalogError;
 #[cfg(feature = "subnet-catalog-host")]
+pub(crate) use host::subject_from_catalog_error;
+#[cfg(feature = "subnet-catalog-host")]
 pub use host::{
-    CacheDisposition, CatalogAuthorityEvidence, CatalogLoadOutcome, CatalogReadPolicy,
-    CatalogSourceSelection, SubnetCatalogCacheRequest, SubnetCatalogErrorCategory,
-    SubnetCatalogErrorCode, SubnetCatalogHostError, SubnetCatalogLoadRequest,
-    SubnetCatalogRefreshRequest, SubnetCatalogRemediation, SubnetCatalogRetryability,
-    SubnetCatalogSource, SubnetCatalogSourceFuture, fetch_subnet_catalog_async,
-    load_cached_subnet_catalog, load_subnet_catalog, load_subnet_catalog_async,
+    CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, CatalogSourceSelection,
+    SubnetCatalogCacheRequest, SubnetCatalogDetailedSourceFuture, SubnetCatalogErrorCategory,
+    SubnetCatalogErrorCode, SubnetCatalogFailureCacheDisposition, SubnetCatalogField,
+    SubnetCatalogHostError, SubnetCatalogLoadFailure, SubnetCatalogLoadFailureRequest,
+    SubnetCatalogLoadRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshRequest,
+    SubnetCatalogRefreshTrigger, SubnetCatalogRemediation, SubnetCatalogRetryability,
+    SubnetCatalogSource, SubnetCatalogSourceFailure, SubnetCatalogSourceFuture,
+    SubnetCatalogSubject, SubnetCatalogUnknownRetryReason, fetch_subnet_catalog_async,
+    load_cached_subnet_catalog, load_cached_subnet_catalog_detailed, load_subnet_catalog,
+    load_subnet_catalog_async, load_subnet_catalog_detailed, load_subnet_catalog_detailed_async,
+    load_subnet_catalog_detailed_with_source, load_subnet_catalog_detailed_with_source_async,
     load_subnet_catalog_with_source, load_subnet_catalog_with_source_async, refresh_subnet_catalog,
     refresh_subnet_catalog_async, refresh_subnet_catalog_with_source,
     refresh_subnet_catalog_with_source_async, subnet_catalog_path,
@@ -35,10 +42,14 @@ pub(crate) use model::canonicalize_subnet_catalog_content;
 #[cfg(feature = "subnet-catalog-host")]
 pub(in crate::subnet_catalog) use model::catalog_agreement_digest;
 pub use model::{
-    CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance, CatalogValidationContext,
-    CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope,
-    RESOLVER_SCHEMA_VERSION, RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance, SubnetInfo,
-    SubnetKind, SubnetSpecialization, ValidatedSubnetCatalog,
+    CANISTER_RANGES_KEY_PREFIX, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance,
+    CatalogSnapshotAuthorityEvidence, CatalogValidationContext, CertifiedRegistryCatalogEvidence,
+    ClassificationSource, GeographicScope, RESOLVER_SCHEMA_VERSION, ROUTING_TABLE_KEY,
+    RawSubnetCatalog, RoutingRange, SUBNET_LIST_KEY, SUBNET_RECORD_KEY_PREFIX,
+    SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
+    SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
+    SubnetCatalogRoutingSource, SubnetInfo, SubnetKind, SubnetSpecialization,
+    ValidatedSubnetCatalog,
 };
 pub use principal::canonical_principal_text;
 pub(crate) use principal::{parse_principal, principal_bytes};

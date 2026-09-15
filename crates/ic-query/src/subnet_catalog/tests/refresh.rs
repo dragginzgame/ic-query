@@ -121,6 +121,11 @@ fn async_multi_endpoint_refresh_publishes_matching_agreement_evidence() {
         vec![alpha.to_string(), beta.to_string()]
     );
     assert_eq!(report.registry_query_call_count, 10);
+    assert_eq!(report.registry_records.len(), 8);
+    assert!(report.registry_records.iter().all(|evidence| {
+        evidence.requested_registry_version == report.registry_version
+            && report.source_endpoints.contains(&evidence.source_endpoint)
+    }));
     assert_eq!(
         report.agreement_digest,
         cached.catalog.provenance().agreement_digest
@@ -130,6 +135,36 @@ fn async_multi_endpoint_refresh_publishes_matching_agreement_evidence() {
         cached.catalog.provenance().assurance,
         CatalogAssurance::MultiEndpointAgreement
     );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn detailed_agreement_mismatch_retains_every_completed_endpoint_record() {
+    let root = temp_dir("ic-query-subnet-detailed-agreement-mismatch");
+    let alpha = "https://alpha.example";
+    let beta = "https://beta.example";
+    let source = AgreementFixtureSource::new(AgreementFixtureMode::PayloadMismatch, beta);
+    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
+        .with_policy(CatalogReadPolicy::ForceRefresh {
+            source: CatalogSourceSelection::multi_endpoint_agreement(vec![
+                alpha.to_string(),
+                beta.to_string(),
+            ]),
+        });
+
+    let failure = futures::executor::block_on(load_subnet_catalog_detailed_with_source_async(
+        &request, &source,
+    ))
+    .expect_err("mismatched endpoint evidence");
+
+    assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
+    assert_eq!(failure.registry_records.len(), 8);
+    assert!(
+        failure.registry_records.iter().all(|evidence| {
+            evidence.source_endpoint == alpha || evidence.source_endpoint == beta
+        })
+    );
+    assert!(!subnet_catalog_path(&root, MAINNET_NETWORK).exists());
     let _ = fs::remove_dir_all(root);
 }
 

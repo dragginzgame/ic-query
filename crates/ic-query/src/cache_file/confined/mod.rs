@@ -437,12 +437,16 @@ fn create_directory_component(
     let mut builder = DirBuilder::new();
     #[cfg(unix)]
     builder.mode(MANAGED_DIRECTORY_MODE);
-    parent
-        .create_dir_with(name, &builder)
-        .map_err(|source| CacheFileError::CreateDirectory {
-            path: display_path.to_path_buf(),
-            source,
-        })?;
+    match parent.create_dir_with(name, &builder) {
+        Ok(()) => {}
+        Err(source) if source.kind() == io::ErrorKind::AlreadyExists => {}
+        Err(source) => {
+            return Err(CacheFileError::CreateDirectory {
+                path: display_path.to_path_buf(),
+                source,
+            });
+        }
+    }
     let dir = open_directory_component(parent, name, root, display_path)?.ok_or_else(|| {
         open_managed_path_error(
             root,

@@ -4,6 +4,7 @@ mod certified;
 mod certified_delta;
 mod chunk;
 mod codec;
+mod key_family;
 mod value;
 mod version;
 
@@ -46,9 +47,10 @@ pub use chunk::{
     MAX_REGISTRY_CHUNK_RESPONSE_BYTES, MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
 };
 pub(super) use codec::decode_message;
+pub(in crate::ic_registry) use key_family::get_registry_key_family_counted;
 #[cfg(feature = "nns-topology-host")]
 pub(super) use value::get_registry_value;
-pub(super) use value::get_registry_value_counted;
+pub(super) use value::get_registry_versioned_value_counted;
 #[cfg(all(test, feature = "nns-host"))]
 pub(super) use value::registry_value_content_from_response;
 #[cfg(feature = "nns-topology-host")]

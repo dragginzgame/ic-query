@@ -6,7 +6,9 @@
 //!
 //! Boundary: records observable refresh results without embedding refresh mechanics.
 
-use crate::subnet_catalog::CatalogAssurance;
+use crate::subnet_catalog::{
+    CatalogAssurance, SubnetCatalogRegistryRecordEvidence, SubnetCatalogRoutingSource,
+};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -39,6 +41,10 @@ pub struct SubnetCatalogRefreshReport {
     pub agreement_digest: Option<String>,
     /// Exact number of Registry query calls made during collection.
     pub registry_query_call_count: u64,
+    /// Registry record family selected as routing authority.
+    pub routing_source: SubnetCatalogRoutingSource,
+    /// Per-value Registry provenance retained by the catalog.
+    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     /// Lowercase SHA-256 digest of the canonical catalog payload.
     pub catalog_digest: String,
     /// UTC collection timestamp.

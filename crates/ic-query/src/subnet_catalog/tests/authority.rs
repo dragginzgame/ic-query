@@ -216,14 +216,18 @@ fn authority_validation_requires_call_counts_and_recomputes_agreement_digest() {
     ));
 
     let mut agreement = fixture_catalog();
+    let alpha = "https://alpha.example";
+    let beta = "https://beta.example";
+    for evidence in &mut agreement.provenance.registry_records {
+        evidence.source_endpoint = alpha.to_string();
+    }
+    let mut beta_records = agreement.provenance.registry_records.clone();
+    for evidence in &mut beta_records {
+        evidence.source_endpoint = beta.to_string();
+    }
+    agreement.provenance.registry_records.extend(beta_records);
     agreement
-        .promote_to_multi_endpoint_agreement(
-            vec![
-                "https://alpha.example".to_string(),
-                "https://beta.example".to_string(),
-            ],
-            10,
-        )
+        .promote_to_multi_endpoint_agreement(vec![alpha.to_string(), beta.to_string()], 10)
         .expect("promote fixture agreement");
     ValidatedSubnetCatalog::try_from_raw(agreement.clone(), &validation_context())
         .expect("valid agreement");
@@ -235,5 +239,68 @@ fn authority_validation_requires_call_counts_and_recomputes_agreement_digest() {
     assert!(matches!(
         ValidatedSubnetCatalog::try_from_raw(agreement, &validation_context()),
         Err(CatalogError::AgreementDigestMismatch { .. })
+    ));
+}
+
+#[test]
+fn authority_validation_requires_complete_exact_registry_record_subjects() {
+    let complete = fixture_catalog();
+    ValidatedSubnetCatalog::try_from_raw(complete.clone(), &validation_context())
+        .expect("complete exact Registry evidence");
+
+    let mut missing_all = complete.clone();
+    missing_all.provenance.registry_records.clear();
+    missing_all
+        .canonicalize_and_seal()
+        .expect("seal missing-evidence fixture");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(missing_all, &validation_context()),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_records",
+            ..
+        })
+    ));
+
+    let mut missing_routing = complete.clone();
+    missing_routing
+        .provenance
+        .registry_records
+        .retain(|evidence| evidence.record.kind != SubnetCatalogRegistryRecordKind::RoutingTable);
+    missing_routing
+        .canonicalize_and_seal()
+        .expect("seal missing-routing fixture");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(missing_routing, &validation_context()),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_records",
+            ..
+        })
+    ));
+
+    let mut contradictory_shard = complete;
+    contradictory_shard.provenance.routing_source = SubnetCatalogRoutingSource::CanisterRanges;
+    let key_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
+    let claimed_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 2, 1, 1]);
+    let routing = contradictory_shard
+        .provenance
+        .registry_records
+        .iter_mut()
+        .find(|evidence| evidence.record.kind == SubnetCatalogRegistryRecordKind::RoutingTable)
+        .expect("routing evidence");
+    routing.record.key = format!(
+        "{}{}",
+        crate::ic_registry::CANISTER_RANGES_KEY_PREFIX,
+        crate::hex::hex_bytes(key_start.as_slice())
+    );
+    routing.record.canister_range_start = Some(claimed_start);
+    contradictory_shard
+        .canonicalize_and_seal()
+        .expect("seal contradictory-shard fixture");
+    assert!(matches!(
+        ValidatedSubnetCatalog::try_from_raw(contradictory_shard, &validation_context()),
+        Err(CatalogError::InvalidProvenance {
+            field: "provenance.registry_records",
+            ..
+        })
     ));
 }

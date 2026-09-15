@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["host"] }
+ic-query = { version = "0.42", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -28,7 +28,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["canister"] }
+ic-query = { version = "0.42", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -163,7 +163,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -181,7 +181,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -195,7 +195,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -208,7 +208,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -226,7 +226,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
@@ -234,7 +234,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -250,7 +250,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -268,7 +268,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -285,7 +285,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -301,7 +301,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -317,7 +317,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.42", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -415,13 +415,14 @@ authority attached and reports the exact cache path and disposition. All four
 policies are local-only: they can publish from the supplied archive, but cannot
 refresh it or make a network call. Recoverable invalidity is limited to cache
 content; filesystem, projection, serialization, and accounting errors remain
-failures.
+failures. Use `snapshot_authority()` for the stable catalog identity and
+`cache_evidence()` only when combined archive/cache diagnostics are required.
 
 For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.40", default-features = false }
+ic-query = { version = "0.42", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -1130,20 +1131,76 @@ Ordinary catalog caches use schema 1. Content with another schema identifier is
 invalid and can be replaced only when the selected read policy explicitly
 permits invalid cache refresh; there is no migration or fallback reader.
 
+Stable snapshot authority and per-load acquisition provenance are separate:
+
+```rust
+use ic_query::subnet_catalog::{
+    CatalogSnapshotAuthorityEvidence, CatalogSourceSelection,
+    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
+    SubnetCatalogHostError, SubnetCatalogLoadRequest, load_subnet_catalog,
+};
+
+fn load_catalog(
+    cache: SubnetCatalogCacheRequest,
+    now_unix_secs: u64,
+) -> Result<CatalogSnapshotAuthorityEvidence, SubnetCatalogHostError> {
+    let request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
+        cache,
+        CatalogSourceSelection::uncertified_query(
+            DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+        ),
+        now_unix_secs,
+    );
+    let loaded = load_subnet_catalog(&request)?;
+    let stable_authority = loaded.snapshot_authority();
+
+    // Acquisition diagnostics remain separate from stable authority identity.
+    eprintln!("catalog path: {}", loaded.path.display());
+    eprintln!("cache disposition: {}", loaded.disposition.as_str());
+
+    Ok(stable_authority)
+}
+```
+
+Callers that need failure provenance use
+`load_cached_subnet_catalog_detailed`, `load_subnet_catalog_detailed`,
+`load_subnet_catalog_detailed_async`,
+`load_subnet_catalog_detailed_with_source`, or
+`load_subnet_catalog_detailed_with_source_async`. These return
+`SubnetCatalogLoadFailure`, whose request retains the requested network,
+selected `CatalogSourceSelection`, and minimum assurance. Its typed stage and
+failure-side cache disposition distinguish cache-only loading, cache bypass,
+absence, rejection, attempted/failed refresh, and a failed post-refresh cache
+load. Optional Registry version and typed subjects retain exact Registry
+record/key, Subnet principal, routing range, endpoint, or field evidence when
+the failing layer knows it. Stable code/category fields and
+`SubnetCatalogRetryability::{Retryable, NotRetryable, Unknown(reason)}` require
+no error-text parsing. `source` is the original `SubnetCatalogHostError`.
+
+The existing simple load functions execute the detailed implementation and
+map a failure back through `SubnetCatalogLoadFailure::into_source`; their
+observable host-error variants are unchanged. Existing `SubnetCatalogSource`
+implementations also remain valid because `fetch_catalog_detailed` has a
+truthful default with unknown version/subject provenance. A custom source that
+knows more may override it and return `SubnetCatalogSourceFailure` without
+forking the load or cache algorithm.
+
 `ValidatedSubnetCatalog::resolve_canister_route` binds the canonical canister
 and Subnet principals, complete matched `SubnetInfo`, routing range, Registry
 version, binary catalog digest, and provenance in one result. The caller can
 therefore use `SubnetKind` without a second catalog lookup.
-`CatalogLoadOutcome::authority_evidence` returns a compact serializable record
-of Registry version, digest, assurance, source endpoints, and cache
-disposition for a durable plan. That record identifies the load outcome; it is
-not a substitute for validated catalog content. The digest detects a payload
-that was edited without being resealed; it is not a signature or local-tamper
-boundary.
+`CatalogLoadOutcome::snapshot_authority` returns the same compact serializable
+snapshot identity as `ValidatedSubnetCatalog::snapshot_authority`: Registry
+version, digest, assurance, and canonical source endpoints. Cache path and
+disposition describe only the individual acquisition and are not part of that
+identity. Snapshot evidence is not a substitute for validated catalog content.
+The digest detects a payload that was edited without being resealed; it is not
+a signature or local-tamper boundary.
 Async embedders can use `fetch_subnet_catalog_async`,
 `load_subnet_catalog_async`, and `refresh_subnet_catalog_async` on their own
 runtime. The async source seam returns `SubnetCatalogSourceFuture`; custom
 sources must return single-endpoint evidence for the exact requested endpoint.
+The detailed source seam returns `SubnetCatalogDetailedSourceFuture`.
 Dropping an in-flight async refresh releases its owned lock without publishing.
 
 Agreement is an explicit bounded source selection rather than a different

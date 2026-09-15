@@ -1733,6 +1733,8 @@ fn public_certified_catalog_cache_contract_is_explicit_and_archive_bound() {
         NnsCertifiedSubnetCatalogCacheError,
     > = load_nns_certified_subnet_catalog;
     let _ = cache_loader;
+    let _ = NnsCertifiedSubnetCatalogLoadOutcome::snapshot_authority;
+    let _ = NnsCertifiedSubnetCatalogLoadOutcome::cache_evidence;
     assert_eq!(
         NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid.as_str(),
         "published_invalid"
@@ -3597,6 +3599,8 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
         source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
         agreement_digest: None,
         registry_query_call_count: 5,
+        routing_source: ic_query::subnet_catalog::SubnetCatalogRoutingSource::LegacyRoutingTable,
+        registry_records: Vec::new(),
         catalog_digest: "00".repeat(32),
         cache_disposition: CacheDisposition::CacheHit,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
@@ -3625,6 +3629,8 @@ fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
         source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
         agreement_digest: None,
         registry_query_call_count: 5,
+        routing_source: ic_query::subnet_catalog::SubnetCatalogRoutingSource::LegacyRoutingTable,
+        registry_records: Vec::new(),
         catalog_digest: "00".repeat(32),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         fetched_by: "ic-query".to_string(),

@@ -10,6 +10,7 @@ mod projection;
 pub mod proto;
 #[cfg(feature = "nns-topology-host")]
 mod relations;
+pub mod routing_shards;
 mod source;
 mod transport;
 mod wire;
@@ -22,6 +23,7 @@ pub use client::fetch_mainnet_certified_registry_delta_batch_async;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use client::fetch_mainnet_registry_version;
 pub use client::fetch_mainnet_subnet_catalog_async;
+pub use client::fetch_mainnet_subnet_catalog_detailed_async;
 #[cfg(feature = "nns-topology-host")]
 pub use client::fetch_mainnet_subnet_topology;
 #[cfg(feature = "nns-host")]
@@ -30,6 +32,7 @@ pub use client::{
     fetch_mainnet_node_provider_list,
 };
 pub use error::RegistryFetchError;
+pub use error::SubnetCatalogRegistryFailure;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use model::AuthenticatedRegistryDeltaWitness;
 pub use model::MainnetRegistryFetchRequest;
@@ -100,9 +103,10 @@ use wire::{
 };
 
 pub const DEFAULT_MAINNET_ENDPOINT: &str = "https://icp-api.io";
-pub const SUBNET_LIST_KEY: &str = "subnet_list";
-pub const ROUTING_TABLE_KEY: &str = "routing_table";
-const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";
+pub const SUBNET_LIST_KEY: &str = crate::subnet_catalog::SUBNET_LIST_KEY;
+pub const ROUTING_TABLE_KEY: &str = crate::subnet_catalog::ROUTING_TABLE_KEY;
+pub const CANISTER_RANGES_KEY_PREFIX: &str = crate::subnet_catalog::CANISTER_RANGES_KEY_PREFIX;
+const SUBNET_RECORD_KEY_PREFIX: &str = crate::subnet_catalog::SUBNET_RECORD_KEY_PREFIX;
 
 fn canister_id_text(
     canister_id: Option<&CanisterId>,
@@ -125,12 +129,14 @@ fn subnet_id_text(subnet_id: &SubnetId) -> Result<String, RegistryFetchError> {
 }
 
 fn principal_text_from_raw(raw: &[u8], field: &'static str) -> Result<String, RegistryFetchError> {
-    Principal::try_from_slice(raw)
-        .map(|principal| principal.to_text())
-        .map_err(|err| RegistryFetchError::InvalidPrincipal {
-            field,
-            reason: err.to_string(),
-        })
+    principal_from_raw(raw, field).map(|principal| principal.to_text())
+}
+
+fn principal_from_raw(raw: &[u8], field: &'static str) -> Result<Principal, RegistryFetchError> {
+    Principal::try_from_slice(raw).map_err(|err| RegistryFetchError::InvalidPrincipal {
+        field,
+        reason: err.to_string(),
+    })
 }
 
 #[cfg(feature = "nns-topology-host")]

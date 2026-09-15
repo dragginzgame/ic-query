@@ -7,11 +7,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.41.x] - Unreleased - Reproducible Governance canister testing
+## [0.43.x] - Unreleased - Reproducible Governance canister testing
 
-Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
+Detailed release notes: [docs/changelog/0.43.md](docs/changelog/0.43.md)
 
-- `0.41.0` adds a deployable Governance probe, pinned local NNS smoke tests,
+- `0.43.0` adds a deployable Governance probe, pinned local NNS smoke tests,
   deployed metadata and module-hash verification, and schema-1 execution
   receipts. ICP CLI 1.5.0 builds environment-specific bundles, and a separate
   CI job retains local test evidence and artifacts for 30 days. Mainnet
@@ -27,6 +27,72 @@ make canister-build
 make canister-smoke
 make canister-bundle
 ```
+
+## [0.42.x] - Unreleased - Stable Subnet Catalog authority identity
+
+Detailed release notes: [docs/changelog/0.42.md](docs/changelog/0.42.md)
+
+- `0.42.0` hard-cuts the Subnet Catalog load authority API so
+  `CatalogSnapshotAuthorityEvidence` contains only Registry version, catalog
+  digest, assurance, and canonical source endpoints. `snapshot_authority()`
+  derives that stable value exclusively from `ValidatedSubnetCatalog`, while
+  `CatalogLoadOutcome::path` and `CatalogLoadOutcome::disposition` continue to
+  report transient acquisition/cache provenance. The removed
+  `CatalogAuthorityEvidence` and `authority_evidence()` names are not retained
+  as compatibility aliases. The certified-cache outcome follows the same
+  naming boundary with `snapshot_authority()` and diagnostic
+  `cache_evidence()`. Read policies, atomic refresh, cache and failure behavior,
+  schemas, network calls, and CLI surfaces are unchanged.
+
+## [0.41.x] - Unreleased - Mainnet Subnet Catalog routing authority
+
+Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
+
+- `0.41.2` adds portable public constants for the Subnet Catalog's Registry
+  keys and typed constructors for Subnet-list, legacy-routing, modern routing-
+  shard, and Subnet-record subjects. A companion constructor builds ordinary
+  pinned-value evidence with explicit requested/returned versions, Registry
+  timestamp, endpoint, and inline/chunked representation while fixing the
+  individual-read assurance to `UncertifiedQuery`. Downstream fixtures and
+  custom sources no longer need to spell or assemble Registry keys manually.
+  The helpers align with the existing fail-closed evidence rules; they do not
+  relax catalog validation or fabricate records. No schema shape, routing-
+  source rule, cache format, network call, or CLI surface changes.
+
+- `0.41.1` fixes mainnet Subnet Catalog routing by reconstructing the complete
+  pinned `canister_ranges_*` family used by current DFINITY Registry clients.
+  The live collector requires nonempty modern authority and never reads the
+  retired monolithic `routing_table`, so an empty family fails closed and a
+  frozen deleted-Subnet route cannot create false catalog inconsistency.
+  Complete bounded delta pagination reconstructs the pinned family; missing,
+  malformed, shard-boundary-violating, overlapping, contradictory, or unknown-
+  Subnet evidence fails closed, and large values retain bounded hash-verified
+  chunk retrieval. Diagnostic replay may inspect pre-shard legacy history;
+  certified promotion permits legacy routing only under the caller's explicit
+  `AllowHistoricalTarget` policy, while `RequireLatestObserved` requires modern
+  shards.
+  Schema-1 catalog and report provenance is hard-cut in place to retain routing
+  source plus every value's requested/returned versions, key/schema/subject,
+  timestamp, endpoint, assurance, and transport representation. Existing
+  detailed failures now retain the returned individual value version, failing
+  endpoint and assurance, and all completed record evidence. Exact typed
+  subjects and per-endpoint record completeness are validated, including the
+  lower bound encoded by each shard key. No CLI surface is added. Detailed
+  release notes include the downstream fixture, projection, custom-source, and
+  cache-refresh adoption contract; ordinary load, refresh, and resolution call
+  sites need no routing adapter, while direct schema literals and older
+  schema-1 caches require the documented hard-cut update.
+
+- `0.41.0` adds detailed synchronous, asynchronous, and caller-supplied-source
+  Subnet Catalog load APIs under `subnet-catalog-host`. Typed failures retain
+  requested authority policy, exact load stage and failure-side cache
+  disposition, the pinned Registry version and offending Registry/Subnet/
+  routing/endpoint/field subject when known, stable code/category,
+  retryability including typed `Unknown`, and the original host error. Existing
+  simple load APIs now map the same implementation back to their prior source
+  errors. Managed-cache creation also tolerates concurrent creators without
+  weakening symlink, file-type, or permission validation. No CLI, cache schema,
+  network-call bound, or persistence behavior changes.
 
 ## [0.40.x] - 2026-08-15 - Portable NNS public-neuron distribution analytics
 

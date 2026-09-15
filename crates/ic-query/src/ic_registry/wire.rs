@@ -1,4 +1,5 @@
 use super::proto::LargeValueChunkKeys;
+use crate::ic_registry::RegistryFetchError;
 #[cfg(feature = "nns-host")]
 use candid::Principal;
 use candid::{CandidType, Deserialize};
@@ -13,6 +14,44 @@ use candid::{CandidType, Deserialize};
 pub(super) enum RegistryValueContent {
     Value(Vec<u8>),
     LargeValueChunkKeys(LargeValueChunkKeys),
+}
+
+///
+/// RegistryValueEncoding
+///
+/// Transport representation used to complete one Registry value.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum RegistryValueEncoding {
+    Inline,
+    Chunked,
+}
+
+///
+/// RegistryVersionedValue
+///
+/// Completed value plus the individual mutation provenance returned by Registry.
+///
+
+#[derive(Debug, Eq, PartialEq)]
+pub(super) struct RegistryVersionedValue {
+    pub(super) value: Vec<u8>,
+    pub(super) version: u64,
+    pub(super) timestamp_nanoseconds: u64,
+    pub(super) encoding: RegistryValueEncoding,
+}
+
+///
+/// RegistryVersionedValueFailure
+///
+/// Value-fetch failure retaining response provenance when Registry supplied it.
+///
+
+#[derive(Debug)]
+pub(super) struct RegistryVersionedValueFailure {
+    pub(super) source: RegistryFetchError,
+    pub(super) returned_version: Option<u64>,
 }
 
 ///

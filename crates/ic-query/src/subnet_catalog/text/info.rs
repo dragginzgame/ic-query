@@ -114,6 +114,14 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
         report.registry_query_call_count
     ));
     lines.push(format!(
+        "routing_source: {}",
+        report.routing_source.as_str()
+    ));
+    lines.push(format!(
+        "registry_record_count: {}",
+        report.registry_records.len()
+    ));
+    lines.push(format!(
         "catalog_schema_version: {}",
         report.catalog_schema_version
     ));
