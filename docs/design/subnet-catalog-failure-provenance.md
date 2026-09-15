@@ -6,6 +6,12 @@
 
 ## Contract
 
+Detailed load and source errors are boxed at their return boundaries so
+successful results do not carry the full failure payload inline. Source
+constructors return `Box<SubnetCatalogSourceFailure>`; evidence builders keep
+that allocation, and `into_source` consumes it to recover the original error.
+All typed provenance fields remain available through ordinary field access.
+
 Successful and failed loads answer different questions. A successful
 `CacheDisposition` records how the returned validated catalog was supplied. It
 is transient acquisition provenance and is excluded from
@@ -13,7 +19,7 @@ is transient acquisition provenance and is excluded from
 catalog. It does not identify where an unsuccessful operation stopped or what
 happened to the cache on that path.
 
-Detailed loads therefore return `SubnetCatalogLoadFailure`. Its request
+Detailed loads return `Box<SubnetCatalogLoadFailure>`. Its request
 retains the requested network, selected `CatalogSourceSelection`, and minimum
 assurance. `SubnetCatalogLoadStage` identifies the exact failing operation, and
 `SubnetCatalogFailureCacheDisposition` records the failure-side cache fact or
@@ -71,7 +77,7 @@ The detailed entry points are:
 - `load_subnet_catalog_detailed_with_source_async`.
 
 `SubnetCatalogSource::fetch_catalog_detailed` lets a caller-supplied source
-return `SubnetCatalogSourceFailure`. Its default delegates to the existing
+return `Box<SubnetCatalogSourceFailure>`. Its default delegates to the existing
 simple source method and truthfully leaves unavailable version/subject
 evidence absent. Existing simple load entry points call the detailed core and
 return `SubnetCatalogLoadFailure::into_source()`, so the collection and cache

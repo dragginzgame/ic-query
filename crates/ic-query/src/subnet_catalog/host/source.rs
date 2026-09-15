@@ -32,8 +32,9 @@ pub type SubnetCatalogSourceFuture<'a> =
 /// Boxed caller-runtime future retaining typed source failure provenance.
 ///
 
-pub type SubnetCatalogDetailedSourceFuture<'a> =
-    Pin<Box<dyn Future<Output = Result<RawSubnetCatalog, SubnetCatalogSourceFailure>> + Send + 'a>>;
+pub type SubnetCatalogDetailedSourceFuture<'a> = Pin<
+    Box<dyn Future<Output = Result<RawSubnetCatalog, Box<SubnetCatalogSourceFailure>>> + Send + 'a>,
+>;
 
 ///
 /// CatalogSourceSelection
@@ -79,11 +80,9 @@ impl CatalogSourceSelection {
         }
     }
 
-    #[expect(
-        clippy::result_large_err,
-        reason = "source selection failures retain the original host error and endpoint"
-    )]
-    pub(super) fn validated_endpoints(&self) -> Result<Vec<String>, SubnetCatalogSourceFailure> {
+    pub(super) fn validated_endpoints(
+        &self,
+    ) -> Result<Vec<String>, Box<SubnetCatalogSourceFailure>> {
         let (endpoints, agreement) = match self {
             Self::UncertifiedQuery { endpoint } => (vec![endpoint.clone()], false),
             Self::MultiEndpointAgreement { endpoints } => (endpoints.clone(), true),
@@ -206,7 +205,7 @@ pub(super) async fn collect_subnet_catalog_detailed(
     now_unix_secs: u64,
     max_future_skew_seconds: u64,
     source: &dyn SubnetCatalogSource,
-) -> Result<RawSubnetCatalog, SubnetCatalogSourceFailure> {
+) -> Result<RawSubnetCatalog, Box<SubnetCatalogSourceFailure>> {
     let validation = CatalogValidationContext::new(
         network,
         MAINNET_REGISTRY_CANISTER_ID,
@@ -264,7 +263,6 @@ pub(super) async fn collect_subnet_catalog_detailed(
 }
 
 #[expect(
-    clippy::result_large_err,
     clippy::too_many_lines,
     reason = "agreement failures retain completed per-endpoint evidence in one auditable sequence"
 )]
@@ -272,7 +270,7 @@ fn finish_agreement(
     mut snapshots: Vec<RawSubnetCatalog>,
     endpoints: Vec<String>,
     validation: &CatalogValidationContext,
-) -> Result<RawSubnetCatalog, SubnetCatalogSourceFailure> {
+) -> Result<RawSubnetCatalog, Box<SubnetCatalogSourceFailure>> {
     let completed_registry_records = snapshots
         .iter()
         .flat_map(|snapshot| snapshot.provenance.registry_records.iter().cloned())
@@ -379,10 +377,10 @@ fn finish_agreement(
 }
 
 fn endpoint_error(
-    error: SubnetCatalogSourceFailure,
+    error: Box<SubnetCatalogSourceFailure>,
     endpoint: &str,
     endpoint_count: usize,
-) -> SubnetCatalogSourceFailure {
+) -> Box<SubnetCatalogSourceFailure> {
     if endpoint_count == 1 {
         error
     } else {

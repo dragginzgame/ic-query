@@ -257,14 +257,14 @@ pub struct SubnetCatalogSourceFailure {
 }
 
 impl SubnetCatalogSourceFailure {
-    /// Retain source-level Registry and subject provenance.
+    /// Allocate a failure retaining source-level Registry and subject provenance.
     #[must_use]
-    pub const fn new(
+    pub fn new(
         registry_version: Option<u64>,
         subject: Option<SubnetCatalogSubject>,
         source: SubnetCatalogHostError,
-    ) -> Self {
-        Self {
+    ) -> Box<Self> {
+        Box::new(Self {
             registry_version,
             returned_registry_value_version: None,
             source_endpoint: None,
@@ -272,18 +272,18 @@ impl SubnetCatalogSourceFailure {
             registry_records: Vec::new(),
             subject,
             source,
-        }
+        })
     }
 
     /// Attach typed per-value Registry evidence retained by a live collector.
     #[must_use]
     pub fn with_registry_evidence(
-        mut self,
+        mut self: Box<Self>,
         returned_registry_value_version: Option<u64>,
         source_endpoint: Option<String>,
         assurance: Option<CatalogAssurance>,
         registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-    ) -> Self {
+    ) -> Box<Self> {
         self.returned_registry_value_version = returned_registry_value_version;
         self.source_endpoint = source_endpoint;
         self.assurance = assurance;
@@ -291,15 +291,15 @@ impl SubnetCatalogSourceFailure {
         self
     }
 
-    /// Wrap a source that cannot provide narrower provenance.
+    /// Allocate a failure for a source that cannot provide narrower provenance.
     #[must_use]
-    pub const fn from_source(source: SubnetCatalogHostError) -> Self {
+    pub fn from_source(source: SubnetCatalogHostError) -> Box<Self> {
         Self::new(None, None, source)
     }
 
     /// Discard detailed metadata and recover the original host error.
     #[must_use]
-    pub fn into_source(self) -> SubnetCatalogHostError {
+    pub fn into_source(self: Box<Self>) -> SubnetCatalogHostError {
         self.source
     }
 }
@@ -345,12 +345,12 @@ impl SubnetCatalogLoadFailure {
         request: &SubnetCatalogLoadRequest,
         stage: SubnetCatalogLoadStage,
         cache_disposition: SubnetCatalogFailureCacheDisposition,
-        failure: SubnetCatalogSourceFailure,
-    ) -> Self {
+        failure: Box<SubnetCatalogSourceFailure>,
+    ) -> Box<Self> {
         let code = failure.source.code();
         let category = failure.source.category();
         let retryability = failure.source.retryability();
-        Self {
+        Box::new(Self {
             request: SubnetCatalogLoadFailureRequest::from_load_request(request),
             stage,
             registry_version: failure.registry_version,
@@ -364,12 +364,12 @@ impl SubnetCatalogLoadFailure {
             category,
             retryability,
             source: failure.source,
-        }
+        })
     }
 
     /// Discard detailed provenance and recover the original host error.
     #[must_use]
-    pub fn into_source(self) -> SubnetCatalogHostError {
+    pub fn into_source(self: Box<Self>) -> SubnetCatalogHostError {
         self.source
     }
 }

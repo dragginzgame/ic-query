@@ -207,12 +207,12 @@ pub struct SubnetCatalogRegistryFailure {
 }
 
 impl SubnetCatalogRegistryFailure {
-    pub const fn new(
+    pub fn new(
         registry_version: Option<u64>,
         subject: Option<SubnetCatalogSubject>,
         source: RegistryFetchError,
-    ) -> Self {
-        Self {
+    ) -> Box<Self> {
+        Box::new(Self {
             registry_version,
             returned_registry_value_version: None,
             source_endpoint: None,
@@ -220,14 +220,14 @@ impl SubnetCatalogRegistryFailure {
             registry_records: Vec::new(),
             subject,
             source,
-        }
+        })
     }
 
     pub fn with_value_response(
-        mut self,
+        mut self: Box<Self>,
         endpoint: &str,
         returned_registry_value_version: Option<u64>,
-    ) -> Self {
+    ) -> Box<Self> {
         self.returned_registry_value_version = returned_registry_value_version;
         self.source_endpoint = Some(endpoint.to_string());
         self.assurance = Some(CatalogAssurance::UncertifiedQuery);
@@ -235,9 +235,9 @@ impl SubnetCatalogRegistryFailure {
     }
 
     pub fn with_registry_records(
-        mut self,
+        mut self: Box<Self>,
         registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-    ) -> Self {
+    ) -> Box<Self> {
         self.registry_records = registry_records;
         self
     }

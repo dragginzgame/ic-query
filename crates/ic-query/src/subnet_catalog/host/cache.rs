@@ -254,13 +254,9 @@ pub fn load_cached_subnet_catalog(
 }
 
 /// Load a catalog locally while retaining typed failure provenance.
-#[expect(
-    clippy::result_large_err,
-    reason = "the public detailed failure intentionally retains complete typed provenance"
-)]
 pub fn load_cached_subnet_catalog_detailed(
     request: &SubnetCatalogLoadRequest,
-) -> Result<CatalogLoadOutcome, SubnetCatalogLoadFailure> {
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     if request.policy != CatalogReadPolicy::CacheOnly {
         return Err(load_failure(
             request,
@@ -284,13 +280,9 @@ pub fn load_subnet_catalog(
 }
 
 /// Apply an explicit catalog read policy while retaining typed failure provenance.
-#[expect(
-    clippy::result_large_err,
-    reason = "the public detailed failure intentionally retains complete typed provenance"
-)]
 pub fn load_subnet_catalog_detailed(
     request: &SubnetCatalogLoadRequest,
-) -> Result<CatalogLoadOutcome, SubnetCatalogLoadFailure> {
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     match block_on_current_thread(load_subnet_catalog_detailed_async(request)) {
         Ok(result) => result,
         Err(source) => Err(runtime_load_failure(request, source)),
@@ -307,14 +299,10 @@ pub fn load_subnet_catalog_with_source(
 }
 
 /// Apply a catalog read policy with a supplied source and typed failure provenance.
-#[expect(
-    clippy::result_large_err,
-    reason = "the public detailed failure intentionally retains complete typed provenance"
-)]
 pub fn load_subnet_catalog_detailed_with_source(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
-) -> Result<CatalogLoadOutcome, SubnetCatalogLoadFailure> {
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     match block_on_current_thread(load_subnet_catalog_detailed_with_source_async(
         request, source,
     )) {
@@ -335,7 +323,7 @@ pub async fn load_subnet_catalog_async(
 /// Apply a catalog policy asynchronously while retaining typed failure provenance.
 pub async fn load_subnet_catalog_detailed_async(
     request: &SubnetCatalogLoadRequest,
-) -> Result<CatalogLoadOutcome, SubnetCatalogLoadFailure> {
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     load_subnet_catalog_detailed_with_source_async(request, &LiveNnsSource).await
 }
 
@@ -353,7 +341,7 @@ pub async fn load_subnet_catalog_with_source_async(
 pub async fn load_subnet_catalog_detailed_with_source_async(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
-) -> Result<CatalogLoadOutcome, SubnetCatalogLoadFailure> {
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     enforce_mainnet_network(&request.cache.network).map_err(|source| {
         load_failure(
             request,
@@ -444,14 +432,10 @@ pub async fn load_subnet_catalog_detailed_with_source_async(
     }
 }
 
-#[expect(
-    clippy::result_large_err,
-    reason = "the internal failure carries the original host error and typed subject"
-)]
 fn load_cached_with_disposition_detailed(
     request: &SubnetCatalogLoadRequest,
     disposition: CacheDisposition,
-) -> Result<CatalogLoadOutcome, SubnetCatalogSourceFailure> {
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogSourceFailure>> {
     enforce_mainnet_network(&request.cache.network).map_err(|source| {
         SubnetCatalogSourceFailure::new(
             None,
@@ -507,7 +491,7 @@ async fn refresh_then_load_detailed(
     source: &dyn SubnetCatalogSource,
     disposition: CacheDisposition,
     trigger: SubnetCatalogRefreshTrigger,
-) -> Result<CatalogLoadOutcome, SubnetCatalogLoadFailure> {
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     let source_selection = request.policy.source().ok_or_else(|| {
         load_failure(
             request,
@@ -567,8 +551,8 @@ async fn refresh_then_load_detailed(
 fn post_refresh_load_failure(
     request: &SubnetCatalogLoadRequest,
     trigger: SubnetCatalogRefreshTrigger,
-    failure: SubnetCatalogSourceFailure,
-) -> SubnetCatalogLoadFailure {
+    failure: Box<SubnetCatalogSourceFailure>,
+) -> Box<SubnetCatalogLoadFailure> {
     load_failure(
         request,
         SubnetCatalogLoadStage::PostRefreshCacheLoadFailed,
@@ -580,8 +564,8 @@ fn post_refresh_load_failure(
 fn cache_load_failure(
     request: &SubnetCatalogLoadRequest,
     cache_only: bool,
-    failure: SubnetCatalogSourceFailure,
-) -> SubnetCatalogLoadFailure {
+    failure: Box<SubnetCatalogSourceFailure>,
+) -> Box<SubnetCatalogLoadFailure> {
     let (stage, cache_disposition) = match &failure.source {
         SubnetCatalogHostError::UnsupportedNetwork { .. } => (
             SubnetCatalogLoadStage::RequestValidation,
@@ -611,7 +595,7 @@ fn cache_load_failure(
 fn runtime_load_failure(
     request: &SubnetCatalogLoadRequest,
     source: crate::runtime::RuntimeError,
-) -> SubnetCatalogLoadFailure {
+) -> Box<SubnetCatalogLoadFailure> {
     load_failure(
         request,
         SubnetCatalogLoadStage::RuntimeAdapter,
@@ -624,8 +608,8 @@ fn load_failure(
     request: &SubnetCatalogLoadRequest,
     stage: SubnetCatalogLoadStage,
     cache_disposition: SubnetCatalogFailureCacheDisposition,
-    failure: SubnetCatalogSourceFailure,
-) -> SubnetCatalogLoadFailure {
+    failure: Box<SubnetCatalogSourceFailure>,
+) -> Box<SubnetCatalogLoadFailure> {
     SubnetCatalogLoadFailure::from_source_failure(request, stage, cache_disposition, failure)
 }
 

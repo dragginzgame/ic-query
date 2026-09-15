@@ -32,7 +32,7 @@ pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_async(
 
 pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_detailed_async(
     request: &MainnetRegistryFetchRequest,
-) -> Result<RawSubnetCatalog, SubnetCatalogRegistryFailure> {
+) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>> {
     let agent = mainnet_agent(request).map_err(|source| {
         SubnetCatalogRegistryFailure::new(
             None,
@@ -69,7 +69,7 @@ async fn collect_pinned_catalog<R>(
     request: &MainnetRegistryFetchRequest,
     registry_version: u64,
     reader: &R,
-) -> Result<RawSubnetCatalog, SubnetCatalogRegistryFailure>
+) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>>
 where
     R: CatalogRegistryReader,
 {
@@ -267,7 +267,7 @@ impl CatalogRegistryReader for AgentCatalogRegistryReader<'_> {
     }
 }
 
-const fn latest_version_failure(source: RegistryFetchError) -> SubnetCatalogRegistryFailure {
+fn latest_version_failure(source: RegistryFetchError) -> Box<SubnetCatalogRegistryFailure> {
     SubnetCatalogRegistryFailure::new(
         None,
         Some(SubnetCatalogSubject::RegistryLatestVersion),
@@ -331,36 +331,37 @@ mod tests {
     }
 
     impl CatalogRegistryReader for FixtureReader {
-        async fn key_family(
+        fn key_family(
             &self,
             prefix: &str,
             registry_version: u64,
-        ) -> Result<Vec<String>, RegistryFetchError> {
+        ) -> impl Future<Output = Result<Vec<String>, RegistryFetchError>> {
             self.family_reads
                 .lock()
                 .expect("fixture family reads lock")
                 .push((prefix.to_string(), registry_version));
-            Ok(self.keys.clone())
+            std::future::ready(Ok(self.keys.clone()))
         }
 
-        async fn value(
+        fn value(
             &self,
             key: &str,
             registry_version: u64,
-        ) -> Result<RegistryVersionedValue, RegistryVersionedValueFailure> {
+        ) -> impl Future<Output = Result<RegistryVersionedValue, RegistryVersionedValueFailure>>
+        {
             self.value_reads
                 .lock()
                 .expect("fixture value reads lock")
                 .push((key.to_string(), registry_version));
             if let Some(returned_version) = self.failures.get(key) {
-                return Err(RegistryVersionedValueFailure {
+                return std::future::ready(Err(RegistryVersionedValueFailure {
                     source: RegistryFetchError::MissingValue {
                         key: key.to_string(),
                     },
                     returned_version: Some(*returned_version),
-                });
+                }));
             }
-            let value = self
+            let result = self
                 .values
                 .get(key)
                 .ok_or_else(|| RegistryVersionedValueFailure {
@@ -368,13 +369,14 @@ mod tests {
                         key: key.to_string(),
                     },
                     returned_version: None,
-                })?;
-            Ok(RegistryVersionedValue {
-                value: value.value.clone(),
-                version: value.version,
-                timestamp_nanoseconds: value.timestamp_nanoseconds,
-                encoding: value.encoding,
-            })
+                })
+                .map(|value| RegistryVersionedValue {
+                    value: value.value.clone(),
+                    version: value.version,
+                    timestamp_nanoseconds: value.timestamp_nanoseconds,
+                    encoding: value.encoding,
+                });
+            std::future::ready(result)
         }
 
         fn query_call_count(&self) -> u64 {

@@ -118,7 +118,7 @@ pub async fn refresh_subnet_catalog_with_source_async(
 pub(super) async fn refresh_subnet_catalog_detailed_with_source_async(
     request: &SubnetCatalogRefreshRequest,
     source: &dyn SubnetCatalogSource,
-) -> Result<SubnetCatalogRefreshReport, SubnetCatalogSourceFailure> {
+) -> Result<SubnetCatalogRefreshReport, Box<SubnetCatalogSourceFailure>> {
     enforce_mainnet_network(&request.cache.network).map_err(|source| {
         SubnetCatalogSourceFailure::new(
             None,
@@ -172,7 +172,7 @@ async fn refresh_subnet_catalog_under_lock(
     catalog_path: &Path,
     lock_path: &Path,
     known_registry_version: &AtomicU64,
-) -> Result<SubnetCatalogRefreshReport, SubnetCatalogSourceFailure> {
+) -> Result<SubnetCatalogRefreshReport, Box<SubnetCatalogSourceFailure>> {
     let replaced_existing_catalog = managed_file_exists(&request.cache.cache_root, catalog_path)
         .map_err(|error| cache_failure(error, None, catalog_path))?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
@@ -242,7 +242,7 @@ async fn refresh_subnet_catalog_under_lock(
 fn catalog_failure(
     source: crate::subnet_catalog::CatalogError,
     registry_version: u64,
-) -> SubnetCatalogSourceFailure {
+) -> Box<SubnetCatalogSourceFailure> {
     let subject = subject_from_catalog_error(&source);
     SubnetCatalogSourceFailure::new(
         Some(registry_version),
@@ -255,7 +255,7 @@ fn cache_failure(
     error: crate::cache_file::CacheFileError,
     registry_version: Option<u64>,
     path: &Path,
-) -> SubnetCatalogSourceFailure {
+) -> Box<SubnetCatalogSourceFailure> {
     SubnetCatalogSourceFailure::new(
         registry_version,
         Some(SubnetCatalogSubject::CachePath(path.to_path_buf())),

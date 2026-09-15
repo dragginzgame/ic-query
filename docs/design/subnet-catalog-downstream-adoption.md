@@ -60,6 +60,13 @@ authority projection.
 
 ## Direct Rust fixtures
 
+As of 0.43, detailed load errors use `Box<SubnetCatalogLoadFailure>` and
+detailed source errors use `Box<SubnetCatalogSourceFailure>`. Update explicit
+result annotations and wrap direct failure literals with `Box::new`.
+`SubnetCatalogSourceFailure::new` and `from_source` already return a box;
+`with_registry_evidence` retains it and `into_source` consumes it. These
+constructors allocate and are no longer `const`. Field access is unchanged.
+
 Downstream literals for `SubnetCatalogLoadFailure` must include the new fields.
 Use values that describe the fixture rather than inventing live provenance. A
 failure before any Registry value read normally uses:

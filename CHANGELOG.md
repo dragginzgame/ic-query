@@ -22,6 +22,9 @@ Detailed release notes: [docs/changelog/0.43.md](docs/changelog/0.43.md)
   while preserving the Rust 1.91.0 minimum. Production `icq` commands and
   report contracts retain their existing behavior.
 
+- Boxes detailed Subnet Catalog failures to reduce result sizes under Rust
+  1.98.1. Explicit detailed-error return types now use `Box`; all typed
+  provenance and the original source errors are retained.
 - Fetches a fresh, shallow RustSec database with visible Git progress and a
   slow-transfer cutoff before dependency auditing; failed downloads stop the
   check and remove the partial database.

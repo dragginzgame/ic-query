@@ -46,7 +46,7 @@ pub(super) async fn catalog_from_registry_records_detailed<R>(
     routing_table: RoutingTable,
     routing_source: SubnetCatalogRoutingSource,
     mut registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-) -> Result<RawSubnetCatalog, SubnetCatalogRegistryFailure>
+) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>>
 where
     R: CatalogRegistryReader,
 {
@@ -176,27 +176,19 @@ pub fn routing_ranges_from_table(
     routing_ranges_from_table_inner(table).map_err(|failure| failure.source)
 }
 
-#[expect(
-    clippy::result_large_err,
-    reason = "typed Registry failures retain source and subject provenance"
-)]
 fn routing_ranges_from_table_detailed(
     table: &RoutingTable,
     registry_version: u64,
-) -> Result<Vec<RoutingRange>, SubnetCatalogRegistryFailure> {
-    routing_ranges_from_table_inner(table).map_err(|failure| SubnetCatalogRegistryFailure {
-        registry_version: Some(registry_version),
-        ..failure
+) -> Result<Vec<RoutingRange>, Box<SubnetCatalogRegistryFailure>> {
+    routing_ranges_from_table_inner(table).map_err(|mut failure| {
+        failure.registry_version = Some(registry_version);
+        failure
     })
 }
 
-#[expect(
-    clippy::result_large_err,
-    reason = "typed Registry failures retain source and subject provenance"
-)]
 fn routing_ranges_from_table_inner(
     table: &RoutingTable,
-) -> Result<Vec<RoutingRange>, SubnetCatalogRegistryFailure> {
+) -> Result<Vec<RoutingRange>, Box<SubnetCatalogRegistryFailure>> {
     table
         .entries
         .iter()
@@ -246,7 +238,7 @@ pub(super) async fn get_catalog_record<R>(
     registry_version: u64,
     request: &MainnetRegistryFetchRequest,
     registry_records: &[SubnetCatalogRegistryRecordEvidence],
-) -> Result<RegistryVersionedValue, SubnetCatalogRegistryFailure>
+) -> Result<RegistryVersionedValue, Box<SubnetCatalogRegistryFailure>>
 where
     R: CatalogRegistryReader,
 {
@@ -306,7 +298,7 @@ pub(super) fn record_failure(
     returned_registry_value_version: Option<u64>,
     registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     source: RegistryFetchError,
-) -> SubnetCatalogRegistryFailure {
+) -> Box<SubnetCatalogRegistryFailure> {
     SubnetCatalogRegistryFailure::new(
         Some(registry_version),
         Some(SubnetCatalogSubject::RegistryRecord(subject)),
@@ -316,11 +308,11 @@ pub(super) fn record_failure(
     .with_registry_records(registry_records)
 }
 
-const fn routing_range_failure(
+fn routing_range_failure(
     index: usize,
     field: SubnetCatalogField,
     source: RegistryFetchError,
-) -> SubnetCatalogRegistryFailure {
+) -> Box<SubnetCatalogRegistryFailure> {
     SubnetCatalogRegistryFailure::new(
         None,
         Some(SubnetCatalogSubject::RegistryRoutingTableEntry {
@@ -408,10 +400,8 @@ mod detailed_failure_tests {
                 field: "range.start",
             },
         );
-        let range_failure = SubnetCatalogRegistryFailure {
-            registry_version: Some(882_111),
-            ..range_failure
-        };
+        let mut range_failure = range_failure;
+        range_failure.registry_version = Some(882_111);
         assert_eq!(range_failure.registry_version, Some(882_111));
         assert_eq!(
             range_failure.subject,

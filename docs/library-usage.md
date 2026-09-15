@@ -1167,7 +1167,7 @@ Callers that need failure provenance use
 `load_subnet_catalog_detailed_async`,
 `load_subnet_catalog_detailed_with_source`, or
 `load_subnet_catalog_detailed_with_source_async`. These return
-`SubnetCatalogLoadFailure`, whose request retains the requested network,
+`Box<SubnetCatalogLoadFailure>`, whose request retains the requested network,
 selected `CatalogSourceSelection`, and minimum assurance. Its typed stage and
 failure-side cache disposition distinguish cache-only loading, cache bypass,
 absence, rejection, attempted/failed refresh, and a failed post-refresh cache
@@ -1182,7 +1182,7 @@ map a failure back through `SubnetCatalogLoadFailure::into_source`; their
 observable host-error variants are unchanged. Existing `SubnetCatalogSource`
 implementations also remain valid because `fetch_catalog_detailed` has a
 truthful default with unknown version/subject provenance. A custom source that
-knows more may override it and return `SubnetCatalogSourceFailure` without
+knows more may override it and return `Box<SubnetCatalogSourceFailure>` without
 forking the load or cache algorithm.
 
 `ValidatedSubnetCatalog::resolve_canister_route` binds the canonical canister

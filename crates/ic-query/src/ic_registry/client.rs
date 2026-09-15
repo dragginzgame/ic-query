@@ -42,7 +42,7 @@ pub async fn fetch_mainnet_subnet_catalog_async(
 
 pub async fn fetch_mainnet_subnet_catalog_detailed_async(
     request: &MainnetRegistryFetchRequest,
-) -> Result<RawSubnetCatalog, SubnetCatalogRegistryFailure> {
+) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>> {
     fetch_mainnet_subnet_catalog_detailed_from_source_async(request).await
 }
 

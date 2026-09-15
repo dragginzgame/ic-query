@@ -199,12 +199,12 @@ fn public_detailed_load_api_exposes_typed_failure_provenance() {
         SubnetCatalogHostError::MissingCatalog { .. }
     ));
 
-    let _: fn(&SubnetCatalogLoadRequest) -> Result<_, SubnetCatalogLoadFailure> =
+    let _: fn(&SubnetCatalogLoadRequest) -> Result<_, Box<SubnetCatalogLoadFailure>> =
         load_subnet_catalog_detailed;
     let _: fn(
         &SubnetCatalogLoadRequest,
         &dyn SubnetCatalogSource,
-    ) -> Result<_, SubnetCatalogLoadFailure> = load_subnet_catalog_detailed_with_source;
+    ) -> Result<_, Box<SubnetCatalogLoadFailure>> = load_subnet_catalog_detailed_with_source;
     let _ = load_subnet_catalog_detailed_async;
     let _ = load_subnet_catalog_detailed_with_source_async;
     let _ = fs::remove_dir_all(root);
