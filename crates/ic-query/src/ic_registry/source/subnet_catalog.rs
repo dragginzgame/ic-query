@@ -33,6 +33,16 @@ pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_async(
 pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_detailed_async(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>> {
+    fetch_with_acquisition(request, std::sync::Arc::default()).await
+}
+
+pub async fn fetch_with_acquisition(
+    request: &MainnetRegistryFetchRequest,
+    acquisition: std::sync::Arc<crate::ic_registry::RegistryAcquisition>,
+) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>> {
+    let query_counter =
+        RegistryQueryCounter::with_acquisition(request.endpoint.clone(), acquisition);
+    query_counter.emit(crate::ic_registry::SubnetCatalogProgressPhase::EndpointStarted);
     let agent = mainnet_agent(request).map_err(|source| {
         SubnetCatalogRegistryFailure::new(
             None,
@@ -49,10 +59,10 @@ pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_detailed_async(
             source,
         )
     })?;
-    let query_counter = RegistryQueryCounter::default();
     let registry_version = get_latest_version_counted(&agent, &registry_canister, &query_counter)
         .await
         .map_err(latest_version_failure)?;
+    query_counter.emit(crate::ic_registry::SubnetCatalogProgressPhase::Pinned { registry_version });
     let reader = AgentCatalogRegistryReader {
         agent: &agent,
         registry_canister: &registry_canister,

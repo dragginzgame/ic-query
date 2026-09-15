@@ -3,6 +3,7 @@ use crate::cache_file::{CacheFileError, HostCacheError};
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use std::{
     future::Future,
+    sync::atomic::{AtomicUsize, Ordering},
     task::{Context, Poll},
 };
 
@@ -394,5 +395,60 @@ fn refresh_rejects_stale_lock_without_removing_it() {
         })
     ));
     assert!(lock_path.exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn concurrent_endpoint_cancellation_preserves_cache_and_allows_immediate_retry() {
+    struct TrackedSource {
+        started: AtomicUsize,
+        dropped: AtomicUsize,
+    }
+    struct Guard<'a>(&'a AtomicUsize);
+    impl Drop for Guard<'_> {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    impl SubnetCatalogSource for TrackedSource {
+        fn fetch_catalog<'a>(&'a self, _: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+            Box::pin(async move {
+                self.started.fetch_add(1, Ordering::SeqCst);
+                let _guard = Guard(&self.dropped);
+                std::future::pending().await
+            })
+        }
+    }
+    let root = temp_dir("ic-query-concurrent-cancel");
+    write_catalog(&root, fixture_catalog());
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    let before = fs::read(&path).unwrap();
+    let mut request = refresh_request(&root);
+    request.source = CatalogSourceSelection::multi_endpoint_agreement(vec![
+        "https://a.example".into(),
+        "https://b.example".into(),
+        "https://c.example".into(),
+    ]);
+    let source = TrackedSource {
+        started: AtomicUsize::new(0),
+        dropped: AtomicUsize::new(0),
+    };
+    let mut future = Box::pin(refresh_subnet_catalog_with_source_async(&request, &source));
+    let waker = futures::task::noop_waker();
+    assert!(
+        future
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    assert_eq!(source.started.load(Ordering::SeqCst), 2);
+    drop(future);
+    assert_eq!(source.dropped.load(Ordering::SeqCst), 2);
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+    let retry = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "https://b.example");
+    futures::executor::block_on(refresh_subnet_catalog_with_source_async(&request, &retry))
+        .unwrap();
+    assert_eq!(retry.call_count(), 3);
     let _ = fs::remove_dir_all(root);
 }

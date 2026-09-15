@@ -267,13 +267,7 @@ async fn get_registry_chunk(
         message: "RegistryGetChunkRequest",
         reason: err.to_string(),
     })?;
-    if let Some(counter) = counter {
-        counter.record_call();
-    }
-    let bytes = agent
-        .query(registry_canister, "get_chunk")
-        .with_arg(arg)
-        .call()
+    let bytes = super::query::query(agent, registry_canister, "get_chunk", arg, counter)
         .await
         .map_err(|err| RegistryFetchError::AgentCall {
             method: "get_chunk",

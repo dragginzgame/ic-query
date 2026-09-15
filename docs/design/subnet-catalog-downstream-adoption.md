@@ -174,3 +174,11 @@ to spell Registry keys manually. Adopting the current hard cut requires
 replacing `authority_evidence()` with `snapshot_authority()` and reading `path`
 and `disposition` separately; routing, refresh, cache, and failure adapters
 remain unnecessary.
+
+## Acquisition progress and history reuse
+
+The unreleased acquisition improvements add `LiveSubnetCatalogSource` for the
+existing detailed `*_with_source_async` entry points. Keep the source across
+retries and refreshes, and use `with_progress` to observe endpoint-local history
+and record acquisition. Existing request and failure DTOs remain unchanged.
+See [performance and integration guidance](subnet-catalog-acquisition-performance.md).

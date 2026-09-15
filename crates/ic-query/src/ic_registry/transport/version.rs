@@ -24,18 +24,18 @@ async fn get_latest_version_inner(
     registry_canister: &Principal,
     counter: Option<&RegistryQueryCounter>,
 ) -> Result<u64, RegistryFetchError> {
-    if let Some(counter) = counter {
-        counter.record_call();
-    }
-    let bytes = agent
-        .query(registry_canister, "get_latest_version")
-        .with_arg(Vec::<u8>::new())
-        .call()
-        .await
-        .map_err(|err| RegistryFetchError::AgentCall {
-            method: "get_latest_version",
-            reason: err.to_string(),
-        })?;
+    let bytes = super::query::query(
+        agent,
+        registry_canister,
+        "get_latest_version",
+        Vec::new(),
+        counter,
+    )
+    .await
+    .map_err(|err| RegistryFetchError::AgentCall {
+        method: "get_latest_version",
+        reason: err.to_string(),
+    })?;
     let response = decode_message::<RegistryGetLatestVersionResponse>(
         "RegistryGetLatestVersionResponse",
         &bytes,

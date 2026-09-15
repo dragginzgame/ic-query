@@ -7,9 +7,26 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.43.x] - Unreleased - Reproducible Governance canister testing
+## [0.43.x] - Unreleased - Governance canister testing and Subnet Catalog performance
 
 Detailed release notes: [docs/changelog/0.43.md](docs/changelog/0.43.md)
+
+- `0.43.1` overlaps Subnet Catalog agreement collection across at most two endpoints.
+  Adds a reusable live source with endpoint-isolated history checkpoints,
+  structured acquisition progress, and bounded retries for selected transient
+  transport failures. Exact version/content agreement, assurance floors,
+  atomic publication, cancellation cleanup, and cache-hit authority remain
+  enforced. See [detailed notes](docs/changelog/0.43.md) and
+  [measurement and integration guidance](docs/design/subnet-catalog-acquisition-performance.md).
+- In a single development-build measurement at Registry version 64108, cold
+  two-endpoint acquisition improved from 158.961 s to 91.008 s. A subsequent
+  refresh with retained history took 18.181 s and avoided 154 history queries;
+  immediate cache reuse preserved identical snapshot authority.
+
+```bash
+cargo run -p ic-query-cli \
+  --example subnet_catalog_timing -- /tmp/icq-catalog-timing
+```
 
 - `0.43.0` adds a deployable Governance probe, pinned local NNS smoke tests,
   deployed metadata and module-hash verification, and schema-1 execution

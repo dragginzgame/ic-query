@@ -22,8 +22,8 @@ pub(super) use nodes::{
 pub(super) use registry::{
     fetch_mainnet_certified_registry_delta_batch_async, fetch_mainnet_registry_version_async,
 };
-pub(super) use subnet_catalog::{
-    fetch_mainnet_subnet_catalog_async, fetch_mainnet_subnet_catalog_detailed_async,
-};
+pub(super) use subnet_catalog::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "nns-topology-host")]
 pub(super) use subnet_topology::fetch_mainnet_subnet_topology_async;
+
+pub use subnet_catalog::fetch_with_acquisition;

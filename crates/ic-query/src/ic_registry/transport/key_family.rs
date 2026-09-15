@@ -1,4 +1,4 @@
-use super::{RegistryQueryCounter, decode_message};
+use super::{RegistryQueryCounter, SubnetCatalogProgressPhase, decode_message};
 use crate::ic_registry::{
     RegistryFetchError,
     proto::{
@@ -9,6 +9,8 @@ use crate::ic_registry::{
 use ic_agent::Agent;
 use prost::Message;
 use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
+
+const MAX_HISTORY_CHECKPOINTS: usize = 8;
 
 const MAX_REGISTRY_DELTA_KEYS: usize = 100_000;
 const MAX_REGISTRY_DELTA_VALUES: usize = 1_000_000;
@@ -21,11 +23,70 @@ pub(in crate::ic_registry) async fn get_registry_key_family_counted(
     registry_version: u64,
     counter: &RegistryQueryCounter,
 ) -> Result<Vec<String>, RegistryFetchError> {
+    collect_key_family(prefix, registry_version, counter, |cursor| {
+        get_changes_since(agent, registry_canister, cursor, counter)
+    })
+    .await
+}
+
+async fn collect_key_family<F, Fut>(
+    prefix: &str,
+    registry_version: u64,
+    counter: &RegistryQueryCounter,
+    mut page: F,
+) -> Result<Vec<String>, RegistryFetchError>
+where
+    F: FnMut(u64) -> Fut,
+    Fut: std::future::Future<
+            Output = Result<HighCapacityRegistryGetChangesSinceResponse, RegistryFetchError>,
+        >,
+{
     let mut cursor = 0;
     let mut family = RegistryKeyFamilyState::new(prefix, registry_version);
+    let checkpoint_key = (counter.endpoint.clone(), prefix.to_string());
+    if let Some(context) = &counter.acquisition {
+        let history = context.history.lock().expect("history checkpoint lock");
+        if let Some(checkpoint) = history.get(&checkpoint_key)
+            && checkpoint.version <= registry_version
+        {
+            cursor = checkpoint.version;
+            family.states.clone_from(&checkpoint.states);
+            family.delta_key_count = checkpoint.delta_key_count;
+            family.value_count = checkpoint.value_count;
+        }
+    }
+    counter.emit(SubnetCatalogProgressPhase::History {
+        registry_version,
+        through_version: cursor,
+        reused: cursor != 0,
+    });
     while cursor < registry_version {
-        let response = get_changes_since(agent, registry_canister, cursor, counter).await?;
-        cursor = family.apply_page(response, cursor)?;
+        let response = page(cursor).await?;
+        cursor = family.apply_page(response, cursor)?.min(registry_version);
+        // Publish only after the entire page passes continuity and content validation.
+        if let Some(context) = &counter.acquisition {
+            let mut history = context.history.lock().expect("history checkpoint lock");
+            if (history.contains_key(&checkpoint_key) || history.len() < MAX_HISTORY_CHECKPOINTS)
+                && history
+                    .get(&checkpoint_key)
+                    .is_none_or(|old| old.version <= cursor)
+            {
+                history.insert(
+                    checkpoint_key.clone(),
+                    RegistryKeyFamilyCheckpoint {
+                        version: cursor,
+                        states: family.states.clone(),
+                        delta_key_count: family.delta_key_count,
+                        value_count: family.value_count,
+                    },
+                );
+            }
+        }
+        counter.emit(SubnetCatalogProgressPhase::History {
+            registry_version,
+            through_version: cursor,
+            reused: false,
+        });
     }
     Ok(family.into_keys())
 }
@@ -43,20 +104,35 @@ async fn get_changes_since(
             message: "RegistryGetChangesSinceRequest",
             reason: error.to_string(),
         })?;
-    counter.record_call();
-    let bytes = agent
-        .query(registry_canister, "get_changes_since")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|error| RegistryFetchError::AgentCall {
-            method: "get_changes_since",
-            reason: error.to_string(),
-        })?;
+    let bytes = super::query::query(
+        agent,
+        registry_canister,
+        "get_changes_since",
+        arg,
+        Some(counter),
+    )
+    .await
+    .map_err(|error| RegistryFetchError::AgentCall {
+        method: "get_changes_since",
+        reason: error.to_string(),
+    })?;
     decode_message::<HighCapacityRegistryGetChangesSinceResponse>(
         "HighCapacityRegistryGetChangesSinceResponse",
         &bytes,
     )
+}
+
+///
+/// RegistryKeyFamilyCheckpoint
+///
+/// Complete endpoint-local key-family state through a validated history prefix.
+///
+
+pub(super) struct RegistryKeyFamilyCheckpoint {
+    delta_key_count: usize,
+    value_count: usize,
+    version: u64,
+    states: BTreeMap<String, (u64, bool)>,
 }
 
 struct RegistryKeyFamilyState<'a> {
@@ -275,6 +351,11 @@ fn registry_error_code(code: i32) -> &'static str {
 mod tests {
     use super::*;
     use crate::ic_registry::proto::{HighCapacityRegistryDelta, HighCapacityRegistryValue};
+    use std::{
+        future::Future,
+        sync::{Arc, Mutex},
+        task::Context,
+    };
 
     fn value(version: u64) -> HighCapacityRegistryValue {
         HighCapacityRegistryValue {
@@ -301,6 +382,221 @@ mod tests {
             version,
             deltas,
         }
+    }
+
+    #[test]
+    fn checkpoints_resume_only_the_same_endpoint_and_forward_pin() {
+        futures::executor::block_on(async {
+            let context = std::sync::Arc::default();
+            let first = RegistryQueryCounter::with_acquisition(
+                "https://a.example".into(),
+                std::sync::Arc::clone(&context),
+            );
+            let second =
+                RegistryQueryCounter::with_acquisition("https://b.example".into(), context);
+            let page = |version, values| {
+                response(
+                    version,
+                    vec![HighCapacityRegistryDelta {
+                        key: b"canister_ranges_00".to_vec(),
+                        values,
+                    }],
+                )
+            };
+            let keys = collect_key_family("canister_ranges_", 2, &first, |cursor| {
+                assert_eq!(cursor, 0);
+                std::future::ready(Ok(page(2, vec![value(1), value(2)])))
+            })
+            .await
+            .unwrap();
+            assert_eq!(keys, ["canister_ranges_00"]);
+            let keys = collect_key_family("canister_ranges_", 2, &first, |_| {
+                std::future::ready(Err(RegistryFetchError::IncompleteRegistryChanges {
+                    requested_version: 2,
+                    observed_version: 0,
+                }))
+            })
+            .await
+            .unwrap();
+            assert_eq!(keys, ["canister_ranges_00"]);
+            let keys = collect_key_family("canister_ranges_", 3, &first, |cursor| {
+                assert_eq!(cursor, 2);
+                std::future::ready(Ok(page(3, vec![deletion(3)])))
+            })
+            .await
+            .unwrap();
+            assert!(keys.is_empty());
+            for counter in [&first, &second] {
+                let keys = collect_key_family("canister_ranges_", 1, counter, |cursor| {
+                    assert_eq!(cursor, 0);
+                    std::future::ready(Ok(page(1, vec![value(1)])))
+                })
+                .await
+                .unwrap();
+                assert_eq!(keys, ["canister_ranges_00"]);
+            }
+        });
+    }
+
+    #[test]
+    fn failed_page_preserves_last_complete_prefix_for_retry() {
+        futures::executor::block_on(async {
+            let counter = RegistryQueryCounter::with_acquisition(
+                "https://a.example".into(),
+                std::sync::Arc::default(),
+            );
+            let failed = collect_key_family("canister_ranges_", 3, &counter, |cursor| {
+                std::future::ready(Ok(response(
+                    3,
+                    vec![HighCapacityRegistryDelta {
+                        key: b"canister_ranges_00".to_vec(),
+                        values: if cursor == 0 {
+                            vec![value(1)]
+                        } else {
+                            vec![deletion(3)]
+                        },
+                    }],
+                )))
+            })
+            .await;
+            assert!(matches!(
+                failed,
+                Err(RegistryFetchError::InvalidRegistryKeyFamily { .. })
+            ));
+            let keys = collect_key_family("canister_ranges_", 3, &counter, |cursor| {
+                assert_eq!(cursor, 1);
+                std::future::ready(Ok(response(
+                    3,
+                    vec![HighCapacityRegistryDelta {
+                        key: b"canister_ranges_00".to_vec(),
+                        values: vec![value(2), deletion(3)],
+                    }],
+                )))
+            })
+            .await
+            .unwrap();
+            assert!(keys.is_empty());
+        });
+    }
+
+    #[test]
+    fn cancellation_keeps_validated_history_and_reports_endpoint_progress() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let observed = Arc::clone(&events);
+        let acquisition = super::super::RegistryAcquisition {
+            progress: Some(Box::new(move |event| observed.lock().unwrap().push(event))),
+            ..Default::default()
+        };
+        let counter = RegistryQueryCounter::with_acquisition(
+            "https://a.example".into(),
+            Arc::new(acquisition),
+        );
+        let mut future = Box::pin(collect_key_family(
+            "canister_ranges_",
+            3,
+            &counter,
+            |cursor| async move {
+                if cursor != 0 {
+                    return std::future::pending().await;
+                }
+                Ok(response(
+                    3,
+                    vec![HighCapacityRegistryDelta {
+                        key: b"canister_ranges_00".to_vec(),
+                        values: vec![value(1)],
+                    }],
+                ))
+            },
+        ));
+        let waker = futures::task::noop_waker();
+        assert!(
+            future
+                .as_mut()
+                .poll(&mut Context::from_waker(&waker))
+                .is_pending()
+        );
+        drop(future);
+        let keys = futures::executor::block_on(collect_key_family(
+            "canister_ranges_",
+            3,
+            &counter,
+            |cursor| {
+                assert_eq!(cursor, 1);
+                std::future::ready(Ok(response(
+                    3,
+                    vec![HighCapacityRegistryDelta {
+                        key: b"canister_ranges_00".to_vec(),
+                        values: vec![value(2), value(3)],
+                    }],
+                )))
+            },
+        ))
+        .unwrap();
+        assert_eq!(keys, ["canister_ranges_00"]);
+        let events = events.lock().unwrap();
+        assert!(
+            events
+                .iter()
+                .all(|event| event.endpoint == "https://a.example")
+        );
+        assert_eq!(
+            events.iter().map(|event| &event.phase).collect::<Vec<_>>(),
+            vec![
+                &SubnetCatalogProgressPhase::History {
+                    registry_version: 3,
+                    through_version: 0,
+                    reused: false
+                },
+                &SubnetCatalogProgressPhase::History {
+                    registry_version: 3,
+                    through_version: 1,
+                    reused: false
+                },
+                &SubnetCatalogProgressPhase::History {
+                    registry_version: 3,
+                    through_version: 1,
+                    reused: true
+                },
+                &SubnetCatalogProgressPhase::History {
+                    registry_version: 3,
+                    through_version: 3,
+                    reused: false
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn checkpoint_watermark_stops_at_pin_even_when_page_contains_later_mutations() {
+        futures::executor::block_on(async {
+            let counter =
+                RegistryQueryCounter::with_acquisition("https://a.example".into(), Arc::default());
+            let keys = collect_key_family("canister_ranges_", 1, &counter, |_| {
+                std::future::ready(Ok(response(
+                    3,
+                    vec![HighCapacityRegistryDelta {
+                        key: b"canister_ranges_00".to_vec(),
+                        values: vec![value(1), deletion(2), value(3)],
+                    }],
+                )))
+            })
+            .await
+            .unwrap();
+            assert_eq!(keys, ["canister_ranges_00"]);
+            let keys = collect_key_family("canister_ranges_", 2, &counter, |cursor| {
+                assert_eq!(cursor, 1);
+                std::future::ready(Ok(response(
+                    3,
+                    vec![HighCapacityRegistryDelta {
+                        key: b"canister_ranges_00".to_vec(),
+                        values: vec![deletion(2), value(3)],
+                    }],
+                )))
+            })
+            .await
+            .unwrap();
+            assert!(keys.is_empty());
+        });
     }
 
     #[test]

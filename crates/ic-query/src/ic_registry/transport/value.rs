@@ -37,7 +37,22 @@ pub(in crate::ic_registry) async fn get_registry_versioned_value_counted(
     version: u64,
     counter: &RegistryQueryCounter,
 ) -> Result<RegistryVersionedValue, RegistryVersionedValueFailure> {
-    get_registry_versioned_value_inner(agent, registry_canister, key, version, Some(counter)).await
+    counter.emit(super::SubnetCatalogProgressPhase::Record {
+        registry_version: version,
+        key: key.to_string(),
+        completed: false,
+    });
+    let result =
+        get_registry_versioned_value_inner(agent, registry_canister, key, version, Some(counter))
+            .await;
+    if result.is_ok() {
+        counter.emit(super::SubnetCatalogProgressPhase::Record {
+            registry_version: version,
+            key: key.to_string(),
+            completed: true,
+        });
+    }
+    result
 }
 
 async fn get_registry_versioned_value_inner(
@@ -58,13 +73,7 @@ async fn get_registry_versioned_value_inner(
             reason: err.to_string(),
         })
     })?;
-    if let Some(counter) = counter {
-        counter.record_call();
-    }
-    let bytes = agent
-        .query(registry_canister, "get_value")
-        .with_arg(arg)
-        .call()
+    let bytes = super::query::query(agent, registry_canister, "get_value", arg, counter)
         .await
         .map_err(|err| {
             value_failure(RegistryFetchError::AgentCall {

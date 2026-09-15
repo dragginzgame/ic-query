@@ -29,6 +29,6 @@ pub use refresh::{
     refresh_subnet_catalog_with_source, refresh_subnet_catalog_with_source_async,
 };
 pub use source::{
-    CatalogSourceSelection, SubnetCatalogDetailedSourceFuture, SubnetCatalogSource,
-    SubnetCatalogSourceFuture, fetch_subnet_catalog_async,
+    CatalogSourceSelection, LiveSubnetCatalogSource, SubnetCatalogDetailedSourceFuture,
+    SubnetCatalogSource, SubnetCatalogSourceFuture, fetch_subnet_catalog_async,
 };

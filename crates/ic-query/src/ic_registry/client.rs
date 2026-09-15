@@ -7,11 +7,8 @@ use super::{
     },
 };
 use super::{
-    MainnetRegistryFetchRequest, RegistryFetchError, SubnetCatalogRegistryFailure,
-    source::{
-        fetch_mainnet_subnet_catalog_async as fetch_mainnet_subnet_catalog_from_source_async,
-        fetch_mainnet_subnet_catalog_detailed_async as fetch_mainnet_subnet_catalog_detailed_from_source_async,
-    },
+    MainnetRegistryFetchRequest, RegistryFetchError,
+    source::fetch_mainnet_subnet_catalog_async as fetch_mainnet_subnet_catalog_from_source_async,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 use super::{
@@ -38,12 +35,6 @@ pub async fn fetch_mainnet_subnet_catalog_async(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<RawSubnetCatalog, RegistryFetchError> {
     fetch_mainnet_subnet_catalog_from_source_async(request).await
-}
-
-pub async fn fetch_mainnet_subnet_catalog_detailed_async(
-    request: &MainnetRegistryFetchRequest,
-) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>> {
-    fetch_mainnet_subnet_catalog_detailed_from_source_async(request).await
 }
 
 /// Fetch one authenticated, bounded Registry delta batch on the caller's async runtime.

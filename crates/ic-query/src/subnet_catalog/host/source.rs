@@ -5,9 +5,7 @@ use super::{
 use crate::{
     hex::hex_bytes,
     http_endpoint::parse_http_endpoint,
-    ic_registry::{
-        fetch_mainnet_subnet_catalog_async, fetch_mainnet_subnet_catalog_detailed_async,
-    },
+    ic_registry::fetch_mainnet_subnet_catalog_async,
     nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
     subnet_catalog::{
         CatalogAssurance, CatalogValidationContext, MAINNET_REGISTRY_CANISTER_ID,
@@ -15,6 +13,7 @@ use crate::{
         RawSubnetCatalog, ValidatedSubnetCatalog, catalog_agreement_digest,
     },
 };
+use futures::{StreamExt, stream};
 use std::{collections::BTreeSet, future::Future, pin::Pin};
 
 ///
@@ -164,9 +163,40 @@ pub trait SubnetCatalogSource: Send + Sync {
     }
 }
 
-impl SubnetCatalogSource for LiveNnsSource {
+///
+/// LiveSubnetCatalogSource
+///
+/// Reusable live source retaining bounded, endpoint-local validated history prefixes.
+/// Keep one instance across retries and refreshes to avoid replaying old Registry history.
+/// Checkpoints are memory-only query evidence and never promote assurance.
+///
+
+#[derive(Clone, Default)]
+pub struct LiveSubnetCatalogSource {
+    acquisition: std::sync::Arc<crate::ic_registry::RegistryAcquisition>,
+}
+
+impl LiveSubnetCatalogSource {
+    /// Observe acquisition without selecting a process output sink.
+    #[must_use]
+    pub fn with_progress(
+        callback: impl Fn(crate::subnet_catalog::SubnetCatalogProgress) + Send + Sync + 'static,
+    ) -> Self {
+        let mut acquisition = crate::ic_registry::RegistryAcquisition::default();
+        acquisition.progress = Some(Box::new(callback));
+        Self {
+            acquisition: std::sync::Arc::new(acquisition),
+        }
+    }
+}
+
+impl SubnetCatalogSource for LiveSubnetCatalogSource {
     fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
-        Box::pin(fetch_subnet_catalog_async(request))
+        Box::pin(async move {
+            self.fetch_catalog_detailed(request)
+                .await
+                .map_err(SubnetCatalogSourceFailure::into_source)
+        })
     }
 
     fn fetch_catalog_detailed<'a>(
@@ -178,7 +208,7 @@ impl SubnetCatalogSource for LiveNnsSource {
                 SubnetCatalogHostError::UnsupportedNetwork { network }
             })
             .map_err(SubnetCatalogSourceFailure::from_source)?;
-            fetch_mainnet_subnet_catalog_detailed_async(&fetch_request)
+            crate::ic_registry::fetch_with_acquisition(&fetch_request, self.acquisition.clone())
                 .await
                 .map_err(|failure| {
                     SubnetCatalogSourceFailure::new(
@@ -193,6 +223,23 @@ impl SubnetCatalogSource for LiveNnsSource {
                         failure.registry_records,
                     )
                 })
+        })
+    }
+}
+
+impl SubnetCatalogSource for LiveNnsSource {
+    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+        Box::pin(fetch_subnet_catalog_async(request))
+    }
+
+    fn fetch_catalog_detailed<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> SubnetCatalogDetailedSourceFuture<'a> {
+        Box::pin(async move {
+            LiveSubnetCatalogSource::default()
+                .fetch_catalog_detailed(request)
+                .await
         })
     }
 }
@@ -213,12 +260,16 @@ pub(super) async fn collect_subnet_catalog_detailed(
         max_future_skew_seconds,
     );
     let mut snapshots = Vec::with_capacity(endpoints.len());
-    for endpoint in &endpoints {
-        let request = NnsSourceRequest::new(network, endpoint, fetched_at, fetched_by);
-        let raw = source
-            .fetch_catalog_detailed(&request)
-            .await
-            .map_err(|error| endpoint_error(error, endpoint, endpoints.len()))?;
+    // Owned futures are dropped with this collection; no detached tasks outlive the lock.
+    // Buffered preserves canonical endpoint order for validation and failure selection.
+    let mut collections = stream::iter(endpoints.clone().into_iter().map(|endpoint| async move {
+        let request = NnsSourceRequest::new(network, &endpoint, fetched_at, fetched_by);
+        (endpoint, source.fetch_catalog_detailed(&request).await)
+    }))
+    .buffered(2);
+    while let Some((endpoint, result)) = collections.next().await {
+        let endpoint = &endpoint;
+        let raw = result.map_err(|error| endpoint_error(error, endpoint, endpoints.len()))?;
         let registry_version = raw.provenance.registry_version;
         let registry_records = raw.provenance.registry_records.clone();
         let catalog = ValidatedSubnetCatalog::try_from_raw(raw, &validation)
@@ -255,6 +306,7 @@ pub(super) async fn collect_subnet_catalog_detailed(
         snapshots.push(catalog.into_raw());
     }
 
+    drop(collections);
     if snapshots.len() == 1 {
         return Ok(snapshots.pop().expect("single endpoint snapshot"));
     }

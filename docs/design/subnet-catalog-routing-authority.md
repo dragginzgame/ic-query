@@ -28,7 +28,9 @@ format:
 
 The ordinary-query collector first pins `get_latest_version`. It reconstructs
 the present `canister_ranges_*` key set at that pin from complete,
-size-bounded `get_changes_since` pages starting at version zero. The response
+size-bounded `get_changes_since` pages starting at version zero, or continuing
+a validated prefix retained by the same reusable live source for that exact
+endpoint. See [history reuse](subnet-catalog-acquisition-performance.md). The response
 `version` is the Registry latest version, not the page watermark, so each next
 page starts after the highest returned mutation version. Mutations after the
 pin are ignored and deletions through the pin are applied. A response that

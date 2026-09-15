@@ -16,6 +16,10 @@ mod transport;
 mod wire;
 
 use candid::Principal;
+pub use source::fetch_with_acquisition;
+pub use transport::RegistryAcquisition;
+pub use transport::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
+
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use catalog::{routing_ranges_from_table, subnet_info_from_record};
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -23,7 +27,6 @@ pub use client::fetch_mainnet_certified_registry_delta_batch_async;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use client::fetch_mainnet_registry_version;
 pub use client::fetch_mainnet_subnet_catalog_async;
-pub use client::fetch_mainnet_subnet_catalog_detailed_async;
 #[cfg(feature = "nns-topology-host")]
 pub use client::fetch_mainnet_subnet_topology;
 #[cfg(feature = "nns-host")]

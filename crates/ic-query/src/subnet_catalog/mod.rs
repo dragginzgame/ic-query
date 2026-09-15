@@ -13,26 +13,28 @@ mod resolver;
 mod text;
 mod time;
 
+#[cfg(feature = "subnet-catalog-host")]
+pub use crate::ic_registry::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
 pub use error::CatalogError;
 #[cfg(feature = "subnet-catalog-host")]
 pub(crate) use host::subject_from_catalog_error;
 #[cfg(feature = "subnet-catalog-host")]
 pub use host::{
     CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, CatalogSourceSelection,
-    SubnetCatalogCacheRequest, SubnetCatalogDetailedSourceFuture, SubnetCatalogErrorCategory,
-    SubnetCatalogErrorCode, SubnetCatalogFailureCacheDisposition, SubnetCatalogField,
-    SubnetCatalogHostError, SubnetCatalogLoadFailure, SubnetCatalogLoadFailureRequest,
-    SubnetCatalogLoadRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshRequest,
-    SubnetCatalogRefreshTrigger, SubnetCatalogRemediation, SubnetCatalogRetryability,
-    SubnetCatalogSource, SubnetCatalogSourceFailure, SubnetCatalogSourceFuture,
-    SubnetCatalogSubject, SubnetCatalogUnknownRetryReason, fetch_subnet_catalog_async,
-    load_cached_subnet_catalog, load_cached_subnet_catalog_detailed, load_subnet_catalog,
-    load_subnet_catalog_async, load_subnet_catalog_detailed, load_subnet_catalog_detailed_async,
-    load_subnet_catalog_detailed_with_source, load_subnet_catalog_detailed_with_source_async,
-    load_subnet_catalog_with_source, load_subnet_catalog_with_source_async, refresh_subnet_catalog,
-    refresh_subnet_catalog_async, refresh_subnet_catalog_with_source,
-    refresh_subnet_catalog_with_source_async, subnet_catalog_path,
-    subnet_catalog_refresh_lock_path,
+    LiveSubnetCatalogSource, SubnetCatalogCacheRequest, SubnetCatalogDetailedSourceFuture,
+    SubnetCatalogErrorCategory, SubnetCatalogErrorCode, SubnetCatalogFailureCacheDisposition,
+    SubnetCatalogField, SubnetCatalogHostError, SubnetCatalogLoadFailure,
+    SubnetCatalogLoadFailureRequest, SubnetCatalogLoadRequest, SubnetCatalogLoadStage,
+    SubnetCatalogRefreshRequest, SubnetCatalogRefreshTrigger, SubnetCatalogRemediation,
+    SubnetCatalogRetryability, SubnetCatalogSource, SubnetCatalogSourceFailure,
+    SubnetCatalogSourceFuture, SubnetCatalogSubject, SubnetCatalogUnknownRetryReason,
+    fetch_subnet_catalog_async, load_cached_subnet_catalog, load_cached_subnet_catalog_detailed,
+    load_subnet_catalog, load_subnet_catalog_async, load_subnet_catalog_detailed,
+    load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
+    load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source,
+    load_subnet_catalog_with_source_async, refresh_subnet_catalog, refresh_subnet_catalog_async,
+    refresh_subnet_catalog_with_source, refresh_subnet_catalog_with_source_async,
+    subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 #[cfg(feature = "subnet-catalog-host")]

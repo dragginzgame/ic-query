@@ -14,7 +14,7 @@ use ic_query::subnet_catalog::{
 use ic_query::subnet_catalog::{
     CacheDisposition, CatalogSnapshotAuthorityEvidence, CatalogSourceSelection,
     DEFAULT_REFRESH_LOCK_STALE_SECONDS, DEFAULT_STALE_AFTER_SECONDS,
-    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
+    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, LiveSubnetCatalogSource, SubnetCatalogCacheRequest,
     SubnetCatalogDetailedSourceFuture, SubnetCatalogFailureCacheDisposition, SubnetCatalogFilters,
     SubnetCatalogHostError, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogLoadFailure,
@@ -37,6 +37,10 @@ use std::os::unix::fs::PermissionsExt;
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
 
 const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
@@ -75,6 +79,18 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
     let request =
         SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test());
     let cached = load_cached_subnet_catalog(&request).expect("load cached catalog");
+    let events = Arc::new(AtomicUsize::new(0));
+    let observed = Arc::clone(&events);
+    let source = LiveSubnetCatalogSource::with_progress(
+        move |_: ic_query::subnet_catalog::SubnetCatalogProgress| {
+            observed.fetch_add(1, Ordering::Relaxed);
+        },
+    );
+    let reused = load_subnet_catalog_detailed_with_source(&request, &source)
+        .expect("reusable source cache hit");
+    assert_eq!(events.load(Ordering::Relaxed), 0);
+    assert_eq!(cached.snapshot_authority(), reused.snapshot_authority());
+
     let resolved = cached
         .catalog
         .resolve_canister_route(CANISTER_A)
