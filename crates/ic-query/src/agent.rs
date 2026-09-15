@@ -142,10 +142,11 @@ mod tests {
         let agent = build_ic_agent_with_response_limit(&endpoint, |reason| reason, 64)
             .expect("bounded test agent");
 
+        // Isolate the body limit from signature verification's concurrent read_state request.
         let error = block_on_current_thread(
             agent
                 .query(&Principal::anonymous(), "bounded_response_test")
-                .call(),
+                .call_without_verification(),
         )
         .expect("test query runtime")
         .expect_err("oversized native response must fail");
