@@ -7,7 +7,21 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.43.x] - Unreleased - Governance canister testing and Subnet Catalog performance
+## [0.44.x] - Unreleased - Governance canister tooling and dependency refresh
+
+Detailed release notes: [docs/changelog/0.44.md](docs/changelog/0.44.md)
+
+- `0.44.0` updates the Governance canister smoke harness and its checksum-pinned
+  CI tool to ICP CLI 1.6.0. The local NNS runtime remains pinned to 16.0.0;
+  production `icq` behavior is unchanged.
+- Refreshes locked dependencies without changing direct library requirements
+  or the Rust 1.91.0 minimum.
+- Measures a fresh two-endpoint Subnet Catalog acquisition at 88.199 s and
+  312 explicit queries in one development-build run. The in-memory history
+  checkpoint does not carry across separate CLI processes; see the
+  [measurement notes](docs/design/subnet-catalog-acquisition-performance.md).
+
+## [0.43.x] - 2026-09-15 - Governance canister testing and Subnet Catalog performance
 
 Detailed release notes: [docs/changelog/0.43.md](docs/changelog/0.43.md)
 
@@ -22,10 +36,6 @@ Detailed release notes: [docs/changelog/0.43.md](docs/changelog/0.43.md)
   two-endpoint acquisition improved from 158.961 s to 91.008 s. A subsequent
   refresh with retained history took 18.181 s and avoided 154 history queries;
   immediate cache reuse preserved identical snapshot authority.
-- Updates the Governance canister smoke harness and its checksum-pinned CI
-  tool to ICP CLI 1.6.0. The local NNS runtime remains pinned to 16.0.0;
-  production `icq` behavior is unchanged.
-
 ```bash
 cargo run -p ic-query-cli \
   --example subnet_catalog_timing -- /tmp/icq-catalog-timing

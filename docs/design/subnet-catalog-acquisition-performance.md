@@ -104,6 +104,13 @@ structured progress:
 No sibling repository changes are needed upstream. No production CLI options
 are added.
 
+Canic currently constructs and drops its catalog client during a generation.
+The in-memory history checkpoint therefore cannot help ordinary separate CLI
+runs; reuse requires retaining the source within one process. A persistent
+checkpoint is a possible follow-up only after cold-start measurements and an
+explicit integrity and invalidation contract. This is a performance
+opportunity, not a known catalog correctness failure.
+
 ## Measurement
 
 Use the explicit live developer example with an empty cache directory:
@@ -141,6 +148,24 @@ The maintainer's earlier 148.245 s cold / 3 ms cache measurement is a separate
 environment observation; these development-build cache timings do not establish
 a regression or a production cache speedup. No live transport fault was
 injected. Retry and cancellation behavior was checked with fixtures.
+
+### 2026-09-25 cold-start follow-up
+
+A fresh cache directory and a new process running the same development-build
+example against `https://ic0.app` and `https://icp-api.io` produced:
+
+| Operation | Wall time | Explicit query calls |
+| --- | ---: | ---: |
+| Cold two-endpoint agreement at Registry version 64346 | 88.199 s | 312 |
+| Immediate complete-cache reuse | 18.382 ms | 0 |
+| Forced refresh with the same in-memory source | 15.278 s | 158 |
+
+The cache hit preserved snapshot authority. The retained-source refresh
+avoided 154 history-page queries, while the cold run still reconstructed
+history from version zero. These observations measure the upstream example,
+not a Canic generation or separate Canic CLI runs. They support measuring the
+downstream cold path before choosing a persistent-checkpoint design; they do
+not establish a correctness defect or a general latency guarantee.
 
 ## Validation
 
