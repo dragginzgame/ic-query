@@ -447,6 +447,8 @@ hidden methods, enumerate canisters, or create a cache. See
 
 Resolve a deployed SNS by list id or Root principal:
 
+Replace `<sns-root-principal>` with a Root principal returned by `icq sns list`.
+
 ```bash
 icq sns list
 icq sns refresh
@@ -454,7 +456,7 @@ icq sns info 1
 icq sns token 1
 icq sns parameters 1
 icq sns metrics 1
-icq sns metrics 23ten-uaaaa-aaaaq-aabia-cai --window 90d --json
+icq sns metrics <sns-root-principal> --window 90d --json
 icq sns swap 1
 icq sns upgrade 1
 ```
@@ -504,7 +506,7 @@ Inspect Root membership and read-only operational health:
 
 ```bash
 icq sns canister list 1
-icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai --json
+icq sns canister list <sns-root-principal> --json
 ```
 
 Inventory comes from `list_sns_canisters`. Health comes from
@@ -533,7 +535,7 @@ icq sns neuron list 1 --sort stake --limit 500
 icq sns neuron cache status 1
 
 icq sns reward checkpoint 1 --json
-icq sns reward checkpoint 23ten-uaaaa-aaaaq-aabia-cai --max-pages 10 --json
+icq sns reward checkpoint <sns-root-principal> --max-pages 10 --json
 icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 ```
 

@@ -10,6 +10,7 @@ historical release material.
 | [Project README](../README.md) | Installation, quick start, supported reporting, and trust model |
 | [CLI Usage](cli-usage.md) | Current command hierarchy, target identity, and collection modes |
 | [Library Usage](library-usage.md) | Rust feature boundary, adapters, builders, caches, and examples |
+| [Governance canister smoke tests](canister-smoke.md) | ICP CLI 1.6.0 build, local NNS execution, receipts, and bundles |
 | [Roadmap to 1.0](roadmap/1.0.md) | Coverage estimates, prioritized workstreams, and the 1.0 completion bar |
 | [Changelog](../CHANGELOG.md) | Concise release ledger |
 
@@ -21,12 +22,13 @@ icq help nns topology
 icq icrc account transaction --help
 ```
 
-## Current design contracts
+## Design references
 
-| Document | Contract owned |
+| Document | Scope |
 | --- | --- |
 | [IC Reporting Adapters](design/ic-reporting-adapters.md) | Authority families, provenance, validation, and typed follow-up queries |
 | [Cache Policy](design/cache-policy.md) | Cache identity, refresh and invalid-content recovery, locking, and local inspection |
+| [Subnet Catalog Acquisition Performance](design/subnet-catalog-acquisition-performance.md) | Current endpoint concurrency, history reuse, progress, retries, and measured limits |
 | [0.22 Structural Consolidation](design/0.22/0.22-design.md) | Ordered CLI, inventory, snapshot, feature, and module-ownership cleanup |
 | [0.23 Bounded SNS Completeness](design/0.23/0.23-design.md) | Targeted discovery hard cut plus bounded native swap and upgrade evidence |
 | [0.24 Bounded SNS Governance Metrics](design/0.24/0.24-design.md) | Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp evidence |
@@ -60,15 +62,18 @@ icq icrc account transaction --help
 | [SNS Proposal Cache](design/sns-proposal-cache.md) | Complete SNS proposal snapshot behavior |
 | [Certified CMC System Reporting](design/cmc-system-reporting.md) | Certified ICP/XDR evidence and exact cycles-per-ICP derivation |
 
-These documents describe the current contract. Detailed release notes under
-[`docs/changelog/`](changelog/) explain when each contract changed.
+Unnumbered design documents describe maintained contracts or current adoption
+guidance. Numbered documents record the design and decisions of their release
+slices; later code and design records may supersede details in them. Detailed
+release notes under [`docs/changelog/`](changelog/) explain when behavior
+changed.
 
 ## Historical material
 
 Completed numbered directories under [`docs/design/`](design/) preserve
 earlier design work and implementation handoffs. They are historical context,
 not a compatibility promise; a numbered document marked active remains a
-current implementation plan. The current code, current design contracts above,
+current implementation plan. The current code, maintained contracts,
 `AGENTS.md`, and the root changelog take precedence.
 
 Engineering audit material under [`docs/governance/`](governance/) records

@@ -33,13 +33,13 @@ jobs:
           toolchain: ${{ env.IC_QUERY_INTERNAL_TOOLCHAIN }}
           targets: wasm32-unknown-unknown
           components: clippy
-      - name: Install verified ICP CLI 1.5.0
+      - name: Install verified ICP CLI 1.6.0
         shell: bash
         run: |
           mkdir -p target/icp-tools
           curl --fail --location --retry 3 --output target/icp-tools/icp.tar.xz \
-            https://github.com/dfinity/icp-cli/releases/download/v1.5.0/icp-cli-x86_64-unknown-linux-gnu.tar.xz
-          echo 'a6ffbc61ca728ce13492493b828f4cfd8aa9c953384e56e46fa6f2d86284d9bd  target/icp-tools/icp.tar.xz' | sha256sum --check
+            https://github.com/dfinity/icp-cli/releases/download/v1.6.0/icp-cli-x86_64-unknown-linux-gnu.tar.xz
+          echo '03fd43956307f993f2a4b84129cb9e305ffae99e26c65f608c713114607fb7a0  target/icp-tools/icp.tar.xz' | sha256sum --check
           tar -xJf target/icp-tools/icp.tar.xz --strip-components=1 -C target/icp-tools
           echo "$GITHUB_WORKSPACE/target/icp-tools" >> "$GITHUB_PATH"
       - name: Check receipt validation

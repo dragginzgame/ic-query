@@ -306,8 +306,8 @@ def main():
     if args.action == "build-wasm":
         build_wasm()
         return
-    if run("icp", "--version") != "icp 1.5.0":
-        parser.error("this harness requires ICP CLI 1.5.0")
+    if run("icp", "--version") != "icp 1.6.0":
+        parser.error("this harness requires ICP CLI 1.6.0")
     if args.action == "verify-mainnet" and not args.canister:
         parser.error("verify-mainnet requires --canister")
     if args.canister and args.action != "verify-mainnet":

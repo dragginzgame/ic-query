@@ -35,7 +35,7 @@ export CARGO_PUBLISH_INDEX_DELAY_SECONDS
 help:
 	@echo "Available commands:"
 	@echo ""
-	@echo "  canister-build   Build the isolated Governance probe with ICP CLI 1.5.0"
+	@echo "  canister-build   Build the isolated Governance probe with ICP CLI 1.6.0"
 	@echo "  canister-bundle  Bundle the probe for explicit mainnet-smoke deployment"
 	@echo "  canister-smoke   Deploy on a local NNS network and retain an execution receipt"
 	@echo "  fmt        Format Rust code"

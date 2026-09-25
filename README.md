@@ -32,7 +32,7 @@ surface, current coverage estimates, and the remaining work.
 ## Install
 
 For canister-adapter development, see the [Governance canister smoke harness](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md)
-for ICP CLI 1.5.0 builds, local NNS integration tests, retained execution
+for ICP CLI 1.6.0 builds, local NNS integration tests, retained execution
 receipts, and environment-specific bundles.
 
 From this checkout:
@@ -1032,7 +1032,11 @@ guidance.
 - [Documentation index](https://github.com/dragginzgame/ic-query/blob/main/docs/README.md)
 - [CLI usage and collection modes](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md)
 - [Library usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
+- [Governance canister smoke tests](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md)
 - [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md)
+- [Cache policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md)
+- [Subnet Catalog acquisition and performance](https://github.com/dragginzgame/ic-query/blob/main/docs/design/subnet-catalog-acquisition-performance.md)
+- [Subnet Catalog downstream adoption](https://github.com/dragginzgame/ic-query/blob/main/docs/design/subnet-catalog-downstream-adoption.md)
 - [0.22 structural consolidation](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.22/0.22-design.md)
 - [0.23 bounded SNS completeness](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.23/0.23-design.md)
 - [0.24 bounded SNS Governance metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.24/0.24-design.md)

@@ -10,15 +10,16 @@ production command, persistence policy, or host dependency.
 - Linux or macOS; interruption cleanup uses POSIX process groups.
 - Rust 1.98.1, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
-- ICP CLI **1.5.0** and Python 3.10 or later.
+- ICP CLI **1.6.0** and Python 3.10 or later.
 - Internet access for the first local-runtime download and enough resources
   to run the local NNS/SNS network.
 
-The managed runtime is pinned to network launcher **16.0.0**, the version
-shipped with ICP CLI 1.5.0. Tool settings, identities, and download caches live
-under `target/canister-smoke/`. Runtime state lives in
-`tests/canister/.icp/`. Neither directory belongs in commits or release
-artifacts. The library's supported minimum Rust version remains **1.91.0**;
+The managed runtime is pinned to network launcher **16.0.0** in `icp.yaml`.
+ICP CLI 1.6.0 bundles launcher **16.0.0-2026-09-18-03-28**; the project pin
+keeps local NNS execution on the existing stable runtime. Tool settings,
+identities, and download caches live under `target/canister-smoke/`. Runtime
+state lives in `tests/canister/.icp/`. Neither directory belongs in commits or
+release artifacts. The library's supported minimum Rust version remains **1.91.0**;
 `make msrv` verifies it separately from the development toolchain.
 
 ## Build and local execution
@@ -86,7 +87,7 @@ intermediate upgrade occurred.
 make canister-bundle
 ```
 
-This uses ICP 1.5.0's `icp project bundle -e mainnet-smoke` to produce
+This uses ICP 1.6.0's `icp project bundle -e mainnet-smoke` to produce
 `target/canister-smoke/governance-probe.tar.gz`. The archive contains only the
 probe Wasm and a manifest using a prebuilt step with its SHA-256 hash. It
 needs no Rust checkout to deploy. The ordinary `ic` environment contains no
@@ -120,7 +121,7 @@ receipt gap remains documented in the [0.38 design](design/0.38/0.38-design.md).
 
 ## CI and retention
 
-The separate `canister` CI job installs ICP CLI 1.5.0 with a pinned SHA-256,
+The separate `canister` CI job installs ICP CLI 1.6.0 with a pinned SHA-256,
 tests the receipt validator, runs the local smoke, and builds the bundle. It
 uploads receipts, the probe Wasm, and the bundle for 30 days, including receipts
 from failed runs. Identities and runtime state are excluded from uploads.
@@ -131,5 +132,5 @@ CI script checks also exercise malformed-reply and provenance rejection
 without a network. `make ci` does not start a local network; use
 `make canister-smoke` for the separate runtime gate.
 
-Upstream contracts: [ICP 1.5.0 release notes](https://github.com/dfinity/icp-cli/releases/tag/v1.5.0)
-and [configuration reference](https://github.com/dfinity/icp-cli/blob/v1.5.0/docs/reference/configuration.md).
+Upstream contracts: [ICP 1.6.0 release notes](https://github.com/dfinity/icp-cli/releases/tag/v1.6.0)
+and [configuration reference](https://github.com/dfinity/icp-cli/blob/v1.6.0/docs/reference/configuration.md).

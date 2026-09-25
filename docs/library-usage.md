@@ -505,7 +505,8 @@ reports share `NnsSourceRequest` and one `NnsGovernanceSource` capability;
 simple ledger-wide ICRC metadata and capability builders share
 `IcrcLedgerRequest`. There are no per-report aliases for those canonical
 types.
-The examples below are covered by the `downstream_usage` integration test.
+The `downstream_usage` integration test type-checks representative examples
+below; other examples show the same public request and report APIs.
 
 ## Source Adapters
 
