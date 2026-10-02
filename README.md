@@ -758,6 +758,16 @@ disabled. Because the feature still includes `ic-agent`, both packages may
 remain in its transitive dependency graph. The full `host` feature remains the
 choice for all reporting adapters and is a strict superset.
 
+Standard live Subnet Catalog load and refresh calls reuse Registry history
+across processes under the request's private cache root. Embedders supplying
+their own `LiveSubnetCatalogSource` enable the same behavior with
+`with_history_cache(cache_root)`. Cache-only reads perform no history IO or
+network calls. The bounded schema-1 transcript retains local query evidence;
+every live acquisition still reads current pinned records and checks the
+requested endpoint agreement. See the
+[history reuse contract](docs/design/subnet-catalog-acquisition-performance.md#cross-process-transcript-contract)
+for ownership, limits, progress, and recovery policy.
+
 Enable `certified-subnet-catalog-host` when an embedder needs certified Subnet
 Catalog authority without the broader NNS Governance, proposal, neuron,
 inventory, or derived-topology surface:

@@ -41,8 +41,14 @@ errors. Cache-only operations report them directly, and read-through policies
 must not reinterpret them as invalid content that authorizes a live refresh.
 Publication uses a same-directory exclusively created temporary file, syncs the
 file, atomically renames it, and syncs its parent directory. Explicit
-caller-selected exports are not managed cache files. There is no legacy reader,
-permission repair, deletion, or migration for older permissive cache trees.
+caller-selected exports are not managed cache files. Refresh exports must not
+alias the operation's managed cache or refresh lock, even during a dry run.
+Compare resolved paths before creating managed directories or acquiring the lock,
+including missing targets and symlink aliases, then check again when writing.
+On Unix, also compare file identities to reject hard links; open exports without
+truncation and check their opened identity before clearing their contents.
+There is no legacy reader, permission repair, deletion, or migration for older
+permissive cache trees.
 
 Managed pretty-JSON publication validates serialization before filesystem
 mutation and then streams directly through the atomic temporary file, avoiding
@@ -53,6 +59,16 @@ their caller-selected read ceilings through the shared confined reader.
 Refresh-lock reads are capped at 64 KiB and refresh-attempt sidecars at 1 MiB;
 oversized metadata fails as invalid local evidence and never authorizes hidden
 network work or automatic deletion.
+
+Live Subnet Catalog convenience calls also retain bounded Registry history
+transcripts under the same root. These schema-1 files are an endpoint-isolated
+query optimization, not complete catalog authority or an age exemption.
+Caller-owned sources opt in explicitly with `with_history_cache(root)`.
+Invalid transcripts can be replaced only through already-authorized live
+collection; confinement and IO failures remain errors. Cache-only and cache-hit
+paths never inspect or refresh them. See the
+[transcript contract](subnet-catalog-acquisition-performance.md#cross-process-transcript-contract)
+for bounds, local-owner trust, atomic publication, and concurrent-writer policy.
 
 ## Shared Read-Through Flow
 

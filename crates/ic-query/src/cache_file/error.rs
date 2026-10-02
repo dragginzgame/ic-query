@@ -212,6 +212,19 @@ pub enum CacheFileError {
         source: io::Error,
     },
 
+    /// A separately requested output aliases a managed cache or refresh lock.
+    #[error(
+        "cache output {} aliases managed path {}; choose a distinct output path",
+        output_path.display(),
+        managed_path.display()
+    )]
+    OutputAliasesManagedPath {
+        /// Caller-selected output path.
+        output_path: PathBuf,
+        /// Managed cache or refresh-lock path that must remain protected.
+        managed_path: PathBuf,
+    },
+
     /// Writing a separately requested output file failed.
     #[error("failed to write cache output at {}: {source}", path.display())]
     WriteOutput {

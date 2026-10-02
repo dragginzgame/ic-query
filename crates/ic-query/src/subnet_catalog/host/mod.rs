@@ -23,6 +23,7 @@ pub use failure::{
     SubnetCatalogLoadFailureRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshTrigger,
     SubnetCatalogSourceFailure, SubnetCatalogSubject,
 };
+pub use paths::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
 pub use paths::{subnet_catalog_path, subnet_catalog_refresh_lock_path};
 pub use refresh::{
     SubnetCatalogRefreshRequest, refresh_subnet_catalog, refresh_subnet_catalog_async,

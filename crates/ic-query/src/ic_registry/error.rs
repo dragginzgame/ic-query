@@ -14,6 +14,10 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum RegistryFetchError {
+    /// A confined cross-process Registry history checkpoint operation failed.
+    #[error(transparent)]
+    HistoryCache(#[from] crate::cache_file::HostCacheError),
+
     #[error("failed to build IC agent for {endpoint}: {reason}")]
     AgentBuild { endpoint: String, reason: String },
 

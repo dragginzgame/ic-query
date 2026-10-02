@@ -27,3 +27,15 @@ pub fn subnet_catalog_refresh_lock_path(cache_root: &Path, network: &str) -> Pat
         .join("subnet-catalog")
         .join("refresh.lock")
 }
+
+/// Returns the bounded Registry history transcript path for a network catalog.
+#[must_use]
+pub fn subnet_catalog_history_path(cache_root: &Path, network: &str) -> PathBuf {
+    subnet_catalog_path(cache_root, network).with_file_name("history.json")
+}
+
+/// Returns the short-lived writer lock path for a network catalog's history.
+#[must_use]
+pub fn subnet_catalog_history_lock_path(cache_root: &Path, network: &str) -> PathBuf {
+    subnet_catalog_path(cache_root, network).with_file_name("history.lock")
+}

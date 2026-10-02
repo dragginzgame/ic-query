@@ -36,6 +36,7 @@ mod scan;
 pub use read::open_managed_file;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
+    feature = "subnet-catalog-host",
     feature = "icrc-host",
     feature = "sns-host",
     test

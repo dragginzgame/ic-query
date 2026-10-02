@@ -11,6 +11,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.44.md](docs/changelog/0.44.md)
 
+- `0.44.2` rejects refresh export paths that alias the managed cache or refresh
+  lock, fixing dry runs that could overwrite a Subnet Catalog while reporting
+  no cache write. Protects Subnet Catalog and shared NNS cache refreshes against
+  path, symlink, and Unix hard-link aliases; distinct exports remain supported.
+  Adds bounded cross-process Registry history reuse for live Subnet Catalog
+  loads and refreshes, with explicit opt-in for caller-owned sources. Restored
+  transcripts preserve endpoint isolation, fresh record reads, and agreement;
+  local cache inventory exposes the transcript and its writer lock.
+  A separate-process mainnet trial avoided all 154 cold history queries and
+  refreshed in 20.979 s versus a 92.236 s cold acquisition.
+
 - `0.44.1` updates development and CI to Rust 1.99.0, fixes Clippy findings,
   and adds no-default library linting to the CI gate. Refreshes locked
   dependencies while retaining the declared Rust 1.91.0 minimum. Records

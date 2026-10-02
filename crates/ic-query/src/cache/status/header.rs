@@ -149,6 +149,7 @@ fn begins_cache_payload(key: &str) -> bool {
     matches!(
         key,
         "completeness"
+            | "checkpoints"
             | "subnets"
             | "routing_ranges"
             | "nodes"
@@ -322,6 +323,12 @@ fn snapshot_component(parts: &[&str]) -> Option<String> {
 
 fn nns_path_component(parts: &[&str]) -> Option<String> {
     match parts {
+        [
+            "nns",
+            "ic",
+            "subnet-catalog",
+            "history.json" | "history.lock",
+        ] => Some("nns/registry-history".to_string()),
         ["nns", _, component, ..] => nns_component(component).map(str::to_string),
         _ => None,
     }
@@ -358,6 +365,7 @@ fn recovery_policy(relative: &Path) -> CacheRecoveryPolicy {
         | ["sns", "ic", "catalog", "discovery", "full.json"] => CacheRecoveryPolicy::Automatic,
         ["sns", "ic", _, "proposals", "full.json"] => CacheRecoveryPolicy::MissingOnly,
         ["nns", "ic", "subnet-topology", "report.json"]
+        | ["nns", "ic", "subnet-catalog", "history.json"]
         | [
             "nns",
             "ic",

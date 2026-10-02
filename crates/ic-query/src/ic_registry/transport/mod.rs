@@ -5,6 +5,7 @@ mod certified;
 mod certified_delta;
 mod chunk;
 mod codec;
+mod history_cache;
 mod key_family;
 mod query;
 mod value;
@@ -40,6 +41,7 @@ pub(super) use version::get_latest_version_counted;
 
 pub use acquisition::RegistryAcquisition;
 pub use acquisition::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
+pub use history_cache::RegistryHistoryCacheDisposition;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 

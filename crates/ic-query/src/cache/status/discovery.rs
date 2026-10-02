@@ -52,6 +52,12 @@ pub(super) fn collect_inventory_paths(
 
 fn candidate_kind(path: &Path) -> Option<CandidateKind> {
     let name = path.file_name()?.to_str()?;
+    if path.ends_with("nns/ic/subnet-catalog/history.json") {
+        return Some(CandidateKind::Cache);
+    }
+    if path.ends_with("nns/ic/subnet-catalog/history.lock") {
+        return Some(CandidateKind::RefreshLock);
+    }
     if matches!(
         name,
         "catalog.json"

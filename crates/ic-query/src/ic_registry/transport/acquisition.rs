@@ -1,4 +1,6 @@
+use super::history_cache::{RegistryHistoryCache, RegistryHistoryCacheDisposition};
 use super::key_family::RegistryKeyFamilyCheckpoint;
+use std::path::PathBuf;
 use std::{collections::BTreeMap, sync::Mutex};
 
 ///
@@ -43,6 +45,17 @@ pub enum SubnetCatalogProgressPhase {
         /// Whether this event reports a retained endpoint-local history prefix.
         reused: bool,
     },
+    /// A caller-owned disk history checkpoint was examined or published.
+    HistoryCache {
+        /// Confined file containing endpoint-isolated history transcripts.
+        path: PathBuf,
+        /// Observable checkpoint read or write result.
+        disposition: RegistryHistoryCacheDisposition,
+        /// Highest validated retained version for this endpoint and prefix.
+        through_version: u64,
+        /// Rejection or skipped-publication reason when applicable.
+        reason: Option<String>,
+    },
     /// A pinned Registry value read has started or completed.
     Record {
         /// Requested Registry version, distinct from the value's last mutation version.
@@ -73,5 +86,22 @@ pub enum SubnetCatalogProgressPhase {
 #[derive(Default)]
 pub struct RegistryAcquisition {
     pub(super) history: Mutex<BTreeMap<(String, String), RegistryKeyFamilyCheckpoint>>,
-    pub(crate) progress: Option<Box<dyn Fn(SubnetCatalogProgress) + Send + Sync>>,
+    pub(crate) progress: Option<std::sync::Arc<dyn Fn(SubnetCatalogProgress) + Send + Sync>>,
+    pub(super) history_cache: Option<RegistryHistoryCache>,
+}
+
+impl RegistryAcquisition {
+    pub(crate) fn history_cache_paths(&self) -> Option<(&std::path::Path, &std::path::Path)> {
+        self.history_cache.as_ref().map(RegistryHistoryCache::paths)
+    }
+    pub(crate) fn with_history_cache(
+        root: PathBuf,
+        progress: Option<std::sync::Arc<dyn Fn(SubnetCatalogProgress) + Send + Sync>>,
+    ) -> Self {
+        Self {
+            progress,
+            history_cache: Some(RegistryHistoryCache::new(root)),
+            ..Self::default()
+        }
+    }
 }

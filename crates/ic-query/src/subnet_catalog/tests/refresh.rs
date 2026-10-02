@@ -1,6 +1,8 @@
 use super::{fixtures::*, *};
 use crate::cache_file::{CacheFileError, HostCacheError};
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
 use std::{
     future::Future,
     sync::atomic::{AtomicUsize, Ordering},
@@ -27,6 +29,48 @@ impl SubnetCatalogSource for WrongEndpointSource {
     ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async { Ok(fixture_catalog()) })
     }
+}
+
+#[test]
+fn refresh_exports_protect_a_live_sources_separate_history_root_before_collection() {
+    let root = temp_dir("ic-query-catalog-separate-history-export");
+    let history_root = temp_dir("ic-query-catalog-source-history-export");
+    let source =
+        LiveSubnetCatalogSource::with_progress(|_| panic!("export rejected before collection"))
+            .with_history_cache(&history_root);
+    let paths: [_; 2] = source
+        .history_cache_paths()
+        .expect("configured history paths")
+        .into();
+    for output in paths {
+        crate::cache_file::write_managed_text_atomically(
+            &history_root,
+            output,
+            "preserved evidence",
+        )
+        .expect("seed protected bytes");
+        let mut request = refresh_request(&root);
+        request.output_path = Some(output.to_path_buf());
+        for dry_run in [true, false] {
+            request.dry_run = dry_run;
+            let error = refresh_subnet_catalog_with_source(&request, &source)
+                .expect_err("source-owned history export alias");
+            assert!(matches!(
+                error,
+                SubnetCatalogHostError::Cache(HostCacheError::Operation {
+                    source: CacheFileError::OutputAliasesManagedPath { .. },
+                    ..
+                })
+            ));
+            assert_eq!(
+                fs::read_to_string(output).expect("protected bytes"),
+                "preserved evidence"
+            );
+            assert!(!subnet_catalog_refresh_lock_path(&root, "ic").exists());
+        }
+    }
+    assert!(!root.exists());
+    fs::remove_dir_all(history_root).expect("cleanup history root");
 }
 
 #[test]
@@ -310,6 +354,124 @@ fn custom_source_must_echo_the_exact_requested_endpoint() {
 }
 
 #[test]
+fn refresh_rejects_output_aliasing_catalog_without_changing_cache() {
+    for dry_run in [true, false] {
+        let root = temp_dir("ic-query-subnet-refresh-output-alias");
+        let mut original_catalog = fixture_catalog();
+        original_catalog.provenance.fetched_by = "original-cache".to_string();
+        original_catalog
+            .canonicalize_and_seal()
+            .expect("seal original");
+        write_catalog(&root, original_catalog);
+        let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+        let original = fs::read(&path).expect("original catalog");
+        let request = refresh_request(&root)
+            .with_dry_run(dry_run)
+            .with_output_path(&path);
+
+        let result = refresh_subnet_catalog_with_source(
+            &request,
+            &FixtureRefreshSource::ok(fixture_catalog()),
+        );
+
+        assert!(matches!(
+            result,
+            Err(SubnetCatalogHostError::Cache(HostCacheError::Operation {
+                source: CacheFileError::OutputAliasesManagedPath { .. },
+                ..
+            }))
+        ));
+        assert_eq!(fs::read(&path).expect("preserved catalog"), original);
+        assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
+fn refresh_rejects_output_aliases_before_fetching_or_creating_catalog_and_lock() {
+    let root = temp_dir("ic-query-subnet-refresh-output-preflight");
+    for output_path in [
+        subnet_catalog_path(&root, MAINNET_NETWORK),
+        subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK),
+        crate::subnet_catalog::subnet_catalog_history_path(&root, MAINNET_NETWORK),
+        crate::subnet_catalog::subnet_catalog_history_lock_path(&root, MAINNET_NETWORK),
+    ] {
+        let request = refresh_request(&root)
+            .with_dry_run(true)
+            .with_output_path(output_path);
+        let error = refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+            .expect_err("invalid output fails before the failing source is called");
+        assert!(matches!(
+            error,
+            SubnetCatalogHostError::Cache(HostCacheError::Operation {
+                source: CacheFileError::OutputAliasesManagedPath { .. },
+                ..
+            })
+        ));
+        assert!(!root.exists());
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn refresh_rechecks_output_aliases_after_source_collection() {
+    struct AliasingSource {
+        output_path: PathBuf,
+        catalog_path: PathBuf,
+        fixture: FixtureRefreshSource,
+        hard_link: bool,
+    }
+
+    impl SubnetCatalogSource for AliasingSource {
+        fn fetch_catalog<'a>(
+            &'a self,
+            request: &'a NnsSourceRequest,
+        ) -> SubnetCatalogSourceFuture<'a> {
+            Box::pin(async move {
+                if self.hard_link {
+                    fs::hard_link(&self.catalog_path, &self.output_path).expect("late hard link");
+                } else {
+                    symlink(&self.catalog_path, &self.output_path).expect("late symlink");
+                }
+                self.fixture.fetch_catalog(request).await
+            })
+        }
+    }
+
+    for hard_link in [true, false] {
+        let root = temp_dir("ic-query-subnet-refresh-late-output-alias");
+        write_catalog(&root, fixture_catalog());
+        let catalog_path = subnet_catalog_path(&root, MAINNET_NETWORK);
+        let original = fs::read(&catalog_path).expect("original catalog");
+        let output_path = root.join("export.json");
+        let source = AliasingSource {
+            output_path: output_path.clone(),
+            catalog_path: catalog_path.clone(),
+            fixture: FixtureRefreshSource::ok(fixture_catalog()),
+            hard_link,
+        };
+        let request = refresh_request(&root)
+            .with_dry_run(true)
+            .with_output_path(output_path);
+        let error = refresh_subnet_catalog_with_source(&request, &source)
+            .expect_err("alias introduced during collection is rejected");
+        assert!(matches!(
+            error,
+            SubnetCatalogHostError::Cache(HostCacheError::Operation {
+                source: CacheFileError::OutputAliasesManagedPath { .. },
+                ..
+            })
+        ));
+        assert_eq!(
+            fs::read(&catalog_path).expect("preserved catalog"),
+            original
+        );
+        assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
 fn refresh_dry_run_writes_output_without_replacing_cache() {
     let root = temp_dir("ic-query-subnet-refresh-dry-run");
     let mut catalog = fixture_catalog();
@@ -327,6 +489,32 @@ fn refresh_dry_run_writes_output_without_replacing_cache() {
     assert!(!report.wrote_catalog);
     assert!(!subnet_catalog_path(&request.cache.cache_root, MAINNET_NETWORK).exists());
     assert!(output_path.exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn refresh_dry_run_distinct_output_preserves_existing_catalog_bytes() {
+    let root = temp_dir("ic-query-subnet-refresh-dry-run-existing");
+    let mut original_catalog = fixture_catalog();
+    original_catalog.provenance.fetched_by = "original-cache".to_string();
+    original_catalog
+        .canonicalize_and_seal()
+        .expect("seal original");
+    write_catalog(&root, original_catalog);
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    let original = fs::read(&path).expect("original catalog");
+    let output_path = root.join("catalog-export.json");
+    let request = refresh_request(&root)
+        .with_dry_run(true)
+        .with_output_path(&output_path);
+    let report =
+        refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
+            .expect("distinct dry-run output");
+
+    assert!(!report.wrote_catalog);
+    assert!(report.replaced_existing_catalog);
+    assert_eq!(fs::read(&path).expect("preserved catalog"), original);
+    assert_ne!(fs::read(&output_path).expect("export"), original);
     let _ = fs::remove_dir_all(root);
 }
 

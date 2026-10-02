@@ -280,6 +280,18 @@ Dashboard `reqwest` transport or `serde_cbor` certification dependencies. Those
 packages may still appear transitively through `ic-agent`. The full `host`
 feature is a strict superset.
 
+The standard Subnet Catalog live load/refresh APIs retain bounded Registry
+history under the request's private cache root. For caller-owned sources, use
+`LiveSubnetCatalogSource::default().with_history_cache(cache_root)`, or append
+the builder to `LiveSubnetCatalogSource::with_progress(observer)`. Recreate the
+source with the same root in another process to resume its endpoint-local
+prefix. Cache hits and cache-only reads do no history IO; dry-run convenience
+refreshes use memory-only history. These transcripts are trusted local query
+evidence and do not change assurance or replace fresh pinned record reads and
+endpoint agreement. See the
+[transcript contract](design/subnet-catalog-acquisition-performance.md#cross-process-transcript-contract)
+for bounds, confinement, typed progress, and invalid-content recovery.
+
 For certified Registry archive/replay and archive-bound Subnet Catalog
 authority without the complete NNS host surface, use:
 

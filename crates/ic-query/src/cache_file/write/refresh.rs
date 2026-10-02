@@ -4,7 +4,7 @@
 //! Does not own: command-specific reports, cache paths, or live refreshes.
 //! Boundary: serializes refresh output under the shared refresh-lock guard.
 
-use super::write_text_output;
+use super::{validate_output_path, write_text_output};
 use crate::cache_file::{
     CacheFileError, create_managed_parent_directory,
     lock::{RefreshLockRequest, with_refresh_lock},
@@ -32,6 +32,7 @@ pub struct RefreshCacheWriteRequest<'a, T> {
     pub now_unix_secs: u64,
     pub lock_stale_after_seconds: u64,
     pub dry_run: bool,
+    /// Optional export that must not alias the managed cache or refresh lock.
     pub output_path: Option<&'a Path>,
     pub report: &'a T,
 }
@@ -59,6 +60,10 @@ pub fn write_json_refresh_cache<T, E>(
 where
     T: Serialize,
 {
+    let managed_paths = [request.cache_path, request.lock_path];
+    if let Some(output_path) = request.output_path {
+        validate_output_path(output_path, &managed_paths).map_err(&cache_error)?;
+    }
     create_managed_parent_directory(request.cache_root, request.cache_path)
         .map_err(&cache_error)?;
     with_refresh_lock(
@@ -78,7 +83,8 @@ where
             if let Some(output_path) = request.output_path {
                 let report_json = serde_json::to_string_pretty(request.report)
                     .map_err(|source| serialize_cache(request.cache_path.to_path_buf(), source))?;
-                write_text_output(output_path, &report_json).map_err(&cache_error)?;
+                write_text_output(output_path, &report_json, &managed_paths)
+                    .map_err(&cache_error)?;
                 if !request.dry_run {
                     write_managed_text_atomically(
                         request.cache_root,

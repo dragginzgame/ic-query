@@ -15,7 +15,11 @@ use crate::cache_file::{CacheFileError, write_managed_file_atomically};
 use serde::Serialize;
 use std::io;
 
-#[cfg(any(feature = "certified-subnet-catalog-host", test))]
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "subnet-catalog-host",
+    test
+))]
 use std::io::Write;
 
 #[cfg(any(
@@ -28,7 +32,11 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// Return the canonical compact JSON byte length without retaining encoded bytes.
-#[cfg(any(feature = "certified-subnet-catalog-host", test))]
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "subnet-catalog-host",
+    test
+))]
 pub fn canonical_json_serialized_len<T>(value: &T) -> Result<u64, serde_json::Error>
 where
     T: Serialize + ?Sized,
@@ -84,12 +92,20 @@ where
 }
 
 #[derive(Default)]
-#[cfg(any(feature = "certified-subnet-catalog-host", test))]
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "subnet-catalog-host",
+    test
+))]
 struct CountingWriter {
     bytes: u64,
 }
 
-#[cfg(any(feature = "certified-subnet-catalog-host", test))]
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "subnet-catalog-host",
+    test
+))]
 impl Write for CountingWriter {
     fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
         let length = u64::try_from(buffer.len())

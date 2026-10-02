@@ -9,6 +9,38 @@ use std::{fs, path::Path, time::SystemTime};
 use std::os::unix::fs::{PermissionsExt, symlink};
 
 #[test]
+fn status_lists_history_transcripts_and_locks_without_reading_their_payload() {
+    let root = temp_dir("ic-query-cache-status-registry-history");
+    let history_path = root.join("nns/ic/subnet-catalog/history.json");
+    write_cache(
+        &root,
+        &history_path,
+        r#"{"schema_version":1,"network":"ic","fetched_at":"2026-10-01T00:00:00Z","checkpoints":[unread payload"#,
+    );
+    let lock_path = root.join("nns/ic/subnet-catalog/history.lock");
+    let lock = serde_json::json!({
+        "schema_version": 1, "network": "ic", "pid": 123,
+        "started_at_unix_ms": 1_790_812_800_000u64, "stale_after_seconds": 600,
+        "target_path": history_path.display().to_string(),
+    });
+    write_cache(&root, &lock_path, &lock.to_string());
+    let now = parse_utc_timestamp_secs("2026-10-02T00:00:00Z").unwrap();
+    let report =
+        build_cache_status_report(&CacheStatusRequest::new(&root, now)).expect("history inventory");
+    assert_eq!(report.cache_count, 1);
+    let row = &report.caches[0];
+    assert_eq!(row.component, "nns/registry-history");
+    assert_eq!(row.header_status, CacheHeaderStatus::Readable);
+    assert_eq!(row.age_status, CacheAgeStatus::Unmanaged);
+    assert_eq!(row.recovery_policy, CacheRecoveryPolicy::Explicit);
+    assert_eq!(row.schema_version, Some(1));
+    assert_eq!(report.refresh_lock_count, 1);
+    assert_eq!(report.refresh_locks[0].component, "nns/registry-history");
+    assert!(!report.family_validation_performed);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn status_separates_header_age_and_recovery_evidence_without_attempts() {
     let root = temp_dir("ic-query-cache-status");
     write_cache(

@@ -13,18 +13,22 @@ A later endpoint's failure can wait behind an earlier endpoint's pending read;
 the caller's acquisition deadline remains the overall bound.
 
 `LiveSubnetCatalogSource` is a reusable, cloneable source for the existing
-`*_with_source` APIs. Its clones share memory-only history checkpoints and an
-optional structured progress callback. Keep one instance across retry and
-refresh attempts. The stateless convenience APIs also get endpoint overlap and
-the bounded retry policy, but do not retain history between loads.
+`*_with_source` APIs. Its clones share memory history checkpoints and an optional
+structured progress callback. Keep one instance across retry and refresh
+attempts, or configure `with_history_cache(cache_root)` to reuse history across
+fresh sources and processes. Standard live catalog load/refresh convenience
+APIs configure disk history under the request's cache root. Cache hits and
+cache-only reads do not inspect or write history. Dry-run refresh convenience
+calls use memory-only history; caller-supplied sources retain their explicit
+configuration.
 
 ## History reuse and authority
 
 Checkpoints are keyed by exact endpoint string and key-family prefix, with at
 most eight retained entries per source. Each contains the membership state
 (including tombstones), highest completely validated version, and cumulative
-resource counters. There is no global cache, disk sidecar, schema change, or
-checkpoint serialization API.
+resource counters. There is no global cache. Disk reuse is confined to the
+caller-selected root and never creates a second catalog authority.
 
 A page is retained only after the existing continuity, key/value ceiling,
 mutation, and deletion validation succeeds for the entire page. Mutations after
@@ -48,11 +52,67 @@ record is freshly read at the new pin, and existing agreement, assurance-floor,
 per-record provenance, and catalog validation remain mandatory. No key list is
 inferred from Subnet membership or hard-coded shard introduction versions.
 
-Cold collection in a new process still scans history from zero. Persisting
-checkpoints would require a separate integrity/ownership contract and recovery
-policy. That additional contract is intentionally deferred. Cumulative
-resource ceilings remain conservative, including values beyond the pin that
-were inspected in a boundary page.
+Without a configured or valid disk checkpoint, collection scans history from
+zero. Cumulative resource ceilings remain conservative, including values beyond
+the pin that were inspected in a boundary page.
+
+### Cross-process transcript contract
+
+The current schema-1 file is `nns/ic/subnet-catalog/history.json`, beside the
+catalog and guarded by a separate `history.lock`. It retains at most eight
+exact endpoint/prefix identities, each also bound to canonical network `ic`
+and the mainnet Registry canister. The complete JSON file is capped at 64 MiB;
+each transcript has at most 4,096 pages, and normalized page bytes retain the
+agent's 8 MiB response ceiling. Existing 100,000-delta-key, one-million-value,
+and 1,024-byte-key ceilings still apply cumulatively after restoration.
+
+The file stores normalized protobuf delta pages as lowercase hexadecimal,
+including all keys, mutation versions, presence/deletion markers, observed
+latest versions, and each page's validated watermark. Inline payloads, chunk
+contents/references, and mutation timestamps are unnecessary for key discovery
+and are discarded. Restoration replays all retained pages through the same
+continuity, mutation, deletion, and resource validator. It reconstructs both
+membership and tombstones and recomputes cumulative counters. Boundary-page
+mutations after that page's watermark remain ignored even when restoring for a
+later pin. No serialized membership map is accepted as sufficient evidence.
+
+This is **trusted local-owner query evidence**. The owner-private root and
+files use the existing no-symlink confinement and `0700`/`0600` rules. A SHA-256
+checksum binds the current schema, network, publication timestamp, identities,
+and transcripts against accidental corruption; it does not authenticate
+Registry responses or prove completeness against an owner who rewrites the
+transcript and checksum. Same-account malicious modification is outside this
+trust contract, as it is for ordinary catalog caches. Certification would
+require separately retained authenticated evidence. Restored prefixes never
+raise assurance, exempt freshness, seed another endpoint, or replace fresh
+pinned Subnet-list, routing-shard, and Subnet-record reads and endpoint agreement.
+
+Malformed, wrong-identity, unsupported-schema, oversized, checksum-invalid,
+or semantically invalid local content emits `HistoryCache::Rejected` progress
+and starts from zero only within the already-authorized live operation.
+Permission, confinement, and other IO failures remain typed cache errors and
+do not authorize a fallback. Cache-only policy never uses history to start
+network work. Invalid bytes remain untouched until a complete live page is
+validated and atomically published; a failed collection preserves them.
+
+Memory checkpoints advance after every fully validated page. Disk publication
+occurs after the first page, every eight collected pages, and history completion,
+before another await. This avoids rewriting the growing transcript for every
+page. Ordinary interruption can leave up to seven completed pages to repeat in
+a new process; the durable prefix remains complete. Cancellation or later
+record failure never publishes a partial catalog. A short filesystem lock
+serializes reread/merge and atomic replacement; writers preserve other identities
+and never replace a newer valid prefix with an older one. A busy writer or retention ceiling
+emits `Skipped` and leaves live collection intact. Stale or invalid locks
+remain errors and require operator inspection and manual cleanup. Skipped
+publication can leave an older prefix than the ordinary seven-page window.
+There are no detached writers or automatic lock deletion. Progress callbacks
+run after both history mutexes and filesystem locks have been released.
+
+`icq cache status` lists the transcript and its lock as `nns/registry-history`.
+It reads the leading metadata without scanning transcripts and reports no age
+expiry policy; history publication time is not catalog freshness or authority.
+Full transcript validation belongs to live acquisition, not generic inventory.
 
 ## Progress and retries
 
@@ -62,6 +122,8 @@ callback receiving `SubnetCatalogProgress`:
 - exact endpoint and endpoint-local query-attempt count;
 - endpoint start and pinned Registry version;
 - history watermark, target version, and whether the prefix was reused;
+- disk checkpoint path, read/write disposition, watermark, and rejection or
+  skipped-publication reason;
 - record key, requested version, and read start/completion;
 - retry method, next attempt, and delay in milliseconds.
 
@@ -101,15 +163,77 @@ structured progress:
    shared deadline. Dropping that future releases owned collection work and the
    refresh lock. Do not recreate the source for every retry.
 
+For separate processes, construct the source with the same private root:
+
+```rust
+let source = LiveSubnetCatalogSource::with_progress(observer)
+    .with_history_cache(cache_root);
+```
+
+Canic's caller-owned source must opt in using its existing private catalog root;
+passing a source to a `*_with_source` API never silently reconfigures it. No
+Canic files are changed by this upstream implementation.
+
+The new public `SubnetCatalogProgressPhase::HistoryCache` variant is a hard
+API cut for exhaustive progress matches. Canic's current
+`crates/canic-host/src/subnet_catalog/ops/mod.rs::registry_progress` match must
+handle this phase when adopting the release, and its client must configure the
+root before collection. The phase reports local checkpoint handling, not a new
+snapshot authority or freshness claim.
+
 No sibling repository changes are needed upstream. No production CLI options
 are added.
 
 Canic currently constructs and drops its catalog client during a generation.
-The in-memory history checkpoint therefore cannot help ordinary separate CLI
-runs; reuse requires retaining the source within one process. A persistent
-checkpoint is a possible follow-up only after cold-start measurements and an
-explicit integrity and invalidation contract. This is a performance
-opportunity, not a known catalog correctness failure.
+Its existing memory-only source therefore cannot help ordinary separate CLI
+runs until it adopts the explicit disk configuration above. The upstream
+convenience APIs already use the request's cache root for cross-process reuse.
+
+## Cross-process qualification: 2026-10-02
+
+The schema-1 disk implementation passes 1,151 workspace tests across all
+targets/features and 212 library tests with Canic's minimal
+`subnet-catalog-host` feature selection. Fixtures exercise separate OS
+processes, endpoint/prefix isolation, tombstones, boundary pins, restored
+cumulative limits, bounded file/identity retention, invalid-content repair,
+confinement failures, writer-lock policy, and cancellation with batched durable
+prefixes. Warning-denied pure, workspace, and minimal-feature Clippy, Rust
+1.91.0 MSRV, feature boundaries, type/public documentation, process boundaries,
+schema versions, formatting, and CI-script checks passed. The working-tree
+0.44.2 ledger and detailed heading are prepared; the changelog gate also
+requires committed HEAD entries, which remain the maintainer's release step.
+Canic's tests, the full release gate, and live transport-fault injection were
+not run.
+
+Initial development-build timing exposed expensive per-page transcript
+rewrites: a cold agreement took 318.832 s. Publishing the first page, every
+eight pages, and completion reduced the repeated cold trial to 92.236 s with
+the same 318 explicit queries. These are individual observations, not a
+controlled benchmark or latency guarantee. An earlier five-minute trial was
+terminated after durably reaching version 63722 at both endpoints. After
+manually removing only that stopped trial's temporary writer locks, a new
+process resumed with 168 queries, including four remaining history pages;
+production lock recovery remains manual.
+
+The final batched trial used `https://ic0.app` and `https://icp-api.io`, with
+an empty private temporary root and Registry version **64518**. Cold agreement
+took **92.236 s** and **318 queries**; cache-only reuse took **19.956 ms** and
+returned exactly the same snapshot authority. A new source using the saved
+disk history took **19.277 s** and **164 queries**, avoiding all **154 history
+queries** while retaining fresh pinned value reads. Both acquisitions agreed
+on canonical content digest
+`5e7a98f27b9f4ec8a8ca797d564a595fba811107f9bb361d2fb30821e0e433ea`.
+The owner-private `0600` transcript retained 77 normalized pages per endpoint
+in 30,382,936 bytes, below the 64 MiB ceiling. The root and managed directories
+remain `0700`. These upstream example timings are not Canic generation timings.
+
+A second OS process using the same root reported restored prefixes through
+version 64518 at both endpoints. Its first forced live agreement took
+**20.979 s** and **164 queries**, avoiding all 154 cold history queries. Its
+cache-only read took **21.029 ms** with identical snapshot authority, and its
+fresh-source refresh took **21.012 s** and 164 queries. Every acquisition in
+both processes returned the same Registry version and agreement digest. No
+source object or memory checkpoint was shared between the two processes.
 
 ## Measurement
 
@@ -120,12 +244,14 @@ cargo run -p ic-query-cli \
   --example subnet_catalog_timing -- /tmp/icq-catalog-timing
 ```
 
-The example acquires agreement from `https://ic0.app` and `https://icp-api.io`,
-loads the resulting cache, then forces a refresh using the same source to
-measure history reuse. Use a new directory for each cold measurement. The
-before measurement used the same first two operations with the original
-collector; compile time is excluded. These are single-run development-build
-wall times, not a latency guarantee.
+The current example forces agreement from `https://ic0.app` and
+`https://icp-api.io`, loads the resulting cache without network work, then
+forces another refresh with a newly constructed source using disk history.
+Run it again with the same directory to measure another process's first live
+acquisition from the retained prefix. Use a new directory for each cold
+measurement. Compilation is excluded from reported wall times. Historical
+measurements below used the then-current memory-only example and are not
+measurements of this new transcript implementation or latency guarantees.
 
 Measured on 2026-09-15 against Registry version **64108**:
 
@@ -226,6 +352,51 @@ Rust 1.99.0: 78 catalog/source tests, 15 Registry transport tests, nine public
 catalog API tests, and all-target Clippy with warnings denied. Whitespace
 checks passed. Canic was inspected read-only; its tests and a fresh live
 acquisition or transport-fault experiment were not run for this review.
+
+## Canic output-alias follow-up: 2026-10-02
+
+Canic's updated `docs/status/current.md` records a separate correctness defect
+against 0.44.0. Its retained `target/review-validation/ic-memory-0152-feedback.log`
+and `ic-memory-0152-upstream-probe.rs` show a catalog dry run with the managed
+catalog as its output path changing valid cache bytes while reporting
+`wrote_catalog=false`. A distinct-output control preserves those bytes. This
+feedback arrived after the acquisition-focused review above; the shared export
+writer in released 0.44.1 still has the same defect.
+
+The local regression reproduced the missing rejection on released code. The
+fix rejects output aliases of the operation's managed catalog/cache and refresh
+lock through the shared cache-file boundary. Catalog requests validate before
+source collection, directory creation, or lock acquisition. The writer checks
+again after collection and opens without truncation before comparing the opened
+file identity. Resolved paths cover relative names, parent traversal, symlinks,
+and missing targets; Unix file identities additionally cover hard links.
+
+Fixtures cover both dry-run and normal publication, protected cache and lock
+paths, missing targets, direct and indirect aliases, aliases introduced during
+source collection, unchanged existing cache bytes, lock cleanup, and distinct
+dry-run exports. Canic was inspected read-only. No sibling dependency change,
+upstream issue posting, package version bump, or live acquisition was performed.
+
+Validation passed on Rust 1.99.0: all 1,133 workspace tests across all targets
+and features, 193 library tests with Canic's minimal `subnet-catalog-host`
+selection, warning-denied Clippy for that selection, the pure library and full workspace,
+the declared Rust 1.91.0 MSRV check, formatting, type-doc, library process-IO,
+schema-version, and whitespace checks. Existing local HTTP fixture tests needed
+a rerun with loopback access after the sandbox rejected their socket binds.
+Live acquisition, transport-fault injection, Canic's tests, and the release gate
+were not run for this follow-up.
+
+Canic's subsequent upstream recheck in `docs/status/current.md` and
+`docs/code-review/status.md` now explicitly selects registry 0.44.1 and tracks
+the alias fix as present only in this uncommitted working tree. Its manifest,
+lockfile, and cached release source confirm that disposition: the released
+writer still uses `File::create`. Canic's current loader supplies no export
+path, so the triggering combination is not exposed by that integration. No
+new `ic-query` correctness feedback or live timing evidence was added;
+cross-process history reuse remains open. All ten output-related regressions
+passed again with Canic's minimal feature selection. This recheck did not
+rerun the full workspace gate, Canic tests, or live acquisition, and made no
+source, dependency, or release changes.
 
 ## Original acquisition-change validation
 

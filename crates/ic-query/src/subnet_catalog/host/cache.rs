@@ -5,15 +5,15 @@
 //! Boundary: returns validated snapshot authority separately from observable acquisition state.
 
 use super::{
-    CatalogSourceSelection, SubnetCatalogFailureCacheDisposition, SubnetCatalogHostError,
-    SubnetCatalogLoadFailure, SubnetCatalogLoadStage, SubnetCatalogRefreshRequest,
-    SubnetCatalogRefreshTrigger, SubnetCatalogSource, SubnetCatalogSourceFailure,
-    SubnetCatalogSubject, error::enforce_mainnet_network, failure::subject_from_catalog_error,
+    CatalogSourceSelection, LiveSubnetCatalogSource, SubnetCatalogFailureCacheDisposition,
+    SubnetCatalogHostError, SubnetCatalogLoadFailure, SubnetCatalogLoadStage,
+    SubnetCatalogRefreshRequest, SubnetCatalogRefreshTrigger, SubnetCatalogSource,
+    SubnetCatalogSourceFailure, SubnetCatalogSubject, error::enforce_mainnet_network,
+    failure::subject_from_catalog_error,
     refresh::refresh_subnet_catalog_detailed_with_source_async, subnet_catalog_path,
 };
 use crate::{
     cache_file::read_managed_text,
-    nns::LiveNnsSource,
     runtime::block_on_current_thread,
     subnet_catalog::{
         CatalogAssurance, CatalogSnapshotAuthorityEvidence, CatalogValidationContext,
@@ -324,7 +324,8 @@ pub async fn load_subnet_catalog_async(
 pub async fn load_subnet_catalog_detailed_async(
     request: &SubnetCatalogLoadRequest,
 ) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
-    load_subnet_catalog_detailed_with_source_async(request, &LiveNnsSource).await
+    let source = LiveSubnetCatalogSource::default().with_history_cache(&request.cache.cache_root);
+    load_subnet_catalog_detailed_with_source_async(request, &source).await
 }
 
 /// Apply a catalog read policy on the caller's async runtime using a supplied source.

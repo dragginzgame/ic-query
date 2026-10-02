@@ -18,6 +18,7 @@ mod wire;
 use candid::Principal;
 pub use source::fetch_with_acquisition;
 pub use transport::RegistryAcquisition;
+pub use transport::RegistryHistoryCacheDisposition;
 pub use transport::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
 
 #[cfg(feature = "certified-subnet-catalog-host")]

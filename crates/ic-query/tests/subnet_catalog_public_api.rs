@@ -85,10 +85,12 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
         move |_: ic_query::subnet_catalog::SubnetCatalogProgress| {
             observed.fetch_add(1, Ordering::Relaxed);
         },
-    );
+    )
+    .with_history_cache(root.join("unused-history-root"));
     let reused = load_subnet_catalog_detailed_with_source(&request, &source)
         .expect("reusable source cache hit");
     assert_eq!(events.load(Ordering::Relaxed), 0);
+    assert!(!root.join("unused-history-root").exists());
     assert_eq!(cached.snapshot_authority(), reused.snapshot_authority());
 
     let resolved = cached

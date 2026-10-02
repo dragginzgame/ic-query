@@ -14,6 +14,8 @@ mod text;
 mod time;
 
 #[cfg(feature = "subnet-catalog-host")]
+pub use crate::ic_registry::RegistryHistoryCacheDisposition;
+#[cfg(feature = "subnet-catalog-host")]
 pub use crate::ic_registry::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
 pub use error::CatalogError;
 #[cfg(feature = "subnet-catalog-host")]
@@ -36,6 +38,8 @@ pub use host::{
     refresh_subnet_catalog_with_source, refresh_subnet_catalog_with_source_async,
     subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
+#[cfg(feature = "subnet-catalog-host")]
+pub(crate) use host::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 #[cfg(feature = "subnet-catalog-host")]
 pub use model::UncertifiedCatalogCollection;

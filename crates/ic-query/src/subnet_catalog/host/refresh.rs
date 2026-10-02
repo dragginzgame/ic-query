@@ -1,6 +1,6 @@
 use super::{
-    CatalogSourceSelection, SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogSource,
-    SubnetCatalogSourceFailure, SubnetCatalogSubject,
+    CatalogSourceSelection, LiveSubnetCatalogSource, SubnetCatalogCacheRequest,
+    SubnetCatalogHostError, SubnetCatalogSource, SubnetCatalogSourceFailure, SubnetCatalogSubject,
     error::{enforce_mainnet_network, subnet_cache_error},
     failure::subject_from_catalog_error,
     source::collect_subnet_catalog_detailed,
@@ -9,9 +9,9 @@ use super::{
 use crate::{
     cache_file::{
         RefreshLockRequest, create_managed_parent_directory, managed_file_exists,
-        with_refresh_lock_async, write_managed_text_atomically, write_text_output,
+        validate_output_path, with_refresh_lock_async, write_managed_text_atomically,
+        write_text_output,
     },
-    nns::LiveNnsSource,
     runtime::block_on_current_thread,
     subnet_catalog::{
         CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
@@ -43,6 +43,7 @@ pub struct SubnetCatalogRefreshRequest {
     pub lock_stale_after_seconds: u64,
     pub max_future_skew_seconds: u64,
     pub dry_run: bool,
+    /// Optional export that must not alias the managed catalog, history, or their locks.
     pub output_path: Option<PathBuf>,
 }
 
@@ -102,7 +103,12 @@ pub fn refresh_subnet_catalog_with_source(
 pub async fn refresh_subnet_catalog_async(
     request: &SubnetCatalogRefreshRequest,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
-    refresh_subnet_catalog_with_source_async(request, &LiveNnsSource).await
+    let source = if request.dry_run {
+        LiveSubnetCatalogSource::default()
+    } else {
+        LiveSubnetCatalogSource::default().with_history_cache(&request.cache.cache_root)
+    };
+    refresh_subnet_catalog_with_source_async(request, &source).await
 }
 
 /// Refresh a catalog on the caller's async runtime using a supplied source.
@@ -130,6 +136,23 @@ pub(super) async fn refresh_subnet_catalog_detailed_with_source_async(
     let catalog_path = subnet_catalog_path(&request.cache.cache_root, &request.cache.network);
     let lock_path =
         subnet_catalog_refresh_lock_path(&request.cache.cache_root, &request.cache.network);
+    let history_path =
+        super::subnet_catalog_history_path(&request.cache.cache_root, &request.cache.network);
+    let history_lock_path =
+        super::subnet_catalog_history_lock_path(&request.cache.cache_root, &request.cache.network);
+    if let Some(output_path) = &request.output_path {
+        let mut protected = vec![
+            &catalog_path as &Path,
+            &lock_path,
+            &history_path,
+            &history_lock_path,
+        ];
+        if let Some(paths) = source.history_cache_paths() {
+            protected.extend(<[&Path; 2]>::from(paths));
+        }
+        validate_output_path(output_path, &protected)
+            .map_err(|error| cache_failure(error, None, output_path))?;
+    }
     create_managed_parent_directory(&request.cache.cache_root, &catalog_path)
         .map_err(|error| cache_failure(error, None, &catalog_path))?;
     let known_registry_version = Arc::new(AtomicU64::new(0));
@@ -199,7 +222,17 @@ async fn refresh_subnet_catalog_under_lock(
     let catalog_json = catalog_to_pretty_json(catalog.raw())
         .map_err(|source| catalog_failure(source, registry_version))?;
     if let Some(output_path) = &request.output_path {
-        write_text_output(output_path, &catalog_json)
+        let history_path =
+            super::subnet_catalog_history_path(&request.cache.cache_root, &request.cache.network);
+        let history_lock_path = super::subnet_catalog_history_lock_path(
+            &request.cache.cache_root,
+            &request.cache.network,
+        );
+        let mut protected = vec![catalog_path, lock_path, &history_path, &history_lock_path];
+        if let Some(paths) = source.history_cache_paths() {
+            protected.extend(<[&Path; 2]>::from(paths));
+        }
+        write_text_output(output_path, &catalog_json, &protected)
             .map_err(|error| cache_failure(error, Some(registry_version), output_path))?;
     }
     if !request.dry_run {

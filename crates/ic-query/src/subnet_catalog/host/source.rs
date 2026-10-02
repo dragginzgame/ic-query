@@ -146,6 +146,12 @@ pub async fn fetch_subnet_catalog_async(
 ///
 
 pub trait SubnetCatalogSource: Send + Sync {
+    /// Return the configured history file and writer lock, when this source owns them.
+    /// Refresh exports protect these paths even when the source uses another cache root.
+    fn history_cache_paths(&self) -> Option<(&std::path::Path, &std::path::Path)> {
+        None
+    }
+
     /// Fetch one complete single-endpoint snapshot on the caller's async runtime.
     fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a>;
 
@@ -168,7 +174,7 @@ pub trait SubnetCatalogSource: Send + Sync {
 ///
 /// Reusable live source retaining bounded, endpoint-local validated history prefixes.
 /// Keep one instance across retries and refreshes to avoid replaying old Registry history.
-/// Checkpoints are memory-only query evidence and never promote assurance.
+/// Checkpoints are local query evidence and never promote assurance; disk reuse is opt-in.
 ///
 
 #[derive(Clone, Default)]
@@ -183,7 +189,22 @@ impl LiveSubnetCatalogSource {
         callback: impl Fn(crate::subnet_catalog::SubnetCatalogProgress) + Send + Sync + 'static,
     ) -> Self {
         let mut acquisition = crate::ic_registry::RegistryAcquisition::default();
-        acquisition.progress = Some(Box::new(callback));
+        acquisition.progress = Some(std::sync::Arc::new(callback));
+        Self {
+            acquisition: std::sync::Arc::new(acquisition),
+        }
+    }
+
+    /// Persist endpoint-isolated history under this caller-owned cache root.
+    /// The private local transcript is trusted query evidence, not certification.
+    /// Invalid content is rejected before an authorized cold replay; IO failures
+    /// remain errors. Configuring a root starts a new memory checkpoint context.
+    #[must_use]
+    pub fn with_history_cache(self, cache_root: impl Into<std::path::PathBuf>) -> Self {
+        let acquisition = crate::ic_registry::RegistryAcquisition::with_history_cache(
+            cache_root.into(),
+            self.acquisition.progress.clone(),
+        );
         Self {
             acquisition: std::sync::Arc::new(acquisition),
         }
@@ -191,6 +212,10 @@ impl LiveSubnetCatalogSource {
 }
 
 impl SubnetCatalogSource for LiveSubnetCatalogSource {
+    fn history_cache_paths(&self) -> Option<(&std::path::Path, &std::path::Path)> {
+        self.acquisition.history_cache_paths()
+    }
+
     fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async move {
             self.fetch_catalog_detailed(request)
@@ -211,17 +236,25 @@ impl SubnetCatalogSource for LiveSubnetCatalogSource {
             crate::ic_registry::fetch_with_acquisition(&fetch_request, self.acquisition.clone())
                 .await
                 .map_err(|failure| {
-                    SubnetCatalogSourceFailure::new(
-                        failure.registry_version,
-                        failure.subject,
-                        SubnetCatalogHostError::RegistryRefresh(failure.source),
-                    )
-                    .with_registry_evidence(
-                        failure.returned_registry_value_version,
-                        failure.source_endpoint,
-                        failure.assurance,
-                        failure.registry_records,
-                    )
+                    let (subject, source) = match failure.source {
+                        crate::ic_registry::RegistryFetchError::HistoryCache(source) => (
+                            self.acquisition.history_cache_paths().map(|(path, _)| {
+                                SubnetCatalogSubject::CachePath(path.to_path_buf())
+                            }),
+                            SubnetCatalogHostError::Cache(source),
+                        ),
+                        source => (
+                            failure.subject,
+                            SubnetCatalogHostError::RegistryRefresh(source),
+                        ),
+                    };
+                    SubnetCatalogSourceFailure::new(failure.registry_version, subject, source)
+                        .with_registry_evidence(
+                            failure.returned_registry_value_version,
+                            failure.source_endpoint,
+                            failure.assurance,
+                            failure.registry_records,
+                        )
                 })
         })
     }

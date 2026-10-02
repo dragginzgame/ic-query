@@ -320,8 +320,19 @@ impl SubnetCatalogHostError {
                     | CacheFileError::Confinement { .. }
                     | CacheFileError::UnsafeManagedPermissions { .. },
                 ..
-            }) => SubnetCatalogErrorCategory::Confinement,
-            Self::Cache(_) => SubnetCatalogErrorCategory::CacheIo,
+            })
+            | Self::RegistryRefresh(RegistryFetchError::HistoryCache(
+                HostCacheError::Operation {
+                    source:
+                        CacheFileError::UnsupportedConfinementPlatform { .. }
+                        | CacheFileError::Confinement { .. }
+                        | CacheFileError::UnsafeManagedPermissions { .. },
+                    ..
+                },
+            )) => SubnetCatalogErrorCategory::Confinement,
+            Self::Cache(_) | Self::RegistryRefresh(RegistryFetchError::HistoryCache(_)) => {
+                SubnetCatalogErrorCategory::CacheIo
+            }
             Self::RegistryRefresh(_) => SubnetCatalogErrorCategory::Network,
             Self::AgreementEndpoint { source, .. } => source.category(),
             Self::SourceEvidenceMismatch { .. }
@@ -373,6 +384,9 @@ impl SubnetCatalogHostError {
 
 const fn registry_retryability(error: &RegistryFetchError) -> SubnetCatalogRetryability {
     match error {
+        RegistryFetchError::HistoryCache(_) => {
+            SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::CacheOperation)
+        }
         RegistryFetchError::AgentCall { .. } => {
             SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RegistryTransport)
         }

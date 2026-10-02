@@ -6,6 +6,7 @@
 
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
+    feature = "subnet-catalog-host",
     feature = "dashboard-host",
     feature = "icrc-host",
     feature = "nns-topology-host",
@@ -18,7 +19,11 @@ mod output;
 mod path;
 #[cfg(feature = "nns-host")]
 mod refresh;
+#[cfg(all(test, feature = "subnet-catalog-host"))]
+mod tests;
 
+#[cfg(feature = "certified-subnet-catalog-host")]
+pub use json::canonical_json_matches;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
@@ -26,9 +31,9 @@ mod refresh;
     feature = "sns-host"
 ))]
 pub use json::write_managed_json_pretty_atomically;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use json::{canonical_json_matches, canonical_json_serialized_len, json_error_to_io};
 #[cfg(feature = "subnet-catalog-host")]
-pub use output::write_text_output;
+pub use json::{canonical_json_serialized_len, json_error_to_io};
+#[cfg(feature = "subnet-catalog-host")]
+pub use output::{validate_output_path, write_text_output};
 #[cfg(feature = "nns-host")]
 pub use refresh::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};

@@ -1,3 +1,7 @@
+use super::history_cache::{
+    HISTORY_PUBLICATION_PAGE_INTERVAL, HistoryCacheObservation, MAX_HISTORY_BYTES,
+    MAX_HISTORY_CHECKPOINTS, MAX_HISTORY_PAGE_BYTES, MAX_HISTORY_PAGES, RegistryHistoryPage,
+};
 use super::{RegistryQueryCounter, SubnetCatalogProgressPhase, decode_message};
 use crate::ic_registry::{
     RegistryFetchError,
@@ -9,8 +13,6 @@ use crate::ic_registry::{
 use ic_agent::Agent;
 use prost::Message;
 use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
-
-const MAX_HISTORY_CHECKPOINTS: usize = 8;
 
 const MAX_REGISTRY_DELTA_KEYS: usize = 100_000;
 const MAX_REGISTRY_DELTA_VALUES: usize = 1_000_000;
@@ -29,7 +31,7 @@ pub(in crate::ic_registry) async fn get_registry_key_family_counted(
     .await
 }
 
-async fn collect_key_family<F, Fut>(
+pub(super) async fn collect_key_family<F, Fut>(
     prefix: &str,
     registry_version: u64,
     counter: &RegistryQueryCounter,
@@ -42,44 +44,72 @@ where
         >,
 {
     let mut cursor = 0;
+    let mut collected_pages: usize = 0;
     let mut family = RegistryKeyFamilyState::new(prefix, registry_version);
     let checkpoint_key = (counter.endpoint.clone(), prefix.to_string());
-    if let Some(context) = &counter.acquisition {
-        let history = context.history.lock().expect("history checkpoint lock");
-        if let Some(checkpoint) = history.get(&checkpoint_key)
-            && checkpoint.version <= registry_version
-        {
+    let mut pages =
+        if let Some(checkpoint) = restore_checkpoint(counter, &checkpoint_key, registry_version)? {
             cursor = checkpoint.version;
-            family.states.clone_from(&checkpoint.states);
+            family.states = checkpoint.states;
             family.delta_key_count = checkpoint.delta_key_count;
             family.value_count = checkpoint.value_count;
-        }
-    }
+            checkpoint.pages
+        } else {
+            counter
+                .acquisition
+                .as_ref()
+                .and_then(|context| context.history_cache.as_ref())
+                .map(|_| Vec::new())
+        };
     counter.emit(SubnetCatalogProgressPhase::History {
         registry_version,
         through_version: cursor,
         reused: cursor != 0,
     });
     while cursor < registry_version {
-        let response = page(cursor).await?;
+        let mut response = page(cursor).await?;
+        let encoded = pages.as_ref().map(|_| {
+            normalize_history_response(&mut response);
+            response.encode_to_vec()
+        });
         cursor = family.apply_page(response, cursor)?.min(registry_version);
+        collected_pages += 1;
+        if let Some(encoded) = encoded {
+            let retained = pages.as_mut().expect("recorded history transcript");
+            let bytes = retained
+                .iter()
+                .map(|page| page.response_hex.len())
+                .sum::<usize>();
+            if retained.len() < MAX_HISTORY_PAGES
+                && encoded.len() <= MAX_HISTORY_PAGE_BYTES
+                && bytes.saturating_add(encoded.len().saturating_mul(2))
+                    <= usize::try_from(MAX_HISTORY_BYTES).expect("history byte ceiling fits usize")
+            {
+                retained.push(RegistryHistoryPage {
+                    through_version: cursor,
+                    response_hex: crate::hex::hex_bytes(&encoded),
+                });
+            } else {
+                pages = None;
+            }
+        }
         // Publish only after the entire page passes continuity and content validation.
         if let Some(context) = &counter.acquisition {
-            let mut history = context.history.lock().expect("history checkpoint lock");
-            if (history.contains_key(&checkpoint_key) || history.len() < MAX_HISTORY_CHECKPOINTS)
-                && history
-                    .get(&checkpoint_key)
-                    .is_none_or(|old| old.version <= cursor)
+            let checkpoint = RegistryKeyFamilyCheckpoint {
+                version: cursor,
+                states: family.states.clone(),
+                delta_key_count: family.delta_key_count,
+                value_count: family.value_count,
+                pages: pages.clone(),
+            };
+            remember_checkpoint(counter, &checkpoint_key, &checkpoint);
+            if let Some(cache) = &context.history_cache
+                && (collected_pages == 1
+                    || collected_pages.is_multiple_of(HISTORY_PUBLICATION_PAGE_INTERVAL)
+                    || cursor == registry_version)
             {
-                history.insert(
-                    checkpoint_key.clone(),
-                    RegistryKeyFamilyCheckpoint {
-                        version: cursor,
-                        states: family.states.clone(),
-                        delta_key_count: family.delta_key_count,
-                        value_count: family.value_count,
-                    },
-                );
+                let observation = cache.publish(&counter.endpoint, prefix, &checkpoint)?;
+                emit_history_cache(counter, observation);
             }
         }
         counter.emit(SubnetCatalogProgressPhase::History {
@@ -89,6 +119,54 @@ where
         });
     }
     Ok(family.into_keys())
+}
+
+fn restore_checkpoint(
+    counter: &RegistryQueryCounter,
+    key: &(String, String),
+    pin: u64,
+) -> Result<Option<RegistryKeyFamilyCheckpoint>, RegistryFetchError> {
+    let Some(context) = &counter.acquisition else {
+        return Ok(None);
+    };
+    let retained = context
+        .history
+        .lock()
+        .expect("history checkpoint lock")
+        .get(key)
+        .filter(|checkpoint| checkpoint.version <= pin)
+        .cloned();
+    let checkpoint = if let Some(retained) = retained {
+        Some(retained)
+    } else if let Some(cache) = &context.history_cache {
+        let (checkpoint, observation) = cache.load(&key.0, &key.1, pin)?;
+        emit_history_cache(counter, observation);
+        checkpoint
+    } else {
+        None
+    };
+    if let Some(checkpoint) = &checkpoint {
+        remember_checkpoint(counter, key, checkpoint);
+    }
+    Ok(checkpoint)
+}
+
+fn remember_checkpoint(
+    counter: &RegistryQueryCounter,
+    key: &(String, String),
+    checkpoint: &RegistryKeyFamilyCheckpoint,
+) {
+    let Some(context) = &counter.acquisition else {
+        return;
+    };
+    let mut history = context.history.lock().expect("history checkpoint lock");
+    if (history.contains_key(key) || history.len() < MAX_HISTORY_CHECKPOINTS)
+        && history
+            .get(key)
+            .is_none_or(|old| old.version <= checkpoint.version)
+    {
+        history.insert(key.clone(), checkpoint.clone());
+    }
 }
 
 async fn get_changes_since(
@@ -128,11 +206,99 @@ async fn get_changes_since(
 /// Complete endpoint-local key-family state through a validated history prefix.
 ///
 
+#[derive(Clone)]
 pub(super) struct RegistryKeyFamilyCheckpoint {
     delta_key_count: usize,
     value_count: usize,
-    version: u64,
+    pub(super) version: u64,
     states: BTreeMap<String, (u64, bool)>,
+    pub(super) pages: Option<Vec<RegistryHistoryPage>>,
+}
+
+impl RegistryKeyFamilyCheckpoint {
+    pub(super) fn replay(
+        prefix: &str,
+        pages: Vec<RegistryHistoryPage>,
+    ) -> Result<Self, RegistryFetchError> {
+        if pages.is_empty() || pages.len() > MAX_HISTORY_PAGES {
+            return Err(RegistryFetchError::InvalidRegistryKeyFamily {
+                reason: "invalid history transcript page count".to_string(),
+            });
+        }
+        let mut family = RegistryKeyFamilyState::new(prefix, 0);
+        let mut cursor = 0;
+        for page in &pages {
+            if page.through_version <= cursor
+                || page.response_hex.len() > MAX_HISTORY_PAGE_BYTES * 2
+            {
+                return Err(RegistryFetchError::InvalidRegistryKeyFamily {
+                    reason: "invalid history page watermark or byte length".to_string(),
+                });
+            }
+            let bytes = crate::hex::decode_lowercase_hex(&page.response_hex).ok_or_else(|| {
+                RegistryFetchError::InvalidRegistryKeyFamily {
+                    reason: "history page is not canonical lowercase hexadecimal".to_string(),
+                }
+            })?;
+            let mut response = decode_message::<HighCapacityRegistryGetChangesSinceResponse>(
+                "Registry history page",
+                &bytes,
+            )?;
+            normalize_history_response(&mut response);
+            if response.encode_to_vec() != bytes {
+                return Err(RegistryFetchError::InvalidRegistryKeyFamily {
+                    reason: "history page is not canonical normalized mutation evidence"
+                        .to_string(),
+                });
+            }
+            family.registry_version = page.through_version;
+            let end = family.apply_page(response, cursor)?;
+            if end < page.through_version {
+                return Err(RegistryFetchError::IncompleteRegistryChanges {
+                    requested_version: page.through_version,
+                    observed_version: end,
+                });
+            }
+            cursor = page.through_version;
+        }
+        Ok(Self {
+            version: cursor,
+            states: family.states,
+            delta_key_count: family.delta_key_count,
+            value_count: family.value_count,
+            pages: Some(pages),
+        })
+    }
+}
+
+fn normalize_history_response(response: &mut HighCapacityRegistryGetChangesSinceResponse) {
+    for delta in &mut response.deltas {
+        for value in &mut delta.values {
+            value.timestamp_nanoseconds = 0;
+            match &mut value.content {
+                Some(high_capacity_registry_value::Content::Value(bytes)) => bytes.clear(),
+                Some(high_capacity_registry_value::Content::LargeValueChunkKeys(_)) => {
+                    value.content = Some(high_capacity_registry_value::Content::Value(Vec::new()));
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+fn emit_history_cache(counter: &RegistryQueryCounter, observation: HistoryCacheObservation) {
+    if let Some(cache) = counter
+        .acquisition
+        .as_ref()
+        .and_then(|context| context.history_cache.as_ref())
+    {
+        counter.emit(SubnetCatalogProgressPhase::HistoryCache {
+            path: cache.paths().0.to_path_buf(),
+            disposition: observation.disposition,
+            through_version: observation.through_version,
+            reason: observation.reason,
+        });
+    }
 }
 
 struct RegistryKeyFamilyState<'a> {
@@ -231,6 +397,12 @@ impl<'a> RegistryKeyFamilyState<'a> {
                             "get_changes_since page after version {cursor} returned mutation version {}",
                             value.version
                         ),
+                    });
+                }
+                if value.version > response.version {
+                    return Err(RegistryFetchError::InvalidRegistryKeyFamily {
+                        reason: "mutation version exceeds the response's latest Registry version"
+                            .to_string(),
                     });
                 }
                 page_versions.insert(value.version);
@@ -484,7 +656,7 @@ mod tests {
         let events = Arc::new(Mutex::new(Vec::new()));
         let observed = Arc::clone(&events);
         let acquisition = super::super::RegistryAcquisition {
-            progress: Some(Box::new(move |event| observed.lock().unwrap().push(event))),
+            progress: Some(Arc::new(move |event| observed.lock().unwrap().push(event))),
             ..Default::default()
         };
         let counter = RegistryQueryCounter::with_acquisition(
