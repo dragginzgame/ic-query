@@ -513,7 +513,8 @@ plus `SnsRefreshAttemptStatus`; the joined discovery catalog uses
 Governance proposal and neuron
 collections share `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 and `NnsGovernanceRefreshAttemptStatus`; direct NNS Governance point-value
-reports share `NnsSourceRequest` and one `NnsGovernanceSource` capability;
+reports share the transport-aware `NnsGovernanceRequest` and one portable async
+`NnsGovernanceSource` capability;
 simple ledger-wide ICRC metadata and capability builders share
 `IcrcLedgerRequest`. There are no per-report aliases for those canonical
 types.
@@ -522,9 +523,11 @@ below; other examples show the same public request and report APIs.
 
 ## Source Adapters
 
-The public API exposes source adapters for host-only downstream crates that
-need to reuse `ic-query` report assembly with data that does not come from the
-built-in live adapters. CloudEngine, the official Dashboard, generic ICRC,
+The public API exposes source adapters for downstream crates that need to reuse
+`ic-query` report assembly with data that does not come from the built-in live
+adapters. Most live source seams require their focused host feature; direct
+Governance sources and async builders are portable to native and canister
+runtimes. CloudEngine, the official Dashboard, generic ICRC,
 subnet catalog, NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS
 topology, SNS list/info/token/params/metrics/swap/upgrade/canister, SNS
 proposal, and SNS neuron host APIs expose this pattern with
@@ -568,8 +571,7 @@ Dashboard-backed Type4 node reports expose `CloudEngineNodeSource` and paired
 node list/info `*_with_source` builders under `dashboard-host`. Pure node
 requests, reports, the shared raw row alias, filter constants, and text
 renderers remain available with no host feature. Provider and node reports use
-`DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT`; the earlier provider-named
-constant was removed without an alias in 0.35.
+`DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT`.
 Certified API boundary-node reporting exposes `IcApiBoundaryNodeSource` and
 `build_ic_api_boundary_node_report_with_source`; its source contract carries
 one authenticated complete state tree rather than Dashboard REST data.
@@ -584,10 +586,15 @@ respective live families. `ic_query::system::cmc::LiveCmcSource` owns the
 focused CMC capability rather than adding one live adapter per report view.
 `ic_query::cloud_engine::LiveCloudEngineSource` similarly owns the separate
 control-plane authority.
-NNS capabilities share
-`ic_query::nns::NnsSourceRequest`; adding a new NNS report should normally add
-a capability implementation to that adapter instead of introducing another
-live-source type or another copy of the same provenance request. SNS
+Native Registry and inventory capabilities share
+`ic_query::nns::NnsSourceRequest`; adding a new report in those families normally
+adds a capability implementation to that adapter instead of introducing
+another live-source type or another copy of the same provenance request. Direct
+Governance capabilities use `NnsGovernanceRequest`, selecting replica query
+or replicated inter-canister collection, and return typed async source futures.
+`CanisterNnsSource` implements that seam under the `canister` feature on Wasm.
+`LiveSubnetCatalogSource` adds caller-owned progress and memory/disk history
+retention to the catalog source seam. SNS
 capabilities likewise share `SnsSourceRequest`, including explicit network and
 collection provenance.
 
@@ -605,21 +612,16 @@ use ic_query::nns::{
     },
 };
 
-struct FixtureRegistrySource;
+struct FixtureRegistrySource {
+    version: NnsRegistryVersionData,
+}
 
 impl NnsRegistrySource for FixtureRegistrySource {
     fn fetch_registry_version(
         &self,
-        request: &NnsSourceRequest,
+        _request: &NnsSourceRequest,
     ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        Ok(NnsRegistryVersionData {
-            network: "ic".to_string(),
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-        })
+        Ok(self.version.clone())
     }
 }
 
@@ -639,6 +641,10 @@ fn render_registry_version_with_source(
 
 See [IC Reporting Adapters](design/ic-reporting-adapters.md) for the extension
 rules and prioritized reporting backlog.
+
+The fixture's complete `NnsRegistryVersionData` includes certification evidence
+and source provenance. Supply authenticated evidence matching the request;
+the builder rejects mismatched provenance and invalid certification metadata.
 
 ## Official Dashboard Examples
 
@@ -1043,25 +1049,12 @@ live-call or CLI dependencies:
 
 ```rust
 use ic_query::nns::registry::{
-    NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    NnsRegistryVersionReport,
     nns_registry_version_report_text,
 };
 
-fn render_registry_version() -> String {
-    let request =
-        NnsRegistryVersionRequest::new("ic", "https://icp-api.io", 1_700_000_000);
-
-    let report = NnsRegistryVersionReport {
-        schema_version: 1,
-        network: request.network,
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: "my-tool".to_string(),
-    };
-
-    nns_registry_version_report_text(&report)
+fn render_registry_version(report: &NnsRegistryVersionReport) -> String {
+    nns_registry_version_report_text(report)
 }
 ```
 
@@ -1346,11 +1339,12 @@ use std::path::Path;
 use ic_query::nns::{
     NnsInventoryCacheRequest,
     node::{
-        DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NNS_NODE_SUBNET_KIND_APPLICATION,
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         NnsNodeHostError, NnsNodeListRequest,
         build_nns_node_list_report, nns_node_list_report_text,
     },
 };
+use ic_query::subnet_catalog::SubnetKind;
 
 fn render_application_nodes(
     cache_root: &Path,
@@ -1359,7 +1353,7 @@ fn render_application_nodes(
     let cache = NnsInventoryCacheRequest::new(cache_root, "ic");
     let request =
         NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
-            .with_subnet_kind(NNS_NODE_SUBNET_KIND_APPLICATION);
+            .with_subnet_kind(SubnetKind::Application);
 
     let report = build_nns_node_list_report(&request)?;
     Ok(nns_node_list_report_text(&report))

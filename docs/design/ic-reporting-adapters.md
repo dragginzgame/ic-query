@@ -14,8 +14,8 @@ User-facing command and collection-mode guidance lives in
 
 ## Decision
 
-`ic-query` expands by authority family rather than by transport call. Each
-authority family owns one built-in live adapter:
+`ic-query` expands by authority family rather than by transport call. Built-in
+host adapters group capabilities by authority:
 
 - `ic_query::ic::LiveIcStateSource`
 - `ic_query::ic::LiveIcSource`
@@ -28,7 +28,7 @@ Report families continue to own small source capability traits. A custom
 adapter implements only the capabilities it can supply, while the built-in
 adapter implements all capabilities supported for its authority. Identical
 network and collection provenance use a shared source request instead of
-per-report request DTOs. NNS capabilities use
+per-report request DTOs. Native Registry and inventory capabilities use
 `ic_query::nns::NnsSourceRequest`. Registry-derived NNS inventory operations
 share `NnsInventoryCacheRequest`, `NnsInventoryListRequest`,
 `NnsInventoryInfoRequest`, and `NnsInventoryRefreshRequest`. Simple
@@ -41,8 +41,10 @@ rendering. Complete NNS Governance proposal and neuron collections share
 capability retains its own page validation, cache identity, report, and
 renderer. Direct Governance economics, metrics, latest reward-event, and
 maturity-modulation reports share one `NnsGovernanceSource` capability and the
-same `NnsSourceRequest`; they remain live point-value reports rather than
-creating another complete-collection cache.
+transport-aware `NnsGovernanceRequest`; its portable async sources select
+replica-query or replicated inter-canister collection. `LiveNnsSource` and
+`CanisterNnsSource` implement the native and Wasm canister transports. These
+remain live point-value reports rather than creating another collection cache.
 SNS capabilities share `SnsSourceRequest`, including explicit network and
 collection provenance. Complete catalog enrichment uses `SnsCatalogSource` to
 add exact-target Swap lifecycles to `SnsDiscoverySource` inventory and
