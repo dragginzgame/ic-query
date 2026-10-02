@@ -5,27 +5,6 @@ usage() {
   echo "Usage: $0 patch|minor|major" >&2
 }
 
-cleanup_release_build_artifacts() {
-  local cleanup_output
-
-  echo "Cleaning Cargo build artifacts after the successful release gate..."
-  if cleanup_output="$(cargo clean 2>&1)"; then
-    [[ -z "${cleanup_output}" ]] || printf '%s\n' "${cleanup_output}"
-    return
-  fi
-
-  # A concurrent Cargo process can remove an artifact between discovery and
-  # deletion. One fresh pass makes that benign race invisible while persistent
-  # cleanup failures remain non-fatal and observable.
-  if cleanup_output="$(cargo clean 2>&1)"; then
-    [[ -z "${cleanup_output}" ]] || printf '%s\n' "${cleanup_output}"
-    return
-  fi
-
-  [[ -z "${cleanup_output}" ]] || printf '%s\n' "${cleanup_output}" >&2
-  echo "warning: cargo clean failed twice after the successful release gate" >&2
-}
-
 update_documented_dependency_versions() {
   local release_line="${1%.*}"
   local usage_doc
@@ -95,8 +74,6 @@ update_documented_dependency_versions "${new_version}"
 if [[ -f Cargo.lock ]]; then
     cargo generate-lockfile >/dev/null
 fi
-
-cleanup_release_build_artifacts
 
 echo "Bumped: ${previous_version} -> ${new_version}"
 echo "Next:"

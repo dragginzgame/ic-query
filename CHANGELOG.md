@@ -21,6 +21,8 @@ Detailed release notes: [docs/changelog/0.44.md](docs/changelog/0.44.md)
   local cache inventory exposes the transcript and its writer lock.
   A separate-process mainnet trial avoided all 154 cold history queries and
   refreshed in 20.979 s versus a 92.236 s cold acquisition.
+  Release/version-bump workflows retain Cargo build artifacts for subsequent
+  builds by removing the automatic post-bump `cargo clean`.
 
 - `0.44.1` updates development and CI to Rust 1.99.0, fixes Clippy findings,
   and adds no-default library linting to the CI gate. Refreshes locked

@@ -102,18 +102,7 @@ cat > "${bump_case}/bin/cargo" <<'EOF'
 #!/bin/bash
 version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
 printf 'cargo %s version=%s\n' "$*" "${version}" >> "${TRACE_FILE}"
-case "${1:-}" in
-  clean)
-    if [[ -n "${CARGO_CLEAN_FAIL_ONCE_MARKER:-}" \
-      && ! -e "${CARGO_CLEAN_FAIL_ONCE_MARKER}" ]]; then
-      : > "${CARGO_CLEAN_FAIL_ONCE_MARKER}"
-      echo "transient missing artifact" >&2
-      exit 47
-    fi
-    exit "${CARGO_CLEAN_STATUS:-0}"
-    ;;
-  *) exit 2 ;;
-esac
+exit 2
 EOF
 chmod +x "${bump_case}/bin/bash" "${bump_case}/bin/make" "${bump_case}/bin/cargo"
 before_bump="$(<"${bump_case}/Cargo.toml")"
@@ -140,7 +129,6 @@ set +e
 (
   cd "${bump_case}"
   PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" \
-    CARGO_CLEAN_STATUS=47 \
     /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
 ) >/dev/null 2>&1
 bump_status="$?"
@@ -184,10 +172,9 @@ mapfile -t dirty_bump_trace < "${bump_case}/trace"
 (
   cd "${bump_case}"
   PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CI_STATUS=0 \
-    CARGO_CLEAN_STATUS=47 \
     /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
 ) >/dev/null 2>&1 \
-  || fail "the bump script rejected a successful CI gate after cleanup failed"
+  || fail "the bump script rejected a successful CI gate"
 [[ "$(<"${bump_case}/Cargo.toml")" == 'version = "0.8.1"' ]] \
   || fail "the bump script did not update version metadata after CI passed"
 mapfile -t successful_bump_trace < "${bump_case}/trace"
@@ -197,33 +184,8 @@ mapfile -t successful_bump_trace < "${bump_case}/trace"
   || fail "the successful bump did not check cleanliness before CI"
 [[ "${successful_bump_trace[2]:-}" == "make --no-print-directory ci" ]] \
   || fail "the successful bump did not run the complete CI gate"
-[[ "${successful_bump_trace[3]:-}" == "cargo clean version=0.8.1" ]] \
-  || fail "the successful bump did not clean after updating version metadata"
-[[ "${successful_bump_trace[4]:-}" == "cargo clean version=0.8.1" ]] \
-  || fail "the successful bump did not retry a failed Cargo cleanup"
-[[ "${#successful_bump_trace[@]}" -eq 5 ]] \
-  || fail "the successful bump ran unexpected commands while retrying cleanup"
-
-printf 'version = "0.8.0"\n' > "${bump_case}/Cargo.toml"
-: > "${bump_case}/trace"
-if transient_cleanup_output="$(
-  cd "${bump_case}"
-  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CI_STATUS=0 \
-    CARGO_CLEAN_FAIL_ONCE_MARKER="${bump_case}/clean-failed-once" \
-    /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
-  2>&1
-)"; then
-  :
-else
-  fail "the bump script rejected a successful retry after transient cleanup failure"
-fi
-[[ "${transient_cleanup_output}" != *"transient missing artifact"* ]] \
-  || fail "the bump script exposed a transient cleanup race after retry succeeded"
-mapfile -t transient_cleanup_trace < "${bump_case}/trace"
-[[ "${transient_cleanup_trace[3]:-}" == "cargo clean version=0.8.1" \
-  && "${transient_cleanup_trace[4]:-}" == "cargo clean version=0.8.1" \
-  && "${#transient_cleanup_trace[@]}" -eq 5 ]] \
-  || fail "the bump script did not retry one transient Cargo cleanup failure"
+[[ "${#successful_bump_trace[@]}" -eq 3 ]] \
+  || fail "the successful bump ran unexpected commands"
 
 : > "${bump_case}/trace"
 (

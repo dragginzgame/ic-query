@@ -51,13 +51,11 @@ cargo install ic-query-cli
 ```
 
 Local `make patch`, `make minor`, and `make major` runs execute the complete
-release gate and remove this workspace's Cargo build artifacts only after CI
-passes and version metadata is updated. A failed gate retains `target/` for
-diagnosis. Cleanup failure after a successful bump is reported as a warning
-rather than disguising the release result, and one transient cleanup failure is
-retried. Release staging includes every generated version and dependency-
-example edit; committing rejects unstaged, untracked, or unexpected staged
-paths and creates the tag only from a clean completed commit. CI helper scripts
+release gate and update version metadata while retaining Cargo build artifacts
+for subsequent builds and diagnosis. Use `make clean` when you explicitly want
+to remove build artifacts. Release staging includes every generated version and
+dependency-example edit; committing rejects unstaged, untracked, or unexpected
+staged paths and creates the tag only from a clean completed commit. CI helper scripts
 likewise remove only their own exact temporary paths. They do not sweep shared
 `/tmp` or remove the shared Cargo download cache. Dependency checks give
 `cargo audit` a fresh, disposable RustSec checkout on every run, using a
