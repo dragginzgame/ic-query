@@ -8,7 +8,7 @@ production command, persistence policy, or host dependency.
 ## Prerequisites
 
 - Linux or macOS; interruption cleanup uses POSIX process groups.
-- Rust 1.98.1, selected by `rust-toolchain.toml`, with
+- Rust 1.99.0, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
 - ICP CLI **1.6.0** and Python 3.10 or later.
 - Internet access for the first local-runtime download and enough resources

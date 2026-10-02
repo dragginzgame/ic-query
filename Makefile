@@ -142,6 +142,7 @@ dependency-check:
 	bash scripts/ci/check-dependencies.sh
 
 clippy:
+	cargo clippy -p ic-query --all-targets --no-default-features --locked -- -D warnings
 	cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
 test:

@@ -2,7 +2,7 @@ name: CI
 
 env:
   IC_QUERY_MSRV: 1.91.0
-  IC_QUERY_INTERNAL_TOOLCHAIN: 1.98.1
+  IC_QUERY_INTERNAL_TOOLCHAIN: 1.99.0
 
 permissions:
   contents: read

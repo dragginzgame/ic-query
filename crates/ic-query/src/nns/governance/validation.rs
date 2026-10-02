@@ -4,7 +4,10 @@
 //! Does not own: transport execution, report assembly, or error presentation.
 //! Boundary: runs identically for native, canister, and caller-provided sources.
 
-#[cfg(any(all(feature = "canister", target_arch = "wasm32"), test))]
+#[cfg(any(
+    all(feature = "canister", target_arch = "wasm32"),
+    all(test, feature = "nns-host")
+))]
 use super::MAX_NNS_GOVERNANCE_RESPONSE_BYTES;
 use super::{
     NnsGovernanceError, NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
@@ -19,7 +22,10 @@ pub fn validate_governance_request(
     validate_source_selection(&request.source)
 }
 
-#[cfg(any(all(feature = "canister", target_arch = "wasm32"), test))]
+#[cfg(any(
+    all(feature = "canister", target_arch = "wasm32"),
+    all(test, feature = "nns-host")
+))]
 pub(super) const fn validate_governance_response_size(
     method: &'static str,
     actual_bytes: usize,

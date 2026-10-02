@@ -425,7 +425,7 @@ mod tests {
             })
             .await
             .unwrap();
-            assert!(keys.is_empty());
+            assert_eq!(keys, Vec::<String>::new());
             for counter in [&first, &second] {
                 let keys = collect_key_family("canister_ranges_", 1, counter, |cursor| {
                     assert_eq!(cursor, 0);
@@ -475,7 +475,7 @@ mod tests {
             })
             .await
             .unwrap();
-            assert!(keys.is_empty());
+            assert_eq!(keys, Vec::<String>::new());
         });
     }
 
@@ -595,7 +595,7 @@ mod tests {
             })
             .await
             .unwrap();
-            assert!(keys.is_empty());
+            assert_eq!(keys, Vec::<String>::new());
         });
     }
 
@@ -670,7 +670,7 @@ mod tests {
             .expect("second page");
 
         assert_eq!(second_end, 4);
-        assert!(family.into_keys().is_empty());
+        assert_eq!(family.into_keys(), Vec::<String>::new());
     }
 
     #[test]

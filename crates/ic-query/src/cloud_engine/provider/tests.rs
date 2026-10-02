@@ -5,7 +5,6 @@ use super::{
 };
 use crate::ic::IcDashboardReportProvenance;
 
-const PROVIDER_A: &str = "2wxzd-qrbrs-ailta-kdtyb-ucg35-xcxd4-txevb-ot7hx-wiyus-szcca-nqe";
 const PROVIDER_B: &str = "rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae";
 
 #[test]
@@ -96,6 +95,8 @@ mod host {
         ic::{IcHostError, IcSourceRequest},
     };
     use std::cell::Cell;
+
+    const PROVIDER_A: &str = "2wxzd-qrbrs-ailta-kdtyb-ucg35-xcxd4-txevb-ot7hx-wiyus-szcca-nqe";
 
     const NOW: u64 = 1_800_000_000;
 

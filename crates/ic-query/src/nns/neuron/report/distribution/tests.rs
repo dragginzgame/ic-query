@@ -104,9 +104,9 @@ fn empty_complete_collection_produces_canonical_zero_distribution() {
     assert_eq!(report.total_effective_stake_e8s, 0);
     assert_eq!(report.earliest_retrieved_at_timestamp_seconds, None);
     assert_eq!(report.latest_retrieved_at_timestamp_seconds, None);
-    assert!(report.state_distribution.is_empty());
-    assert!(report.visibility_distribution.is_empty());
-    assert!(report.neuron_type_distribution.is_empty());
+    assert_eq!(report.state_distribution, Vec::new());
+    assert_eq!(report.visibility_distribution, Vec::new());
+    assert_eq!(report.neuron_type_distribution, Vec::new());
     assert_eq!(report.reported_staked_maturity_neuron_count, 0);
     assert_eq!(report.unreported_staked_maturity_neuron_count, 0);
 

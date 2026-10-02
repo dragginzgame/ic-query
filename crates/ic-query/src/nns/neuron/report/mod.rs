@@ -15,8 +15,7 @@ mod source;
 mod text;
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 mod wire;
 

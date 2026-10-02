@@ -11,6 +11,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.44.md](docs/changelog/0.44.md)
 
+- `0.44.1` updates development and CI to Rust 1.99.0, fixes Clippy findings,
+  and adds no-default library linting to the CI gate. Refreshes locked
+  dependencies while retaining the declared Rust 1.91.0 minimum. Records
+  Canic's Subnet Catalog feedback and the remaining cross-process history
+  reuse opportunity.
+
 - `0.44.0` updates the Governance canister smoke harness and its checksum-pinned
   CI tool to ICP CLI 1.6.0. The local NNS runtime remains pinned to 16.0.0;
   production `icq` behavior is unchanged.

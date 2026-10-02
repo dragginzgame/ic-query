@@ -26,8 +26,7 @@ use super::{
 };
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 use super::{
     model::{
@@ -174,8 +173,7 @@ pub trait NnsProposalSource: Send + Sync {
 
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
     info: NnsProposalInfo,
@@ -298,8 +296,7 @@ fn report_context(
 
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<NnsProposalBallotRow> {
     let mut rows = ballots
@@ -317,8 +314,7 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
 
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
     (timestamp_seconds > 0)

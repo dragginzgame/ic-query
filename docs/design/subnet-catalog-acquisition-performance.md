@@ -167,7 +167,67 @@ not a Canic generation or separate Canic CLI runs. They support measuring the
 downstream cold path before choosing a persistent-checkpoint design; they do
 not establish a correctness defect or a general latency guarantee.
 
-## Validation
+## Canic feedback review: 2026-10-02
+
+Reviewed Canic's `ic-query-0.43.md` and `ic-query-0.43.1.md` reports under
+`docs/audits/reports/2026-09/2026-09-15/`, its September 21 deployment-timing
+report, the 0.110.42 dependency-update qualification, and its current catalog
+consumer. Canic now selects published `ic-query` 0.44.0 with only
+`subnet-catalog-host`.
+
+| Feedback | Current outcome |
+| --- | --- |
+| Sequential endpoint collection exceeded the original 90-second deadline | Collection overlaps two endpoints; Canic retains its own shared 600-second deadline |
+| Slow collection lacked useful progress | Endpoint, pin, history, record, and retry events feed Canic's bounded progress snapshots and ten-second heartbeats |
+| Transient failures repeated expensive history work | Bounded retries preserve request inputs; a retained source resumes completely validated endpoint-local prefixes |
+| Cancellation must preserve old authority and permit immediate retry | Fixture regressions cover both active endpoints, unchanged cache bytes, lock release, and immediate retry |
+| Cold or expired-cache refresh in a new CLI process still scans history from zero | Open performance follow-up; checkpoints remain memory-only |
+
+Canic's 0.43.1 production-client sample recorded 63.253 s for cold agreement,
+3 ms for a cache hit, and 13.851 s for a live refresh with the retained client.
+That refresh used a simulated expiry and avoided 154 history queries. These
+are separate observations from this repository's measurements, not matched
+benchmarks or evidence of a later 0.44 speedup. Canic's 0.110.42 qualification
+reports ten passing host catalog regressions after adopting 0.44.0 and no
+new live acquisition sample.
+
+The current generation path constructs `MainnetCatalogClient::default()` for
+one acquisition and drops it afterward. The source can retain validated
+history during that acquisition and its stronger-assurance repair, but neither
+a later generation nor another CLI process inherits it. The remaining
+feedback therefore concerns cold-start work rather than a missing integration
+of the reusable-source API. No additional catalog blocker was identified in
+this review.
+
+The next performance slice should qualify cross-process history reuse before
+implementing a persisted checkpoint contract:
+
+- Measure the actual Canic cold path, cache-hit path, and expired-cache path
+  separately; attribute history and record query counts as well as wall time.
+- Define explicit endpoint, network, Registry-canister, prefix, and version
+  binding; retain tombstones and cumulative resource accounting. For an older
+  requested pin, discard checkpoint reuse and replay from zero.
+- Define the trust and integrity model for restored history. A serialized
+  membership map or a self-recomputed digest does not prove that the retained
+  history was complete or authenticate its contents.
+- Specify confined ownership, byte and entry ceilings, atomic publication,
+  concurrent writers, cancellation, and invalid-content recovery. Keep any
+  new persisted schema at 1 under the pre-1.0 contract.
+- Continue fetching current pinned records independently from each endpoint
+  and require exact version/content agreement. Checkpoints must not become
+  catalog authority, a freshness exemption, or shared endpoint evidence.
+
+Live transport-fault injection remains an evidence gap. Retry and cancellation
+fixtures establish the local policy, but do not qualify real transport-failure
+latency or endpoint independence.
+
+Review validation with Canic's exact `subnet-catalog-host` selection passed on
+Rust 1.99.0: 78 catalog/source tests, 15 Registry transport tests, nine public
+catalog API tests, and all-target Clippy with warnings denied. Whitespace
+checks passed. Canic was inspected read-only; its tests and a fresh live
+acquisition or transport-fault experiment were not run for this review.
+
+## Original acquisition-change validation
 
 Focused checks passed:
 

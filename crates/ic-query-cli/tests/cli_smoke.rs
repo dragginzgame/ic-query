@@ -440,7 +440,7 @@ fn binary_icrc_account_transaction_cache_status_is_local_only() {
     let report: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("parse cache status JSON");
     assert_eq!(report["found"], false);
-    assert!(output.stderr.is_empty());
+    assert_eq!(output.stderr, Vec::<u8>::new());
     assert!(!root.exists());
 
     let _ = fs::remove_dir_all(root);
@@ -632,7 +632,7 @@ fn binary_command_namespaces_match_explicit_local_help() {
         assert_success(&implicit);
         assert_success(&explicit);
         assert_eq!(stdout_text(&implicit), stdout_text(&explicit));
-        assert!(stderr_text(&implicit).is_empty());
+        assert_eq!(stderr_text(&implicit), "");
     }
 }
 

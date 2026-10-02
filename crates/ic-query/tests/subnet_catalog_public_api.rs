@@ -208,7 +208,7 @@ fn public_detailed_load_api_exposes_typed_failure_provenance() {
     assert_eq!(failure.returned_registry_value_version, None);
     assert_eq!(failure.source_endpoint, None);
     assert_eq!(failure.assurance, None);
-    assert!(failure.registry_records.is_empty());
+    assert_eq!(failure.registry_records, Vec::new());
     assert_eq!(failure.request.network, MAINNET_NETWORK);
     assert!(matches!(
         failure.source,
@@ -354,7 +354,7 @@ impl SubnetCatalogSource for FixtureSubnetCatalogSource {
         Box::pin(async move {
             assert_eq!(request.endpoint, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
             assert_eq!(request.fetched_by, "ic-query");
-            assert!(!request.fetched_at.is_empty());
+            assert_ne!(request.fetched_at, "");
 
             let mut catalog = fixture_catalog();
             catalog.provenance.source_endpoints = vec![request.endpoint.clone()];

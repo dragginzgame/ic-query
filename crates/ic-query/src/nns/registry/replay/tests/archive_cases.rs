@@ -1091,7 +1091,7 @@ fn certified_archive_bootstrap_rejects_non_mainnet_before_filesystem_or_source_w
             })
         ) if network == "local"
     ));
-    assert!(source.requested_versions().is_empty());
+    assert_eq!(source.requested_versions(), Vec::<u64>::new());
     assert!(!archive_root.exists());
     let _ = fs::remove_dir_all(root);
 }
@@ -1329,7 +1329,7 @@ fn certified_archive_refresh_reserves_cumulative_capacity_before_source_work() {
             }
         )
     ));
-    assert!(source.requested_versions().is_empty());
+    assert_eq!(source.requested_versions(), Vec::<u64>::new());
     assert_eq!(fs::read(manifest_path).expect("preserved manifest"), before);
     assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
     let _ = fs::remove_dir_all(root);
@@ -1419,7 +1419,7 @@ fn certified_archive_refresh_rejects_non_mainnet_and_missing_archives_without_so
             NnsCertifiedRegistryArchiveStorageError::MissingManifest { .. }
         )
     ));
-    assert!(source.requested_versions().is_empty());
+    assert_eq!(source.requested_versions(), Vec::<u64>::new());
     assert!(!root.exists());
 }
 
@@ -1615,7 +1615,7 @@ fn certified_bootstrap_probe_returns_explicit_bounded_partial_progress() {
         }
     );
     assert_eq!(zero.session.selected_version(), None);
-    assert!(zero_source.requested_versions().is_empty());
+    assert_eq!(zero_source.requested_versions(), Vec::<u64>::new());
 }
 
 #[test]
@@ -1670,7 +1670,7 @@ fn certified_bootstrap_rejects_non_mainnet_before_source_work() {
             network
         }) if network == "local"
     ));
-    assert!(source.requested_versions().is_empty());
+    assert_eq!(source.requested_versions(), Vec::<u64>::new());
 
     let live_error = futures::executor::block_on(bootstrap_nns_certified_registry_async(&request))
         .expect_err("live non-mainnet bootstrap");

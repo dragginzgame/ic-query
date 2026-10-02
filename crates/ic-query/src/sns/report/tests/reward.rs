@@ -53,7 +53,7 @@ fn reward_checkpoint_rejects_invalid_request_before_source_access() {
         build_sns_reward_checkpoint_report_with_source(&request, &source),
         Err(SnsHostError::UnsupportedNetwork { network }) if network == "local"
     ));
-    assert!(source.calls().is_empty());
+    assert_eq!(source.calls(), Vec::<&str>::new());
 
     let source = FixtureSnsRewardSource::new(vec![fixture_reward_page(Vec::new(), None)]);
     let request = reward_checkpoint_request("1").with_max_pages(Some(0));
@@ -61,7 +61,7 @@ fn reward_checkpoint_rejects_invalid_request_before_source_access() {
         build_sns_reward_checkpoint_report_with_source(&request, &source),
         Err(SnsHostError::InvalidRewardCheckpointPageCap { max_pages: 0 })
     ));
-    assert!(source.calls().is_empty());
+    assert_eq!(source.calls(), Vec::<&str>::new());
 }
 
 #[test]

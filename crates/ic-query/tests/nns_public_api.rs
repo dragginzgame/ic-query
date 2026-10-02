@@ -1460,7 +1460,7 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
     ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
         assert_eq!(request.endpoint, "https://icp-api.io");
         assert_eq!(request.fetched_by, "ic-query");
-        assert!(!request.fetched_at.is_empty());
+        assert_ne!(request.fetched_at, "");
 
         Ok(NnsRegistryVersionData {
             network: "ic".to_string(),
@@ -2484,7 +2484,7 @@ fn assert_inventory_source_request(
 ) {
     assert_eq!(network, "ic");
     assert_eq!(endpoint, "https://icp-api.io");
-    assert!(!fetched_at.is_empty());
+    assert_ne!(fetched_at, "");
     assert_eq!(fetched_by, "ic-query");
 }
 
@@ -3031,7 +3031,7 @@ fn assert_topology_source_request(request: &NnsTopologySourceRequest) {
     assert_eq!(request.network, "ic");
     assert_eq!(request.endpoint, DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT);
     assert_eq!(request.now_unix_secs, 1_700_000_000);
-    assert!(!request.fetched_at.is_empty());
+    assert_ne!(request.fetched_at, "");
     assert_eq!(request.fetched_by, "ic-query");
 }
 
@@ -3043,7 +3043,7 @@ fn assert_topology_refresh_source_request(request: &NnsTopologyRefreshSourceRequ
     assert_eq!(request.now_unix_secs, 1_700_000_000);
     assert_eq!(request.lock_stale_after_seconds, 1_800);
     assert!(request.dry_run);
-    assert!(!request.fetched_at.is_empty());
+    assert_ne!(request.fetched_at, "");
     assert_eq!(request.fetched_by, "ic-query");
 }
 
@@ -3308,7 +3308,7 @@ fn sample_nns_proposal_row_with_id(proposal_id: u64) -> NnsProposalRow {
 
 fn assert_proposal_source_request(request: &NnsGovernanceRequest) {
     assert_eq!(request.network, "ic");
-    assert!(!request.fetched_at.is_empty());
+    assert_ne!(request.fetched_at, "");
     assert_eq!(
         request.source,
         NnsGovernanceSourceSelection::ReplicaQuery {

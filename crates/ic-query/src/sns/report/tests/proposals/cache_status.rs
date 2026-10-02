@@ -204,7 +204,7 @@ fn sns_proposals_cache_status_reports_missing_cache() {
     })
     .expect("proposal cache list");
     assert_eq!(list.cache_count, 0);
-    assert!(list.caches.is_empty());
+    assert_eq!(list.caches, Vec::new());
 
     let _ = fs::remove_dir_all(root);
 }

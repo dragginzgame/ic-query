@@ -216,7 +216,7 @@ fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
     assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.eligibility_filter, "no");
     assert_eq!(report.proposal_count, 0);
-    assert!(report.proposals.is_empty());
+    assert_eq!(report.proposals, Vec::new());
 }
 
 #[test]

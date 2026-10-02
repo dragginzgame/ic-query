@@ -20,8 +20,7 @@ use super::{
 };
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 use super::{
     model::{NnsKnownNeuronData, NnsNeuronBallotRow},
@@ -344,8 +343,7 @@ fn report_context(
 
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 pub(in crate::nns::neuron::report) fn governance_result<Response>(
     result: impl GovernanceResult<Response>,
@@ -379,8 +377,7 @@ pub(in crate::nns::neuron::report) fn map_neuron_info_error(
 
 #[cfg(any(
     feature = "nns-host",
-    all(feature = "canister", target_arch = "wasm32"),
-    test
+    all(feature = "canister", target_arch = "wasm32")
 ))]
 pub(in crate::nns::neuron::report) fn neuron_row_from_wire(
     wire: NeuronInfoWire,

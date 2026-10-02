@@ -6,7 +6,6 @@ use super::{
 use crate::ic::{IcDashboardReportProvenance, IcNodeStatusCounts};
 
 const NODE_A: &str = "53amq-7hjxu-6lxaj-o2sp6-kmngy-qa22h-b7bo6-oeyyn-fkqnv-7tauf-7qe";
-const NODE_B: &str = "72xg3-cvfed-jrbv3-kal7e-o53wl-tug5y-t432v-5ovop-7et6y-abuzx-oae";
 const PROVIDER: &str = "bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe";
 const OPERATOR: &str = "e3aue-mkha2-6zddy-xbmd7-3oybi-3nfoh-3bwgn-izbjn-uuqx2-ykc2z-7qe";
 const CLOUD_ENGINE_SUBNET: &str = "nx5oj-b2azr-x3alh-sgf7i-duhfw-bflus-hisa2-5n2oq-tv7sd-haspd-cae";
@@ -101,6 +100,8 @@ mod host {
         ic::{IcHostError, IcSourceRequest},
     };
     use std::cell::Cell;
+
+    const NODE_B: &str = "72xg3-cvfed-jrbv3-kal7e-o53wl-tug5y-t432v-5ovop-7et6y-abuzx-oae";
 
     const NOW: u64 = 1_800_000_000;
 

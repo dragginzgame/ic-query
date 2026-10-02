@@ -357,7 +357,7 @@ mod tests {
 
         let mut paths = Vec::new();
         collect_paths(&top_level_command(), &mut Vec::new(), &mut paths);
-        assert!(!paths.is_empty());
+        assert_ne!(paths, Vec::<Vec<OsString>>::new());
 
         for mut path in paths {
             path.push(OsString::from("--help"));

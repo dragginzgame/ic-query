@@ -246,10 +246,10 @@ fn half_open_window_counts_both_exclusion_sides_and_empty_windows() {
     assert_eq!(empty.excluded_at_or_after_until_count, 0);
     assert!(empty.earliest_included_proposal_timestamp_seconds.is_none());
     assert!(empty.latest_included_proposal_timestamp_seconds.is_none());
-    assert!(empty.topic_counts.is_empty());
-    assert!(empty.status_counts.is_empty());
-    assert!(empty.reward_status_counts.is_empty());
-    assert!(empty.day_counts.is_empty());
+    assert_eq!(empty.topic_counts, Vec::new());
+    assert_eq!(empty.status_counts, Vec::new());
+    assert_eq!(empty.reward_status_counts, Vec::new());
+    assert_eq!(empty.day_counts, Vec::new());
 }
 
 #[test]

@@ -247,7 +247,7 @@ fn public_sns_reward_diff_reconciles_one_immediate_native_distribution() {
 
     let report = build_sns_reward_diff_report(&before, &after);
     assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Valid);
-    assert!(report.invalid_reasons.is_empty());
+    assert_eq!(report.invalid_reasons, Vec::new());
     assert_eq!(report.aggregate_maturity_delta_e8s_equivalent, Some(5_000));
     assert_eq!(
         report.summed_neuron_maturity_delta_e8s_equivalent,
@@ -316,7 +316,7 @@ fn public_sns_reward_diff_returns_no_allocation_for_exact_zero_distribution() {
         report.allocation_status,
         SnsRewardAllocationStatus::NoAllocation
     );
-    assert!(report.invalid_reasons.is_empty());
+    assert_eq!(report.invalid_reasons, Vec::new());
     assert_eq!(report.rows[0].allocation_denominator_e8s_equivalent, None);
 }
 

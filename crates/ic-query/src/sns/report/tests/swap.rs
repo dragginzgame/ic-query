@@ -79,7 +79,7 @@ fn sns_swap_preserves_successful_empty_sale_parameters_without_a_gap() {
     assert_eq!(report.successful_component_query_count, 3);
     assert_eq!(report.component_gap_count, 0);
     assert!(report.sale_parameters.is_none());
-    assert!(report.gaps.is_empty());
+    assert_eq!(report.gaps, Vec::new());
 }
 
 #[test]

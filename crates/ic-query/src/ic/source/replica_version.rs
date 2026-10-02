@@ -298,8 +298,8 @@ mod tests {
         assert_eq!(report.rows[1].status, IcReplicaVersionStatus::Open);
         assert_eq!(report.rows[1].executed_timestamp_seconds, 0);
         assert_eq!(report.rows[1].replica_version_id, VERSION_A);
-        assert!(report.rows[1].title.is_empty());
-        assert!(report.rows[1].url.is_empty());
+        assert_eq!(report.rows[1].title, "");
+        assert_eq!(report.rows[1].url, "");
         assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
         assert!(!report.provenance.certified);
         assert!(!report.provenance.point_in_time_guaranteed);
