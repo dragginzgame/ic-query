@@ -219,6 +219,35 @@ basis. Exact cache status reads its selected sidecar once through the strict
 reader and reuses that observation in both the snapshot summary and the
 top-level attempt field. Invalid attempt content remains a status error;
 snapshot and attempt files are still separate observations, not an atomic pair.
+Status and failed-refresh progress recovery use one validated SNS attempt
+reader. Failure recording treats unreadable or invalid prior attempt evidence
+as absent and keeps the original refresh error; exact status remains strict.
+
+Numeric SNS cache reads bind the selected snapshot's loaded id to the requested
+id after header discovery. If atomic publication changes that id between reads,
+the operation returns `SnsHostError::CacheIdentityMismatch` instead of reporting
+another SNS. Replacement with the same id remains readable. Header discovery
+does not provide an atomic view of all collection files.
+
+SNS collection discovery admits at most 1,024 candidate files and 16,384
+network-directory entries per scan, including entries without a matching
+collection. Cache lists and numeric-id lookups share a 1 GiB read allowance
+across candidate headers, selected snapshot loads, and attempt sidecars. Numeric
+status retains that allowance when falling back to attempt-only discovery.
+Bytes read from malformed files count too; metadata admission occurs before
+allocation. Streamed growth stops at the remaining allowance plus one detection
+byte, and exceeding the allowance ends the operation.
+Partial IO failures conservatively consume their admitted read ceiling.
+
+Exceeding a discovery or aggregate byte bound returns
+`CacheFileError::ScanLimitExceeded` through the SNS cache-operation error.
+It never produces a partial list, a supposedly unique id, a missing-cache
+result, or a refresh trigger. Invalid files within the allowance retain the
+existing strict-read, invalid-summary, or best-effort sidecar policy. Direct
+root-principal operations do not scan unrelated entities and retain the
+512 MiB snapshot and 1 MiB attempt limits. These bounds add no live calls or
+cache mutation; downstream exhaustive matches on `CacheFileError` must handle
+the new variant. Schemas and serialized shapes remain unchanged.
 
 Global status applies a 64 MiB byte ceiling to full inspection of age-managed
 files, using the shared bounded reader to reject oversized metadata and growth

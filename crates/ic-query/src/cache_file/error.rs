@@ -15,6 +15,17 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum CacheFileError {
+    /// Complete discovery or inspection exceeded its aggregate work ceiling.
+    #[error("cache scan at {} exceeds its {resource} limit of {maximum}; no complete result is available", path.display())]
+    ScanLimitExceeded {
+        /// Directory or file being inspected when the limit was reached.
+        path: PathBuf,
+        /// Work bounded by this ceiling.
+        resource: &'static str,
+        /// Maximum supported entries, candidates, or bytes.
+        maximum: u64,
+    },
+
     /// The current platform cannot provide the required managed-cache guarantees.
     #[error("managed cache confinement is unsupported on platform {platform}")]
     UnsupportedConfinementPlatform {

@@ -43,6 +43,29 @@ pub enum BoundedManagedFileReadError {
     },
 }
 
+///
+/// ManagedReadBudget
+///
+/// Aggregate byte allowance shared by every file read in one local inspection.
+///
+
+#[derive(Debug)]
+pub struct ManagedReadBudget {
+    maximum: u64,
+    remaining: u64,
+}
+
+impl ManagedReadBudget {
+    /// Set the total byte allowance for one inspection operation.
+    #[cfg(any(feature = "sns-host", test))]
+    pub const fn new(maximum: u64) -> Self {
+        Self {
+            maximum,
+            remaining: maximum,
+        }
+    }
+}
+
 /// Return whether a confined regular managed file exists.
 pub fn managed_file_exists(cache_root: &Path, target_path: &Path) -> Result<bool, CacheFileError> {
     let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
@@ -68,7 +91,7 @@ pub fn open_managed_file(
     target.open_regular_file()
 }
 
-/// Read a confined regular managed file under an explicit byte ceiling.
+/// Read under a per-file ceiling and an optional shared inspection allowance.
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
@@ -82,13 +105,55 @@ pub fn read_bounded_managed_file(
     cache_root: &Path,
     target_path: &Path,
     maximum: u64,
+    budget: Option<&mut ManagedReadBudget>,
 ) -> Result<Option<Vec<u8>>, BoundedManagedFileReadError> {
     let Some(file) = open_managed_file(cache_root, target_path)
         .map_err(BoundedManagedFileReadError::Operation)?
     else {
         return Ok(None);
     };
-    read_opened_file_bounded(file, target_path, maximum).map(Some)
+    read_opened_file_bounded(file, target_path, maximum, budget).map(Some)
+}
+
+fn read_budgeted_stream(
+    reader: impl Read,
+    metadata_length: u64,
+    target_path: &Path,
+    maximum: u64,
+    budget: &mut ManagedReadBudget,
+) -> Result<Vec<u8>, BoundedManagedFileReadError> {
+    if metadata_length > maximum {
+        return read_bounded_stream(reader, metadata_length, target_path, maximum);
+    }
+    let aggregate_maximum = budget.maximum;
+    let exhausted = || {
+        BoundedManagedFileReadError::Operation(CacheFileError::ScanLimitExceeded {
+            path: target_path.to_path_buf(),
+            resource: "inspection bytes",
+            maximum: aggregate_maximum,
+        })
+    };
+    if metadata_length > budget.remaining {
+        return Err(exhausted());
+    }
+    let ceiling = maximum.min(budget.remaining);
+    let result = read_bounded_stream(reader, metadata_length, target_path, ceiling);
+    match &result {
+        Ok(data) => budget.remaining -= data.len() as u64,
+        Err(BoundedManagedFileReadError::LimitExceeded { actual, .. })
+            if *actual > ceiling && ceiling == budget.remaining =>
+        {
+            budget.remaining = 0;
+            return Err(exhausted());
+        }
+        Err(BoundedManagedFileReadError::Read { .. }) => {
+            // Partial IO failures still consume work; conservatively charge the ceiling.
+            budget.remaining = budget.remaining.saturating_sub(ceiling.saturating_add(1));
+        }
+        Err(BoundedManagedFileReadError::LimitExceeded { .. }) => budget.remaining -= ceiling + 1,
+        Err(_) => {}
+    }
+    result
 }
 
 impl ConfinedManagedPath {
@@ -102,7 +167,7 @@ impl ConfinedManagedPath {
         else {
             return Ok(None);
         };
-        read_opened_file_bounded(file, &self.display_path, maximum).map(Some)
+        read_opened_file_bounded(file, &self.display_path, maximum, None).map(Some)
     }
 }
 
@@ -110,6 +175,7 @@ fn read_opened_file_bounded(
     file: cap_std::fs::File,
     target_path: &Path,
     maximum: u64,
+    budget: Option<&mut ManagedReadBudget>,
 ) -> Result<Vec<u8>, BoundedManagedFileReadError> {
     let metadata_length = file
         .metadata()
@@ -118,7 +184,10 @@ fn read_opened_file_bounded(
             source,
         })?
         .len();
-    read_bounded_stream(file, metadata_length, target_path, maximum)
+    match budget {
+        Some(budget) => read_budgeted_stream(file, metadata_length, target_path, maximum, budget),
+        None => read_bounded_stream(file, metadata_length, target_path, maximum),
+    }
 }
 
 pub fn read_bounded_stream(
@@ -163,6 +232,74 @@ pub fn read_bounded_stream(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct FailsAfterBytes(bool);
+    impl Read for FailsAfterBytes {
+        fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+            if self.0 {
+                return Err(io::Error::other("fixture read failure"));
+            }
+            self.0 = true;
+            buffer[0] = b'x';
+            Ok(1)
+        }
+    }
+
+    #[test]
+    fn aggregate_reads_charge_actual_bytes_and_stop_before_oversized_allocation() {
+        let path = Path::new("snapshot.json");
+        let mut budget = ManagedReadBudget::new(10);
+        let first =
+            read_budgeted_stream(io::Cursor::new(b"1234"), 4, path, 100, &mut budget).unwrap();
+        assert_eq!(first, b"1234");
+        let mut second = io::Cursor::new(b"1234567");
+        assert!(matches!(
+            read_budgeted_stream(&mut second, 7, path, 100, &mut budget),
+            Err(BoundedManagedFileReadError::Operation(
+                CacheFileError::ScanLimitExceeded {
+                    resource: "inspection bytes",
+                    maximum: 10,
+                    ..
+                }
+            ))
+        ));
+        assert_eq!(second.position(), 0);
+        assert_eq!(
+            read_budgeted_stream(io::Cursor::new(b"123456"), 6, path, 100, &mut budget).unwrap(),
+            b"123456"
+        );
+        assert!(read_budgeted_stream(io::Cursor::new(b"x"), 1, path, 100, &mut budget).is_err());
+    }
+
+    #[test]
+    fn aggregate_reads_bound_growth_and_charge_partial_io_failures() {
+        let path = Path::new("snapshot.json");
+        let mut budget = ManagedReadBudget::new(8);
+        let mut reader = io::Cursor::new(b"123456789-and-more");
+        assert!(matches!(
+            read_budgeted_stream(&mut reader, 4, path, 100, &mut budget),
+            Err(BoundedManagedFileReadError::Operation(
+                CacheFileError::ScanLimitExceeded { .. }
+            ))
+        ));
+        assert_eq!(reader.position(), 9);
+        assert_eq!(budget.remaining, 0);
+
+        let mut budget = ManagedReadBudget::new(20);
+        let mut failed = io::Cursor::new(b"1234");
+        // Growth beyond a per-file limit is still charged to the aggregate.
+        assert!(matches!(
+            read_budgeted_stream(&mut failed, 3, path, 3, &mut budget),
+            Err(BoundedManagedFileReadError::LimitExceeded { .. })
+        ));
+        assert_eq!(budget.remaining, 16);
+
+        assert!(matches!(
+            read_budgeted_stream(FailsAfterBytes(false), 1, path, 3, &mut budget),
+            Err(BoundedManagedFileReadError::Read { .. })
+        ));
+        assert_eq!(budget.remaining, 12);
+    }
 
     #[test]
     fn bounded_stream_rejects_growth_after_metadata_admission() {

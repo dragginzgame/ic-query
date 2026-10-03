@@ -7,7 +7,10 @@
 use crate::{
     HostCacheError,
     cache::validate_cache_collection_completeness,
-    cache_file::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest, load_json_cache_strict},
+    cache_file::{
+        CacheFileError, CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest, ManagedReadBudget,
+        load_json_cache_strict,
+    },
     snapshot_cache::{
         SnapshotEnvelope, SnapshotIdentityMismatch, collect_full_collection_snapshot_paths,
         load_complete_snapshot_for_key,
@@ -24,6 +27,18 @@ use crate::{
 use candid::Principal;
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
+
+pub(in crate::sns::report) const SNS_CACHE_SCAN_MAXIMUM_BYTES: u64 = 1024 * 1024 * 1024;
+
+pub(in crate::sns::report) const fn sns_cache_scan_limit_exceeded(error: &SnsHostError) -> bool {
+    matches!(
+        error,
+        SnsHostError::Cache(HostCacheError::Operation {
+            source: CacheFileError::ScanLimitExceeded { .. },
+            ..
+        })
+    )
+}
 
 ///
 /// SnsCacheStorageFamily
@@ -126,6 +141,7 @@ pub(in crate::sns::report) fn read_sns_cache_header<Family>(
     cache_root: &Path,
     path: &Path,
     network: &str,
+    budget: &mut ManagedReadBudget,
 ) -> Result<SnsCacheLookupHeader, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
@@ -140,6 +156,7 @@ where
             maximum_bytes: 512 * 1024 * 1024,
         },
         Family::CACHE_FIELDS,
+        Some(budget),
     )
     .map_err(|error| match error {
         HostCacheError::MissingCache { path, .. } => Family::missing_cache_error(path),
@@ -148,22 +165,43 @@ where
     Ok(cached.report)
 }
 
-/// Find the unique SNS snapshot path whose validated header claims an id.
-fn find_unique_sns_cache_path_by_id(
-    paths: impl IntoIterator<Item = PathBuf>,
+/// Load the unique SNS snapshot and bind its final contents to the requested id.
+fn load_unique_sns_cache_by_id<Family>(
+    paths: Vec<PathBuf>,
     id: usize,
-    mut read_id: impl FnMut(&Path) -> Result<usize, SnsHostError>,
-) -> Result<Option<PathBuf>, SnsHostError> {
+    budget: &mut ManagedReadBudget,
+    mut read_id: impl FnMut(&Path, &mut ManagedReadBudget) -> Result<usize, SnsHostError>,
+    mut load_cache: impl FnMut(
+        PathBuf,
+        &mut ManagedReadBudget,
+    ) -> Result<SnsStoredCache<Family>, SnsHostError>,
+) -> Result<Option<SnsStoredCacheWithPath<Family>>, SnsHostError>
+where
+    Family: SnsCacheStorageFamily,
+{
     let mut matching = None;
     for path in paths {
-        if read_id(&path)? != id {
+        if read_id(&path, budget)? != id {
             continue;
         }
         if matching.replace(path).is_some() {
             return Err(SnsHostError::AmbiguousCacheId { id });
         }
     }
-    Ok(matching)
+    let Some(path) = matching else {
+        return Ok(None);
+    };
+    let cache = load_cache(path.clone(), budget)?;
+    // Publication can replace the file after header discovery.
+    if cache.metadata.id != id {
+        return Err(SnsHostError::CacheIdentityMismatch {
+            path,
+            field: "id",
+            expected: id.to_string(),
+            actual: cache.metadata.id.to_string(),
+        });
+    }
+    Ok(Some((path, cache)))
 }
 
 /// Load the unique complete SNS cache whose validated header claims an id.
@@ -175,15 +213,17 @@ pub(in crate::sns::report) fn load_sns_cache_by_id<Family>(
 where
     Family: SnsCacheStorageFamily,
 {
-    let path = find_unique_sns_cache_path_by_id(
+    let mut budget = ManagedReadBudget::new(SNS_CACHE_SCAN_MAXIMUM_BYTES);
+    load_unique_sns_cache_by_id::<Family>(
         collect_sns_cache_paths::<Family>(cache_root, network)?,
         id,
-        |path| read_sns_cache_header::<Family>(cache_root, path, network).map(|header| header.id),
-    )?;
-    path.map(|path| {
-        load_sns_cache_at::<Family>(cache_root, path.clone(), network).map(|cache| (path, cache))
-    })
-    .transpose()
+        &mut budget,
+        |path, budget| {
+            read_sns_cache_header::<Family>(cache_root, path, network, budget)
+                .map(|header| header.id)
+        },
+        |path, budget| load_sns_cache_at::<Family>(cache_root, path, network, Some(budget)),
+    )
 }
 
 /// Load one complete SNS cache by root canister principal.
@@ -197,7 +237,7 @@ where
 {
     let path =
         SnsSnapshotCachePaths::<Family>::for_root(cache_root, network, root_canister_id).cache_path;
-    let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network)?;
+    let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network, None)?;
     Ok((path, cache))
 }
 
@@ -237,6 +277,7 @@ pub(in crate::sns::report) fn load_sns_cache_at<Family>(
     cache_root: &Path,
     path: PathBuf,
     network: &str,
+    budget: Option<&mut ManagedReadBudget>,
 ) -> Result<SnsStoredCache<Family>, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
@@ -251,6 +292,7 @@ where
             expected_schema_version: Family::CACHE_SCHEMA_VERSION,
             maximum_bytes: 512 * 1024 * 1024,
         },
+        budget,
         &key,
         Family::CACHE_FIELDS,
         Family::missing_cache_error,
@@ -334,38 +376,137 @@ fn sns_identity_mismatch_error(path: PathBuf, mismatch: SnapshotIdentityMismatch
 
 #[cfg(test)]
 mod tests {
-    use super::find_unique_sns_cache_path_by_id;
-    use crate::sns::report::SnsHostError;
-    use std::path::PathBuf;
+    use super::*;
+    use crate::{
+        cache::CacheCollectionCompleteness, cache_file::write_managed_text_atomically,
+        sns::report::proposals_cache::SnsProposalsCacheCollection, test_support::temp_dir,
+    };
+    use std::{cell::Cell, fs};
+
+    fn cache(id: usize) -> SnsStoredCache<SnsProposalsCacheCollection> {
+        serde_json::from_value(serde_json::json!({
+            "schema_version": 1, "network": "ic", "domain": "sns", "entity": "aaaaa-aa",
+            "collection": "proposals", "scope": "full", "id": id, "name": "Fixture",
+            "sns_wasm_canister_id": "qaa6y-5yaaa-aaaaa-aaafa-cai", "root_canister_id": "aaaaa-aa",
+            "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+            "source_endpoint": "https://icp-api.io", "fetched_at": "2026-10-03T00:00:00Z",
+            "fetched_by": "fixture", "completeness": CacheCollectionCompleteness::api_exhausted(100, 1, 0, false),
+            "proposals": [],
+        }))
+        .unwrap()
+    }
 
     #[test]
-    fn cache_id_path_lookup_finds_the_unique_matching_header() {
-        let path = find_unique_sns_cache_path_by_id(
-            [PathBuf::from("1"), PathBuf::from("2"), PathBuf::from("3")],
+    fn cache_id_lookup_loads_only_the_unique_matching_snapshot() {
+        let loads = Cell::new(0);
+        let (path, snapshot) = load_unique_sns_cache_by_id::<SnsProposalsCacheCollection>(
+            vec![PathBuf::from("1"), PathBuf::from("2"), PathBuf::from("3")],
             2,
-            |path| {
+            &mut ManagedReadBudget::new(1024),
+            |path, _| {
                 path.to_string_lossy()
                     .parse::<usize>()
                     .map_err(|_| SnsHostError::InvalidLookup {
                         input: path.display().to_string(),
                     })
             },
+            |path, _| {
+                assert_eq!(path, PathBuf::from("2"));
+                loads.set(loads.get() + 1);
+                Ok(cache(2))
+            },
         )
-        .expect("lookup succeeds");
+        .expect("lookup succeeds")
+        .expect("matching snapshot");
 
-        assert_eq!(path, Some(PathBuf::from("2")));
+        assert_eq!(path, PathBuf::from("2"));
+        assert_eq!(snapshot.metadata.id, 2);
+        assert_eq!(loads.get(), 1);
     }
 
     #[test]
-    fn cache_id_path_lookup_rejects_duplicate_headers() {
-        let result =
-            find_unique_sns_cache_path_by_id([PathBuf::from("a"), PathBuf::from("b")], 7, |_| {
-                Ok(7)
-            });
+    fn cache_id_lookup_rejects_duplicate_headers_before_loading_rows() {
+        let result = load_unique_sns_cache_by_id::<SnsProposalsCacheCollection>(
+            vec![PathBuf::from("a"), PathBuf::from("b")],
+            7,
+            &mut ManagedReadBudget::new(1024),
+            |_, _| Ok(7),
+            |_, _| panic!("ambiguous headers must not load rows"),
+        );
 
         assert!(matches!(
             result,
             Err(SnsHostError::AmbiguousCacheId { id: 7 })
         ));
+    }
+
+    #[test]
+    fn cache_id_lookup_preserves_unrelated_header_errors() {
+        let result = load_unique_sns_cache_by_id::<SnsProposalsCacheCollection>(
+            vec![PathBuf::from("matching"), PathBuf::from("invalid")],
+            7,
+            &mut ManagedReadBudget::new(1024),
+            |path, _| {
+                if path == Path::new("matching") {
+                    Ok(7)
+                } else {
+                    Err(SnsHostError::InvalidCache {
+                        path: path.to_path_buf(),
+                        reason: "fixture".to_string(),
+                    })
+                }
+            },
+            |_, _| panic!("a header error must terminate lookup before loading rows"),
+        );
+        assert!(
+            matches!(result, Err(SnsHostError::InvalidCache { path, .. }) if path == Path::new("invalid"))
+        );
+    }
+
+    #[test]
+    fn cache_id_lookup_binds_the_atomically_replaced_snapshot_to_requested_id() {
+        let root = temp_dir("ic-query-sns-id-replacement");
+        let path = root.join("sns/ic/aaaaa-aa/proposals/full.json");
+        for replacement_id in [7, 8] {
+            write_managed_text_atomically(&root, &path, &serde_json::to_string(&cache(7)).unwrap())
+                .unwrap();
+            let result = load_unique_sns_cache_by_id::<SnsProposalsCacheCollection>(
+                vec![path.clone()],
+                7,
+                &mut ManagedReadBudget::new(1024 * 1024),
+                |path, budget| {
+                    read_sns_cache_header::<SnsProposalsCacheCollection>(&root, path, "ic", budget)
+                        .map(|header| header.id)
+                },
+                |path, budget| {
+                    let mut replacement = cache(replacement_id);
+                    replacement.metadata.name = "Updated".to_string();
+                    write_managed_text_atomically(
+                        &root,
+                        &path,
+                        &serde_json::to_string(&replacement).unwrap(),
+                    )
+                    .unwrap();
+                    load_sns_cache_at::<SnsProposalsCacheCollection>(
+                        &root,
+                        path,
+                        "ic",
+                        Some(budget),
+                    )
+                },
+            );
+            if replacement_id == 7 {
+                let (_, snapshot) = result.unwrap().unwrap();
+                assert_eq!(snapshot.metadata.id, 7);
+                assert_eq!(snapshot.metadata.name, "Updated");
+            } else {
+                assert!(matches!(
+                    result,
+                    Err(SnsHostError::CacheIdentityMismatch { path: actual_path, field: "id", expected, actual })
+                        if actual_path == path && expected == "7" && actual == "8"
+                ));
+            }
+        }
+        fs::remove_dir_all(root).unwrap();
     }
 }

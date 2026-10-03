@@ -618,30 +618,34 @@ fn read_bounded_cache(
     location: &NnsCertifiedSubnetCatalogCacheLocation,
     path: &Path,
 ) -> Result<Option<Vec<u8>>, NnsCertifiedSubnetCatalogCacheError> {
-    read_bounded_managed_file(&location.cache_root, path, location.maximum_cache_bytes).map_err(
-        |error| match error {
-            BoundedManagedFileReadError::Operation(source) => file_operation(source),
-            BoundedManagedFileReadError::Read { path, source } => {
-                file_operation(CacheFileError::OpenManagedPath {
-                    root: location.cache_root.clone(),
-                    path,
-                    source,
-                })
-            }
-            BoundedManagedFileReadError::LimitExceeded {
-                path,
-                actual,
-                maximum,
-            } => NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded {
-                path,
-                actual,
-                maximum,
-            },
-            BoundedManagedFileReadError::Accounting { .. } => {
-                NnsCertifiedSubnetCatalogCacheError::Accounting
-            }
-        },
+    read_bounded_managed_file(
+        &location.cache_root,
+        path,
+        location.maximum_cache_bytes,
+        None,
     )
+    .map_err(|error| match error {
+        BoundedManagedFileReadError::Operation(source) => file_operation(source),
+        BoundedManagedFileReadError::Read { path, source } => {
+            file_operation(CacheFileError::OpenManagedPath {
+                root: location.cache_root.clone(),
+                path,
+                source,
+            })
+        }
+        BoundedManagedFileReadError::LimitExceeded {
+            path,
+            actual,
+            maximum,
+        } => NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded {
+            path,
+            actual,
+            maximum,
+        },
+        BoundedManagedFileReadError::Accounting { .. } => {
+            NnsCertifiedSubnetCatalogCacheError::Accounting
+        }
+    })
 }
 
 fn enforce_cache_limit(

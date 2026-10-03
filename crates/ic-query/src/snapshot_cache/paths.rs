@@ -81,7 +81,7 @@ fn collect_full_collection_paths(
     collection: &str,
     file_name: &str,
 ) -> Result<Vec<PathBuf>, CacheFileError> {
-    collect_managed_collection_files(cache_root, network_dir, collection, file_name)
+    collect_managed_collection_files(cache_root, network_dir, collection, file_name, 1_024)
 }
 
 fn snapshot_collection_dir(cache_root: &Path, key: &SnapshotKey) -> PathBuf {

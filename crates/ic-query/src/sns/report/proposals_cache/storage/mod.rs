@@ -67,8 +67,13 @@ mod tests {
             |error| error.to_string(),
         )
         .unwrap();
-        let header = read_sns_cache_header::<SnsProposalsCacheCollection>(&root, &path, "ic")
-            .expect("lookup does not deserialize proposal rows");
+        let header = read_sns_cache_header::<SnsProposalsCacheCollection>(
+            &root,
+            &path,
+            "ic",
+            &mut crate::cache_file::ManagedReadBudget::new(1024 * 1024),
+        )
+        .expect("lookup does not deserialize proposal rows");
         assert_eq!(header.id, 7);
         assert_eq!(header.domain, "sns");
         assert_eq!(header.entity, "root");
@@ -82,7 +87,12 @@ mod tests {
             .write_all(b"invalid trailing JSON")
             .unwrap();
         assert!(matches!(
-            read_sns_cache_header::<SnsProposalsCacheCollection>(&root, &path, "ic"),
+            read_sns_cache_header::<SnsProposalsCacheCollection>(
+                &root,
+                &path,
+                "ic",
+                &mut crate::cache_file::ManagedReadBudget::new(1024 * 1024)
+            ),
             Err(SnsHostError::Cache(HostCacheError::ParseCache { .. }))
         ));
         fs::remove_dir_all(root).unwrap();

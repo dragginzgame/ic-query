@@ -162,6 +162,7 @@ fn load_cache_at(
             expected_schema_version: NNS_NEURON_CACHE_SCHEMA_VERSION,
             maximum_bytes: 512 * 1024 * 1024,
         },
+        None,
         &key,
         NNS_NEURON_CACHE_FIELDS,
         missing_neuron_cache_error,

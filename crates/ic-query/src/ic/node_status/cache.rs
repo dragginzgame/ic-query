@@ -326,6 +326,7 @@ fn load_node_status_cache(
             expected_schema_version: IC_NODE_STATUS_SCHEMA_VERSION,
             maximum_bytes: 64 * 1024 * 1024,
         },
+        None,
         &key,
         CACHE_FIELDS,
         missing_cache_error,

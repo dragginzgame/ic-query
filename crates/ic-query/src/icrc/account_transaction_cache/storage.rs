@@ -102,6 +102,7 @@ pub(super) fn load_snapshot_at(
             maximum_bytes: 512 * 1024 * 1024,
         },
         ICRC_ACCOUNT_TRANSACTION_CACHE_FIELDS,
+        None,
     )
     .map_err(IcrcAccountTransactionError::from)?;
     validate_snapshot(path, &cached.report, request)?;

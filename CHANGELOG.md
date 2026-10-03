@@ -11,6 +11,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.3` bounds SNS collection discovery to 1,024 candidates and 16,384
+  directory entries per scan, with a shared 1 GiB read allowance for cache
+  lists and numeric lookups. Exceeding a bound returns an error rather than a
+  partial or missing result. Numeric cache reads reject replacement snapshots
+  claiming a different SNS id. Consolidates attempt reads and removes redundant
+  construction and forwarding machinery. Adds `CacheFileError::ScanLimitExceeded`,
+  requiring downstream exhaustive-match updates; CLI grammar and serialized
+  shapes are unchanged, and schemas remain `1`.
+
 - `0.45.2` bounds local cache-status inspection and checks snapshot replacement
   state under the refresh lock. SNS status reuses one refresh-attempt observation;
   proposal reports and cache lookup shed redundant intermediate models. ICRC

@@ -233,6 +233,7 @@ fn load_cached_sns_catalog(
             expected_schema_version: SNS_CATALOG_CACHE_SCHEMA_VERSION,
             maximum_bytes: 64 * 1024 * 1024,
         },
+        None,
         &key,
         CACHE_FIELDS,
         missing_catalog_cache_error,

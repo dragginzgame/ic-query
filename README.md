@@ -422,6 +422,15 @@ SNSes; `sns list --all` also shows failed/aborted, pending, unknown, and
 lifecycle-query-error rows. `sns refresh` forces replacement. Targeted SNS
 commands keep their bounded targeted discovery and never refresh the all-SNS
 catalog.
+
+SNS collection cache lists and numeric-id lookups bound local discovery to
+1,024 candidates and 16,384 directory entries per scan, with a shared 1 GiB
+read allowance across snapshots and attempt evidence. Exceeding a bound returns
+an error rather than an incomplete list or lookup result. Root-principal
+operations use their direct paths and existing per-file limits.
+Numeric reads also verify the loaded snapshot's id after discovery, rejecting
+an atomic replacement that changes it instead of returning another SNS.
+
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do

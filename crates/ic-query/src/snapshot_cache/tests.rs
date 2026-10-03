@@ -220,6 +220,7 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
             expected_schema_version: 1,
             maximum_bytes: 64 * 1024 * 1024,
         },
+        None,
         &key,
         FIXTURE_SNAPSHOT_FIELDS,
         |path| HostCacheError::missing_cache("fixture", path).into(),
@@ -302,7 +303,7 @@ fn snapshot_refresh_attempt_reader_rejects_oversized_sidecar() {
     crate::cache_file::write_managed_text_atomically(&root, &path, &"x".repeat(1024 * 1024 + 1))
         .expect("write oversized attempt fixture");
 
-    let error = read_snapshot_refresh_attempt_strict::<serde_json::Value>(&root, &path, &[])
+    let error = read_snapshot_refresh_attempt_strict::<serde_json::Value>(&root, &path, &[], None)
         .expect_err("oversized attempt is rejected");
 
     assert!(matches!(
@@ -656,6 +657,7 @@ fn load_fixture_snapshot(
             expected_schema_version: 1,
             maximum_bytes: 64 * 1024 * 1024,
         },
+        None,
         key,
         FIXTURE_SNAPSHOT_FIELDS,
         |path| HostCacheError::missing_cache("fixture", path).into(),

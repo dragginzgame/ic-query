@@ -304,6 +304,7 @@ pub fn collect_managed_collection_files(
     network_dir: &Path,
     collection: &str,
     file_name: &str,
+    maximum_files: usize,
 ) -> Result<Vec<PathBuf>, CacheFileError> {
     let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
         return Ok(Vec::new());
@@ -317,7 +318,14 @@ pub fn collect_managed_collection_files(
         .entries()
         .map_err(|source| open_managed_path_error(cache_root, network_dir, source))?;
     let mut paths = Vec::new();
-    for entry in entries {
+    for (visited, entry) in entries.enumerate() {
+        if visited == maximum_files.saturating_mul(16) {
+            return Err(CacheFileError::ScanLimitExceeded {
+                path: network_dir.to_path_buf(),
+                resource: "directory entries",
+                maximum: maximum_files.saturating_mul(16) as u64,
+            });
+        }
         let entry =
             entry.map_err(|source| open_managed_path_error(cache_root, network_dir, source))?;
         let file_type = entry
@@ -340,6 +348,13 @@ pub fn collect_managed_collection_files(
         };
         if let Some(file) = candidate_path.open_regular_file()? {
             validate_managed_file_mode(&candidate, &file)?;
+            if paths.len() == maximum_files {
+                return Err(CacheFileError::ScanLimitExceeded {
+                    path: network_dir.to_path_buf(),
+                    resource: "collection candidates",
+                    maximum: maximum_files as u64,
+                });
+            }
             paths.push(candidate);
         }
     }
@@ -352,6 +367,81 @@ mod tests {
     use super::*;
     use crate::{cache_file::create_managed_parent_directory, test_support::temp_dir};
     use std::fs;
+    #[cfg(all(feature = "sns-host", unix))]
+    use std::os::unix::fs::{PermissionsExt, symlink};
+
+    #[cfg(feature = "sns-host")]
+    #[test]
+    fn collection_discovery_requires_a_complete_candidate_and_entry_scan() {
+        let root = temp_dir("ic-query-collection-scan-limit");
+        let network = root.join("sns/ic");
+        for entity in ["b", "a"] {
+            super::super::write_managed_text_atomically(
+                &root,
+                &network.join(entity).join("proposals/full.json"),
+                "{}",
+            )
+            .unwrap();
+        }
+        let paths =
+            collect_managed_collection_files(&root, &network, "proposals", "full.json", 2).unwrap();
+        assert_eq!(
+            paths,
+            vec![
+                network.join("a/proposals/full.json"),
+                network.join("b/proposals/full.json")
+            ]
+        );
+        super::super::write_managed_text_atomically(
+            &root,
+            &network.join("c/proposals/full.json"),
+            "{}",
+        )
+        .unwrap();
+        assert!(matches!(
+            collect_managed_collection_files(&root, &network, "proposals", "full.json", 2),
+            Err(CacheFileError::ScanLimitExceeded {
+                resource: "collection candidates",
+                maximum: 2,
+                ..
+            })
+        ));
+        // Nonmatching entities must consume the entry allowance too.
+        for entity in 0..14 {
+            create_managed_parent_directory(&root, &network.join(entity.to_string()).join("probe"))
+                .unwrap();
+        }
+        assert!(matches!(
+            collect_managed_collection_files(&root, &network, "neurons", "full.json", 1),
+            Err(CacheFileError::ScanLimitExceeded {
+                resource: "directory entries",
+                maximum: 16,
+                ..
+            })
+        ));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(all(feature = "sns-host", unix))]
+    #[test]
+    fn collection_discovery_preserves_confinement_and_permission_errors() {
+        let root = temp_dir("ic-query-collection-scan-authority");
+        let network = root.join("sns/ic");
+        let path = network.join("entity/proposals/full.json");
+        super::super::write_managed_text_atomically(&root, &path, "{}").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(matches!(
+            collect_managed_collection_files(&root, &network, "proposals", "full.json", 2),
+            Err(CacheFileError::UnsafeManagedPermissions { .. })
+        ));
+        fs::remove_file(&path).unwrap();
+        symlink(&path, network.join("linked")).unwrap();
+        assert!(matches!(
+            collect_managed_collection_files(&root, &network, "proposals", "full.json", 2),
+            Err(CacheFileError::Confinement { .. })
+        ));
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn inventory_bounds_nonmatching_entries_and_directory_depth() {

@@ -17,7 +17,7 @@ fn managed_round_trip_uses_owner_only_modes() {
     write_managed_text_atomically(&root, &path, "evidence").expect("write managed cache");
 
     assert_eq!(
-        read_bounded_managed_file(&root, &path, 1024).expect("read managed cache"),
+        read_bounded_managed_file(&root, &path, 1024, None).expect("read managed cache"),
         Some(b"evidence".to_vec())
     );
     #[cfg(unix)]
@@ -93,11 +93,11 @@ fn bounded_managed_read_accepts_exact_limit_and_rejects_larger_file() {
     write_managed_text_atomically(&root, &path, "12345678").expect("write bounded fixture");
 
     assert_eq!(
-        read_bounded_managed_file(&root, &path, 8).expect("read exact limit"),
+        read_bounded_managed_file(&root, &path, 8, None).expect("read exact limit"),
         Some(b"12345678".to_vec())
     );
-    let error =
-        read_bounded_managed_file(&root, &path, 7).expect_err("larger managed file is rejected");
+    let error = read_bounded_managed_file(&root, &path, 7, None)
+        .expect_err("larger managed file is rejected");
     assert!(matches!(
         error,
         BoundedManagedFileReadError::LimitExceeded {
@@ -124,7 +124,7 @@ fn streamed_atomic_write_failure_preserves_existing_file() {
 
     assert!(matches!(error, CacheFileError::WriteTemp { .. }));
     assert_eq!(
-        read_bounded_managed_file(&root, &path, 1024).expect("preserved managed file"),
+        read_bounded_managed_file(&root, &path, 1024, None).expect("preserved managed file"),
         Some(b"complete".to_vec())
     );
     assert_eq!(
@@ -165,8 +165,9 @@ fn managed_path_rejects_symlinked_parent_and_file() {
     write_managed_text_atomically(&root, &root.join("seed.json"), "seed").expect("create root");
 
     symlink(&outside, root.join("linked-dir")).expect("link directory");
-    let parent_error = read_bounded_managed_file(&root, &root.join("linked-dir/cache.json"), 1024)
-        .expect_err("symlink parent rejected");
+    let parent_error =
+        read_bounded_managed_file(&root, &root.join("linked-dir/cache.json"), 1024, None)
+            .expect_err("symlink parent rejected");
     assert!(matches!(
         parent_error,
         BoundedManagedFileReadError::Operation(CacheFileError::Confinement { .. })
@@ -174,7 +175,7 @@ fn managed_path_rejects_symlinked_parent_and_file() {
 
     fs::write(outside.join("target.json"), "outside").expect("write outside target");
     symlink(outside.join("target.json"), root.join("linked.json")).expect("link file");
-    let file_error = read_bounded_managed_file(&root, &root.join("linked.json"), 1024)
+    let file_error = read_bounded_managed_file(&root, &root.join("linked.json"), 1024, None)
         .expect_err("symlink file rejected");
     assert!(matches!(
         file_error,
@@ -184,7 +185,7 @@ fn managed_path_rejects_symlinked_parent_and_file() {
     let linked_root = temp_dir("ic-query-confined-root-link");
     symlink(&outside, &linked_root).expect("link cache root");
     let root_error =
-        read_bounded_managed_file(&linked_root, &linked_root.join("target.json"), 1024)
+        read_bounded_managed_file(&linked_root, &linked_root.join("target.json"), 1024, None)
             .expect_err("symlink root rejected");
     assert!(matches!(
         root_error,
@@ -206,7 +207,7 @@ fn managed_path_rejects_unsafe_directory_and_file_modes() {
 
     fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("widen file mode");
     let file_error =
-        read_bounded_managed_file(&root, &path, 1024).expect_err("unsafe file mode rejected");
+        read_bounded_managed_file(&root, &path, 1024, None).expect_err("unsafe file mode rejected");
     assert!(matches!(
         file_error,
         BoundedManagedFileReadError::Operation(CacheFileError::UnsafeManagedPermissions {
@@ -250,7 +251,7 @@ fn missing_root_and_file_are_observed_without_creation() {
     let path = root.join("cache.json");
 
     assert_eq!(
-        read_bounded_managed_file(&root, &path, 1024).expect("missing read"),
+        read_bounded_managed_file(&root, &path, 1024, None).expect("missing read"),
         None
     );
     assert!(!Path::new(&root).exists());

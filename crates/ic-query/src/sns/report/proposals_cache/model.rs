@@ -41,7 +41,7 @@ pub(super) const SNS_PROPOSALS_CACHE_FIELDS: &[&str] = &[
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub(super) struct SnsProposalsCacheRows {
+pub(in crate::sns::report) struct SnsProposalsCacheRows {
     pub(super) proposals: Vec<SnsProposalRow>,
 }
 

@@ -227,7 +227,12 @@ pub(in crate::nns) fn read_governance_refresh_attempt(
 > {
     let attempt = read_snapshot_refresh_attempt_strict::<
         SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>,
-    >(cache_root, path, NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS)
+    >(
+        cache_root,
+        path,
+        NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS,
+        None,
+    )
     .map_err(|error| match error {
         SnapshotRefreshAttemptReadError::Operation(source) => {
             NnsGovernanceAttemptReadError::Cache(HostCacheError::operation(cache_component, source))

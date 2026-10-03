@@ -4,7 +4,7 @@
 //! Does not own: family page fetching, cache publication, or text rendering.
 //! Boundary: one resolved context and attempt contract serves neuron and proposal refreshes.
 
-use crate::cache_file::write_managed_json_pretty_atomically;
+use crate::cache_file::{ManagedReadBudget, write_managed_json_pretty_atomically};
 use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
@@ -149,34 +149,6 @@ impl SnsRefreshContext<'_> {
     }
 }
 
-struct SnsRefreshAttemptParts<'a> {
-    context: SnsRefreshContext<'a>,
-    status: CacheRefreshAttemptStatus,
-    progress: SnapshotRefreshProgress,
-    last_error: Option<String>,
-}
-
-fn attempt_from_parts(parts: SnsRefreshAttemptParts<'_>) -> SnsRefreshAttempt {
-    SnsRefreshAttempt {
-        schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
-        network: parts.context.request.network().to_string(),
-        source_endpoint: parts.context.request.source_endpoint().to_string(),
-        started_at: parts.context.fetch_request.fetched_at.clone(),
-        updated_at: current_attempt_timestamp(&parts.context.fetch_request.fetched_at),
-        metadata: SnsRefreshAttemptMetadata {
-            id: parts.context.sns.id,
-            root_canister_id: parts.context.sns.root_canister_id.clone(),
-            governance_canister_id: parts.context.sns.governance_canister_id.clone(),
-        },
-        status: parts.status.to_string(),
-        page_size: parts.context.request.page_size(),
-        pages_fetched: parts.progress.pages_fetched,
-        rows_fetched: parts.progress.rows_fetched,
-        last_cursor: parts.progress.last_cursor,
-        last_error: parts.last_error,
-    }
-}
-
 pub(in crate::sns::report) fn write_starting_sns_refresh_attempt(
     context: SnsRefreshContext<'_>,
 ) -> Result<(), SnsHostError> {
@@ -188,13 +160,6 @@ pub(in crate::sns::report) fn write_starting_sns_refresh_attempt(
     )
 }
 
-pub(in crate::sns::report) fn write_running_sns_refresh_attempt(
-    context: SnsRefreshContext<'_>,
-    progress: SnapshotRefreshProgress,
-) -> Result<(), SnsHostError> {
-    write_sns_refresh_attempt_status(context, CacheRefreshAttemptStatus::Running, progress, None)
-}
-
 /// Write the running attempt evidence produced by one retained SNS page.
 pub(in crate::sns::report) fn write_running_sns_refresh_page(
     context: SnsRefreshContext<'_>,
@@ -202,9 +167,11 @@ pub(in crate::sns::report) fn write_running_sns_refresh_page(
     row_count: usize,
     page: &PagedCollectionPage,
 ) -> Result<(), SnsHostError> {
-    write_running_sns_refresh_attempt(
+    write_sns_refresh_attempt_status(
         context,
+        CacheRefreshAttemptStatus::Running,
         SnapshotRefreshProgress::new(page_count, row_count, page.last_cursor_text.clone()),
+        None,
     )
 }
 
@@ -223,16 +190,17 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
         context.request.cache_root(),
         context.path,
         context.request.network(),
-    );
-    let progress = SnapshotRefreshProgress::new(
-        latest
-            .as_ref()
-            .map_or(0, |(attempt, _status)| attempt.pages_fetched),
-        latest
-            .as_ref()
-            .map_or(0, |(attempt, _status)| attempt.rows_fetched),
-        latest.and_then(|(attempt, _status)| attempt.last_cursor),
-    );
+        None,
+    )
+    .ok()
+    .flatten();
+    let progress = latest.map_or_else(SnapshotRefreshProgress::default, |(attempt, _status)| {
+        SnapshotRefreshProgress::new(
+            attempt.pages_fetched,
+            attempt.rows_fetched,
+            attempt.last_cursor,
+        )
+    });
     let _ = write_sns_refresh_attempt_status(
         context,
         CacheRefreshAttemptStatus::Failed,
@@ -247,12 +215,24 @@ fn write_sns_refresh_attempt_status(
     progress: SnapshotRefreshProgress,
     last_error: Option<String>,
 ) -> Result<(), SnsHostError> {
-    let attempt = attempt_from_parts(SnsRefreshAttemptParts {
-        context,
-        status,
-        progress,
+    let attempt = SnsRefreshAttempt {
+        schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
+        network: context.request.network().to_string(),
+        source_endpoint: context.request.source_endpoint().to_string(),
+        started_at: context.fetch_request.fetched_at.clone(),
+        updated_at: current_attempt_timestamp(&context.fetch_request.fetched_at),
+        metadata: SnsRefreshAttemptMetadata {
+            id: context.sns.id,
+            root_canister_id: context.sns.root_canister_id.clone(),
+            governance_canister_id: context.sns.governance_canister_id.clone(),
+        },
+        status: status.to_string(),
+        page_size: context.request.page_size(),
+        pages_fetched: progress.pages_fetched,
+        rows_fetched: progress.rows_fetched,
+        last_cursor: progress.last_cursor,
         last_error,
-    });
+    };
     write_managed_json_pretty_atomically(
         context.request.cache_root(),
         context.path,
@@ -268,7 +248,7 @@ fn write_sns_refresh_attempt_status(
     )
 }
 
-pub(in crate::sns::report) fn validate_sns_refresh_attempt(
+fn validate_sns_refresh_attempt(
     path: &Path,
     expected_network: &str,
     attempt: &SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>,
@@ -301,36 +281,17 @@ pub(in crate::sns::report) fn validate_sns_refresh_attempt(
     Ok(status)
 }
 
-pub(in crate::sns::report) fn read_sns_refresh_attempt(
+fn read_sns_refresh_attempt(
     cache_root: &Path,
     path: &Path,
     expected_network: &str,
-) -> Option<(SnsRefreshAttempt, CacheRefreshAttemptStatus)> {
-    let attempt =
-        read_snapshot_refresh_attempt_strict(cache_root, path, SNS_REFRESH_ATTEMPT_METADATA_FIELDS)
-            .ok()??;
-    let status = validate_sns_refresh_attempt(path, expected_network, &attempt).ok()?;
-    Some((attempt, status))
-}
-
-pub(in crate::sns::report) fn read_sns_refresh_attempt_status(
-    cache_root: &Path,
-    path: &Path,
-    expected_network: &str,
-) -> Option<SnsRefreshAttemptStatus> {
-    read_sns_refresh_attempt(cache_root, path, expected_network)
-        .map(|(attempt, status)| SnsRefreshAttemptStatus::from_validated(attempt, status))
-}
-
-pub(in crate::sns::report) fn read_sns_refresh_attempt_status_strict(
-    cache_root: &Path,
-    path: &Path,
-    expected_network: &str,
-) -> Result<Option<SnsRefreshAttemptStatus>, SnsHostError> {
+    budget: Option<&mut ManagedReadBudget>,
+) -> Result<Option<(SnsRefreshAttempt, CacheRefreshAttemptStatus)>, SnsHostError> {
     read_snapshot_refresh_attempt_strict::<SnsRefreshAttempt>(
         cache_root,
         path,
         SNS_REFRESH_ATTEMPT_METADATA_FIELDS,
+        budget,
     )
     .map_err(|error| match error {
         SnapshotRefreshAttemptReadError::Operation(source) => {
@@ -345,7 +306,19 @@ pub(in crate::sns::report) fn read_sns_refresh_attempt_status_strict(
     })?
     .map(|attempt| {
         let status = validate_sns_refresh_attempt(path, expected_network, &attempt)?;
-        Ok(SnsRefreshAttemptStatus::from_validated(attempt, status))
+        Ok((attempt, status))
     })
     .transpose()
+}
+
+pub(in crate::sns::report) fn read_sns_refresh_attempt_status_strict(
+    cache_root: &Path,
+    path: &Path,
+    expected_network: &str,
+    budget: Option<&mut ManagedReadBudget>,
+) -> Result<Option<SnsRefreshAttemptStatus>, SnsHostError> {
+    Ok(
+        read_sns_refresh_attempt(cache_root, path, expected_network, budget)?
+            .map(|(attempt, status)| SnsRefreshAttemptStatus::from_validated(attempt, status)),
+    )
 }

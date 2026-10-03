@@ -617,7 +617,7 @@ fn read_bounded_managed_file(
     kind: &'static str,
     maximum: u64,
 ) -> Result<Option<Vec<u8>>, NnsCertifiedRegistryArchiveStorageError> {
-    read_shared_bounded_managed_file(cache_root, path, maximum).map_err(|error| match error {
+    read_shared_bounded_managed_file(cache_root, path, maximum, None).map_err(|error| match error {
         BoundedManagedFileReadError::Operation(source) => file_operation(source),
         BoundedManagedFileReadError::Read { path, source } => {
             file_operation(CacheFileError::OpenManagedPath {

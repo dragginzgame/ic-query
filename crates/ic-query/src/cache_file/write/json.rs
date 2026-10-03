@@ -224,7 +224,7 @@ mod tests {
         )
         .expect("write streamed JSON");
         assert_eq!(
-            read_bounded_managed_file(&root, &path, 1024).expect("read streamed JSON"),
+            read_bounded_managed_file(&root, &path, 1024, None).expect("read streamed JSON"),
             Some(serde_json::to_vec_pretty(&value).expect("encode expected JSON"))
         );
 
@@ -238,7 +238,7 @@ mod tests {
         .expect_err("serialization failure is returned");
         assert!(error.contains("fixture serialization failure"));
         assert_eq!(
-            read_bounded_managed_file(&root, &path, 1024).expect("read preserved JSON"),
+            read_bounded_managed_file(&root, &path, 1024, None).expect("read preserved JSON"),
             Some(serde_json::to_vec_pretty(&value).expect("encode expected JSON"))
         );
 

@@ -6,7 +6,9 @@
 
 use crate::{
     cache::CacheRefreshAttemptStatus,
-    cache_file::{BoundedManagedFileReadError, CacheFileError, read_bounded_managed_file},
+    cache_file::{
+        BoundedManagedFileReadError, CacheFileError, ManagedReadBudget, read_bounded_managed_file,
+    },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::{
@@ -88,12 +90,13 @@ pub fn read_snapshot_refresh_attempt_strict<T>(
     cache_root: &Path,
     path: &Path,
     metadata_fields: &[&str],
+    budget: Option<&mut ManagedReadBudget>,
 ) -> Result<Option<T>, SnapshotRefreshAttemptReadError>
 where
     T: DeserializeOwned,
 {
     let Some(data) =
-        read_bounded_managed_file(cache_root, path, MAX_SNAPSHOT_REFRESH_ATTEMPT_BYTES)
+        read_bounded_managed_file(cache_root, path, MAX_SNAPSHOT_REFRESH_ATTEMPT_BYTES, budget)
             .map_err(|error| snapshot_attempt_read_error(cache_root, error))?
     else {
         return Ok(None);

@@ -324,7 +324,8 @@ impl RegistryHistoryCache {
     }
 
     fn read(&self) -> Result<(HistoryDocument, Option<String>), HostCacheError> {
-        let bytes = match read_bounded_managed_file(&self.root, &self.path, MAX_HISTORY_BYTES) {
+        let bytes = match read_bounded_managed_file(&self.root, &self.path, MAX_HISTORY_BYTES, None)
+        {
             Ok(Some(bytes)) => bytes,
             Ok(None) => return Ok((HistoryDocument::empty(), None)),
             Err(BoundedManagedFileReadError::Operation(error)) => return Err(operation(error)),

@@ -16,7 +16,7 @@ pub(super) type SnsProposalsCachePaths = SnsSnapshotCachePaths<SnsProposalsCache
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) enum SnsProposalsCacheCollection {}
+pub(in crate::sns::report) enum SnsProposalsCacheCollection {}
 
 impl SnsCacheCollection for SnsProposalsCacheCollection {
     const COLLECTION: &'static str = "proposals";

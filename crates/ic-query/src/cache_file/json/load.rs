@@ -6,7 +6,8 @@
 
 use super::model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest};
 use crate::cache_file::{
-    BoundedManagedFileReadError, CacheFileError, HostCacheError, read_bounded_managed_file,
+    BoundedManagedFileReadError, CacheFileError, HostCacheError, ManagedReadBudget,
+    read_bounded_managed_file,
 };
 use serde::de::{DeserializeOwned, Error as _, IgnoredAny, MapAccess, Visitor};
 use std::{collections::BTreeSet, fmt, io};
@@ -72,7 +73,7 @@ pub fn load_json_cache<T>(
 where
     T: DeserializeOwned + JsonCacheReport,
 {
-    load_json_cache_inner(request, None)
+    load_json_cache_inner(request, None, None)
 }
 
 #[cfg(any(
@@ -84,54 +85,57 @@ where
 pub fn load_json_cache_strict<T>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],
+    budget: Option<&mut ManagedReadBudget>,
 ) -> Result<CachedJsonReport<T>, HostCacheError>
 where
     T: DeserializeOwned + JsonCacheReport,
 {
-    load_json_cache_inner(request, Some(supported_fields))
+    load_json_cache_inner(request, Some(supported_fields), budget)
 }
 
 fn load_json_cache_inner<T>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: Option<&'static [&'static str]>,
+    budget: Option<&mut ManagedReadBudget>,
 ) -> Result<CachedJsonReport<T>, HostCacheError>
 where
     T: DeserializeOwned + JsonCacheReport,
 {
     let path = request.path;
     let component = request.component;
-    let Some(data) = read_bounded_managed_file(request.cache_root, &path, request.maximum_bytes)
-        .map_err(|source| match source {
-            BoundedManagedFileReadError::Operation(source) => {
-                HostCacheError::operation(component, source)
-            }
-            BoundedManagedFileReadError::LimitExceeded {
-                path,
-                actual,
-                maximum,
-            } => HostCacheError::CacheTooLarge {
-                component,
-                path,
-                actual,
-                maximum,
-            },
-            BoundedManagedFileReadError::Read { path, source } => HostCacheError::operation(
-                component,
-                CacheFileError::OpenManagedPath {
-                    root: request.cache_root.to_path_buf(),
+    let Some(data) =
+        read_bounded_managed_file(request.cache_root, &path, request.maximum_bytes, budget)
+            .map_err(|source| match source {
+                BoundedManagedFileReadError::Operation(source) => {
+                    HostCacheError::operation(component, source)
+                }
+                BoundedManagedFileReadError::LimitExceeded {
                     path,
-                    source,
-                },
-            ),
-            BoundedManagedFileReadError::Accounting { path } => HostCacheError::operation(
-                component,
-                CacheFileError::OpenManagedPath {
-                    root: request.cache_root.to_path_buf(),
+                    actual,
+                    maximum,
+                } => HostCacheError::CacheTooLarge {
+                    component,
                     path,
-                    source: io::Error::other("cache byte count exceeds platform accounting"),
+                    actual,
+                    maximum,
                 },
-            ),
-        })?
+                BoundedManagedFileReadError::Read { path, source } => HostCacheError::operation(
+                    component,
+                    CacheFileError::OpenManagedPath {
+                        root: request.cache_root.to_path_buf(),
+                        path,
+                        source,
+                    },
+                ),
+                BoundedManagedFileReadError::Accounting { path } => HostCacheError::operation(
+                    component,
+                    CacheFileError::OpenManagedPath {
+                        root: request.cache_root.to_path_buf(),
+                        path,
+                        source: io::Error::other("cache byte count exceeds platform accounting"),
+                    },
+                ),
+            })?
     else {
         return Err(HostCacheError::missing_cache(component, path));
     };

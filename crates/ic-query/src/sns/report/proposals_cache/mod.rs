@@ -11,6 +11,7 @@ mod refresh;
 mod reports;
 mod storage;
 
+pub(in crate::sns::report) use paths::SnsProposalsCacheCollection;
 pub use paths::{
     sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };

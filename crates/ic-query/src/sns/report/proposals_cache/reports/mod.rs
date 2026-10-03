@@ -9,7 +9,7 @@ mod cached_report;
 
 use super::{
     SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION,
-    SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION, paths::SnsProposalsCacheCollection,
+    SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION, SnsProposalsCacheCollection,
 };
 use crate::sns::report::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,

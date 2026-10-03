@@ -21,6 +21,13 @@ mod write;
 
 pub use confined::BoundedManagedFileReadError;
 #[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host",
+    feature = "sns-host"
+))]
+pub use confined::ManagedReadBudget;
+#[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
     feature = "dashboard-host",

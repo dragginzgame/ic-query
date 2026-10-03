@@ -32,6 +32,13 @@ mod read;
 ))]
 mod scan;
 
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host",
+    feature = "sns-host"
+))]
+pub use read::ManagedReadBudget;
 #[cfg(feature = "host")]
 pub use read::open_managed_file;
 #[cfg(any(

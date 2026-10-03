@@ -451,15 +451,19 @@ fn load_cached_with_disposition_detailed(
         )
     })?;
     let path = subnet_catalog_path(&request.cache.cache_root, &request.cache.network);
-    let Some(data) =
-        read_bounded_managed_file(&request.cache.cache_root, &path, MAX_CACHED_CATALOG_BYTES)
-            .map_err(|error| {
-                SubnetCatalogSourceFailure::new(
-                    None,
-                    Some(SubnetCatalogSubject::CachePath(path.clone())),
-                    bounded_catalog_read_error(error),
-                )
-            })?
+    let Some(data) = read_bounded_managed_file(
+        &request.cache.cache_root,
+        &path,
+        MAX_CACHED_CATALOG_BYTES,
+        None,
+    )
+    .map_err(|error| {
+        SubnetCatalogSourceFailure::new(
+            None,
+            Some(SubnetCatalogSubject::CachePath(path.clone())),
+            bounded_catalog_read_error(error),
+        )
+    })?
     else {
         return Err(SubnetCatalogSourceFailure::new(
             None,

@@ -192,6 +192,7 @@ fn load_nns_proposal_cache(
             expected_schema_version: NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
             maximum_bytes: 512 * 1024 * 1024,
         },
+        None,
         &key,
         NNS_PROPOSAL_CACHE_FIELDS,
         missing_proposal_cache_error,

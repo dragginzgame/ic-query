@@ -6,13 +6,15 @@
 
 use crate::{
     cache::CacheValidationStatus,
+    cache_file::ManagedReadBudget,
     snapshot_cache::SnapshotEnvelope,
     sns::report::{
         SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
-        cache_attempt::read_sns_refresh_attempt_status,
+        cache_attempt::read_sns_refresh_attempt_status_strict,
         cache_paths::{sns_attempt_path_for_cache_path, sns_snapshot_network_cache_dir},
         cache_storage::{
-            SnsCacheMetadata, SnsCacheStorageFamily, collect_sns_cache_paths, load_sns_cache_at,
+            SNS_CACHE_SCAN_MAXIMUM_BYTES, SnsCacheMetadata, SnsCacheStorageFamily,
+            collect_sns_cache_paths, load_sns_cache_at, sns_cache_scan_limit_exceeded,
         },
         enforce_mainnet_network,
     },
@@ -24,13 +26,15 @@ pub(in crate::sns::report) fn load_sns_cache_summary_at<Family>(
     cache_root: &Path,
     cache_path: PathBuf,
     network: &str,
-) -> SnsCacheSummary
+    budget: Option<&mut ManagedReadBudget>,
+) -> Result<SnsCacheSummary, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
 {
-    match load_sns_cache_at::<Family>(cache_root, cache_path.clone(), network) {
-        Ok(cache) => valid_sns_cache_summary(cache_path, cache),
-        Err(error) => invalid_sns_cache_summary(cache_path, &error),
+    match load_sns_cache_at::<Family>(cache_root, cache_path.clone(), network, budget) {
+        Ok(cache) => Ok(valid_sns_cache_summary(cache_path, cache)),
+        Err(error) if sns_cache_scan_limit_exceeded(&error) => Err(error),
+        Err(error) => Ok(invalid_sns_cache_summary(cache_path, &error)),
     }
 }
 
@@ -39,20 +43,27 @@ fn load_sns_cache_summaries<Family>(
     cache_root: &Path,
     paths: impl IntoIterator<Item = PathBuf>,
     network: &str,
-) -> Vec<SnsCacheSummary>
+    budget: &mut ManagedReadBudget,
+) -> Result<Vec<SnsCacheSummary>, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
 {
     paths
         .into_iter()
         .map(|path| {
-            let mut summary = load_sns_cache_summary_at::<Family>(cache_root, path, network);
-            summary.latest_attempt = read_sns_refresh_attempt_status(
+            let mut summary =
+                load_sns_cache_summary_at::<Family>(cache_root, path, network, Some(budget))?;
+            summary.latest_attempt = match read_sns_refresh_attempt_status_strict(
                 cache_root,
                 Path::new(&summary.refresh_attempt_path),
                 network,
-            );
-            summary
+                Some(budget),
+            ) {
+                Ok(attempt) => attempt,
+                Err(error) if sns_cache_scan_limit_exceeded(&error) => return Err(error),
+                Err(_) => None,
+            };
+            Ok(summary)
         })
         .collect()
 }
@@ -115,8 +126,13 @@ where
         .display()
         .to_string();
     let paths = collect_sns_cache_paths::<Family>(&request.cache_root, &request.network)?;
-    let mut caches =
-        load_sns_cache_summaries::<Family>(&request.cache_root, paths, &request.network);
+    let mut budget = ManagedReadBudget::new(SNS_CACHE_SCAN_MAXIMUM_BYTES);
+    let mut caches = load_sns_cache_summaries::<Family>(
+        &request.cache_root,
+        paths,
+        &request.network,
+        &mut budget,
+    )?;
     sort_sns_cache_summaries(&mut caches);
     Ok(SnsCacheListReport {
         schema_version,
@@ -140,18 +156,24 @@ fn sort_sns_cache_summaries(caches: &mut [SnsCacheSummary]) {
 pub(in crate::sns::report) fn find_sns_cache_summary_by_id(
     paths: impl IntoIterator<Item = PathBuf>,
     id: usize,
-    mut read_id: impl FnMut(&Path) -> Result<usize, SnsHostError>,
-    mut load_summary: impl FnMut(PathBuf) -> SnsCacheSummary,
+    budget: &mut ManagedReadBudget,
+    mut read_id: impl FnMut(&Path, &mut ManagedReadBudget) -> Result<usize, SnsHostError>,
+    mut load_summary: impl FnMut(
+        PathBuf,
+        &mut ManagedReadBudget,
+    ) -> Result<SnsCacheSummary, SnsHostError>,
 ) -> Result<Option<SnsCacheSummary>, SnsHostError> {
     let mut matching = None;
     for path in paths {
-        let Ok(candidate_id) = read_id(&path) else {
-            continue;
+        let candidate_id = match read_id(&path, budget) {
+            Ok(id) => id,
+            Err(error) if sns_cache_scan_limit_exceeded(&error) => return Err(error),
+            Err(_) => continue,
         };
         if candidate_id != id {
             continue;
         }
-        let summary = load_summary(path);
+        let summary = load_summary(path, budget)?;
         if summary.id != id || summary.cache_error.is_some() {
             continue;
         }
@@ -176,12 +198,49 @@ fn root_from_cache_path(cache_path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::find_sns_cache_summary_by_id;
+    use super::{find_sns_cache_summary_by_id, load_sns_cache_summaries};
     use crate::{
         cache::CacheValidationStatus,
+        cache_file::{ManagedReadBudget, write_managed_text_atomically},
         sns::report::{SnsCacheSummary, SnsHostError},
+        sns::report::{
+            cache_storage::sns_cache_scan_limit_exceeded,
+            proposals_cache::SnsProposalsCacheCollection,
+        },
+        test_support::temp_dir,
     };
     use std::{cell::Cell, path::PathBuf};
+
+    #[test]
+    fn listing_budget_errors_are_not_invalid_rows_or_absent_attempts() {
+        let root = temp_dir("ic-query-sns-list-budget");
+        let path = root.join("sns/ic/aaaaa-aa/proposals/full.json");
+        write_managed_text_atomically(&root, &path, "{}").unwrap();
+        write_managed_text_atomically(
+            &root,
+            &path.with_file_name("full.refresh-attempt.json"),
+            "{invalid",
+        )
+        .unwrap();
+        let result = load_sns_cache_summaries::<SnsProposalsCacheCollection>(
+            &root,
+            [path.clone()],
+            "ic",
+            &mut ManagedReadBudget::new(3),
+        );
+        assert!(sns_cache_scan_limit_exceeded(&result.unwrap_err()));
+        let summaries = load_sns_cache_summaries::<SnsProposalsCacheCollection>(
+            &root,
+            [path],
+            "ic",
+            &mut ManagedReadBudget::new(32),
+        )
+        .unwrap();
+        assert_eq!(summaries.len(), 1);
+        assert_eq!(summaries[0].cache_status, CacheValidationStatus::Invalid);
+        assert!(summaries[0].latest_attempt.is_none());
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     fn summary(id: usize, path: PathBuf) -> SnsCacheSummary {
         let path = path.display().to_string();
@@ -215,7 +274,8 @@ mod tests {
         let summary = find_sns_cache_summary_by_id(
             paths,
             73,
-            |path| {
+            &mut crate::cache_file::ManagedReadBudget::new(1024),
+            |path, _| {
                 header_reads.set(header_reads.get() + 1);
                 path.to_string_lossy()
                     .parse::<usize>()
@@ -223,13 +283,13 @@ mod tests {
                         input: path.display().to_string(),
                     })
             },
-            |path| {
+            |path, _| {
                 snapshot_loads.set(snapshot_loads.get() + 1);
                 let id = path
                     .to_string_lossy()
                     .parse()
                     .expect("numeric fixture path");
-                summary(id, path)
+                Ok(summary(id, path))
             },
         )
         .expect("lookup succeeds")
@@ -245,8 +305,9 @@ mod tests {
         let result = find_sns_cache_summary_by_id(
             [PathBuf::from("a"), PathBuf::from("b")],
             7,
-            |_| Ok(7),
-            |path| summary(7, path),
+            &mut crate::cache_file::ManagedReadBudget::new(1024),
+            |_, _| Ok(7),
+            |path, _| Ok(summary(7, path)),
         );
 
         assert!(matches!(

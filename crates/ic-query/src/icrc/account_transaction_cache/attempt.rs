@@ -59,6 +59,7 @@ pub(super) fn read_refresh_attempt_status(
         &request.cache_root,
         path,
         ATTEMPT_METADATA_FIELDS,
+        None,
     )
     .map_err(map_attempt_read_error)?
     .map(|attempt| {
