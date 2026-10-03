@@ -1,6 +1,6 @@
 use crate::nns::{
-    data_center::NnsDataCenterListReport, node::NnsNodeListReport,
-    node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
+    data_center::NnsDataCenterListReport, node_operator::NnsNodeOperatorListReport,
+    node_provider::NnsNodeProviderListReport,
 };
 use std::collections::BTreeSet;
 
@@ -55,60 +55,5 @@ impl<'a> TopologyRelationIndex<'a> {
 
     pub(in crate::nns::topology::report) fn has_data_center(&self, data_center_id: &str) -> bool {
         self.data_center_ids.contains(data_center_id)
-    }
-
-    pub(in crate::nns::topology::report) fn nodes_with_known_node_provider_count(
-        &self,
-        report: &NnsNodeListReport,
-    ) -> usize {
-        report
-            .nodes
-            .iter()
-            .filter(|node| self.has_node_provider(&node.node_provider_principal))
-            .count()
-    }
-
-    pub(in crate::nns::topology::report) fn nodes_with_known_node_operator_count(
-        &self,
-        report: &NnsNodeListReport,
-    ) -> usize {
-        report
-            .nodes
-            .iter()
-            .filter(|node| self.has_node_operator(&node.node_operator_principal))
-            .count()
-    }
-
-    pub(in crate::nns::topology::report) fn nodes_with_known_data_center_count(
-        &self,
-        report: &NnsNodeListReport,
-    ) -> usize {
-        report
-            .nodes
-            .iter()
-            .filter(|node| self.has_data_center(&node.data_center_id))
-            .count()
-    }
-
-    pub(in crate::nns::topology::report) fn node_operators_with_known_node_provider_count(
-        &self,
-        report: &NnsNodeOperatorListReport,
-    ) -> usize {
-        report
-            .node_operators
-            .iter()
-            .filter(|operator| self.has_node_provider(&operator.node_provider_principal))
-            .count()
-    }
-
-    pub(in crate::nns::topology::report) fn node_operators_with_known_data_center_count(
-        &self,
-        report: &NnsNodeOperatorListReport,
-    ) -> usize {
-        report
-            .node_operators
-            .iter()
-            .filter(|operator| self.has_data_center(&operator.data_center_id))
-            .count()
     }
 }

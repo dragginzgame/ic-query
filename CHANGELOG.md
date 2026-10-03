@@ -9,6 +9,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.5` removes redundant SNS collection-state wrappers and forwarding
+  modules while preserving page validation, deduplication, cursor handling,
+  and failed-refresh behavior. Consolidates NNS provider aggregation into one
+  entry per provider and gives summary construction ownership of join counts.
+  Registration evidence, per-operator capacity, report ordering, and component
+  provenance remain intact. Public Rust APIs, CLI grammar, cache identities,
+  and serialized shapes are unchanged; schemas remain `1`.
+
 - `0.45.4` removes `UncertifiedCatalogCollection::new` and its
   `with_registry_evidence` method as a Rust API hard cut; custom sources must
   construct explicit routing authority and Registry record evidence.

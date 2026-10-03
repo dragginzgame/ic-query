@@ -16,6 +16,7 @@ use crate::nns::{
 /// Internal known-relation counters used by topology summary assembly.
 ///
 
+#[derive(Default)]
 #[expect(
     clippy::struct_field_names,
     reason = "fields mirror the public topology summary count names"
@@ -40,15 +41,20 @@ pub(super) fn topology_summary_join_coverage_counts(
         data_center_report,
     );
 
-    NnsTopologyJoinCoverageCounts {
-        nodes_with_known_node_provider_count: index
-            .nodes_with_known_node_provider_count(node_report),
-        nodes_with_known_node_operator_count: index
-            .nodes_with_known_node_operator_count(node_report),
-        nodes_with_known_data_center_count: index.nodes_with_known_data_center_count(node_report),
-        node_operators_with_known_node_provider_count: index
-            .node_operators_with_known_node_provider_count(node_operator_report),
-        node_operators_with_known_data_center_count: index
-            .node_operators_with_known_data_center_count(node_operator_report),
+    let mut counts = NnsTopologyJoinCoverageCounts::default();
+    for node in &node_report.nodes {
+        counts.nodes_with_known_node_provider_count +=
+            usize::from(index.has_node_provider(&node.node_provider_principal));
+        counts.nodes_with_known_node_operator_count +=
+            usize::from(index.has_node_operator(&node.node_operator_principal));
+        counts.nodes_with_known_data_center_count +=
+            usize::from(index.has_data_center(&node.data_center_id));
     }
+    for operator in &node_operator_report.node_operators {
+        counts.node_operators_with_known_node_provider_count +=
+            usize::from(index.has_node_provider(&operator.node_provider_principal));
+        counts.node_operators_with_known_data_center_count +=
+            usize::from(index.has_data_center(&operator.data_center_id));
+    }
+    counts
 }

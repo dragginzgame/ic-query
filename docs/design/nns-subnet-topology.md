@@ -80,3 +80,14 @@ The existing component-cache topology reports remain useful diagnostics for
 version skew and enrichment. They are not placement authority. The aggregate
 provider report now retains the Registry version metadata of each component
 input so its provenance is not discarded.
+
+Provider diagnostics aggregate registration metadata, observed counts, and
+distinct locations in one entry per provider principal. Registered providers
+remain visible without nodes or operators, and references to unregistered
+providers remain visible without Governance metadata. Governance and Registry
+node counts are separate observations. Spare slots and over-assignment are
+summed per operator, so spare capacity at one operator does not cancel another
+operator's deficit.
+
+Summary construction owns its join-coverage counts, while summary and gap
+reports share one relation-membership index.

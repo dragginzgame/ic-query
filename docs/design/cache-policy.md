@@ -167,6 +167,12 @@ Manual refresh commands always refresh explicitly and should report refresh
 progress or status through their owning report modules. They do not need the
 read-through helper because the user has already requested refresh behavior.
 
+Each complete SNS proposal or neuron collector owns its paged state directly.
+It validates source pages before ingesting rows and maps its family-specific
+cursor. Shared paging state owns cross-page deduplication, counters, and the
+next cursor. The shared refresh runner detects page limits and stalls and drives
+progress events and running-attempt updates before completion.
+
 ## Refresh Locks
 
 Refresh locks record the network, target cache, owner process id, acquisition

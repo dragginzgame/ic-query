@@ -1,67 +1,36 @@
 use super::NnsTopologyProviderAccumulator;
 use crate::nns::topology::report::{NnsTopologyProviderRow, providers::status::provider_status};
-use std::collections::BTreeSet;
 
 impl NnsTopologyProviderAccumulator {
     pub(in crate::nns::topology::report::providers) fn into_provider_rows(
         self,
     ) -> Vec<NnsTopologyProviderRow> {
-        self.provider_principals
-            .iter()
-            .map(|provider| self.provider_row(provider))
+        self.providers
+            .into_iter()
+            .map(|(principal, provider)| {
+                let registered = provider.metadata.is_some();
+                let (name, governance_node_count) = provider.metadata.unwrap_or_default();
+                NnsTopologyProviderRow {
+                    node_provider_principal: principal,
+                    registered,
+                    name,
+                    governance_node_count,
+                    topology_node_count: provider.topology_node_count,
+                    node_operator_count: provider.node_operator_count,
+                    data_center_count: provider.data_center_ids.len(),
+                    region_count: provider.region_ids.len(),
+                    total_node_allowance: provider.node_allowance,
+                    assigned_node_count: provider.assigned_node_count,
+                    available_node_slots: provider.available_node_slots,
+                    over_assigned_node_count: provider.over_assigned_node_count,
+                    status: provider_status(
+                        registered,
+                        provider.topology_node_count,
+                        provider.node_operator_count,
+                        provider.over_assigned_node_count,
+                    ),
+                }
+            })
             .collect()
-    }
-
-    fn provider_row(&self, provider: &str) -> NnsTopologyProviderRow {
-        let (name, governance_node_count) = self
-            .provider_metadata
-            .get(provider)
-            .cloned()
-            .unwrap_or((None, None));
-        let registered = self.provider_metadata.contains_key(provider);
-        let topology_node_count = self
-            .topology_node_counts
-            .get(provider)
-            .copied()
-            .unwrap_or(0);
-        let node_operator_count = self
-            .node_operator_counts
-            .get(provider)
-            .copied()
-            .unwrap_or(0);
-        let over_assigned_node_count = self
-            .over_assigned_node_counts
-            .get(provider)
-            .copied()
-            .unwrap_or(0);
-
-        NnsTopologyProviderRow {
-            node_provider_principal: provider.to_string(),
-            registered,
-            name,
-            governance_node_count,
-            topology_node_count,
-            node_operator_count,
-            data_center_count: self.data_center_ids.get(provider).map_or(0, BTreeSet::len),
-            region_count: self.region_ids.get(provider).map_or(0, BTreeSet::len),
-            total_node_allowance: self.node_allowances.get(provider).copied().unwrap_or(0),
-            assigned_node_count: self
-                .assigned_node_counts
-                .get(provider)
-                .copied()
-                .unwrap_or(0),
-            available_node_slots: self
-                .available_node_slots
-                .get(provider)
-                .copied()
-                .unwrap_or(0),
-            over_assigned_node_count,
-            status: provider_status(
-                registered,
-                topology_node_count,
-                node_operator_count,
-                over_assigned_node_count,
-            ),
-        }
     }
 }

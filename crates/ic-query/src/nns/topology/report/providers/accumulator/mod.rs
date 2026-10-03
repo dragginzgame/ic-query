@@ -12,16 +12,26 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) struct NnsTopologyProviderAccumulator {
     data_center_regions: BTreeMap<String, String>,
-    provider_principals: BTreeSet<String>,
-    provider_metadata: BTreeMap<String, (Option<String>, Option<u64>)>,
-    topology_node_counts: BTreeMap<String, u64>,
-    node_operator_counts: BTreeMap<String, u64>,
-    data_center_ids: BTreeMap<String, BTreeSet<String>>,
-    region_ids: BTreeMap<String, BTreeSet<String>>,
-    node_allowances: BTreeMap<String, u64>,
-    assigned_node_counts: BTreeMap<String, u64>,
-    available_node_slots: BTreeMap<String, u64>,
-    over_assigned_node_counts: BTreeMap<String, u64>,
+    providers: BTreeMap<String, ProviderAggregate>,
+}
+
+///
+/// ProviderAggregate
+///
+/// Registration evidence, observed counts, and distinct locations for one provider.
+///
+
+#[derive(Default)]
+struct ProviderAggregate {
+    metadata: Option<(Option<String>, Option<u64>)>,
+    topology_node_count: u64,
+    node_operator_count: u64,
+    data_center_ids: BTreeSet<String>,
+    region_ids: BTreeSet<String>,
+    node_allowance: u64,
+    assigned_node_count: u64,
+    available_node_slots: u64,
+    over_assigned_node_count: u64,
 }
 
 impl NnsTopologyProviderAccumulator {
@@ -37,16 +47,7 @@ impl NnsTopologyProviderAccumulator {
                     )
                 })
                 .collect(),
-            provider_principals: BTreeSet::new(),
-            provider_metadata: BTreeMap::new(),
-            topology_node_counts: BTreeMap::new(),
-            node_operator_counts: BTreeMap::new(),
-            data_center_ids: BTreeMap::new(),
-            region_ids: BTreeMap::new(),
-            node_allowances: BTreeMap::new(),
-            assigned_node_counts: BTreeMap::new(),
-            available_node_slots: BTreeMap::new(),
-            over_assigned_node_counts: BTreeMap::new(),
+            providers: BTreeMap::new(),
         }
     }
 }
