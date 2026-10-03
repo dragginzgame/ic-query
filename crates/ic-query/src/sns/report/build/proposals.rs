@@ -11,8 +11,8 @@ use crate::{
         SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
         SnsProposalsReport, SnsProposalsRequest,
         assemble::{
-            SnsProposalReportParts, SnsProposalsReportParts, SnsReportProvenance,
-            sns_proposal_report_from_parts, sns_proposals_report_from_parts,
+            SnsProposalReportContext, SnsProposalReportParts, SnsProposalsReportParts,
+            SnsReportProvenance, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
         },
         enforce_mainnet_network,
         live::LiveSnsSource,
@@ -72,9 +72,17 @@ pub fn build_sns_proposal_report_with_source(
         source.fetch_sns_proposal(&lookup.fetch_request, &lookup.sns, request.proposal_id)?;
     validate_mainnet_sns_proposal(&proposal, request.proposal_id)?;
     Ok(sns_proposal_report_from_parts(SnsProposalReportParts {
-        list: lookup.list,
-        id: lookup.id,
-        sns: lookup.sns,
+        context: SnsProposalReportContext {
+            network: lookup.list.network,
+            sns_wasm_canister_id: lookup.list.sns_wasm_canister_id,
+            fetched_at: lookup.list.fetched_at,
+            source_endpoint: lookup.list.source_endpoint,
+            fetched_by: lookup.list.fetched_by,
+            id: lookup.id,
+            name: lookup.sns.name,
+            root_canister_id: lookup.sns.root_canister_id,
+            governance_canister_id: lookup.sns.governance_canister_id,
+        },
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,
@@ -155,9 +163,17 @@ fn build_sns_proposals_report_live(
         request.sort_direction,
     );
     Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
-        list: lookup.list,
-        id: lookup.id,
-        sns: lookup.sns,
+        context: SnsProposalReportContext {
+            network: lookup.list.network,
+            sns_wasm_canister_id: lookup.list.sns_wasm_canister_id,
+            fetched_at: lookup.list.fetched_at,
+            source_endpoint: lookup.list.source_endpoint,
+            fetched_by: lookup.list.fetched_by,
+            id: lookup.id,
+            name: lookup.sns.name,
+            root_canister_id: lookup.sns.root_canister_id,
+            governance_canister_id: lookup.sns.governance_canister_id,
+        },
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status: request.status,

@@ -7,11 +7,10 @@
 use crate::{
     HostCacheError,
     cache::validate_cache_collection_completeness,
-    cache_file::LoadJsonCacheRequest,
+    cache_file::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest, load_json_cache_strict},
     snapshot_cache::{
-        SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
-        collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
-        load_snapshot_header,
+        SnapshotEnvelope, SnapshotIdentityMismatch, collect_full_collection_snapshot_paths,
+        load_complete_snapshot_for_key,
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError,
@@ -82,14 +81,30 @@ pub(in crate::sns::report) struct SnsCacheMetadata {
 }
 
 ///
-/// SnsCacheHeaderMetadata
+/// SnsCacheLookupHeader
 ///
-/// Minimal SNS metadata loaded while scanning collection cache headers.
+/// Required snapshot identity fields loaded while locating an SNS cache by id.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
-pub(in crate::sns::report) struct SnsCacheHeaderMetadata {
+pub(in crate::sns::report) struct SnsCacheLookupHeader {
+    pub(in crate::sns::report) schema_version: u32,
+    pub(in crate::sns::report) network: String,
+    pub(in crate::sns::report) domain: String,
+    pub(in crate::sns::report) entity: String,
+    pub(in crate::sns::report) collection: String,
+    pub(in crate::sns::report) scope: String,
     pub(in crate::sns::report) id: usize,
+}
+
+impl JsonCacheReport for SnsCacheLookupHeader {
+    fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
+    fn network(&self) -> &str {
+        &self.network
+    }
 }
 
 /// Collect complete SNS snapshot paths for one cache collection.
@@ -111,11 +126,11 @@ pub(in crate::sns::report) fn read_sns_cache_header<Family>(
     cache_root: &Path,
     path: &Path,
     network: &str,
-) -> Result<SnapshotHeader<SnsCacheHeaderMetadata>, SnsHostError>
+) -> Result<SnsCacheLookupHeader, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
 {
-    load_snapshot_header(
+    let cached: CachedJsonReport<SnsCacheLookupHeader> = load_json_cache_strict(
         LoadJsonCacheRequest {
             component: SNS_CACHE_COMPONENT,
             cache_root,
@@ -125,8 +140,12 @@ where
             maximum_bytes: 512 * 1024 * 1024,
         },
         Family::CACHE_FIELDS,
-        Family::missing_cache_error,
     )
+    .map_err(|error| match error {
+        HostCacheError::MissingCache { path, .. } => Family::missing_cache_error(path),
+        error => error.into(),
+    })?;
+    Ok(cached.report)
 }
 
 /// Find the unique SNS snapshot path whose validated header claims an id.
@@ -159,10 +178,7 @@ where
     let path = find_unique_sns_cache_path_by_id(
         collect_sns_cache_paths::<Family>(cache_root, network)?,
         id,
-        |path| {
-            read_sns_cache_header::<Family>(cache_root, path, network)
-                .map(|header| header.metadata.id)
-        },
+        |path| read_sns_cache_header::<Family>(cache_root, path, network).map(|header| header.id),
     )?;
     path.map(|path| {
         load_sns_cache_at::<Family>(cache_root, path.clone(), network).map(|cache| (path, cache))

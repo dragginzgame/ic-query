@@ -4,8 +4,6 @@
 //! Does not own: snapshot path discovery, refresh attempts, or family-specific schemas.
 //! Boundary: validates complete snapshot envelopes through cache-file JSON helpers.
 
-#[cfg(feature = "sns-host")]
-use super::SnapshotHeader;
 use super::{SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotKey};
 use crate::{
     cache::CacheCollectionCompleteness,
@@ -53,22 +51,6 @@ where
         return Err(identity_error(mismatch));
     }
     Ok(snapshot)
-}
-
-#[cfg(feature = "sns-host")]
-pub fn load_snapshot_header<Metadata, Error>(
-    request: LoadJsonCacheRequest<'_>,
-    supported_fields: &'static [&'static str],
-    missing_error: impl FnOnce(PathBuf) -> Error,
-) -> Result<SnapshotHeader<Metadata>, Error>
-where
-    Metadata: DeserializeOwned,
-    Error: From<HostCacheError>,
-{
-    let cached: CachedJsonReport<SnapshotHeader<Metadata>> =
-        load_json_cache_strict(request, supported_fields)
-            .map_err(|error| map_snapshot_cache_error(error, missing_error))?;
-    Ok(cached.report)
 }
 
 fn map_snapshot_cache_error<Error: From<HostCacheError>>(

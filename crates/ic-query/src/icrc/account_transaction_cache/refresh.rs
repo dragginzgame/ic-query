@@ -37,6 +37,8 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
+use std::time::{Duration, Instant};
+
 const ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 /// Force a complete live refresh and atomically replace its cache.
@@ -74,6 +76,7 @@ fn refresh_icrc_account_transaction_cache_with_source_and_progress(
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
     let request = normalize_refresh_request(request)?;
     let paths = cache_paths(&request.cache);
+    let collection_started = Instant::now();
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
             cache_root: &request.cache.cache_root,
@@ -95,6 +98,7 @@ fn refresh_icrc_account_transaction_cache_with_source_and_progress(
                         &paths,
                         state.replaced_existing_snapshot,
                         complete,
+                        collection_started.elapsed(),
                     )
                 },
                 |error| write_failed_attempt(&paths.refresh_attempt_path, &request, error),
@@ -168,11 +172,18 @@ fn publish_complete_snapshot(
     paths: &SnapshotJsonPaths,
     replaced_existing_cache: bool,
     complete: IcrcAccountTransactionCollectionData,
+    collection_elapsed: Duration,
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
     validate_collection_data(request, &complete)?;
     let collection_started_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let collection_completed_at =
-        crate::snapshot_cache::current_attempt_timestamp(&collection_started_at);
+    let collection_completed_unix_secs = request
+        .now_unix_secs
+        .checked_add(collection_elapsed.as_secs())
+        .ok_or_else(|| IcrcAccountTransactionError::InvalidCache {
+            path: paths.snapshot_path.clone(),
+            reason: "collection completion timestamp exceeds supported seconds".to_string(),
+        })?;
+    let collection_completed_at = format_utc_timestamp_secs(collection_completed_unix_secs);
     let newest_transaction_id = complete
         .transactions
         .first()
@@ -351,5 +362,50 @@ fn account_transaction_cache_refresh_reason(
             Ok(CacheRefreshReason::Invalid(path))
         }
         error => Err(error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{icrc::IcrcAccountTransactionCacheRequest, test_support::temp_dir};
+
+    #[test]
+    fn publication_uses_the_callers_clock_and_elapsed_collection_duration() {
+        let root = temp_dir("ic-query-icrc-account-collection-duration");
+        let cache = IcrcAccountTransactionCacheRequest::new(
+            &root,
+            "https://icp-api.io",
+            "ryjl3-tyaaa-aaaaa-aaaba-cai",
+            "aaaaa-aa",
+        );
+        let request = IcrcAccountTransactionRefreshRequest::new(cache, 2_000_000_000, 100, 1_800);
+        let paths = cache_paths(&request.cache);
+        let complete = IcrcAccountTransactionCollectionData {
+            index_canister_id: "qhbym-qaaaa-aaaaa-aaafq-cai".to_string(),
+            balance: "0".to_string(),
+            token_symbol: "ICP".to_string(),
+            decimals: 8,
+            transactions: Vec::new(),
+            page_count: 1,
+            last_cursor: None,
+        };
+        let report =
+            publish_complete_snapshot(&request, &paths, false, complete, Duration::from_secs(23))
+                .unwrap();
+        let cached = load_cached_icrc_account_transactions(&request.cache).unwrap();
+        assert_eq!(
+            crate::subnet_catalog::parse_utc_timestamp_secs(&report.collection_started_at),
+            Some(2_000_000_000)
+        );
+        assert_eq!(
+            crate::subnet_catalog::parse_utc_timestamp_secs(&report.collection_completed_at),
+            Some(2_000_000_023)
+        );
+        assert_eq!(
+            cached.snapshot.collection_completed_at,
+            report.collection_completed_at
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

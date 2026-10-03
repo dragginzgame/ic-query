@@ -47,10 +47,6 @@ pub fn with_locked_snapshot_refresh<T, Error>(
 ) -> Result<T, Error> {
     create_managed_parent_directory(request.cache_root, request.snapshot_path)
         .map_err(&cache_error)?;
-    let state = LockedSnapshotRefreshState {
-        replaced_existing_snapshot: managed_file_exists(request.cache_root, request.snapshot_path)
-            .map_err(&cache_error)?,
-    };
     with_refresh_lock(
         RefreshLockRequest {
             cache_root: request.cache_root,
@@ -60,8 +56,17 @@ pub fn with_locked_snapshot_refresh<T, Error>(
             now_unix_secs: request.now_unix_secs,
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
-        cache_error,
-        || action(state),
+        &cache_error,
+        || {
+            let state = LockedSnapshotRefreshState {
+                replaced_existing_snapshot: managed_file_exists(
+                    request.cache_root,
+                    request.snapshot_path,
+                )
+                .map_err(&cache_error)?,
+            };
+            action(state)
+        },
     )
 }
 

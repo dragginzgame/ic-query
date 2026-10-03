@@ -153,10 +153,16 @@ pub(super) fn validate_snapshot(
             "newest or oldest transaction id does not match cached rows".to_string(),
         ));
     }
-    if parse_utc_timestamp_secs(&snapshot.collection_started_at).is_none()
-        || parse_utc_timestamp_secs(&snapshot.collection_completed_at).is_none()
-    {
+    let (Some(started), Some(completed)) = (
+        parse_utc_timestamp_secs(&snapshot.collection_started_at),
+        parse_utc_timestamp_secs(&snapshot.collection_completed_at),
+    ) else {
         return Err(invalid("collection timestamp is invalid".to_string()));
+    };
+    if completed < started {
+        return Err(invalid(
+            "collection completed before it started".to_string(),
+        ));
     }
     Principal::from_text(&snapshot.index_canister_id)
         .map_err(|error| invalid(format!("invalid index canister id: {error}")))?;

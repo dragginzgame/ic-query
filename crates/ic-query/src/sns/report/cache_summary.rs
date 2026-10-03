@@ -19,7 +19,7 @@ use crate::{
 };
 use std::path::{Path, PathBuf};
 
-/// Load one SNS snapshot and project either its valid or invalid cache summary.
+/// Load one SNS snapshot into a summary; the caller owns refresh-attempt evidence.
 pub(in crate::sns::report) fn load_sns_cache_summary_at<Family>(
     cache_root: &Path,
     cache_path: PathBuf,
@@ -29,8 +29,8 @@ where
     Family: SnsCacheStorageFamily,
 {
     match load_sns_cache_at::<Family>(cache_root, cache_path.clone(), network) {
-        Ok(cache) => valid_sns_cache_summary(cache_root, cache_path, cache),
-        Err(error) => invalid_sns_cache_summary(cache_root, cache_path, network, &error),
+        Ok(cache) => valid_sns_cache_summary(cache_path, cache),
+        Err(error) => invalid_sns_cache_summary(cache_path, &error),
     }
 }
 
@@ -45,17 +45,23 @@ where
 {
     paths
         .into_iter()
-        .map(|path| load_sns_cache_summary_at::<Family>(cache_root, path, network))
+        .map(|path| {
+            let mut summary = load_sns_cache_summary_at::<Family>(cache_root, path, network);
+            summary.latest_attempt = read_sns_refresh_attempt_status(
+                cache_root,
+                Path::new(&summary.refresh_attempt_path),
+                network,
+            );
+            summary
+        })
         .collect()
 }
 
 fn valid_sns_cache_summary<Data>(
-    cache_root: &Path,
     cache_path: PathBuf,
     cache: SnapshotEnvelope<SnsCacheMetadata, Data>,
 ) -> SnsCacheSummary {
     let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
-    let latest_attempt = read_sns_refresh_attempt_status(cache_root, &attempt_path, &cache.network);
     SnsCacheSummary {
         id: cache.metadata.id,
         name: cache.metadata.name,
@@ -71,16 +77,11 @@ fn valid_sns_cache_summary<Data>(
         source_endpoint: cache.source_endpoint,
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
-        latest_attempt,
+        latest_attempt: None,
     }
 }
 
-fn invalid_sns_cache_summary(
-    cache_root: &Path,
-    cache_path: PathBuf,
-    network: &str,
-    error: &SnsHostError,
-) -> SnsCacheSummary {
+fn invalid_sns_cache_summary(cache_path: PathBuf, error: &SnsHostError) -> SnsCacheSummary {
     let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
     SnsCacheSummary {
         id: 0,
@@ -97,7 +98,7 @@ fn invalid_sns_cache_summary(
         source_endpoint: "-".to_string(),
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
-        latest_attempt: read_sns_refresh_attempt_status(cache_root, &attempt_path, network),
+        latest_attempt: None,
     }
 }
 

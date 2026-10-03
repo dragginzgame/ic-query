@@ -132,7 +132,7 @@ impl IcrcAccountTransactionCacheRequest {
 pub struct IcrcAccountTransactionRefreshRequest {
     /// Stable cache identity.
     pub cache: IcrcAccountTransactionCacheRequest,
-    /// Collection start time as Unix seconds.
+    /// Collection start clock in Unix seconds; completion adds monotonic elapsed time.
     pub now_unix_secs: u64,
     /// Optional explicit index canister; otherwise ICRC-106 discovery is used.
     pub index_canister_id: Option<String>,

@@ -151,6 +151,10 @@ fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     let text = sns_proposals_cache_status_report_text(&status);
     assert!(status.found);
     assert_eq!(
+        status.cache.as_ref().unwrap().latest_attempt.as_ref(),
+        status.latest_attempt.as_ref()
+    );
+    assert_eq!(
         status.cache.as_ref().expect("cache").cache_status.as_str(),
         "ok"
     );
@@ -228,6 +232,36 @@ fn sns_proposals_cache_status_surfaces_malformed_attempt_sidecar() {
         SnsHostError::Cache(crate::HostCacheError::ParseCache { .. })
     ));
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_cache_status_is_strict_about_attempts_while_cache_list_remains_best_effort() {
+    let root = temp_dir("ic-query-sns-proposals-cached-malformed-attempt");
+    refresh_fixture_sns_proposals_cache(&root);
+    let attempt_path = sns_proposals_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
+    fs::write(&attempt_path, "{").unwrap();
+
+    for input in ["1", ROOT_A] {
+        assert!(matches!(
+            build_sns_proposals_cache_status_report(&SnsCacheStatusRequest::new(
+                &root,
+                MAINNET_NETWORK,
+                input,
+            )),
+            Err(SnsHostError::Cache(
+                crate::HostCacheError::ParseCache { .. }
+            ))
+        ));
+    }
+    let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
+        network: MAINNET_NETWORK.to_string(),
+        cache_root: root.clone(),
+    })
+    .expect("cache list keeps the valid snapshot visible");
+    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
+    assert!(list.caches[0].latest_attempt.is_none());
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

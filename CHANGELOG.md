@@ -11,6 +11,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.2` bounds local cache-status inspection and checks snapshot replacement
+  state under the refresh lock. SNS status reuses one refresh-attempt observation;
+  proposal reports and cache lookup shed redundant intermediate models. ICRC
+  account-history timestamps use the caller's clock plus elapsed collection
+  time, and cache reads reject reversed intervals. Simplifies collection state
+  and transaction-id validation. Public Rust signatures, CLI grammar, serialized
+  shapes, and schema identifiers are unchanged.
+
 - `0.45.1` fixes canonical UTC timestamp validation across Governance and
   shared report/cache consumers. Previously accepted noncanonical padding or
   extra signs now follow existing validation or stale-data policies. Proposal

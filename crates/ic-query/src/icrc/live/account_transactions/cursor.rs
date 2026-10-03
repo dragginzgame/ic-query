@@ -19,16 +19,14 @@ pub(in crate::icrc) fn validate_canonical_account_transactions(
 ) -> Result<(), String> {
     let mut previous = None;
     for transaction in transactions {
-        let normalized =
-            normalize_transaction_cursor(&transaction.id).map_err(|error| error.to_string())?;
-        if normalized != transaction.id {
+        let current =
+            parse_transaction_cursor(&transaction.id).map_err(|error| error.to_string())?;
+        if nat_text(&current) != transaction.id {
             return Err(format!(
                 "transaction id {} is not canonical decimal text",
                 transaction.id
             ));
         }
-        let current = Nat::from_str(&transaction.id)
-            .map_err(|error| format!("invalid transaction id {}: {error}", transaction.id))?;
         if let Some(previous) = previous.as_ref()
             && current >= *previous
         {
@@ -80,5 +78,38 @@ mod tests {
             normalize_transaction_cursor("00042").expect("decimal cursor"),
             "42"
         );
+    }
+
+    #[test]
+    fn canonical_rows_require_unique_descending_arbitrary_size_ids() {
+        let rows = |ids: &[&str]| {
+            ids.iter()
+                .map(|id| {
+                    serde_json::from_value::<IcrcAccountTransactionRow>(serde_json::json!({
+                        "id": id,
+                        "kind": "transfer",
+                        "raw_transaction": {},
+                    }))
+                    .unwrap()
+                })
+                .collect::<Vec<_>>()
+        };
+        validate_canonical_account_transactions(&rows(&[
+            "18446744073709551617",
+            "18446744073709551616",
+            "9",
+            "0",
+        ]))
+        .expect("canonical newest-first rows beyond u64");
+        for ids in [
+            vec!["18446744073709551616", "18446744073709551616"],
+            vec!["9", "10"],
+            vec!["00042"],
+            vec![""],
+            vec!["+1"],
+            vec!["-1"],
+        ] {
+            assert!(validate_canonical_account_transactions(&rows(&ids)).is_err());
+        }
     }
 }

@@ -4,10 +4,12 @@
 //! Does not own: live proposal detail fetches, cache refresh, or text rendering.
 //! Boundary: returns an optional report so callers can fall back to live lookup.
 
-use super::cache_projection::project_sns_proposals_cache;
 use crate::sns::report::{
     MainnetSnsProposal, SnsHostError, SnsProposalReport, SnsProposalRequest,
-    assemble::{SnsProposalReportParts, SnsReportProvenance, sns_proposal_report_from_parts},
+    assemble::{
+        SnsProposalReportContext, SnsProposalReportParts, SnsReportProvenance,
+        sns_proposal_report_from_parts,
+    },
     cache_storage::load_sns_cache_for_input,
     proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };
@@ -36,15 +38,23 @@ fn sns_proposal_report_from_cache(
     cache: SnsProposalsCache,
 ) -> Option<SnsProposalReport> {
     let cache_complete = cache.completeness.is_api_exhausted();
-    let projection = project_sns_proposals_cache(cache);
-    let proposal = projection
+    let proposal = cache
+        .data
         .proposals
         .into_iter()
         .find(|proposal| proposal.proposal_id == request.proposal_id)?;
     Some(sns_proposal_report_from_parts(SnsProposalReportParts {
-        list: projection.list,
-        id: projection.id,
-        sns: projection.sns,
+        context: SnsProposalReportContext {
+            network: cache.network,
+            sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
+            fetched_at: cache.fetched_at,
+            source_endpoint: cache.source_endpoint,
+            fetched_by: cache.fetched_by,
+            id: cache.metadata.id,
+            name: cache.metadata.name,
+            root_canister_id: cache.metadata.root_canister_id,
+            governance_canister_id: cache.metadata.governance_canister_id,
+        },
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,

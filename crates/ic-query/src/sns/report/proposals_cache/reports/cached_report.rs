@@ -9,13 +9,15 @@ use crate::{
     cache_file::{CacheRefreshReason, load_or_refresh_cache},
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
-        assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
+        assemble::{
+            SnsProposalReportContext, SnsProposalsReportParts, SnsReportProvenance,
+            sns_proposals_report_from_parts,
+        },
         cache_storage::load_sns_cache_for_input,
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
             paths::SnsProposalsCacheCollection,
             refresh_sns_proposals_cache_with_source_and_progress,
-            reports::cache_projection::project_sns_proposals_cache,
         },
         source::{MainnetSnsProposals, SnsProposalsSource},
         view::{
@@ -98,8 +100,8 @@ fn sns_proposals_report_from_cache(
     cache: SnsProposalsCache,
 ) -> SnsProposalsReport {
     let cache_complete = cache.completeness.is_api_exhausted();
-    let projection = project_sns_proposals_cache(cache);
-    let mut proposals = projection
+    let mut proposals = cache
+        .data
         .proposals
         .into_iter()
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
@@ -114,9 +116,17 @@ fn sns_proposals_report_from_cache(
     sort_sns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
     sns_proposals_report_from_parts(SnsProposalsReportParts {
-        list: projection.list,
-        id: projection.id,
-        sns: projection.sns,
+        context: SnsProposalReportContext {
+            network: cache.network,
+            sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
+            fetched_at: cache.fetched_at,
+            source_endpoint: cache.source_endpoint,
+            fetched_by: cache.fetched_by,
+            id: cache.metadata.id,
+            name: cache.metadata.name,
+            root_canister_id: cache.metadata.root_canister_id,
+            governance_canister_id: cache.metadata.governance_canister_id,
+        },
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status: request.status,

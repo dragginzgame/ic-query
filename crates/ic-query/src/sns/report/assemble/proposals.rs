@@ -6,11 +6,29 @@
 
 use super::SnsReportProvenance;
 use crate::sns::report::{
-    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsProposal, MainnetSnsProposals,
-    SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
-    SnsProposalEligibilityFilter, SnsProposalReport, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsSort,
+    MainnetSnsProposal, MainnetSnsProposals, SNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+    SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalEligibilityFilter, SnsProposalReport,
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsReport,
+    SnsProposalsSort,
 };
+
+///
+/// SnsProposalReportContext
+///
+/// Validated identity and acquisition metadata used by proposal reports.
+///
+
+pub(in crate::sns::report) struct SnsProposalReportContext {
+    pub(in crate::sns::report) network: String,
+    pub(in crate::sns::report) sns_wasm_canister_id: String,
+    pub(in crate::sns::report) fetched_at: String,
+    pub(in crate::sns::report) source_endpoint: String,
+    pub(in crate::sns::report) fetched_by: String,
+    pub(in crate::sns::report) id: usize,
+    pub(in crate::sns::report) name: String,
+    pub(in crate::sns::report) root_canister_id: String,
+    pub(in crate::sns::report) governance_canister_id: String,
+}
 
 ///
 /// SnsProposalReportParts
@@ -19,9 +37,7 @@ use crate::sns::report::{
 ///
 
 pub(in crate::sns::report) struct SnsProposalReportParts {
-    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
-    pub(in crate::sns::report) id: usize,
-    pub(in crate::sns::report) sns: MainnetSns,
+    pub(in crate::sns::report) context: SnsProposalReportContext,
     pub(in crate::sns::report) proposal_id: u64,
     pub(in crate::sns::report) verbose: bool,
     pub(in crate::sns::report) show_ballots: bool,
@@ -36,9 +52,7 @@ pub(in crate::sns::report) struct SnsProposalReportParts {
 ///
 
 pub(in crate::sns::report) struct SnsProposalsReportParts {
-    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
-    pub(in crate::sns::report) id: usize,
-    pub(in crate::sns::report) sns: MainnetSns,
+    pub(in crate::sns::report) context: SnsProposalReportContext,
     pub(in crate::sns::report) requested_limit: u32,
     pub(in crate::sns::report) before_proposal_id: Option<u64>,
     pub(in crate::sns::report) status: SnsProposalStatusFilter,
@@ -59,15 +73,15 @@ pub(in crate::sns::report) fn sns_proposal_report_from_parts(
 ) -> SnsProposalReport {
     SnsProposalReport {
         schema_version: SNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        fetched_at: parts.list.fetched_at,
-        source_endpoint: parts.list.source_endpoint,
-        fetched_by: parts.list.fetched_by,
-        id: parts.id,
-        name: parts.sns.name,
-        root_canister_id: parts.sns.root_canister_id,
-        governance_canister_id: parts.sns.governance_canister_id,
+        network: parts.context.network,
+        sns_wasm_canister_id: parts.context.sns_wasm_canister_id,
+        fetched_at: parts.context.fetched_at,
+        source_endpoint: parts.context.source_endpoint,
+        fetched_by: parts.context.fetched_by,
+        id: parts.context.id,
+        name: parts.context.name,
+        root_canister_id: parts.context.root_canister_id,
+        governance_canister_id: parts.context.governance_canister_id,
         proposal_id: parts.proposal_id,
         verbose: parts.verbose,
         show_ballots: parts.show_ballots,
@@ -85,15 +99,15 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
     let proposal_count = parts.proposals.proposals.len();
     SnsProposalsReport {
         schema_version: SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        fetched_at: parts.list.fetched_at,
-        source_endpoint: parts.list.source_endpoint,
-        fetched_by: parts.list.fetched_by,
-        id: parts.id,
-        name: parts.sns.name,
-        root_canister_id: parts.sns.root_canister_id,
-        governance_canister_id: parts.sns.governance_canister_id,
+        network: parts.context.network,
+        sns_wasm_canister_id: parts.context.sns_wasm_canister_id,
+        fetched_at: parts.context.fetched_at,
+        source_endpoint: parts.context.source_endpoint,
+        fetched_by: parts.context.fetched_by,
+        id: parts.context.id,
+        name: parts.context.name,
+        root_canister_id: parts.context.root_canister_id,
+        governance_canister_id: parts.context.governance_canister_id,
         requested_limit: parts.requested_limit,
         before_proposal_id: parts.before_proposal_id,
         status_filter: parts.status.as_str().to_string(),

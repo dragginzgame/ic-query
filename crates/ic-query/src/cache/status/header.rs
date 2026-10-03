@@ -7,7 +7,7 @@
 use super::super::{CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy, CacheStatusRow};
 use crate::{
     CacheFileError,
-    cache_file::open_managed_file,
+    cache_file::{BoundedManagedFileReadError, open_managed_file, read_bounded_stream},
     ic::DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
     nns::topology::DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
     sns::DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
@@ -24,6 +24,7 @@ use std::{
 };
 
 const HEADER_COMPLETE_SENTINEL: &str = "ic-query cache header complete";
+const MAX_CACHE_INSPECTION_BYTES: u64 = 64 * 1024 * 1024;
 
 struct GenericCacheHeader {
     schema_version: u32,
@@ -187,8 +188,8 @@ pub(super) fn cache_status_row(
             source,
         })?
         .len();
-    let header =
-        read_cache_header(relative, BufReader::new(file)).map_err(|error| error.to_string());
+    let header = read_cache_header(relative, file, size_bytes, MAX_CACHE_INSPECTION_BYTES)
+        .map_err(|error| error.to_string());
     let Ok(header) = header else {
         return Ok(invalid_row(
             relative,
@@ -263,25 +264,53 @@ pub(super) fn cache_status_row(
 fn read_cache_header(
     relative: &Path,
     reader: impl Read,
+    size_bytes: u64,
+    maximum_bytes: u64,
 ) -> Result<GenericCacheHeader, serde_json::Error> {
     if registered_age_policy(relative).is_some() {
-        return serde_json::from_reader::<_, FullGenericCacheHeader>(reader)
+        let data =
+            read_bounded_stream(reader, size_bytes, relative, maximum_bytes).map_err(|error| {
+                let source = match error {
+                    BoundedManagedFileReadError::LimitExceeded {
+                        actual, maximum, ..
+                    } => std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("cache inspection exceeds {maximum} bytes (observed {actual})"),
+                    ),
+                    BoundedManagedFileReadError::Read { source, .. } => source,
+                    BoundedManagedFileReadError::Accounting { .. } => {
+                        std::io::Error::other("cache byte count exceeds platform accounting")
+                    }
+                    BoundedManagedFileReadError::Operation(source) => std::io::Error::other(source),
+                };
+                serde_json::Error::io(source)
+            })?;
+        return serde_json::from_slice::<FullGenericCacheHeader>(&data)
             .and_then(FullGenericCacheHeader::into_generic);
     }
-    let mut deserializer = serde_json::Deserializer::from_reader(reader);
+    let mut bounded = reader.take(maximum_bytes);
     let mut captured = None;
-    let parsed = serde::Deserializer::deserialize_map(
-        &mut deserializer,
-        GenericCacheHeaderVisitor {
-            captured: &mut captured,
-        },
-    );
+    let parsed = {
+        let mut deserializer = serde_json::Deserializer::from_reader(BufReader::new(&mut bounded));
+        serde::Deserializer::deserialize_map(
+            &mut deserializer,
+            GenericCacheHeaderVisitor {
+                captured: &mut captured,
+            },
+        )
+    };
     match parsed {
         Ok(header) => Ok(header),
         Err(error)
             if error.to_string().starts_with(HEADER_COMPLETE_SENTINEL) && captured.is_some() =>
         {
             Ok(captured.expect("header completion requires captured fields"))
+        }
+        Err(error) if error.is_eof() && bounded.limit() == 0 => {
+            Err(serde_json::Error::io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("cache header inspection exhausted its {maximum_bytes}-byte budget"),
+            )))
         }
         Err(error) => Err(error),
     }
@@ -466,6 +495,8 @@ mod tests {
         let header = read_cache_header(
             Path::new("icrc/endpoint/ledger/account/transactions/full.json"),
             &mut reader,
+            u64::try_from(cache.len()).unwrap(),
+            1_024,
         )
         .expect("history header");
 
@@ -474,7 +505,7 @@ mod tests {
             header.collection_completed_at.as_deref(),
             Some("2026-08-03T00:00:00Z")
         );
-        assert!(reader.get_ref().position() < 1_024);
+        assert!(reader.get_ref().position() <= 1_024);
         assert!(cache.len() > 10_000);
     }
 
@@ -483,11 +514,63 @@ mod tests {
         let error = read_cache_header(
             Path::new("nns/ic/subnet-catalog/catalog.json"),
             Cursor::new(br#"{"schema_version":1,"catalog_schema_version":1,"network":"ic"}"#),
+            0,
+            1_024,
         )
         .err()
         .expect("multiple current schema fields are ambiguous");
 
         assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
+    }
+
+    #[test]
+    fn registered_cache_inspection_bounds_metadata_and_stream_growth() {
+        let path = Path::new("nns/ic/subnet-catalog/catalog.json");
+        let mut reader = Cursor::new(br#"{"schema_version":1}             "#);
+        let error = read_cache_header(path, &mut reader, 32, 20)
+            .err()
+            .expect("oversized metadata");
+        assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
+        assert_eq!(reader.position(), 0);
+
+        let error = read_cache_header(path, &mut reader, 19, 20)
+            .err()
+            .expect("growth after metadata admission");
+        assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
+        assert_eq!(reader.position(), 21);
+    }
+
+    #[test]
+    fn unmanaged_cache_inspection_bounds_values_before_payload() {
+        let cache = format!(
+            r#"{{"schema_version":1,"extra":"{}","transactions":[]}}"#,
+            "x".repeat(1_024)
+        );
+        let mut reader = Cursor::new(cache.as_bytes());
+        let error = read_cache_header(
+            Path::new("icrc/ic/account/transactions/full.json"),
+            &mut reader,
+            u64::try_from(cache.len()).unwrap(),
+            64,
+        )
+        .err()
+        .expect("header inspection budget is exhausted");
+        assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
+        assert_eq!(reader.position(), 64);
+    }
+
+    #[test]
+    fn registered_cache_inspection_checks_the_payload_syntax() {
+        let cache = br#"{"schema_version":1,"subnets":[invalid]}"#;
+        assert!(
+            read_cache_header(
+                Path::new("nns/ic/subnet-catalog/catalog.json"),
+                Cursor::new(cache),
+                u64::try_from(cache.len()).unwrap(),
+                1_024,
+            )
+            .is_err()
+        );
     }
 
     #[test]

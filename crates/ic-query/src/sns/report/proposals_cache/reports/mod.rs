@@ -4,7 +4,6 @@
 //! Does not own: refresh locking, page fetching, cache loading internals, or rendering.
 //! Boundary: exposes cache-backed proposal list, cache list, and status reports.
 
-mod cache_projection;
 mod cached_detail;
 mod cached_report;
 

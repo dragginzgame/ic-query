@@ -121,7 +121,7 @@ fn read_opened_file_bounded(
     read_bounded_stream(file, metadata_length, target_path, maximum)
 }
 
-fn read_bounded_stream(
+pub fn read_bounded_stream(
     mut reader: impl Read,
     metadata_length: u64,
     target_path: &Path,

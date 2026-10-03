@@ -53,33 +53,3 @@ pub struct SnapshotIdentityMismatch {
     pub expected: String,
     pub actual: String,
 }
-
-///
-/// SnapshotHeader
-///
-/// Minimal snapshot metadata loaded when only header validation is needed.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize)]
-#[cfg(feature = "sns-host")]
-pub struct SnapshotHeader<Metadata> {
-    pub schema_version: u32,
-    pub network: String,
-    pub domain: String,
-    pub entity: String,
-    pub collection: String,
-    pub scope: String,
-    #[serde(flatten)]
-    pub metadata: Metadata,
-}
-
-#[cfg(feature = "sns-host")]
-impl<Metadata> JsonCacheReport for SnapshotHeader<Metadata> {
-    fn schema_version(&self) -> u32 {
-        self.schema_version
-    }
-
-    fn network(&self) -> &str {
-        &self.network
-    }
-}

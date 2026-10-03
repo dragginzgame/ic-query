@@ -220,11 +220,107 @@ fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
     assert_eq!(source.calls.load(Ordering::Relaxed), 1);
 
     let stale_request = refresh_request(cache, 2_000_000_000);
-    load_or_refresh_stale_icrc_account_transactions_with_source(&stale_request, 60, &source)
-        .expect("refresh stale cache");
+    let started = std::time::Instant::now();
+    let refreshed =
+        load_or_refresh_stale_icrc_account_transactions_with_source(&stale_request, 60, &source)
+            .expect("refresh stale cache");
     assert_eq!(source.calls.load(Ordering::Relaxed), 2);
+    let completed = crate::subnet_catalog::parse_utc_timestamp_secs(
+        &refreshed.snapshot.collection_completed_at,
+    )
+    .unwrap();
+    assert_eq!(
+        crate::subnet_catalog::parse_utc_timestamp_secs(&refreshed.snapshot.collection_started_at),
+        Some(stale_request.now_unix_secs)
+    );
+    assert!(completed >= stale_request.now_unix_secs);
+    assert!(completed <= stale_request.now_unix_secs + started.elapsed().as_secs());
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn cached_collection_requires_canonical_ordered_timestamps_and_repairs_explicitly() {
+    let root = temp_dir("ic-query-icrc-account-timestamp-interval");
+    let cache = cache_request(&root);
+    let source = SuccessSource::new(vec![row("6")]);
+    let request = refresh_request(cache.clone(), 1_700_000_000);
+    refresh_icrc_account_transaction_cache_with_source(&request, &source).unwrap();
+    let path = icrc_account_transaction_cache_path(&cache).unwrap();
+    let mut snapshot: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    for (start, end, valid) in [
+        ("2026-10-01T00:00:00Z", "2026-10-01T00:00:00Z", true),
+        ("2026-10-01T00:00:00Z", "2026-10-02T00:00:00Z", true),
+        ("not-a-timestamp", "2026-10-02T00:00:00Z", false),
+        ("2026-10-01T00:00:00Z", "not-a-timestamp", false),
+        ("2026-10-02T00:00:00Z", "2026-10-01T00:00:00Z", false),
+    ] {
+        snapshot["collection_started_at"] = json!(start);
+        snapshot["collection_completed_at"] = json!(end);
+        fs::write(&path, serde_json::to_vec(&snapshot).unwrap()).unwrap();
+        match load_cached_icrc_account_transactions(&cache) {
+            Ok(_) => assert!(valid),
+            Err(error) => {
+                assert!(!valid);
+                assert!(matches!(
+                    error,
+                    IcrcAccountTransactionError::InvalidCache { .. }
+                ));
+            }
+        }
+    }
+    let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
+    assert_eq!(
+        status.cache.unwrap().cache_status,
+        CacheValidationStatus::Invalid
+    );
+    assert_eq!(
+        source.calls.load(Ordering::Relaxed),
+        1,
+        "cache-only reads stay local"
+    );
+    load_or_refresh_missing_icrc_account_transactions_with_source(&request, &source)
+        .expect("authorized read-through replaces reversed interval");
+    assert_eq!(source.calls.load(Ordering::Relaxed), 2);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
+    let root = temp_dir("ic-query-icrc-account-invalid-clock");
+    let cache = cache_request(&root);
+    let source = SuccessSource::new(vec![row("6")]);
+    refresh_icrc_account_transaction_cache_with_source(
+        &refresh_request(cache.clone(), 1_700_000_000),
+        &source,
+    )
+    .unwrap();
+    let path = icrc_account_transaction_cache_path(&cache).unwrap();
+    let before = fs::read(&path).unwrap();
+    assert!(matches!(
+        refresh_icrc_account_transaction_cache_with_source(
+            &refresh_request(cache.clone(), u64::MAX),
+            &source,
+        ),
+        Err(IcrcAccountTransactionError::InvalidCache { .. })
+    ));
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert!(
+        !icrc_account_transaction_refresh_lock_path(&cache)
+            .unwrap()
+            .exists()
+    );
+    let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
+    assert_eq!(
+        status.cache.unwrap().cache_status,
+        CacheValidationStatus::Valid
+    );
+    assert_eq!(
+        status.latest_attempt.unwrap().status,
+        CacheRefreshAttemptStatus::Failed
+    );
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

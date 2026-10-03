@@ -26,14 +26,10 @@ pub use attempt::{
 };
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 pub use json::load_complete_snapshot_for_key;
-#[cfg(feature = "sns-host")]
-pub use json::load_snapshot_header;
 pub use key::SnapshotKey;
 pub use lifecycle::{LockedSnapshotRefreshRequest, with_locked_snapshot_refresh};
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 pub use lifecycle::{publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts};
-#[cfg(feature = "sns-host")]
-pub use model::SnapshotHeader;
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 pub use model::{SnapshotEnvelope, SnapshotIdentityMismatch};
 #[cfg(feature = "sns-host")]

@@ -61,7 +61,7 @@ pub use confined::{
     ManagedDirectoryFile, remove_managed_regular_file, scan_managed_directory_files,
 };
 #[cfg(feature = "host")]
-pub use confined::{collect_managed_files, open_managed_file};
+pub use confined::{collect_managed_files, open_managed_file, read_bounded_stream};
 pub use confined::{create_managed_parent_directory, managed_file_exists};
 pub use error::{CacheFileError, HostCacheError};
 #[cfg(feature = "nns-topology-host")]

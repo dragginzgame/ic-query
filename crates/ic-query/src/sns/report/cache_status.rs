@@ -47,7 +47,10 @@ where
         cache_root: lookup.cache_root,
         input: request.input.clone(),
         found: lookup.cache.is_some(),
-        cache: lookup.cache,
+        cache: lookup.cache.map(|mut cache| {
+            cache.latest_attempt.clone_from(&lookup.latest_attempt);
+            cache
+        }),
         expected_cache_path: lookup.expected_cache_path,
         refresh_attempt_path: lookup.refresh_attempt_path,
         latest_attempt: lookup.latest_attempt,
@@ -84,10 +87,7 @@ where
     let cache = find_sns_cache_summary_by_id(
         collect_sns_cache_paths::<Family>(cache_root, network)?,
         id,
-        |path| {
-            read_sns_cache_header::<Family>(cache_root, path, network)
-                .map(|header| header.metadata.id)
-        },
+        |path| read_sns_cache_header::<Family>(cache_root, path, network).map(|header| header.id),
         |path| load_sns_cache_summary_at::<Family>(cache_root, path, network),
     )?;
     let (refresh_attempt_path, latest_attempt) = match cache.as_ref() {

@@ -62,9 +62,9 @@ pub struct IcrcAccountTransactionSnapshot {
     pub schema_version: u32,
     /// IC API endpoint used for ledger and index calls.
     pub source_endpoint: String,
-    /// Collection start timestamp.
+    /// Collection start timestamp supplied by the refresh caller's clock.
     pub collection_started_at: String,
-    /// Collection completion timestamp.
+    /// Collection completion timestamp derived from the start plus monotonic elapsed time.
     pub collection_completed_at: String,
     /// Collector identity.
     pub fetched_by: String,

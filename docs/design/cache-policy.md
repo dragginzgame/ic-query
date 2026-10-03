@@ -43,6 +43,14 @@ text emitted by the timestamp formatter, such as `2026-06-04T00:00:00Z`.
 Noncanonical text follows each owner's existing invalid-content or freshness
 error path; reads do not normalize or migrate stored values.
 
+ICRC account-history collection timestamps use the caller's supplied start
+clock plus monotonic elapsed collection time for completion. Snapshot reads
+require canonical timestamps with completion at or after start. Reversed
+intervals are invalid content under the existing explicit read-through policy;
+cache-only reads reject them. A refresh with an unrepresentable interval fails
+before replacing the previous snapshot. Refresh-attempt update timestamps
+remain local wall-clock observations, separate from this collection interval.
+
 Strict shared loads validate top-level duplicates, supported fields, schema,
 and network in one header pass, then deserialize the typed report. An isolated
 local harness over the actual old/new loaders, with shared regular-file IO
@@ -205,6 +213,24 @@ are inspected only through their leading header/completeness boundary, so
 cross-family status does not load or scan complete row arrays. Small
 age-managed files are fully JSON-parsed for syntax, but their family-specific
 semantic validators remain authoritative.
+
+SNS cache-list summaries read refresh-attempt sidecars once on a best-effort
+basis. Exact cache status reads its selected sidecar once through the strict
+reader and reuses that observation in both the snapshot summary and the
+top-level attempt field. Invalid attempt content remains a status error;
+snapshot and attempt files are still separate observations, not an atomic pair.
+
+Global status applies a 64 MiB byte ceiling to full inspection of age-managed
+files, using the shared bounded reader to reject oversized metadata and growth
+after opening. Unmanaged inspection consumes at most 64 MiB before reaching
+the payload boundary; the unread payload may be larger. Exhausting that budget
+without a readable header produces an invalid inspection row. These limits do
+not authorize refresh or deletion, and rows retain the observed file size.
+
+Complete-snapshot refreshes inspect whether they replace an existing snapshot
+only after acquiring its refresh lock. The replacement flag describes state
+seen by the publishing owner, rather than an earlier observation outside the
+lock.
 
 Complete snapshot caches carry required logical identity fields and are
 validated against the expected cache key on load. Identity-less snapshots are

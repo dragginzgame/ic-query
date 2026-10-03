@@ -38,7 +38,6 @@ pub(super) struct AccountTransactionCollectionState {
     index_canister_id: String,
     balance: Option<String>,
     oldest_transaction_id: Option<String>,
-    oldest_transaction_id_initialized: bool,
     transactions: Vec<IcrcAccountTransactionRow>,
     page_count: u32,
     next_cursor: Option<String>,
@@ -50,7 +49,6 @@ impl AccountTransactionCollectionState {
             index_canister_id,
             balance: None,
             oldest_transaction_id: None,
-            oldest_transaction_id_initialized: false,
             transactions: Vec::new(),
             page_count: 0,
             next_cursor: None,
@@ -76,10 +74,9 @@ impl AccountTransactionCollectionState {
                 "index returned {page_len} transactions for page size {page_size}"
             )));
         }
-        if !self.oldest_transaction_id_initialized {
+        if self.balance.is_none() {
             self.balance = Some(page.balance);
             self.oldest_transaction_id = page.oldest_transaction_id.clone();
-            self.oldest_transaction_id_initialized = true;
         } else if self.oldest_transaction_id != page.oldest_transaction_id {
             return Err(self.incomplete("index oldest transaction id changed during collection"));
         }
@@ -194,6 +191,30 @@ mod tests {
     use super::*;
     use candid::Principal;
     use serde_json::json;
+
+    #[test]
+    fn empty_first_page_initializes_collection_and_retains_its_balance() {
+        let mut state =
+            AccountTransactionCollectionState::new(Principal::management_canister().to_text());
+        assert!(state.ingest(page(&[], None, None), 2).unwrap());
+        let mut later_page = page(&[], None, None);
+        later_page.balance = "200".to_string();
+        assert!(state.ingest(later_page, 2).unwrap());
+        let changed_error = state
+            .ingest(page(&[], Some("1"), None), 2)
+            .expect_err("oldest id must stay absent after an empty first page");
+        assert!(matches!(
+            changed_error,
+            IcrcAccountTransactionError::IncompleteCollection { .. }
+        ));
+        let complete = state.into_complete("TEST".to_string(), 8).unwrap();
+        assert_eq!(complete.balance, "100");
+        assert_eq!(
+            complete.transactions,
+            Vec::<IcrcAccountTransactionRow>::new()
+        );
+        assert_eq!(complete.page_count, 2);
+    }
 
     #[test]
     fn collection_state_requires_stable_exhausting_unique_pages() {

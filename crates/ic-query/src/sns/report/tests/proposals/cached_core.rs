@@ -28,6 +28,31 @@ fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     assert!(text.contains("data_source: cache"));
     assert!(text.contains("cache_complete: yes"));
 
+    let cache: serde_json::Value = serde_json::from_slice(
+        &fs::read(report.cache_path.as_deref().unwrap()).expect("read complete snapshot"),
+    )
+    .unwrap();
+    let detail_json = serde_json::to_value(&report).unwrap();
+    let mut list_request = proposals_request("1");
+    list_request.cache_root = Some(root.clone());
+    let list = build_sns_proposals_report_with_source(&list_request, &NoLiveSnsProposalsSource)
+        .expect("cached proposal listing");
+    let list_json = serde_json::to_value(&list).unwrap();
+    for field in [
+        "network",
+        "sns_wasm_canister_id",
+        "fetched_at",
+        "source_endpoint",
+        "fetched_by",
+        "id",
+        "name",
+        "root_canister_id",
+        "governance_canister_id",
+    ] {
+        assert_eq!(detail_json[field], cache[field], "detail {field}");
+        assert_eq!(list_json[field], cache[field], "listing {field}");
+    }
+
     let _ = fs::remove_dir_all(root);
 }
 

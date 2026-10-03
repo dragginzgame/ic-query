@@ -41,6 +41,51 @@ fn status_lists_history_transcripts_and_locks_without_reading_their_payload() {
 }
 
 #[test]
+fn status_bounds_registered_files_while_allowing_large_unread_history_payloads() {
+    let root = temp_dir("ic-query-cache-status-byte-bounds");
+    let catalog_path = root.join("nns/ic/subnet-catalog/catalog.json");
+    let history_path = root.join("nns/ic/subnet-catalog/history.json");
+    let size_bytes = 64 * 1024 * 1024 + 1;
+    for (path, contents) in [
+        (
+            &catalog_path,
+            r#"{"catalog_schema_version":1,"network":"ic","fetched_at":"2026-10-01T00:00:00Z"}"#,
+        ),
+        (
+            &history_path,
+            r#"{"schema_version":1,"network":"ic","fetched_at":"2026-10-01T00:00:00Z","checkpoints":["#,
+        ),
+    ] {
+        write_cache(&root, path, contents);
+        fs::OpenOptions::new()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_len(size_bytes)
+            .unwrap();
+    }
+    let now = parse_utc_timestamp_secs("2026-10-02T00:00:00Z").unwrap();
+    let report = build_cache_status_report(&CacheStatusRequest::new(&root, now)).unwrap();
+    assert_eq!(report.cache_count, 2);
+    for row in &report.caches {
+        assert_eq!(row.size_bytes, size_bytes);
+        if row.component == "nns/registry-history" {
+            assert_eq!(row.header_status, CacheHeaderStatus::Readable);
+            assert_eq!(row.age_status, CacheAgeStatus::Unmanaged);
+        } else {
+            assert_eq!(row.header_status, CacheHeaderStatus::Invalid);
+            assert!(
+                row.inspection_error
+                    .as_deref()
+                    .unwrap()
+                    .contains("67108864")
+            );
+        }
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn status_separates_header_age_and_recovery_evidence_without_attempts() {
     let root = temp_dir("ic-query-cache-status");
     write_cache(

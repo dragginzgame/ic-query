@@ -518,6 +518,23 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
         },
         identity_cache_error,
         |state| {
+            assert!(lock_path.is_file());
+            let competing = with_locked_snapshot_refresh(
+                LockedSnapshotRefreshRequest {
+                    cache_root: &root,
+                    snapshot_path: &snapshot_path,
+                    refresh_lock_path: &lock_path,
+                    network: "ic",
+                    now_unix_secs: 1,
+                    lock_stale_after_seconds: 60,
+                },
+                identity_cache_error,
+                |_| panic!("competing refresh must not run"),
+            );
+            assert!(matches!(
+                competing,
+                Err::<(), _>(CacheFileError::RefreshAlreadyInProgress { .. })
+            ));
             observed.borrow_mut().push(state.replaced_existing_snapshot);
             crate::cache_file::write_managed_text_atomically(&root, &snapshot_path, "{}")
                 .expect("write snapshot during refresh");
@@ -547,6 +564,39 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
     assert!(snapshot_path.is_file());
     assert!(!lock_path.exists());
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure() {
+    let root = temp_dir("ic-query-snapshot-cache-invalid-target");
+    let snapshot_path = root.join("full.json");
+    let lock_path = root.join("full.refresh.lock");
+    crate::cache_file::create_managed_parent_directory(&root, &snapshot_path.join("probe"))
+        .expect("create nonregular snapshot target");
+    let result = with_locked_snapshot_refresh(
+        LockedSnapshotRefreshRequest {
+            cache_root: &root,
+            snapshot_path: &snapshot_path,
+            refresh_lock_path: &lock_path,
+            network: "ic",
+            now_unix_secs: 1,
+            lock_stale_after_seconds: 60,
+        },
+        |error| {
+            assert!(
+                lock_path.is_file(),
+                "target inspection occurs under the lock"
+            );
+            error
+        },
+        |_| panic!("invalid target must not start refresh"),
+    );
+    assert!(matches!(
+        result,
+        Err::<(), _>(CacheFileError::Confinement { .. })
+    ));
+    assert!(!lock_path.exists());
+    fs::remove_dir_all(root).unwrap();
 }
 
 const fn identity_cache_error(err: CacheFileError) -> CacheFileError {

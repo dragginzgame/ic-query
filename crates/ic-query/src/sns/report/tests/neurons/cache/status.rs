@@ -127,6 +127,10 @@ fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     })
     .expect("cache status");
     let status_text = sns_neurons_cache_status_report_text(&status);
+    assert_eq!(
+        status.cache.as_ref().unwrap().latest_attempt.as_ref(),
+        status.latest_attempt.as_ref()
+    );
 
     assert_eq!(
         status.schema_version,
