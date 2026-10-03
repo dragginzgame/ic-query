@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["host"] }
+ic-query = { version = "0.45", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -28,7 +28,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["canister"] }
+ic-query = { version = "0.45", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -172,7 +172,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -190,7 +190,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -204,7 +204,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -217,7 +217,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -235,7 +235,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
@@ -243,7 +243,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -259,7 +259,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -277,7 +277,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -306,7 +306,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -322,7 +322,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -338,7 +338,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.45", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -445,7 +445,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.44", default-features = false }
+ic-query = { version = "0.45", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
