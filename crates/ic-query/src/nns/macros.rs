@@ -96,11 +96,13 @@ macro_rules! nns_leaf_cache {
         $(,)?
     ) => {
         #[must_use]
+        /// Canonical managed snapshot path for this inventory and network.
         pub fn $cache_path_fn(cache_root: &std::path::Path, network: &str) -> std::path::PathBuf {
             nns_leaf_cache_paths(cache_root, network).cache_path
         }
 
         #[must_use]
+        /// Canonical refresh-lock path for this inventory and network.
         pub fn $lock_path_fn(cache_root: &std::path::Path, network: &str) -> std::path::PathBuf {
             nns_leaf_cache_paths(cache_root, network).lock_path
         }

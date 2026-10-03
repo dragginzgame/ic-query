@@ -26,6 +26,9 @@ const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{
 
 #[derive(Debug, ThisError)]
 pub enum IcqCliError {
+    /// Writing command help or version output failed.
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
     #[error("{0}")]
     Usage(String),
 
@@ -56,7 +59,8 @@ impl IcqCliError {
     #[must_use]
     pub fn is_broken_pipe(&self) -> bool {
         match self {
-            Self::Cache(cache::CacheCommandError::Io(err))
+            Self::Io(err)
+            | Self::Cache(cache::CacheCommandError::Io(err))
             | Self::CloudEngine(cloud_engine::CloudEngineCommandError::Io(err))
             | Self::Ic(ic::IcCommandError::Io(err))
             | Self::Nns(nns::NnsCommandError::Io(err))
@@ -86,7 +90,8 @@ impl IcqCliError {
             | Self::Icrc(icrc::IcrcCommandError::Usage(_))
             | Self::Sns(sns::SnsCommandError::Usage(_))
             | Self::System(system::SystemCommandError::Usage(_)) => 2,
-            Self::Cache(_)
+            Self::Io(_)
+            | Self::Cache(_)
             | Self::CloudEngine(_)
             | Self::Nns(_)
             | Self::Icrc(_)
@@ -118,14 +123,14 @@ where
                     | ErrorKind::DisplayVersion
             ) =>
         {
-            print!("{error}");
+            output::write_help(&error.to_string())?;
             return Ok(());
         }
         Err(error) => return Err(IcqCliError::Usage(error.to_string())),
     };
 
     if let Some(help) = selected_namespace_help(command, &matches) {
-        print!("{help}");
+        output::write_help(&help)?;
         return Ok(());
     }
 

@@ -10,7 +10,8 @@
 ## Authority and Scope
 
 `ic-query` reads the native NNS Governance `get_neuron_index` and
-`get_neuron_info` query methods through `LiveNnsSource`. The list and detail
+`get_neuron_info` methods through `LiveNnsSource` on native hosts or
+`CanisterNnsSource` in replicated canister execution. The list and detail
 reports preserve the public `NeuronInfo` fields exposed by Governance,
 including raw state, visibility, neuron-type, and vote discriminants; stake;
 staked maturity; dissolve delay; age; voting-power fields; public timestamps;
@@ -42,6 +43,16 @@ short or empty page proves API exhaustion. Final rows are validated again
 before publication. The collector retains the row vector and relies on the
 strict global order instead of allocating a second full-history id set.
 
+The portable `NnsNeuronCollectionState` and
+`advance_nns_neuron_collection_with_source` API expose this walk as one bounded
+call per advance. The schema-1 state binds request identity, concrete source
+provenance, cursor, timestamps, and cumulative page and row accounting under a
+caller-selected page ceiling. `complete` means observed API exhaustion;
+`page_limit_reached` retains incomplete progress. Native refresh uses the same
+engine. Canister callers own page retention, scheduling, and publication.
+Request and restored-state collection timestamps must parse as valid UTC
+dates and times with second precision before another source call is admitted.
+
 ## Portable Distribution Contract
 
 `build_nns_neuron_distribution_report` accepts a valid final collection state
@@ -56,6 +67,8 @@ potential voting power. Known-neuron metadata and Neurons' Fund join-timestamp
 presence are factual counts, not owner or membership inference.
 
 Fresh reports and restored caller-owned reports use the same pure validator.
+The validator checks both collection timestamps as well as page and row
+accounting before accepting a projected report.
 API exhaustion and internally consistent aggregates do not authenticate the
 retained rows, recover private neuron fields, or establish an atomic
 Governance balance.
@@ -97,10 +110,16 @@ strictly local.
 
 ## Adapter Contract
 
-`NnsNeuronSource` is the narrow public capability for fixture, mirror, proxy,
-or pre-collected implementations. The built-in implementation remains
-`LiveNnsSource` and shares the same internal NNS Governance query transport as
-proposal reporting. Proposal and neuron complete collections also share the
+`NnsNeuronSource` is the portable async capability for fixture, mirror, proxy,
+or pre-collected implementations. It accepts `NnsGovernanceRequest` and
+returns tagged source provenance; native and canister adapters share validation,
+row conversion, and report assembly with proposal reporting. Native calls are
+ordinary replica queries. The canister adapter uses one response-bounded
+replicated inter-canister call per page or exact detail, records the executing
+collector principal, attaches no cycles, and performs no retry or persistence.
+Neither transport certifies the returned public neuron rows.
+
+Proposal and neuron native complete collections also share the
 public `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 `NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceQueryError` contracts;
 their page validation, cache identities, and reports remain family-specific.

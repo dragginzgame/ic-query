@@ -179,6 +179,7 @@ fn daily_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
     })
 }
 
+/// Render proposal rows and collection provenance as human-facing text.
 #[must_use]
 pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
     let mut lines = governance_context_lines(&report.context);
@@ -248,6 +249,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
     lines.join("\n")
 }
 
+/// Render one proposal, including requested details and ballots, as human-facing text.
 #[must_use]
 pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
     let proposal = &report.proposal;
@@ -283,6 +285,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
     lines.join("\n")
 }
 
+/// Render snapshot publication and refresh-attempt outcomes as human-facing text.
 #[must_use]
 #[cfg(feature = "nns-host")]
 pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> String {
@@ -325,6 +328,7 @@ pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> St
     .join("\n")
 }
 
+/// Render the discovered local proposal snapshots as a table.
 #[must_use]
 #[cfg(feature = "nns-host")]
 pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) -> String {
@@ -371,6 +375,7 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
     lines.join("\n")
 }
 
+/// Render snapshot validation and the latest refresh-attempt evidence.
 #[must_use]
 #[cfg(feature = "nns-host")]
 pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusReport) -> String {

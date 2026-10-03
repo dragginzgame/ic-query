@@ -187,6 +187,7 @@ fn load_nns_proposal_cache(
             path: cache_path.clone(),
             network,
             expected_schema_version: NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
+            maximum_bytes: 512 * 1024 * 1024,
         },
         &key,
         NNS_PROPOSAL_CACHE_FIELDS,

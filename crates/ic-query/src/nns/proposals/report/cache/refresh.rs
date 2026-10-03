@@ -28,6 +28,7 @@ use crate::{
     },
 };
 
+/// Default stale-lock threshold in seconds for proposal refreshes.
 pub const DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
@@ -45,6 +46,7 @@ pub fn refresh_nns_proposal_cache_with_progress(
     refresh_nns_proposal_cache_with_source_and_progress(request, &LiveNnsSource, progress)
 }
 
+/// Collect proposals through the supplied source and atomically publish a complete snapshot.
 pub fn refresh_nns_proposal_cache_with_source(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,

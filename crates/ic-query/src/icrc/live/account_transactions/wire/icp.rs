@@ -88,7 +88,7 @@ pub(super) fn decode(
     bytes: &[u8],
     index_canister: &Principal,
 ) -> Result<Result<AccountTransactionsPage, IcrcAccountTransactionError>, candid::Error> {
-    candid::decode_one::<IcpIndexTransactionsResult>(bytes)
+    crate::candid_decode::decode_reply::<IcpIndexTransactionsResult>(bytes)
         .map(|result| account_transactions_page(result, index_canister))
 }
 

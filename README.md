@@ -354,7 +354,8 @@ refreshes do not replace the last complete snapshot.
 
 Subnet Catalog callers select `CacheOnly`, refresh-missing,
 refresh-missing-or-invalid, refresh-older-than, or force-refresh behavior and
-receive the exact `CacheDisposition` used. Catalog loads validate fixed
+receive the exact `CacheDisposition` used. Catalog loads bound cache files to
+64 MiB before decoding and validate fixed
 mainnet/Registry identity, raw Registry Subnet kinds, classification and
 resolver policy identity, timestamps, canonical ordering, and the canonical
 payload digest before returning a `ValidatedSubnetCatalog`. The digest detects
@@ -426,13 +427,14 @@ replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do
 not change snapshot identity.
 
-The CLI uses one user-level cache root in every working directory. It selects
-the first non-empty source:
+The CLI uses one user-level cache root in every working directory. It selects:
 
 1. `ICQ_CACHE_ROOT`, which must be an absolute path;
-2. `$XDG_CACHE_HOME/ic-query`; or
-3. `$HOME/.cache/ic-query`.
+2. `$XDG_CACHE_HOME/ic-query` when `XDG_CACHE_HOME` is nonempty and absolute; or
+3. `$HOME/.cache/ic-query`, with an absolute `HOME`.
 
+Empty values are ignored. A relative `ICQ_CACHE_ROOT` is an error; a relative
+`XDG_CACHE_HOME` is ignored in favor of `HOME`.
 It does not inspect project files or read and migrate former project-local
 `.icq` directories. Cache semantics and recovery rules are defined in
 [Cache Policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md).
@@ -445,9 +447,10 @@ group/other-accessible directories, and files not using mode `0600` are
 rejected. New managed directories use mode `0700`; new cache and lock files use
 mode `0600`. These authority failures are not treated as invalid JSON that a
 read-through call may silently replace. Explicit caller-selected output files
-are outside this cache policy. The `0.29.1` hard cut does not migrate or loosen
-older permissive caches: remove the old cache root or restrict its directories
-and files before use.
+are outside this cache policy, but refresh exports must not alias the managed
+snapshot or its refresh lock, including during a dry run. The `0.29.1` hard cut
+does not migrate or loosen older permissive caches: remove the old cache root
+or restrict its directories and files before use.
 
 Use `icq cache status` to inspect known complete caches across that root,
 including generic header integrity, separate fresh/stale/unmanaged/unknown age,
@@ -456,6 +459,10 @@ recovery policy. The bounded inventory explicitly reports that it did not
 perform family-specific semantic validation. It also reports active, stale,
 and invalid refresh locks without live calls, process probes, full history
 scans, or cache mutation.
+
+Subnet Catalog history transcripts and their writer lock appear as
+`nns/registry-history`. Their unmanaged age is separate from catalog freshness;
+full transcript validation occurs only during authorized live acquisition.
 
 ## Library
 
@@ -760,8 +767,9 @@ Standard live Subnet Catalog load and refresh calls reuse Registry history
 across processes under the request's private cache root. Embedders supplying
 their own `LiveSubnetCatalogSource` enable the same behavior with
 `with_history_cache(cache_root)`. Cache-only reads perform no history IO or
-network calls. The bounded schema-1 transcript retains local query evidence;
-every live acquisition still reads current pinned records and checks the
+network calls; dry-run convenience refreshes use memory-only history. The
+bounded schema-1 transcript retains local query evidence; every live
+acquisition still reads current pinned records and checks the
 requested endpoint agreement. See the
 [history reuse contract](docs/design/subnet-catalog-acquisition-performance.md#cross-process-transcript-contract)
 for ownership, limits, progress, and recovery policy.

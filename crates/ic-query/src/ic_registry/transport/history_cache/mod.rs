@@ -8,8 +8,9 @@ use super::key_family::RegistryKeyFamilyCheckpoint;
 use crate::{
     cache_file::{
         BoundedManagedFileReadError, CacheFileError, HostCacheError, RefreshLockRequest,
-        canonical_json_serialized_len, create_managed_parent_directory, json_error_to_io,
-        read_bounded_managed_file, with_refresh_lock, write_managed_file_atomically,
+        canonical_json_serialized_len, canonical_json_sha256, create_managed_parent_directory,
+        json_error_to_io, read_bounded_managed_file, with_refresh_lock,
+        write_managed_file_atomically,
     },
     hex::hex_bytes,
     subnet_catalog::{
@@ -18,11 +19,11 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
-    io::{self, Write},
+    io,
     path::{Path, PathBuf},
+    sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -65,7 +66,24 @@ pub enum RegistryHistoryCacheDisposition {
 #[serde(deny_unknown_fields)]
 pub(super) struct RegistryHistoryPage {
     pub through_version: u64,
-    pub response_hex: String,
+    #[serde(
+        serialize_with = "serialize_history_hex",
+        deserialize_with = "deserialize_history_hex"
+    )]
+    pub response_hex: Arc<str>,
+}
+
+fn serialize_history_hex<S: serde::Serializer>(
+    value: &str,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(value)
+}
+
+fn deserialize_history_hex<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Arc<str>, D::Error> {
+    String::deserialize(deserializer).map(Into::into)
 }
 
 ///
@@ -411,30 +429,13 @@ const fn operation(source: CacheFileError) -> HostCacheError {
 }
 
 fn history_digest(document: &HistoryDocument) -> Result<String, serde_json::Error> {
-    let mut writer = HistoryDigestWriter(Sha256::new());
-    serde_json::to_writer(
-        &mut writer,
-        &(
-            document.schema_version,
-            &document.network,
-            &document.fetched_at,
-            &document.checkpoints,
-        ),
-    )?;
-    Ok(hex_bytes(&writer.0.finalize()))
-}
-
-struct HistoryDigestWriter(Sha256);
-
-impl Write for HistoryDigestWriter {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.0.update(bytes);
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
+    canonical_json_sha256(&(
+        document.schema_version,
+        &document.network,
+        &document.fetched_at,
+        &document.checkpoints,
+    ))
+    .map(|digest| hex_bytes(&digest))
 }
 
 #[cfg(test)]

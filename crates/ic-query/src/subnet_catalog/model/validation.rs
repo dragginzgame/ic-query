@@ -20,6 +20,7 @@ use crate::subnet_catalog::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 use crate::{
+    cache_file::canonical_json_sha256,
     hex::{hex_bytes, is_lowercase_hex},
     http_endpoint::parse_http_endpoint,
     subnet_catalog::{
@@ -27,8 +28,6 @@ use crate::{
         MIN_SUBNET_CATALOG_AGREEMENT_ENDPOINTS, RESOLVER_SCHEMA_VERSION,
     },
 };
-#[cfg(feature = "subnet-catalog-host")]
-use sha2::{Digest, Sha256};
 use std::{cmp::Ordering, collections::BTreeSet};
 
 impl RawSubnetCatalog {
@@ -831,9 +830,9 @@ fn validate_policy_identity(raw: &RawSubnetCatalog) -> Result<(), CatalogError> 
 
 #[cfg(feature = "subnet-catalog-host")]
 fn validate_classification_policy(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
-    let mut expected = raw.clone();
-    apply_mainnet_classification_policy(&mut expected.subnets);
-    for (actual, expected) in raw.subnets.iter().zip(&expected.subnets) {
+    let mut expected = raw.subnets.clone();
+    apply_mainnet_classification_policy(&mut expected);
+    for (actual, expected) in raw.subnets.iter().zip(&expected) {
         if actual.subnet_specialization != expected.subnet_specialization
             || actual.subnet_specialization_source != expected.subnet_specialization_source
             || actual.geographic_scope != expected.geographic_scope
@@ -870,10 +869,23 @@ fn validate_catalog_digest(raw: &RawSubnetCatalog) -> Result<[u8; 32], CatalogEr
 
 #[cfg(feature = "subnet-catalog-host")]
 fn canonical_catalog_digest(raw: &RawSubnetCatalog) -> Result<[u8; 32], CatalogError> {
-    let mut payload = raw.clone();
-    payload.catalog_digest.clear();
-    let serialized = serde_json::to_vec(&payload)?;
-    Ok(Sha256::digest(serialized).into())
+    #[derive(serde::Serialize)]
+    struct CatalogDigestPayload<'a> {
+        catalog_schema_version: u32,
+        provenance: &'a super::SubnetCatalogProvenance,
+        catalog_digest: &'a str,
+        subnets: &'a [SubnetInfo],
+        routing_ranges: &'a [RoutingRange],
+    }
+
+    let payload = CatalogDigestPayload {
+        catalog_schema_version: raw.catalog_schema_version,
+        provenance: &raw.provenance,
+        catalog_digest: "",
+        subnets: &raw.subnets,
+        routing_ranges: &raw.routing_ranges,
+    };
+    Ok(canonical_json_sha256(&payload)?)
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -924,7 +936,7 @@ pub(in crate::subnet_catalog) fn catalog_agreement_digest(
         subnets: &raw.subnets,
         routing_ranges: &raw.routing_ranges,
     };
-    Ok(Sha256::digest(serde_json::to_vec(&payload)?).into())
+    Ok(canonical_json_sha256(&payload)?)
 }
 
 #[cfg(feature = "subnet-catalog-host")]

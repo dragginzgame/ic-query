@@ -491,6 +491,35 @@ fn icrc3_blocks_result_round_trips_through_candid() {
 }
 
 #[test]
+fn icrc3_multiple_archive_callbacks_preserve_principals_methods_and_ranges() {
+    let result = Icrc3GetBlocksResult {
+        log_length: Nat::from(10_000_u64),
+        blocks: Vec::new(),
+        archived_blocks: (0..100_u64)
+            .map(|index| Icrc3ArchivedBlocks {
+                args: vec![Icrc3GetBlocksRequest {
+                    start: Nat::from(index * 100),
+                    length: Nat::from(100_u64),
+                }],
+                callback: Icrc3ArchiveCallback(Func {
+                    principal: Principal::from_slice(&[
+                        u8::try_from(index).expect("fixture index fits one byte"),
+                        1,
+                    ]),
+                    method: "icrc3_get_blocks".to_string(),
+                }),
+            })
+            .collect(),
+    };
+
+    let bytes = candid::encode_one(&result).expect("encode multiple typed callbacks");
+    let decoded: Icrc3GetBlocksResult = crate::candid_decode::decode_reply(&bytes)
+        .expect("decode every typed callback and its recursive result schema");
+
+    assert_eq!(decoded, result);
+}
+
+#[test]
 fn icrc3_archive_and_block_type_shapes_round_trip_through_candid() {
     let archives_args = Icrc3GetArchivesArgs {
         from: Some(

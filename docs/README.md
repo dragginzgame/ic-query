@@ -28,7 +28,7 @@ icq icrc account transaction --help
 | --- | --- |
 | [IC Reporting Adapters](design/ic-reporting-adapters.md) | Authority families, provenance, validation, and typed follow-up queries |
 | [Cache Policy](design/cache-policy.md) | Cache identity, refresh and invalid-content recovery, locking, and local inspection |
-| [Subnet Catalog Acquisition Performance](design/subnet-catalog-acquisition-performance.md) | Current endpoint concurrency, history reuse, progress, retries, and measured limits |
+| [Subnet Catalog Acquisition Performance](design/subnet-catalog-acquisition-performance.md) | Endpoint concurrency, bounded cross-process Registry history transcripts, progress, retries, and measured limits |
 | [0.22 Structural Consolidation](design/0.22/0.22-design.md) | Ordered CLI, inventory, snapshot, feature, and module-ownership cleanup |
 | [0.23 Bounded SNS Completeness](design/0.23/0.23-design.md) | Targeted discovery hard cut plus bounded native swap and upgrade evidence |
 | [0.24 Bounded SNS Governance Metrics](design/0.24/0.24-design.md) | Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp evidence |
@@ -40,7 +40,7 @@ icq icrc account transaction --help
 | [Subnet Catalog Failure Provenance](design/subnet-catalog-failure-provenance.md) | Detailed typed host-load failures with pinned Registry version, exact stage/cache context, subjects, and truthful retryability |
 | [Subnet Catalog Routing Authority](design/subnet-catalog-routing-authority.md) | Pinned `canister_ranges_*` reconstruction, strict shard validation, explicit historical legacy policy, and per-record provenance |
 | [Subnet Catalog Downstream Adoption](design/subnet-catalog-downstream-adoption.md) | Schema-1 hard-cut checklist for typed provenance projections, fixtures, and cache refresh |
-| [0.30 Certified Registry Evidence](design/0.30/0.30-design.md) | Authenticated latest-version and bounded single-delta-batch evidence, with staged certified Registry reconstruction |
+| [0.30 Certified Registry Evidence](design/0.30/0.30-design.md) | Authenticated latest-version and delta batches, bounded replay and retained archives, archive-bound catalog authority, and local certified-cache publication |
 | [0.31 Public CloudEngine Reporting](design/0.31/0.31-design.md) | Top-level exact-target operator details, Registry/control-plane inventory, and bounded marketplace reports |
 | [0.32 Bounded Replica-Version Reporting](design/0.32/0.32-design.md) | One-page release discovery and exact release detail with explicit off-chain authority and no runtime-version claim |
 | [0.33 Certified API Boundary-Node Reporting](design/0.33/0.33-design.md) | One authenticated state-tree inventory of API boundary-node principals, domains, addresses, and certificate time |
@@ -57,7 +57,7 @@ icq icrc account transaction --help
 | [IC Dashboard Boundary-Node Reporting](design/ic-dashboard-boundary-node-reporting.md) | Official boundary-node data-center aggregates, raw location fields, and one-request contract |
 | [Exact-Version NNS Subnet Topology](design/nns-subnet-topology.md) | One-version Registry join and atomic topology cache |
 | [NNS Governance Reporting](design/nns-governance-reporting.md) | Economics, metrics, reward event, and maturity modulation |
-| [NNS Neuron Reporting](design/nns-neuron-reporting.md) | Public neuron views and complete collection behavior |
+| [NNS Neuron Reporting](design/nns-neuron-reporting.md) | Native/canister public neuron views, resumable complete collection, and portable distribution analytics |
 | [SNS Root Canister Reporting](design/sns-root-canister-reporting.md) | Root inventory, health, provenance, and relation gaps |
 | [SNS Proposal Cache](design/sns-proposal-cache.md) | Complete SNS proposal snapshot behavior |
 | [Certified CMC System Reporting](design/cmc-system-reporting.md) | Certified ICP/XDR evidence and exact cycles-per-ICP derivation |
@@ -76,5 +76,9 @@ not a compatibility promise; a numbered document marked active remains a
 current implementation plan. The current code, maintained contracts,
 `AGENTS.md`, and the root changelog take precedence.
 
-Engineering audit material under [`docs/governance/`](governance/) records
-past code-hygiene reviews and is not a user-facing API specification.
+## Engineering guidance
+
+[Codebase Hygiene Standard](governance/code-hygiene/README.md) describes
+source ownership and readability conventions, with a documentation-only
+example module tree. `AGENTS.md` takes precedence over that guidance; neither
+document is a user-facing API specification.

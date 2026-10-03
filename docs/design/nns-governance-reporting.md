@@ -51,13 +51,16 @@ reward coverage.
 Only the mainnet `ic` network is supported. Public builders and both built-in
 source adapters reject another network before constructing a transport or
 making a live call. Replica endpoints must be credential-free absolute
-HTTP(S) URLs without a query or fragment. The inter-canister selection cannot
+HTTP(S) URLs with a valid hostname or bracketed IPv6 address, and optional valid
+port, without whitespace, controls, a query, or a fragment. Portable requests
+and restored provenance use the same URL parser as native agents. The inter-canister selection cannot
 override the mainnet Governance principal or claim an HTTP endpoint.
 
 Each report comes from one Governance response. The native adapter submits an
 ordinary unreplicated replica query. The canister adapter uses one
 `Call::bounded_wait` from replicated execution, attaches no cycles, performs
-no retry, bounds the raw response before Candid decoding, and records the
+no retry, bounds the raw response before Candid decoding, applies finite
+Candid decode/skip/type-table/header budgets, and records the
 executing canister principal. Composite-query collection is not supported.
 Neither transport joins independently timed calls or inherits a Registry
 version. The caller-supplied collection timestamp is report provenance, while

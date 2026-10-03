@@ -180,7 +180,7 @@ fn decode_response<Response>(
 where
     Response: for<'de> Deserialize<'de> + CandidType,
 {
-    candid::decode_one(bytes).map_err(|error| NnsGovernanceError::CandidDecode {
+    crate::candid_decode::decode_reply(bytes).map_err(|error| NnsGovernanceError::CandidDecode {
         message: response_message,
         reason: error.to_string(),
     })

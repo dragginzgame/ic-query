@@ -134,9 +134,9 @@ pub fn host_cache_refresh_reason(
 ) -> Result<CacheRefreshReason, HostCacheError> {
     match error {
         HostCacheError::MissingCache { path, .. } => Ok(CacheRefreshReason::Missing(path)),
-        HostCacheError::ParseCache { path, .. } | HostCacheError::InvalidCache { path, .. } => {
-            Ok(CacheRefreshReason::Invalid(path))
-        }
+        HostCacheError::ParseCache { path, .. }
+        | HostCacheError::InvalidCache { path, .. }
+        | HostCacheError::CacheTooLarge { path, .. } => Ok(CacheRefreshReason::Invalid(path)),
         HostCacheError::UnsupportedCacheSchemaVersion { .. }
         | HostCacheError::NetworkMismatch { .. } => {
             Ok(CacheRefreshReason::Invalid(expected_path.to_path_buf()))

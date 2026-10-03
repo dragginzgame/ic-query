@@ -23,6 +23,8 @@ pub use confined::BoundedManagedFileReadError;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
+    feature = "dashboard-host",
+    feature = "nns-topology-host",
     feature = "icrc-host",
     feature = "sns-host"
 ))]
@@ -38,6 +40,8 @@ pub use confined::read_bounded_managed_file;
 pub use confined::write_managed_file_atomically;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_matches;
+#[cfg(feature = "subnet-catalog-host")]
+pub use write::canonical_json_sha256;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
@@ -50,6 +54,8 @@ pub use write::{canonical_json_serialized_len, json_error_to_io};
 
 #[cfg(feature = "sns-host")]
 pub use confined::collect_managed_collection_files;
+#[cfg(test)]
+pub use confined::read_managed_text;
 #[cfg(any(feature = "subnet-catalog-host", test))]
 pub use confined::write_managed_text_atomically;
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -58,7 +64,7 @@ pub use confined::{
 };
 #[cfg(feature = "host")]
 pub use confined::{collect_managed_files, open_managed_file};
-pub use confined::{create_managed_parent_directory, managed_file_exists, read_managed_text};
+pub use confined::{create_managed_parent_directory, managed_file_exists};
 pub use error::{CacheFileError, HostCacheError};
 #[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
 pub use json::HostJsonCacheErrorMapper;

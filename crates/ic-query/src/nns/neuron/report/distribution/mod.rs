@@ -14,7 +14,10 @@ use super::{
 use crate::{
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID,
-        governance::{NnsGovernanceSourceProvenance, validate_governance_report_source},
+        governance::{
+            NnsGovernanceSourceProvenance, validate_governance_report_source,
+            validate_governance_time_interval,
+        },
     },
     subnet_catalog::MAINNET_NETWORK,
 };
@@ -295,6 +298,13 @@ fn validate_distribution_header(
             report.collection_page_count, report.collected_neuron_count
         )));
     }
+    validate_governance_time_interval(
+        "collection_started_at",
+        &report.collection_started_at,
+        "collection_updated_at",
+        &report.collection_updated_at,
+    )
+    .map_err(|error| invalid_validation(error.to_string()))?;
     if report.point_in_time_guaranteed {
         return Err(invalid_validation(
             "sequential public-neuron collection cannot claim a point-in-time snapshot",

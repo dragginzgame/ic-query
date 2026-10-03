@@ -13,13 +13,48 @@ use super::{
     NnsGovernanceError, NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
     NnsGovernanceSourceSelection,
 };
-use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
+use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text, parse_utc_timestamp_secs};
 
 pub fn validate_governance_request(
     request: &NnsGovernanceRequest,
 ) -> Result<(), NnsGovernanceError> {
     enforce_mainnet_network(&request.network)?;
-    validate_source_selection(&request.source)
+    validate_source_selection(&request.source)?;
+    validate_governance_timestamp("fetched_at", &request.fetched_at)
+}
+
+pub fn validate_governance_timestamp(
+    field: &'static str,
+    value: &str,
+) -> Result<(), NnsGovernanceError> {
+    if parse_utc_timestamp_secs(value).is_some() {
+        Ok(())
+    } else {
+        Err(NnsGovernanceError::InvalidTimestamp {
+            field,
+            value: value.to_string(),
+        })
+    }
+}
+
+/// Validate an inclusive chronological interval of canonical UTC timestamps.
+pub fn validate_governance_time_interval(
+    start_field: &'static str,
+    start: &str,
+    end_field: &'static str,
+    end: &str,
+) -> Result<(), NnsGovernanceError> {
+    validate_governance_timestamp(start_field, start)?;
+    validate_governance_timestamp(end_field, end)?;
+    if parse_utc_timestamp_secs(start) > parse_utc_timestamp_secs(end) {
+        return Err(NnsGovernanceError::InvalidTimestampOrder {
+            start_field,
+            start: start.to_string(),
+            end_field,
+            end: end.to_string(),
+        });
+    }
+    Ok(())
 }
 
 #[cfg(any(
@@ -72,33 +107,11 @@ fn validate_replica_query_source(
             reason: "replica_query fetched_by must not be empty".to_string(),
         });
     }
-    let Some((scheme, remainder)) = endpoint.split_once("://") else {
-        return Err(NnsGovernanceError::InvalidSourceSelection {
-            reason: format!("invalid endpoint {endpoint:?}: expected an absolute HTTP(S) URL"),
-        });
-    };
-    if !matches!(scheme, "http" | "https") {
-        return Err(NnsGovernanceError::InvalidSourceSelection {
-            reason: format!("invalid endpoint {endpoint:?}: expected http or https"),
-        });
-    }
-    if endpoint.contains('?') || endpoint.contains('#') {
-        return Err(NnsGovernanceError::InvalidSourceSelection {
-            reason: format!("invalid endpoint {endpoint:?}: query and fragment are not allowed"),
-        });
-    }
-    let authority = remainder.split('/').next().unwrap_or_default();
-    if authority.is_empty() || authority.chars().any(char::is_whitespace) {
-        return Err(NnsGovernanceError::InvalidSourceSelection {
-            reason: format!("invalid endpoint {endpoint:?}: a hostname is required"),
-        });
-    }
-    if authority.contains('@') {
-        return Err(NnsGovernanceError::InvalidSourceSelection {
-            reason: format!("invalid endpoint {endpoint:?}: user information is not allowed"),
-        });
-    }
-    Ok(())
+    crate::http_endpoint::parse_http_endpoint(endpoint)
+        .map(|_| ())
+        .map_err(|reason| NnsGovernanceError::InvalidSourceSelection {
+            reason: format!("invalid endpoint {endpoint:?}: {reason}"),
+        })
 }
 
 pub fn validate_source_provenance(

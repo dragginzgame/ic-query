@@ -1,4 +1,5 @@
 use super::*;
+
 use crate::{
     cache_file::write_managed_text_atomically,
     ic_registry::{
@@ -23,6 +24,23 @@ use std::{
     sync::{Arc, Mutex},
     task::Context,
 };
+
+#[test]
+fn shared_history_payload_keeps_the_canonical_page_encoding() {
+    let page = RegistryHistoryPage {
+        through_version: 123,
+        response_hex: "001122".into(),
+    };
+    let clone = page.clone();
+    assert!(Arc::ptr_eq(&page.response_hex, &clone.response_hex));
+    let encoded = serde_json::to_string(&page).expect("serialize page");
+    assert_eq!(
+        encoded,
+        r#"{"through_version":123,"response_hex":"001122"}"#
+    );
+    let restored: RegistryHistoryPage = serde_json::from_str(&encoded).expect("restore page");
+    assert_eq!(restored, page);
+}
 
 const PREFIX: &str = "canister_ranges_";
 const ENDPOINT: &str = "https://a.example";
@@ -527,13 +545,13 @@ fn corrupt_content_is_visible_and_replaced_only_after_a_valid_cold_page() {
                             .unwrap();
                     page.deltas[0].values.retain(|value| value.version != 2);
                     document.checkpoints[0].pages[0].response_hex =
-                        crate::hex::hex_bytes(&page.encode_to_vec());
+                        crate::hex::hex_bytes(&page.encode_to_vec()).into();
                 }
                 "network" => document.checkpoints[0].network = "local".to_string(),
                 "registry" => document.checkpoints[0].registry_canister = "aaaaa-aa".to_string(),
                 "watermark" => document.checkpoints[0].pages[0].through_version = 0,
                 "schema" => document.schema_version = 0,
-                "unknown" => document.checkpoints[0].pages[0].response_hex = "xyz".to_string(),
+                "unknown" => document.checkpoints[0].pages[0].response_hex = "xyz".into(),
                 _ => unreachable!(),
             });
             if invalid == "checksum" {

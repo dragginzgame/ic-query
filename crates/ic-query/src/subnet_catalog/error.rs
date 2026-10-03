@@ -9,11 +9,18 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum CatalogError {
+    /// Catalog JSON could not be encoded or decoded.
     #[error(transparent)]
     Json(#[from] serde_json::Error),
 
+    /// The catalog uses a schema other than the current version-1 contract.
     #[error("unsupported subnet catalog schema version {found}; supported version is {supported}")]
-    UnsupportedSchemaVersion { found: u32, supported: u32 },
+    UnsupportedSchemaVersion {
+        /// Schema identifier found in the input.
+        found: u32,
+        /// Current supported schema identifier.
+        supported: u32,
+    },
 
     /// Catalog network identity does not match the required authority.
     #[error("subnet catalog network is {actual:?}; expected {expected:?}")]
@@ -37,21 +44,31 @@ pub enum CatalogError {
     #[error("subnet catalog Registry version must be greater than zero")]
     InvalidRegistryVersion,
 
+    /// The catalog contains no Subnet records.
     #[error("subnet catalog must contain at least one subnet")]
     EmptySubnets,
 
+    /// The catalog contains no routing authority ranges.
     #[error("subnet catalog must contain at least one routing range")]
     EmptyRoutingRanges,
 
+    /// A catalog identity or routing boundary is not a valid IC principal.
     #[error("invalid principal in {field}: {value}: {reason}")]
     InvalidPrincipal {
+        /// Catalog field containing the invalid identity.
         field: &'static str,
+        /// Rejected principal text.
         value: String,
+        /// Principal parsing diagnostic.
         reason: String,
     },
 
+    /// Multiple Subnet rows claim the same principal.
     #[error("duplicate subnet principal in catalog: {subnet_principal}")]
-    DuplicateSubnet { subnet_principal: String },
+    DuplicateSubnet {
+        /// Repeated Subnet principal.
+        subnet_principal: String,
+    },
 
     /// Subnet rows are not strictly ordered by canonical principal text.
     #[error("noncanonical subnet order: {previous} must sort before {current}")]
@@ -62,21 +79,32 @@ pub enum CatalogError {
         current: String,
     },
 
+    /// A routing range points to a Subnet absent from the catalog.
     #[error("routing range references unknown subnet: {subnet_principal}")]
-    UnknownRoutingSubnet { subnet_principal: String },
+    UnknownRoutingSubnet {
+        /// Target Subnet principal missing its record.
+        subnet_principal: String,
+    },
 
+    /// A routing range's principal-byte boundaries are reversed.
     #[error(
         "invalid routing range for {subnet_principal}: start {start_canister_id} sorts after end {end_canister_id}"
     )]
     InvalidRoutingRange {
+        /// Subnet to which this range routes.
         subnet_principal: String,
+        /// Inclusive start principal of the rejected range.
         start_canister_id: String,
+        /// Inclusive end principal of the rejected range.
         end_canister_id: String,
     },
 
+    /// Two inclusive routing ranges cover a common principal.
     #[error("overlapping routing ranges: {first} overlaps {second}")]
     OverlappingRoutingRanges {
+        /// Earlier range in canonical routing order.
         first: Box<RoutingRange>,
+        /// Later range that overlaps the earlier range.
         second: Box<RoutingRange>,
     },
 
@@ -244,24 +272,39 @@ pub enum CatalogError {
         actual: String,
     },
 
+    /// An exact Subnet lookup did not match a catalog row.
     #[error("subnet principal {subnet_principal} was not found in the cached catalog")]
-    UnknownSubnet { subnet_principal: String },
+    UnknownSubnet {
+        /// Requested Subnet principal.
+        subnet_principal: String,
+    },
 
+    /// A Subnet principal prefix has no catalog match.
     #[error("principal prefix {prefix:?} did not match cached subnet principals")]
-    PrincipalPrefixNotFound { prefix: String },
+    PrincipalPrefixNotFound {
+        /// Requested principal prefix.
+        prefix: String,
+    },
 
+    /// A Subnet principal prefix matches more than one catalog row.
     #[error("principal prefix {prefix:?} is ambiguous; matches: {matches:?}")]
     AmbiguousPrincipalPrefix {
+        /// Requested principal prefix.
         prefix: String,
+        /// Canonical Subnet principals matching the prefix.
         matches: Vec<String>,
     },
 
+    /// No routing range covers the requested canister at this Registry version.
     #[error(
         "canister principal {canister_principal} was not covered by cached routing ranges at registry_version={registry_version}, catalog_schema_version={catalog_schema_version}"
     )]
     RouteNotFound {
+        /// Canonical canister principal whose route was requested.
         canister_principal: String,
+        /// Registry version represented by the catalog.
         registry_version: u64,
+        /// Schema identifier retained by the catalog.
         catalog_schema_version: u32,
     },
 }

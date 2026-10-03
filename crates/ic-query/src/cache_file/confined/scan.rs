@@ -26,7 +26,7 @@ pub struct ManagedFileScan {
     pub root_found: bool,
     /// Canonically ordered selected regular file paths.
     pub paths: Vec<PathBuf>,
-    /// Whether discovery stopped at the caller's selected-file limit.
+    /// Whether discovery reached its selected-file, visited-entry, or depth bound.
     pub truncated: bool,
 }
 
@@ -207,20 +207,31 @@ pub fn collect_managed_files(
     let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
         return Ok(ManagedFileScan::default());
     };
-    let root_dir = root
-        .dir
-        .try_clone()
-        .map_err(|source| open_managed_path_error(cache_root, cache_root, source))?;
-    let mut directories = vec![(root_dir, root.display_root.clone())];
+    // Queue paths, not open capabilities: sibling count cannot exhaust descriptors.
+    let mut directories = vec![(root.display_root.clone(), 0usize)];
+    let entry_limit = limit.saturating_mul(16);
+    let mut visited = 0usize;
     let mut scan = ManagedFileScan {
         root_found: true,
         ..ManagedFileScan::default()
     };
-    while let Some((directory, display_directory)) = directories.pop() {
+    while let Some((display_directory, depth)) = directories.pop() {
+        let Some(managed) =
+            root.resolve_parent(&display_directory.join(".icq-directory-probe"), false)?
+        else {
+            continue;
+        };
+        let directory = managed.parent;
         let entries = directory
             .entries()
             .map_err(|source| open_managed_path_error(cache_root, &display_directory, source))?;
         for entry in entries {
+            if visited == entry_limit {
+                scan.truncated = true;
+                scan.paths.sort();
+                return Ok(scan);
+            }
+            visited += 1;
             let entry = entry.map_err(|source| {
                 open_managed_path_error(cache_root, &display_directory, source)
             })?;
@@ -249,7 +260,12 @@ pub fn collect_managed_files(
                         )
                     })?;
                 validate_managed_directory_mode(&path, &child)?;
-                directories.push((child, path));
+                drop(child);
+                if depth == 32 {
+                    scan.truncated = true;
+                } else {
+                    directories.push((path, depth + 1));
+                }
                 continue;
             }
             if !file_type.is_file() {
@@ -329,4 +345,29 @@ pub fn collect_managed_collection_files(
     }
     paths.sort();
     Ok(paths)
+}
+
+#[cfg(all(test, feature = "host"))]
+mod tests {
+    use super::*;
+    use crate::{cache_file::create_managed_parent_directory, test_support::temp_dir};
+    use std::fs;
+
+    #[test]
+    fn inventory_bounds_nonmatching_entries_and_directory_depth() {
+        let root = temp_dir("ic-query-inventory-entry-bound");
+        for index in 0..17 {
+            create_managed_parent_directory(&root, &root.join(index.to_string()).join("probe"))
+                .unwrap();
+        }
+        let scan = collect_managed_files(&root, 1, |_| false).unwrap();
+        assert!(scan.truncated);
+        assert_eq!(scan.paths, Vec::<PathBuf>::new());
+        fs::remove_dir_all(&root).unwrap();
+        let path = (0..34).fold(root.clone(), |path, _| path.join("nested"));
+        create_managed_parent_directory(&root, &path.join("probe")).unwrap();
+        let scan = collect_managed_files(&root, 100, |_| false).unwrap();
+        assert!(scan.truncated);
+        fs::remove_dir_all(root).unwrap();
+    }
 }

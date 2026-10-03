@@ -3,6 +3,7 @@ use crate::{
     text_value::{sanitize_text, yes_no},
 };
 
+/// Render collection, validation, and catalog publication outcomes as text.
 #[must_use]
 pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -> String {
     [

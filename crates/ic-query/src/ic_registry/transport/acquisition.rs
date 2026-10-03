@@ -85,7 +85,8 @@ pub enum SubnetCatalogProgressPhase {
 
 #[derive(Default)]
 pub struct RegistryAcquisition {
-    pub(super) history: Mutex<BTreeMap<(String, String), RegistryKeyFamilyCheckpoint>>,
+    pub(super) history:
+        Mutex<BTreeMap<(String, String), std::sync::Arc<RegistryKeyFamilyCheckpoint>>>,
     pub(crate) progress: Option<std::sync::Arc<dyn Fn(SubnetCatalogProgress) + Send + Sync>>,
     pub(super) history_cache: Option<RegistryHistoryCache>,
 }

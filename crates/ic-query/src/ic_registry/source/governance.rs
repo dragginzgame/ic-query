@@ -4,7 +4,7 @@ use crate::ic_registry::{
     inventory::fetch_node_provider_node_counts, projection::node_provider_list_from_response,
     transport::get_latest_version, wire::ListNodeProvidersResponse,
 };
-use candid::{Decode, Encode};
+use candid::Encode;
 
 pub(in crate::ic_registry) async fn fetch_mainnet_node_provider_list_async(
     request: &MainnetRegistryFetchRequest,
@@ -24,12 +24,11 @@ pub(in crate::ic_registry) async fn fetch_mainnet_node_provider_list_async(
             method: "list_node_providers",
             reason: err.to_string(),
         })?;
-    let response = Decode!(&bytes, ListNodeProvidersResponse).map_err(|err| {
-        RegistryFetchError::CandidDecode {
+    let response = crate::candid_decode::decode_reply::<ListNodeProvidersResponse>(&bytes)
+        .map_err(|err| RegistryFetchError::CandidDecode {
             message: "ListNodeProvidersResponse",
             reason: err.to_string(),
-        }
-    })?;
+        })?;
     let registry_canister = mainnet_registry_canister()?;
     let registry_version = get_latest_version(&agent, &registry_canister).await?;
     let node_counts =

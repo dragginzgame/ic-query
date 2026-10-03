@@ -84,17 +84,7 @@ async fn fetch_archive_blocks(
     for archive in archives {
         let canister_id = archive.callback.0.principal.to_text();
         let method = archive.callback.0.method.clone();
-        if method != ICRC3_GET_BLOCKS_METHOD {
-            result.errors.push(archive_follow_error_row(
-                archive,
-                format!(
-                    "unsupported archive callback method {method}; expected {ICRC3_GET_BLOCKS_METHOD}"
-                ),
-            ));
-            continue;
-        }
-
-        match query_blocks(agent, &archive.callback.0.principal, &archive.args).await {
+        match query_archive_blocks(agent, archive).await {
             Ok(blocks) => {
                 result.blocks.extend(blocks.blocks.into_iter().map(|block| {
                     followed_archive_block_row_from_wire(&canister_id, &method, block)
@@ -106,6 +96,30 @@ async fn fetch_archive_blocks(
         }
     }
     result
+}
+
+async fn query_archive_blocks(
+    agent: &Agent,
+    archive: &Icrc3ArchivedBlocks,
+) -> Result<Icrc3GetBlocksResult, IcrcError> {
+    const CONTEXT: &str = "ICRC3 archive callback";
+    let arg = candid::encode_one(&archive.args).map_err(|error| IcrcError::CandidEncode {
+        message: CONTEXT,
+        reason: error.to_string(),
+    })?;
+    let bytes = agent
+        .query(&archive.callback.0.principal, &archive.callback.0.method)
+        .with_arg(arg)
+        .call()
+        .await
+        .map_err(|error| IcrcError::AgentCall {
+            method: CONTEXT,
+            reason: error.to_string(),
+        })?;
+    crate::candid_decode::decode_reply(&bytes).map_err(|error| IcrcError::CandidDecode {
+        message: CONTEXT,
+        reason: error.to_string(),
+    })
 }
 
 pub(in crate::icrc::live) async fn fetch_block_types_async(
@@ -395,4 +409,108 @@ fn icrc3_value_json(value: &Icrc3Value) -> JsonValue {
         }
     }
     JsonValue::Object(variant)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{icrc::ledger::Icrc3ArchiveCallback, runtime::block_on_current_thread};
+    use candid::Func;
+    use serde_cbor::Value;
+    use std::{
+        collections::BTreeMap,
+        io::{BufRead, BufReader, Read, Write},
+        net::TcpListener,
+        thread,
+    };
+
+    #[test]
+    fn follows_the_supplied_query_callback_method_and_arguments() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let endpoint = format!("http://{}", listener.local_addr().unwrap());
+        let reply = Icrc3GetBlocksResult {
+            log_length: Nat::from(100u64),
+            blocks: vec![Icrc3BlockWithId {
+                id: Nat::from(12u64),
+                block: Icrc3Value::Text("fixture".into()),
+            }],
+            archived_blocks: vec![],
+        };
+        let body = serde_cbor::to_vec(&Value::Map(BTreeMap::from([
+            (Value::Text("status".into()), Value::Text("replied".into())),
+            (
+                Value::Text("reply".into()),
+                Value::Map(BTreeMap::from([(
+                    Value::Text("arg".into()),
+                    Value::Bytes(candid::encode_one(reply).unwrap()),
+                )])),
+            ),
+        ])))
+        .unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            stream
+                .set_read_timeout(Some(std::time::Duration::from_secs(10)))
+                .unwrap();
+            let mut reader = BufReader::new(&mut stream);
+            let mut length = None;
+            loop {
+                let mut line = String::new();
+                assert!(reader.read_line(&mut line).unwrap() > 0);
+                if line == "\r\n" {
+                    break;
+                }
+                if let Some((name, value)) = line.split_once(':')
+                    && name.eq_ignore_ascii_case("content-length")
+                {
+                    length = Some(value.trim().parse::<usize>().unwrap());
+                }
+            }
+            let mut request = vec![0; length.unwrap()];
+            reader.read_exact(&mut request).unwrap();
+            let request: Value = serde_cbor::from_slice(&request).unwrap();
+            write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
+            stream.write_all(&body).unwrap();
+            request
+        });
+        let agent = Agent::builder()
+            .with_url(endpoint)
+            .with_verify_query_signatures(false)
+            .build()
+            .unwrap();
+        let archive = Icrc3ArchivedBlocks {
+            callback: Icrc3ArchiveCallback(Func {
+                principal: Principal::anonymous(),
+                method: "read_archive_page".into(),
+            }),
+            args: vec![Icrc3GetBlocksRequest {
+                start: Nat::from(12u64),
+                length: Nat::from(2u64),
+            }],
+        };
+        let followed = block_on_current_thread(fetch_archive_blocks(&agent, &[archive])).unwrap();
+        assert!(followed.errors.is_empty(), "{:?}", followed.errors);
+        assert_eq!(followed.blocks[0].index, "12");
+        assert_eq!(followed.blocks[0].callback_method, "read_archive_page");
+        let Value::Map(envelope) = server.join().unwrap() else {
+            panic!("request envelope")
+        };
+        let Value::Map(content) = &envelope[&Value::Text("content".into())] else {
+            panic!("request content")
+        };
+        assert_eq!(
+            content[&Value::Text("request_type".into())],
+            Value::Text("query".into())
+        );
+        assert_eq!(
+            content[&Value::Text("method_name".into())],
+            Value::Text("read_archive_page".into())
+        );
+        let Value::Bytes(args) = &content[&Value::Text("arg".into())] else {
+            panic!("Candid arguments")
+        };
+        let args: Vec<Icrc3GetBlocksRequest> = candid::decode_one(args).unwrap();
+        assert_eq!(args[0].start, Nat::from(12u64));
+        assert_eq!(args[0].length, Nat::from(2u64));
+    }
 }

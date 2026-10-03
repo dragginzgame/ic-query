@@ -7,6 +7,16 @@ use crate::nns::{
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 #[test]
+fn report_rejects_reversed_collection_timestamps() {
+    let mut report = fixture_distribution_report();
+    report.collection_started_at = "2026-01-02T00:00:00Z".to_string();
+    report.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
+    assert!(validate_nns_neuron_distribution_report(&report).is_err());
+    report.collection_updated_at = report.collection_started_at.clone();
+    validate_nns_neuron_distribution_report(&report).unwrap();
+}
+
+#[test]
 fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
     let neurons = fixture_neurons();
     let report = build_nns_neuron_distribution_report(&complete_collection(4), &neurons)
@@ -287,6 +297,26 @@ fn retained_distribution_validation_rejects_corruption() {
     let mut report = fixture_distribution_report();
     report.state_distribution[0].effective_stake_e8s += 1;
     assert_invalid_report(&report, "effective stake sums");
+}
+
+#[test]
+fn distribution_rejects_malformed_collection_timestamps() {
+    for field in ["started_at", "updated_at"] {
+        let mut state = serde_json::to_value(complete_collection(0)).expect("serialize state");
+        state[field] = serde_json::json!("invalid timestamp");
+        let state = serde_json::from_value(state).expect("restore caller state");
+        assert!(matches!(
+            build_nns_neuron_distribution_report(&state, &[]),
+            Err(NnsNeuronDistributionError::InvalidCollectionState { .. })
+        ));
+    }
+    for field in ["collection_started_at", "collection_updated_at"] {
+        let mut value =
+            serde_json::to_value(fixture_distribution_report()).expect("serialize report");
+        value[field] = serde_json::json!("invalid timestamp");
+        let report = serde_json::from_value(value).expect("restore caller report");
+        assert_invalid_report(&report, field);
+    }
 }
 
 fn fixture_distribution_report() -> NnsNeuronDistributionReport {

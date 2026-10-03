@@ -49,6 +49,7 @@ pub fn load_cached_nns_subnet_topology(
             path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
             network: &request.network,
             expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
+            maximum_bytes: 64 * 1024 * 1024,
         },
         HostJsonCacheErrorMapper::new(CACHE_COMPONENT),
     )

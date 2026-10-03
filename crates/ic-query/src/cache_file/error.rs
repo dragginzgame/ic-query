@@ -252,6 +252,19 @@ pub enum CacheFileError {
 
 #[derive(Debug, ThisError)]
 pub enum HostCacheError {
+    /// The cache exceeds its owner's supported serialized size.
+    #[error("{component} cache at {} is too large: {actual} bytes, maximum {maximum}", path.display())]
+    CacheTooLarge {
+        /// Component owning the cache.
+        component: &'static str,
+        /// Rejected managed cache path.
+        path: PathBuf,
+        /// Observed metadata or streamed length in bytes.
+        actual: u64,
+        /// Supported serialized size in bytes.
+        maximum: u64,
+    },
+
     /// The requested component cache does not exist.
     #[error("{component} cache is missing at {}", path.display())]
     MissingCache {

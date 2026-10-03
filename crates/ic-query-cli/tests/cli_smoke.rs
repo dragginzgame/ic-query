@@ -55,6 +55,33 @@ fn temp_cache_root(prefix: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("{prefix}-{}-{unique}", std::process::id()))
 }
 
+#[cfg(unix)]
+#[test]
+fn closed_stdout_succeeds_for_text_json_help_and_version() {
+    use std::os::unix::net::UnixStream;
+    use std::process::Stdio;
+    for args in [
+        vec!["cache", "status"],
+        vec!["cache", "status", "--json"],
+        vec!["--help"],
+        vec!["--version"],
+        vec!["sns", "reward"],
+    ] {
+        let (writer, reader) = UnixStream::pair().unwrap();
+        drop(reader);
+        let root = temp_cache_root("icq-closed-stdout");
+        let output = Command::new(env!("CARGO_BIN_EXE_icq"))
+            .args(args)
+            .env("ICQ_CACHE_ROOT", &root)
+            .stdout(Stdio::from(std::os::fd::OwnedFd::from(writer)))
+            .stderr(Stdio::piped())
+            .output()
+            .unwrap();
+        assert_success(&output);
+        assert_eq!(output.stderr, Vec::<u8>::new());
+    }
+}
+
 #[test]
 fn binary_top_level_help_smoke() {
     let output = run_icq(&["help"]);

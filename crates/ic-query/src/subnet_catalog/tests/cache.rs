@@ -5,6 +5,34 @@ use crate::{CacheFileError, HostCacheError};
 use std::os::unix::fs::{PermissionsExt, symlink};
 
 #[test]
+fn invalid_utf8_catalog_obeys_content_repair_policy() {
+    let root = temp_dir("ic-query-catalog-invalid-utf8");
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    crate::cache_file::write_managed_file_atomically(&root, &path, |file| {
+        std::io::Write::write_all(file, &[0xff])
+    })
+    .unwrap();
+    assert!(matches!(
+        load_cached_subnet_catalog(&cache_only_load_request(&root)),
+        Err(SubnetCatalogHostError::Catalog(CatalogError::Json(_)))
+    ));
+    let request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
+        cache_request(&root),
+        CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+        1_780_531_300,
+    );
+    let failure = load_subnet_catalog_detailed_with_source(&request, &FixtureRefreshSource::err())
+        .unwrap_err();
+    assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
+    assert_eq!(fs::read(&path).unwrap(), [0xff]);
+    let repaired =
+        load_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
+            .unwrap();
+    assert_eq!(repaired.disposition, CacheDisposition::RefreshedInvalid);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn catalog_path_lives_under_cache_root() {
     let root = PathBuf::from("/tmp/ic-query-cache");
 
@@ -88,6 +116,142 @@ fn detailed_cache_failures_distinguish_absence_and_rejection() {
         rejected.source,
         SubnetCatalogHostError::Catalog(CatalogError::Json(_))
     ));
+}
+
+#[test]
+fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
+    for (index, policy) in [
+        CatalogReadPolicy::CacheOnly,
+        CatalogReadPolicy::RefreshMissing {
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
+        },
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let root = temp_dir(&format!("ic-query-subnet-oversized-strict-{index}"));
+        let path = write_oversized_catalog(&root);
+        let request = cache_only_load_request(&root).with_policy(policy);
+        let source = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "");
+
+        let failure = load_subnet_catalog_detailed_with_source(&request, &source)
+            .expect_err("oversized local evidence rejected");
+
+        assert_eq!(source.call_count(), 0);
+        assert_eq!(failure.stage, SubnetCatalogLoadStage::CacheRejection);
+        assert_eq!(
+            failure.cache_disposition,
+            SubnetCatalogFailureCacheDisposition::CacheRejected
+        );
+        assert_eq!(failure.code, SubnetCatalogErrorCode::CachedCatalogTooLarge);
+        assert_eq!(failure.category, SubnetCatalogErrorCategory::Validation);
+        assert_eq!(
+            failure.retryability,
+            SubnetCatalogRetryability::NotRetryable
+        );
+        assert_eq!(failure.registry_version, None);
+        assert_eq!(
+            failure.subject,
+            Some(SubnetCatalogSubject::CachePath(path.clone()))
+        );
+        assert!(matches!(failure.source,
+            SubnetCatalogHostError::CachedCatalogTooLarge { path: rejected_path, actual, maximum }
+                if rejected_path == path && actual == 128 * 1024 * 1024 && maximum == 64 * 1024 * 1024
+        ));
+        assert_eq!(
+            fs::metadata(path).expect("cache retained").len(),
+            128 * 1024 * 1024
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
+fn oversized_catalog_refresh_obeys_explicit_repair_policies() {
+    let selection =
+        CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
+    for (index, (policy, disposition)) in [
+        (
+            CatalogReadPolicy::RefreshMissingOrInvalid {
+                source: selection.clone(),
+            },
+            CacheDisposition::RefreshedInvalid,
+        ),
+        (
+            CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
+                source: selection.clone(),
+                max_age_seconds: 60,
+            },
+            CacheDisposition::RefreshedInvalid,
+        ),
+        (
+            CatalogReadPolicy::ForceRefresh { source: selection },
+            CacheDisposition::ForcedRefresh,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let root = temp_dir(&format!("ic-query-subnet-oversized-refresh-{index}"));
+        write_oversized_catalog(&root);
+        let request = cache_only_load_request(&root).with_policy(policy);
+        let source = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "");
+
+        let outcome = load_subnet_catalog_with_source(&request, &source)
+            .expect("authorized refresh replaces oversized content");
+        assert_eq!(outcome.disposition, disposition);
+        assert_eq!(source.call_count(), 1);
+        let cached = load_cached_subnet_catalog(&cache_only_load_request(&root))
+            .expect("replacement loads normally");
+        assert_eq!(cached.snapshot_authority(), outcome.snapshot_authority());
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
+fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger() {
+    let root = temp_dir("ic-query-subnet-oversized-failed-repair");
+    let path = write_oversized_catalog(&root);
+    let request =
+        cache_only_load_request(&root).with_policy(CatalogReadPolicy::RefreshMissingOrInvalid {
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
+        });
+    let source = AgreementFixtureSource::new(
+        AgreementFixtureMode::EndpointFailure,
+        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+    );
+
+    let failure = load_subnet_catalog_detailed_with_source(&request, &source)
+        .expect_err("source fails after authorized repair");
+    assert_eq!(source.call_count(), 1);
+    assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
+    assert_eq!(
+        failure.cache_disposition,
+        SubnetCatalogFailureCacheDisposition::RefreshFailed(SubnetCatalogRefreshTrigger::Rejected)
+    );
+    assert_eq!(
+        fs::metadata(path).expect("old cache retained").len(),
+        128 * 1024 * 1024
+    );
+    assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+    let _ = fs::remove_dir_all(root);
+}
+
+fn write_oversized_catalog(root: &Path) -> PathBuf {
+    let path = subnet_catalog_path(root, MAINNET_NETWORK);
+    crate::cache_file::write_managed_text_atomically(root, &path, "")
+        .expect("create regular managed file");
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .expect("open sparse fixture")
+        .set_len(128 * 1024 * 1024)
+        .expect("set oversized sparse length");
+    path
 }
 
 #[test]

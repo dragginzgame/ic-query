@@ -24,6 +24,8 @@ mod tests;
 
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use json::canonical_json_matches;
+#[cfg(feature = "subnet-catalog-host")]
+pub use json::canonical_json_sha256;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",

@@ -8,6 +8,16 @@ use crate::nns::{
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 #[test]
+fn report_rejects_reversed_collection_timestamps() {
+    let mut report = fixture_activity_report();
+    report.collection_started_at = "2026-01-02T00:00:00Z".to_string();
+    report.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
+    assert!(validate_nns_proposal_activity_report(&report).is_err());
+    report.collection_updated_at = report.collection_started_at.clone();
+    validate_nns_proposal_activity_report(&report).unwrap();
+}
+
+#[test]
 fn complete_activity_is_canonical_and_input_order_independent() {
     let collection = complete_collection(3);
     let proposals = vec![
@@ -438,6 +448,44 @@ fn assert_invalid_report(report: &NnsProposalActivityReport, expected_reason: &s
         "unexpected validation reason: {}",
         error.reason
     );
+}
+
+#[test]
+fn activity_rejects_malformed_collection_timestamps() {
+    for field in ["started_at", "updated_at"] {
+        let mut state = serde_json::to_value(complete_collection(0)).expect("serialize state");
+        state[field] = serde_json::json!("invalid timestamp");
+        let state = serde_json::from_value(state).expect("restore caller state");
+        assert!(matches!(
+            build_nns_proposal_activity_report(&NnsProposalActivityRequest::default(), &state, &[]),
+            Err(NnsProposalActivityError::InvalidCollectionState { .. })
+        ));
+    }
+    for field in ["collection_started_at", "collection_updated_at"] {
+        let mut value = serde_json::to_value(fixture_activity_report()).expect("serialize report");
+        value[field] = serde_json::json!("invalid timestamp");
+        let report = serde_json::from_value(value).expect("restore caller report");
+        assert_invalid_report(&report, field);
+    }
+}
+
+#[test]
+fn activity_collection_pages_require_rows_from_preceding_full_pages() {
+    let mut report = build_nns_proposal_activity_report(
+        &NnsProposalActivityRequest::default(),
+        &complete_collection(0),
+        &[],
+    )
+    .expect("one exhausted empty page is valid");
+    report.collection_page_count = 100;
+    assert_invalid_report(&report, "requires at least 99 collected proposals");
+
+    let mut report = fixture_activity_report();
+    report.collection_page_count =
+        u32::try_from(report.collected_proposal_count + 1).expect("small fixture");
+    validate_nns_proposal_activity_report(&report).expect("full pages followed by one empty page");
+    report.collection_page_count += 1;
+    assert_invalid_report(&report, "requires at least");
 }
 
 fn complete_collection(proposals_fetched: usize) -> NnsProposalCollectionState {

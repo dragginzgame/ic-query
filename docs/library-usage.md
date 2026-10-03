@@ -100,6 +100,15 @@ layout. Sequential pages can span Governance changes. Native `nns-host` cache
 refresh uses the same continuation beneath its existing atomic publication
 boundary.
 
+Request timestamps and restored start/update timestamps must be valid UTC
+dates and times with second precision. Invalid timestamps return a typed
+`NnsGovernanceError::InvalidTimestamp` before a source call. Complete-collection
+projections also validate retained timestamps and require enough rows to
+account for every preceding full page. Continuations must not precede the
+previous update time; restored states and reports must satisfy start <= update.
+Reversed intervals return `NnsGovernanceError::InvalidTimestampOrder` before
+collection source calls.
+
 Complete public-neuron walks use the corresponding one-call continuation:
 
 ```rust,no_run
@@ -345,8 +354,10 @@ The certified version report does not promote ordinary Subnet Catalog
 `fetch_nns_certified_registry_delta_batch_async` library operation validates
 one caller-selected `get_certified_changes_since` batch on the caller's
 runtime. It reports exact resource ceilings and `more_available` without
-implicit pagination, caching, large-value retrieval, replay, or catalog
-publication; custom async sources pass through the same pure
+implicit pagination, caching, replay, or catalog publication. Chunk-referenced
+values in that batch are completed through bounded, hash-verified `get_chunk`
+calls; the report retains unique chunk evidence and exact call/byte accounting.
+Custom async sources pass through the same pure
 `validate_nns_certified_registry_delta_batch` structural contract. Custom
 sources remain responsible for cryptographically authenticating the raw
 certificate evidence they return.
@@ -477,7 +488,8 @@ A canic-style native crate should usually replace shell-outs in this order:
 
 The CLI module layout is intentionally mirrored at the family level:
 
-- `icq cache ...` maps to host-only `ic_query::cache`.
+- `icq cache ...` maps to `ic_query::cache`; inventory builders require `host`,
+  while its models remain available without host features.
 - `icq cloud-engine ...` maps to `ic_query::cloud_engine`.
 - `icq ic ...` maps to `ic_query::ic`.
 - Native `icq icrc ledger` and `account` operations map to
@@ -686,9 +698,16 @@ decoded source data and therefore do not pass through this HTTP boundary.
 Dashboard redirects are not followed; a 3xx response remains an
 `IcHostError::HttpStatus` for the requested URL.
 
-The shared live endpoint parser rejects credentials, queries, and fragments
-for Dashboard and native agent base URLs. Every native `ic-agent` constructed
-by the library also limits each response body to 8 MiB. These transport rules
+The shared endpoint parser rejects malformed authorities, credentials,
+whitespace, controls, queries, and fragments for Dashboard and native agent
+base URLs and portable Governance request/report provenance. URL parsing is
+available without a native transport or runtime dependency. Every native `ic-agent` constructed
+by the library also limits each response body to 8 MiB. Native and canister
+Candid adapters use a finite decoding quota (1,000,000 + 32 times reply bytes,
+capped at 256,000,000), a 100,000 skipping quota, at most 4,096 type-table
+entries, and at most 64 KiB of type header. These are decoder work units,
+not measured canister instructions. Both maintained account-index codecs
+use these budgets. These transport rules
 do not change cache policy or turn targeted calls into collection operations.
 
 No-default consumers can still construct and render `IcCanisterReport` values
@@ -1081,7 +1100,10 @@ fn render_cache_status(
 }
 ```
 
-This inventory is bounded and local-only. It reports separate generic
+This inventory is bounded and local-only. Selected files use `scan_limit`;
+visited entries are capped at 16 times that limit and directory depth at 32.
+Any reached bound sets `truncated`, and sibling directories do not retain
+open handles. It reports separate generic
 `CacheHeaderStatus`, `CacheAgeStatus`, and `CacheRecoveryPolicy` evidence plus
 self-described `CacheRefreshLockStatus`. The report records that it did not
 perform family-specific semantic validation, does not scan large history
@@ -1276,11 +1298,11 @@ fn refresh_subnet_topology(
 ```
 
 Use `load_cached_nns_subnet_topology` for a strictly local read,
-`load_or_refresh_missing_nns_subnet_topology` when only absence authorizes a
-live call, and `load_or_refresh_stale_nns_subnet_topology` when a
-caller-supplied age policy authorizes refresh. These operations are distinct
-so a consumer cannot mistake read-through cache creation for freshness
-enforcement.
+`load_or_refresh_missing_nns_subnet_topology` for missing-or-invalid recovery,
+and `load_or_refresh_stale_nns_subnet_topology` to additionally refresh when a
+caller-supplied age policy requires it. Filesystem authority and IO failures
+remain errors. These operations are distinct so a consumer cannot mistake
+read-through cache creation for freshness enforcement.
 
 ## Complete ICRC Account History
 
@@ -1319,9 +1341,10 @@ fn refresh_account_history(
 ```
 
 Use `load_cached_icrc_account_transactions` for cache-only access,
-`load_or_refresh_missing_icrc_account_transactions` when absence authorizes a
-live crawl, and `load_or_refresh_stale_icrc_account_transactions` only when a
-caller-supplied age policy authorizes it. Complete account snapshots prove
+`load_or_refresh_missing_icrc_account_transactions` for missing-or-invalid
+recovery, and `load_or_refresh_stale_icrc_account_transactions` to additionally
+refresh when a caller-supplied age policy requires it. Filesystem authority and
+IO failures remain errors. Complete account snapshots prove
 index API exhaustion but carry `point_in_time_guaranteed: false`: the index
 interface does not expose a snapshot version that can be held across pages.
 Custom collection sources must return the explicitly requested index canister

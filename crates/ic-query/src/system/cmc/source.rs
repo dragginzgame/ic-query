@@ -132,7 +132,7 @@ async fn fetch_live_certified_rate(
             reason: error.to_string(),
         })?;
     let response: CmcCertifiedRateResponse =
-        candid::decode_one(&bytes).map_err(|error| CmcHostError::CandidDecode {
+        crate::candid_decode::decode_reply(&bytes).map_err(|error| CmcHostError::CandidDecode {
             message: "IcpXdrConversionRateResponse",
             reason: error.to_string(),
         })?;

@@ -335,31 +335,53 @@ impl NnsProposalTopic {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum NnsProposalListSort {
+    /// Preserve the descending proposal-id order returned by Governance.
     #[default]
     Api,
+    /// Sort by proposal id.
     Id,
+    /// Sort by the raw decision-status code.
     Status,
+    /// Sort by the raw reward-settlement code.
     RewardStatus,
+    /// Sort by the raw topic code.
     Topic,
+    /// Sort by proposer neuron id.
     Proposer,
+    /// Sort by proposal title.
     Title,
+    /// Sort by the human-readable action classification.
     Action,
+    /// Sort by affirmative voting power in the latest tally.
     Yes,
+    /// Sort by negative voting power in the latest tally.
     No,
+    /// Sort by total voting power in the latest tally.
     TotalVotes,
+    /// Sort by the latest tally timestamp.
     TallyTime,
+    /// Sort by total potential voting power.
     VotingPower,
+    /// Sort by ballot count returned by Governance.
     Ballots,
+    /// Sort by reject cost in ICP e8s.
     RejectCost,
+    /// Sort by reward event round.
     RewardRound,
+    /// Sort by proposal creation time.
     Proposed,
+    /// Sort by voting deadline.
     Deadline,
+    /// Sort by decision time.
     Decided,
+    /// Sort by execution time.
     Executed,
+    /// Sort by execution failure time.
     Failed,
 }
 
 impl NnsProposalListSort {
+    /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -387,6 +409,7 @@ impl NnsProposalListSort {
         }
     }
 
+    /// Return the default direction for this sort key.
     #[must_use]
     pub const fn default_direction(self) -> NnsProposalSortDirection {
         match self {
@@ -400,11 +423,13 @@ impl NnsProposalListSort {
         }
     }
 
+    /// Return whether this key applies a local sort direction.
     #[must_use]
     pub const fn uses_local_direction(self) -> bool {
         !matches!(self, Self::Api)
     }
 
+    /// Return `none` for API order or the selected local direction label.
     #[must_use]
     pub const fn direction_label(self, direction: NnsProposalSortDirection) -> &'static str {
         match self {
@@ -422,12 +447,15 @@ impl NnsProposalListSort {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum NnsProposalSortDirection {
+    /// Order local sort values from lowest to highest.
     Asc,
+    /// Order local sort values from highest to lowest.
     #[default]
     Desc,
 }
 
 impl NnsProposalSortDirection {
+    /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -445,12 +473,18 @@ impl NnsProposalSortDirection {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum NnsProposalStatusFilter {
+    /// Include proposals without restricting this classification.
     #[default]
     Any,
+    /// Include only proposals still open for voting.
     Open,
+    /// Include only rejected proposals.
     Rejected,
+    /// Include only adopted proposals awaiting successful execution.
     Adopted,
+    /// Include only successfully executed proposals.
     Executed,
+    /// Include only proposals whose execution failed.
     Failed,
 }
 
@@ -462,15 +496,21 @@ pub enum NnsProposalStatusFilter {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum NnsProposalRewardStatusFilter {
+    /// Include proposals without restricting this classification.
     #[default]
     Any,
+    /// Include only proposals accepting votes for rewards.
     AcceptVotes,
+    /// Include only proposals ready for reward settlement.
     ReadyToSettle,
+    /// Include only proposals with settled rewards.
     Settled,
+    /// Include only proposals ineligible for voting rewards.
     Ineligible,
 }
 
 impl NnsProposalRewardStatusFilter {
+    /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -498,6 +538,7 @@ impl NnsProposalRewardStatusFilter {
 }
 
 impl NnsProposalStatusFilter {
+    /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -534,28 +575,47 @@ impl NnsProposalStatusFilter {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum NnsProposalTopicFilter {
+    /// Include proposals without restricting this classification.
     #[default]
     Any,
+    /// Include only proposals about neuron management.
     NeuronManagement,
+    /// Include only proposals about exchange-rate management.
     ExchangeRate,
+    /// Include only proposals about network economics.
     NetworkEconomics,
+    /// Include only proposals about Governance policy.
     Governance,
+    /// Include only proposals about node administration.
     NodeAdmin,
+    /// Include only proposals about participant management.
     ParticipantManagement,
+    /// Include only proposals about Subnet management.
     SubnetManagement,
+    /// Include only proposals about network-canister management.
     NetworkCanisterManagement,
+    /// Include only proposals about know-your-customer policy.
     Kyc,
+    /// Include only proposals about node-provider rewards.
     NodeProviderRewards,
+    /// Include only proposals about IC OS version deployment.
     IcOsVersionDeployment,
+    /// Include only proposals about IC OS version election.
     IcOsVersionElection,
+    /// Include only proposals about SNS and community-fund policy.
     SnsAndCommunityFund,
+    /// Include only proposals about API boundary-node management.
     ApiBoundaryNodeManagement,
+    /// Include only proposals about Subnet rental.
     SubnetRental,
+    /// Include only proposals about application-canister management.
     ApplicationCanisterManagement,
+    /// Include only proposals about protocol-canister management.
     ProtocolCanisterManagement,
 }
 
 impl NnsProposalTopicFilter {
+    /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {

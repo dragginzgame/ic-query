@@ -13,17 +13,19 @@ use super::{
     refresh::refresh_subnet_catalog_detailed_with_source_async, subnet_catalog_path,
 };
 use crate::{
-    cache_file::read_managed_text,
+    cache_file::{BoundedManagedFileReadError, HostCacheError, read_bounded_managed_file},
     runtime::block_on_current_thread,
     subnet_catalog::{
         CatalogAssurance, CatalogSnapshotAuthorityEvidence, CatalogValidationContext,
         DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
         MAINNET_REGISTRY_CANISTER_ID, ValidatedSubnetCatalog, catalog_stale_status,
-        parse_catalog_json,
     },
 };
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
+
+// Admit complete catalogs with headroom while bounding local allocation before decoding.
+const MAX_CACHED_CATALOG_BYTES: u64 = 64 * 1024 * 1024;
 
 ///
 /// SubnetCatalogCacheRequest
@@ -58,14 +60,14 @@ impl SubnetCatalogCacheRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CatalogReadPolicy {
-    /// Load existing valid content without making a network call.
+    /// Load valid content within the fixed 64 MiB read ceiling without a network call.
     CacheOnly,
     /// Refresh only when the cache is absent.
     RefreshMissing {
         /// Explicit live Registry source used only when content is absent.
         source: CatalogSourceSelection,
     },
-    /// Refresh when the cache is absent or recoverably invalid.
+    /// Refresh when the cache is absent, oversized, or recoverably invalid.
     RefreshMissingOrInvalid {
         /// Explicit live Registry source used for authorized repair.
         source: CatalogSourceSelection,
@@ -417,7 +419,11 @@ pub async fn load_subnet_catalog_detailed_with_source_async(
                         policy,
                         CatalogReadPolicy::RefreshMissingOrInvalid { .. }
                             | CatalogReadPolicy::RefreshMissingInvalidOrOlderThan { .. }
-                    ) && matches!(failure.source, SubnetCatalogHostError::Catalog(_)) =>
+                    ) && matches!(
+                        failure.source,
+                        SubnetCatalogHostError::Catalog(_)
+                            | SubnetCatalogHostError::CachedCatalogTooLarge { .. }
+                    ) =>
                 {
                     refresh_then_load_detailed(
                         request,
@@ -445,13 +451,15 @@ fn load_cached_with_disposition_detailed(
         )
     })?;
     let path = subnet_catalog_path(&request.cache.cache_root, &request.cache.network);
-    let Some(data) = read_managed_text(&request.cache.cache_root, &path).map_err(|error| {
-        SubnetCatalogSourceFailure::new(
-            None,
-            Some(SubnetCatalogSubject::CachePath(path.clone())),
-            super::error::subnet_cache_error(error),
-        )
-    })?
+    let Some(data) =
+        read_bounded_managed_file(&request.cache.cache_root, &path, MAX_CACHED_CATALOG_BYTES)
+            .map_err(|error| {
+                SubnetCatalogSourceFailure::new(
+                    None,
+                    Some(SubnetCatalogSubject::CachePath(path.clone())),
+                    bounded_catalog_read_error(error),
+                )
+            })?
     else {
         return Err(SubnetCatalogSourceFailure::new(
             None,
@@ -459,10 +467,16 @@ fn load_cached_with_disposition_detailed(
             SubnetCatalogHostError::MissingCatalog { path },
         ));
     };
-    let raw = parse_catalog_json(&data).map_err(|source| {
-        let subject = subject_from_catalog_error(&source);
-        SubnetCatalogSourceFailure::new(None, subject, SubnetCatalogHostError::Catalog(source))
-    })?;
+    let raw = serde_json::from_slice::<crate::subnet_catalog::RawSubnetCatalog>(&data)
+        .map_err(crate::subnet_catalog::CatalogError::from)
+        .and_then(|catalog| {
+            catalog.validate()?;
+            Ok(catalog)
+        })
+        .map_err(|source| {
+            let subject = subject_from_catalog_error(&source);
+            SubnetCatalogSourceFailure::new(None, subject, SubnetCatalogHostError::Catalog(source))
+        })?;
     let registry_version = raw.provenance.registry_version;
     let validation = CatalogValidationContext::new(
         &request.cache.network,
@@ -485,6 +499,36 @@ fn load_cached_with_disposition_detailed(
         catalog,
         disposition,
     })
+}
+
+fn bounded_catalog_read_error(error: BoundedManagedFileReadError) -> SubnetCatalogHostError {
+    match error {
+        BoundedManagedFileReadError::Operation(source) => super::error::subnet_cache_error(source),
+        BoundedManagedFileReadError::Read { path, source } => HostCacheError::ReadCache {
+            component: "subnet catalog",
+            path,
+            source,
+        }
+        .into(),
+        BoundedManagedFileReadError::LimitExceeded {
+            path,
+            actual,
+            maximum,
+        } => SubnetCatalogHostError::CachedCatalogTooLarge {
+            path,
+            actual,
+            maximum,
+        },
+        BoundedManagedFileReadError::Accounting { path } => HostCacheError::ReadCache {
+            component: "subnet catalog",
+            path,
+            source: io::Error::new(
+                io::ErrorKind::InvalidData,
+                "catalog byte count cannot be represented",
+            ),
+        }
+        .into(),
+    }
 }
 
 async fn refresh_then_load_detailed(
@@ -577,6 +621,7 @@ fn cache_load_failure(
             SubnetCatalogFailureCacheDisposition::CacheMissing,
         ),
         SubnetCatalogHostError::Catalog(_)
+        | SubnetCatalogHostError::CachedCatalogTooLarge { .. }
         | SubnetCatalogHostError::InsufficientAssurance { .. } => (
             SubnetCatalogLoadStage::CacheRejection,
             SubnetCatalogFailureCacheDisposition::CacheRejected,

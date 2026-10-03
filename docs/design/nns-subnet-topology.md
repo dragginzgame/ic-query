@@ -64,9 +64,14 @@ Cache policy is explicit in the public API:
 
 - `load_cached_nns_subnet_topology` never makes a live call;
 - `refresh_nns_subnet_topology` always performs a live refresh;
-- `load_or_refresh_missing_nns_subnet_topology` refreshes only absence; and
-- `load_or_refresh_stale_nns_subnet_topology` refreshes absence or
-  caller-defined staleness.
+- `load_or_refresh_missing_nns_subnet_topology` refreshes missing or recoverably
+  invalid content; and
+- `load_or_refresh_stale_nns_subnet_topology` additionally refreshes
+  caller-defined stale content.
+
+Direct cache loads remain strict. Filesystem authority, permission, and other
+IO failures do not authorize a live refresh. Failed collection or validation
+leaves the previous file unchanged.
 
 `nns_subnet_topology_freshness` derives freshness from caller-provided time
 and policy without changing cache state.

@@ -26,6 +26,35 @@ This note describes the shared cache behavior expected across `ic-query`.
   lock, including age, size, and applicable stale policy, without making a
   network request.
 
+## Bounded Content And Discovery
+
+Shared JSON cache owners admit at most 64 MiB for inventories, observed node
+status, joined SNS discovery, and exact Subnet topology, or 512 MiB for complete
+NNS/SNS proposal and neuron histories and ICRC account transactions. The
+confined reader checks metadata before allocating and stops streamed growth at
+the ceiling plus one byte. Oversize content returns `HostCacheError::CacheTooLarge`.
+Invalid UTF-8 is a JSON content failure. Both follow the owner's existing
+invalid-content recovery policy; genuine IO and confinement failures remain
+errors. Failed repair preserves the previous file. Subnet Catalog retains its
+separate 64 MiB limit.
+
+Strict shared loads validate top-level duplicates, supported fields, schema,
+and network in one header pass, then deserialize the typed report. An isolated
+local harness over the actual old/new loaders, with shared regular-file IO
+stubs, measured five warmed samples per case: median time fell from 0.299 s to
+0.221 s for 13.7 MB and from 1.827 s to 1.445 s for 68.5 MB. These compare JSON
+loading work, not complete native cache or network performance.
+
+Cache-status discovery queues paths rather than live directory handles. It
+caps selected files at the requested scan limit, all visited entries at 16
+times that limit, and directory depth at 32. Reaching any bound reports
+`truncated: true`; paths reopened during traversal retain capability-rooted
+permission and link checks.
+
+Successful refresh-lock removal ends the guard's ownership before directory
+sync. A sync error is returned without attempting to unlink a subsequent
+owner's replacement lock.
+
 ## Managed Filesystem Authority
 
 Managed loads, collection discovery, cache-status traversal, refresh locks,
@@ -43,6 +72,8 @@ Publication uses a same-directory exclusively created temporary file, syncs the
 file, atomically renames it, and syncs its parent directory. Explicit
 caller-selected exports are not managed cache files. Refresh exports must not
 alias the operation's managed cache or refresh lock, even during a dry run.
+Subnet Catalog exports also protect the managed Registry history transcript
+and its writer lock, including a caller-owned source's configured history paths.
 Compare resolved paths before creating managed directories or acquiring the lock,
 including missing targets and symlink aliases, then check again when writing.
 On Unix, also compare file identities to reject hard links; open exports without
@@ -189,6 +220,8 @@ Bounded automatic read-through, including invalid-content recovery, is used by:
 - subnet catalog list and information reports
 - NNS node, node-provider, node-operator, and data-center list/information reports
 - the joined deployed-SNS catalog
+- observed Dashboard node-status snapshots shared by NNS node/Subnet/provider
+  status views
 
 The shared NNS inventory boundary validates fixed canister identities, schema,
 timestamps, endpoints, and declared row counts. Custom-source evidence is
@@ -204,6 +237,19 @@ endpoint and cannot invoke a source. Ordinary CLI list/info behavior selects
 missing-or-invalid repair and reports stale age without treating it as a
 refresh instruction.
 
+Ordinary Subnet Catalog cache reads have a fixed 64 MiB byte ceiling. The
+confined reader checks the opened regular file's length before allocation and
+reads at most the ceiling plus one byte to detect growth before UTF-8 or JSON
+decoding. Oversized content returns `CachedCatalogTooLarge` with its path,
+observed length, and ceiling; detailed failures use `cached_catalog_too_large`,
+the `validation` category, and `CacheRejection` / `CacheRejected` provenance.
+`CacheOnly` and `RefreshMissing` return that rejection without source calls.
+`RefreshMissingOrInvalid` and `RefreshMissingInvalidOrOlderThan` may replace it
+through their explicit source selection and report `RefreshedInvalid`.
+`ForceRefresh` bypasses the cache read. A failed repair preserves the prior
+file and releases the refresh lock. Confinement, permissions, filesystem IO,
+and UTF-8 failures remain strict errors rather than repair authority.
+
 Every network-capable policy carries a `CatalogSourceSelection`, not an
 implicit endpoint. It selects either one uncertified endpoint or a bounded
 two-to-three-endpoint agreement collection. Async load/refresh entry points run
@@ -212,9 +258,10 @@ Load requests may require a minimum `CatalogAssurance`. Weaker cache evidence
 fails as typed insufficient authority and is not silently classified as
 missing, invalid, or stale. A refresh selection is checked against the same
 minimum before collection, preventing a known-insufficient source from making
-calls or replacing the cache. Successful outcomes can emit compact authority
-evidence containing the exact Registry version, digest, assurance, endpoints,
-and cache disposition.
+calls or replacing the cache. Successful outcomes expose `snapshot_authority()`
+with the exact Registry version, digest, assurance, and canonical endpoints.
+Cache path and disposition remain separate acquisition diagnostics; they do
+not enter stable snapshot authority identity.
 
 `CacheDisposition` is success-only evidence: it says whether the returned
 catalog was a hit, refreshed missing/invalid/stale content, or came from a
@@ -242,6 +289,7 @@ invalid-cache recovery.
 | Subnet catalog | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
 | NNS node/provider/operator/data-center inventory | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
 | Joined deployed-SNS catalog | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
+| Observed Dashboard node status | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
 | Exact-version NNS Subnet topology | Caller selects missing/stale read-through | Same selected read-through operation refreshes invalid content | `explicit` |
 | ICRC account transactions | CLI is local-only; library caller may select read-through | Same selected library read-through operation refreshes invalid content | `explicit` |
 | SNS proposals | Automatic only when the requested complete cache is unambiguously missing | Explicit refresh | `missing_only` |
@@ -269,6 +317,7 @@ The current registered age policies are:
 | Subnet catalog | 7 days | Refreshes missing or invalid content; reports stale age without replacing |
 | Exact-version NNS Subnet topology | 24 hours | Explicit refresh-if-missing/stale APIs also replace invalid content |
 | Joined deployed-SNS catalog | 1 hour | `sns list` refreshes missing, stale, or invalid content |
+| Observed Dashboard node status | 60 seconds | NNS node/Subnet/provider status reads refresh missing, stale, or invalid content |
 
 Other complete proposal, neuron, inventory, and transaction caches remain
 `unmanaged` by age unless their owning operation explicitly defines a policy.

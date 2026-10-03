@@ -42,15 +42,22 @@ use crate::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologySourceRequest {
+    /// Caller-selected root for confined managed cache files.
     pub cache_root: PathBuf,
+    /// Requested network identity; current live adapters support mainnet `ic`.
     pub network: String,
+    /// Explicit replica API endpoint used for source calls.
     pub endpoint: String,
+    /// Caller clock in Unix seconds used for freshness and provenance.
     pub now_unix_secs: u64,
+    /// Canonical UTC collection timestamp retained in reports.
     pub fetched_at: String,
+    /// Collector identifier retained as source provenance.
     pub fetched_by: String,
 }
 
 impl NnsTopologySourceRequest {
+    /// Construct source settings using the caller clock and collector `ic-query`.
     #[must_use]
     pub fn new(
         cache_root: impl Into<PathBuf>,
@@ -95,17 +102,26 @@ impl TopologyRequestParts for NnsTopologySourceRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologyRefreshSourceRequest {
+    /// Caller-selected root for confined managed cache files.
     pub cache_root: PathBuf,
+    /// Requested network identity; current live adapters support mainnet `ic`.
     pub network: String,
+    /// Explicit replica API endpoint used for source calls.
     pub endpoint: String,
+    /// Caller clock in Unix seconds used for freshness and provenance.
     pub now_unix_secs: u64,
+    /// Age at which an existing refresh lock requires manual inspection.
     pub lock_stale_after_seconds: u64,
+    /// Collect and validate without publishing a managed snapshot.
     pub dry_run: bool,
+    /// Canonical UTC collection timestamp retained in reports.
     pub fetched_at: String,
+    /// Collector identifier retained as source provenance.
     pub fetched_by: String,
 }
 
 impl NnsTopologyRefreshSourceRequest {
+    /// Construct source settings using the caller clock and collector `ic-query`.
     #[must_use]
     pub fn new(
         cache_root: impl Into<PathBuf>,
@@ -126,6 +142,7 @@ impl NnsTopologyRefreshSourceRequest {
         }
     }
 
+    /// Select whether refresh publishes a managed snapshot.
     #[must_use]
     pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
         self.dry_run = dry_run;
@@ -168,26 +185,31 @@ impl TopologyRefreshParts for NnsTopologyRefreshSourceRequest {
 ///
 
 pub trait NnsTopologySource {
+    /// Load a complete Subnet Catalog input under its selected cache policy.
     fn fetch_subnet_catalog_list_report(
         &self,
         request: &NnsTopologySourceRequest,
     ) -> Result<SubnetCatalogListReport, NnsTopologyHostError>;
 
+    /// Load the complete Registry node inventory.
     fn fetch_node_list_report(
         &self,
         request: &NnsTopologySourceRequest,
     ) -> Result<NnsNodeListReport, NnsTopologyHostError>;
 
+    /// Load the complete Registry node-provider inventory.
     fn fetch_node_provider_list_report(
         &self,
         request: &NnsTopologySourceRequest,
     ) -> Result<NnsNodeProviderListReport, NnsTopologyHostError>;
 
+    /// Load the complete Registry node-operator inventory.
     fn fetch_node_operator_list_report(
         &self,
         request: &NnsTopologySourceRequest,
     ) -> Result<NnsNodeOperatorListReport, NnsTopologyHostError>;
 
+    /// Load the complete Registry data-center inventory.
     fn fetch_data_center_list_report(
         &self,
         request: &NnsTopologySourceRequest,
@@ -201,26 +223,31 @@ pub trait NnsTopologySource {
 ///
 
 pub trait NnsTopologyRefreshSource {
+    /// Collect and validate a replacement Subnet Catalog.
     fn refresh_subnet_catalog_report(
         &self,
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<SubnetCatalogRefreshReport, NnsTopologyHostError>;
 
+    /// Collect and validate a replacement node inventory.
     fn refresh_node_report(
         &self,
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeRefreshReport, NnsTopologyHostError>;
 
+    /// Collect and validate a replacement node-provider inventory.
     fn refresh_node_provider_report(
         &self,
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeProviderRefreshReport, NnsTopologyHostError>;
 
+    /// Collect and validate a replacement node-operator inventory.
     fn refresh_node_operator_report(
         &self,
         request: &NnsTopologyRefreshSourceRequest,
     ) -> Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError>;
 
+    /// Collect and validate a replacement data-center inventory.
     fn refresh_data_center_report(
         &self,
         request: &NnsTopologyRefreshSourceRequest,

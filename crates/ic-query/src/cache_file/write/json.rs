@@ -13,6 +13,8 @@
 ))]
 use crate::cache_file::{CacheFileError, write_managed_file_atomically};
 use serde::Serialize;
+#[cfg(feature = "subnet-catalog-host")]
+use sha2::{Digest, Sha256};
 use std::io;
 
 #[cfg(any(
@@ -44,6 +46,32 @@ where
     let mut writer = CountingWriter::default();
     serde_json::to_writer(&mut writer, value)?;
     Ok(writer.bytes)
+}
+
+/// Hash the canonical compact JSON encoding without retaining encoded bytes.
+#[cfg(feature = "subnet-catalog-host")]
+pub fn canonical_json_sha256<T>(value: &T) -> Result<[u8; 32], serde_json::Error>
+where
+    T: Serialize + ?Sized,
+{
+    let mut writer = JsonDigestWriter(Sha256::new());
+    serde_json::to_writer(&mut writer, value)?;
+    Ok(writer.0.finalize().into())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+struct JsonDigestWriter(Sha256);
+
+#[cfg(feature = "subnet-catalog-host")]
+impl Write for JsonDigestWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0.update(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 /// Return whether `bytes` are the exact canonical compact JSON encoding of `value`.

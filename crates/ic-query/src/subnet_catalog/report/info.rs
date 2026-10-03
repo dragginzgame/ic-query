@@ -11,12 +11,14 @@ use crate::{
     },
 };
 
+/// Resolve one subject using the request's explicit cache and live-source policy.
 pub fn build_subnet_catalog_info_report(
     request: &SubnetCatalogInfoRequest,
 ) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
     build_subnet_catalog_info_report_with_source(request, &LiveNnsSource)
 }
 
+/// Resolve one subject using the selected cache policy and caller-owned refresh source.
 pub fn build_subnet_catalog_info_report_with_source(
     request: &SubnetCatalogInfoRequest,
     source: &dyn SubnetCatalogSource,

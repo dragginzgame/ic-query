@@ -11,7 +11,7 @@ use crate::ic_registry::{
     RegistryFetchError,
     wire::{RegistryChunk, RegistryGetChunkRequest},
 };
-use candid::{Decode, Encode, Principal};
+use candid::{Encode, Principal};
 use ic_agent::Agent;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -274,12 +274,11 @@ async fn get_registry_chunk(
             reason: err.to_string(),
         })?;
     let response_bytes = bytes.len();
-    let result = Decode!(&bytes, Result<RegistryChunk, String>).map_err(|err| {
-        RegistryFetchError::CandidDecode {
+    let result = crate::candid_decode::decode_reply::<Result<RegistryChunk, String>>(&bytes)
+        .map_err(|err| RegistryFetchError::CandidDecode {
             message: "Result<RegistryChunk, String>",
             reason: err.to_string(),
-        }
-    })?;
+        })?;
     match result {
         Ok(chunk) => chunk
             .content

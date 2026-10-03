@@ -12,7 +12,10 @@ use crate::ic_registry::{
 };
 use ic_agent::Agent;
 use prost::Message;
-use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
+use std::{
+    collections::{BTreeMap, BTreeSet, btree_map::Entry},
+    sync::Arc,
+};
 
 const MAX_REGISTRY_DELTA_KEYS: usize = 100_000;
 const MAX_REGISTRY_DELTA_VALUES: usize = 1_000_000;
@@ -50,10 +53,10 @@ where
     let mut pages =
         if let Some(checkpoint) = restore_checkpoint(counter, &checkpoint_key, registry_version)? {
             cursor = checkpoint.version;
-            family.states = checkpoint.states;
+            family.states = checkpoint.states.clone();
             family.delta_key_count = checkpoint.delta_key_count;
             family.value_count = checkpoint.value_count;
-            checkpoint.pages
+            checkpoint.pages.clone()
         } else {
             counter
                 .acquisition
@@ -61,6 +64,12 @@ where
                 .and_then(|context| context.history_cache.as_ref())
                 .map(|_| Vec::new())
         };
+    let mut retained_bytes = pages.as_ref().map_or(0, |pages| {
+        pages
+            .iter()
+            .map(|page| page.response_hex.len())
+            .sum::<usize>()
+    });
     counter.emit(SubnetCatalogProgressPhase::History {
         registry_version,
         through_version: cursor,
@@ -76,33 +85,31 @@ where
         collected_pages += 1;
         if let Some(encoded) = encoded {
             let retained = pages.as_mut().expect("recorded history transcript");
-            let bytes = retained
-                .iter()
-                .map(|page| page.response_hex.len())
-                .sum::<usize>();
+            let page_bytes = encoded.len().saturating_mul(2);
             if retained.len() < MAX_HISTORY_PAGES
                 && encoded.len() <= MAX_HISTORY_PAGE_BYTES
-                && bytes.saturating_add(encoded.len().saturating_mul(2))
+                && retained_bytes.saturating_add(page_bytes)
                     <= usize::try_from(MAX_HISTORY_BYTES).expect("history byte ceiling fits usize")
             {
                 retained.push(RegistryHistoryPage {
                     through_version: cursor,
-                    response_hex: crate::hex::hex_bytes(&encoded),
+                    response_hex: crate::hex::hex_bytes(&encoded).into(),
                 });
+                retained_bytes += page_bytes;
             } else {
                 pages = None;
             }
         }
         // Publish only after the entire page passes continuity and content validation.
         if let Some(context) = &counter.acquisition {
-            let checkpoint = RegistryKeyFamilyCheckpoint {
+            let checkpoint = Arc::new(RegistryKeyFamilyCheckpoint {
                 version: cursor,
                 states: family.states.clone(),
                 delta_key_count: family.delta_key_count,
                 value_count: family.value_count,
                 pages: pages.clone(),
-            };
-            remember_checkpoint(counter, &checkpoint_key, &checkpoint);
+            });
+            remember_checkpoint(counter, &checkpoint_key, Arc::clone(&checkpoint));
             if let Some(cache) = &context.history_cache
                 && (collected_pages == 1
                     || collected_pages.is_multiple_of(HISTORY_PUBLICATION_PAGE_INTERVAL)
@@ -125,7 +132,7 @@ fn restore_checkpoint(
     counter: &RegistryQueryCounter,
     key: &(String, String),
     pin: u64,
-) -> Result<Option<RegistryKeyFamilyCheckpoint>, RegistryFetchError> {
+) -> Result<Option<Arc<RegistryKeyFamilyCheckpoint>>, RegistryFetchError> {
     let Some(context) = &counter.acquisition else {
         return Ok(None);
     };
@@ -136,17 +143,18 @@ fn restore_checkpoint(
         .get(key)
         .filter(|checkpoint| checkpoint.version <= pin)
         .cloned();
-    let checkpoint = if let Some(retained) = retained {
-        Some(retained)
-    } else if let Some(cache) = &context.history_cache {
+    if retained.is_some() {
+        return Ok(retained);
+    }
+    let checkpoint = if let Some(cache) = &context.history_cache {
         let (checkpoint, observation) = cache.load(&key.0, &key.1, pin)?;
         emit_history_cache(counter, observation);
-        checkpoint
+        checkpoint.map(Arc::new)
     } else {
         None
     };
     if let Some(checkpoint) = &checkpoint {
-        remember_checkpoint(counter, key, checkpoint);
+        remember_checkpoint(counter, key, Arc::clone(checkpoint));
     }
     Ok(checkpoint)
 }
@@ -154,7 +162,7 @@ fn restore_checkpoint(
 fn remember_checkpoint(
     counter: &RegistryQueryCounter,
     key: &(String, String),
-    checkpoint: &RegistryKeyFamilyCheckpoint,
+    checkpoint: Arc<RegistryKeyFamilyCheckpoint>,
 ) {
     let Some(context) = &counter.acquisition else {
         return;
@@ -165,7 +173,7 @@ fn remember_checkpoint(
             .get(key)
             .is_none_or(|old| old.version <= checkpoint.version)
     {
-        history.insert(key.clone(), checkpoint.clone());
+        history.insert(key.clone(), checkpoint);
     }
 }
 
@@ -206,7 +214,6 @@ async fn get_changes_since(
 /// Complete endpoint-local key-family state through a validated history prefix.
 ///
 
-#[derive(Clone)]
 pub(super) struct RegistryKeyFamilyCheckpoint {
     delta_key_count: usize,
     value_count: usize,

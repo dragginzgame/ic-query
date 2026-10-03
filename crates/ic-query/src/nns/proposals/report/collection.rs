@@ -17,7 +17,7 @@ use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{
         NnsGovernanceRequest, NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
-        validate_governance_request, validate_source_provenance,
+        validate_governance_request, validate_governance_time_interval, validate_source_provenance,
     },
 };
 #[cfg(feature = "nns-host")]
@@ -237,6 +237,12 @@ pub async fn advance_nns_proposal_collection_with_source(
     validate_governance_request(request)?;
     validate_collection_state(state)?;
     validate_continuation_request(request, state)?;
+    validate_governance_time_interval(
+        "updated_at",
+        &state.updated_at,
+        "fetched_at",
+        &request.fetched_at,
+    )?;
     match state.status {
         NnsProposalCollectionStatus::Complete => {
             return Err(NnsProposalError::CollectionComplete {
@@ -351,6 +357,12 @@ pub(super) fn validate_collection_state(
         source: state.requested_source.clone(),
     };
     validate_governance_request(&state_request)?;
+    validate_governance_time_interval(
+        "started_at",
+        &state.started_at,
+        "updated_at",
+        &state.updated_at,
+    )?;
     validate_proposal_page_size(state.page_size)?;
     if state.max_pages == 0 {
         return Err(invalid("max_pages must be greater than zero".to_string()));
@@ -427,4 +439,103 @@ pub(super) fn validate_collection_state(
         )));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::nns::governance::NnsGovernanceError;
+
+    struct UnexpectedSource;
+    impl NnsProposalSource for UnexpectedSource {
+        fn fetch_proposals<'a>(
+            &'a self,
+            _: &'a NnsGovernanceRequest,
+            _: u32,
+            _: Option<u64>,
+            _: crate::nns::proposals::NnsProposalStatusFilter,
+            _: crate::nns::proposals::NnsProposalRewardStatusFilter,
+        ) -> crate::nns::proposals::NnsProposalSourceFuture<
+            'a,
+            Vec<crate::nns::proposals::NnsProposalRow>,
+        > {
+            panic!("unexpected source call")
+        }
+        fn fetch_proposal<'a>(
+            &'a self,
+            _: &'a NnsGovernanceRequest,
+            _: u64,
+        ) -> crate::nns::proposals::NnsProposalSourceFuture<'a, crate::nns::proposals::NnsProposalRow>
+        {
+            panic!("unexpected source call")
+        }
+    }
+
+    #[test]
+    fn collection_rejects_backward_continuations_and_restored_intervals() {
+        let start = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 100);
+        let state = NnsProposalCollectionState::new(&start, 2, 3).unwrap();
+        let before = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 99);
+        let mut future = std::pin::pin!(advance_nns_proposal_collection_with_source(
+            &before,
+            &state,
+            &UnexpectedSource
+        ));
+        let mut context = std::task::Context::from_waker(std::task::Waker::noop());
+        let result = std::future::Future::poll(future.as_mut(), &mut context);
+        assert!(matches!(
+            result,
+            std::task::Poll::Ready(Err(NnsProposalError::Governance(
+                NnsGovernanceError::InvalidTimestampOrder { .. }
+            )))
+        ));
+        let mut value = serde_json::to_value(&state).unwrap();
+        value["updated_at"] = serde_json::json!(before.fetched_at);
+        let restored = serde_json::from_value(value).unwrap();
+        assert!(matches!(
+            validate_collection_state(&restored),
+            Err(NnsProposalError::Governance(
+                NnsGovernanceError::InvalidTimestampOrder { .. }
+            ))
+        ));
+        assert!(
+            validate_governance_time_interval(
+                "updated_at",
+                &state.updated_at,
+                "fetched_at",
+                &start.fetched_at
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn collection_validates_request_and_restored_timestamps() {
+        let mut request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
+            "ic",
+            1_700_000_000,
+        );
+        let valid_state = NnsProposalCollectionState::new(&request, 2, 3).expect("valid state");
+        request.fetched_at = "not a UTC timestamp".to_string();
+        assert!(matches!(
+            NnsProposalCollectionState::new(&request, 2, 3),
+            Err(NnsProposalError::Governance(
+                NnsGovernanceError::InvalidTimestamp {
+                    field: "fetched_at",
+                    ..
+                }
+            ))
+        ));
+        for field in ["started_at", "updated_at"] {
+            let mut value = serde_json::to_value(&valid_state).expect("serialize state");
+            value[field] = serde_json::json!("not a UTC timestamp");
+            let state = serde_json::from_value(value).expect("restore caller state");
+            assert!(matches!(
+                validate_collection_state(&state),
+                Err(NnsProposalError::Governance(
+                    NnsGovernanceError::InvalidTimestamp { .. }
+                ))
+            ));
+        }
+    }
 }

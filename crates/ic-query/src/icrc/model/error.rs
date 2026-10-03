@@ -17,37 +17,67 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum IcrcError {
+    /// The native source runtime could not be constructed.
     #[cfg(feature = "icrc-host")]
     #[error("failed to create Tokio runtime for ICRC query: {0}")]
     Runtime(#[from] RuntimeError),
 
+    /// The selected endpoint could not construct a replica agent.
     #[error("failed to build IC agent for endpoint {endpoint}: {reason}")]
-    AgentBuild { endpoint: String, reason: String },
+    AgentBuild {
+        /// Rejected replica endpoint.
+        endpoint: String,
+        /// Agent construction failure.
+        reason: String,
+    },
 
+    /// A supplied principal field could not be parsed.
     #[error("invalid {field}: {reason}")]
-    InvalidPrincipal { field: &'static str, reason: String },
+    InvalidPrincipal {
+        /// Request field containing the principal.
+        field: &'static str,
+        /// Principal parsing failure.
+        reason: String,
+    },
 
+    /// The supplied subaccount is not valid hexadecimal.
     #[error("invalid subaccount hex: {reason}")]
-    InvalidSubaccountHex { reason: String },
+    InvalidSubaccountHex {
+        /// Hexadecimal decoding failure.
+        reason: String,
+    },
 
+    /// The decoded subaccount does not contain exactly 32 bytes.
     #[error("invalid subaccount length: expected 32 bytes, got {bytes}")]
-    InvalidSubaccountLength { bytes: usize },
+    InvalidSubaccountLength {
+        /// Observed decoded subaccount length.
+        bytes: usize,
+    },
 
+    /// The typed Candid request could not be encoded.
     #[error("failed to encode Candid request for {message}: {reason}")]
     CandidEncode {
+        /// Wire operation whose encoding or decoding failed.
         message: &'static str,
+        /// Transport, encoding, or decoding failure detail.
         reason: String,
     },
 
+    /// The read-only replica query failed.
     #[error("ICRC ledger method {method} failed: {reason}")]
     AgentCall {
+        /// Replica method or archive callback context.
         method: &'static str,
+        /// Transport, encoding, or decoding failure detail.
         reason: String,
     },
 
+    /// The response violates its typed Candid contract or decoder budget.
     #[error("failed to decode Candid response {message}: {reason}")]
     CandidDecode {
+        /// Wire operation whose encoding or decoding failed.
         message: &'static str,
+        /// Transport, encoding, or decoding failure detail.
         reason: String,
     },
 }

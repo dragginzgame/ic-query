@@ -34,6 +34,7 @@ use crate::{
 ///
 
 pub trait IcrcTokenSource {
+    /// Fetch raw token metadata and its standard ledger attributes.
     fn fetch_token(&self, request: &IcrcLedgerRequest) -> Result<IcrcTokenData, IcrcError>;
 }
 
@@ -44,6 +45,7 @@ pub trait IcrcTokenSource {
 ///
 
 pub trait IcrcBalanceSource {
+    /// Fetch the requested account balance in raw base units.
     fn fetch_balance(&self, request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError>;
 }
 
@@ -54,6 +56,7 @@ pub trait IcrcBalanceSource {
 ///
 
 pub trait IcrcAllowanceSource {
+    /// Fetch the owner-to-spender allowance and optional expiry.
     fn fetch_allowance(
         &self,
         request: &IcrcAllowanceRequest,
@@ -67,6 +70,7 @@ pub trait IcrcAllowanceSource {
 ///
 
 pub trait IcrcIndexSource {
+    /// Discover the ledger index through ICRC-106.
     fn fetch_index(&self, request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError>;
 }
 
@@ -77,6 +81,7 @@ pub trait IcrcIndexSource {
 ///
 
 pub trait IcrcTransactionsSource {
+    /// Fetch a bounded ledger block range and follow callbacks only when requested.
     fn fetch_transactions(
         &self,
         request: &IcrcTransactionsRequest,
@@ -90,6 +95,7 @@ pub trait IcrcTransactionsSource {
 ///
 
 pub trait IcrcBlockTypesSource {
+    /// Fetch the block type identifiers and specification URLs advertised by the ledger.
     fn fetch_block_types(
         &self,
         request: &IcrcLedgerRequest,
@@ -103,6 +109,7 @@ pub trait IcrcBlockTypesSource {
 ///
 
 pub trait IcrcArchivesSource {
+    /// Fetch archive coverage beginning after the optional archive cursor.
     fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError>;
 }
 
@@ -113,6 +120,7 @@ pub trait IcrcArchivesSource {
 ///
 
 pub trait IcrcTipCertificateSource {
+    /// Fetch and authenticate tip certificate evidence when provided by the ledger.
     fn fetch_tip_certificate(
         &self,
         request: &IcrcLedgerRequest,
@@ -126,6 +134,7 @@ pub trait IcrcTipCertificateSource {
 ///
 
 pub trait IcrcCapabilitiesSource {
+    /// Probe ledger and discovered-index methods, retaining per-capability failures.
     fn fetch_capabilities(
         &self,
         request: &IcrcLedgerRequest,

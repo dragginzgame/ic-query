@@ -66,7 +66,7 @@ where
             method,
             reason: err.to_string(),
         })?;
-    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
+    crate::candid_decode::decode_reply(&bytes).map_err(|err| SnsHostError::CandidDecode {
         message: response_message,
         reason: err.to_string(),
     })
@@ -98,7 +98,7 @@ where
             method,
             reason: err.to_string(),
         })?;
-    candid::decode_one(&bytes).map_err(|err| SnsHostError::CandidDecode {
+    crate::candid_decode::decode_reply(&bytes).map_err(|err| SnsHostError::CandidDecode {
         message: response_message,
         reason: err.to_string(),
     })

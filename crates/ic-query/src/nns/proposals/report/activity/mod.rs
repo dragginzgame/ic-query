@@ -12,7 +12,10 @@ use super::{
 use crate::{
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID,
-        governance::{NnsGovernanceSourceProvenance, validate_governance_report_source},
+        governance::{
+            NnsGovernanceSourceProvenance, validate_governance_report_source,
+            validate_governance_time_interval,
+        },
     },
     subnet_catalog::MAINNET_NETWORK,
 };
@@ -325,6 +328,20 @@ fn validate_activity_header(
             "complete activity report must retain at least one collection page",
         ));
     }
+    let minimum_proposal_count = u64::from(report.collection_page_count - 1);
+    if report.collected_proposal_count < minimum_proposal_count {
+        return Err(invalid_validation(format!(
+            "collection_page_count {} requires at least {minimum_proposal_count} collected proposals, found {}",
+            report.collection_page_count, report.collected_proposal_count
+        )));
+    }
+    validate_governance_time_interval(
+        "collection_started_at",
+        &report.collection_started_at,
+        "collection_updated_at",
+        &report.collection_updated_at,
+    )
+    .map_err(|error| invalid_validation(error.to_string()))?;
     if report.point_in_time_guaranteed {
         return Err(invalid_validation(
             "sequential proposal activity cannot claim a point-in-time snapshot",

@@ -21,6 +21,32 @@ use std::{
 };
 
 #[test]
+fn shared_cache_rejects_oversize_before_json_and_classifies_invalid_bytes_as_content() {
+    let root = temp_dir("ic-query-snapshot-byte-admission");
+    let path = root.join("full.json");
+    crate::cache_file::write_managed_file_atomically(&root, &path, |file| {
+        std::io::Write::write_all(file, &[0xff])
+    })
+    .unwrap();
+    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
+    assert_eq!(
+        load_fixture_snapshot(&path, &key).unwrap_err(),
+        SnapshotLoadTestError::Parse(path.clone())
+    );
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_len(64 * 1024 * 1024 + 1)
+        .unwrap();
+    assert_eq!(
+        load_fixture_snapshot(&path, &key).unwrap_err(),
+        SnapshotLoadTestError::TooLarge(path)
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn snapshot_json_paths_encode_full_collection_scope() {
     let key = SnapshotKey::full("sns", "ic", "root-principal", "neurons");
     let paths = SnapshotJsonPaths::for_key(Path::new("/repo"), &key);
@@ -195,6 +221,7 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
             path,
             network: "ic",
             expected_schema_version: 1,
+            maximum_bytes: 64 * 1024 * 1024,
         },
         &key,
         FIXTURE_SNAPSHOT_FIELDS,
@@ -533,6 +560,7 @@ enum SnapshotLoadTestError {
     Missing(PathBuf),
     Operation,
     Parse(PathBuf),
+    TooLarge(PathBuf),
     UnsupportedSchema { version: u32, expected: u32 },
     NetworkMismatch { requested: String, actual: String },
     Incomplete,
@@ -550,6 +578,10 @@ impl LoadJsonCacheErrorMapper for SnapshotLoadTestErrors {
 
     fn cache_operation(&self, _source: CacheFileError) -> Self::Error {
         SnapshotLoadTestError::Operation
+    }
+
+    fn cache_too_large(&self, path: PathBuf, _actual: u64, _maximum: u64) -> Self::Error {
+        SnapshotLoadTestError::TooLarge(path)
     }
 
     fn parse_cache(&self, path: PathBuf, _source: serde_json::Error) -> Self::Error {
@@ -602,6 +634,7 @@ fn load_fixture_snapshot(
             path: path.to_path_buf(),
             network: "ic",
             expected_schema_version: 1,
+            maximum_bytes: 64 * 1024 * 1024,
         },
         key,
         FIXTURE_SNAPSHOT_FIELDS,

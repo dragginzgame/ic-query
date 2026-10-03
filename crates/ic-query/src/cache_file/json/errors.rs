@@ -14,13 +14,20 @@ use std::path::PathBuf;
 ///
 
 pub trait LoadJsonCacheErrorMapper {
+    /// Error returned by the cache owner.
     type Error;
 
+    /// Map a missing managed cache.
     fn missing_cache(&self, path: PathBuf) -> Self::Error;
     /// Map a capability-rooted cache operation failure.
     fn cache_operation(&self, source: CacheFileError) -> Self::Error;
+    /// Map content exceeding the owner-selected byte ceiling.
+    fn cache_too_large(&self, path: PathBuf, actual: u64, maximum: u64) -> Self::Error;
+    /// Map invalid JSON or UTF-8 content.
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error;
+    /// Map an unsupported schema identifier.
     fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error;
+    /// Map a mismatched network identity.
     fn network_mismatch(&self, requested: String, actual: String) -> Self::Error;
 }
 
@@ -37,6 +44,7 @@ pub struct HostJsonCacheErrorMapper {
 
 #[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
 impl HostJsonCacheErrorMapper {
+    /// Select the component retained in every cache error.
     pub const fn new(component: &'static str) -> Self {
         Self { component }
     }
@@ -52,6 +60,15 @@ impl LoadJsonCacheErrorMapper for HostJsonCacheErrorMapper {
 
     fn cache_operation(&self, source: CacheFileError) -> Self::Error {
         HostCacheError::operation(self.component, source)
+    }
+
+    fn cache_too_large(&self, path: PathBuf, actual: u64, maximum: u64) -> Self::Error {
+        HostCacheError::CacheTooLarge {
+            component: self.component,
+            path,
+            actual,
+            maximum,
+        }
     }
 
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {
@@ -104,6 +121,16 @@ where
 
     fn cache_operation(&self, source: CacheFileError) -> Self::Error {
         HostCacheError::operation(self.component, source).into()
+    }
+
+    fn cache_too_large(&self, path: PathBuf, actual: u64, maximum: u64) -> Self::Error {
+        HostCacheError::CacheTooLarge {
+            component: self.component,
+            path,
+            actual,
+            maximum,
+        }
+        .into()
     }
 
     fn parse_cache(&self, path: PathBuf, source: serde_json::Error) -> Self::Error {

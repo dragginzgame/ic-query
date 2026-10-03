@@ -4,6 +4,7 @@ use crate::{
     text_value::{sanitize_text, yes_no},
 };
 
+/// Render resolved subject, catalog provenance, and execution-rate details as text.
 #[must_use]
 pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> String {
     let safe_line = |label: &str, value: &str| format!("{label}: {}", sanitize_text(value));

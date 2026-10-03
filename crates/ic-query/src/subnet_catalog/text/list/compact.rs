@@ -5,6 +5,7 @@ use crate::{
     text_value::{sanitize_text, yes_no},
 };
 
+/// Render catalog provenance and a compact filtered Subnet table.
 #[must_use]
 pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> String {
     let headers = [

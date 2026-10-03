@@ -79,11 +79,17 @@ impl ResolvedSubnetSubject {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ResolvedSubnet {
+    /// Canonical principal resolved from the supplied subject.
     pub input_principal: String,
+    /// Whether resolution treated the subject as a Subnet or a canister.
     pub resolved_as: ResolvedSubnetSubject,
+    /// Resolution evidence label: a Subnet principal match or a routing range.
     pub resolved_from: String,
+    /// Resolved Subnet record with its Registry type and classification annotations.
     pub subnet: SubnetInfo,
+    /// Exact canonical canister principal for a canister subject; absent for a Subnet subject.
     pub matched_canister_principal: Option<String>,
+    /// Inclusive routing authority range used for a canister subject.
     pub matched_routing_range: Option<RoutingRange>,
     /// Lowercase SHA-256 digest of the raw catalog supplying the match.
     pub catalog_digest: String,

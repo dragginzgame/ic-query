@@ -43,6 +43,16 @@ pub mod cache;
 ))]
 mod cache_file;
 #[cfg(any(
+    test,
+    all(feature = "canister", target_arch = "wasm32"),
+    feature = "cloud-engine-host",
+    feature = "cmc-host",
+    feature = "icrc-host",
+    feature = "sns-host",
+    feature = "subnet-catalog-host"
+))]
+mod candid_decode;
+#[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "cmc-host",
     feature = "ic-state-host",
@@ -59,15 +69,6 @@ pub mod duration;
 ))]
 mod freshness;
 mod hex;
-#[cfg(any(
-    feature = "cloud-engine-host",
-    feature = "cmc-host",
-    feature = "dashboard-host",
-    feature = "ic-state-host",
-    feature = "icrc-host",
-    feature = "sns-host",
-    feature = "subnet-catalog-host"
-))]
 mod http_endpoint;
 mod human_quantity;
 pub mod ic;

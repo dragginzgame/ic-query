@@ -677,7 +677,7 @@ Ledger-wide live reports:
 ```bash
 icq icrc ledger capabilities mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
-icq icrc ledger index ryjl3-tyaaa-aaaaa-aaaba-cai
+icq icrc ledger index mxzaz-hqaaa-aaaar-qaada-cai
 icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc ledger block-types ryjl3-tyaaa-aaaaa-aaaba-cai
 icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai
@@ -685,6 +685,8 @@ icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 ```
 
 Transaction queries can follow ledger-supplied archive callbacks explicitly.
+Following uses each supplied callback method name with the ICRC-3 argument
+and result contract; callbacks execute as queries.
 Tip-certificate reports authenticate certificate, delegation, canister
 authority, freshness, certified data, and required tip leaves when the ledger
 returns that evidence.
@@ -726,9 +728,11 @@ icq icrc account transaction page \
 The CLI selects one user-level cache root:
 
 1. `ICQ_CACHE_ROOT` when set to an absolute path;
-2. `$XDG_CACHE_HOME/ic-query`; or
-3. `$HOME/.cache/ic-query`.
+2. `$XDG_CACHE_HOME/ic-query` when `XDG_CACHE_HOME` is nonempty and absolute; or
+3. `$HOME/.cache/ic-query`, with an absolute `HOME`.
 
+Empty values are ignored. A relative `ICQ_CACHE_ROOT` is an error; a relative
+`XDG_CACHE_HOME` is ignored in favor of `HOME`.
 It never discovers or migrates repository-local `.icq` directories.
 
 Managed cache IO is capability-rooted beneath the selected cache root. On Unix,
@@ -737,9 +741,11 @@ managed cache or lock file must be a regular `0600` file. New directories use
 `0700`; new files use `0600`. Symlinks, path escapes, nonregular files, and
 unsafe modes fail as storage-authority errors and do not trigger automatic
 invalid-content repair. Explicit output paths supplied by a caller are not
-managed cache paths. There is no compatibility migration for permissive cache
-trees created before `0.29.1`; remove the old tree or secure its directories and
-files before using it.
+managed cache paths, but a refresh export must not alias its managed snapshot
+or refresh lock, even during a dry run. Subnet Catalog exports also protect
+Registry history and its writer lock. There is no compatibility migration for
+permissive cache trees created before `0.29.1`; remove the old tree or secure
+its directories and files before using it.
 
 `icq cache status` inventories known complete snapshots across this root. Each
 row keeps generic header integrity, age state, file size, applicable stale
@@ -766,6 +772,22 @@ complete snapshot unchanged. The exact-version joined topology cache uses its
 lock and atomic replacement without an attempt sidecar. Stale or malformed
 locks are reported but are not automatically deleted; remove a lock only after
 confirming that no refresh is active.
+
+Live Subnet Catalog loads and refreshes reuse endpoint-isolated Registry
+history across CLI processes at
+`<cache-root>/nns/ic/subnet-catalog/history.json`, with a separate
+`history.lock`. This bounded schema-1 transcript avoids repeating validated
+history pages; every live acquisition still reads freshly pinned catalog
+records. It neither raises assurance nor changes catalog freshness. Ordinary
+cache hits and cache-only reads do no history IO, and convenience dry runs
+use memory-only history.
+
+`icq cache status` lists the transcript and writer lock as
+`nns/registry-history`, with unmanaged age and explicit recovery. Invalid
+transcripts can be replaced during an already-authorized live acquisition;
+filesystem authority and IO failures remain errors. See the
+[history reuse contract](design/subnet-catalog-acquisition-performance.md#cross-process-transcript-contract)
+for retention bounds, concurrency, and progress.
 
 Cache identity describes collected evidence, not its presentation. Sort,
 limit, verbosity, and output format do not create alternate complete

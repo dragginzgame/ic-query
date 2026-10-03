@@ -1,5 +1,10 @@
 # Subnet Catalog acquisition performance
 
+The collection and transcript contracts below describe the current code.
+Dated measurements and downstream reviews preserve evidence from the reviewed
+checkout; they do not establish a downstream repository's current adoption.
+Cross-process history reuse and export-alias protection are implemented here.
+
 ## Collection policy
 
 Agreement collection polls at most two endpoint futures at once. Each endpoint
@@ -21,6 +26,13 @@ APIs configure disk history under the request's cache root. Cache hits and
 cache-only reads do not inspect or write history. Dry-run refresh convenience
 calls use memory-only history; caller-supplied sources retain their explicit
 configuration.
+
+In-memory checkpoint handles and normalized page payloads are shared between
+collections. Retained-byte accounting advances with each admitted page instead
+of rescanning the transcript. Catalog annotation validation copies only Subnet
+rows, and catalog and agreement digests stream canonical JSON into SHA-256
+without allocating a complete encoded copy. Persisted transcript and digest
+contracts remain unchanged.
 
 ## History reuse and authority
 
@@ -295,6 +307,11 @@ not establish a correctness defect or a general latency guarantee.
 
 ## Canic feedback review: 2026-10-02
 
+This review preceded the cross-process implementation qualified above. Its
+memory-only findings and proposed next slice describe that earlier checkout;
+the current upstream transcript contract supersedes that proposal. Downstream
+adoption still requires an explicitly configured caller-owned source.
+
 Reviewed Canic's `ic-query-0.43.md` and `ic-query-0.43.1.md` reports under
 `docs/audits/reports/2026-09/2026-09-15/`, its September 21 deployment-timing
 report, the 0.110.42 dependency-update qualification, and its current catalog
@@ -354,6 +371,11 @@ checks passed. Canic was inspected read-only; its tests and a fresh live
 acquisition or transport-fault experiment were not run for this review.
 
 ## Canic output-alias follow-up: 2026-10-02
+
+This section records the original reproduction and downstream recheck.
+Current upstream code includes the fix and also protects Registry history
+transcript and writer-lock aliases; release-state statements below describe
+the checkout examined at the time.
 
 Canic's updated `docs/status/current.md` records a separate correctness defect
 against 0.44.0. Its retained `target/review-validation/ic-memory-0152-feedback.log`

@@ -17,6 +17,7 @@ User-facing command and collection-mode guidance lives in
 `ic-query` expands by authority family rather than by transport call. Built-in
 host adapters group capabilities by authority:
 
+- `ic_query::cloud_engine::LiveCloudEngineSource`
 - `ic_query::ic::LiveIcStateSource`
 - `ic_query::ic::LiveIcSource`
 - `ic_query::icrc::LiveIcrcSource`
@@ -77,6 +78,8 @@ the Registry adapter. Official ICRC REST analytics use
 `IcIcrcAnalyticsSource` on the same `LiveIcSource`; they do not inherit the
 native `LiveIcrcSource` ledger/index authority merely because the CLI places
 them below the ICRC subject.
+Account/holder cursor pages and exact account detail use `IcIcrcIndexSource`
+on that same Dashboard adapter; they remain bounded off-chain index reports.
 Node-provider reward detail, one-page discovery, and aggregate history use
 `IcNodeProviderRewardSource` on `LiveIcSource`. The CLI keeps them below the
 NNS node-provider subject for entity navigation, while provenance retains the
@@ -123,6 +126,99 @@ Every native agent returned by the shared builder sets an 8 MiB response-body
 ceiling through `ic-agent` itself. Registry, NNS, SNS, ICRC, and CMC adapters
 therefore share the same finite per-call transport policy without merging
 their report-specific paging, cache, provenance, or validation contracts.
+
+### Candid subtype performance follow-up: 2026-10-03
+
+[Candid #603](https://github.com/dfinity/candid/issues/603) remains open for
+deep structural equality during subtype checking. Locked Candid 0.10.37 still
+performs that comparison. Its function-reference decoder invokes subtype
+checking, so `Icrc3ArchiveCallback` reaches this path even when archive
+following is disabled. The callback's expected recursive result schema is
+fixed by the ICRC-3 wire contract; it is not caller-defined.
+
+An offline development-build probe copied the current ICRC-3 wire definitions
+and round-tripped responses with no local blocks, one range per callback, and
+the same callback signature. Median decode times across 21 repetitions were:
+
+| Callbacks | Encoded bytes | Decode time |
+| --- | --- | --- |
+| 1 | 154 | 0.134 ms |
+| 10 | 370 | 0.159 ms |
+| 100 | 2,530 | 0.627 ms |
+| 1,000 | 25,004 | 5.613 ms |
+| 10,000 | 250,004 | 58.267 ms |
+
+This measures callback-count scaling for one supported schema, with debug
+dependency builds, not the upstream deep-type worst case or production
+latency. The larger samples scale approximately with callback count and do
+not establish a local quadratic regression. Keep the upstream issue under
+review when updating Candid; do not bypass callback type checking or vendor a
+decoder workaround on this evidence. Unit coverage preserves multiple callback
+principals, methods, and ranges through the current typed decoder. No live
+ledger call or optimized-dependency benchmark was performed.
+
+### Candid #603 candidate qualification: 2026-10-03
+
+A subsequent isolated comparison tested Candid 0.10.37 against a candidate
+that replaces the initial structural equality checks in `subtype_` and
+`subtype_collect_` with pointer identity plus equality for leaf types.
+`equal_impl`, global type equality, and the production dependency remain
+unchanged. Separately allocated primitives must still compare equal; pointer
+identity alone is insufficient with the existing subtype match arms.
+
+Both variants passed six focused contract tests, the 16 active unit tests
+included in the published Candid source, and 19 active rustdoc examples.
+One upstream unit test and eight examples remain ignored. A differential
+corpus of 140 types / 19,600 ordered pairs matched success/failure, ordinary
+error text, collected diagnostic paths/messages, and structural-equivalence
+results. Coverage includes primitive identity, shared and separately allocated
+composites, nested widening and rejection, recursive type variables, function
+variance, and service/ICRC-3 decoding. This is bounded fixture evidence, not
+exhaustive verification of arbitrary type graphs.
+
+Native library Clippy passed with warnings denied for both variants. Both
+no-default-feature Wasm library checks compiled, with the same existing
+unused-method warning in the decoder. No production dependency override was
+introduced by this experiment.
+
+Release builds used Rust 1.99.0 on x86_64 with identical dependency locks,
+separate build directories, and distinct binary hashes. An initial shared-build
+cache collision was detected and its measurements discarded. Timings pin one
+process to CPU 2, alternate baseline/candidate ordering across six rounds,
+and report the median of six process medians. Each process measures 15 samples
+with iterations calibrated to about 5 ms per sample, capped at 20,000;
+construction and encoding are outside the measured operation.
+
+| Workload | Baseline | Candidate | Outcome |
+| --- | --- | --- | --- |
+| Nested `vec` widening, depth 16 (`nat` to `int`) | 0.336 µs | 0.145 µs | 2.3× faster |
+| Nested `vec` widening, depth 64 | 3.433 µs | 0.568 µs | 6.0× faster |
+| Nested `vec` widening, depth 128 | 12.984 µs | 1.278 µs | 10.2× faster |
+| Nested `vec` widening, depth 256 | 62.752 µs | 2.692 µs | 23.3× faster |
+| Nested `vec` widening, depth 384 | 173.986 µs | 4.033 µs | 43.1× faster |
+| Collected subtype diagnostics, depth 384 widening | 174.466 µs | 4.386 µs | 39.8× faster |
+| Nested `vec` rejection, depth 384 (`nat` vs `text`) | 176.481 µs | 4.802 µs | 36.8× faster |
+| Separately allocated equal nested `vec` types, depth 384 | 1.061 µs | 4.072 µs | 3.8× slower |
+| Sasa's service workload: 1,000 references / 20 methods | 2.712 ms | 2.778 ms | 2.4% slower |
+| ICRC-3 decode, 1,000 archive callbacks | 1.012 ms | 0.986 ms | 2.6% faster |
+| ICRC-3 decode, 10,000 archive callbacks | 9.671 ms | 9.448 ms | 2.3% faster |
+
+The service workload adapts the payload and decoder from Sasa's merged
+[benchmark PR #723](https://github.com/dfinity/candid/pull/723) to native timing;
+the original Wasm `canbench` was not run. Small end-to-end differences do not
+establish a substantial decoding improvement. The depth sweep demonstrates
+the targeted repeated structural traversal and its removal for these cases,
+but equal-type fast paths regress (about 6.9× at depth 128). Qualify an approach
+that preserves efficient equality before adopting this candidate upstream;
+these results do not justify a production dependency override in `ic-query`.
+
+Retained local artifacts are under `target/upstream-feedback/candid-603/`:
+`candidate.patch`, `probe.rs`, the two isolated sources and locks,
+`method.json`, `results.json`, binary hashes, test logs, and six raw JSONL
+timing files per variant. `run.py` repeats the fixture tests, differential check,
+and timings offline while these artifacts remain available. These are build
+artifacts and are removed by a clean.
+No live ledger call or full upstream repository integration suite was run.
 
 ## Collection Rules
 
@@ -227,7 +323,10 @@ assurance.
   Local diff projection treats checkpoints as untrusted, recomputes their raw
   policy and maturity evidence, and reports an allocation only after exact
   immediate-event reconciliation.
-- NNS and SNS complete collections page until exhausted.
+- NNS and SNS complete collections page until exhausted. Portable NNS proposal
+  and public-neuron continuations expose one bounded call per advance for
+  native or replicated canister collection, with caller-owned persistence and
+  explicit incomplete page-limit stops.
 - NNS neuron reporting follows the native ascending `get_neuron_index`
   cursor, preserves publicly readable `NeuronInfo` fields, and atomically
   publishes only an API-exhausted ordered collection. Governance exposes no
@@ -235,9 +334,9 @@ assurance.
   point-in-time guarantee. List/detail reads prefer that snapshot and use
   bounded native Governance calls when it cannot satisfy the request.
 - NNS Governance economics, cached metrics, latest reward event, and maturity
-  modulation each preserve one native canister response plus endpoint and
-  collection provenance. They do not inherit Registry versions or claim
-  reward-history completeness.
+  modulation each preserve one canister response plus tagged replica-query or
+  replicated inter-canister provenance. They do not inherit Registry versions
+  or claim reward-history completeness.
 - Dashboard node-provider reward reporting makes one exact, one-page, or one
   bounded aggregate-history request. It preserves raw e8s and Unix seconds,
   does not join native Governance or Registry state, and explicitly denies
@@ -369,7 +468,7 @@ Expansion should proceed in layers:
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value, proposal-activity, and public-neuron distribution reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Broader daily analytics, API boundary-node operational/location enrichment, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, certified configuration, and release-record sets | Extend the focused adapter that owns each authority; never promote Dashboard enrichment to certified state |
 | 2 | CloudEngine domain/operator operational evidence and stronger authority beyond the implemented provider footprint and explicit Type4 node health/detail | Extend the focused CloudEngine source owned by each authority; do not reconcile separately timed Dashboard aggregates or promote them to native/certified state |
-| 2 | ICRC account/holder rows and details, circulating-supply policy, burns, and time- or kind-filtered transaction aggregates beyond the implemented scalar counts and bounded total-supply/token-value history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard or external-provider values as direct ledger state or introducing implicit enumeration |
+| 2 | ICRC circulating-supply policy, burns, and time- or kind-filtered transaction aggregates beyond the implemented scalar counts, account/holder cursor pages, exact account detail, and bounded total-supply/token-value history | Extend `IcIcrcAnalyticsSource` without presenting Dashboard or external-provider values as direct ledger state or introducing implicit enumeration |
 | 3 | Internet Identity, Bitcoin, XRC, and other protocol-canister reports beyond the implemented CMC family | Add one authority-family adapter only when multiple coherent reports justify it |
 
 New report work first identifies whether its authority is a canister, Registry

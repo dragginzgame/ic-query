@@ -34,12 +34,7 @@ pub fn catalog_stale_status(
     }
 }
 
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "sns-host",
-    feature = "subnet-catalog-host"
-))]
+/// Parse a UTC collection timestamp with second precision into Unix seconds.
 pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
     let value = value.strip_suffix('Z')?;
     let (date, time) = value.split_once('T')?;
@@ -64,15 +59,16 @@ pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
         return None;
     }
     let days = days_from_civil(year, month, day)?;
-    if civil_from_days(days) != (year, i64::from(month), i64::from(day)) {
-        return None;
-    }
     let seconds = days
         .checked_mul(86_400)?
         .checked_add(i64::from(hour) * 3_600)?
         .checked_add(i64::from(minute) * 60)?
         .checked_add(i64::from(second))?;
-    u64::try_from(seconds).ok()
+    let seconds = u64::try_from(seconds).ok()?;
+    if civil_from_days(days) != (year, i64::from(month), i64::from(day)) {
+        return None;
+    }
+    Some(seconds)
 }
 
 /// Formats a Unix timestamp as a UTC RFC3339-like timestamp with second precision.
@@ -101,17 +97,15 @@ fn civil_from_days(days: i64) -> (i64, i64, i64) {
     (year, month, day)
 }
 
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "sns-host",
-    feature = "subnet-catalog-host"
-))]
 fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
     let month = i64::from(month);
     let day = i64::from(day);
-    let year = year - i64::from(month <= 2);
-    let era = if year >= 0 { year } else { year - 399 } / 400;
+    let year = year.checked_sub(i64::from(month <= 2))?;
+    let era = if year >= 0 {
+        year
+    } else {
+        year.checked_sub(399)?
+    } / 400;
     let year_of_era = year - era * 400;
     let month_prime = month + if month > 2 { -3 } else { 9 };
     let day_of_year = (153 * month_prime + 2) / 5 + day - 1;
@@ -121,7 +115,7 @@ fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
         .checked_sub(719_468)
 }
 
-#[cfg(all(test, feature = "subnet-catalog-host"))]
+#[cfg(test)]
 mod timestamp_tests {
     use super::parse_utc_timestamp_secs;
 
@@ -130,5 +124,15 @@ mod timestamp_tests {
         assert_eq!(parse_utc_timestamp_secs("2026-02-29T00:00:00Z"), None);
         assert_eq!(parse_utc_timestamp_secs("2026-04-31T00:00:00Z"), None);
         assert!(parse_utc_timestamp_secs("2028-02-29T00:00:00Z").is_some());
+    }
+
+    #[test]
+    fn timestamp_parser_rejects_out_of_range_years_without_panicking() {
+        for year in [i64::MIN, i64::MAX, 25_252_734_927_766_555] {
+            assert_eq!(
+                parse_utc_timestamp_secs(&format!("{year}-01-01T00:00:00Z")),
+                None
+            );
+        }
     }
 }

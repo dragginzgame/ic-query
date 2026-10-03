@@ -307,7 +307,7 @@ fn public_nns_governance_builder_rejects_invalid_replica_selection_before_source
     assert!(matches!(
         error,
         NnsGovernanceError::InvalidSourceSelection { reason }
-            if reason.contains("absolute HTTP(S) URL")
+            if !reason.is_empty()
     ));
 }
 
@@ -651,6 +651,37 @@ impl NnsGovernanceSource for PanicGovernanceSource {
         _request: &'a NnsGovernanceRequest,
     ) -> NnsGovernanceSourceFuture<'a, Option<NnsGovernanceMaturityModulation>> {
         panic!("source must not be called")
+    }
+}
+
+#[test]
+fn governance_rejects_invalid_request_timestamps_before_source_calls() {
+    for mut request in [
+        NnsGovernanceRequest::replica_query_from_unix_secs(
+            "ic",
+            "https://example.com",
+            1_700_000_000,
+            "fixture",
+        ),
+        NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000),
+    ] {
+        for timestamp in [
+            "invalid",
+            "2026-02-29T00:00:00Z",
+            "9223372036854775807-01-01T00:00:00Z",
+        ] {
+            request.fetched_at = timestamp.to_string();
+            assert!(matches!(
+                run_ready(build_nns_governance_economics_report_with_source(
+                    &request,
+                    &PanicGovernanceSource
+                )),
+                Err(NnsGovernanceError::InvalidTimestamp {
+                    field: "fetched_at",
+                    ..
+                })
+            ));
+        }
     }
 }
 

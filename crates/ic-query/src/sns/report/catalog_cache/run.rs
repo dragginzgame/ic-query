@@ -230,6 +230,7 @@ fn load_cached_sns_catalog(
             path: path.clone(),
             network: &request.network,
             expected_schema_version: SNS_CATALOG_CACHE_SCHEMA_VERSION,
+            maximum_bytes: 64 * 1024 * 1024,
         },
         &key,
         CACHE_FIELDS,

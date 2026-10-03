@@ -37,12 +37,16 @@ pub use read::open_managed_file;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
+    feature = "dashboard-host",
+    feature = "nns-topology-host",
     feature = "icrc-host",
     feature = "sns-host",
     test
 ))]
 pub use read::read_bounded_managed_file;
-pub use read::{BoundedManagedFileReadError, managed_file_exists, read_managed_text};
+#[cfg(test)]
+pub use read::read_managed_text;
+pub use read::{BoundedManagedFileReadError, managed_file_exists};
 #[cfg(feature = "sns-host")]
 pub use scan::collect_managed_collection_files;
 #[cfg(feature = "host")]

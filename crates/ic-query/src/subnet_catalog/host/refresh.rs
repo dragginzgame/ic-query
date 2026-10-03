@@ -36,18 +36,24 @@ use std::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubnetCatalogRefreshRequest {
+    /// Network and root directory identifying the managed catalog snapshot.
     pub cache: SubnetCatalogCacheRequest,
     /// Explicit single-endpoint or bounded agreement source selection.
     pub source: CatalogSourceSelection,
+    /// Caller-supplied observation time in Unix seconds.
     pub now_unix_secs: u64,
+    /// Age in seconds beyond which a retained refresh lock is stale.
     pub lock_stale_after_seconds: u64,
+    /// Maximum accepted lead of the collection timestamp over the observation time.
     pub max_future_skew_seconds: u64,
+    /// Validate a collected catalog without replacing the managed snapshot.
     pub dry_run: bool,
     /// Optional export that must not alias the managed catalog, history, or their locks.
     pub output_path: Option<PathBuf>,
 }
 
 impl SubnetCatalogRefreshRequest {
+    /// Create an explicit-source refresh request with publication enabled and no export.
     #[must_use]
     pub const fn new(
         cache: SubnetCatalogCacheRequest,
@@ -66,12 +72,14 @@ impl SubnetCatalogRefreshRequest {
         }
     }
 
+    /// Select validation and optional export without replacing the managed catalog.
     #[must_use]
     pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
         self.dry_run = dry_run;
         self
     }
 
+    /// Export the validated catalog to a path distinct from managed snapshots and locks.
     #[must_use]
     pub fn with_output_path(mut self, output_path: impl Into<PathBuf>) -> Self {
         self.output_path = Some(output_path.into());
@@ -86,12 +94,14 @@ impl SubnetCatalogRefreshRequest {
     }
 }
 
+/// Collect and validate a live catalog using the explicitly selected source policy.
 pub fn refresh_subnet_catalog(
     request: &SubnetCatalogRefreshRequest,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
     block_on_current_thread(refresh_subnet_catalog_async(request))?
 }
 
+/// Collect through a caller-owned source and publish only a validated complete catalog.
 pub fn refresh_subnet_catalog_with_source(
     request: &SubnetCatalogRefreshRequest,
     source: &dyn SubnetCatalogSource,

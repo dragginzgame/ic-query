@@ -86,41 +86,36 @@ chmod +x "${install_case}/bin/cargo"
   == "cargo install --locked --force --path crates/ic-query-cli --bin icq" ]] \
   || fail "make install does not replace an existing local icq binary"
 
+python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
+
 public_docs_case="${work_dir}/public-docs"
 mkdir -p "${public_docs_case}/bin"
-public_docs_warning_count="$(sed -n \
-  's/^readonly expected_missing_docs=\([0-9][0-9]*\)$/\1/p' \
-  "${repo_root}/scripts/ci/check-public-docs.sh")"
-[[ "${public_docs_warning_count}" =~ ^[0-9]+$ ]] \
-  || fail "the public documentation check has no numeric warning baseline"
 cat > "${public_docs_case}/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 case "${1:-}" in
-  clean)
-    ;;
+  clean) ;;
   doc)
-    for ((warning = 0; warning < WARNING_COUNT; warning++)); do
-      if [[ "${CARGO_TERM_COLOR:-}" == "always" ]]; then
-        printf '\033[33mwarning: missing documentation for a struct\033[0m\n' >&2
-      else
-        printf 'warning: missing documentation for a struct\n' >&2
-      fi
-    done
+    python3 - "${REPO_ROOT}/scripts/ci/public-docs-baseline.json" <<'PYDOC'
+import json
+import sys
+# The real diagnostic parser is covered separately; this fixture checks shell
+# invocation and failure propagation without invoking rustdoc.
+print(json.dumps({"reason": "build-finished", "success": True}))
+PYDOC
     ;;
-  *)
-    exit 2
-    ;;
+  *) exit 2 ;;
 esac
 EOF
 chmod +x "${public_docs_case}/bin/cargo"
-(
-  cd "${public_docs_case}"
-  PATH="${public_docs_case}/bin:${PATH}" CARGO_TERM_COLOR=always \
-    WARNING_COUNT="${public_docs_warning_count}" \
+# A missing diagnostic set must fail rather than passing by warning count.
+if (
+  cd "${repo_root}"
+  PATH="${public_docs_case}/bin:${PATH}" CARGO_TERM_COLOR=always REPO_ROOT="${repo_root}" \
     bash "${repo_root}/scripts/ci/check-public-docs.sh"
-) >/dev/null 2>&1 \
-  || fail "the public documentation check is not stable under forced Cargo color"
+) >/dev/null 2>&1; then
+  fail "the public documentation check accepted an incomplete diagnostic set"
+fi
 
 feature_boundary_case="${work_dir}/feature-boundary"
 mkdir -p "${feature_boundary_case}/bin" "${feature_boundary_case}/tmp"

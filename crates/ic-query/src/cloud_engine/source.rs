@@ -352,7 +352,7 @@ where
             method,
             reason: error.to_string(),
         })?;
-    candid::decode_one(&bytes).map_err(|error| CloudEngineHostError::CandidDecode {
+    crate::candid_decode::decode_reply(&bytes).map_err(|error| CloudEngineHostError::CandidDecode {
         message: response_name,
         reason: error.to_string(),
     })

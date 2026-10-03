@@ -76,24 +76,24 @@ pub use text::{
 #[cfg(feature = "subnet-catalog-host")]
 pub use time::catalog_stale_status;
 pub(crate) use time::format_utc_timestamp_secs;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "sns-host",
-    feature = "subnet-catalog-host"
-))]
 pub(crate) use time::parse_utc_timestamp_secs;
 
+/// Current persisted Subnet Catalog schema identifier; remains `1` before package 1.0.
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
+/// Network identity used by all mainnet catalog requests and snapshots.
 pub const MAINNET_NETWORK: &str = "ic";
+/// Canonical principal of the mainnet Registry canister.
 pub const MAINNET_REGISTRY_CANISTER_ID: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 #[cfg(feature = "subnet-catalog-host")]
 /// Maximum future timestamp skew accepted by default during catalog validation.
 pub const DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS: u64 = 5 * 60;
+/// Default snapshot age threshold in seconds for reporting stale catalog data.
 #[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
+/// Default age in seconds beyond which a catalog refresh lock is stale.
 #[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
+/// Default replica endpoint used for live Registry catalog collection.
 #[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "subnet-catalog-host")]

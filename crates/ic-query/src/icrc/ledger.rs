@@ -422,7 +422,8 @@ where
     Response: for<'de> Deserialize<'de> + CandidType,
 {
     let bytes = query_ledger_arg_bytes(agent, ledger_canister, method, arg).await?;
-    candid::decode_one(&bytes).map_err(|err| E::candid_decode(method, err.to_string()))
+    crate::candid_decode::decode_reply(&bytes)
+        .map_err(|err| E::candid_decode(method, err.to_string()))
 }
 
 /// Queries one Candid method while leaving response decoding to the caller.
@@ -477,7 +478,8 @@ where
     T: for<'de> Deserialize<'de> + CandidType,
 {
     let bytes = query_encoded_bytes(agent, ledger_canister, method, arg).await?;
-    candid::decode_one(&bytes).map_err(|err| E::candid_decode(method, err.to_string()))
+    crate::candid_decode::decode_reply(&bytes)
+        .map_err(|err| E::candid_decode(method, err.to_string()))
 }
 
 async fn query_encoded_bytes<E>(

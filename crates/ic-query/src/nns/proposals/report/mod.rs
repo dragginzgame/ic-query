@@ -71,9 +71,11 @@ pub use text::{
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;
 
+/// Default replica endpoint for live NNS proposal queries.
 pub const DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 /// Largest page size accepted by an NNS proposal refresh request.
 pub const NNS_PROPOSAL_MAX_PAGE_SIZE: u32 = 100;
+/// Maximum rows in one proposal refresh page, matching the Governance API limit.
 #[cfg(feature = "nns-host")]
 pub const NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE: u32 = NNS_PROPOSAL_MAX_PAGE_SIZE;
 

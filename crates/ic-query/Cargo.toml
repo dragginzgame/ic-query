@@ -30,7 +30,7 @@ sha2 = { version = "0.10.9", optional = true }
 thiserror.workspace = true
 tokio = { version = "1.52.3", features = ["rt", "time"], optional = true }
 unicode-width = "0.2"
-url = { version = "2.5.8", optional = true }
+url = "2.5.8"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 ic-cdk = { version = "0.20.2", optional = true }
@@ -50,13 +50,11 @@ host = [
 cloud-engine-host = [
     "dep:ic-agent",
     "dep:tokio",
-    "dep:url",
 ]
 cmc-host = [
     "dep:ic-agent",
     "dep:serde_cbor",
     "dep:tokio",
-    "dep:url",
 ]
 certified-subnet-catalog-host = [
     "subnet-catalog-host",
@@ -67,12 +65,10 @@ dashboard-host = [
     "dep:cap-std",
     "dep:reqwest",
     "dep:tokio",
-    "dep:url",
 ]
 ic-state-host = [
     "dep:ic-agent",
     "dep:tokio",
-    "dep:url",
 ]
 icrc-host = [
     "dep:cap-fs-ext",
@@ -82,7 +78,6 @@ icrc-host = [
     "dep:serde_cbor",
     "dep:sha2",
     "dep:tokio",
-    "dep:url",
 ]
 nns-topology-host = ["subnet-catalog-host"]
 nns-host = ["nns-topology-host", "certified-subnet-catalog-host"]
@@ -92,7 +87,6 @@ sns-host = [
     "dep:futures",
     "dep:ic-agent",
     "dep:tokio",
-    "dep:url",
 ]
 subnet-catalog-host = [
     "dep:cap-fs-ext",
@@ -102,7 +96,6 @@ subnet-catalog-host = [
     "dep:prost",
     "dep:sha2",
     "dep:tokio",
-    "dep:url",
 ]
 
 [[test]]

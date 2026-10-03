@@ -1,32 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly expected_missing_docs=1804
-log="$(mktemp "${TMPDIR:-/tmp}/ic-query-public-docs.XXXXXX")"
-trap 'rm -f -- "${log}"' EXIT
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-public-docs.XXXXXX")"
+trap 'rm -rf -- "${work_dir}"' EXIT
 
-# Remove generated documentation so rustdoc emits the complete warning set on
-# repeated local runs instead of reusing a fresh artifact without diagnostics.
-# GitHub Actions forces colored Cargo output, so disable color for the captured
-# diagnostics to keep the anchored warning count independent of the caller.
-cargo clean --doc >"${log}" 2>&1
+# Force a complete diagnostic set; cached docs can otherwise omit warnings.
+cargo clean --doc >"${work_dir}/stderr" 2>&1
 if ! CARGO_TERM_COLOR=never RUSTDOCFLAGS='-W missing-docs' \
-  cargo doc -p ic-query --all-features --no-deps --locked >>"${log}" 2>&1; then
-  cat "${log}" >&2
+  cargo doc -p ic-query --all-features --no-deps --locked --message-format=json \
+  >"${work_dir}/diagnostics.jsonl" 2>>"${work_dir}/stderr"; then
+  cat "${work_dir}/stderr" "${work_dir}/diagnostics.jsonl" >&2
   exit 1
 fi
-
-missing_docs="$(awk '/^warning: missing documentation for / { count++ } END { print count + 0 }' "${log}")"
-if [[ "${missing_docs}" -gt "${expected_missing_docs}" ]]; then
-  echo "error: public documentation debt grew from ${expected_missing_docs} to ${missing_docs}" >&2
-  sed -n 's/^warning: missing documentation for /missing documentation for /p' "${log}" \
-    | sort \
-    | uniq -c >&2
-  exit 1
-fi
-if [[ "${missing_docs}" -lt "${expected_missing_docs}" ]]; then
-  echo "error: public documentation debt fell to ${missing_docs}; lower expected_missing_docs" >&2
-  exit 1
-fi
-
-echo "public documentation debt: ${missing_docs} missing-doc warnings (no growth)"
+python3 "${repo_root}/scripts/ci/check-public-docs.py" \
+  "${work_dir}/diagnostics.jsonl" "${repo_root}/scripts/ci/public-docs-baseline.json"

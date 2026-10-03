@@ -20,6 +20,8 @@ pub enum SubnetCatalogErrorCode {
     UnsupportedNetwork,
     /// The cache-only operation found no catalog.
     MissingCatalog,
+    /// The retained catalog exceeded the fixed cache-read byte ceiling.
+    CachedCatalogTooLarge,
     /// Caller supplied an incompatible cache read policy.
     InvalidReadPolicy,
     /// Caller supplied an invalid or unbounded source selection.
@@ -51,6 +53,7 @@ impl SubnetCatalogErrorCode {
         match self {
             Self::UnsupportedNetwork => "unsupported_network",
             Self::MissingCatalog => "missing_catalog",
+            Self::CachedCatalogTooLarge => "cached_catalog_too_large",
             Self::InvalidReadPolicy => "invalid_read_policy",
             Self::InvalidSourceSelection => "invalid_source_selection",
             Self::SourceEvidenceMismatch => "source_evidence_mismatch",
@@ -190,11 +193,33 @@ pub enum SubnetCatalogRemediation {
 
 #[derive(Debug, ThisError)]
 pub enum SubnetCatalogHostError {
+    /// The request selected a network other than mainnet `ic`.
     #[error("unsupported Subnet Catalog network {network:?}; expected mainnet identity \"ic\"")]
-    UnsupportedNetwork { network: String },
+    UnsupportedNetwork {
+        /// Rejected network identity.
+        network: String,
+    },
 
+    /// A cache-only read could not find the required catalog snapshot.
     #[error("subnet catalog cache is missing at {}", path.display())]
-    MissingCatalog { path: PathBuf },
+    MissingCatalog {
+        /// Expected catalog snapshot path.
+        path: PathBuf,
+    },
+
+    /// The retained catalog exceeded the fixed byte ceiling before decoding.
+    #[error(
+        "subnet catalog cache at {} exceeds its byte limit: observed {actual}, maximum {maximum}",
+        path.display()
+    )]
+    CachedCatalogTooLarge {
+        /// Rejected managed catalog path.
+        path: PathBuf,
+        /// Length observed in metadata or during the bounded read.
+        actual: u64,
+        /// Fixed cache-read byte ceiling.
+        maximum: u64,
+    },
 
     /// The requested cache operation received an incompatible read policy.
     #[error("invalid subnet catalog read policy: {reason}")]
@@ -273,12 +298,15 @@ pub enum SubnetCatalogHostError {
     #[error(transparent)]
     RuntimeAdapter(#[from] RuntimeError),
 
+    /// Confined cache IO or refresh locking failed.
     #[error(transparent)]
     Cache(#[from] HostCacheError),
 
+    /// Live Registry collection failed before catalog publication.
     #[error("live NNS registry refresh failed: {0}")]
     RegistryRefresh(#[from] RegistryFetchError),
 
+    /// Collected or retained catalog evidence failed validation or resolution.
     #[error(transparent)]
     Catalog(#[from] CatalogError),
 }
@@ -290,6 +318,7 @@ impl SubnetCatalogHostError {
         match self {
             Self::UnsupportedNetwork { .. } => SubnetCatalogErrorCode::UnsupportedNetwork,
             Self::MissingCatalog { .. } => SubnetCatalogErrorCode::MissingCatalog,
+            Self::CachedCatalogTooLarge { .. } => SubnetCatalogErrorCode::CachedCatalogTooLarge,
             Self::InvalidReadPolicy { .. } => SubnetCatalogErrorCode::InvalidReadPolicy,
             Self::InvalidSourceSelection { .. } => SubnetCatalogErrorCode::InvalidSourceSelection,
             Self::SourceEvidenceMismatch { .. } => SubnetCatalogErrorCode::SourceEvidenceMismatch,
@@ -348,9 +377,9 @@ impl SubnetCatalogHostError {
                 | CatalogError::CatalogDigestMismatch { .. },
             ) => SubnetCatalogErrorCategory::Authority,
             Self::RuntimeAdapter(_) => SubnetCatalogErrorCategory::Runtime,
-            Self::RegistryQueryCallCountOverflow | Self::Catalog(_) => {
-                SubnetCatalogErrorCategory::Validation
-            }
+            Self::CachedCatalogTooLarge { .. }
+            | Self::RegistryQueryCallCountOverflow
+            | Self::Catalog(_) => SubnetCatalogErrorCategory::Validation,
         }
     }
 

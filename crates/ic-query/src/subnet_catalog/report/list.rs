@@ -10,12 +10,14 @@ use crate::{
     },
 };
 
+/// Load the catalog under the request's cache policy and project its filtered Subnet rows.
 pub fn build_subnet_catalog_list_report(
     request: &SubnetCatalogListRequest,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
     build_subnet_catalog_list_report_with_source(request, &LiveNnsSource)
 }
 
+/// Project filtered Subnet rows using the cache policy and caller-owned refresh source.
 pub fn build_subnet_catalog_list_report_with_source(
     request: &SubnetCatalogListRequest,
     source: &dyn SubnetCatalogSource,

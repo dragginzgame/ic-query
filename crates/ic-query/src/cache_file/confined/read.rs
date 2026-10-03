@@ -4,7 +4,9 @@
 //! Does not own: path confinement, cache schemas, or atomic publication.
 //! Boundary: opens only validated regular files beneath a capability root.
 
-use super::{CacheFileError, ConfinedCacheRoot, ConfinedManagedPath, open_managed_path_error};
+#[cfg(test)]
+use super::open_managed_path_error;
+use super::{CacheFileError, ConfinedCacheRoot, ConfinedManagedPath};
 use std::{
     io::{self, Read},
     path::{Path, PathBuf},
@@ -69,6 +71,7 @@ pub fn open_managed_file(
 }
 
 /// Read a confined regular managed file without following symbolic links.
+#[cfg(test)]
 pub fn read_managed_file(
     cache_root: &Path,
     target_path: &Path,
@@ -86,6 +89,8 @@ pub fn read_managed_file(
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
+    feature = "dashboard-host",
+    feature = "nns-topology-host",
     feature = "icrc-host",
     feature = "sns-host",
     test
@@ -104,6 +109,7 @@ pub fn read_bounded_managed_file(
 }
 
 /// Read a confined regular managed file as UTF-8 text.
+#[cfg(test)]
 pub fn read_managed_text(
     cache_root: &Path,
     target_path: &Path,
@@ -136,7 +142,7 @@ impl ConfinedManagedPath {
 }
 
 fn read_opened_file_bounded(
-    mut file: cap_std::fs::File,
+    file: cap_std::fs::File,
     target_path: &Path,
     maximum: u64,
 ) -> Result<Vec<u8>, BoundedManagedFileReadError> {
@@ -147,6 +153,15 @@ fn read_opened_file_bounded(
             source,
         })?
         .len();
+    read_bounded_stream(file, metadata_length, target_path, maximum)
+}
+
+fn read_bounded_stream(
+    mut reader: impl Read,
+    metadata_length: u64,
+    target_path: &Path,
+    maximum: u64,
+) -> Result<Vec<u8>, BoundedManagedFileReadError> {
     if metadata_length > maximum {
         return Err(BoundedManagedFileReadError::LimitExceeded {
             path: target_path.to_path_buf(),
@@ -159,7 +174,7 @@ fn read_opened_file_bounded(
             path: target_path.to_path_buf(),
         })?;
     let mut data = Vec::with_capacity(capacity);
-    Read::by_ref(&mut file)
+    Read::by_ref(&mut reader)
         .take(maximum.saturating_add(1))
         .read_to_end(&mut data)
         .map_err(|source| BoundedManagedFileReadError::Read {
@@ -178,4 +193,25 @@ fn read_opened_file_bounded(
         });
     }
     Ok(data)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bounded_stream_rejects_growth_after_metadata_admission() {
+        let mut reader = io::Cursor::new(b"123456789-and-more");
+        let error = read_bounded_stream(&mut reader, 4, Path::new("catalog.json"), 8)
+            .expect_err("growth exceeds the admitted ceiling");
+        assert!(matches!(
+            error,
+            BoundedManagedFileReadError::LimitExceeded {
+                actual: 9,
+                maximum: 8,
+                ..
+            }
+        ));
+        assert_eq!(reader.position(), 9, "read stops at maximum plus one");
+    }
 }

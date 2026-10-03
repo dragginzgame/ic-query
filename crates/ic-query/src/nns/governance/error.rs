@@ -16,6 +16,28 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum NnsGovernanceError {
+    /// A caller-supplied collection timestamp is not a valid UTC date and time.
+    #[error("invalid NNS Governance {field} timestamp: {value:?}")]
+    InvalidTimestamp {
+        /// Request, continuation, or report field containing the timestamp.
+        field: &'static str,
+        /// Rejected UTC timestamp text.
+        value: String,
+    },
+
+    /// A continuation or restored collection goes backward in time.
+    #[error("{end_field} ({end}) precedes {start_field} ({start})")]
+    InvalidTimestampOrder {
+        /// Earlier boundary's field name.
+        start_field: &'static str,
+        /// Earlier boundary's canonical UTC value.
+        start: String,
+        /// Later boundary's field name.
+        end_field: &'static str,
+        /// Rejected later boundary's canonical UTC value.
+        end: String,
+    },
+
     /// The requested network is not the supported mainnet identity.
     #[error("direct NNS Governance reports support only the mainnet `ic` network, not {network:?}")]
     UnsupportedNetwork {

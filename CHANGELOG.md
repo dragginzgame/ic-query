@@ -7,6 +7,24 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.45.x] - Unreleased - Cache and decoder bounds, validation, and cleanup
+
+Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
+
+- `0.45.0` bounds JSON cache reads, local inventory traversal, and Candid
+  decoding work. Repairs invalid UTF-8 only under the selected invalid-content
+  policy and prevents refresh-lock cleanup from deleting a replacement lock
+  after a directory sync failure. ICRC-3 archive following queries the supplied
+  callback method name. Rejects malformed Governance endpoints, invalid or
+  reversed collection timestamps, and inconsistent complete-collection counts.
+  Public error enums gain variants requiring downstream exhaustive-match
+  updates; schemas remain `1` and Rust 1.91.0 remains supported.
+  Handles closed stdout consistently for text, JSON, help, and version output.
+  Reduces cache serialization, JSON scanning, and retained Registry-history
+  copying; an isolated JSON-loading benchmark improved by 21–26%.
+  Documents 87 more public API items in the latest audit cleanup and checks
+  documentation debt by item identity.
+
 ## [0.44.x] - Unreleased - Governance canister tooling and dependency refresh
 
 Detailed release notes: [docs/changelog/0.44.md](docs/changelog/0.44.md)

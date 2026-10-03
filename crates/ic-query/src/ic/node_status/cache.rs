@@ -322,6 +322,7 @@ fn load_node_status_cache(
             path: path.clone(),
             network: &request.network,
             expected_schema_version: IC_NODE_STATUS_SCHEMA_VERSION,
+            maximum_bytes: 64 * 1024 * 1024,
         },
         &key,
         CACHE_FIELDS,

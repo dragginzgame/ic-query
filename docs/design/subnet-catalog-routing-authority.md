@@ -1,6 +1,6 @@
 # Subnet Catalog Routing Authority
 
-- Status: implemented for the active 0.41.1 release slice
+- Status: implemented; current routing contract introduced in 0.41.1
 - Last reviewed: 2026-08-21
 - Scope: live and certified-replay Subnet Catalog routing collection
 
