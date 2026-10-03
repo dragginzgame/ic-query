@@ -5,25 +5,24 @@
 //! Boundary: combines discovery provenance with bounded component values and typed gaps.
 
 use crate::sns::report::{
-    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsSwap, SNS_SWAP_QUERY_COUNT,
-    SNS_SWAP_REPORT_SCHEMA_VERSION, SnsSwapReport,
+    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsSwap, SNS_SWAP_QUERY_COUNT,
+    SNS_SWAP_REPORT_SCHEMA_VERSION, SnsSourceRequest, SnsSwapReport,
 };
 
 pub(in crate::sns::report) fn sns_swap_report_from_parts(
-    list: JoinedMainnetSnsInventory,
-    id: usize,
+    fetch_request: SnsSourceRequest,
     sns: MainnetSns,
     swap: MainnetSnsSwap,
 ) -> SnsSwapReport {
     let component_gap_count = swap.gaps.len();
     SnsSwapReport {
         schema_version: SNS_SWAP_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        id,
+        network: fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: fetch_request.fetched_at,
+        source_endpoint: fetch_request.endpoint,
+        fetched_by: fetch_request.fetched_by,
+        id: sns.id,
         name: sns.name,
         root_canister_id: sns.root_canister_id,
         swap_canister_id: swap.swap_canister_id,

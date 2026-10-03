@@ -76,8 +76,7 @@ pub fn build_sns_reward_checkpoint_report_with_source(
     let summary = recompute_reward_checkpoint_summary(&parameters_before, &rows)
         .map_err(invalid_checkpoint)?;
     let report = sns_reward_checkpoint_report_from_parts(SnsRewardCheckpointReportParts {
-        list: lookup.list,
-        id: lookup.id,
+        fetch_request: lookup.fetch_request,
         sns: lookup.sns,
         collection_started_at_unix_secs: request.now_unix_secs,
         collection_completed_at_unix_secs: completed_at,

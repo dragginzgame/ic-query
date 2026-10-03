@@ -38,8 +38,7 @@ pub fn build_sns_metrics_report_with_source(
         request.time_window_seconds,
     )?;
     Ok(sns_metrics_report_from_parts(
-        lookup.list,
-        lookup.id,
+        lookup.fetch_request,
         lookup.sns,
         metrics,
     ))

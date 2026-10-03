@@ -36,8 +36,7 @@ pub fn build_sns_neuron_detail_report_with_source(
     validate_mainnet_sns_neuron(&neuron, &request.neuron_id)?;
     Ok(sns_neuron_detail_report_from_parts(
         SnsNeuronDetailReportParts {
-            list: lookup.list,
-            id: lookup.id,
+            fetch_request: lookup.fetch_request,
             sns: lookup.sns,
             neuron_id: request.neuron_id.clone(),
             neuron,

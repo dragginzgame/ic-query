@@ -279,8 +279,14 @@ assurance.
   providers at one Registry version.
 - SNS discovery first reads unenriched SNS-W inventory. Direct id/Root lookup
   resolves that inventory before requesting metadata for exactly one target;
-  unknown lookup requests no metadata. Only `sns list` enriches every row with
-  Governance metadata and Swap `get_lifecycle`, then stores the full joined
+  unknown lookup requests no metadata. The resolved `MainnetSns` owns the
+  original inventory id used by live reports and complete-cache refreshes.
+  Direct reports and refreshes retain that row and the shared source request;
+  inventory validation first requires its provenance to match the request and
+  its SNS-W identity to match the mainnet constant. The temporary joined lookup
+  inventory is consumed instead of retained alongside a second copy of its row.
+  Only `sns list` enriches every row with Governance metadata and Swap
+  `get_lifecycle`, then stores the full joined
   catalog. Its default view retains lifecycle code `3` (`committed`); `--all`
   includes every lifecycle and bounded lifecycle-query error while preserving
   SNS-W ids.
@@ -363,9 +369,11 @@ assurance.
   that evidence exists. The collector canonicalizes transaction ids and checks
   adjacent duplicates after the final ordering pass, avoiding a second
   full-history id set; local list projection consumes the loaded row vector
-  rather than cloning the complete snapshot before truncation. The bounded page
-  builder applies the same explicit-index, canonical-cursor, requested-limit,
-  uniqueness, and newest-first checks to custom page sources.
+  rather than cloning the complete snapshot before truncation. Canonical row
+  validation and collection sorting share decimal-text comparison for
+  arbitrary-size ids, while cursor normalization retains Candid `Nat` parsing.
+  The bounded page builder applies the same explicit-index, canonical-cursor,
+  requested-limit, uniqueness, and newest-first checks to custom page sources.
 - Official Dashboard canister reporting follows one canonical canister
   principal to the bounded `/canisters/{canister_id}` REST resource, or makes
   one filtered count/page request through the official v4 collection API. A

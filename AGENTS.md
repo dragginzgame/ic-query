@@ -51,6 +51,13 @@ If code or habit conflicts with this file, this file wins.
   requested release notes or active release slices. Keep entries factual and
   user-facing; include implementation detail only when it affects behavior,
   compatibility, release flow, or operations.
+- Every changelog request prepares a numbered release entry and matching
+  detailed heading, never a new `Unreleased` heading or suffix. Use the
+  maintainer's explicit target version; otherwise default to the next patch
+  after the current Cargo package version. Reuse an already prepared entry for
+  that target rather than advancing the version on repeated changelog requests.
+  This assigns the notes to a release only: do not change manifests, lockfiles,
+  generated version metadata, or run version-bump or release commands.
 - When the maintainer assigns a target package version or asks whether the
   current patch should ship as that version, treat it as an active release
   slice: prepare the matching root release-ledger entry and detailed changelog

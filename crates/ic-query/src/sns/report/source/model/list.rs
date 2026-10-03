@@ -157,7 +157,13 @@ pub(in crate::sns::report) fn validate_mainnet_sns_inventory(
 
     let mut roots = BTreeSet::new();
     for sns in &inventory.sns_instances {
-        validate_sns_canisters(sns)?;
+        validate_sns_canister_ids(
+            &sns.root_canister_id,
+            &sns.governance_canister_id,
+            &sns.ledger_canister_id,
+            &sns.swap_canister_id,
+            &sns.index_canister_id,
+        )?;
         if !roots.insert(sns.root_canister_id.as_str()) {
             return Err(INVENTORY_VALIDATOR.invalid(format!(
                 "duplicate root canister id {}",
@@ -200,23 +206,23 @@ pub(in crate::sns::report) fn join_mainnet_sns_inventory(
     })
 }
 
-pub(in crate::sns::report) fn validate_joined_mainnet_sns_inventory(
-    inventory: &JoinedMainnetSnsInventory,
+pub(in crate::sns::report) fn validate_joined_mainnet_sns_catalog(
+    sns_instances: &[MainnetSns],
 ) -> Result<(), SnsHostError> {
     let mut roots = BTreeSet::new();
-    for (index, sns) in inventory.sns_instances.iter().enumerate() {
+    for (index, sns) in sns_instances.iter().enumerate() {
         let expected_id = index + 1;
         if sns.id != expected_id {
             return Err(INVENTORY_VALIDATOR
                 .invalid(format!("SNS list id is {}, expected {expected_id}", sns.id)));
         }
-        validate_sns_canisters(&MainnetSnsCanisters {
-            root_canister_id: sns.root_canister_id.clone(),
-            governance_canister_id: sns.governance_canister_id.clone(),
-            ledger_canister_id: sns.ledger_canister_id.clone(),
-            swap_canister_id: sns.swap_canister_id.clone(),
-            index_canister_id: sns.index_canister_id.clone(),
-        })?;
+        validate_sns_canister_ids(
+            &sns.root_canister_id,
+            &sns.governance_canister_id,
+            &sns.ledger_canister_id,
+            &sns.swap_canister_id,
+            &sns.index_canister_id,
+        )?;
         if !roots.insert(sns.root_canister_id.as_str()) {
             return Err(INVENTORY_VALIDATOR.invalid(format!(
                 "duplicate root canister id {}",
@@ -235,17 +241,12 @@ pub(in crate::sns::report) fn validate_joined_mainnet_sns_inventory(
             "metadata_error",
             sns.metadata_error.as_deref(),
         )?;
-        validate_joined_lifecycle(sns, false)?;
-    }
-    Ok(())
-}
-
-pub(in crate::sns::report) fn validate_joined_mainnet_sns_catalog(
-    inventory: &JoinedMainnetSnsInventory,
-) -> Result<(), SnsHostError> {
-    validate_joined_mainnet_sns_inventory(inventory)?;
-    for sns in &inventory.sns_instances {
-        validate_joined_lifecycle(sns, true)?;
+        validate_lifecycle_fields(
+            &sns.root_canister_id,
+            sns.lifecycle,
+            sns.lifecycle_name.as_deref(),
+            sns.lifecycle_error.as_deref(),
+        )?;
     }
     Ok(())
 }
@@ -353,7 +354,6 @@ fn validate_mainnet_sns_lifecycles(
             row.lifecycle,
             row.lifecycle_name.as_deref(),
             row.lifecycle_error.as_deref(),
-            true,
         )?;
     }
     if actual_roots != expected_roots {
@@ -369,22 +369,11 @@ fn validate_mainnet_sns_lifecycles(
     Ok(())
 }
 
-fn validate_joined_lifecycle(sns: &MainnetSns, required: bool) -> Result<(), SnsHostError> {
-    validate_lifecycle_fields(
-        &sns.root_canister_id,
-        sns.lifecycle,
-        sns.lifecycle_name.as_deref(),
-        sns.lifecycle_error.as_deref(),
-        required,
-    )
-}
-
 fn validate_lifecycle_fields(
     root_canister_id: &str,
     lifecycle: Option<i32>,
     lifecycle_name: Option<&str>,
     lifecycle_error: Option<&str>,
-    required: bool,
 ) -> Result<(), SnsHostError> {
     if let Some(error) = lifecycle_error {
         validate_lifecycle_text(root_canister_id, "lifecycle_error", error)?;
@@ -409,12 +398,9 @@ fn validate_lifecycle_fields(
             "lifecycle for {root_canister_id} has a name without a raw value"
         )));
     }
-    if required {
-        return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-            "lifecycle for {root_canister_id} has neither a value nor lifecycle_error"
-        )));
-    }
-    Ok(())
+    Err(LIFECYCLE_VALIDATOR.invalid(format!(
+        "lifecycle for {root_canister_id} has neither a value nor lifecycle_error"
+    )))
 }
 
 fn validate_optional_metadata_text(
@@ -491,16 +477,19 @@ fn joined_mainnet_sns(canisters: MainnetSnsCanisters, metadata: MainnetSnsMetada
     }
 }
 
-fn validate_sns_canisters(sns: &MainnetSnsCanisters) -> Result<(), SnsHostError> {
+fn validate_sns_canister_ids(
+    root_canister_id: &str,
+    governance_canister_id: &str,
+    ledger_canister_id: &str,
+    swap_canister_id: &str,
+    index_canister_id: &str,
+) -> Result<(), SnsHostError> {
     for (field, value) in [
-        ("root_canister_id", sns.root_canister_id.as_str()),
-        (
-            "governance_canister_id",
-            sns.governance_canister_id.as_str(),
-        ),
-        ("ledger_canister_id", sns.ledger_canister_id.as_str()),
-        ("swap_canister_id", sns.swap_canister_id.as_str()),
-        ("index_canister_id", sns.index_canister_id.as_str()),
+        ("root_canister_id", root_canister_id),
+        ("governance_canister_id", governance_canister_id),
+        ("ledger_canister_id", ledger_canister_id),
+        ("swap_canister_id", swap_canister_id),
+        ("index_canister_id", index_canister_id),
     ] {
         INVENTORY_VALIDATOR.canonical_principal(field, value)?;
     }

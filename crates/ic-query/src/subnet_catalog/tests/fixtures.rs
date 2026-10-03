@@ -318,14 +318,16 @@ impl SubnetCatalogSource for DetailedFailureSource {
 
 pub(super) fn fixture_catalog() -> RawSubnetCatalog {
     let mut catalog = RawSubnetCatalog::new_mainnet_uncertified(
-        UncertifiedCatalogCollection::new(
-            123_456,
-            "https://icp-api.io",
-            "2026-06-04T00:00:00Z",
-            "fixture",
-            "test",
-            5,
-        ),
+        UncertifiedCatalogCollection {
+            registry_version: 123_456,
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_at: "2026-06-04T00:00:00Z".to_string(),
+            fetched_by: "fixture".to_string(),
+            collector_version: "test".to_string(),
+            registry_query_call_count: 5,
+            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
+        },
         vec![
             SubnetInfo {
                 subnet_principal: SUBNET_A.to_string(),

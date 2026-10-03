@@ -62,13 +62,14 @@ pub const REPORT_SCHEMA_VERSION: u32 = 1;
 EOF
 bash "${repo_root}/scripts/ci/check-schema-versions.sh" "${schema_version_case}" \
   || fail "the schema-version check rejected the current pre-1.0 identifier"
-cat > "${schema_version_case}/future.rs" <<'EOF'
-pub const CACHE_SCHEMA_VERSION: u32 = 2;
-EOF
-if bash "${repo_root}/scripts/ci/check-schema-versions.sh" "${schema_version_case}" \
-  >/dev/null 2>&1; then
-  fail "the schema-version check accepted a pre-1.0 version bump"
-fi
+for invalid_schema_version in 0 2 9 10 11 19 20 100; do
+  printf 'pub const CACHE_SCHEMA_VERSION: u32 = %s;\n' "${invalid_schema_version}" \
+    > "${schema_version_case}/invalid.rs"
+  if bash "${repo_root}/scripts/ci/check-schema-versions.sh" "${schema_version_case}" \
+    >/dev/null 2>&1; then
+    fail "the schema-version check accepted ${invalid_schema_version} before 1.0"
+  fi
+done
 
 install_case="${work_dir}/install"
 mkdir -p "${install_case}/bin"

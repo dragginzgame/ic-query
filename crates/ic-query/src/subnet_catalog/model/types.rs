@@ -310,43 +310,6 @@ pub struct UncertifiedCatalogCollection {
     pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
 }
 
-#[cfg(feature = "subnet-catalog-host")]
-impl UncertifiedCatalogCollection {
-    /// Build explicit single-endpoint collection metadata.
-    #[must_use]
-    pub fn new(
-        registry_version: u64,
-        source_endpoint: &str,
-        fetched_at: &str,
-        fetched_by: &str,
-        collector_version: &str,
-        registry_query_call_count: u64,
-    ) -> Self {
-        Self {
-            registry_version,
-            source_endpoint: source_endpoint.to_string(),
-            fetched_at: fetched_at.to_string(),
-            fetched_by: fetched_by.to_string(),
-            collector_version: collector_version.to_string(),
-            registry_query_call_count,
-            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
-            registry_records: Vec::new(),
-        }
-    }
-
-    /// Attach explicit routing authority and per-value evidence.
-    #[must_use]
-    pub fn with_registry_evidence(
-        mut self,
-        routing_source: SubnetCatalogRoutingSource,
-        registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-    ) -> Self {
-        self.routing_source = routing_source;
-        self.registry_records = registry_records;
-        self
-    }
-}
-
 ///
 /// CertifiedRegistryCatalogEvidence
 ///

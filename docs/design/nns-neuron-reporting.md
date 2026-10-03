@@ -39,9 +39,12 @@ rows. `ic-query` preserves that cursor contract and requires every page to:
   collection exhaustion unproven.
 
 Complete refresh walks the same endpoint and Governance canister until a
-short or empty page proves API exhaustion. Final rows are validated again
-before publication. The collector retains the row vector and relies on the
-strict global order instead of allocating a second full-history id set.
+short or empty page proves API exhaustion. Page admission validates row
+classifications and strict order; the exclusive cursor preserves that order
+across pages. Publication moves the admitted rows without revalidating them.
+The collector retains the row vector without allocating a second full-history
+id set. Disk reads and caller-owned analytics inputs validate their rows at
+their own trust boundaries.
 
 The portable `NnsNeuronCollectionState` and
 `advance_nns_neuron_collection_with_source` API expose this walk as one bounded

@@ -5,7 +5,7 @@
 //! Boundary: resolves lookup input through a source and delegates DTO assembly.
 
 use crate::sns::report::{
-    SnsHostError, SnsInfoReport, SnsLookupRequest, assemble::sns_info_report_from_list,
+    SnsHostError, SnsInfoReport, SnsLookupRequest, assemble::sns_info_report_from_parts,
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsDiscoverySource,
 };
 
@@ -18,9 +18,5 @@ pub fn build_sns_info_report_with_source(
     source: &dyn SnsDiscoverySource,
 ) -> Result<SnsInfoReport, SnsHostError> {
     let lookup = resolve_sns_lookup(request, source)?;
-    Ok(sns_info_report_from_list(
-        lookup.list,
-        lookup.id,
-        lookup.sns,
-    ))
+    Ok(sns_info_report_from_parts(lookup.fetch_request, lookup.sns))
 }

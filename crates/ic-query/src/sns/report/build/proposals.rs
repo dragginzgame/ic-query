@@ -8,8 +8,8 @@ use crate::{
     QueryProgress,
     progress::IgnoreQueryProgress,
     sns::report::{
-        SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
-        SnsProposalsReport, SnsProposalsRequest,
+        MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsProposalReport, SnsProposalRequest,
+        SnsProposalStatusFilter, SnsProposalsReport, SnsProposalsRequest,
         assemble::{
             SnsProposalReportContext, SnsProposalReportParts, SnsProposalsReportParts,
             SnsReportProvenance, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
@@ -73,12 +73,12 @@ pub fn build_sns_proposal_report_with_source(
     validate_mainnet_sns_proposal(&proposal, request.proposal_id)?;
     Ok(sns_proposal_report_from_parts(SnsProposalReportParts {
         context: SnsProposalReportContext {
-            network: lookup.list.network,
-            sns_wasm_canister_id: lookup.list.sns_wasm_canister_id,
-            fetched_at: lookup.list.fetched_at,
-            source_endpoint: lookup.list.source_endpoint,
-            fetched_by: lookup.list.fetched_by,
-            id: lookup.id,
+            network: lookup.fetch_request.network,
+            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+            fetched_at: lookup.fetch_request.fetched_at,
+            source_endpoint: lookup.fetch_request.endpoint,
+            fetched_by: lookup.fetch_request.fetched_by,
+            id: lookup.sns.id,
             name: lookup.sns.name,
             root_canister_id: lookup.sns.root_canister_id,
             governance_canister_id: lookup.sns.governance_canister_id,
@@ -164,12 +164,12 @@ fn build_sns_proposals_report_live(
     );
     Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
         context: SnsProposalReportContext {
-            network: lookup.list.network,
-            sns_wasm_canister_id: lookup.list.sns_wasm_canister_id,
-            fetched_at: lookup.list.fetched_at,
-            source_endpoint: lookup.list.source_endpoint,
-            fetched_by: lookup.list.fetched_by,
-            id: lookup.id,
+            network: lookup.fetch_request.network,
+            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+            fetched_at: lookup.fetch_request.fetched_at,
+            source_endpoint: lookup.fetch_request.endpoint,
+            fetched_by: lookup.fetch_request.fetched_by,
+            id: lookup.sns.id,
             name: lookup.sns.name,
             root_canister_id: lookup.sns.root_canister_id,
             governance_canister_id: lookup.sns.governance_canister_id,

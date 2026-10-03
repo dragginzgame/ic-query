@@ -5,13 +5,13 @@
 //! Boundary: combines discovery provenance with joined inventory and health evidence.
 
 use crate::sns::report::{
-    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsCanisterInventory,
+    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsCanisterInventory,
     SNS_CANISTER_REPORT_SCHEMA_VERSION, SnsCanisterCycleBalanceStatus, SnsCanisterReport,
+    SnsSourceRequest,
 };
 
 pub(in crate::sns::report) fn sns_canister_report_from_parts(
-    list: JoinedMainnetSnsInventory,
-    id: usize,
+    fetch_request: SnsSourceRequest,
     sns: MainnetSns,
     inventory: MainnetSnsCanisterInventory,
 ) -> SnsCanisterReport {
@@ -36,12 +36,12 @@ pub(in crate::sns::report) fn sns_canister_report_from_parts(
         .count();
     SnsCanisterReport {
         schema_version: SNS_CANISTER_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        id,
+        network: fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: fetch_request.fetched_at,
+        source_endpoint: fetch_request.endpoint,
+        fetched_by: fetch_request.fetched_by,
+        id: sns.id,
         name: sns.name,
         root_canister_id: sns.root_canister_id,
         inventory_method: inventory.inventory_method,

@@ -22,8 +22,7 @@ pub fn build_sns_params_report_with_source(
     let lookup = resolve_sns_lookup(request, source)?;
     let parameters = source.fetch_sns_params(&lookup.fetch_request, &lookup.sns)?;
     Ok(sns_params_report_from_parts(
-        lookup.list,
-        lookup.id,
+        lookup.fetch_request,
         lookup.sns,
         parameters,
     ))

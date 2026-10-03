@@ -5,24 +5,23 @@
 //! Boundary: combines resolved SNS identity and source token data into report output.
 
 use crate::sns::report::{
-    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION,
-    SnsTokenReport,
+    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION,
+    SnsSourceRequest, SnsTokenReport,
 };
 
 pub(in crate::sns::report) fn sns_token_report_from_parts(
-    list: JoinedMainnetSnsInventory,
-    id: usize,
+    fetch_request: SnsSourceRequest,
     sns: MainnetSns,
     token: MainnetSnsToken,
 ) -> SnsTokenReport {
     SnsTokenReport {
         schema_version: SNS_TOKEN_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        id,
+        network: fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: fetch_request.fetched_at,
+        source_endpoint: fetch_request.endpoint,
+        fetched_by: fetch_request.fetched_by,
+        id: sns.id,
         name: sns.name,
         root_canister_id: sns.root_canister_id,
         ledger_canister_id: sns.ledger_canister_id,

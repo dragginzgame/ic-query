@@ -26,8 +26,7 @@ pub fn build_sns_canister_report_with_source(
     let mut inventory = source.fetch_sns_canisters(&lookup.fetch_request, &lookup.sns)?;
     canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;
     Ok(sns_canister_report_from_parts(
-        lookup.list,
-        lookup.id,
+        lookup.fetch_request,
         lookup.sns,
         inventory,
     ))

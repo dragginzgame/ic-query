@@ -10,7 +10,7 @@ use super::{
     storage::{
         ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION, cache_paths,
         icrc_account_transaction_cache_path, load_cached_icrc_account_transactions,
-        normalize_cache_request, snapshot_is_stale, validate_snapshot,
+        normalize_cache_request, snapshot_is_stale, validate_collection_timestamps,
     },
 };
 use crate::cache_file::write_managed_json_pretty_atomically;
@@ -215,7 +215,11 @@ fn publish_complete_snapshot(
         ),
         transactions: complete.transactions,
     };
-    validate_snapshot(&paths.snapshot_path, &snapshot, &request.cache)?;
+    validate_collection_timestamps(
+        &paths.snapshot_path,
+        &snapshot.collection_started_at,
+        &snapshot.collection_completed_at,
+    )?;
     let transaction_count = snapshot.transactions.len();
     let attempt_finalization_error = publish_snapshot_with_attempt(
         || {

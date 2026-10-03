@@ -18,7 +18,7 @@ mod token;
 mod upgrade;
 
 pub(super) use canisters::sns_canister_report_from_parts;
-pub(super) use list::{sns_info_report_from_list, sns_list_report_from_list};
+pub(super) use list::{sns_info_report_from_parts, sns_list_report_from_list};
 pub(super) use metrics::sns_metrics_report_from_parts;
 pub(super) use neuron::{SnsNeuronDetailReportParts, sns_neuron_detail_report_from_parts};
 pub(super) use neurons::{SnsNeuronsLiveReportParts, sns_neurons_report_from_parts};

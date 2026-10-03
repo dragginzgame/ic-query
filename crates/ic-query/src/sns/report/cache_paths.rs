@@ -27,7 +27,7 @@ pub(in crate::sns::report) trait SnsCacheCollection {
 /// Filesystem paths for one complete SNS snapshot cache and refresh state.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(in crate::sns::report) struct SnsSnapshotCachePaths<Collection> {
     pub(in crate::sns::report) cache_path: PathBuf,
     pub(in crate::sns::report) lock_path: PathBuf,

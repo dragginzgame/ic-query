@@ -30,22 +30,17 @@ pub(in crate::sns::report) fn resolve_sns_lookup(
     validate_mainnet_sns_inventory(&fetch_request, &inventory)?;
     let (id, target) = resolve_sns(&inventory.sns_instances, &request.input)?;
     let metadata = source.fetch_sns_metadata(&fetch_request, std::slice::from_ref(&target))?;
-    let mut list = join_mainnet_sns_inventory(selected_inventory(inventory, target), metadata)?;
-    let sns = list
-        .sns_instances
-        .first_mut()
-        .ok_or_else(|| SnsHostError::InvalidSourceData {
-            capability: "SNS metadata",
-            reason: "metadata join returned no selected SNS".to_string(),
-        })?;
+    let list = join_mainnet_sns_inventory(selected_inventory(inventory, target), metadata)?;
+    let mut sns =
+        list.sns_instances
+            .into_iter()
+            .next()
+            .ok_or_else(|| SnsHostError::InvalidSourceData {
+                capability: "SNS metadata",
+                reason: "metadata join returned no selected SNS".to_string(),
+            })?;
     sns.id = id;
-    let sns = sns.clone();
-    Ok(SnsLookup {
-        fetch_request,
-        list,
-        id,
-        sns,
-    })
+    Ok(SnsLookup { fetch_request, sns })
 }
 
 fn resolve_sns(

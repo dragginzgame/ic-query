@@ -21,6 +21,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert!(attempt_path.is_file());
     assert!(!lock_path.exists());
     assert!(refresh.complete);
+    assert_eq!(refresh.id, 1);
     assert_eq!(refresh.page_count, 3);
     assert_eq!(refresh.neuron_count, 3);
 
@@ -57,6 +58,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
         serde_json::from_slice(&fs::read(attempt_path).expect("read attempt"))
             .expect("parse attempt");
     assert_eq!(attempt["status"], "complete");
+    assert_eq!(attempt["id"], refresh.id);
     assert_eq!(attempt["root_canister_id"], ROOT_A);
     assert!(attempt.get("metadata").is_none());
 

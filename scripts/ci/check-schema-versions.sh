@@ -14,7 +14,7 @@ if [[ ! -d "${scan_root}" ]]; then
   exit 2
 fi
 
-readonly nonconforming_schema_constant='(?:pub(?:\([^)]*\))?\s+)?const\s+[A-Z][A-Z0-9_]*SCHEMA_VERSION[A-Z0-9_]*\s*:\s*(?:u8|u16|u32|u64|usize)\s*=\s*(?:0|[2-9][0-9]*)\s*;'
+readonly nonconforming_schema_constant='(?:pub(?:\([^)]*\))?\s+)?const\s+[A-Z][A-Z0-9_]*SCHEMA_VERSION[A-Z0-9_]*\s*:\s*(?:u8|u16|u32|u64|usize)\s*=\s*(?:0|[2-9]|[1-9][0-9]+)\s*;'
 
 if matches="$(rg --line-number --glob '*.rs' "${nonconforming_schema_constant}" "${scan_root}")"; then
   echo "error: pre-1.0 schema constants must remain 1" >&2

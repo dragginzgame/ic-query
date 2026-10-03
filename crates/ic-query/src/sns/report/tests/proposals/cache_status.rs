@@ -387,3 +387,84 @@ fn sns_proposals_cache_status_reports_malformed_json() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+struct SecondSnsProposalsSource;
+
+impl SnsDiscoverySource for SecondSnsProposalsSource {
+    fn fetch_sns_inventory(
+        &self,
+        request: &SnsSourceRequest,
+    ) -> Result<MainnetSnsInventory, SnsHostError> {
+        UnsortedFixtureSnsDiscoverySource.fetch_sns_inventory(request)
+    }
+
+    fn fetch_sns_metadata(
+        &self,
+        request: &SnsSourceRequest,
+        targets: &[MainnetSnsCanisters],
+    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
+        UnsortedFixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)
+    }
+}
+
+impl SnsProposalsSource for SecondSnsProposalsSource {
+    fn fetch_sns_proposals(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+        _include_status: &[i32],
+        _topic: SnsProposalTopicFilter,
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        unreachable!("refresh uses proposal pages")
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsSourceRequest,
+        sns: &MainnetSns,
+        _limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        assert_eq!(sns.id, 2);
+        assert_eq!(sns.root_canister_id, ROOT_B);
+        assert_eq!(before_proposal_id, None);
+        Ok(MainnetSnsProposalPage { proposals: vec![] })
+    }
+}
+
+#[test]
+fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files() {
+    for input in ["2", ROOT_B] {
+        let root = temp_dir("ic-query-sns-second-position-refresh");
+        let mut request = sns_proposals_refresh_request(&root, None);
+        request.input = input.to_string();
+        let refresh = refresh_sns_proposals_cache_with_source(&request, &SecondSnsProposalsSource)
+            .expect("refresh second SNS");
+
+        assert_eq!(refresh.id, 2);
+        assert_eq!(refresh.root_canister_id, ROOT_B);
+        assert!(!std::path::Path::new(&refresh.refresh_lock_path).exists());
+        let cache: serde_json::Value =
+            serde_json::from_slice(&fs::read(&refresh.cache_path).expect("read cache"))
+                .expect("parse cache");
+        let attempt: serde_json::Value =
+            serde_json::from_slice(&fs::read(&refresh.refresh_attempt_path).expect("read attempt"))
+                .expect("parse attempt");
+        assert_eq!(cache["id"], refresh.id);
+        assert_eq!(cache["entity"], ROOT_B);
+        assert_eq!(attempt["id"], refresh.id);
+        assert_eq!(attempt["root_canister_id"], ROOT_B);
+        assert_eq!(attempt["status"], "complete");
+
+        let mut cached_request = proposals_request("2");
+        cached_request.cache_root = Some(root.clone());
+        let report =
+            build_sns_proposals_report_with_source(&cached_request, &NoLiveSnsProposalsSource)
+                .expect("read second SNS from cache");
+        assert_eq!(report.id, refresh.id);
+        assert_eq!(report.root_canister_id, ROOT_B);
+        let _ = fs::remove_dir_all(root);
+    }
+}

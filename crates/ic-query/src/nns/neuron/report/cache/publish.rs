@@ -2,7 +2,7 @@
 //!
 //! Responsibility: publish complete public NNS neuron snapshots.
 //! Does not own: refresh locking, live neuron paging, or command parsing.
-//! Boundary: validates and writes complete cache JSON and attempt metadata.
+//! Boundary: writes admitted complete collections as cache JSON and attempt metadata.
 
 use super::{
     NNS_NEURON_CACHE_COMPONENT, NNS_NEURON_CACHE_SCHEMA_VERSION,
@@ -19,7 +19,7 @@ use crate::{
         governance::{
             mainnet_governance_cache_metadata, write_complete_governance_refresh_attempt,
         },
-        neuron::report::{NNS_NEURON_FETCHED_BY, NnsNeuronHostError, source::validate_neuron_rows},
+        neuron::report::{NNS_NEURON_FETCHED_BY, NnsNeuronHostError},
     },
     snapshot_cache::{SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt},
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
@@ -36,7 +36,6 @@ pub(super) fn publish_complete_neuron_cache(
         page_count,
         last_cursor,
     } = complete;
-    validate_neuron_rows(&neurons)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
     let neuron_count = neurons.len();
     let cache = NnsNeuronCache {

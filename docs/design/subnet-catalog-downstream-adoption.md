@@ -143,12 +143,13 @@ older returned versions.
 
 ## Custom sources
 
-`UncertifiedCatalogCollection::new` remains source compatible for simple
-custom sources and produces legacy-routing/empty-record defaults. That
-intermediate collection is not valid authority until complete evidence is
-attached. A custom source claiming modern routing authority must call
-`with_registry_evidence` with `CanisterRanges` and its complete fetched-record
-evidence. It must not use the defaults to describe a modern collection.
+Construct `UncertifiedCatalogCollection` with explicit fields, including its
+`routing_source` and complete `registry_records`. Modern sources supply
+`CanisterRanges`; historical sources explicitly select `LegacyRoutingTable`
+when their requested replay policy permits it. Empty record evidence cannot
+establish uncertified Catalog authority. Custom-source callers must supply
+these fields directly; construction does not infer routing authority or
+fabricate value evidence.
 
 Detailed custom-source failures use `SubnetCatalogSourceFailure::new` and then
 `with_registry_evidence` whenever an individual returned version, endpoint,

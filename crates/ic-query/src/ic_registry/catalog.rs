@@ -130,15 +130,16 @@ where
                 .with_registry_records(registry_records.clone())
         })?;
     RawSubnetCatalog::new_mainnet_uncertified(
-        UncertifiedCatalogCollection::new(
+        UncertifiedCatalogCollection {
             registry_version,
-            &request.endpoint,
-            &request.fetched_at,
-            &request.fetched_by,
-            env!("CARGO_PKG_VERSION"),
-            reader.query_call_count(),
-        )
-        .with_registry_evidence(routing_source, registry_records.clone()),
+            source_endpoint: request.endpoint.clone(),
+            fetched_at: request.fetched_at.clone(),
+            fetched_by: request.fetched_by.clone(),
+            collector_version: env!("CARGO_PKG_VERSION").to_string(),
+            registry_query_call_count: reader.query_call_count(),
+            routing_source,
+            registry_records: registry_records.clone(),
+        },
         subnets,
         routing_ranges,
     )

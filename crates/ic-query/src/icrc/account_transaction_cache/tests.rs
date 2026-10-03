@@ -147,6 +147,84 @@ fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() 
 }
 
 #[test]
+fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
+    let root = temp_dir("ic-query-icrc-account-source-row-validation");
+    let cache = cache_request(&root);
+    let request = refresh_request(cache.clone(), 1_700_000_000);
+    refresh_icrc_account_transaction_cache_with_source(
+        &request,
+        &SuccessSource::new(vec![row("7")]),
+    )
+    .unwrap();
+    let path = icrc_account_transaction_cache_path(&cache).unwrap();
+    let before = fs::read(&path).unwrap();
+    for ids in [
+        vec!["7", "7"],
+        vec!["1", "2"],
+        vec!["00042"],
+        vec!["18446744073709551616", "18446744073709551616"],
+    ] {
+        let source = SuccessSource::new(ids.iter().map(|id| row(id)).collect());
+        let error = refresh_icrc_account_transaction_cache_with_source(&request, &source)
+            .expect_err("invalid custom-source rows must not publish");
+        assert!(matches!(
+            error,
+            IcrcAccountTransactionError::IncompleteCollection {
+                index_canister_id, pages_fetched: 1, rows_fetched, last_cursor, ..
+            } if index_canister_id.as_deref() == Some(INDEX_CANISTER_ID)
+                && rows_fetched == ids.len() && last_cursor.as_deref() == ids.last().copied()
+        ));
+        assert_eq!(fs::read(&path).unwrap(), before);
+        let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
+        assert_eq!(
+            status.cache.unwrap().cache_status,
+            CacheValidationStatus::Valid
+        );
+        let attempt = status.latest_attempt.unwrap();
+        assert_eq!(attempt.status, CacheRefreshAttemptStatus::Failed);
+        assert_eq!(attempt.pages_fetched, 1);
+        assert_eq!(attempt.rows_fetched, ids.len());
+        assert_eq!(attempt.last_cursor.as_deref(), ids.last().copied());
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn cache_only_reads_validate_rows_even_when_extrema_and_counts_match() {
+    let root = temp_dir("ic-query-icrc-account-persisted-row-validation");
+    let cache = cache_request(&root);
+    refresh_icrc_account_transaction_cache_with_source(
+        &refresh_request(cache.clone(), 1_700_000_000),
+        &SuccessSource::new(vec![row("12"), row("10"), row("2")]),
+    )
+    .unwrap();
+    let path = icrc_account_transaction_cache_path(&cache).unwrap();
+    let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    for ids in [["12", "12", "2"], ["12", "1", "2"], ["12", "010", "2"]] {
+        let mut invalid = original.clone();
+        for (transaction, id) in invalid["transactions"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .zip(ids)
+        {
+            transaction["id"] = json!(id);
+        }
+        fs::write(&path, serde_json::to_vec(&invalid).unwrap()).unwrap();
+        assert!(matches!(
+            load_cached_icrc_account_transactions(&cache),
+            Err(IcrcAccountTransactionError::InvalidCache { .. })
+        ));
+        let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
+        assert_eq!(
+            status.cache.unwrap().cache_status,
+            CacheValidationStatus::Invalid
+        );
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn source_claiming_completion_with_wrong_final_cursor_is_not_published() {
     let root = temp_dir("ic-query-icrc-account-invalid-completion");
     let cache = cache_request(&root);

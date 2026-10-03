@@ -6,7 +6,7 @@
 
 use super::SnsNeuronsRefreshContext;
 use crate::sns::report::{
-    SnsHostError, SnsNeuronsRefreshReport,
+    MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsNeuronsRefreshReport,
     cache_refresh::publish_complete_sns_snapshot,
     neurons_cache::{
         SNS_NEURONS_CACHE_SCHEMA_VERSION, SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
@@ -32,12 +32,12 @@ pub(super) fn publish_complete_sns_neurons_cache(
     )?;
     Ok(SnsNeuronsRefreshReport {
         schema_version: SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION,
-        network: context.list.network.clone(),
-        sns_wasm_canister_id: context.list.sns_wasm_canister_id.clone(),
-        fetched_at: context.list.fetched_at.clone(),
-        source_endpoint: context.list.source_endpoint.clone(),
-        fetched_by: context.list.fetched_by.clone(),
-        id: context.id,
+        network: context.fetch_request.network.clone(),
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: context.fetch_request.fetched_at.clone(),
+        source_endpoint: context.fetch_request.endpoint.clone(),
+        fetched_by: context.fetch_request.fetched_by.clone(),
+        id: context.sns.id,
         name: context.sns.name.clone(),
         root_canister_id: context.sns.root_canister_id.clone(),
         governance_canister_id: context.sns.governance_canister_id.clone(),

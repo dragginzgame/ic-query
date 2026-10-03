@@ -14,7 +14,7 @@ use crate::{
         with_locked_snapshot_refresh,
     },
     sns::report::{
-        SNS_CACHE_COMPONENT, SnsHostError,
+        MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError,
         cache_attempt::{
             SnsRefreshContext, SnsRefreshRequestView, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
@@ -22,7 +22,7 @@ use crate::{
         cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths},
         cache_storage::SnsCacheMetadata,
         lookup::{lookup_request_from_parts, resolve_sns_lookup, validate_sns_refresh_page_size},
-        source::{JoinedMainnetSnsInventory, MainnetSns, SnsDiscoverySource, SnsSourceRequest},
+        source::{MainnetSns, SnsDiscoverySource, SnsSourceRequest},
     },
 };
 use serde::Serialize;
@@ -38,14 +38,10 @@ pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Request, Collect
     pub(in crate::sns::report) request: &'a Request,
     /// Canonical source request shared by lookup and collection calls.
     pub(in crate::sns::report) fetch_request: SnsSourceRequest,
-    /// Targeted joined discovery context that resolved the SNS.
-    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
-    /// Stable list position assigned to the resolved SNS.
-    pub(in crate::sns::report) id: usize,
     /// Resolved SNS identity and canister principals.
     pub(in crate::sns::report) sns: MainnetSns,
     /// Complete-cache, lock, and attempt paths for the family collection.
-    pub(in crate::sns::report) paths: SnsSnapshotCachePaths<Collection>,
+    pub(in crate::sns::report) paths: &'a SnsSnapshotCachePaths<Collection>,
     /// Whether publication replaces an existing complete cache.
     pub(in crate::sns::report) replaced_existing_cache: bool,
 }
@@ -76,7 +72,7 @@ pub(in crate::sns::report) fn run_resolved_sns_snapshot_refresh<Request, Collect
 ) -> Result<Report, SnsHostError>
 where
     Request: SnsRefreshRequestView,
-    Collection: SnsCacheCollection + Clone,
+    Collection: SnsCacheCollection,
 {
     validate_sns_refresh_page_size(request.page_size())?;
     let lookup_request = lookup_request_from_parts(
@@ -91,7 +87,6 @@ where
         request.network(),
         &lookup.sns.root_canister_id,
     );
-    let context_paths = paths.clone();
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
             cache_root: request.cache_root(),
@@ -106,10 +101,8 @@ where
             let context = SnsSnapshotRefreshContext {
                 request,
                 fetch_request: lookup.fetch_request,
-                list: lookup.list,
-                id: lookup.id,
                 sns: lookup.sns,
-                paths: context_paths,
+                paths: &paths,
                 replaced_existing_cache: refresh_state.replaced_existing_snapshot,
             };
             run_snapshot_refresh_with_attempts(
@@ -137,17 +130,17 @@ where
 {
     let cache = SnapshotEnvelope {
         schema_version: cache_schema_version,
-        network: context.list.network.clone(),
-        fetched_at: context.list.fetched_at.clone(),
-        source_endpoint: context.list.source_endpoint.clone(),
-        fetched_by: context.list.fetched_by.clone(),
+        network: context.fetch_request.network.clone(),
+        fetched_at: context.fetch_request.fetched_at.clone(),
+        source_endpoint: context.fetch_request.endpoint.clone(),
+        fetched_by: context.fetch_request.fetched_by.clone(),
         domain: "sns".to_string(),
         entity: context.sns.root_canister_id.clone(),
         collection: Collection::COLLECTION.to_string(),
         scope: "full".to_string(),
         metadata: SnsCacheMetadata {
-            sns_wasm_canister_id: context.list.sns_wasm_canister_id.clone(),
-            id: context.id,
+            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+            id: context.sns.id,
             name: context.sns.name.clone(),
             root_canister_id: context.sns.root_canister_id.clone(),
             governance_canister_id: context.sns.governance_canister_id.clone(),

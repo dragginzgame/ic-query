@@ -5,9 +5,9 @@
 //! Boundary: maps source-layer deployed SNS rows into serializable report DTOs.
 
 use crate::sns::report::{
-    JoinedMainnetSnsInventory, MainnetSns, SNS_INFO_REPORT_SCHEMA_VERSION,
-    SNS_LIST_REPORT_SCHEMA_VERSION, SnsInfoReport, SnsListReport, SnsListRow, SnsListSort,
-    assemble::SnsReportProvenance,
+    JoinedMainnetSnsInventory, MAINNET_SNS_WASM_CANISTER_ID, MainnetSns,
+    SNS_INFO_REPORT_SCHEMA_VERSION, SNS_LIST_REPORT_SCHEMA_VERSION, SnsInfoReport, SnsListReport,
+    SnsListRow, SnsListSort, SnsSourceRequest, assemble::SnsReportProvenance,
 };
 
 pub(in crate::sns::report) fn sns_list_report_from_list(
@@ -72,19 +72,18 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
     }
 }
 
-pub(in crate::sns::report) fn sns_info_report_from_list(
-    list: JoinedMainnetSnsInventory,
-    id: usize,
+pub(in crate::sns::report) fn sns_info_report_from_parts(
+    fetch_request: SnsSourceRequest,
     sns: MainnetSns,
 ) -> SnsInfoReport {
     SnsInfoReport {
         schema_version: SNS_INFO_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        sns_wasm_canister_id: list.sns_wasm_canister_id,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
-        id,
+        network: fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: fetch_request.fetched_at,
+        source_endpoint: fetch_request.endpoint,
+        fetched_by: fetch_request.fetched_by,
+        id: sns.id,
         name: sns.name,
         description: sns.description,
         url: sns.url,

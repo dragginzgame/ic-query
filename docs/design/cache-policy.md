@@ -51,6 +51,13 @@ cache-only reads reject them. A refresh with an unrepresentable interval fails
 before replacing the previous snapshot. Refresh-attempt update timestamps
 remain local wall-clock observations, separate from this collection interval.
 
+ICRC publication validates caller-supplied collection rows, index identity,
+page count, and final cursor before building the snapshot. Request identity,
+completeness, and newest/oldest ids are then constructed from those validated
+inputs without a second row-validation pass. Publication and stored-snapshot
+loading share the canonical ordered timestamp check; disk reads retain full
+snapshot identity, completeness, index, and row validation.
+
 Strict shared loads validate top-level duplicates, supported fields, schema,
 and network in one header pass, then deserialize the typed report. An isolated
 local harness over the actual old/new loaders, with shared regular-file IO
@@ -214,14 +221,21 @@ cross-family status does not load or scan complete row arrays. Small
 age-managed files are fully JSON-parsed for syntax, but their family-specific
 semantic validators remain authoritative.
 
-SNS cache-list summaries read refresh-attempt sidecars once on a best-effort
-basis. Exact cache status reads its selected sidecar once through the strict
-reader and reuses that observation in both the snapshot summary and the
-top-level attempt field. Invalid attempt content remains a status error;
+SNS and NNS proposal cache-list summaries read refresh-attempt sidecars once
+on a best-effort basis. Their exact cache status reads the selected sidecar
+once through the strict reader and reuses that observation in both the snapshot
+summary and the top-level attempt field. Invalid attempt content remains a status error;
 snapshot and attempt files are still separate observations, not an atomic pair.
 Status and failed-refresh progress recovery use one validated SNS attempt
 reader. Failure recording treats unreadable or invalid prior attempt evidence
 as absent and keeps the original refresh error; exact status remains strict.
+
+Resolved live SNS identity, including its original SNS-W inventory position,
+belongs to `MainnetSns`. Live reports, complete snapshots, and refresh-attempt
+sidecars project that same id. Numeric and Root-principal lookup preserve the
+full inventory position even though metadata enrichment joins only one target.
+The shared refresh context borrows the operation's snapshot, lock, and attempt
+paths; lock acquisition and publication use those same paths.
 
 Numeric SNS cache reads bind the selected snapshot's loaded id to the requested
 id after header discovery. If atomic publication changes that id between reads,
@@ -284,6 +298,11 @@ Bounded automatic read-through, including invalid-content recovery, is used by:
 - the joined deployed-SNS catalog
 - observed Dashboard node-status snapshots shared by NNS node/Subnet/provider
   status views
+
+Observed Dashboard node-status refresh moves validated rows and provenance into
+the complete snapshot envelope, retaining the computed count summary for its
+refresh report. Publication does not clone the row collection. Cache reads and
+public snapshot projections retain their independent validation boundaries.
 
 The shared NNS inventory boundary validates fixed canister identities, schema,
 timestamps, endpoints, and declared row counts. Custom-source evidence is
@@ -369,6 +388,14 @@ snapshot replaces the old path atomically only after validation, so a failed
 refresh leaves the original invalid file in place. Cache-only and cache-status
 operations still report the invalid evidence without a network call, and read
 or permission failures remain errors. `sns refresh` forces replacement.
+The shared catalog fetcher validates inventory provenance and canister identities,
+then admits exact-target metadata and lifecycle results before joining them.
+Joining moves admitted fields, supplies a nonempty fallback name, and assigns
+ids in SNS-W order; live reporting and publication do not repeat that validation.
+Stored catalogs validate borrowed rows, including required lifecycle evidence,
+in one pass at the disk boundary; cache-backed list views consume the loaded
+rows without reconstructing a catalog for validation or cloning it for filtering
+and sorting. View projection leaves the complete snapshot unchanged.
 Targeted SNS commands retain targeted discovery and do not refresh or depend
 on the all-SNS catalog.
 

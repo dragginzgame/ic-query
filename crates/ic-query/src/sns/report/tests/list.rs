@@ -155,7 +155,7 @@ fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
 }
 
 #[test]
-fn sns_list_refreshes_incompatible_catalog_headers() {
+fn sns_list_refreshes_invalid_catalog_content() {
     for (case, mutate) in [
         (
             "schema",
@@ -168,6 +168,34 @@ fn sns_list_refreshes_incompatible_catalog_headers() {
         }),
         ("identity", |cache: &mut serde_json::Value| {
             cache["domain"] = serde_json::json!("wrong");
+        }),
+        ("row_id", |cache: &mut serde_json::Value| {
+            cache["sns_instances"][0]["id"] = serde_json::json!(0);
+        }),
+        ("principal", |cache: &mut serde_json::Value| {
+            cache["sns_instances"][0]["governance_canister_id"] = serde_json::json!("invalid");
+        }),
+        ("metadata", |cache: &mut serde_json::Value| {
+            cache["sns_instances"][0]["name"] = serde_json::json!(" untrimmed ");
+        }),
+        ("missing_lifecycle", |cache: &mut serde_json::Value| {
+            cache["sns_instances"][0]["lifecycle"] = serde_json::Value::Null;
+            cache["sns_instances"][0]["lifecycle_name"] = serde_json::Value::Null;
+        }),
+        (
+            "contradictory_lifecycle",
+            |cache: &mut serde_json::Value| {
+                cache["sns_instances"][0]["lifecycle_error"] = serde_json::json!("query failed");
+            },
+        ),
+        ("duplicate_root", |cache: &mut serde_json::Value| {
+            let mut duplicate = cache["sns_instances"][0].clone();
+            duplicate["id"] = serde_json::json!(2);
+            cache["sns_instances"]
+                .as_array_mut()
+                .unwrap()
+                .push(duplicate);
+            cache["completeness"]["row_count"] = serde_json::json!(2);
         }),
     ] {
         let root = temp_catalog_root(&format!("ic-query-incompatible-sns-catalog-{case}"));
@@ -191,7 +219,16 @@ fn sns_list_refreshes_incompatible_catalog_headers() {
             &path,
             serde_json::to_vec_pretty(&cache).expect("serialize catalog"),
         )
-        .expect("write incompatible catalog");
+        .expect("write invalid catalog");
+
+        let error = build_sns_list_report_from_cache(&request, &root)
+            .expect_err("cache-only reads reject invalid content");
+        if !["schema", "network", "identity"].contains(&case) {
+            assert!(
+                matches!(error, SnsHostError::InvalidCache { path: actual, .. } if actual == path)
+            );
+        }
+        assert_eq!(source.inventory.get(), 1);
 
         build_sns_list_report_from_cache_or_refresh_with_source(
             &request,
@@ -205,6 +242,51 @@ fn sns_list_refreshes_incompatible_catalog_headers() {
         assert_eq!(source.lifecycles.get(), 2);
         let _ = fs::remove_dir_all(root);
     }
+}
+
+#[test]
+fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
+    let root = temp_catalog_root("ic-query-sns-catalog-views");
+    let source = UnsortedFixtureSnsDiscoverySource;
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    let request = list_request(false);
+    build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect("create complete catalog");
+    let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
+    let snapshot = fs::read(&path).expect("read complete catalog");
+
+    for all_lifecycles in [false, true] {
+        for sort in [SnsListSort::Id, SnsListSort::Name] {
+            let mut view = request.clone();
+            view.all_lifecycles = all_lifecycles;
+            view.sort = sort;
+            view.verbose = true;
+            let live = build_sns_list_report_with_source(&view, &source).expect("live view");
+            let cached = build_sns_list_report_from_cache(&view, &root).expect("cached view");
+
+            assert_eq!(cached.sns_instances, live.sns_instances);
+            assert_eq!(cached.catalog_sns_count, 2);
+            assert_eq!(cached.sns_count, live.sns_count);
+            assert_eq!(cached.excluded_sns_count, live.excluded_sns_count);
+            assert_eq!(cached.metadata_error_count, live.metadata_error_count);
+            assert_eq!(cached.lifecycle_error_count, live.lifecycle_error_count);
+            assert_eq!(cached.network, live.network);
+            assert_eq!(cached.sns_wasm_canister_id, live.sns_wasm_canister_id);
+            assert_eq!(cached.source_endpoint, live.source_endpoint);
+            assert_eq!(cached.fetched_at, live.fetched_at);
+            assert_eq!(cached.fetched_by, live.fetched_by);
+            assert_eq!(cached.data_source.as_str(), "cache");
+            assert_eq!(cached.cache_path.as_deref(), path.to_str());
+            assert_eq!(cached.cache_complete, Some(true));
+            assert_eq!(fs::read(&path).expect("reread catalog"), snapshot);
+        }
+    }
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -289,22 +371,41 @@ fn sns_list_report_rejects_custom_inventory_provenance_and_identity_failures() {
             wrong_inventory_endpoint as fn(&mut MainnetSnsInventory),
             "source_endpoint",
         ),
+        (
+            |inventory| inventory.network = "local".to_string(),
+            "network",
+        ),
+        (
+            |inventory| inventory.sns_wasm_canister_id = ROOT_A.to_string(),
+            "sns_wasm_canister_id",
+        ),
+        (
+            |inventory| inventory.fetched_at = "2020-01-01T00:00:00Z".to_string(),
+            "fetched_at",
+        ),
+        (
+            |inventory| inventory.fetched_by = "other collector".to_string(),
+            "fetched_by",
+        ),
         (invalid_inventory_root, "root_canister_id"),
         (duplicate_inventory_root, "duplicate root canister id"),
     ] {
-        let error = build_sns_list_report_with_source(
-            &list_request(false),
-            &MutatingInventorySource(mutate),
-        )
-        .expect_err("invalid custom SNS inventory must fail");
-
-        assert!(matches!(
-            error,
-            SnsHostError::InvalidSourceData {
-                capability: "SNS-W deployed SNS inventory",
-                reason,
-            } if reason.contains(expected_reason)
-        ));
+        let source = MutatingInventorySource(mutate);
+        let errors = [
+            build_sns_list_report_with_source(&list_request(false), &source)
+                .expect_err("invalid custom SNS inventory must fail"),
+            build_sns_info_report_with_source(&info_request("1"), &source)
+                .expect_err("invalid targeted SNS inventory must fail"),
+        ];
+        for error in errors {
+            assert!(matches!(
+                error,
+                SnsHostError::InvalidSourceData {
+                    capability: "SNS-W deployed SNS inventory",
+                    reason,
+                } if reason.contains(expected_reason)
+            ));
+        }
     }
 }
 
@@ -353,6 +454,14 @@ fn sns_list_report_rejects_inexact_lifecycle_results() {
         (untrimmed_lifecycle_error, "surrounding whitespace"),
         (contradictory_lifecycle_result, "both value fields"),
         (mismatched_lifecycle_name, "lifecycle_name"),
+        (
+            |rows| {
+                rows[0].lifecycle = None;
+                rows[0].lifecycle_name = None;
+                rows[0].lifecycle_error = None;
+            },
+            "neither a value nor lifecycle_error",
+        ),
     ] {
         let error = build_sns_list_report_with_source(
             &list_request(false),
@@ -368,6 +477,58 @@ fn sns_list_report_rejects_inexact_lifecycle_results() {
             } if reason.contains(expected_reason)
         ));
     }
+}
+
+#[test]
+fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
+    let root = temp_catalog_root("ic-query-sns-unknown-lifecycle");
+    let source = MutatingLifecycleSource(|rows| {
+        rows[0].lifecycle = Some(99);
+        rows[0].lifecycle_name = Some("unknown".to_string());
+    });
+    let request = list_request(false).with_all_lifecycles(true);
+    let live =
+        build_sns_list_report_with_source(&request, &source).expect("live unknown lifecycle");
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .expect("publish unknown lifecycle");
+    let cached = build_sns_list_report_from_cache(&request, &root).expect("read unknown lifecycle");
+    assert_eq!(cached.sns_instances, live.sns_instances);
+    assert_eq!(cached.sns_instances[0].lifecycle, Some(99));
+    assert_eq!(
+        cached.sns_instances[0].lifecycle_name.as_deref(),
+        Some("unknown")
+    );
+
+    let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
+    let original = fs::read(&path).expect("read published snapshot");
+    let invalid_source = MutatingLifecycleSource(|rows| {
+        rows[0].lifecycle = None;
+        rows[0].lifecycle_name = None;
+    });
+    let mut stale_request = request;
+    stale_request.now_unix_secs += DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS + 1;
+    let error = build_sns_list_report_from_cache_or_refresh_with_source(
+        &stale_request,
+        &root,
+        &invalid_source,
+        &mut progress,
+    )
+    .expect_err("missing source lifecycle must fail refresh");
+    assert!(matches!(
+        error,
+        SnsHostError::InvalidSourceData {
+            capability: "SNS lifecycle",
+            ..
+        }
+    ));
+    assert_eq!(fs::read(path).expect("read preserved snapshot"), original);
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -542,16 +703,27 @@ fn sns_list_surfaces_metadata_fallbacks() {
 
 #[test]
 fn direct_lookup_enriches_only_the_resolved_sns() {
-    let source = RecordingDiscoverySource::default();
+    for input in ["2", ROOT_B] {
+        let source = RecordingDiscoverySource::default();
+        let request = info_request(input);
+        let report =
+            build_sns_info_report_with_source(&request, &source).expect("targeted SNS info report");
 
-    let report = build_sns_info_report_with_source(&info_request("2"), &source)
-        .expect("targeted SNS info report");
-
-    assert_eq!(report.id, 2);
-    assert_eq!(
-        source.metadata_targets.borrow().as_slice(),
-        &[vec![report.root_canister_id]]
-    );
+        assert_eq!(report.id, 2);
+        assert_eq!(report.root_canister_id, ROOT_B);
+        assert_eq!(report.network, request.network);
+        assert_eq!(report.sns_wasm_canister_id, MAINNET_SNS_WASM_CANISTER_ID);
+        assert_eq!(report.source_endpoint, request.source_endpoint);
+        assert_eq!(report.fetched_by, "ic-query");
+        assert_eq!(
+            report.fetched_at,
+            crate::subnet_catalog::format_utc_timestamp_secs(request.now_unix_secs)
+        );
+        assert_eq!(
+            source.metadata_targets.borrow().as_slice(),
+            &[vec![report.root_canister_id]]
+        );
+    }
 }
 
 #[test]

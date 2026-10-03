@@ -19,35 +19,39 @@ pub(in crate::icrc) fn validate_canonical_account_transactions(
 ) -> Result<(), String> {
     let mut previous = None;
     for transaction in transactions {
-        let current =
-            parse_transaction_cursor(&transaction.id).map_err(|error| error.to_string())?;
-        if nat_text(&current) != transaction.id {
+        validate_transaction_cursor_text(&transaction.id).map_err(|error| error.to_string())?;
+        if transaction.id.len() > 1 && transaction.id.starts_with('0') {
             return Err(format!(
                 "transaction id {} is not canonical decimal text",
                 transaction.id
             ));
         }
-        if let Some(previous) = previous.as_ref()
-            && current >= *previous
+        if let Some(previous) = previous
+            && compare_canonical_decimal(&transaction.id, previous).is_ge()
         {
             return Err("transactions are not unique newest-first rows".to_string());
         }
-        previous = Some(current);
+        previous = Some(transaction.id.as_str());
     }
     Ok(())
 }
 
 pub(super) fn parse_transaction_cursor(value: &str) -> Result<Nat, IcrcAccountTransactionError> {
+    validate_transaction_cursor_text(value)?;
+    Nat::from_str(value).map_err(|error| IcrcAccountTransactionError::InvalidCursor {
+        value: value.to_string(),
+        reason: error.to_string(),
+    })
+}
+
+fn validate_transaction_cursor_text(value: &str) -> Result<(), IcrcAccountTransactionError> {
     if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err(IcrcAccountTransactionError::InvalidCursor {
             value: value.to_string(),
             reason: "expected unsigned decimal text".to_string(),
         });
     }
-    Nat::from_str(value).map_err(|error| IcrcAccountTransactionError::InvalidCursor {
-        value: value.to_string(),
-        reason: error.to_string(),
-    })
+    Ok(())
 }
 
 pub(super) fn nat_text(value: &Nat) -> String {
@@ -108,6 +112,12 @@ mod tests {
             vec![""],
             vec!["+1"],
             vec!["-1"],
+            vec!["01"],
+            vec![" 1"],
+            vec!["1 "],
+            vec!["1.0"],
+            vec!["١"],
+            vec!["４２"],
         ] {
             assert!(validate_canonical_account_transactions(&rows(&ids)).is_err());
         }

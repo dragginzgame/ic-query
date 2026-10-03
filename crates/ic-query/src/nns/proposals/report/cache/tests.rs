@@ -232,6 +232,15 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
             .status,
         CacheRefreshAttemptStatus::Complete
     );
+    assert_eq!(
+        status
+            .cache
+            .as_ref()
+            .expect("cache")
+            .latest_attempt
+            .as_ref(),
+        status.latest_attempt.as_ref()
+    );
     assert!(status_text.contains("latest_attempt:"));
     assert!(status_text.contains("status: complete"));
 }
@@ -279,6 +288,65 @@ fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
         err,
         NnsProposalHostError::Cache(HostCacheError::ParseCache { .. })
     ));
+
+    refresh_nns_proposal_cache_with_source(
+        &NnsGovernanceRefreshRequest {
+            network: MAINNET_NETWORK.to_string(),
+            source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
+            now_unix_secs: 1_700_000_000,
+            cache_root: root.clone(),
+            page_size: 2,
+            max_pages: None,
+        },
+        &FixtureSource,
+    )
+    .expect("create complete snapshot");
+    for invalid_snapshot in [false, true] {
+        if invalid_snapshot {
+            fs::write(&paths.snapshot_path, "invalid JSON").expect("corrupt snapshot");
+        }
+        crate::cache_file::write_managed_text_atomically(&root, &paths.refresh_attempt_path, "{")
+            .expect("corrupt attempt");
+        let request = NnsGovernanceCacheRequest {
+            network: MAINNET_NETWORK.to_string(),
+            cache_root: root.clone(),
+        };
+        let list = build_nns_proposal_cache_list_report(&request).expect("best-effort cache list");
+        assert_eq!(list.cache_count, 1);
+        assert_eq!(
+            list.caches[0].cache_status,
+            if invalid_snapshot {
+                CacheValidationStatus::Invalid
+            } else {
+                CacheValidationStatus::Valid
+            }
+        );
+        assert!(list.caches[0].latest_attempt.is_none());
+        let error = build_nns_proposal_cache_status_report(&request)
+            .expect_err("status retains strict attempt validation");
+        assert!(
+            matches!(
+                &error,
+                NnsProposalHostError::Cache(HostCacheError::ParseCache { path, .. })
+                    if path == &paths.refresh_attempt_path
+            ),
+            "unexpected attempt error: {error:?}"
+        );
+
+        fs::remove_file(&paths.refresh_attempt_path).expect("remove attempt");
+        let status =
+            build_nns_proposal_cache_status_report(&request).expect("absent attempt status");
+        assert!(status.found);
+        assert!(status.latest_attempt.is_none());
+        assert!(
+            status
+                .cache
+                .as_ref()
+                .expect("snapshot summary")
+                .latest_attempt
+                .is_none()
+        );
+    }
     let _ = fs::remove_dir_all(root);
 }
 

@@ -11,7 +11,7 @@ use crate::sns::report::{
     lookup::{assign_sns_ids_in_current_order, sns_list_fetch_request},
     source::{
         SnsCatalogSource, join_mainnet_sns_inventory, join_mainnet_sns_lifecycles,
-        validate_joined_mainnet_sns_catalog, validate_mainnet_sns_inventory,
+        validate_mainnet_sns_inventory,
     },
     view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
 };
@@ -50,6 +50,5 @@ pub(in crate::sns::report) fn fetch_joined_sns_catalog(
     let mut list = join_mainnet_sns_inventory(inventory, metadata)?;
     join_mainnet_sns_lifecycles(&mut list, lifecycles)?;
     assign_sns_ids_in_current_order(&mut list.sns_instances);
-    validate_joined_mainnet_sns_catalog(&list)?;
     Ok(list)
 }

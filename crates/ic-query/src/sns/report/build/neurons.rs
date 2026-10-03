@@ -42,8 +42,7 @@ pub fn build_sns_neurons_report_with_source(
     )?;
     validate_mainnet_sns_neurons(&neurons, request.limit)?;
     Ok(sns_neurons_report_from_parts(SnsNeuronsLiveReportParts {
-        list: lookup.list,
-        id: lookup.id,
+        fetch_request: lookup.fetch_request,
         sns: lookup.sns,
         requested_limit: request.limit,
         owner_principal_id: request.owner_principal_id.clone(),

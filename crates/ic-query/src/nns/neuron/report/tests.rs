@@ -70,6 +70,35 @@ impl NnsNeuronSource for FixtureSource {
 
 struct CountingSource;
 
+struct MutatingLastPageSource(fn(&mut NnsNeuronPage));
+
+impl NnsNeuronSource for MutatingLastPageSource {
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        exclusive_start_neuron_id: Option<u64>,
+        page_size: u32,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
+        Box::pin(async move {
+            let mut data = FixtureSource
+                .fetch_neuron_page(request, exclusive_start_neuron_id, page_size)
+                .await?;
+            if exclusive_start_neuron_id.is_some() {
+                self.0(&mut data.value);
+            }
+            Ok(data)
+        })
+    }
+
+    fn fetch_neuron<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        neuron_id: u64,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
+        FixtureSource.fetch_neuron(request, neuron_id)
+    }
+}
+
 impl NnsNeuronSource for CountingSource {
     fn fetch_neuron_page<'a>(
         &'a self,
@@ -392,6 +421,52 @@ fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
             actual,
         } if error_path == path && expected == "neurons" && actual == "wrong"
     ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
+    let root = temp_dir("ic-query-nns-neuron-invalid-page");
+    let request = NnsGovernanceRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        1_700_000_000,
+        2,
+    );
+    refresh_nns_neuron_cache_with_source(&request, &FixtureSource)
+        .expect("publish initial complete cache");
+    let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
+    let original = fs::read(&path).expect("read initial snapshot");
+
+    for mutate in [
+        (|page| page.neurons[0].state_text = NnsNeuronState::Dissolved) as fn(&mut NnsNeuronPage),
+        |page| page.neurons[0].neuron_id = 2,
+        |page| page.next_start_neuron_id = Some(3),
+    ] {
+        let error = refresh_nns_neuron_cache_with_source(&request, &MutatingLastPageSource(mutate))
+            .expect_err("invalid page must stop refresh");
+        assert!(matches!(
+            error,
+            NnsNeuronHostError::Neuron(NnsNeuronError::InvalidResponse { .. })
+        ));
+        assert_eq!(fs::read(&path).expect("preserved snapshot"), original);
+
+        let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
+            &root,
+            MAINNET_NETWORK,
+        ))
+        .expect("cache status after rejected page");
+        assert_eq!(
+            status.cache.expect("complete cache").cache_status,
+            CacheValidationStatus::Valid
+        );
+        let attempt = status.latest_attempt.expect("failed attempt");
+        assert_eq!(attempt.status, CacheRefreshAttemptStatus::Failed);
+        assert_eq!(attempt.pages_fetched, 1);
+        assert_eq!(attempt.rows_fetched, 2);
+        assert_eq!(attempt.last_cursor.as_deref(), Some("2"));
+    }
     let _ = fs::remove_dir_all(root);
 }
 

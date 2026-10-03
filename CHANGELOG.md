@@ -5,11 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
-
 ## [0.45.x] - 2026-10-03 - Cache and decoder bounds, validation, and cleanup
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
+
+- `0.45.4` removes `UncertifiedCatalogCollection::new` and its
+  `with_registry_evidence` method as a Rust API hard cut; custom sources must
+  construct explicit routing authority and Registry record evidence.
+  Simplifies SNS identity ownership and catalog validation, preserving original
+  ids, provenance, unknown lifecycle codes, and lifecycle evidence checks.
+  Removes redundant snapshot copies and publication-time validation in ICRC
+  account history, NNS neurons, and Dashboard node status; source and disk
+  validation and failed-refresh preservation remain enforced. NNS proposal
+  status reuses one attempt observation; listing retains best-effort handling.
+  Fixes the schema guard to reject multi-digit nonconforming versions.
+  CLI grammar, cache identities, and serialized shapes are unchanged;
+  schemas remain `1`.
 
 - `0.45.3` bounds SNS collection discovery to 1,024 candidates and 16,384
   directory entries per scan, with a shared 1 GiB read allowance for cache

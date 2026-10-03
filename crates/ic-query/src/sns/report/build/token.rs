@@ -20,8 +20,7 @@ pub fn build_sns_token_report_with_source(
     let lookup = resolve_sns_lookup(request, source)?;
     let token = source.fetch_sns_token(&lookup.fetch_request, &lookup.sns)?;
     Ok(sns_token_report_from_parts(
-        lookup.list,
-        lookup.id,
+        lookup.fetch_request,
         lookup.sns,
         token,
     ))

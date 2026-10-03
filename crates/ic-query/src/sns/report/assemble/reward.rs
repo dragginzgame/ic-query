@@ -7,10 +7,10 @@
 use crate::{
     report::ReportDataSource,
     sns::report::{
-        JoinedMainnetSnsInventory, MainnetSns, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
+        MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
         SnsGovernanceParameters, SnsHostError, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
         SnsRewardCheckpointSummary, SnsRewardCollectionStatus, SnsRewardEvent,
-        SnsRunningVersionResponse,
+        SnsRunningVersionResponse, SnsSourceRequest,
     },
     subnet_catalog::format_utc_timestamp_secs,
 };
@@ -22,8 +22,7 @@ use crate::{
 ///
 
 pub(in crate::sns::report) struct SnsRewardCheckpointReportParts {
-    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
-    pub(in crate::sns::report) id: usize,
+    pub(in crate::sns::report) fetch_request: SnsSourceRequest,
     pub(in crate::sns::report) sns: MainnetSns,
     pub(in crate::sns::report) collection_started_at_unix_secs: u64,
     pub(in crate::sns::report) collection_completed_at_unix_secs: u64,
@@ -52,11 +51,11 @@ pub(in crate::sns::report) fn sns_reward_checkpoint_report_from_parts(
     let row_count = parts.rows.len();
     Ok(SnsRewardCheckpointReport {
         schema_version: SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        source_endpoint: parts.list.source_endpoint,
-        fetched_by: parts.list.fetched_by,
-        id: parts.id,
+        network: parts.fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        source_endpoint: parts.fetch_request.endpoint,
+        fetched_by: parts.fetch_request.fetched_by,
+        id: parts.sns.id,
         name: parts.sns.name,
         root_canister_id: parts.sns.root_canister_id,
         governance_canister_id: parts.sns.governance_canister_id,

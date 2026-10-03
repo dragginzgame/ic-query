@@ -6,8 +6,8 @@
 
 use super::SnsReportProvenance;
 use crate::sns::report::{
-    JoinedMainnetSnsInventory, MainnetSns, MainnetSnsNeurons, SNS_NEURONS_REPORT_SCHEMA_VERSION,
-    SnsNeuronsReport, SnsNeuronsSort,
+    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsNeurons, SNS_NEURONS_REPORT_SCHEMA_VERSION,
+    SnsNeuronsReport, SnsNeuronsSort, SnsSourceRequest,
 };
 
 ///
@@ -17,8 +17,7 @@ use crate::sns::report::{
 ///
 
 pub(in crate::sns::report) struct SnsNeuronsLiveReportParts {
-    pub(in crate::sns::report) list: JoinedMainnetSnsInventory,
-    pub(in crate::sns::report) id: usize,
+    pub(in crate::sns::report) fetch_request: SnsSourceRequest,
     pub(in crate::sns::report) sns: MainnetSns,
     pub(in crate::sns::report) requested_limit: u32,
     pub(in crate::sns::report) owner_principal_id: Option<String>,
@@ -35,12 +34,12 @@ pub(in crate::sns::report) fn sns_neurons_report_from_parts(
     let provenance = SnsReportProvenance::live();
     SnsNeuronsReport {
         schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
-        network: parts.list.network,
-        sns_wasm_canister_id: parts.list.sns_wasm_canister_id,
-        fetched_at: parts.list.fetched_at,
-        source_endpoint: parts.list.source_endpoint,
-        fetched_by: parts.list.fetched_by,
-        id: parts.id,
+        network: parts.fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: parts.fetch_request.fetched_at,
+        source_endpoint: parts.fetch_request.endpoint,
+        fetched_by: parts.fetch_request.fetched_by,
+        id: parts.sns.id,
         name: parts.sns.name,
         root_canister_id: parts.sns.root_canister_id,
         governance_canister_id: parts.sns.governance_canister_id,

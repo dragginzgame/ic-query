@@ -1,4 +1,5 @@
 use super::*;
+use crate::subnet_catalog::SubnetCatalogRoutingSource;
 use proto::{CanisterIdRange, RoutingTableEntry};
 
 pub(super) const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
@@ -41,14 +42,17 @@ pub(super) fn catalog_from_parts_for_test(
         })
         .collect::<Result<Vec<_>, RegistryFetchError>>()?;
     RawSubnetCatalog::new_mainnet_uncertified(
-        UncertifiedCatalogCollection::new(
+        UncertifiedCatalogCollection {
             registry_version,
-            &request.endpoint,
-            &request.fetched_at,
-            &request.fetched_by,
-            "test",
-            3 + u64::try_from(subnet_records.len()).expect("fixture count fits u64"),
-        ),
+            source_endpoint: request.endpoint.clone(),
+            fetched_at: request.fetched_at.clone(),
+            fetched_by: request.fetched_by.clone(),
+            collector_version: "test".to_string(),
+            registry_query_call_count: 3 + u64::try_from(subnet_records.len())
+                .expect("fixture count fits u64"),
+            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
+        },
         subnets,
         routing_ranges_from_table(&routing_table)?,
     )

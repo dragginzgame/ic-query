@@ -175,7 +175,6 @@ pub fn refresh_sns_catalog_with_source(
                 request.now_unix_secs,
             );
             let list = fetch_joined_sns_catalog(&list_request, source)?;
-            validate_joined_mainnet_sns_catalog(&list)?;
             let metadata_error_count = list
                 .sns_instances
                 .iter()
@@ -273,7 +272,7 @@ fn validate_catalog_cache(path: &Path, cache: &SnsCatalogCache) -> Result<(), Sn
             "fetched_at is not a canonical UTC timestamp".to_string(),
         ));
     }
-    validate_joined_mainnet_sns_catalog(&joined_from_cache(cache))
+    validate_joined_mainnet_sns_catalog(&cache.data.sns_instances)
         .map_err(|error| invalid(format!("cached joined SNS catalog is invalid: {error}")))
 }
 
@@ -315,19 +314,16 @@ fn cache_from_list(list: JoinedMainnetSnsInventory) -> SnsCatalogCache {
     }
 }
 
-fn joined_from_cache(cache: &SnsCatalogCache) -> JoinedMainnetSnsInventory {
-    JoinedMainnetSnsInventory {
-        network: cache.network.clone(),
-        sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id.clone(),
-        fetched_at: cache.fetched_at.clone(),
-        fetched_by: cache.fetched_by.clone(),
-        source_endpoint: cache.source_endpoint.clone(),
-        sns_instances: cache.data.sns_instances.clone(),
-    }
-}
-
 fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) -> SnsListReport {
-    let mut list = joined_from_cache(&cached.cache);
+    let CachedSnsCatalog { path, cache } = cached;
+    let mut list = JoinedMainnetSnsInventory {
+        network: cache.network,
+        sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
+        fetched_at: cache.fetched_at,
+        fetched_by: cache.fetched_by,
+        source_endpoint: cache.source_endpoint,
+        sns_instances: cache.data.sns_instances,
+    };
     let catalog_sns_count = list.sns_instances.len();
     filter_mainnet_sns_instances(&mut list.sns_instances, request.all_lifecycles);
     sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
@@ -337,7 +333,7 @@ fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) ->
         request.all_lifecycles,
         request.verbose,
         request.sort,
-        SnsReportProvenance::cache(&cached.path, true),
+        SnsReportProvenance::cache(&path, true),
     )
 }
 

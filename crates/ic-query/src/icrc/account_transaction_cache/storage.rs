@@ -112,7 +112,7 @@ pub(super) fn load_snapshot_at(
     })
 }
 
-pub(super) fn validate_snapshot(
+fn validate_snapshot(
     path: &Path,
     snapshot: &IcrcAccountTransactionSnapshot,
     request: &IcrcAccountTransactionCacheRequest,
@@ -154,19 +154,34 @@ pub(super) fn validate_snapshot(
             "newest or oldest transaction id does not match cached rows".to_string(),
         ));
     }
-    let (Some(started), Some(completed)) = (
-        parse_utc_timestamp_secs(&snapshot.collection_started_at),
-        parse_utc_timestamp_secs(&snapshot.collection_completed_at),
-    ) else {
-        return Err(invalid("collection timestamp is invalid".to_string()));
-    };
-    if completed < started {
-        return Err(invalid(
-            "collection completed before it started".to_string(),
-        ));
-    }
+    validate_collection_timestamps(
+        path,
+        &snapshot.collection_started_at,
+        &snapshot.collection_completed_at,
+    )?;
     Principal::from_text(&snapshot.index_canister_id)
         .map_err(|error| invalid(format!("invalid index canister id: {error}")))?;
+    Ok(())
+}
+
+pub(super) fn validate_collection_timestamps(
+    path: &Path,
+    started_at: &str,
+    completed_at: &str,
+) -> Result<(), IcrcAccountTransactionError> {
+    let invalid = |reason: &str| IcrcAccountTransactionError::InvalidCache {
+        path: path.to_path_buf(),
+        reason: reason.to_string(),
+    };
+    let (Some(started), Some(completed)) = (
+        parse_utc_timestamp_secs(started_at),
+        parse_utc_timestamp_secs(completed_at),
+    ) else {
+        return Err(invalid("collection timestamp is invalid"));
+    };
+    if completed < started {
+        return Err(invalid("collection completed before it started"));
+    }
     Ok(())
 }
 

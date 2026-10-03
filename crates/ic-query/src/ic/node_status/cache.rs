@@ -8,10 +8,11 @@ use super::{
     DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS, IC_NODE_STATUS_SCHEMA_VERSION,
     IcNodeProviderStatusReport, IcNodeStatusCacheEvidence, IcNodeStatusCacheRequest,
     IcNodeStatusHostError, IcNodeStatusObservation, IcNodeStatusReadRequest,
-    IcNodeStatusRefreshReport, IcNodeStatusRefreshRequest, IcNodeStatusScope, IcNodeStatusSnapshot,
-    IcSubnetStatusReport, MAX_IC_NODE_STATUS_ROWS, ic_node_provider_status_report_from_snapshot,
-    ic_node_status_report_from_snapshot, ic_subnet_status_report_from_snapshot,
-    node_status_group_counts, validate_canonical_node_status_rows, validate_default_node_scope,
+    IcNodeStatusRefreshReport, IcNodeStatusRefreshRequest, IcNodeStatusRow, IcNodeStatusScope,
+    IcNodeStatusSnapshot, IcSubnetStatusReport, MAX_IC_NODE_STATUS_ROWS,
+    ic_node_provider_status_report_from_snapshot, ic_node_status_report_from_snapshot,
+    ic_subnet_status_report_from_snapshot, node_status_group_counts,
+    validate_canonical_node_status_rows, validate_default_node_scope,
 };
 use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
@@ -188,14 +189,19 @@ pub fn refresh_ic_node_status_snapshot_with_source(
         },
         |error| IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error)),
         |state| {
-            let snapshot = build_ic_node_status_snapshot_with_source(
+            let IcNodeStatusSnapshot {
+                observation,
+                nodes,
+                node_count,
+                counts,
+            } = build_ic_node_status_snapshot_with_source(
                 &super::IcNodeStatusSnapshotRequest::new(
                     &request.source_endpoint,
                     request.now_unix_secs,
                 ),
                 source,
             )?;
-            let cache = cache_from_snapshot(&snapshot);
+            let cache = cache_from_observation(observation, nodes);
             write_managed_json_pretty_atomically(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
@@ -220,8 +226,8 @@ pub fn refresh_ic_node_status_snapshot_with_source(
                 cache_path: paths.snapshot_path.display().to_string(),
                 refresh_lock_path: paths.refresh_lock_path.display().to_string(),
                 replaced_existing_cache: state.replaced_existing_snapshot,
-                node_count: snapshot.node_count,
-                counts: snapshot.counts,
+                node_count,
+                counts,
             })
         },
     )
@@ -438,33 +444,35 @@ fn loaded_snapshot(loaded: LoadedNodeStatusCache, now_unix_secs: u64) -> IcNodeS
     }
 }
 
-fn cache_from_snapshot(snapshot: &IcNodeStatusSnapshot) -> NodeStatusCache {
+fn cache_from_observation(
+    observation: IcNodeStatusObservation,
+    nodes: Vec<IcNodeStatusRow>,
+) -> NodeStatusCache {
+    let node_count = nodes.len();
     SnapshotEnvelope {
         schema_version: IC_NODE_STATUS_SCHEMA_VERSION,
-        network: snapshot.observation.source.network.clone(),
-        source_endpoint: snapshot.observation.source.source_endpoint.clone(),
-        fetched_at: snapshot.observation.source.fetched_at.clone(),
-        fetched_by: snapshot.observation.source.fetched_by.clone(),
+        network: observation.source.network,
+        source_endpoint: observation.source.source_endpoint,
+        fetched_at: observation.source.fetched_at,
+        fetched_by: observation.source.fetched_by,
         domain: CACHE_DOMAIN.to_string(),
         entity: CACHE_ENTITY.to_string(),
         collection: CACHE_COLLECTION.to_string(),
         scope: "full".to_string(),
         metadata: NodeStatusCacheMetadata {
-            authority: snapshot.observation.source.authority.clone(),
-            node_scope: snapshot.observation.scope,
-            cloud_engine_nodes_included: snapshot.observation.cloud_engine_nodes_included,
-            certified: snapshot.observation.source.certified,
-            point_in_time_guaranteed: snapshot.observation.source.point_in_time_guaranteed,
+            authority: observation.source.authority,
+            node_scope: observation.scope,
+            cloud_engine_nodes_included: observation.cloud_engine_nodes_included,
+            certified: observation.source.certified,
+            point_in_time_guaranteed: observation.source.point_in_time_guaranteed,
         },
         completeness: CacheCollectionCompleteness::api_exhausted(
             MAX_IC_NODE_STATUS_ROWS,
             1,
-            snapshot.node_count,
+            node_count,
             false,
         ),
-        data: NodeStatusCacheData {
-            nodes: snapshot.nodes.clone(),
-        },
+        data: NodeStatusCacheData { nodes },
     }
 }
 
